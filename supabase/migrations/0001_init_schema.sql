@@ -7,6 +7,12 @@
 create extension if not exists "postgis";
 create extension if not exists "pgcrypto";
 
+-- Supabase installs PostGIS into the `extensions` schema, not `public`, and
+-- the migration runner's search_path does not include it. Without this the
+-- geography type, the ST_* functions and the geography GiST operator class
+-- are all invisible and every spatial column fails to create.
+set search_path = public, extensions;
+
 -- ---------- Enumerated domains -------------------------------
 -- Declared as enums rather than free TEXT so the documented
 -- scope is enforced by the database, not by convention.
