@@ -108,13 +108,17 @@ create trigger users_verification_deadline
   for each row execute function public.set_verification_deadline();
 
 -- A tanod is only dispatchable while actually on duty.
+-- coalesce is load-bearing: duty_status is null for every non-tanod and for
+-- a tanod who has not yet gone on duty, and `null = 'on_duty'` is null, which
+-- would violate the NOT NULL on is_dispatchable at registration time.
 create or replace function public.sync_dispatchable()
 returns trigger language plpgsql as $$
 begin
-  new.is_dispatchable := (new.role = 'tanod'
-                          and new.duty_status = 'on_duty'
-                          and new.verification_status = 'verified'
-                          and not new.is_suspended);
+  new.is_dispatchable := coalesce(
+    new.role = 'tanod'
+    and new.duty_status = 'on_duty'
+    and new.verification_status = 'verified'
+    and not new.is_suspended, false);
   return new;
 end $$;
 

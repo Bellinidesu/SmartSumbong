@@ -32,9 +32,36 @@ $$;
 create policy users_self_read on public.users
   for select using (id = auth.uid() or public.is_admin());
 
+-- RLS gates ROWS, not COLUMNS. This policy alone let a resident run
+-- `update public.users set role='admin' where id = auth.uid()` and succeed.
+-- The trigger below is what actually protects the privileged columns.
 create policy users_self_update on public.users
   for update using (id = auth.uid())
   with check (id = auth.uid());
+
+create or replace function public.guard_privileged_user_fields()
+returns trigger language plpgsql as $$
+begin
+  -- auth.uid() is null only for service_role / backend contexts, which
+  -- bypass RLS anyway; an unauthenticated client never reaches this row.
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
+  if new.role                   is distinct from old.role
+     or new.verification_status is distinct from old.verification_status
+     or new.is_suspended        is distinct from old.is_suspended
+     or new.verified_by         is distinct from old.verified_by
+     or new.verified_at         is distinct from old.verified_at
+     or new.rejection_reason    is distinct from old.rejection_reason then
+    raise exception
+      'Only an administrator may change account role, verification, or suspension state';
+  end if;
+  return new;
+end $$;
+
+create trigger users_guard_privileged
+  before update on public.users
+  for each row execute function public.guard_privileged_user_fields();
 
 create policy users_admin_all on public.users
   for all using (public.is_admin()) with check (public.is_admin());
@@ -113,8 +140,14 @@ create policy status_logs_read on public.status_logs
                 where d.report_id = status_logs.report_id and d.tanod_id = auth.uid())
   );
 
+-- `auth.uid() is not null` let any resident forge trail entries, including
+-- with is_system = true. The transition functions are SECURITY DEFINER and
+-- run as the table owner, so they bypass this policy and keep working; the
+-- only direct writer left is an admin writing under their own id.
 create policy status_logs_insert on public.status_logs
-  for insert with check (auth.uid() is not null);
+  for insert with check (
+    public.is_admin() and changed_by = auth.uid() and is_system = false
+  );
 
 -- ---------- feedback -----------------------------------------
 create policy feedback_read on public.feedback
@@ -156,3 +189,28 @@ create policy sla_extensions_read on public.sla_extensions
 
 create policy sla_extensions_admin on public.sla_extensions
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- ---------- function execution grants ------------------------
+-- SECURITY DEFINER functions are granted to PUBLIC by default. The
+-- transition functions carry their own caller checks, but anon has no
+-- business calling them, and the cron sweeps are not a client surface.
+
+revoke execute on function
+  public.accept_dispatch(uuid),
+  public.reroute_dispatch(uuid, text, uuid),
+  public.submit_field_report(uuid, text),
+  public.reopen_report(uuid, text)
+from public, anon;
+
+grant execute on function
+  public.accept_dispatch(uuid),
+  public.reroute_dispatch(uuid, text, uuid),
+  public.submit_field_report(uuid, text),
+  public.reopen_report(uuid, text)
+to authenticated;
+
+revoke execute on function
+  public.sweep_overdue_reports(),
+  public.sweep_unaccepted_dispatches(),
+  public.sweep_overdue_verifications()
+from public, anon, authenticated;

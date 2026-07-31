@@ -49,10 +49,16 @@ create table public.dispatches (
 
   -- A reroute is meaningless without its reason.
   constraint reroute_needs_reason
-    check (rerouted_at is null or reroute_reason is not null),
-  -- Only one live dispatch per tanod per report.
-  constraint uniq_active_dispatch unique (report_id, tanod_id, assigned_at)
+    check (rerouted_at is null or reroute_reason is not null)
 );
+
+-- Only one LIVE dispatch per tanod per report. A plain unique constraint on
+-- (report_id, tanod_id, assigned_at) enforced nothing, since assigned_at
+-- makes every row distinct by construction. Historical rerouted/expired
+-- rows must stay insertable, so this is a partial index on live states only.
+create unique index dispatches_one_live_per_tanod
+  on public.dispatches (report_id, tanod_id)
+  where state in ('assigned', 'accepted');
 
 create index dispatches_report_idx  on public.dispatches (report_id);
 create index dispatches_tanod_idx   on public.dispatches (tanod_id, state);
@@ -206,9 +212,19 @@ begin
 end $$;
 
 -- Reopening a closed case (Escalated Report — Reopened Cases).
+-- SECURITY DEFINER means this runs as the owner and bypasses RLS entirely,
+-- so the authorization check has to live in the body. Without it any
+-- authenticated resident could reopen any report in the barangay.
 create or replace function public.reopen_report(p_report uuid, p_reason text)
 returns void language plpgsql security definer set search_path = public as $$
+declare v_old report_status;
 begin
+  if not public.is_admin() then
+    raise exception 'Only an administrator may reopen a complaint';
+  end if;
+
+  select status into v_old from public.reports where id = p_report;
+
   update public.reports
      set status = 'validated',
          reopened_count = reopened_count + 1,
@@ -220,8 +236,9 @@ begin
     raise exception 'Report is not in a reopenable state';
   end if;
 
+  -- Log the status it actually came from, not a hardcoded 'resolved'.
   insert into public.status_logs (report_id, changed_by, old_status, new_status, remark)
-  values (p_report, auth.uid(), 'resolved', 'validated', 'Reopened: ' || p_reason);
+  values (p_report, auth.uid(), v_old, 'validated', 'Reopened: ' || p_reason);
 end $$;
 
 -- =============================================================
