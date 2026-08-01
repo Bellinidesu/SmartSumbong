@@ -210,7 +210,8 @@ layout_head('Dashboard', 'dashboard.php');
         }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
+        animation: { duration: 300 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           tooltip: {
@@ -242,7 +243,8 @@ layout_head('Dashboard', 'dashboard.php');
           borderWidth: 0
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '68%' }
+      options: { responsive: true, maintainAspectRatio: false, resizeDelay: 120,
+        animation: { duration: 300 }, cutout: '68%' }
     });
   }
 
@@ -259,7 +261,8 @@ layout_head('Dashboard', 'dashboard.php');
         datasets: [{ data: categories.map(function (c) { return c.n; }),
                      backgroundColor: colours, borderWidth: 0 }]
       },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '68%' }
+      options: { responsive: true, maintainAspectRatio: false, resizeDelay: 120,
+        animation: { duration: 300 }, cutout: '68%' }
     });
 
     var list = document.getElementById('legend-category');
@@ -300,7 +303,8 @@ layout_head('Dashboard', 'dashboard.php');
         ]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
+        animation: { duration: 300 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: true, position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } },
