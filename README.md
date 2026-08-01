@@ -42,8 +42,15 @@ cp .env.example .env    # then fill it in — .env is gitignored
 
 ```
 supabase/migrations/   0001 schema · 0002 dispatch & SLA · 0003 RLS
-supabase/seed.sql      SLA policy windows (placeholders)
-docs/schema.md         schema reference + use case coverage map
+                       0004 realtime & signup bridge · 0005 PostGIS proximity
+                       0006 dispatch lifecycle · 0007 awaiting-unit queue
+                       0008 reroute guard · 0009 admin manual dispatch
+                       0010 barangay-owned settings · 0011 admin case review
+                       0012 dashboard metrics
+supabase/seed.sql      SLA policy windows (placeholders) + boundary
+docs/schema.md         schema reference, function map, use case coverage
+admin/                 PHP admin portal (login, cases, case, dashboard, logout)
+admin/map.html         Realtime + PostGIS test harness, not part of the portal
 ```
 
 ## Conventions

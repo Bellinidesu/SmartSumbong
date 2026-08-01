@@ -1053,3 +1053,18 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   .card--controls, .case-strip, .card--timeline { grid-column: 1; }
   .case-strip { grid-template-columns: 1fr 1fr; row-gap: 6px; }
 }
+
+/* ---------- confirmation screens (log out, and later: archive) ---------- */
+
+.confirm-card { max-width: 520px; margin: 40px auto; text-align: center; }
+.confirm-card .case-heading { margin-bottom: 10px; }
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 26px;
+}
+.confirm-actions .btn-accept,
+.confirm-actions .btn-deny { width: auto; min-width: 160px; padding: 0 22px; }
+.confirm-actions .btn-deny { color: var(--ink); border-color: var(--rule); }
+.confirm-actions .btn-deny:hover { background: #f1f3f9; }

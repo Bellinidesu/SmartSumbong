@@ -10,25 +10,54 @@ Actor naming is **`tanod`** throughout, per the panel revision. The string
 
 ## Tables
 
+All thirteen exist in `supabase/migrations/`. The right-hand column tracks the
+manuscript's Data Dictionary, which still documents only four of them — that gap
+is a writing task, not a build task.
+
 | Table | Purpose | In the manuscript DD? |
 |---|---|---|
-| `users` | Accounts, roles, verification, duty status | Yes — needs new columns |
-| `reports` | Complaints, location, SLA, escalation | Yes — needs new columns |
+| `users` | Accounts, roles, verification, duty status, last position | Yes — DD lacks the verification, duty and location columns |
+| `reports` | Complaints, location, SLA, escalation | Yes — DD lacks `due_at`, `escalated_at`, `escalation_level`, `reopened_count`, `geom`, `awaiting_unit_since`, `dispatch_attempts` |
 | `report_media` | Resident photos (multiple, 10 MB combined) | **No — add** |
-| `dispatches` | Assignment, accept/reroute, field report | Yes — needs new columns |
+| `dispatches` | Assignment, accept/reroute, field report | Yes — DD lacks the accept clock and reroute columns |
 | `dispatch_media` | Tanod photo proof | **No — add** |
 | `status_logs` | Append-only audit trail | Yes |
 | `feedback` | Post-resolution rating | **No — add** |
 | `attendance` | Tanod duty logging | **No — add** |
-| `notifications` | In-app alerts | **No — add** |
-| `sla_policies` | Per-category response windows | **No — add** |
+| `notifications` | In-app alerts (`is_read`, not a `read_at` timestamp) | **No — add** |
+| `sla_policies` | Per-category response windows, plus `auto_dispatch_on_file` | **No — add** |
 | `sla_extensions` | Audited deadline extensions | **No — add** |
+| `barangay_boundary` | OSM relation 2988704 as a PostGIS polygon, for jurisdiction checks | **No — add** |
+| `operational_settings` | Single row: attempt cap, location freshness, awaiting-unit alert. Barangay-owned, not developer-owned | **No — add** |
 
-Six of eleven tables are absent from the current Data Dictionary. That is what
+Nine of thirteen tables are absent from the current Data Dictionary. That is what
 Austria's comment ("ensure all tables are included in the ERD") actually requires.
 
 `emergency_alerts` is deliberately **not** present. The emergency feature was cut
 from scope by unanimous panel direction. Do not reintroduce it.
+
+---
+
+## Functions the portal calls
+
+Every state change goes through one of these rather than a bare `UPDATE`, so the
+status, the audit trail and the notification move in one transaction. Most are
+`security definer` because `notifications` has no insert policy by design —
+nobody writes their own alerts.
+
+| Function | Migration | Used by |
+|---|---|---|
+| `review_report(report, decision, remark)` | 0011 | Accept / Deny on the case screen |
+| `set_resolution_target(report, due)` | 0011 | "Target date resolution" field |
+| `tanod_roster(report)` | 0011 | The assign list — everyone, with ONLINE/OFFLINE |
+| `assignable_tanods(report)` | 0009 | Authoritative "who may take this" |
+| `admin_dispatch(report, tanod, instructions)` | 0009 | Dispatch button |
+| `auto_dispatch(report)` | 0005/0007 | Fires on filing for flagged categories |
+| `accept_dispatch` / `reroute_dispatch` / `submit_field_report` | 0002/0006/0008 | Tanod mobile app |
+| `dashboard_metrics(from, to)` | 0012 | Every figure on the dashboard, one call |
+
+`dashboard_metrics` is deliberately **not** definer: it runs with the caller's
+rights, so RLS still decides which reports are counted.
 
 ---
 
