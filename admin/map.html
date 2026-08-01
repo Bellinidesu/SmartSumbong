@@ -88,6 +88,8 @@
     font-size: 12.5px; font-weight: 550;
   }
   #scope[aria-pressed="false"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .fog { transition: fill-opacity .45s ease; }
+  @media (prefers-reduced-motion: reduce) { .fog { transition: none; } }
 
   #map { width: 100%; height: 100%; background: #e8e4dc; }
 
@@ -179,8 +181,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Publishable key. Safe in client code: it carries no privileges of its
 // own, every request is still filtered by RLS against the signed-in user.
-const SUPABASE_URL = 'https://xmkpokcnjzgxgwysperh.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_luTz-T7pfYkDOxtGX3okAQ_HJIWEPVW';
+const SUPABASE_URL = 'PASTE_YOUR_PROJECT_URL';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_PUBLISHABLE_KEY';
 
 // Centre derived from the OSM boundary relation (id 2988704, PSGC
 // 1381100183), not from an approximate pin. The map fits the polygon
@@ -258,6 +260,8 @@ function inRings(lat, lon, rings) {
 
 let RINGS = [];
 let boundaryBounds = null;
+let fogLayer = null;
+const FOG_OPACITY = 0.58;
 
 async function loadBoundary() {
   try {
@@ -272,12 +276,27 @@ async function loadBoundary() {
     RINGS = stitchRings(ways);
     if (!RINGS.length) return;
 
-    const layer = L.polygon(RINGS, {
-      color: '#14181d', weight: 2, opacity: .85,
-      fillColor: '#14181d', fillOpacity: .05, interactive: false,
+    // Outline stays visible in both modes — it is the jurisdiction line,
+    // not decoration.
+    const outline = L.polygon(RINGS, {
+      color: '#14181d', weight: 2, opacity: .9,
+      fill: false, interactive: false,
     }).addTo(map);
 
-    boundaryBounds = layer.getBounds();
+    // Fog: one polygon covering the world with the barangay rings cut
+    // out as holes. Leaflet treats the first ring as the outer boundary
+    // and every ring after it as a hole, so the barangay reads as clear
+    // glass and everything else is dimmed.
+    const WORLD = [[-89.9, -179.9], [-89.9, 179.9], [89.9, 179.9], [89.9, -179.9]];
+    fogLayer = L.polygon([WORLD, ...RINGS], {
+      className: 'fog',
+      stroke: false,
+      fillColor: '#0d1117',
+      fillOpacity: FOG_OPACITY,
+      interactive: false,
+    }).addTo(map);
+
+    boundaryBounds = outline.getBounds();
     map.fitBounds(boundaryBounds, { padding: [24, 24] });
     applyScope(true);
   } catch (e) {
@@ -289,18 +308,23 @@ async function loadBoundary() {
 // Locked: the admin cannot pan out of the barangay, which is the
 // jurisdiction the barangay actually dispatches into. Unlocked: the
 // surrounding city is visible, which is where escalated incidents go.
-function applyScope(locked) {
+function applyScope(focused) {
   const btn = document.getElementById('scope');
-  btn.setAttribute('aria-pressed', String(locked));
-  btn.textContent = locked ? 'Barangay 183 only' : 'Showing wider city';
+  btn.setAttribute('aria-pressed', String(focused));
+  btn.textContent = focused ? 'Barangay 183 only' : 'Showing wider city';
+
+  if (fogLayer) fogLayer.setStyle({ fillOpacity: focused ? FOG_OPACITY : 0 });
   if (!boundaryBounds) return;
-  if (locked) {
-    map.setMaxBounds(boundaryBounds.pad(0.08));
-    map.setMinZoom(map.getBoundsZoom(boundaryBounds));
+
+  if (focused) {
+    // Padded generously: the dimmed surroundings stay on screen, so the
+    // admin can see what is adjacent without it competing for attention.
+    map.setMaxBounds(boundaryBounds.pad(0.6));
+    map.setMinZoom(map.getBoundsZoom(boundaryBounds) - 1);
     map.fitBounds(boundaryBounds, { padding: [24, 24] });
   } else {
     map.setMaxBounds(null);
-    map.setMinZoom(11);
+    map.setMinZoom(10);
   }
 }
 
@@ -360,6 +384,7 @@ function draw(report) {
   const m = L.circleMarker([report.latitude, report.longitude], {
     radius: 8, color, fillColor: color, fillOpacity: .75, weight: 2,
   }).addTo(map).bindPopup(html);
+  if (fogLayer) fogLayer.bringToBack();
 
   markers.set(report.id, m);
 }
