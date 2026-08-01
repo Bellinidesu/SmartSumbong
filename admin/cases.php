@@ -44,9 +44,9 @@ try {
     $reports = $db->select('reports', $query);
 
     $notifications = $db->select('notifications', [
-        'select'  => 'id,kind,message,created_at,read_at,report_id',
+        'select'  => 'id,kind,message,created_at,is_read,report_id',
         'user_id' => 'eq.' . $admin['id'],
-        'read_at' => 'is.null',
+        'is_read' => 'is.false',
         'order'   => 'created_at.desc',
         'limit'   => '20',
     ]);
