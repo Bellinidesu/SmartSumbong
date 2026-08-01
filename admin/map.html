@@ -298,7 +298,14 @@ async function loadBoundary() {
 
     boundaryBounds = outline.getBounds();
     map.fitBounds(boundaryBounds, { padding: [24, 24] });
-    applyScope(true);
+
+    // Zooming out far enough to lose the barangay entirely is not a
+    // view anyone needs; two levels below the fit is already the whole
+    // of southern Metro Manila.
+    fitZoom = map.getBoundsZoom(boundaryBounds);
+    map.setMinZoom(fitZoom - 3);
+    map.on('zoom zoomend', syncFog);
+    syncFog();
   } catch (e) {
     console.warn('Boundary unavailable:', e);
     document.getElementById('scope').disabled = true;
@@ -308,29 +315,41 @@ async function loadBoundary() {
 // Locked: the admin cannot pan out of the barangay, which is the
 // jurisdiction the barangay actually dispatches into. Unlocked: the
 // surrounding city is visible, which is where escalated incidents go.
-function applyScope(focused) {
-  const btn = document.getElementById('scope');
-  btn.setAttribute('aria-pressed', String(focused));
-  btn.textContent = focused ? 'Barangay 183 only' : 'Showing wider city';
+// Fog is bound to zoom rather than to a switch. At the framing where
+// the barangay fills the screen it is fully dimmed outside; pulling
+// back two zoom levels clears it completely. Zooming out is already
+// the gesture for "show me more", so it carries the meaning without a
+// control to find: close in is what the barangay handles, wider out is
+// where referrals go.
+let fitZoom = null;
 
-  if (fogLayer) fogLayer.setStyle({ fillOpacity: focused ? FOG_OPACITY : 0 });
-  if (!boundaryBounds) return;
-
-  if (focused) {
-    // Padded generously: the dimmed surroundings stay on screen, so the
-    // admin can see what is adjacent without it competing for attention.
-    map.setMaxBounds(boundaryBounds.pad(0.6));
-    map.setMinZoom(map.getBoundsZoom(boundaryBounds) - 1);
-    map.fitBounds(boundaryBounds, { padding: [24, 24] });
-  } else {
-    map.setMaxBounds(null);
-    map.setMinZoom(10);
-  }
+function fogForZoom(z) {
+  if (fitZoom === null) return FOG_OPACITY;
+  const CLEAR_AT = fitZoom - 2;            // fully lifted
+  if (z <= CLEAR_AT) return 0;
+  if (z >= fitZoom)  return FOG_OPACITY;
+  return FOG_OPACITY * ((z - CLEAR_AT) / (fitZoom - CLEAR_AT));
 }
 
-document.getElementById('scope').addEventListener('click', e => {
-  applyScope(e.currentTarget.getAttribute('aria-pressed') !== 'true');
-});
+function syncFog() {
+  if (!fogLayer) return;
+  const z = map.getZoom();
+  fogLayer.setStyle({ fillOpacity: fogForZoom(z) });
+
+  const btn = document.getElementById('scope');
+  const focused = fogForZoom(z) > FOG_OPACITY * 0.5;
+  btn.setAttribute('aria-pressed', String(focused));
+  btn.textContent = focused ? 'Barangay 183' : 'Wider city — back to 183';
+}
+
+// The button no longer toggles a mode; it returns the map to the
+// barangay framing, which is the one action a zoomed-out admin wants.
+function applyScope() {
+  if (!boundaryBounds) return;
+  map.fitBounds(boundaryBounds, { padding: [24, 24] });
+}
+
+document.getElementById('scope').addEventListener('click', applyScope);
 
 const legend = L.control({ position: 'bottomright' });
 legend.onAdd = () => {
