@@ -98,6 +98,16 @@ final class Supabase
         ]);
     }
 
+    /**
+     * Change something GoTrue owns rather than the users table — in
+     * practice the password. Supabase requires a recent session for
+     * this, which is why the form asks for the current one first.
+     */
+    public function updateAuthUser(array $fields): array
+    {
+        return $this->request('PUT', '/auth/v1/user', $fields);
+    }
+
     public function signOut(): void
     {
         try {

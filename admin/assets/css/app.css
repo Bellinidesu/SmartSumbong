@@ -1411,3 +1411,47 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   .doc-block { break-inside: avoid; }
   thead { display: table-header-group; }
 }
+
+/* ---------- Edit Profile (Figma 12:6775) ---------- */
+
+.control-field input[type="text"],
+.control-field input[type="tel"],
+.control-field input[type="email"],
+.control-field input[type="password"] {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-input);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--ink);
+  background: #fff;
+}
+.control-field input:disabled { background: #f4f6fb; color: var(--ink-soft); }
+.control-field + .control-field { margin-top: 12px; }
+.card--complaint .control-field { max-width: 420px; }
+
+/* The Edit Profile control is a link styled as the primary button. */
+a.btn-accept { text-decoration: none; }
+
+/* ---------- Transfer Administration dialog ---------- */
+
+.succession {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  z-index: 900;
+  width: min(560px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-card);
+  box-shadow: 0 18px 50px rgba(16, 24, 40, .22);
+  background: #fff;
+  padding: 26px 28px 30px;
+}
+.succession::backdrop { background: rgba(9, 14, 30, .45); }
+.succession-search { margin: 12px 0 6px; }
+.cand-list { max-height: 240px; overflow-y: auto; margin-bottom: 14px; }
+.step-down { border-top: 1px solid var(--rule); margin-top: 22px; padding-top: 18px; }
+.step-down .case-sub { margin-bottom: 8px; }

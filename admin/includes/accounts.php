@@ -81,12 +81,37 @@ function render_account_screen(string $role): void
                         $flash = 'Account reinstated.';
                         break;
 
+                    case 'promote':
+                        // The database only knows the caller is an admin.
+                        // Re-signing in is what proves it is still the
+                        // person who owns the account at the keyboard.
+                        Supabase::signIn($admin['email'], (string) ($_POST['password'] ?? ''));
+                        $db->rpc('promote_to_admin', [
+                            'p_user'   => (string) ($_POST['successor'] ?? ''),
+                            'p_reason' => trim((string) ($_POST['reason'] ?? '')) ?: null,
+                        ]);
+                        $flash = 'Administrator access granted. You can now step down if you are leaving.';
+                        $target = '';
+                        break;
+
+                    case 'step_down':
+                        Supabase::signIn($admin['email'], (string) ($_POST['password'] ?? ''));
+                        $db->rpc('step_down_as_admin', [
+                            'p_new_role' => ($_POST['new_role'] ?? 'resident') === 'tanod' ? 'tanod' : 'resident',
+                        ]);
+                        logout();
+                        header('Location: login.php?steppeddown=1');
+                        exit;
+
                     default:
                         $flash = 'Unknown action.';
                         $level = 'error';
                 }
             } catch (SupabaseError $ex) {
-                $flash = $ex->getMessage();
+                $msg   = $ex->getMessage();
+                $flash = str_contains(strtolower($msg), 'credential')
+                    ? 'That password is not right. Nothing was changed.'
+                    : $msg;
                 $level = 'error';
             }
         }
@@ -107,6 +132,17 @@ function render_account_screen(string $role): void
         $accounts = $db->rpc('account_directory', ['p_role' => $role]);
     } catch (SupabaseError $ex) {
         $error = $ex->getMessage();
+    }
+
+    $transfer   = isset($_GET['transfer']);
+    $candSearch = trim((string) ($_GET['cand'] ?? ''));
+    $candidates = [];
+    if ($transfer && !$error) {
+        try {
+            $candidates = $db->rpc('admin_candidates', ['p_search' => $candSearch ?: null]);
+        } catch (SupabaseError $ex) {
+            $error = $ex->getMessage();
+        }
     }
 
     $viewId = (string) ($_GET['id'] ?? '');
@@ -170,6 +206,8 @@ function render_account_screen(string $role): void
           <input type="search" name="q" placeholder="Search Here" value="<?= e($search) ?>">
         </form>
 
+        <a class="btn-pdf" href="<?= e($self) ?>?transfer=1">Transfer Administration</a>
+
         <form class="panel-sort" method="get">
           <input type="hidden" name="q" value="<?= e($search) ?>">
           <label>Short by:
@@ -218,6 +256,85 @@ function render_account_screen(string $role): void
         </table>
       </div>
     </section>
+
+    <?php if ($transfer): ?>
+      <dialog class="succession" id="transfer" open>
+        <h2 class="doc-h">Transfer Administration</h2>
+        <p class="control-note">
+          Only verified accounts appear below. Verification is the step where the
+          barangay confirmed the person lives in 183, so an outsider cannot be
+          appointed. Appoint your successor first &mdash; you cannot step down
+          while you are the only administrator.
+        </p>
+
+        <form method="get" class="panel-search succession-search">
+          <?= nav_icon('search') ?>
+          <input type="hidden" name="transfer" value="1">
+          <input type="search" name="cand" placeholder="Type the successor's name"
+                 value="<?= e($candSearch) ?>" autofocus>
+        </form>
+
+        <form method="post">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+
+          <div class="cand-list">
+            <?php if (!$candidates): ?>
+              <p class="case-none">No verified account matches that name.</p>
+            <?php endif; ?>
+            <?php foreach ($candidates as $c): ?>
+              <label class="roster-row">
+                <input type="radio" name="successor" value="<?= e($c['id']) ?>" required>
+                <span class="roster-name"><?= e($c['full_name']) ?>
+                  <small class="roster-dist"><?= e($c['email']) ?></small></span>
+                <span class="roster-state is-on"><?= e(strtoupper($c['role'])) ?></span>
+                <span class="roster-pick">Appoint</span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+
+          <div class="control-field">
+            <label class="field-label" for="t-reason">Reason for the handover</label>
+            <input type="text" id="t-reason" name="reason" maxlength="200"
+                   placeholder="e.g. Turnover following the October 2026 barangay election">
+          </div>
+
+          <div class="control-field">
+            <label class="field-label" for="t-pass">Your password</label>
+            <input type="password" id="t-pass" name="password" required autocomplete="current-password">
+            <p class="field-hint">Confirms it is you making this change.</p>
+          </div>
+
+          <div class="confirm-actions" style="justify-content:flex-start">
+            <button class="btn-accept" type="submit" name="action" value="promote">Grant admin access</button>
+            <a class="btn-deny" href="<?= e($self) ?>">Cancel</a>
+          </div>
+        </form>
+
+        <form method="post" class="step-down">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <h3 class="case-sub">Stepping down</h3>
+          <p class="control-note">
+            Once your successor has admin access, hand over. You will be signed out
+            and returned to a normal account. This is refused while you are the only
+            administrator.
+          </p>
+          <div class="control-field">
+            <label class="field-label" for="t-role">Return to</label>
+            <select id="t-role" name="new_role">
+              <option value="resident">Resident</option>
+              <option value="tanod">Tanod</option>
+            </select>
+          </div>
+          <div class="control-field">
+            <label class="field-label" for="t-pass2">Your password</label>
+            <input type="password" id="t-pass2" name="password" required autocomplete="current-password">
+          </div>
+          <button class="btn-deny-confirm" type="submit" name="action" value="step_down">
+            Step down as administrator
+          </button>
+        </form>
+      </dialog>
+    <?php endif; ?>
 
     <?php
     layout_foot();
