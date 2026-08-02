@@ -46,7 +46,10 @@ function layout_head(string $title, string $active = ''): void
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= e($title) ?> — Smart Sumbong</title>
+<title><?= e($title) ?> — Smart Sumbong | Barangay 183</title>
+<link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
+<link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
+<meta name="theme-color" content="#0B2B6B">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="assets/css/app.css" rel="stylesheet">
@@ -87,6 +90,82 @@ function layout_head(string $title, string $active = ''): void
 }
 
 /**
+ * Idle sign-out.
+ *
+ * This portal lives on a shared desktop in a barangay office and people
+ * walk away from it mid-task. Twenty minutes of no keyboard, mouse or
+ * scroll and the session ends; at eighteen it asks first, because
+ * throwing away half a typed denial reason would be its own problem.
+ *
+ * The timer is only a convenience — the real expiry is on the session
+ * itself, server side. A tab left open with the clock disabled still
+ * cannot do anything once the token has lapsed.
+ */
+function idle_timeout(): void
+{
+    if (!current_admin()) return;
+    ?>
+    <div class="idle-veil" id="idle-veil" hidden>
+      <div class="idle-box" role="alertdialog" aria-labelledby="idle-h" aria-describedby="idle-p">
+        <h2 id="idle-h">Still there?</h2>
+        <p id="idle-p">
+          You have been idle for a while. For the barangay's security this
+          session will end in <strong id="idle-left">120</strong> seconds.
+        </p>
+        <div class="confirm-actions">
+          <button class="btn-accept" type="button" id="idle-stay">Keep me signed in</button>
+          <button class="btn-deny" type="button" id="idle-go">Sign out now</button>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" action="logout.php" id="idle-form" hidden>
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+    </form>
+
+    <script>
+    (function () {
+      var IDLE_MS = 18 * 60 * 1000, GRACE_S = 120;
+      var veil = document.getElementById('idle-veil'),
+          left = document.getElementById('idle-left'),
+          form = document.getElementById('idle-form');
+      var idleTimer, graceTimer, remaining;
+
+      function signOut() { form.submit(); }
+
+      function warn() {
+        remaining = GRACE_S;
+        left.textContent = remaining;
+        veil.removeAttribute('hidden');
+        graceTimer = setInterval(function () {
+          left.textContent = --remaining;
+          if (remaining <= 0) { clearInterval(graceTimer); signOut(); }
+        }, 1000);
+      }
+
+      function reset() {
+        if (!veil.hasAttribute('hidden')) return;   // the prompt is up; ignore stray events
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(warn, IDLE_MS);
+      }
+
+      document.getElementById('idle-stay').addEventListener('click', function () {
+        clearInterval(graceTimer);
+        veil.setAttribute('hidden', '');
+        reset();
+      });
+      document.getElementById('idle-go').addEventListener('click', signOut);
+
+      ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(function (ev) {
+        window.addEventListener(ev, reset, { passive: true });
+      });
+      reset();
+    })();
+    </script>
+    <?php
+}
+
+/**
  * Open complaints, for the alternating indicator on Spatial Distribution.
  * Counted once per page render and cached for the request. A failure here
  * must never take a page down, so it swallows and returns zero — the
@@ -113,6 +192,7 @@ function layout_foot(): void
     ?>
   </main>
 </div>
+<?php idle_timeout(); ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

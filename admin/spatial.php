@@ -69,6 +69,13 @@ layout_head('Spatial Distribution', 'spatial.php');
   <div class="map-shell">
     <div id="map"></div>
 
+    <!-- Barangay wifi drops. A map that has silently stopped updating
+         looks exactly like a map with nothing new on it, which is the
+         more dangerous of the two. -->
+    <div class="conn-strip" id="conn" hidden role="status">
+      <span class="conn-dot"></span><span id="conn-text">Reconnecting&hellip;</span>
+    </div>
+
     <div class="map-dock">
       <button class="incident-badge" id="incident-toggle" aria-expanded="false"
               aria-controls="map-side" title="Live incidents">
@@ -121,8 +128,12 @@ const BRGY = [14.51646, 121.01621];
 // because a degree of longitude is shorter than a degree of latitude at
 // this latitude, and equal numbers would give a box taller than it looks.
 const RESIDENTIAL_CENTRE = [14.526905, 121.015543];
-const SPAN_LAT = 0.0062;
-const SPAN_LNG = 0.0064;
+const SPAN_LAT = 0.0110;
+const SPAN_LNG = 0.0115;
+
+// Google's 17z at this centre, which frames 1st Street through 31st.
+// Leaflet and Google use the same zoom scale, so the number carries over.
+const DEFAULT_ZOOM = 17;
 
 const AREA = L.latLngBounds(
   [RESIDENTIAL_CENTRE[0] - SPAN_LAT, RESIDENTIAL_CENTRE[1] - SPAN_LNG],
@@ -138,13 +149,43 @@ const COLOUR = {
 };
 const label = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+// Shape carries the same information as colour. Around one man in twelve
+// cannot reliably separate this orange from this green, and a map read
+// only by hue is a map they cannot use.
+const SHAPE = {
+  pending_review: 'circle', validated: 'circle',
+  assigned: 'square', in_progress: 'square', offline_investigation: 'square',
+  resolved: 'diamond', closed: 'diamond', archived: 'diamond',
+  rejected: 'cross',
+};
+
+function pinFor(status) {
+  const fill  = COLOUR[status] || '#9aa1ab';
+  const shape = SHAPE[status]  || 'circle';
+  const body = {
+    circle:  '<circle cx="11" cy="11" r="8"/>',
+    square:  '<rect x="3.5" y="3.5" width="15" height="15" rx="2.5"/>',
+    diamond: '<path d="M11 2.5 19.5 11 11 19.5 2.5 11Z"/>',
+    cross:   '<path d="M6 6l10 10M16 6L6 16" stroke-width="3.6" stroke-linecap="round" fill="none"/>',
+  }[shape];
+
+  return L.divIcon({
+    className: 'pin-icon',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -10],
+    html: '<svg viewBox="0 0 22 22" fill="' + fill + '" stroke="#fff" stroke-width="2">'
+        + body + '</svg>',
+  });
+}
+
 const map = L.map('map', {
   maxBounds: AREA.pad(0.12),   // a little slack so edge pins are reachable
   maxBoundsViscosity: 0.9,     // resists dragging past it rather than snapping
-  minZoom: 15,
+  minZoom: 16,
   maxZoom: 19,
   zoomControl: false
-}).fitBounds(AREA);
+}).setView(RESIDENTIAL_CENTRE, DEFAULT_ZOOM);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
@@ -214,10 +255,7 @@ function draw() {
   pins.clearLayers();
 
   rows.forEach(r => {
-    L.circleMarker([r.latitude, r.longitude], {
-      radius: 8, weight: 2, color: '#fff',
-      fillColor: COLOUR[r.status] || '#9aa1ab', fillOpacity: .92
-    }).bindPopup(
+    L.marker([r.latitude, r.longitude], { icon: pinFor(r.status) }).bindPopup(
       '<strong>' + r.tracking_id + '</strong><br>' +
       label(r.category) + ' &middot; ' + label(r.status) + '<br>' +
       '<a href="case.php?id=' + r.id + '">Open this case</a>'
@@ -277,7 +315,16 @@ sb.channel('reports-spatial')
     if (payload.eventType !== 'DELETE' && !row.deleted_at) all.unshift(row);
     draw();
   })
-  .subscribe();
+  .subscribe(status => {
+    const strip = document.getElementById('conn'),
+          text  = document.getElementById('conn-text');
+    if (status === 'SUBSCRIBED') {
+      strip.setAttribute('hidden', '');
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      text.textContent = 'Connection lost — this map is not updating. Reconnecting…';
+      strip.removeAttribute('hidden');
+    }
+  });
 
 // Collapsed by default: the map is the screen, the list is a drawer.
 const toggle = document.getElementById('incident-toggle');
