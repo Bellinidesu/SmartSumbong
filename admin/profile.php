@@ -120,6 +120,14 @@ try {
     $error = $ex->getMessage();
 }
 
+// Knowing when the account was last used is how someone notices it was
+// used by somebody else. Never worth failing the page over.
+$lastSeen = null;
+try {
+    $lastSeen = db()->authUser()['last_sign_in_at'] ?? null;
+} catch (Throwable) {
+}
+
 $editing = isset($_GET['edit']);
 
 layout_head('Edit Profile', 'profile.php');
@@ -150,6 +158,9 @@ layout_head('Edit Profile', 'profile.php');
           <dt>Email address</dt><dd><?= e($me['email']) ?></dd>
           <dt>Mobile number</dt><dd class="mono"><?= e($me['mobile_number']) ?></dd>
           <dt>Account created</dt><dd><?= e(long_datetime($me['created_at'])) ?></dd>
+          <?php if ($lastSeen): ?>
+            <dt>Last signed in</dt><dd><?= e(long_datetime($lastSeen)) ?></dd>
+          <?php endif; ?>
         </dl>
       </div>
 
@@ -206,6 +217,10 @@ layout_head('Edit Profile', 'profile.php');
       <div class="control-field">
         <label class="field-label" for="new_password">New password</label>
         <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
+        <!-- Guidance, not a gate. The rule is eight characters; the meter
+             just tells you whether you have done better than that. -->
+        <div class="pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
+        <p class="field-hint" id="pw-note">At least 8 characters.</p>
       </div>
 
       <div class="control-field">
@@ -217,5 +232,31 @@ layout_head('Edit Profile', 'profile.php');
     </form>
   </aside>
 </div>
+
+<script>
+(function () {
+  var pw = document.getElementById('new_password'),
+      bar = document.getElementById('pw-bar'),
+      note = document.getElementById('pw-note');
+  if (!pw) return;
+
+  pw.addEventListener('input', function () {
+    var v = pw.value, score = 0;
+    if (v.length >= 8)  score++;
+    if (v.length >= 12) score++;
+    if (/[a-z]/.test(v) && /[A-Z]/.test(v)) score++;
+    if (/\d/.test(v)) score++;
+    if (/[^\w\s]/.test(v)) score++;
+
+    var levels = ['', 'weak', 'weak', 'fair', 'good', 'strong'];
+    var words  = ['At least 8 characters.', 'Weak — add length.', 'Weak — add length.',
+                  'Fair. A longer phrase beats added symbols.',
+                  'Good.', 'Strong.'];
+    bar.className = levels[score] || '';
+    bar.style.width = (score / 5 * 100) + '%';
+    note.textContent = v === '' ? words[0] : words[score];
+  });
+})();
+</script>
 
 <?php layout_foot(); ?>

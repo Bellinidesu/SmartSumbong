@@ -214,6 +214,16 @@ layout_head('Case Review', 'cases.php');
   <section class="card card--complaint">
     <h1 class="case-heading">
       <?= e($report['tracking_id']) ?>: <?= e(category_label($report['category'])) ?>
+      <!-- Admins read this number out over the phone and paste it into
+           texts to residents. One click beats selecting it by hand. -->
+      <button class="copy-id" type="button" data-copy="<?= e($report['tracking_id']) ?>"
+              title="Copy complaint ID" aria-label="Copy complaint ID">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="11" height="11" rx="2"/>
+          <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+        </svg>
+      </button>
     </h1>
 
     <p class="case-filed">
@@ -223,6 +233,14 @@ layout_head('Case Review', 'cases.php');
       </svg>
       Filed on <?= e(long_datetime($report['created_at'])) ?>
     </p>
+
+    <?php if (!empty($report['due_at'])
+              && !in_array($status, ['resolved','closed','archived','rejected'], true)): ?>
+      <!-- A date makes you do the arithmetic; a countdown does not. -->
+      <p class="sla-countdown" data-due="<?= e($report['due_at']) ?>">
+        <span class="sla-text">calculating&hellip;</span>
+      </p>
+    <?php endif; ?>
 
     <div class="case-flags">
       <span class="pill pill--<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
@@ -271,6 +289,8 @@ layout_head('Case Review', 'cases.php');
     <?php if ($canJudge): ?>
       <form method="post" class="control-stack" id="review-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+
+        <p class="kbd-hint">Press <kbd>A</kbd> to accept, <kbd>D</kbd> to deny.</p>
 
         <button class="btn-accept" type="submit" name="action" value="accept">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -437,6 +457,52 @@ layout_head('Case Review', 'cases.php');
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
+  // ---- copy the tracking id ----
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(btn.dataset.copy).then(function () {
+        btn.classList.add('is-done');
+        setTimeout(function () { btn.classList.remove('is-done'); }, 1400);
+      });
+    });
+  });
+
+  // ---- live SLA countdown ----
+  var sla = document.querySelector('.sla-countdown');
+  if (sla) {
+    var due = new Date(sla.dataset.due);
+    var out = sla.querySelector('.sla-text');
+    (function tick() {
+      var ms = due - new Date(), late = ms < 0, a = Math.abs(ms);
+      var d = Math.floor(a / 86400000),
+          h = Math.floor(a % 86400000 / 3600000),
+          m = Math.floor(a % 3600000 / 60000);
+      var span = (d ? d + 'd ' : '') + (d || h ? h + 'h ' : '') + m + 'm';
+      out.textContent = late ? 'Overdue by ' + span : span + ' left to resolve';
+      sla.classList.toggle('is-late', late);
+      sla.classList.toggle('is-close', !late && a < 21600000);   // under six hours
+      setTimeout(tick, 30000);
+    })();
+  }
+
+  // ---- keyboard: A accepts, D opens the denial, Esc closes it ----
+  // An admin clearing twenty complaints should not have to find the
+  // mouse for each one. Ignored while typing, so a reason containing
+  // the letter A does not submit the form.
+  document.addEventListener('keydown', function (ev) {
+    var t = ev.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || ev.metaKey || ev.ctrlKey) return;
+
+    var accept = document.querySelector('[value="accept"]'),
+        denyBtn = document.getElementById('deny-toggle'),
+        panel   = document.getElementById('deny-panel');
+
+    if (ev.key === 'Escape' && panel && !panel.hasAttribute('hidden')) { denyBtn.click(); return; }
+    if (!accept) return;
+    if (ev.key === 'a' || ev.key === 'A') { ev.preventDefault(); accept.click(); }
+    if (ev.key === 'd' || ev.key === 'D') { ev.preventDefault(); denyBtn.click(); }
+  });
+
   // Deny is destructive and irreversible, so it asks for a reason before
   // it will submit. The button only reveals the field; the second one commits.
   var toggle = document.getElementById('deny-toggle');

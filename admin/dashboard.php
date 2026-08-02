@@ -49,6 +49,13 @@ try {
         'p_from' => $month->format(DateTimeInterface::ATOM),
         'p_to'   => $next->format(DateTimeInterface::ATOM),
     ]);
+    // Same call, previous month. A number on its own says nothing —
+    // "31 complaints" is either a quiet month or a crisis depending on
+    // what last month was. The comparison is what a kapitan reads.
+    $prev = $db->rpc('dashboard_metrics', [
+        'p_from' => $month->modify('-1 month')->format(DateTimeInterface::ATOM),
+        'p_to'   => $month->format(DateTimeInterface::ATOM),
+    ]);
 } catch (SupabaseError $ex) {
     $error = $ex->getMessage();
 }
@@ -65,6 +72,40 @@ $tiles      = $m['tiles'] ?? ['resolved' => 0, 'escalated' => 0, 'overdue' => 0]
 $total      = (int) ($m['total'] ?? 0);
 
 $statusTotal = array_sum(array_map('intval', $status));
+
+$pm        = is_array($prev ?? null) ? $prev : [];
+$prevTiles = $pm['tiles'] ?? [];
+$prevTotal = (int) ($pm['total'] ?? 0);
+
+/**
+ * Movement against the same figure last month. Returns null when there is
+ * no previous month to compare with, rather than pretending a first month
+ * is a 100% rise.
+ *
+ * $goodWhenDown is true for figures you want falling — overdue cases,
+ * escalations — so the colour follows the meaning rather than the sign.
+ */
+function delta(int $now, ?int $was, bool $goodWhenDown = false): ?array
+{
+    if ($was === null) return null;
+    if ($was === 0 && $now === 0) return ['flat', 'no change', ''];
+    if ($was === 0) return ['up', 'new this month', $goodWhenDown ? 'bad' : 'good'];
+
+    $pct = (int) round(($now - $was) / $was * 100);
+    if ($pct === 0) return ['flat', 'level with last month', ''];
+
+    $dir  = $pct > 0 ? 'up' : 'down';
+    $tone = ($pct > 0) === $goodWhenDown ? 'bad' : 'good';
+    return [$dir, abs($pct) . '% vs last month', $tone];
+}
+
+function delta_html(?array $d): string
+{
+    if ($d === null) return '';
+    [$dir, $text, $tone] = $d;
+    $arrow = $dir === 'up' ? '▲' : ($dir === 'down' ? '▼' : '•');
+    return '<span class="delta delta--' . $tone . '">' . $arrow . ' ' . e($text) . '</span>';
+}
 
 layout_head('Dashboard', 'dashboard.php');
 ?>
@@ -89,7 +130,8 @@ layout_head('Dashboard', 'dashboard.php');
 <section class="card chart-card">
   <header class="chart-head">
     <h2 class="chart-title">Total reports received</h2>
-    <span class="chart-period"><?= e($month->format('F Y')) ?></span>
+    <span class="chart-period"><?= e($month->format('F Y')) ?>
+      <?= delta_html(delta($total, $prevTotal ?: null)) ?></span>
   </header>
 
   <?php if ($total === 0): ?>
@@ -107,17 +149,20 @@ layout_head('Dashboard', 'dashboard.php');
     <div class="tile">
       <p class="tile-label">Reports Resolved</p>
       <p class="tile-value"><?= (int) $tiles['resolved'] ?></p>
-      <p class="tile-foot"><?= e($month->format('F Y')) ?></p>
+      <p class="tile-foot"><?= e($month->format('F Y')) ?>
+        <?= delta_html(delta((int) $tiles['resolved'], isset($prevTiles['resolved']) ? (int) $prevTiles['resolved'] : null)) ?></p>
     </div>
     <div class="tile">
       <p class="tile-label">Escalated Reports</p>
       <p class="tile-value"><?= (int) $tiles['escalated'] ?></p>
-      <p class="tile-foot"><?= e($month->format('F Y')) ?></p>
+      <p class="tile-foot"><?= e($month->format('F Y')) ?>
+        <?= delta_html(delta((int) $tiles['escalated'], isset($prevTiles['escalated']) ? (int) $prevTiles['escalated'] : null, true)) ?></p>
     </div>
     <div class="tile tile--warn">
       <p class="tile-label">Overdue Cases</p>
       <p class="tile-value"><?= (int) $tiles['overdue'] ?></p>
-      <p class="tile-foot">Past their resolution target</p>
+      <p class="tile-foot">Past their resolution target
+        <?= delta_html(delta((int) $tiles['overdue'], isset($prevTiles['overdue']) ? (int) $prevTiles['overdue'] : null, true)) ?></p>
     </div>
   </div>
 
@@ -142,6 +187,7 @@ layout_head('Dashboard', 'dashboard.php');
           <li><span class="sw" style="background:#9ca3af"></span>Denied (<?= (int) $status['rejected'] ?>)</li>
         <?php endif; ?>
       </ul>
+      <p class="chart-hint">Click a segment to open those complaints.</p>
     <?php endif; ?>
   </section>
 
@@ -158,6 +204,7 @@ layout_head('Dashboard', 'dashboard.php');
         </div>
       </div>
       <ul class="legend" id="legend-category"></ul>
+      <p class="chart-hint">Click a segment to open those complaints.</p>
     <?php endif; ?>
   </section>
 </div>
@@ -246,8 +293,17 @@ layout_head('Dashboard', 'dashboard.php');
           borderWidth: 0
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '68%' }
+      options: {
+        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
+        animation: { duration: 300 }, cutout: '68%',
+        // A chart that shows a problem should also be the way to reach it.
+        onClick: function (_, hit) {
+          if (!hit.length) return;
+          var to = ['resolved', '', '', 'in_progress', 'rejected'][hit[0].index];
+          location.href = to ? 'cases.php?status=' + to : 'cases.php?view=attention';
+        },
+        onHover: function (ev, hit) { ev.native.target.style.cursor = hit.length ? 'pointer' : 'default'; }
+      }
     });
   }
 
@@ -264,8 +320,15 @@ layout_head('Dashboard', 'dashboard.php');
         datasets: [{ data: categories.map(function (c) { return c.n; }),
                      backgroundColor: colours, borderWidth: 0 }]
       },
-      options: { responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '68%' }
+      options: {
+        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
+        animation: { duration: 300 }, cutout: '68%',
+        onClick: function (_, hit) {
+          if (!hit.length) return;
+          location.href = 'cases.php?q=' + encodeURIComponent(categories[hit[0].index].category);
+        },
+        onHover: function (ev, hit) { ev.native.target.style.cursor = hit.length ? 'pointer' : 'default'; }
+      }
     });
 
     var list = document.getElementById('legend-category');

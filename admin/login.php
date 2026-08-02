@@ -56,10 +56,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endforeach; ?>
   </aside>
 
-  <!-- Right panel: orange field with the barangay photo washed behind it -->
+  <!-- Right panel: orange field with the barangay photo washed behind it.
+       Accepts either extension — whichever the team exported. -->
   <section class="login-panel">
-    <?php if (is_file(__DIR__ . '/assets/img/villamor-street.jpg')): ?>
-      <img class="login-panel-bg" src="assets/img/villamor-street.jpg" alt="" aria-hidden="true">
+    <?php
+    $bg = null;
+    foreach (['villamor-street.jpg', 'villamor-street.png'] as $candidate) {
+        if (is_file(__DIR__ . '/assets/img/' . $candidate)) { $bg = $candidate; break; }
+    }
+    ?>
+    <?php if ($bg): ?>
+      <img class="login-panel-bg" src="assets/img/<?= e($bg) ?>" alt="" aria-hidden="true">
     <?php endif; ?>
 
     <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.png')): ?>
@@ -102,6 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <a class="forgot" href="forgot-password.php">Forgot password?</a>
         </div>
 
+        <p class="caps-warn" id="caps" hidden role="status">Caps Lock is on.</p>
+
         <button class="login-btn" type="submit">Login</button>
       </form>
 
@@ -109,8 +118,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         No account? <a href="request-access.php">Request access here</a>
       </p>
     </div>
-  </section>
+</section>
 </div>
 
+<script>
+// Two failed sign-ins in a row are usually this, and nobody thinks to check.
+(function () {
+  var warn = document.getElementById('caps');
+  var pw   = document.querySelector('input[type="password"]');
+  if (!warn || !pw) return;
+  function check(ev) {
+    if (typeof ev.getModifierState !== 'function') return;
+    ev.getModifierState('CapsLock')
+      ? warn.removeAttribute('hidden')
+      : warn.setAttribute('hidden', '');
+  }
+  pw.addEventListener('keydown', check);
+  pw.addEventListener('keyup', check);
+  pw.addEventListener('blur', function () { warn.setAttribute('hidden', ''); });
+})();
+</script>
 </body>
 </html>

@@ -27,6 +27,28 @@ $admin = require_admin();
 $db    = db();
 $tz    = new DateTimeZone('Asia/Manila');
 
+session_start_once();
+
+// The admin who checks this every Monday should not retype the dates.
+if ($_SERVER['QUERY_STRING'] === '' && !empty($_SESSION['summary_period'])) {
+    $_GET = $_SESSION['summary_period'];
+}
+
+// Quick ranges, because "last month" is the request and typing two dates
+// is the tax on it.
+$tzq = new DateTimeZone('Asia/Manila');
+$RANGES = [
+    'week'     => ['This week',  new DateTimeImmutable('monday this week', $tzq),        new DateTimeImmutable('now', $tzq)],
+    'month'    => ['This month', new DateTimeImmutable('first day of this month', $tzq), new DateTimeImmutable('now', $tzq)],
+    'last'     => ['Last month', new DateTimeImmutable('first day of last month', $tzq), new DateTimeImmutable('last day of last month', $tzq)],
+    'quarter'  => ['Last 90 days', new DateTimeImmutable('-90 days', $tzq),              new DateTimeImmutable('now', $tzq)],
+];
+$range = (string) ($_GET['range'] ?? '');
+if (isset($RANGES[$range])) {
+    $_GET['from'] = $RANGES[$range][1]->format('Y-m-d');
+    $_GET['to']   = $RANGES[$range][2]->format('Y-m-d');
+}
+
 // ---------- period ----------
 try {
     $from = new DateTimeImmutable(($_GET['from'] ?? '') !== ''
@@ -45,6 +67,13 @@ if ($to < $from) { [$from, $to] = [$to, $from]; }
 $fromISO = $from->format(DateTimeInterface::ATOM);
 $toISO   = $to->format(DateTimeInterface::ATOM);
 $isPrint = isset($_GET['print']);
+
+if (!$isPrint) {
+    $_SESSION['summary_period'] = [
+        'from' => $from->format('Y-m-d'),
+        'to'   => $to->format('Y-m-d'),
+    ];
+}
 
 // ---------- data ----------
 $error = null;
@@ -135,6 +164,13 @@ else { print_head($periodLabel); }
       <input type="date" id="to" name="to" value="<?= e($to->format('Y-m-d')) ?>">
       <button class="btn-period" type="submit">Apply</button>
     </form>
+    <div class="quick-ranges">
+      <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
+        <a class="chip-filter<?= $range === $key ? ' is-on' : '' ?>"
+           href="?range=<?= e($key) ?>"><?= e($lbl) ?></a>
+      <?php endforeach; ?>
+    </div>
+
     <a class="btn-pdf" target="_blank" rel="noopener"
        href="summary.php?print=1&amp;from=<?= e($from->format('Y-m-d')) ?>&amp;to=<?= e($to->format('Y-m-d')) ?>">
       Download PDF Report

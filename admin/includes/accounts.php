@@ -145,6 +145,12 @@ function render_account_screen(string $role): void
         }
     }
 
+    // A complaint system is worth gaming: one person, several accounts,
+    // several "independent" complaints about a neighbour. Nothing here
+    // blocks anything — it puts the collision in front of the admin who
+    // is about to verify, which is the only place the judgement belongs.
+    $dupes = duplicate_flags($accounts);
+
     $viewId = (string) ($_GET['id'] ?? '');
     $person = null;
     foreach ($accounts as $a) {
@@ -156,7 +162,8 @@ function render_account_screen(string $role): void
     }
 
     if ($person) {
-        render_account_detail($person, $noun, $idLabel, $self, $navFile, $title, $flash);
+        render_account_detail($person, $noun, $idLabel, $self, $navFile, $title, $flash,
+                              $dupes[$person['id']] ?? []);
         return;
     }
 
@@ -244,7 +251,10 @@ function render_account_screen(string $role): void
                 <td><?= e($a['full_name']) ?></td>
                 <td class="mono"><?= e($a['mobile_number']) ?></td>
                 <td><?= e($a['email']) ?></td>
-                <td><?= account_status_pills($a) ?></td>
+                <td><?= account_status_pills($a) ?><?php
+                    if (!empty($dupes[$a['id']])): ?>
+                      <span class="pill pill--escalated" title="<?= e(implode('; ', $dupes[$a['id']])) ?>">Possible duplicate</span>
+                    <?php endif; ?></td>
                 <td class="cell-action">
                   <a class="btn-review" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
                     <?= $a['verification_status'] === 'pending' ? 'Review' : 'View' ?>
@@ -340,6 +350,44 @@ function render_account_screen(string $role): void
     layout_foot();
 }
 
+/**
+ * Accounts that collide with another on mobile number or on a normalised
+ * name. Returns [id => [reasons]]. Deliberately loose: a false flag costs
+ * the admin ten seconds, a missed one costs the register its integrity.
+ */
+function duplicate_flags(array $accounts): array
+{
+    $byMobile = $byName = $out = [];
+
+    foreach ($accounts as $a) {
+        $m = preg_replace('/\D+/', '', (string) $a['mobile_number']);
+        // Strip punctuation, order and case so "Dela Cruz, Ana" and
+        // "ana dela cruz" collide.
+        $parts = preg_split('/\s+/', mb_strtolower(preg_replace('/[^\p{L}\s]/u', ' ', (string) $a['full_name'])));
+        sort($parts);
+        $n = trim(implode(' ', array_filter($parts)));
+
+        if ($m !== '') { $byMobile[$m][] = $a; }
+        if ($n !== '') { $byName[$n][] = $a; }
+    }
+
+    foreach ($byMobile as $group) {
+        if (count($group) < 2) continue;
+        foreach ($group as $a) {
+            $others = array_filter($group, fn($b) => $b['id'] !== $a['id']);
+            $out[$a['id']][] = 'Same mobile number as '
+                . implode(', ', array_map(fn($b) => $b['full_name'], $others));
+        }
+    }
+    foreach ($byName as $group) {
+        if (count($group) < 2) continue;
+        foreach ($group as $a) {
+            $out[$a['id']][] = 'Same name as another account (' . count($group) . ' total)';
+        }
+    }
+    return $out;
+}
+
 /** Status, suspension and the two-hour clock, as pills. */
 function account_status_pills(array $a): string
 {
@@ -377,7 +425,7 @@ function account_status_pills(array $a): string
 
 function render_account_detail(
     array $p, string $noun, string $idLabel,
-    string $self, string $navFile, string $title, ?array $flash
+    string $self, string $navFile, string $title, ?array $flash, array $dupes = []
 ): void {
     $pending = $p['verification_status'] === 'pending';
 
@@ -403,7 +451,13 @@ function render_account_detail(
         <h1 class="case-heading"><?= e($p['full_name']) ?></h1>
         <div class="case-flags"><?= account_status_pills($p) ?></div>
 
-        <?php if ($pending && $p['minutes_left'] !== null): ?>
+        <?php if ($pending && !empty($p['due_at'])): ?>
+          <p class="clock-line verif-clock<?= !empty($p['is_overdue']) ? ' is-late' : '' ?>"
+             data-due="<?= e($p['due_at']) ?>">
+            <span class="verif-text">calculating&hellip;</span>
+            Submitted <?= e(long_datetime($p['submitted_at'])) ?>.
+          </p>
+        <?php elseif ($pending && $p['minutes_left'] !== null): ?>
           <p class="clock-line<?= !empty($p['is_overdue']) ? ' is-late' : '' ?>">
             <?php if (!empty($p['is_overdue'])): ?>
               Past the two-hour window by <?= abs((int) $p['minutes_left']) ?> minutes.
@@ -528,6 +582,24 @@ function render_account_detail(
     </div>
 
     <script>
+    // The two-hour window is the point of this screen, so it ticks rather
+    // than reporting what was true when the page happened to load.
+    (function () {
+      var el = document.querySelector('.verif-clock');
+      if (!el) return;
+      var due = new Date(el.dataset.due), out = el.querySelector('.verif-text');
+      (function tick() {
+        var ms = due - new Date(), late = ms < 0, a = Math.abs(ms);
+        var h = Math.floor(a / 3600000), m = Math.floor(a % 3600000 / 60000);
+        var span = (h ? h + 'h ' : '') + m + 'm';
+        out.textContent = late
+          ? 'Past the two-hour verification window by ' + span + '.'
+          : span + ' left of the two-hour verification window.';
+        el.classList.toggle('is-late', late);
+        setTimeout(tick, 20000);
+      })();
+    })();
+
     document.querySelectorAll('[data-reveal]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var panel = document.getElementById(btn.getAttribute('data-reveal'));

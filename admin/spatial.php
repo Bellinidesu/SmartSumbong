@@ -72,11 +72,20 @@ layout_head('Spatial Distribution', 'spatial.php');
     <!-- Barangay wifi drops. A map that has silently stopped updating
          looks exactly like a map with nothing new on it, which is the
          more dangerous of the two. -->
+    <aside class="pin-detail" id="pin-detail" hidden></aside>
+
     <div class="conn-strip" id="conn" hidden role="status">
       <span class="conn-dot"></span><span id="conn-text">Reconnecting&hellip;</span>
     </div>
 
     <div class="map-dock">
+      <button class="map-btn" id="fit-btn" type="button" title="Frame every complaint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>
+        </svg>
+      </button>
+
       <button class="incident-badge" id="incident-toggle" aria-expanded="false"
               aria-controls="map-side" title="Live incidents">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -99,6 +108,9 @@ layout_head('Spatial Distribution', 'spatial.php');
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -191,7 +203,17 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-const pins = L.layerGroup().addTo(map);
+// Below the threshold every pin stands alone; above it they would sit on
+// top of each other on a barangay-sized map, so they gather into counted
+// clusters that split as you zoom.
+const CLUSTER_FROM = 25;
+const plainPins   = L.layerGroup();
+const clusterPins = L.markerClusterGroup({
+  showCoverageOnHover: false,
+  maxClusterRadius: 46,
+  spiderfyOnMaxZoom: true,
+});
+let pins = plainPins.addTo(map);
 let heat = null, fog = null, rings = [];
 let all = [];
 
@@ -252,14 +274,16 @@ function visible() {
 
 function draw() {
   const rows = visible();
-  pins.clearLayers();
+
+  const want = rows.length >= CLUSTER_FROM ? clusterPins : plainPins;
+  if (want !== pins) { map.removeLayer(pins); pins = want.addTo(map); }
+  plainPins.clearLayers();
+  clusterPins.clearLayers();
 
   rows.forEach(r => {
-    L.marker([r.latitude, r.longitude], { icon: pinFor(r.status) }).bindPopup(
-      '<strong>' + r.tracking_id + '</strong><br>' +
-      label(r.category) + ' &middot; ' + label(r.status) + '<br>' +
-      '<a href="case.php?id=' + r.id + '">Open this case</a>'
-    ).addTo(pins);
+    L.marker([r.latitude, r.longitude], { icon: pinFor(r.status) })
+      .on('click', () => showDetail(r))
+      .addTo(pins);
   });
 
   if (heat) { map.removeLayer(heat); heat = null; }
@@ -325,6 +349,32 @@ sb.channel('reports-spatial')
       strip.removeAttribute('hidden');
     }
   });
+
+// A popup covers the map and closes the moment you look away. A drawer
+// keeps the complaint on screen while the map stays exactly where the
+// admin left it.
+function showDetail(r) {
+  const box = document.getElementById('pin-detail');
+  box.innerHTML =
+    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
+    '<p class="detail-id">' + r.tracking_id + '</p>' +
+    '<p class="detail-cat">' + label(r.category) + '</p>' +
+    '<p class="detail-sub">' + (r.subject || '') + '</p>' +
+    '<p class="detail-status"><span class="pin-dot" style="background:' +
+      (COLOUR[r.status] || '#9aa1ab') + '"></span>' + label(r.status) + '</p>' +
+    '<a class="detail-open" href="case.php?id=' + r.id + '">Open this case</a>';
+  box.removeAttribute('hidden');
+  box.querySelector('.detail-x').addEventListener('click',
+    () => box.setAttribute('hidden', ''));
+}
+
+// Frame everything currently shown, without losing the residential pin.
+document.getElementById('fit-btn').addEventListener('click', () => {
+  const rows = visible();
+  if (!rows.length) { map.setView(RESIDENTIAL_CENTRE, DEFAULT_ZOOM); return; }
+  map.fitBounds(L.latLngBounds(rows.map(r => [r.latitude, r.longitude])),
+                { padding: [60, 60], maxZoom: 18 });
+});
 
 // Collapsed by default: the map is the screen, the list is a drawer.
 const toggle = document.getElementById('incident-toggle');

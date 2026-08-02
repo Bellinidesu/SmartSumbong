@@ -15,9 +15,46 @@ require_once __DIR__ . '/includes/layout.php';
 $admin = require_admin();
 $db    = db();
 
+session_start_once();
+
+// Coming back from a case should land on the list you left, not on an
+// unfiltered one you have to rebuild. Any explicit parameter wins; a bare
+// visit restores what you last looked at.
+if (!isset($_GET['q'], $_GET['status'], $_GET['sort']) && $_SERVER['QUERY_STRING'] === ''
+    && !empty($_SESSION['cases_view'])) {
+    $_GET = $_SESSION['cases_view'] + $_GET;
+}
+
 $search = trim((string) ($_GET['q'] ?? ''));
-$sort   = ($_GET['sort'] ?? 'newest') === 'oldest' ? 'created_at.asc' : 'created_at.desc';
 $filter = (string) ($_GET['status'] ?? '');
+$view   = (string) ($_GET['view'] ?? '');
+
+// Clicking a column heading sorts by it; clicking the same one again
+// reverses. PostgREST cannot order by an embedded resident name, so that
+// column is not offered as a sort.
+$SORTABLE = ['id' => 'tracking_id', 'category' => 'category', 'status' => 'status', 'date' => 'created_at'];
+$sortCol  = $_GET['by'] ?? 'date';
+$sortDir  = ($_GET['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+if (!isset($SORTABLE[$sortCol])) { $sortCol = 'date'; }
+$sort = $SORTABLE[$sortCol] . '.' . $sortDir;
+
+$_SESSION['cases_view'] = array_filter([
+    'q' => $search, 'status' => $filter, 'view' => $view,
+    'by' => $sortCol, 'dir' => $sortDir,
+], fn($v) => $v !== '');
+
+/** Link for a column heading, flipping direction if it is the active one. */
+function sort_link(string $col, string $active, string $dir): string
+{
+    $next = ($col === $active && $dir === 'asc') ? 'desc' : 'asc';
+    $q = $_GET;
+    $q['by'] = $col; $q['dir'] = $next;
+    return '?' . http_build_query($q);
+}
+function sort_caret(string $col, string $active, string $dir): string
+{
+    return $col === $active ? ($dir === 'asc' ? ' ▲' : ' ▼') : '';
+}
 
 $error = null;
 $reports = [];
@@ -28,7 +65,8 @@ try {
     // join happens in the database, not in a second round trip.
     $query = [
         'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,'
-                  . 'escalation_level,resident:users!reports_resident_id_fkey(full_name)',
+                  . 'escalation_level,due_at,awaiting_unit_since,'
+                  . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'order'      => $sort,
         'limit'      => '100',
@@ -42,6 +80,18 @@ try {
         $query['or'] = "(tracking_id.ilike.*{$needle}*,subject.ilike.*{$needle}*)";
     }
     $reports = $db->select('reports', $query);
+
+    // "Needs attention" is the question an admin actually opens this page
+    // with: what is late, what nobody has picked up, and what is still
+    // sitting unreviewed. Three separate conditions, one chip.
+    $attention = array_values(array_filter($reports, function (array $r) {
+        $open    = !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected'], true);
+        $overdue = $open && !empty($r['due_at']) && strtotime($r['due_at']) < time();
+        return $overdue
+            || !empty($r['awaiting_unit_since'])
+            || $r['status'] === 'pending_review';
+    }));
+    if ($view === 'attention') { $reports = $attention; }
 
     $notifications = $db->select('notifications', [
         'select'  => 'id,kind,message,created_at,is_read,report_id',
@@ -98,6 +148,13 @@ layout_head('Case Reports', 'cases.php');
   <header class="panel-bar">
     <h2 class="panel-title">Reports (<?= count($reports) ?>)</h2>
 
+    <?php $atc = count($attention ?? []); ?>
+    <a class="chip-filter<?= $view === 'attention' ? ' is-on' : '' ?>"
+       href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter]))) ?>">
+      Needs attention
+      <span class="chip-num<?= $atc > 0 ? ' is-hot' : '' ?>"><?= $atc ?></span>
+    </a>
+
     <form class="panel-search" method="get">
       <?= nav_icon('search') ?>
       <input type="search" name="q" placeholder="Search Here" value="<?= e($search) ?>">
@@ -107,12 +164,6 @@ layout_head('Case Reports', 'cases.php');
 
     <form class="panel-sort" method="get">
       <input type="hidden" name="q" value="<?= e($search) ?>">
-      <label>Short by:
-        <select name="sort" onchange="this.form.submit()">
-          <option value="newest" <?= ($_GET['sort'] ?? '') !== 'oldest' ? 'selected' : '' ?>>Newest</option>
-          <option value="oldest" <?= ($_GET['sort'] ?? '') === 'oldest' ? 'selected' : '' ?>>Oldest</option>
-        </select>
-      </label>
       <label class="filter-option">
         <select name="status" onchange="this.form.submit()">
           <option value="">Filter Option</option>
@@ -134,10 +185,10 @@ layout_head('Case Reports', 'cases.php');
       <thead>
         <tr>
           <th scope="col">Resident Name</th>
-          <th scope="col">Complaint ID</th>
-          <th scope="col">Category</th>
-          <th scope="col">Status</th>
-          <th scope="col">Date</th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>">Complaint ID<?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>">Category<?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>">Status<?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>">Date<?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
           <th scope="col"><span class="visually-hidden">Action</span></th>
         </tr>
       </thead>
