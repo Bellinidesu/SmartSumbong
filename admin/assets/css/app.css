@@ -404,16 +404,34 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   overflow: hidden;
   background: var(--orange);
 }
-/* The street photo sits under the orange at low opacity, as in the design. */
+/* The photo is full-bleed across the orange, not a faint wash behind it.
+   luminosity keeps the picture's light and shade but takes its colour
+   from the panel, so the people read as part of the brand field rather
+   than as a photograph someone faded. The scrim after it holds contrast
+   under the card, which is the one thing that must stay legible. */
 .login-panel-bg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: .18;
+  object-position: center 35%;
+  opacity: .38;
+  mix-blend-mode: luminosity;
   pointer-events: none;
 }
+.login-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 62%, rgba(214, 106, 0, .55) 0%, rgba(214, 106, 0, 0) 62%),
+    linear-gradient(180deg, rgba(255, 156, 26, .30) 0%, rgba(255, 156, 26, 0) 34%,
+                            rgba(196, 92, 0, .34) 100%);
+}
+/* Everything the admin actually interacts with sits above both layers. */
+.login-panel > *:not(.login-panel-bg) { position: relative; z-index: 2; }
 
 .login-wordmark {
   position: relative;
