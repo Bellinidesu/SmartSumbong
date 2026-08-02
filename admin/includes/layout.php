@@ -62,9 +62,18 @@ function layout_head(string $title, string $active = ''): void
       <?php endif; ?>
     </a>
 
+    <?php $live = open_complaint_count(); ?>
     <?php foreach (nav_items() as [$href, $label, $icon]): ?>
+      <?php $pulse = ($icon === 'map' && $live > 0); ?>
       <a class="nav-item<?= basename($href) === $active ? ' active' : '' ?>" href="<?= e($href) ?>">
-        <?= nav_icon($icon) ?><span><?= e($label) ?></span>
+        <?php if ($pulse): ?>
+          <span class="nav-pulse is-live" title="<?= $live ?> open complaint<?= $live === 1 ? '' : 's' ?>">
+            <?= nav_icon($icon) ?><span class="nav-num"><?= $live > 99 ? '99+' : $live ?></span>
+          </span>
+        <?php else: ?>
+          <?= nav_icon($icon) ?>
+        <?php endif; ?>
+        <span><?= e($label) ?></span>
       </a>
     <?php endforeach; ?>
 
@@ -75,6 +84,28 @@ function layout_head(string $title, string $active = ''): void
 
   <main class="main">
 <?php
+}
+
+/**
+ * Open complaints, for the alternating indicator on Spatial Distribution.
+ * Counted once per page render and cached for the request. A failure here
+ * must never take a page down, so it swallows and returns zero — the
+ * indicator simply does not appear.
+ */
+function open_complaint_count(): int
+{
+    static $n = null;
+    if ($n !== null) return $n;
+
+    try {
+        $n = db()->count('reports', [
+            'deleted_at' => 'is.null',
+            'status'     => 'in.(pending_review,validated,assigned,in_progress,offline_investigation)',
+        ]);
+    } catch (Throwable) {
+        $n = 0;
+    }
+    return $n;
 }
 
 function layout_foot(): void
@@ -124,6 +155,79 @@ function short_date(?string $iso): string
     } catch (Exception) {
         return '';
     }
+}
+
+/** "May 06, 2026 • 10:45 AM", the format the Figma uses throughout. */
+function long_datetime(?string $iso): string
+{
+    if (!$iso) return '';
+    try {
+        return (new DateTimeImmutable($iso))
+            ->setTimezone(new DateTimeZone('Asia/Manila'))
+            ->format('M d, Y \• g:i A');
+    } catch (Exception) {
+        return '';
+    }
+}
+
+/** Value for an <input type="datetime-local">, which has no timezone. */
+function local_input_value(?string $iso): string
+{
+    if (!$iso) return '';
+    try {
+        return (new DateTimeImmutable($iso))
+            ->setTimezone(new DateTimeZone('Asia/Manila'))
+            ->format('Y-m-d\TH:i');
+    } catch (Exception) {
+        return '';
+    }
+}
+
+function byte_size(int $bytes): string
+{
+    return $bytes >= 1048576
+        ? round($bytes / 1048576, 1) . ' MB'
+        : max(1, (int) round($bytes / 1024)) . ' KB';
+}
+
+/** Metres from PostGIS, rounded to something a person would say out loud. */
+function distance_label(float $metres): string
+{
+    return $metres < 950
+        ? round($metres / 10) * 10 . ' m'
+        : round($metres / 1000, 1) . ' km';
+}
+
+function coord_label(float $lat, float $lng): string
+{
+    return number_format($lat, 5) . ', ' . number_format($lng, 5);
+}
+
+/**
+ * A trail entry reads as a sentence, not as an enum pair. A row where the
+ * status did not move is an annotation — a note, a deadline change —
+ * rather than a transition, so it should not claim one happened.
+ */
+function timeline_title(array $log): string
+{
+    $old = $log['old_status'] ?? null;
+    $new = $log['new_status'] ?? '';
+
+    if ($old === null) {
+        return 'Complaint Filed';
+    }
+    if ($old === $new) {
+        return 'Case updated';
+    }
+    return match ($new) {
+        'validated'  => 'Complaint Accepted',
+        'rejected'   => 'Complaint Denied',
+        'assigned'   => 'Tanod Assigned',
+        'in_progress'=> 'Response Underway',
+        'resolved'   => 'Marked Resolved',
+        'closed'     => 'Case Closed',
+        default      => status_label((string) $new),
+    };
 }
 
 function relative_time(?string $iso): string

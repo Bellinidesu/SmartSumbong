@@ -278,7 +278,12 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 }
 
 .login-card {
-  width: 537px; max-width: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: min(537px, 78%);
   background: #fff;
   border-radius: 60px;
   padding: 62px 96px 54px;
@@ -368,7 +373,7 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 
 .login-split {
   display: grid;
-  grid-template-columns: 468px 1fr;
+  grid-template-columns: clamp(320px, 24%, 468px) 1fr;
   min-height: 100vh;
 }
 
@@ -397,50 +402,48 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 
 .login-panel {
   position: relative;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 8px;
   overflow: hidden;
   background: var(--orange);
+  min-height: 100vh;
 }
-/* The photo is full-bleed across the orange, not a faint wash behind it.
-   luminosity keeps the picture's light and shade but takes its colour
-   from the panel, so the people read as part of the brand field rather
-   than as a photograph someone faded. The scrim after it holds contrast
-   under the card, which is the one thing that must stay legible. */
+/* Verbatim to the frame: image 10 sits on top of the orange rectangle at
+   reduced opacity. No blend mode and no scrim — both were mine, and
+   neither is in the design. */
 .login-panel-bg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 35%;
-  opacity: .38;
-  mix-blend-mode: luminosity;
+  object-position: center 40%;
+  opacity: .25;
   pointer-events: none;
 }
-.login-panel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 62%, rgba(214, 106, 0, .55) 0%, rgba(214, 106, 0, 0) 62%),
-    linear-gradient(180deg, rgba(255, 156, 26, .30) 0%, rgba(255, 156, 26, 0) 34%,
-                            rgba(196, 92, 0, .34) 100%);
-}
-/* Everything the admin actually interacts with sits above both layers. */
-.login-panel > *:not(.login-panel-bg) { position: relative; z-index: 2; }
+/* Placement measured off the frame (1440x1024, panel x468 w972):
+     logo   x574 y72  355x369  -> 10.9% from the panel's left, 7% down
+     card   x697 y333 537x360  -> centred, both axes
+   The logo's lower edge overlapping the card's top corner is in the
+   design, not an accident of stacking. */
 
+/* Anchored to the card, not to the panel corner — that is what the frame
+   does. Card 537x360 centred; logo 355x369 starting 123px to its left and
+   overlapping its top edge by 108px. Both hang off the same centre point,
+   so the relationship survives any aspect ratio:
+     left = 50% - (537/2) - 123 = 50% - 391px
+     top  = 50% - (360/2) - 261 = 50% - 441px */
 .login-wordmark {
-  position: relative;
-  width: 260px;
+  position: absolute;
+  left: calc(50% - 391px);
+  top: calc(50% - 441px);
+  z-index: 3;
+  width: 355px;
   height: auto;
-  margin-bottom: 4px;
 }
 .login-wordmark--missing {
-  position: relative;
+  position: absolute;
+  left: calc(50% - 391px);
+  top: calc(50% - 441px);
+  z-index: 3;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 40px;
@@ -1302,12 +1305,61 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   overflow: hidden;
   box-shadow: var(--shadow);
 }
-#map { height: 680px; width: 100%; z-index: 1; }
+/* Fills the window exactly. Subtracting a guessed number left a gap;
+   a flex column measures itself instead. dvh so a mobile URL bar does
+   not push the bottom off-screen. */
+.panel--map {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--main-pad, 32px) * 2);
+  min-height: 520px;
+}
+.panel--map .map-shell { flex: 1 1 auto; min-height: 0; }
+#map { height: 100%; width: 100%; z-index: 1; }
+
+.map-dock {
+  position: absolute;
+  right: 14px;
+  bottom: 92px;             /* clears the zoom control beneath it */
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* Collapsed state: a map glyph with a count on it. */
+.incident-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .95);
+  box-shadow: var(--shadow);
+  padding: 9px 14px 9px 11px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--navy);
+}
+.incident-badge svg { width: 18px; height: 18px; }
+.incident-count {
+  background: var(--navy);
+  color: #fff;
+  border-radius: var(--r-pill);
+  min-width: 22px;
+  padding: 1px 7px;
+  text-align: center;
+  font-size: 12px;
+}
+.incident-badge.is-live .incident-count { background: var(--orange); }
 
 .map-side {
-  position: absolute;
-  top: 14px; left: 14px; bottom: 14px;
   width: 290px;
+  max-height: 46vh;
+  overflow: hidden;
   z-index: 600;
   background: rgba(255, 255, 255, .95);
   border-radius: var(--r-card);
@@ -1316,6 +1368,7 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   display: flex;
   flex-direction: column;
 }
+.map-side[hidden] { display: none; }
 .map-side-head { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 15px; }
 .pin-count {
   background: var(--navy); color: #fff;
@@ -1473,3 +1526,54 @@ a.btn-accept { text-decoration: none; }
 .cand-list { max-height: 240px; overflow-y: auto; margin-bottom: 14px; }
 .step-down { border-top: 1px solid var(--rule); margin-top: 22px; padding-top: 18px; }
 .step-down .case-sub { margin-bottom: 8px; }
+
+/* Below the design width the absolute placement stops making sense —
+   the panel becomes a normal stacked column. */
+@media (max-width: 900px) {
+  .login-panel { min-height: auto; padding: 40px 24px 56px; }
+  .login-wordmark, .login-wordmark--missing {
+    position: static; width: 230px; margin: 0 auto 24px; display: block;
+  }
+  .login-card {
+    position: static; transform: none; width: 100%; max-width: 460px; margin: 0 auto;
+  }
+}
+
+
+/* A complaint arriving while the admin is on another screen should be
+   visible without them going looking. The nav item cross-fades between
+   its icon and the open-complaint count every few seconds — movement in
+   the corner of the eye, rather than a badge that becomes wallpaper.
+   Nothing animates when the count is zero, and nothing animates for
+   anyone who has asked their system to reduce motion. */
+.nav-pulse { position: relative; display: inline-grid; place-items: center; width: 20px; height: 20px; }
+.nav-pulse > svg,
+.nav-pulse > .nav-num { grid-area: 1 / 1; }
+.nav-pulse > .nav-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--orange);
+  opacity: 0;
+}
+.nav-pulse.is-live > svg     { animation: navSwapOut 6s ease-in-out infinite; }
+.nav-pulse.is-live > .nav-num { animation: navSwapIn  6s ease-in-out infinite; }
+.nav-item.is-active .nav-pulse > .nav-num { color: #fff; }
+
+@keyframes navSwapOut {
+  0%, 38% { opacity: 1; transform: scale(1); }
+  46%, 88% { opacity: 0; transform: scale(.7); }
+  96%, 100% { opacity: 1; transform: scale(1); }
+}
+@keyframes navSwapIn {
+  0%, 38% { opacity: 0; transform: scale(.7); }
+  46%, 88% { opacity: 1; transform: scale(1); }
+  96%, 100% { opacity: 0; transform: scale(.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-pulse.is-live > svg,
+  .nav-pulse.is-live > .nav-num { animation: none; }
+  .nav-pulse.is-live > svg { opacity: 1; }
+  .nav-pulse.is-live > .nav-num { opacity: 0; }
+}
