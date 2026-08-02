@@ -146,6 +146,15 @@ try {
             'order'     => 'assigned_at.desc',
         ]);
 
+        // Tamper check on this complaint's trail. Cheap (a handful of
+        // hashes) and it makes the guarantee visible rather than a claim
+        // in a document nobody reads.
+        try {
+            $trail = $db->rpc('verify_report_trail', ['p_report' => $id]);
+        } catch (SupabaseError) {
+            $trail = [];
+        }
+
         $sla = $db->select('sla_policies', [
             'select'   => 'resolution_hours,accept_minutes,auto_dispatch_on_file',
             'category' => 'eq.' . $report['category'],
@@ -427,6 +436,28 @@ layout_head('Case Review', 'cases.php');
   <!-- ---------- timeline ---------- -->
   <section class="card card--timeline">
     <h3 class="case-sub">Activity Timeline</h3>
+
+    <?php
+    $trail  = $trail ?? [];
+    $broken = array_values(array_filter($trail, fn($t) => empty($t['intact'])));
+    ?>
+    <?php if ($trail && !$broken): ?>
+      <p class="trail-ok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><polyline points="9 12 11 14 15 10"/>
+        </svg>
+        Trail verified &mdash; <?= count($trail) ?> entries, none altered since they were written.
+      </p>
+    <?php elseif ($broken): ?>
+      <p class="trail-bad" role="alert">
+        <strong>This trail has been tampered with.</strong>
+        <?php foreach ($broken as $b): ?>
+          Entry <?= (int) $b['entry_no'] ?>: <?= e($b['problem']) ?>.
+        <?php endforeach; ?>
+        Report this to the barangay administrator before acting on this case.
+      </p>
+    <?php endif; ?>
 
     <ol class="timeline">
       <?php foreach ($logs as $l): ?>

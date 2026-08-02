@@ -1809,3 +1809,19 @@ a.btn-accept { text-decoration: none; }
 .pw-meter .fair   { background: #f59e0b; }
 .pw-meter .good   { background: #16652c; }
 .pw-meter .strong { background: #0f7a33; }
+
+/* ---------- audit trail integrity ---------- */
+
+.trail-ok, .trail-bad {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  border-radius: var(--r-input);
+  padding: 8px 12px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+.trail-ok  { background: #e9f6ec; color: #16652c; }
+.trail-bad { background: #fdeaea; color: #a01818; flex-direction: column; gap: 3px; }
+.trail-ok svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
