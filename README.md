@@ -46,11 +46,16 @@ supabase/migrations/   0001 schema · 0002 dispatch & SLA · 0003 RLS
                        0006 dispatch lifecycle · 0007 awaiting-unit queue
                        0008 reroute guard · 0009 admin manual dispatch
                        0010 barangay-owned settings · 0011 admin case review
-                       0012 dashboard metrics
+                       0012 dashboard metrics · 0013 account management
+                       0014 admin succession · 0015 audit integrity
+                       0016 security hardening
 supabase/seed.sql      SLA policy windows (placeholders) + boundary
+LICENSE                use grant, reserved rights, PUP interest
 docs/schema.md         schema reference, function map, use case coverage
+docs/deployment.md     fresh install and first-admin bootstrap
+docs/turnover.md       account ownership, break-glass, succession, known gaps
+docs/manual.md         admin portal guide for barangay staff
 admin/                 PHP admin portal (login, cases, case, dashboard, logout)
-admin/map.html         Realtime + PostGIS test harness, not part of the portal
 ```
 
 ## Conventions

@@ -101,7 +101,7 @@ try {
         'limit'   => '20',
     ]);
 } catch (SupabaseError $ex) {
-    $error = $ex->getMessage();
+    $error = safe_error($ex);
 }
 
 layout_head('Case Reports', 'cases.php');

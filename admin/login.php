@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/layout.php';
 
 if (current_admin()) {
     header('Location: cases.php');
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // it the way the person at the desk would understand it.
             $error = str_contains(strtolower($ex->getMessage()), 'invalid login')
                 ? 'That email and password do not match an account.'
-                : $ex->getMessage();
+                : safe_error($ex);
         }
     }
 }
@@ -33,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign in — Smart Sumbong</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="assets/css/fonts.css" rel="stylesheet">
 <link href="assets/css/app.css" rel="stylesheet">
 </head>
 <body class="login-body">

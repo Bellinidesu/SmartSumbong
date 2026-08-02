@@ -114,7 +114,7 @@ try {
         'limit'  => '1000',
     ]);
 } catch (SupabaseError $ex) {
-    $error = $ex->getMessage();
+    $error = safe_error($ex);
 }
 
 // ---------- the four tiles ----------
@@ -314,7 +314,7 @@ function print_head(string $period): void
 <head>
 <meta charset="utf-8">
 <title>Report Summary — <?= e($period) ?></title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="assets/css/fonts.css" rel="stylesheet">
 <link href="assets/css/app.css" rel="stylesheet">
 </head>
 <body class="doc-body">

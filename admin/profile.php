@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (SupabaseError $ex) {
             // GoTrue answers a wrong password with a generic grant error;
             // say what actually went wrong instead.
-            $msg = $ex->getMessage();
+            $msg = safe_error($ex);
             $flash = str_contains(strtolower($msg), 'credential')
                 ? 'That current password is not right.'
                 : $msg;
@@ -117,7 +117,7 @@ try {
     ]);
     $me = $rows[0] ?? null;
 } catch (SupabaseError $ex) {
-    $error = $ex->getMessage();
+    $error = safe_error($ex);
 }
 
 // Knowing when the account was last used is how someone notices it was

@@ -108,7 +108,7 @@ function render_account_screen(string $role): void
                         $level = 'error';
                 }
             } catch (SupabaseError $ex) {
-                $msg   = $ex->getMessage();
+                $msg   = safe_error($ex);
                 $flash = str_contains(strtolower($msg), 'credential')
                     ? 'That password is not right. Nothing was changed.'
                     : $msg;
@@ -131,7 +131,7 @@ function render_account_screen(string $role): void
     try {
         $accounts = $db->rpc('account_directory', ['p_role' => $role]);
     } catch (SupabaseError $ex) {
-        $error = $ex->getMessage();
+        $error = safe_error($ex);
     }
 
     $transfer   = isset($_GET['transfer']);
@@ -141,7 +141,7 @@ function render_account_screen(string $role): void
         try {
             $candidates = $db->rpc('admin_candidates', ['p_search' => $candSearch ?: null]);
         } catch (SupabaseError $ex) {
-            $error = $ex->getMessage();
+            $error = safe_error($ex);
         }
     }
 

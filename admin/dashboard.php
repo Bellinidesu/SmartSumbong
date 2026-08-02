@@ -57,7 +57,7 @@ try {
         'p_to'   => $month->format(DateTimeInterface::ATOM),
     ]);
 } catch (SupabaseError $ex) {
-    $error = $ex->getMessage();
+    $error = safe_error($ex);
 }
 
 // rpc() hands back the decoded body; a json-returning function gives one
@@ -222,7 +222,7 @@ layout_head('Dashboard', 'dashboard.php');
   <div class="chart-box"><canvas id="chart-efficiency"></canvas></div>
 </section>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="assets/vendor/chart/chart.umd.min.js"></script>
 <script>
 (function () {
   if (!window.Chart) { return; }

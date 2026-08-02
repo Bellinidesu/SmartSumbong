@@ -54,7 +54,7 @@ function attempt_login(string $email, string $password): void
 
     $client  = new Supabase($token);
     $profile = $client->select('users', [
-        'select' => 'id,full_name,email,role,verification_status',
+        'select' => 'id,full_name,email,role,verification_status,is_suspended',
         'id'     => 'eq.' . ($session['user']['id'] ?? ''),
         'limit'  => '1',
     ]);
@@ -63,6 +63,15 @@ function attempt_login(string $email, string $password): void
     if (!$me) {
         throw new SupabaseError('No barangay profile is linked to this account.');
     }
+    // Suspension is a database flag; GoTrue knows nothing about it, so a
+    // suspended account can still authenticate and receive a token. The
+    // portal has to refuse it here or suspension is cosmetic for anyone
+    // who was an administrator when it happened.
+    if (!empty($me['is_suspended'])) {
+        logout();
+        throw new SupabaseError('This account has been suspended. Contact the barangay administrator.');
+    }
+
     if (($me['role'] ?? '') !== 'admin') {
         $client->signOut();
         throw new SupabaseError('This portal is for barangay administrators only.');

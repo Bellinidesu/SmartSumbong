@@ -50,8 +50,8 @@ function layout_head(string $title, string $active = ''): void
 <link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
 <link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
 <meta name="theme-color" content="#0B2B6B">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="assets/css/fonts.css" rel="stylesheet">
 <link href="assets/css/app.css" rel="stylesheet">
 </head>
 <body>
@@ -193,7 +193,6 @@ function layout_foot(): void
   </main>
 </div>
 <?php idle_timeout(); ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 <?php
@@ -308,6 +307,36 @@ function timeline_title(array $log): string
         'closed'     => 'Case Closed',
         default      => status_label((string) $new),
     };
+}
+
+/**
+ * What the operator is allowed to see when something fails.
+ *
+ * Our own functions raise messages written for barangay staff — "A reason
+ * is required when denying a complaint" — and those should be shown. What
+ * must not reach the screen is PostgREST and PostgreSQL internals:
+ * constraint names, function signatures, column lists and schema
+ * structure, which tell an attacker how the system is put together.
+ *
+ * Anything that looks like machinery is replaced with a reference the
+ * barangay can quote to whoever maintains the system.
+ */
+function safe_error(Throwable $e): string
+{
+    $msg = $e->getMessage();
+
+    $machinery = ['violates', 'constraint', 'relation ', 'column ', 'syntax error',
+                  'function ', 'permission denied', 'duplicate key', 'PGRST',
+                  'null value', 'invalid input', 'does not exist', 'schema '];
+
+    foreach ($machinery as $needle) {
+        if (stripos($msg, $needle) !== false) {
+            error_log('SmartSumbong: ' . $msg);
+            return 'That action could not be completed. Reference: ' . substr(sha1($msg), 0, 8)
+                 . ' — give this to whoever maintains the system.';
+        }
+    }
+    return $msg;
 }
 
 function relative_time(?string $iso): string

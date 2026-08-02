@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $level = 'error';
             }
         } catch (SupabaseError $ex) {
-            $flash = $ex->getMessage();
+            $flash = safe_error($ex);
             $level = 'error';
         } catch (Exception $ex) {
             $flash = 'That date could not be read. Use the date picker.';
@@ -163,7 +163,7 @@ try {
         $policy = $sla[0] ?? null;
     }
 } catch (SupabaseError $ex) {
-    $error = $ex->getMessage();
+    $error = safe_error($ex);
 }
 
 if (!$report && !$error) {
@@ -190,7 +190,7 @@ if ($canAssign && !$error) {
     try {
         $roster = $db->rpc('tanod_roster', ['p_report' => $id]);
     } catch (SupabaseError $ex) {
-        $error = $ex->getMessage();
+        $error = safe_error($ex);
     }
 }
 
@@ -484,8 +484,8 @@ layout_head('Case Review', 'cases.php');
   </section>
 </div>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+<script src="assets/vendor/leaflet/leaflet.js"></script>
 <script>
 (function () {
   // ---- copy the tracking id ----

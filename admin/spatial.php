@@ -105,14 +105,20 @@ layout_head('Spatial Distribution', 'spatial.php');
   </div>
 </section>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+<script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="assets/vendor/leaflet/leaflet-heat.js"></script>
+<link rel="stylesheet" href="assets/vendor/leaflet/MarkerCluster.css">
+<link rel="stylesheet" href="assets/vendor/leaflet/MarkerCluster.Default.css">
+<script src="assets/vendor/leaflet/leaflet.markercluster.js"></script>
+<script src="assets/vendor/supabase/supabase.js"></script>
+<script>
+// Self-hosted rather than imported from esm.sh. This script runs with the
+// administrator's session token in scope, so third-party delivery of it
+// would mean a compromised CDN could read that token and act as the
+// administrator against the API. Nothing executable in this portal now
+// comes from an origin we do not control.
+const { createClient } = supabase;
 
 // The token is this admin's own session. Everything below is still
 // filtered by row level security; nothing here elevates anything.
