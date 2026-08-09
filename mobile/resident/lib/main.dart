@@ -1,122 +1,189 @@
+// SCRATCH — delete once the upload path is proven.
+//
+// Run with:
+//   flutter run --dart-define-from-file=dart_defines.json
+
+import 'dart:io';
+
+import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:smartsumbong_core/smartsumbong_core.dart';
 
-void main() {
-  runApp(const MyApp());
+const _cloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
+const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
+
+void main() => runApp(const HarnessApp());
+
+class HarnessApp extends StatelessWidget {
+  const HarnessApp({super.key});
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'Upload harness',
+        theme: ThemeData(useMaterial3: true),
+        home: const HarnessPage(),
+      );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class HarnessPage extends StatefulWidget {
+  const HarnessPage({super.key});
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  State<HarnessPage> createState() => _HarnessPageState();
+}
+
+class _HarnessPageState extends State<HarnessPage> {
+  late final MediaUploader _uploader = MediaUploader(
+    cloudName: _cloudName,
+    uploadPreset: _uploadPreset,
+  );
+
+  File? _file;
+  final _log = StringBuffer();
+  bool _busy = false;
+
+  void _say(String line) {
+    debugPrint(line);
+    setState(() => _log.writeln(line));
   }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
+  void dispose() {
+    _uploader.dispose();
+    super.dispose();
+  }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
+  Future<void> _pick() async {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _log.clear();
+      _file = null;
     });
+
+    if (_cloudName.isEmpty || _uploadPreset.isEmpty) {
+      _say('MISSING --dart-define. Cloud name and preset are both empty.');
+      return;
+    }
+
+    final f = await _uploader.pick();
+    if (f == null) {
+      _say('Cancelled.');
+      return;
+    }
+
+    final bytes = await f.length();
+    _say('Local file: ${f.path.split(Platform.pathSeparator).last}');
+    _say('Local size: $bytes bytes (${(bytes / 1024).round()} KB)');
+
+    final tags = await readExifFromBytes(await f.readAsBytes());
+    final gps = tags.keys.where((k) => k.startsWith('GPS')).toList();
+
+    if (tags.isEmpty) {
+      _say('Local EXIF: none at all (already re-encoded).');
+    } else {
+      _say('Local EXIF: ${tags.length} tags.');
+      _say(gps.isEmpty
+          ? 'Local GPS:  ABSENT — picker stripped it, EXIF test inconclusive.'
+          : 'Local GPS:  PRESENT (${gps.length} tags) — test is valid.');
+      for (final k in gps) {
+        _say('  $k = ${tags[k]}');
+      }
+    }
+
+    setState(() => _file = f);
+  }
+
+  /// Fetch back what Cloudinary actually serves and read its EXIF. This is
+  /// the observation, not the inference: whatever survives here is what a
+  /// resident publishes when they attach a photo to a complaint.
+  Future<void> _checkDelivered(String url) async {
+    _say('');
+    _say('Fetching delivered asset…');
+    final res = await http.get(Uri.parse(url));
+    _say('HTTP ${res.statusCode}, ${res.bodyBytes.length} bytes');
+
+    final tags = await readExifFromBytes(res.bodyBytes);
+    final gps = tags.keys.where((k) => k.startsWith('GPS')).toList();
+    _say('Delivered EXIF: ${tags.length} tags');
+    _say('Delivered GPS:  ${gps.isEmpty ? "ABSENT" : "PRESENT (${gps.length})"}');
+    for (final k in tags.keys) {
+      _say('  $k');
+    }
+  }
+
+  Future<void> _upload() async {
+    final f = _file;
+    if (f == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final m = await _uploader.upload(f, kind: MediaKind.reportPhoto);
+      _say('');
+      _say('UPLOAD OK');
+      _say('url:       ${m.mediaUrl}');
+      _say('public_id: ${m.publicId}');
+      _say('mime:      ${m.mimeType}');
+      _say('bytes:     ${m.bytes}  (was ${await f.length()} locally)');
+      await _checkDelivered(m.mediaUrl);
+    } on MediaUploadException catch (e) {
+      _say('');
+      _say('UPLOAD FAILED: ${e.message}');
+      _say('retryable: ${e.isRetryable}');
+    } catch (e) {
+      _say('');
+      _say('UNEXPECTED: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Upload harness')),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _busy ? null : _pick,
+                      child: const Text('Pick photo'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: (_file == null || _busy) ? null : _upload,
+                      child: Text(_busy ? 'Working…' : 'Upload'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      _log.isEmpty ? 'No output yet.' : _log.toString(),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
+      );
 }
