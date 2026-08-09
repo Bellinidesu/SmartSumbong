@@ -9,46 +9,63 @@
 // unauthenticated callers, which is unsigned upload with extra steps and
 // an extra thing to keep running. So: unsigned, with the guardrails on
 // the preset (below) and the URL pinned in the database by migration
-// 0017 so that a forged upload cannot become a rendered image.
+// 0018 so that a forged upload cannot become a rendered image.
 //
-// PRESET CONFIGURATION — set these in the Cloudinary console on
-// `smartsumbong_unsigned`. They are not optional; the code below assumes
-// them and the database CHECK constraint will reject uploads made
-// without them.
+// PRESET CONFIGURATION — set on `smartsumbong_unsigned`:
 //
-//   Signing mode           Unsigned
-//   Folder                 smartsumbong
-//   Unique filename        Off        (we supply our own public_id)
-//   Use filename           Off        (never leak the resident's filename)
+//   Signing mode             Unsigned
+//   Asset folder             smartsumbong
+//   Unique filename          Off        (we supply our own public_id)
+//   Use filename             Off        (never leak the resident's filename)
 //   Incoming transformation  c_limit,w_1920,q_auto
-//   Allowed formats        jpg, png, webp
-//   Format                 jpg
-//   Max file size          10000000
-//   Return delete token    On
+//   Allowed formats          jpg, png, webp
+//   Format                   jpg
+//   Max file size            10000000
 //
 // The incoming transformation MUST live on the preset. An unsigned
 // upload request may not carry a `transformation` parameter — Cloudinary
-// rejects it outright ("Transformation parameter is not allowed when
-// using unsigned upload"). The allowed request parameters are
-// upload_preset, public_id, folder, tags, context, metadata, source,
-// filename_override and a few others; transformation is not among them.
-// Everything else is preset-side.
+// rejects it outright. Only upload_preset, public_id, folder, tags,
+// context, metadata, source and a few others are accepted on the
+// request; everything else is preset-side.
 //
-// The incoming transformation also re-encodes the file, which is what
-// drops EXIF from the stored asset. That matters more than the file
-// size: a phone photo carries GPS coordinates in EXIF, and a resident
-// who files anonymously about their own street would otherwise publish
-// their home location inside the evidence. Verify this once against a
-// real photo from a real handset before trusting it.
+// EXIF — READ THIS BEFORE CHANGING ANYTHING BELOW.
+//
+// An earlier version of this file claimed the incoming transformation
+// strips EXIF. That was wrong, and it was tested: a photo uploaded from
+// a POCO X7 came back re-encoded (477657 bytes in, 392666 out) with all
+// 44 EXIF tags intact, including Make, Model, DateTimeOriginal and
+// MakerNote. Cloudinary re-encodes the pixels and carries the metadata
+// through. It does not strip.
+//
+// GPS was absent in that test only because Android's photo picker
+// removes location unless the app holds ACCESS_MEDIA_LOCATION. That
+// protection is not ours, it varies by Android version and OEM, and it
+// does not apply to ImageSource.camera at all.
+//
+// This matters because of the anonymous option. A resident reporting a
+// problem outside their own house, filing anonymously, with a photo
+// taken through the camera, would otherwise publish their home
+// coordinates inside the evidence — on a public URL. DateTimeOriginal
+// and MakerNote leak too: an exact capture second plus a device
+// fingerprint is enough to correlate several anonymous complaints to one
+// phone.
+//
+// So we strip it ourselves, here, before the bytes leave the device.
+// flutter_image_compress drops EXIF by default (keepExif is false) and
+// bakes rotation into the pixels, so orientation survives without the
+// tag. Do not set keepExif: true. Do not rely on Cloudinary or on the
+// picker for this.
 
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
-/// Where an upload lands inside the `smartsumbong` folder.
+/// Where an upload lands inside the `smartsumbong` asset folder.
 enum MediaKind {
   /// Complaint evidence. Attached to `report_media`.
   reportPhoto('reports'),
@@ -74,17 +91,12 @@ class UploadedMedia {
     required this.mimeType,
     required this.bytes,
     required this.publicId,
-    this.deleteToken,
   });
 
   final String mediaUrl;
   final String mimeType;
   final int bytes;
   final String publicId;
-
-  /// Valid for ten minutes after upload. Used to clean up an asset whose
-  /// complaint never got filed — see [MediaUploader.discard].
-  final String? deleteToken;
 
   Map<String, dynamic> toJson() => {
         'media_url': mediaUrl,
@@ -116,13 +128,13 @@ class MediaUploader {
   final ImagePicker _picker;
 
   static const _uuid = Uuid();
-  static const _rootFolder = 'smartsumbong';
 
-  /// Longest edge, in pixels. Matches `c_limit,w_1920` on the preset —
-  /// we do it here as well so a resident on mobile data uploads roughly
-  /// 400 KB instead of 5 MB. The preset transformation is the backstop
-  /// for anything that reaches Cloudinary un-resized.
-  static const _maxEdge = 1920.0;
+  /// Target for the on-device re-encode. flutter_image_compress scales so
+  /// that both dimensions are at least this, preserving aspect — a 4:3
+  /// photo lands at 2560x1920, not 1920x1440. Cloudinary's c_limit,w_1920
+  /// caps the width on top of that. The point of this pass is the EXIF
+  /// strip; the size reduction is a bonus for residents on mobile data.
+  static const _minEdge = 1920;
 
   /// JPEG quality for the on-device re-encode.
   static const _quality = 85;
@@ -131,42 +143,71 @@ class MediaUploader {
   /// ceiling server-side; this only saves a doomed upload.
   static const _maxBytes = 10 * 1024 * 1024;
 
-  /// Mirrors `public.is_media_url()` in migration 0017. If a URL fails
-  /// here it will fail the CHECK constraint, so we fail early and
-  /// loudly rather than discovering it when the complaint is submitted.
+  /// Mirrors `public.is_media_url()` in migration 0018.
+  ///
+  /// No folder segment. The preset uses dynamic folders with "use asset
+  /// folder as public id prefix" off, so `smartsumbong` is organisational
+  /// metadata and never reaches the URL — verified against a real
+  /// upload. Pinning it would be theatre in any case: the preset applies
+  /// it to every caller, so it constrains nobody. What does constrain a
+  /// forged URL is the cloud prefix plus a UUID-shaped name — media_url
+  /// cannot point at a host the attacker controls, nor at an asset they
+  /// named themselves.
   static final _pinnedUrl = RegExp(
-    r'^https://res\.cloudinary\.com/[a-z0-9]+/image/upload/(v[0-9]+/)?'
-    r'smartsumbong/[A-Za-z0-9_/-]+\.(jpg|jpeg|png|webp)$',
+    r'^https://res\.cloudinary\.com/nwb2kryl/image/upload/v[0-9]+/'
+    r'(reports|ids|selfies|dispatch)/'
+    r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    r'\.(jpg|jpeg|png|webp)$',
   );
 
   Uri get _endpoint =>
       Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
 
-  /// Pick one photo and hand back a file already scaled and re-encoded.
-  ///
-  /// `maxWidth`/`maxHeight` scale to fit inside the box, and passing
-  /// `imageQuality` forces a re-encode on both platforms, which is the
-  /// first of the two EXIF strips.
+  /// Pick one photo and hand back a file that is scaled, re-encoded, and
+  /// stripped of metadata. The returned file is a temporary copy — the
+  /// resident's original in their gallery is untouched.
   Future<File?> pick({ImageSource source = ImageSource.gallery}) async {
     final picked = await _picker.pickImage(
       source: source,
-      maxWidth: _maxEdge,
-      maxHeight: _maxEdge,
-      imageQuality: _quality,
       requestFullMetadata: false, // do not ask iOS for location metadata
     );
-    return picked == null ? null : File(picked.path);
+    return picked == null ? null : _sanitise(File(picked.path));
   }
 
   Future<List<File>> pickMultiple({int limit = 5}) async {
     final picked = await _picker.pickMultiImage(
-      maxWidth: _maxEdge,
-      maxHeight: _maxEdge,
-      imageQuality: _quality,
       requestFullMetadata: false,
       limit: limit,
     );
-    return picked.map((x) => File(x.path)).toList();
+    return [for (final x in picked) await _sanitise(File(x.path))];
+  }
+
+  /// The EXIF strip. Everything the app uploads passes through here.
+  ///
+  /// keepExif defaults to false and must stay that way; autoCorrectionAngle
+  /// rotates the pixels so the image still displays the right way up once
+  /// the Orientation tag is gone.
+  Future<File> _sanitise(File input) async {
+    final dir = await getTemporaryDirectory();
+    final target = '${dir.path}/${_uuid.v4()}.jpg';
+
+    final out = await FlutterImageCompress.compressAndGetFile(
+      input.absolute.path,
+      target,
+      minWidth: _minEdge,
+      minHeight: _minEdge,
+      quality: _quality,
+      format: CompressFormat.jpeg,
+      keepExif: false,
+      autoCorrectionAngle: true,
+    );
+
+    if (out == null) {
+      throw MediaUploadException(
+        'That photo could not be processed. Please try another one.',
+      );
+    }
+    return File(out.path);
   }
 
   /// Upload one file. Retries transient failures with backoff; does not
@@ -190,12 +231,12 @@ class MediaUploader {
 
     // Unique per upload because the preset has Unique filename off, and
     // because unsigned uploads force overwrite=false — a collision would
-    // fail rather than silently replace. Also: the delivery URL is
-    // public to anyone holding it, so an unguessable id is the only
-    // thing standing between a complaint photo and a scraper walking
-    // sequential names. That is obscurity, not access control. Say so in
-    // the defence; the alternative is Cloudinary's authenticated
-    // delivery type, which needs the API secret to sign every view.
+    // fail rather than silently replace. Also: the delivery URL is public
+    // to anyone holding it, so an unguessable id is the only thing
+    // standing between a complaint photo and a scraper walking sequential
+    // names. That is obscurity, not access control. Say so in the
+    // defence; the alternative is Cloudinary's authenticated delivery
+    // type, which needs the API secret to sign every view.
     final publicId = '${kind.folder}/${_uuid.v4()}';
 
     Object? lastError;
@@ -239,7 +280,7 @@ class MediaUploader {
       // `source` is one of the parameters unsigned uploads do allow, and
       // it tags the asset in the Cloudinary console with where it came
       // from. Useful when the barangay asks what is filling the quota.
-      ..fields['source'] = 'smartsumbong-resident'
+      ..fields['source'] = 'smartsumbong-mobile'
       ..files.add(await http.MultipartFile.fromPath('file', file.path));
 
     onProgress?.call(0, length);
@@ -276,8 +317,6 @@ class MediaUploader {
       final message =
           (json['error'] as Map<String, dynamic>?)?['message'] as String? ??
               'Upload rejected (HTTP ${streamed.statusCode}).';
-      // 400 here is almost always a preset misconfiguration, not a user
-      // error. Surface it verbatim in debug builds.
       throw MediaUploadException(_friendly(message));
     }
 
@@ -285,7 +324,7 @@ class MediaUploader {
     if (url == null || !_pinnedUrl.hasMatch(url)) {
       throw MediaUploadException(
         'The media service returned an address this app will not accept. '
-        'Check the upload preset folder and allowed formats.',
+        'Check the upload preset configuration.',
       );
     }
 
@@ -300,27 +339,8 @@ class MediaUploader {
       // Cloudinary's own count of the stored asset, not the phone's count
       // of what was sent. They differ, because the preset re-encodes.
       bytes: (json['bytes'] as num?)?.toInt() ?? length,
-      publicId: json['public_id'] as String? ?? '$_rootFolder/$publicId',
-      deleteToken: json['delete_token'] as String?,
+      publicId: json['public_id'] as String? ?? publicId,
     );
-  }
-
-  /// Delete an asset whose complaint was never filed — the resident
-  /// backed out, or `file_report()` rolled back. Best effort: the token
-  /// expires ten minutes after upload, and a failure here costs quota,
-  /// not correctness. Never surface an error from this to the resident.
-  Future<void> discard(UploadedMedia media) async {
-    final token = media.deleteToken;
-    if (token == null) return;
-    try {
-      await _client.post(
-        Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/delete_by_token'),
-        body: {'token': token},
-      ).timeout(const Duration(seconds: 10));
-    } catch (_) {
-      // Orphan stays. It is inside `smartsumbong/reports/` with a random
-      // name and is referenced by nothing.
-    }
   }
 
   String _friendly(String cloudinaryMessage) {
