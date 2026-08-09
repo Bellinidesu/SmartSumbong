@@ -137,6 +137,8 @@ class AuthService {
   /// field, and unique violations surface the constraint name, so both
   /// are matchable.
   RegistrationException _translate(String raw) {
+    // ignore: avoid_print
+    print('AUTH RAW: $raw');
     final m = raw.toLowerCase();
 
     // Register Account UC, alternative flow A1.
