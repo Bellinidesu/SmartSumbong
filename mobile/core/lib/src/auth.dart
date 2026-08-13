@@ -96,7 +96,12 @@ class AuthRequiredException implements Exception {
 }
 
 class RegistrationException implements Exception {
-  RegistrationException(this.message, {this.field, this.goToLogin = false});
+  RegistrationException(
+    this.message, {
+    this.field,
+    this.goToLogin = false,
+    this.isRetryable = false,
+  });
 
   final String message;
 
@@ -106,6 +111,9 @@ class RegistrationException implements Exception {
   /// True when the right next step is the login screen rather than a
   /// correction — currently only for a mobile number already in use.
   final bool goToLogin;
+
+  /// True when waiting and trying again is the right advice.
+  final bool isRetryable;
 
   @override
   String toString() => message;
@@ -195,13 +203,40 @@ class AuthService {
         password: password,
       );
     } on AuthException catch (e) {
+      final m = e.message.toLowerCase();
+
+      // Should be impossible after 0022, which confirms synthetic
+      // addresses at creation. If it happens, the trigger is missing or
+      // the account predates it — and the resident cannot fix it, so say
+      // who can.
+      if (m.contains('not confirmed') || m.contains('email_not_confirmed')) {
+        throw RegistrationException(
+          'This account is not activated. Please contact the barangay.',
+        );
+      }
+      if (m.contains('banned') || m.contains('suspended')) {
+        throw RegistrationException(
+          'This account has been suspended. Please contact the barangay.',
+        );
+      }
+      if (m.contains('rate limit') || m.contains('too many')) {
+        throw RegistrationException(
+          'Too many attempts. Please wait a few minutes and try again.',
+          isRetryable: true,
+        );
+      }
+
       // Deliberately does not distinguish "no such number" from "wrong
       // password". Either would confirm whether a number is registered.
-      throw RegistrationException(
-        e.message.toLowerCase().contains('invalid login')
-            ? 'That mobile number and password do not match an account.'
-            : 'Could not sign you in. Please try again.',
-      );
+      if (m.contains('invalid login') || m.contains('invalid credentials')) {
+        throw RegistrationException(
+          'That mobile number and password do not match an account.',
+        );
+      }
+
+      // Anything unmatched carries the underlying reason. A generic
+      // message here cost twenty minutes of guesswork once already.
+      throw RegistrationException('Could not sign you in. (${e.message})');
     }
   }
 
