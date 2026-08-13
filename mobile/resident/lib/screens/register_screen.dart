@@ -85,9 +85,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _errors['full_name'] = 'Please enter your full name.';
     }
 
+    // Optional. Many residents do not have an email address, and
+    // requiring one would exclude exactly the people this system is for.
+    // The identity is the mobile number (migration 0021).
     final email = _email.text.trim();
-    if (email.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-      _errors['email'] = 'Please enter a valid email address.';
+    if (email.isNotEmpty &&
+        !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+      _errors['email'] = 'That email address does not look right.';
     }
 
     // Philippine mobile numbers are 10 digits after the country code and
@@ -180,7 +184,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       await widget.auth.register(
         fullName: _fullName.text,
-        email: _email.text,
+        contactEmail: _email.text.trim().isEmpty ? null : _email.text,
         mobileNumber: _normalisedMobile()!,
         password: _password.text,
         idType: _idType!,
@@ -246,6 +250,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 _Field(
                   label: 'Email Address',
+                  note: '(Optional)',
                   hint: 'example@gmail.com',
                   controller: _email,
                   error: _errors['email'],
@@ -254,6 +259,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 _Field(
                   label: 'Phone Number',
+                  note: '(You will use this to sign in.)',
                   hint: 'e.g. 09171234567',
                   controller: _mobile,
                   error: _errors['mobile_number'],

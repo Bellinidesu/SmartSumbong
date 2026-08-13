@@ -14,6 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'screens/launch_gate.dart';
+import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'theme.dart';
@@ -57,14 +59,19 @@ class SmartSumbongApp extends StatelessWidget {
       title: 'SmartSumbong',
       debugShowCheckedModeBanner: false,
       theme: buildResidentTheme(),
-      initialRoute: '/register',
+      // Every launch goes through the gate, which decides where the
+      // person actually belongs: no session, pending, verified,
+      // rejected or suspended. A fixed initialRoute cannot know.
+      initialRoute: '/',
       routes: {
+        '/': (_) => LaunchGate(auth: auth),
         '/register': (_) => RegisterScreen(auth: auth, uploader: uploader),
         '/verification-pending': (_) => VerificationPendingScreen(auth: auth),
         '/verification-rejected': (_) =>
             const _Placeholder('Verification rejected'),
+        '/account-suspended': (_) => const _Placeholder('Account suspended'),
         '/home': (_) => const _Placeholder('Home'),
-        '/login': (_) => const _Placeholder('Login'),
+        '/login': (_) => LoginScreen(auth: auth),
       },
     );
   }

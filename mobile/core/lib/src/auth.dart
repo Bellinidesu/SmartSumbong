@@ -134,21 +134,31 @@ class AuthService {
   /// administrator's browser would fetch.
   Future<void> register({
     required String fullName,
-    required String email,
     required String mobileNumber,
     required String password,
     required IdDocumentType idType,
     required String idImageUrl,
     required String selfieUrl,
+    String? contactEmail,
     AccountRole role = AccountRole.resident,
   }) async {
+    final mobile = normaliseMobile(mobileNumber);
+    if (mobile == null) {
+      throw RegistrationException(
+        'Enter a mobile number like 09171234567.',
+        field: 'mobile_number',
+      );
+    }
+
     try {
       await _client.auth.signUp(
-        email: email.trim(),
+        // Synthetic. Derived from the number, never shown, never mailed.
+        email: authEmailFor(mobile),
         password: password,
         data: {
           'full_name': fullName.trim(),
-          'mobile_number': mobileNumber.trim(),
+          'mobile_number': mobile,
+          'contact_email': contactEmail?.trim(),
           'role': role.wire,
           'id_type': idType.wire,
           'id_image_url': idImageUrl,
@@ -162,20 +172,61 @@ class AuthService {
     }
   }
 
-  Future<void> signIn({required String email, required String password}) async {
+  /// Sign in with a phone number.
+  ///
+  /// The auth address is recomputed from the number typed, so there is no
+  /// lookup: nothing to enumerate, no endpoint that turns a phone number
+  /// into someone's real email. See migration 0021.
+  Future<void> signIn({
+    required String mobileNumber,
+    required String password,
+  }) async {
+    final mobile = normaliseMobile(mobileNumber);
+    if (mobile == null) {
+      throw RegistrationException(
+        'Enter a mobile number like 09171234567.',
+        field: 'mobile_number',
+      );
+    }
+
     try {
       await _client.auth.signInWithPassword(
-        email: email.trim(),
+        email: authEmailFor(mobile),
         password: password,
       );
     } on AuthException catch (e) {
+      // Deliberately does not distinguish "no such number" from "wrong
+      // password". Either would confirm whether a number is registered.
       throw RegistrationException(
         e.message.toLowerCase().contains('invalid login')
-            ? 'That email and password do not match an account.'
+            ? 'That mobile number and password do not match an account.'
             : 'Could not sign you in. Please try again.',
       );
     }
   }
+
+  /// `+639XXXXXXXXX`, or null if this is not a Philippine mobile number.
+  ///
+  /// Accepts 09XXXXXXXXX, +639XXXXXXXXX and 639XXXXXXXXX, with or without
+  /// spaces or dashes. One normalised form so that the same person always
+  /// derives the same identity however they type it.
+  static String? normaliseMobile(String input) {
+    final d = input.replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.length == 11 && d.startsWith('09')) return '+63${d.substring(1)}';
+    if (d.length == 12 && d.startsWith('639')) return '+$d';
+    if (d.length == 10 && d.startsWith('9')) return '+63$d';
+    return null;
+  }
+
+  /// Mirrors `public.auth_email_for()` in migration 0021. If either
+  /// changes, both must: an account created under one and signed into
+  /// under the other is unreachable.
+  ///
+  /// .local is reserved by RFC 6762 and unresolvable, so nothing can
+  /// accidentally send mail to it.
+  static String authEmailFor(String normalisedMobile) =>
+      '${normalisedMobile.replaceAll(RegExp(r'[^0-9]'), '')}'
+      '@auth.smartsumbong.local';
 
   Future<void> signOut() => _client.auth.signOut();
 
@@ -238,13 +289,40 @@ class AuthService {
         goToLogin: true,
       );
     }
+    // The auth address is derived from the mobile number, so GoTrue's
+    // "already registered" means that *number* is taken — the Register
+    // Account UC's alternative flow A1.
     if (m.contains('already registered') ||
-        m.contains('user already exists') ||
-        m.contains('users_email_key')) {
+        m.contains('user already exists')) {
       return RegistrationException(
-        'That email address is already registered. Try signing in instead.',
-        field: 'email',
+        'That mobile number is already registered. Try signing in instead.',
+        field: 'mobile_number',
         goToLogin: true,
+      );
+    }
+    if (m.contains('users_email_key')) {
+      return RegistrationException(
+        'That email address is already used by another account. '
+        'You can leave it blank.',
+        field: 'email',
+      );
+    }
+    if (m.contains('auth identity does not match')) {
+      return RegistrationException(
+        'Something went wrong with your mobile number. Please try again.',
+        field: 'mobile_number',
+      );
+    }
+    if (m.contains('mobile_number must be in the form')) {
+      return RegistrationException(
+        'Enter a mobile number like 09171234567.',
+        field: 'mobile_number',
+      );
+    }
+    if (m.contains('contact_email is not a valid')) {
+      return RegistrationException(
+        'That email address does not look right. You can leave it blank.',
+        field: 'email',
       );
     }
 
