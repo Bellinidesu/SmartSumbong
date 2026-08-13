@@ -48,6 +48,53 @@ enum AccountRole {
   final String wire;
 }
 
+/// Mirrors `public.verification_state` in 0001.
+enum VerificationState {
+  pending,
+  verified,
+  rejected;
+
+  static VerificationState parse(String? wire) => switch (wire) {
+        'verified' => VerificationState.verified,
+        'rejected' => VerificationState.rejected,
+        _ => VerificationState.pending,
+      };
+}
+
+/// What the Verification Pending screen needs in one round trip.
+class VerificationSnapshot {
+  const VerificationSnapshot({
+    required this.status,
+    this.submittedAt,
+    this.dueAt,
+    this.isSuspended = false,
+  });
+
+  final VerificationState status;
+
+  /// Both are UTC as Postgres returns them. Convert with toLocal() at the
+  /// point of display, not here.
+  final DateTime? submittedAt;
+  final DateTime? dueAt;
+
+  final bool isSuspended;
+
+  /// True once the two-hour service target has passed. Admins have been
+  /// notified by sweep_overdue_verifications(); nothing happens to the
+  /// applicant.
+  bool get isOverdue =>
+      dueAt != null && DateTime.now().toUtc().isAfter(dueAt!.toUtc());
+}
+
+/// The session is gone — expired, signed out elsewhere, or the row was
+/// removed. The caller should send the user to login rather than show an
+/// error they cannot act on.
+class AuthRequiredException implements Exception {
+  const AuthRequiredException();
+  @override
+  String toString() => 'Not signed in';
+}
+
 class RegistrationException implements Exception {
   RegistrationException(this.message, {this.field, this.goToLogin = false});
 
@@ -132,13 +179,54 @@ class AuthService {
 
   Future<void> signOut() => _client.auth.signOut();
 
+  /// One row, four columns, for the Verification Pending screen.
+  ///
+  /// Reads through users_self_read (`id = auth.uid() or is_admin()`), so
+  /// an applicant can only ever see their own standing. Called on app
+  /// resume and on the refresh button — never on a timer. See the note in
+  /// verification_pending_screen.dart for why this is polled rather than
+  /// subscribed to over Realtime.
+  Future<VerificationSnapshot> verificationStatus() async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) throw const AuthRequiredException();
+
+    try {
+      final row = await _client
+          .from('users')
+          .select(
+            'verification_status, verification_submitted_at, '
+            'verification_due_at, is_suspended',
+          )
+          .eq('id', uid)
+          .maybeSingle();
+
+      // No row through RLS. Either the account was removed or the session
+      // outlived it; either way the user must sign in again.
+      if (row == null) throw const AuthRequiredException();
+
+      return VerificationSnapshot(
+        status: VerificationState.parse(row['verification_status'] as String?),
+        submittedAt: _parseTs(row['verification_submitted_at']),
+        dueAt: _parseTs(row['verification_due_at']),
+        isSuspended: (row['is_suspended'] as bool?) ?? false,
+      );
+    } on PostgrestException catch (e) {
+      // JWT expired or otherwise unusable.
+      if (e.code == 'PGRST301' || e.message.toLowerCase().contains('jwt')) {
+        throw const AuthRequiredException();
+      }
+      rethrow;
+    }
+  }
+
+  DateTime? _parseTs(Object? v) =>
+      v == null ? null : DateTime.tryParse(v as String);
+
   /// Turn a Postgres or GoTrue message into something a resident can act
   /// on. The trigger raises plain-language exceptions naming the missing
   /// field, and unique violations surface the constraint name, so both
   /// are matchable.
   RegistrationException _translate(String raw) {
-    // ignore: avoid_print
-    print('AUTH RAW: $raw');
     final m = raw.toLowerCase();
 
     // Register Account UC, alternative flow A1.

@@ -15,6 +15,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'screens/register_screen.dart';
+import 'screens/verification_pending_screen.dart';
 import 'theme.dart';
 
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -59,44 +60,12 @@ class SmartSumbongApp extends StatelessWidget {
       initialRoute: '/register',
       routes: {
         '/register': (_) => RegisterScreen(auth: auth, uploader: uploader),
-        '/verification-pending': (_) => const _VerificationPending(),
+        '/verification-pending': (_) => VerificationPendingScreen(auth: auth),
+        '/verification-rejected': (_) =>
+            const _Placeholder('Verification rejected'),
+        '/home': (_) => const _Placeholder('Home'),
         '/login': (_) => const _Placeholder('Login'),
       },
-    );
-  }
-}
-
-/// Stands in until the real screen exists (Figma 2105:151). Shown after
-/// a successful signup: the account is in the barangay's verification
-/// queue with a two-hour target, and cannot file anything until an
-/// admin approves it.
-class _VerificationPending extends StatelessWidget {
-  const _VerificationPending();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(Tokens.pagePad),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Almost there', style: t.titleMedium),
-              const SizedBox(height: 6),
-              Text('Verification Pending', style: t.headlineLarge),
-              const SizedBox(height: 20),
-              const Text(
-                'The barangay is checking your ID against their records. '
-                'You will get a text message once your account is approved.',
-                style: TextStyle(fontSize: 14, color: Tokens.navy, height: 1.4),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
