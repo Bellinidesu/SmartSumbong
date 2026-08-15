@@ -1,0 +1,363 @@
+// SmartSumbong — Home.
+//
+// Figma node 2117:72.
+//
+// Three cards and a greeting. The greeting uses the resident's first
+// name, which means one query on entry — and that query doubles as a
+// standing check: an account suspended while the app was open should not
+// keep browsing. The launch gate catches that at startup; this catches it
+// mid-session.
+//
+// The notification bell shows an unread count from public.notifications,
+// which is where complaint status updates already land (0002's
+// sweep functions write there) and where announcements would go if the
+// barangay ever wants in-app broadcast. It is read on entry and on
+// resume — same reasoning as Verification Pending: this is not a live
+// feed, and holding a websocket open for a badge is not worth the
+// connection.
+
+import 'package:flutter/material.dart';
+import 'package:smartsumbong_core/smartsumbong_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../theme.dart';
+import '../widgets/resident_nav_bar.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key, required this.auth});
+
+  final AuthService auth;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  String? _firstName;
+  int _unread = 0;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  Future<void> _load() async {
+    final client = Supabase.instance.client;
+    final uid = client.auth.currentUser?.id;
+    if (uid == null) {
+      _bounce('/login');
+      return;
+    }
+
+    try {
+      final profile = await client
+          .from('users')
+          .select('full_name, verification_status, is_suspended')
+          .eq('id', uid)
+          .maybeSingle();
+
+      if (profile == null) {
+        _bounce('/login');
+        return;
+      }
+
+      // Standing can change while the app is open. An admin who suspends
+      // an account mid-session should not leave the resident browsing a
+      // home screen where every action will fail against RLS.
+      if (profile['is_suspended'] == true) {
+        _bounce('/account-suspended');
+        return;
+      }
+      if (profile['verification_status'] != 'verified') {
+        _bounce('/verification-pending');
+        return;
+      }
+
+      final unread = await client
+          .from('notifications')
+          .count(CountOption.exact)
+          .eq('user_id', uid)
+          .eq('is_read', false);
+
+      if (!mounted) return;
+      setState(() {
+        _firstName = _firstNameOf(profile['full_name'] as String?);
+        _unread = unread;
+        _loading = false;
+      });
+    } catch (_) {
+      // Offline. Show the screen anyway — the cards are static and the
+      // buttons still work; only the greeting and badge are missing.
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _bounce(String route) {
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
+  }
+
+  static String? _firstNameOf(String? full) {
+    if (full == null || full.trim().isEmpty) return null;
+    return full.trim().split(RegExp(r'\s+')).first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+
+    return Scaffold(
+      bottomNavigationBar: const ResidentNavBar(current: ResidentTab.home),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          color: Tokens.navy,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(30, 16, 30, 24),
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _NotificationBell(
+                    unread: _unread,
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/notifications'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              Center(
+                child: Text('SmartSumbong',
+                    style: t.headlineLarge?.copyWith(fontSize: 34)),
+              ),
+              const SizedBox(height: 32),
+
+              Text(
+                _loading
+                    ? 'Welcome!'
+                    : (_firstName == null
+                        ? 'Welcome!'
+                        : 'Welcome, $_firstName!'),
+                style: t.headlineLarge?.copyWith(fontSize: 28),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'How are you doing today?',
+                style: t.titleMedium?.copyWith(fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+
+              _ActionCard(
+                title: 'Need urgent and immediate help?',
+                body: 'You can view and call the emergency services '
+                    'directly from our app.',
+                actions: [
+                  _CardAction(
+                    label: 'Go to Emergency',
+                    onTap: () =>
+                        Navigator.of(context).pushReplacementNamed('/emergency'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              _ActionCard(
+                title: 'Help us improve our barangay',
+                body: 'Want to report a problem in your area? Submit a '
+                    'report so we can fix the issue.',
+                actions: [
+                  _CardAction(
+                    label: 'Report an issue',
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/submit-report'),
+                  ),
+                  _CardAction(
+                    label: 'View reports',
+                    onTap: () =>
+                        Navigator.of(context).pushReplacementNamed('/reports'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              _ActionCard(
+                title: 'View map',
+                body: 'Get a view of Barangay 183, Pasay City and see '
+                    'your reports pinned on the map.',
+                actions: [
+                  _CardAction(
+                    label: 'View map',
+                    onTap: () =>
+                        Navigator.of(context).pushReplacementNamed('/map'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------- pieces -------------------------------------------
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell({required this.unread, required this.onTap});
+
+  final int unread;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(19),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 39,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Tokens.navy,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.notifications_none_rounded,
+                color: Tokens.bg, size: 22),
+          ),
+          if (unread > 0)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                constraints: const BoxConstraints(minWidth: 18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF9800),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: Tokens.bg, width: 1.5),
+                ),
+                child: Text(
+                  unread > 99 ? '99+' : '$unread',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardAction {
+  const _CardAction({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.title,
+    required this.body,
+    required this.actions,
+  });
+
+  final String title;
+  final String body;
+  final List<_CardAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Tokens.navy,
+        border: Border.all(color: Tokens.bg),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4D121212),
+            blurRadius: 2.5,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            body,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.25,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 10,
+            children: [
+              for (final a in actions)
+                InkWell(
+                  onTap: a.onTap,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Tokens.bg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      a.label,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: Tokens.navy,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -14,9 +14,18 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'models/complaint_category.dart';
+import 'screens/emergency_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
+import 'screens/map_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/report_category_screen.dart';
+import 'screens/report_details_screen.dart';
+import 'screens/report_submitted_screen.dart';
+import 'screens/report_view_screen.dart';
+import 'screens/reports_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'theme.dart';
 
@@ -63,6 +72,34 @@ class SmartSumbongApp extends StatelessWidget {
       // person actually belongs: no session, pending, verified,
       // rejected or suspended. A fixed initialRoute cannot know.
       initialRoute: '/',
+      // The details screen carries the chosen category, which a plain
+      // route table cannot pass.
+      onGenerateRoute: (settings) {
+        if (settings.name == '/report-submitted') {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => ReportSubmittedScreen(
+              trackingId: settings.arguments as String?,
+            ),
+          );
+        }
+        if (settings.name == '/report') {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) =>
+                ReportViewScreen(reportId: settings.arguments as String),
+          );
+        }
+        if (settings.name == '/submit-report/details') {
+          final choice = settings.arguments as CategoryChoice;
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) =>
+                ReportDetailsScreen(choice: choice, uploader: uploader),
+          );
+        }
+        return null;
+      },
       routes: {
         '/': (_) => LaunchGate(auth: auth),
         '/register': (_) => RegisterScreen(auth: auth, uploader: uploader),
@@ -70,7 +107,18 @@ class SmartSumbongApp extends StatelessWidget {
         '/verification-rejected': (_) =>
             const _Placeholder('Verification rejected'),
         '/account-suspended': (_) => const _Placeholder('Account suspended'),
-        '/home': (_) => const _Placeholder('Home'),
+        '/home': (_) => HomeScreen(auth: auth),
+
+        // Tabs and destinations reachable from Home. Each becomes a real
+        // screen in turn; until then the placeholder keeps navigation
+        // from throwing on an unknown route.
+        '/emergency': (_) => const EmergencyScreen(),
+        '/reports': (_) => ReportsScreen(auth: auth),
+        '/map': (_) => MapScreen(auth: auth),
+        '/settings': (_) => const _Placeholder('Settings'),
+        '/notifications': (_) => const _Placeholder('Notifications'),
+        '/submit-report': (_) => const ReportCategoryScreen(),
+
         '/login': (_) => LoginScreen(auth: auth),
       },
     );
