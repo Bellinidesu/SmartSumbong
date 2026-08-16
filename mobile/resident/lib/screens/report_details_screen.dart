@@ -45,7 +45,11 @@ import '../theme.dart';
 
 /// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
 /// 2988704. Used only when the resident's own position is unavailable.
-const _barangayCentre = LatLng(14.51646, 121.01621);
+// Not the relation's centroid (14.51646, 121.01621) — that sits on the
+// NAIA apron, so a resident with location off was offered a pin beside
+// Terminal 3. This is the residential centre the admin portal's Spatial
+// Distribution uses; the two must stay in step.
+const _barangayCentre = LatLng(14.526905, 121.015543);
 
 /// Matches operational_settings.max_report_photos, which the database
 /// enforces. Kept in step by hand; a mismatch shows up as a rejected
@@ -675,7 +679,18 @@ class _DescriptionBox extends StatelessWidget {
                   decoration: const InputDecoration(
                     hintText: 'Describe the issue in detail.',
                     hintStyle: TextStyle(fontSize: 12, color: Tokens.muted),
+                    // The Container above draws the box. Clearing
+                    // `border` alone is not enough: the global
+                    // InputDecorationTheme sets enabledBorder and
+                    // focusedBorder too, and those take precedence, so
+                    // the theme's pill was being drawn inside the box.
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                     counterText: '',

@@ -18,12 +18,15 @@ import 'models/complaint_category.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/emergency_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/languages_screen.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/report_category_screen.dart';
+import 'screens/role_picker_screen.dart';
 import 'screens/report_details_screen.dart';
 import 'screens/report_submitted_screen.dart';
 import 'screens/report_view_screen.dart';
@@ -120,11 +123,13 @@ class SmartSumbongApp extends StatelessWidget {
         '/map': (_) => MapScreen(auth: auth),
         '/settings': (_) => SettingsScreen(auth: auth),
         '/edit-profile': (_) => EditProfileScreen(auth: auth),
-        '/languages': (_) => const _Placeholder('Languages'),
+        '/languages': (_) => const LanguagesScreen(),
         '/notifications': (_) => const NotificationsScreen(),
         '/submit-report': (_) => const ReportCategoryScreen(),
 
         '/login': (_) => LoginScreen(auth: auth),
+        '/onboarding': (_) => const OnboardingScreen(),
+        '/roles': (_) => const RolePickerScreen(),
       },
     );
   }

@@ -15,7 +15,10 @@
 // A barangay-wide heatmap is the admin's Spatial Distribution screen,
 // where it is aggregated and behind a login.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -28,7 +31,27 @@ import 'reports_screen.dart' show ReportStatus;
 /// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
 /// 2988704. The same constant as the submit screen; if the barangay
 /// boundary is ever corrected, both move together.
-const _barangayCentre = LatLng(14.51646, 121.01621);
+// The relation covers the whole barangay, most of which is the airport
+// apron and Villamor Air Base — land with no residents and no
+// complaints. Centring on the relation's centroid puts a resident over
+// the runway. These are the values the admin portal's Spatial
+// Distribution uses, kept identical so the two maps frame the same
+// place; if the barangay revises one, revise both.
+const _residentialCentre = LatLng(14.526905, 121.015543);
+const _spanLat = 0.0110;
+const _spanLng = 0.0115;
+
+/// Google's 17z at this centre, which frames 1st Street through 31st.
+const _defaultZoom = 17.0;
+
+/// A ring large enough to cover the visible world. The fog is this
+/// polygon with the barangay punched out of it.
+const _world = <LatLng>[
+  LatLng(-89.9, -179.9),
+  LatLng(-89.9, 179.9),
+  LatLng(89.9, 179.9),
+  LatLng(89.9, -179.9),
+];
 
 class _Pin {
   const _Pin({
@@ -61,6 +84,69 @@ class _MapScreenState extends State<MapScreen> {
   bool _showReports = false;
   List<_Pin>? _pins;
   bool _loading = false;
+  List<List<LatLng>> _rings = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBoundary();
+  }
+
+  /// OSM returns the relation's ways unordered and unclosed, so they are
+  /// joined end-to-end into rings. Same algorithm as the admin portal's
+  /// Spatial Distribution, reading the same file.
+  ///
+  /// Bundled rather than fetched: the outline does not change between
+  /// releases, and a resident on the edge of signal should still see
+  /// which side of the boundary they are on.
+  Future<void> _loadBoundary() async {
+    try {
+      final raw = await rootBundle.loadString('assets/geo/brgy183.json');
+      final elements = (jsonDecode(raw) as Map)['elements'] as List;
+      final rel = elements.firstWhere((e) => e['type'] == 'relation');
+
+      final pool = <List<LatLng>>[];
+      for (final m in (rel['members'] as List)) {
+        if (m['type'] != 'way' || m['geometry'] == null) continue;
+        pool.add([
+          for (final p in (m['geometry'] as List))
+            LatLng((p['lat'] as num).toDouble(), (p['lon'] as num).toDouble()),
+        ]);
+      }
+
+      bool near(LatLng a, LatLng b) =>
+          (a.latitude - b.latitude).abs() < 1e-7 &&
+          (a.longitude - b.longitude).abs() < 1e-7;
+
+      final rings = <List<LatLng>>[];
+      while (pool.isNotEmpty) {
+        var ring = pool.removeAt(0);
+        var joined = true;
+        while (joined) {
+          joined = false;
+          for (var i = 0; i < pool.length; i++) {
+            final w = pool[i];
+            if (near(ring.last, w.first)) {
+              ring = [...ring, ...w.skip(1)];
+            } else if (near(ring.last, w.last)) {
+              ring = [...ring, ...w.reversed.skip(1)];
+            } else {
+              continue;
+            }
+            pool.removeAt(i);
+            joined = true;
+            break;
+          }
+        }
+        if (ring.length > 3) rings.add(ring);
+      }
+
+      if (!mounted || rings.isEmpty) return;
+      setState(() => _rings = rings);
+    } catch (_) {
+      // The map is still useful without the outline.
+    }
+  }
 
   Future<void> _toggle() async {
     if (_showReports) {
@@ -208,10 +294,21 @@ class _MapScreenState extends State<MapScreen> {
                       children: [
                         FlutterMap(
                           mapController: _map,
-                          options: const MapOptions(
-                            initialCenter: _barangayCentre,
-                            initialZoom: 15,
-                            interactionOptions: InteractionOptions(
+                          options: MapOptions(
+                            initialCenter: _residentialCentre,
+                            initialZoom: _defaultZoom,
+                            // Pinned to the residential grid: the only
+                            // area that can be panned to, and it cannot
+                            // be zoomed out far enough to lose it.
+                            cameraConstraint: CameraConstraint.contain(
+                              bounds: LatLngBounds(
+                                const LatLng(14.526905 - _spanLat,
+                                    121.015543 - _spanLng),
+                                const LatLng(14.526905 + _spanLat,
+                                    121.015543 + _spanLng),
+                              ),
+                            ),
+                            interactionOptions: const InteractionOptions(
                               flags: InteractiveFlag.pinchZoom |
                                   InteractiveFlag.drag |
                                   InteractiveFlag.doubleTapZoom,
@@ -224,6 +321,31 @@ class _MapScreenState extends State<MapScreen> {
                               userAgentPackageName: 'ph.smartsumbong.resident',
                               maxZoom: 19,
                             ),
+                            // Everything outside 183 is dimmed rather
+                            // than hidden, so a resident can still see
+                            // the bordering streets and orient
+                            // themselves. Permanent here: the admin
+                            // portal has a toggle because an admin
+                            // sometimes needs the surrounding city, but
+                            // a resident filing a complaint only needs
+                            // to know where the boundary is.
+                            if (_rings.isNotEmpty)
+                              PolygonLayer(
+                                polygons: [
+                                  Polygon(
+                                    points: _world,
+                                    holePointsList: _rings,
+                                    color: const Color(0x8C0D1117),
+                                  ),
+                                  for (final ring in _rings)
+                                    Polygon(
+                                      points: ring,
+                                      borderColor: const Color(0xE614181D),
+                                      borderStrokeWidth: 2,
+                                    ),
+                                ],
+                              ),
+
                             if (_showReports)
                               MarkerLayer(
                                 markers: [

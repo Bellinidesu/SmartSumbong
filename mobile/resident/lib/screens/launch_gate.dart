@@ -20,9 +20,12 @@
 // an error nobody can act on.
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../theme.dart';
+import 'login_screen.dart' show rememberMeKey;
+import 'onboarding_screen.dart' show onboardingSeenKey;
 
 class LaunchGate extends StatefulWidget {
   const LaunchGate({super.key, required this.auth});
@@ -48,7 +51,24 @@ class _LaunchGateState extends State<LaunchGate> {
     // returning residents, and the login screen carries a Sign Up link
     // for the ones who are not.
     if (widget.auth.session == null) {
-      _go('/login');
+      // First launch on this handset: introduce the app before asking
+      // anyone to sign in. Only checked when there is no session — an
+      // account already signed in has necessarily been past this.
+      if (!await _onboardingSeen()) {
+        _go('/onboarding');
+        return;
+      }
+      _go('/roles');
+      return;
+    }
+
+    // "Remember me" was left unticked at the last sign-in. The session
+    // is on disk because supabase_flutter always persists it, so honour
+    // the choice here — this runs only on a cold start, never between
+    // screens.
+    if (!await _remembered()) {
+      await widget.auth.signOut();
+      _go('/roles');
       return;
     }
 
@@ -84,6 +104,29 @@ class _LaunchGateState extends State<LaunchGate> {
     }
   }
 
+  /// Storage failures are treated as "already seen". Showing the
+  /// introduction on every launch would be worse than never showing it.
+  Future<bool> _onboardingSeen() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(onboardingSeenKey) ?? false;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Absent means remember. Only an explicit false signs the account
+  /// out, so a storage failure can never lock anyone out of their own
+  /// session.
+  Future<bool> _remembered() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(rememberMeKey) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   void _go(String route) {
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(route);
@@ -113,6 +156,7 @@ class _LaunchGateState extends State<LaunchGate> {
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
                 ),
+                const Positioned.fill(child: _SealWash()),
                 SafeArea(
                   bottom: false,
                   child: Padding(
@@ -122,7 +166,9 @@ class _LaunchGateState extends State<LaunchGate> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Image.asset('assets/images/bagong-pilipinas.png',
-                            height: 64, semanticLabel: 'Bagong Pilipinas'),
+                            height: 64,
+                            filterQuality: FilterQuality.medium,
+                            semanticLabel: 'Bagong Pilipinas'),
                         const SizedBox(width: 18),
                         // Largest of the three: this is the barangay
                         // whose system it is, and its seal already
@@ -131,11 +177,14 @@ class _LaunchGateState extends State<LaunchGate> {
                         // underneath.
                         Image.asset('assets/images/brgy-183-seal.png',
                             height: 88,
+                            filterQuality: FilterQuality.medium,
                             semanticLabel: 'Barangay 183 Zone 20 Villamor, '
                                 'Pasay City'),
                         const SizedBox(width: 18),
                         Image.asset('assets/images/bagong-villamor.png',
-                            height: 64, semanticLabel: 'Bagong Villamor'),
+                            height: 64,
+                            filterQuality: FilterQuality.medium,
+                            semanticLabel: 'Bagong Villamor'),
                       ],
                     ),
                   ),
@@ -230,6 +279,50 @@ class _LaunchGateState extends State<LaunchGate> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+/// Lightens the band the seals sit in, and deepens the band below it.
+///
+/// All three seals are navy line work on a navy gradient, which is why
+/// they read poorly unmodified. Rather than framing each one, this
+/// lifts the top of the background close to white so the line work has
+/// something to sit against, then falls away to a deepened blue that
+/// gives the white card's shoulder an edge to land on.
+///
+/// The stops are the whole design. [_washTop] has to go far enough that
+/// navy reads cleanly — a pale blue looks considered and is still hard
+/// to read, which is worse than not trying. Tune on the handset, in
+/// daylight, not on a monitor.
+class _SealWash extends StatelessWidget {
+  const _SealWash();
+
+  /// Near-white behind the seals.
+  static const _washTop = Color(0xF2FFFFFF);
+
+  /// Where the lift has fully released back to the artwork.
+  static const _washClear = 0.46;
+
+  /// A deepening toward the shoulder of the card below.
+  static const _washBottom = Color(0x33001A4D);
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            _washTop,
+            Color(0x00FFFFFF),
+            _washBottom,
+          ],
+          stops: [0.0, _washClear, 1.0],
+        ),
       ),
     );
   }

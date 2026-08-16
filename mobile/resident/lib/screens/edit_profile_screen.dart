@@ -117,12 +117,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (!mounted) return;
       setState(() => _originalEmail = email);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your profile has been saved.'),
-          backgroundColor: Tokens.navy,
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _ProfileDialog(
+          title: 'Changes Saved.',
+          primaryLabel: 'Continue',
+          onPrimary: () => Navigator.of(context).pop(),
         ),
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
     } on PostgrestException catch (e) {
       if (!mounted) return;
@@ -217,20 +221,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (didPop) return;
         final leave = await showDialog<bool>(
           context: context,
-          builder: (_) => AlertDialog(
-            backgroundColor: Tokens.bg,
-            title: const Text('Leave without saving?'),
-            content: const Text('Your changes will not be kept.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Keep editing'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Leave'),
-              ),
-            ],
+          builder: (_) => _ProfileDialog(
+            title: 'Unsaved Changes',
+            body: 'If you continue without saving, these changes will '
+                'be lost.',
+            secondaryLabel: 'Cancel',
+            onSecondary: () => Navigator.of(context).pop(false),
+            primaryLabel: 'Continue',
+            onPrimary: () => Navigator.of(context).pop(true),
           ),
         );
         if (leave == true && context.mounted) Navigator.of(context).pop();
@@ -345,7 +343,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 borderRadius: BorderRadius.circular(50),
                               ),
                             ),
-                            child: const Text('Back'),
+                            child: const Text('BACK'),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -359,7 +357,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2, color: Tokens.bg),
                                   )
-                                : const Text('Save'),
+                                : const Text('SAVE'),
                           ),
                         ),
                       ],
@@ -639,5 +637,140 @@ class _PasswordDialogState extends State<_PasswordDialog> {
         FilledButton(onPressed: _submit, child: const Text('Change')),
       ],
     );
+  }
+}
+
+
+/// The navy modal from EDIT PROFILE - BACK and EDIT PROFILE - SAVE.
+///
+/// One shape serving both: an orange title, optional body, and one or
+/// two pills. Cancel is drawn as the quieter of the pair even though it
+/// is the safer choice — that is how the frame has it, and the dialog
+/// only appears when the resident has already asked to leave.
+class _ProfileDialog extends StatelessWidget {
+  const _ProfileDialog({
+    required this.title,
+    required this.primaryLabel,
+    required this.onPrimary,
+    this.body,
+    this.secondaryLabel,
+    this.onSecondary,
+  });
+
+  final String title;
+  final String? body;
+  final String primaryLabel;
+  final VoidCallback onPrimary;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+
+  static const _orange = Color(0xFFFF9800);
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Tokens.navy,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 44),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                color: _orange,
+              ),
+            ),
+            if (body != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                body!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: Tokens.bg,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (secondaryLabel != null) ...[
+                  _Pill(
+                    label: secondaryLabel!,
+                    onTap: onSecondary!,
+                    filled: false,
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                _Pill(label: primaryLabel, onTap: onPrimary, filled: true),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.label,
+    required this.onTap,
+    required this.filled,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(50),
+    );
+    const size = Size(96, 38);
+
+    return filled
+        ? FilledButton(
+            onPressed: onTap,
+            style: FilledButton.styleFrom(
+              backgroundColor: Tokens.bg,
+              foregroundColor: Tokens.navy,
+              minimumSize: size,
+              padding: EdgeInsets.zero,
+              shape: shape,
+              textStyle: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            child: Text(label),
+          )
+        : OutlinedButton(
+            onPressed: onTap,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Tokens.bg,
+              side: const BorderSide(color: Tokens.bg),
+              minimumSize: size,
+              padding: EdgeInsets.zero,
+              shape: shape,
+              textStyle: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            child: Text(label),
+          );
   }
 }

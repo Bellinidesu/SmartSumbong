@@ -260,7 +260,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 _Field(
                   label: 'Phone Number',
                   note: '(You will use this to sign in.)',
-                  hint: 'e.g. 09171234567',
+                  hint: 'e.g. +63 1234567899',
                   controller: _mobile,
                   error: _errors['mobile_number'],
                   keyboardType: TextInputType.phone,

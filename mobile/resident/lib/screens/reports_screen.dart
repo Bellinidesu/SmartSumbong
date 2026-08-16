@@ -53,8 +53,13 @@ enum ReportStatus {
   bool get canCancel =>
       this == ReportStatus.pendingReview || this == ReportStatus.validated;
 
-  bool get canRequestReopen =>
+  /// The complaint has run its course. Mirrors the RLS condition on
+  /// feedback_insert, which is the only place a resident is allowed to
+  /// rate a case.
+  bool get isFinished =>
       this == ReportStatus.resolved || this == ReportStatus.closed;
+
+  bool get canRequestReopen => isFinished;
 
   /// Cancelled is drawn in red in the design — it is the one outcome the
   /// resident caused, and it reads differently from a rejection.
@@ -68,9 +73,9 @@ enum ReportFilter {
   underReview('Under Review', ['pending_review', 'validated']),
   inProgress('In Progress',
       ['assigned', 'in_progress', 'offline_investigation']),
-  completed('Completed', ['resolved', 'closed', 'archived']),
   rejected('Rejected', ['rejected']),
-  cancelled('Cancelled', ['cancelled']);
+  cancelled('Cancelled', ['cancelled']),
+  completed('Completed', ['resolved', 'closed', 'archived']);
 
   const ReportFilter(this.label, this.wires);
   final String label;
@@ -205,12 +210,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _requestReopen(ReportSummary r) async {
-    final reason = await showDialog<String>(
+    final reason = await showModalBottomSheet<String>(
       context: context,
-      builder: (_) => _ReasonDialog(
-        title: 'Reopen ${r.trackingId}?',
-        prompt: 'Tell the barangay why this should be looked at again.',
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ReopenSheet(report: r),
     );
     if (reason == null || reason.trim().isEmpty) return;
 
@@ -617,6 +621,185 @@ class _ReasonDialogState extends State<_ReasonDialog> {
           child: const Text('Send request'),
         ),
       ],
+    );
+  }
+}
+
+
+// ---------- reopen -------------------------------------------
+
+/// The sheet from REPORTS - REOPEN.
+///
+/// The reason is a menu rather than free text because the barangay
+/// reads these to decide, and a fixed vocabulary is easier to weigh
+/// than a paragraph. The concern box carries the detail.
+///
+/// The frame also offers an optional photo. There is nowhere to put
+/// one: request_reopen(uuid, text) takes text and writes it to
+/// status_logs, and no media row is keyed to a reopen request. It is
+/// left out rather than shown and discarded.
+///
+/// Reasons are developer-invented and belong on the list of values the
+/// barangay still has to confirm, alongside the SLA windows.
+const _reopenReasons = <String>[
+  'The problem came back',
+  'The problem was not fixed',
+  'The proof does not match my report',
+  'Other',
+];
+
+class _ReopenSheet extends StatefulWidget {
+  const _ReopenSheet({required this.report});
+
+  final ReportSummary report;
+
+  @override
+  State<_ReopenSheet> createState() => _ReopenSheetState();
+}
+
+class _ReopenSheetState extends State<_ReopenSheet> {
+  final _concern = TextEditingController();
+  String? _reason;
+  String? _error;
+
+  @override
+  void dispose() {
+    _concern.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_reason == null) {
+      setState(() => _error = 'Please choose a reason.');
+      return;
+    }
+    if (_concern.text.trim().isEmpty) {
+      setState(() => _error = 'Please describe your concern.');
+      return;
+    }
+    Navigator.of(context).pop('$_reason. ${_concern.text.trim()}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.report;
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + inset),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+
+            // The navy header card carrying the ticket being reopened.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              decoration: BoxDecoration(
+                color: Tokens.navy,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Reopen:\n(${r.trackingId} - ${r.status.label}) '
+                    '${r.subject}',
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      height: 1.25,
+                      color: Tokens.bg,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Reopening does not happen here — the barangay decides,
+            // because it restarts the SLA clock. Saying so up front is
+            // the difference between a wait and a broken button.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Tokens.field,
+                border: Border.all(color: Tokens.navy),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Text(
+                'Note: Reopening asks the barangay to look at this case '
+                'again. If this is a new problem rather than the same '
+                'one, please file a new report instead.',
+                style: TextStyle(fontSize: 12, height: 1.35,
+                    color: Tokens.navy),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Reason of Reopen',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: Tokens.navy)),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              initialValue: _reason,
+              isExpanded: true,
+              hint: const Text('Select a Reason'),
+              items: [
+                for (final v in _reopenReasons)
+                  DropdownMenuItem(value: v, child: Text(v)),
+              ],
+              onChanged: (v) => setState(() {
+                _reason = v;
+                _error = null;
+              }),
+            ),
+            const SizedBox(height: 14),
+
+            TextField(
+              controller: _concern,
+              maxLines: 4,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'Enter your concern here.',
+              ),
+              onChanged: (_) => setState(() => _error = null),
+            ),
+
+            if (_error != null)
+              Text(_error!,
+                  style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+            const SizedBox(height: 8),
+
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Back'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _submit,
+                    child: const Text('Submit'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

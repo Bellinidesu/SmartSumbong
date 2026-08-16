@@ -429,8 +429,8 @@ class _NumberRow extends StatelessWidget {
       context: context,
       builder: (_) => _ConfirmSheet(
         message: '${number.number} copied',
-        primaryLabel: 'Back',
-        onPrimary: () => Navigator.of(context).pop(),
+        buttonLabel: 'Back',
+        onButton: () => Navigator.of(context).pop(),
       ),
     );
   }
@@ -439,11 +439,10 @@ class _NumberRow extends StatelessWidget {
     final go = await showDialog<bool>(
       context: context,
       builder: (_) => _ConfirmSheet(
-        message: 'Call ${number.number}?',
-        primaryLabel: 'Call',
-        secondaryLabel: 'Cancel',
-        onPrimary: () => Navigator.of(context).pop(true),
-        onSecondary: () => Navigator.of(context).pop(false),
+        message: 'Call ${number.number}',
+        onMessage: () => Navigator.of(context).pop(true),
+        buttonLabel: 'Cancel',
+        onButton: () => Navigator.of(context).pop(false),
       ),
     );
     if (go != true || !context.mounted) return;
@@ -586,23 +585,57 @@ class _LinkRow extends StatelessWidget {
 
 /// The navy pill dialog from EMERGENCY - CONFIRMATION and
 /// EMERGENCY - COPY NUMBERS.
+/// The navy card from EMERGENCY - CONFIRMATION FOR MANUAL and
+/// EMERGENCY - COPY NUMBERS.
+///
+/// Both frames are the same shape: a white pill, then one button under
+/// it. What differs is whether the pill is the action. On the call
+/// confirmation it is — "Call 0927 126 9625" is what you tap to dial,
+/// and Cancel is the way out. On the copy confirmation the pill only
+/// reports what happened, and Back dismisses it.
+///
+/// The frames mask the digits as "O9** *** ****". That is placeholder
+/// artwork, not a requirement: the number is the one thing the resident
+/// is being asked to confirm, and in an emergency dialling the wrong
+/// hotline because it was hidden is the failure this dialog exists to
+/// prevent. The real number is shown.
 class _ConfirmSheet extends StatelessWidget {
   const _ConfirmSheet({
     required this.message,
-    required this.primaryLabel,
-    required this.onPrimary,
-    this.secondaryLabel,
-    this.onSecondary,
+    required this.buttonLabel,
+    required this.onButton,
+    this.onMessage,
   });
 
   final String message;
-  final String primaryLabel;
-  final VoidCallback onPrimary;
-  final String? secondaryLabel;
-  final VoidCallback? onSecondary;
+  final String buttonLabel;
+  final VoidCallback onButton;
+
+  /// When set, the pill is the confirming action.
+  final VoidCallback? onMessage;
 
   @override
   Widget build(BuildContext context) {
+    final pill = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Tokens.field,
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          color: Tokens.navy,
+        ),
+      ),
+    );
+
     return Dialog(
       backgroundColor: Tokens.navy,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
@@ -611,60 +644,33 @@ class _ConfirmSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Tokens.field,
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: Tokens.navy,
+            if (onMessage == null)
+              pill
+            else
+              Semantics(
+                button: true,
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(50),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(onTap: onMessage, child: pill),
                 ),
               ),
-            ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                if (secondaryLabel != null) ...[
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onSecondary,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Tokens.bg,
-                        side: const BorderSide(color: Tokens.bg),
-                        minimumSize: const Size.fromHeight(40),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(secondaryLabel!),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: FilledButton(
-                    onPressed: onPrimary,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Tokens.field,
-                      foregroundColor: Tokens.navy,
-                      minimumSize: const Size.fromHeight(40),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                    ),
-                    child: Text(primaryLabel),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onButton,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Tokens.bg,
+                  side: const BorderSide(color: Tokens.bg),
+                  minimumSize: const Size.fromHeight(40),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
                   ),
                 ),
-              ],
+                child: Text(buttonLabel),
+              ),
             ),
           ],
         ),

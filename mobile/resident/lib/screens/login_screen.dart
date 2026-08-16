@@ -22,9 +22,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../theme.dart';
+
+/// Whether this handset should keep the session across app launches.
+/// Read by the launch gate, written here. Absent means remember, which
+/// is what an existing install already does.
+const rememberMeKey = 'remember_me';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.auth});
@@ -41,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _busy = false;
   bool _obscure = true;
+  bool _remember = true;
   String? _error;
   final _fieldErrors = <String, String>{};
 
@@ -76,6 +83,16 @@ class _LoginScreenState extends State<LoginScreen> {
         mobileNumber: _mobile.text,
         password: _password.text,
       );
+      // Recorded only after the credentials are accepted, so a failed
+      // attempt never changes how the next launch behaves.
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(rememberMeKey, _remember);
+      } catch (_) {
+        // Storage unavailable: the session persists, which is the
+        // existing behaviour and the safer default of the two.
+      }
+
       if (!mounted) return;
       // Back to the gate, which decides where this account belongs:
       // pending, verified, rejected or suspended. Login does not need to
@@ -100,7 +117,22 @@ class _LoginScreenState extends State<LoginScreen> {
     final t = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: SafeArea(
+      body: Stack(
+        children: [
+          // The contour texture, same asset and opacity as Home and the
+          // launch gate, so the three screens a resident sees first read
+          // as one surface.
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.55,
+              child: Image.asset(
+                'assets/images/texture.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              ),
+            ),
+          ),
+          SafeArea(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
@@ -110,9 +142,15 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 20),
                 Center(
-                  child: Text('SmartSumbong', style: t.headlineLarge),
+                  child: FractionallySizedBox(
+                    widthFactor: 0.68,
+                    child: Image.asset(
+                      'assets/images/logo-wordmark.png',
+                      semanticLabel: 'SmartSumbong',
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
                 Center(
                   child: Text(
                     'Resident Profile',
@@ -167,9 +205,39 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: Checkbox(
+                              value: _remember,
+                              onChanged: _busy
+                                  ? null
+                                  : (v) =>
+                                      setState(() => _remember = v ?? true),
+                              side: const BorderSide(color: Tokens.bg),
+                              checkColor: Tokens.navy,
+                              fillColor: WidgetStateProperty.resolveWith(
+                                (st) => st.contains(WidgetState.selected)
+                                    ? Tokens.bg
+                                    : Colors.transparent,
+                              ),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Remember me',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: Tokens.bg,
+                            ),
+                          ),
+                          const Spacer(),
+                        TextButton(
                           onPressed: _busy ? null : () => _forgotPassword(),
                           style: TextButton.styleFrom(
                             foregroundColor: Tokens.bg,
@@ -186,6 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
+                        ],
                       ),
 
                       if (_error != null) ...[
@@ -216,6 +285,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                     strokeWidth: 2, color: Colors.white),
                               )
                             : const Text('Log In'),
+                      ),
+                      const SizedBox(height: 12),
+
+                      OutlinedButton(
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context)
+                                .pushNamedAndRemoveUntil(
+                                    '/roles', (_) => false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Tokens.bg,
+                          side: const BorderSide(color: Tokens.bg),
+                          minimumSize: const Size.fromHeight(44),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          textStyle: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                        child: const Text('Back to Roles'),
                       ),
                       const SizedBox(height: 20),
 
@@ -252,6 +344,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+          ),
+        ],
       ),
     );
   }

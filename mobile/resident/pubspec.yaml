@@ -61,6 +61,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/images/
+    - assets/geo/
   fonts:
     - family: Poppins
       fonts:

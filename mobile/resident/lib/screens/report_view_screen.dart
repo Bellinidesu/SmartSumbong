@@ -38,6 +38,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   List<String> _photos = const [];
   List<String> _proof = const [];
   List<Map<String, dynamic>> _timeline = const [];
+  Map<String, dynamic>? _feedback;
   String? _error;
 
   @override
@@ -77,6 +78,15 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .select('media_url, dispatches!inner(report_id)')
           .eq('dispatches.report_id', widget.reportId);
 
+      // Feedback is one row per report at most — the table has a unique
+      // constraint on report_id, so this is the resident's single
+      // rating or nothing.
+      final fb = await client
+          .from('feedback')
+          .select('rating, comment, submitted_at')
+          .eq('report_id', widget.reportId)
+          .maybeSingle();
+
       final logs = await client
           .from('status_logs')
           .select('old_status, new_status, remark, created_at')
@@ -89,6 +99,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         _photos = [for (final m in media) m['media_url'] as String];
         _proof = [for (final m in proof) m['media_url'] as String];
         _timeline = List<Map<String, dynamic>>.from(logs);
+        _feedback = fb;
       });
     } catch (_) {
       if (!mounted) return;
@@ -164,6 +175,17 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           onViewProof: () => _openPhoto(_proof, 0),
         ),
 
+        // Feedback closes the loop the resident started. RLS allows the
+        // insert only on a resolved or closed report, so the card is
+        // shown on exactly the states the database would accept.
+        if (status.isFinished) ...[
+          const SizedBox(height: 20),
+          _FeedbackCard(
+            feedback: _feedback,
+            onRate: _openFeedback,
+          ),
+        ],
+
         if (_timeline.isNotEmpty) ...[
           const SizedBox(height: 28),
           Text('History', style: t.labelLarge?.copyWith(fontSize: 16)),
@@ -172,6 +194,19 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         ],
       ],
     );
+  }
+
+  Future<void> _openFeedback() async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Tokens.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (_) => _FeedbackSheet(reportId: widget.reportId),
+    );
+    if (saved == true) await _load();
   }
 
   void _openPhoto(List<String> urls, int index) {
@@ -248,7 +283,14 @@ class _ReportCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Row(
+          // A Wrap, not a Row: a long month name plus the anonymous
+          // badge overruns the card on a narrow handset, and the badge
+          // dropping to its own line is better than either clipping the
+          // date or shrinking it.
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 2,
             children: [
               Text(
                 createdAt == null
@@ -256,14 +298,17 @@ class _ReportCard extends StatelessWidget {
                     : 'Submitted on ${_formatDate(createdAt!)}',
                 style: const TextStyle(fontSize: 12, color: Tokens.bg),
               ),
-              if (isAnonymous) ...[
-                const SizedBox(width: 8),
-                const Icon(Icons.visibility_off_outlined,
-                    size: 13, color: Tokens.bg),
-                const SizedBox(width: 3),
-                const Text('Anonymous',
-                    style: TextStyle(fontSize: 11, color: Tokens.bg)),
-              ],
+              if (isAnonymous)
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.visibility_off_outlined,
+                        size: 13, color: Tokens.bg),
+                    SizedBox(width: 3),
+                    Text('Anonymous',
+                        style: TextStyle(fontSize: 11, color: Tokens.bg)),
+                  ],
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -628,6 +673,250 @@ class _PhotoViewer extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+// ---------- feedback -----------------------------------------
+
+/// Shown under a resolved or closed report. Either an invitation to
+/// rate, or the rating already given — feedback cannot be edited,
+/// because the table takes one row per report and the barangay is
+/// reading these as a record of how a case landed at the time.
+class _FeedbackCard extends StatelessWidget {
+  const _FeedbackCard({required this.feedback, required this.onRate});
+
+  final Map<String, dynamic>? feedback;
+  final VoidCallback onRate;
+
+  @override
+  Widget build(BuildContext context) {
+    final given = feedback;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      decoration: BoxDecoration(
+        color: Tokens.field,
+        border: Border.all(color: Tokens.navy, width: 2),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            given == null ? 'How did we do?' : 'Your feedback',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: Tokens.navy,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          if (given == null) ...[
+            const Text(
+              'Tell the barangay how this complaint was handled. '
+              'Your rating helps them see what is working.',
+              style: TextStyle(fontSize: 13, height: 1.35, color: Tokens.navy),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onRate,
+                child: const Text('Give feedback'),
+              ),
+            ),
+          ] else ...[
+            _Stars(rating: (given['rating'] as num?)?.toInt() ?? 0),
+            if ((given['comment'] as String?)?.trim().isNotEmpty ?? false) ...[
+              const SizedBox(height: 10),
+              Text(
+                given['comment'] as String,
+                style: const TextStyle(
+                    fontSize: 13, height: 1.35, color: Tokens.navy),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Stars extends StatelessWidget {
+  const _Stars({required this.rating, this.size = 26});
+
+  final int rating;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 1; i <= 5; i++)
+          Icon(
+            i <= rating ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: size,
+            color: const Color(0xFFFF9800),
+          ),
+      ],
+    );
+  }
+}
+
+class _FeedbackSheet extends StatefulWidget {
+  const _FeedbackSheet({required this.reportId});
+
+  final String reportId;
+
+  @override
+  State<_FeedbackSheet> createState() => _FeedbackSheetState();
+}
+
+class _FeedbackSheetState extends State<_FeedbackSheet> {
+  final _comment = TextEditingController();
+  int _rating = 0;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _comment.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_rating == 0) {
+      setState(() => _error = 'Please choose a rating first.');
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final comment = _comment.text.trim();
+      await client.from('feedback').insert({
+        'report_id': widget.reportId,
+        'resident_id': client.auth.currentUser!.id,
+        'rating': _rating,
+        'comment': comment.isEmpty ? null : comment,
+      });
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      final m = e.message.toLowerCase();
+      setState(() {
+        _saving = false;
+        // The unique constraint on report_id, and the RLS check that
+        // only lets a resolved or closed report through, are the two
+        // ways this legitimately fails.
+        _error = m.contains('duplicate') || m.contains('unique')
+            ? 'You have already given feedback on this report.'
+            : m.contains('policy') || m.contains('row-level')
+                ? 'Feedback can only be given once a report is finished.'
+                : 'Could not send your feedback. Please try again.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = 'Could not send your feedback. Please try again.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + inset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'How did we do?',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              color: Tokens.navy,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 1; i <= 5; i++)
+                  IconButton(
+                    onPressed: _saving
+                        ? null
+                        : () => setState(() {
+                              _rating = i;
+                              _error = null;
+                            }),
+                    iconSize: 38,
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      i <= _rating
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                      color: const Color(0xFFFF9800),
+                    ),
+                    tooltip: '$i',
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          TextField(
+            controller: _comment,
+            enabled: !_saving,
+            maxLines: 4,
+            maxLength: 500,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              hintText: 'Anything you want to add? (optional)',
+            ),
+          ),
+
+          if (_error != null) ...[
+            const SizedBox(height: 4),
+            Text(_error!,
+                style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+          ],
+          const SizedBox(height: 12),
+
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _saving ? null : _submit,
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Tokens.bg),
+                    )
+                  : const Text('Send feedback'),
+            ),
+          ),
+        ],
       ),
     );
   }
