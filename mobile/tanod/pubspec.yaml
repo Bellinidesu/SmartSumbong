@@ -1,0 +1,48 @@
+name: tanod
+description: "SmartSumbong — Barangay Tanod app."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  geolocator: ^13.0.2
+  shared_preferences: ^2.3.3
+  cupertino_icons: ^1.0.8
+
+  # supabase_flutter is not listed here for the same reason it is not
+  # listed in the resident app: it arrives through smartsumbong_core,
+  # and pub puts every transitive package in package_config.json, so the
+  # imports resolve. The analyzer will raise
+  # depend_on_referenced_packages; that is a lint, not an error, and the
+  # two apps are consistent with each other.
+  smartsumbong_core:
+    path: ../core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Poppins-ExtraBold.ttf
+          weight: 800
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Italic.ttf
+          style: italic
+  uses-material-design: true
