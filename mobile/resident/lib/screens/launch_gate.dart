@@ -91,47 +91,145 @@ class _LaunchGateState extends State<LaunchGate> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Tokens.pagePad),
-            child: _error == null
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
+      backgroundColor: Tokens.navy,
+      body: Column(
+        children: [
+          // The official half. Three seals on the barangay blue: this is
+          // the first thing a resident sees, and for someone deciding
+          // whether to hand a government ID to an app on their phone,
+          // the seals are the credential. The wordmark below is the
+          // product; these are the authority behind it.
+          Expanded(
+            flex: 5,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // The composite from the design: gradient, blur and
+                // contours already flattened, exported at 4x so it stays
+                // sharp on a 1220px handset.
+                Image.asset(
+                  'assets/images/loading-bg.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                ),
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Image.asset('assets/images/bagong-pilipinas.png',
+                            height: 64, semanticLabel: 'Bagong Pilipinas'),
+                        const SizedBox(width: 18),
+                        // Largest of the three: this is the barangay
+                        // whose system it is, and its seal already
+                        // carries "Barangay 183 Zone 20 Villamor, Pasay
+                        // City" around the rim, so no caption is needed
+                        // underneath.
+                        Image.asset('assets/images/brgy-183-seal.png',
+                            height: 88,
+                            semanticLabel: 'Barangay 183 Zone 20 Villamor, '
+                                'Pasay City'),
+                        const SizedBox(width: 18),
+                        Image.asset('assets/images/bagong-villamor.png',
+                            height: 64, semanticLabel: 'Bagong Villamor'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // The product half, on the page background, with the rounded
+          // shoulder from the design.
+          Expanded(
+            flex: 6,
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Tokens.bg,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
+                  child: Column(
                     children: [
-                      Text('SmartSumbong', style: t.headlineLarge),
-                      const SizedBox(height: 24),
-                      const CircularProgressIndicator(color: Tokens.navy),
-                    ],
-                  )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text('SmartSumbong',
-                          style: t.headlineLarge, textAlign: TextAlign.center),
-                      const SizedBox(height: 20),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 14, color: Tokens.navy, height: 1.4),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FractionallySizedBox(
+                              widthFactor: 0.72,
+                              child: Image.asset(
+                                'assets/images/logo-wordmark.png',
+                                semanticLabel: 'SmartSumbong',
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Sumbong na may resibo,\naksyong garantisado!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                                height: 1.15,
+                                color: Tokens.navy,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 24),
-                      FilledButton(
-                        onPressed: () {
-                          setState(() => _error = null);
-                          _decide();
-                        },
-                        child: const Text('Try again'),
-                      ),
+
+                      if (_error == null) ...[
+                        const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: Tokens.navy),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Mabuhay! Signing you in\u2026',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: Tokens.navy,
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 13, height: 1.4, color: Tokens.navy),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () {
+                              setState(() => _error = null);
+                              _decide();
+                            },
+                            child: const Text('Try again'),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

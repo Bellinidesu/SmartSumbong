@@ -276,11 +276,26 @@ class _MapScreenState extends State<MapScreen> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.fromLTRB(30, 0, 30, 16),
-              child: _MapCard(
-                showing: _showReports,
-                count: pins.length,
-                loaded: _pins != null,
-                onToggle: _toggle,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _MapCard(showing: _showReports, onToggle: _toggle),
+
+                  // The orange pin straddling the card's top-left corner
+                  // in the design. Decorative only — the card's left
+                  // padding is already cut to make room for it.
+                  const Positioned(
+                    left: -12,
+                    top: -22,
+                    child: IgnorePointer(
+                      child: Icon(
+                        Icons.location_on_outlined,
+                        size: 44,
+                        color: Color(0xFFFF9800),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -294,32 +309,22 @@ class _MapScreenState extends State<MapScreen> {
 class _MapCard extends StatelessWidget {
   const _MapCard({
     required this.showing,
-    required this.count,
-    required this.loaded,
     required this.onToggle,
   });
 
   final bool showing;
-  final int count;
-  final bool loaded;
   final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
-    final String body;
-    if (!showing) {
-      body = 'Just click the \u2018eye\u2019 and you will see the locations '
-          'of your reports. You can also move the map around.';
-    } else if (!loaded) {
-      body = 'Looking for your reports\u2026';
-    } else if (count == 0) {
-      body = 'You have not filed any reports yet. When you do, they will '
-          'appear here.';
-    } else {
-      body = count == 1
-          ? 'Showing your 1 report. Tap the pin to open it.'
-          : 'Showing your $count reports. Tap a pin to open it.';
-    }
+    // Verbatim from the MAP and MAP - SEE REPORTS frames. The grammar in
+    // the second string ("you will back to") is the designer's; it is
+    // reproduced as drawn because the copy was signed off as-is.
+    final String body = showing
+        ? 'Just click the \u2018eye\u2019 again and you will back to the '
+            'normal map. You can also move the map around.'
+        : 'Just click the \u2018eye\u2019 and you will see the locations '
+            'of your reports. You can also move the map around.';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(34, 15, 18, 15),
@@ -335,7 +340,7 @@ class _MapCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  showing ? 'Your reports' : 'Want to see your reports?',
+                  showing ? 'Reports spotted!' : 'Want to see your reports?',
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
@@ -365,7 +370,7 @@ class _MapCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Icon(
-                showing ? Icons.visibility_off : Icons.visibility,
+                showing ? Icons.visibility : Icons.visibility_off,
                 color: Colors.white,
                 size: 24,
               ),

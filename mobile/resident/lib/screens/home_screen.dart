@@ -122,13 +122,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       bottomNavigationBar: const ResidentNavBar(current: ResidentTab.home),
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _load,
-          color: Tokens.navy,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(30, 16, 30, 24),
+      body: Stack(
+        children: [
+          // The contour texture from the design, edge to edge behind
+          // everything. Exported at one frame's size (412x917), so it
+          // covers rather than tiles — on a taller handset the bottom
+          // is cropped, which is the right failure for a background
+          // whose whole job is to not be looked at.
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.55,
+              child: Image.asset(
+                'assets/images/texture.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              ),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: RefreshIndicator(
+              onRefresh: _load,
+              color: Tokens.navy,
+              child: ListView(
+            padding: const EdgeInsets.fromLTRB(26, 12, 26, 24),
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -140,13 +157,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
 
               Center(
-                child: Text('SmartSumbong',
-                    style: t.headlineLarge?.copyWith(fontSize: 34)),
+                child: FractionallySizedBox(
+                  widthFactor: 0.68,
+                  child: Image.asset(
+                    'assets/images/logo-wordmark.png',
+                     // The wordmark carries the brand; a screen reader
+                     // should hear the name, not "image".
+                    semanticLabel: 'SmartSumbong',
+                  ),
+                ),
               ),
-              const SizedBox(height: 32),
+
+              const SizedBox(height: 24),
 
               Text(
                 _loading
@@ -154,14 +179,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     : (_firstName == null
                         ? 'Welcome!'
                         : 'Welcome, $_firstName!'),
-                style: t.headlineLarge?.copyWith(fontSize: 28),
+                style: t.headlineLarge?.copyWith(fontSize: 22),
               ),
-              const SizedBox(height: 4),
               Text(
                 'How are you doing today?',
-                style: t.titleMedium?.copyWith(fontSize: 14),
+                style: t.titleMedium?.copyWith(fontSize: 13),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
               _ActionCard(
                 title: 'Need urgent and immediate help?',
@@ -175,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               _ActionCard(
                 title: 'Help us improve our barangay',
@@ -194,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               _ActionCard(
                 title: 'View map',
@@ -208,9 +232,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -292,7 +318,7 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(18, 15, 18, 16),
       decoration: BoxDecoration(
         color: Tokens.navy,
         border: Border.all(color: Tokens.bg),
@@ -313,31 +339,32 @@ class _ActionCard extends StatelessWidget {
             style: const TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
-              fontSize: 18,
+              fontSize: 15,
+              height: 1.15,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 5),
           Text(
             body,
             style: const TextStyle(
-              fontSize: 12,
-              height: 1.25,
+              fontSize: 11,
+              height: 1.3,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 16,
-            runSpacing: 10,
+            spacing: 10,
+            runSpacing: 8,
             children: [
               for (final a in actions)
                 InkWell(
                   onTap: a.onTap,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    height: 36,
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    height: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Tokens.bg,
@@ -348,7 +375,7 @@ class _ActionCard extends StatelessWidget {
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
+                        fontSize: 13,
                         color: Tokens.navy,
                       ),
                     ),

@@ -15,17 +15,20 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/complaint_category.dart';
+import 'screens/edit_profile_screen.dart';
 import 'screens/emergency_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/notifications_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/report_category_screen.dart';
 import 'screens/report_details_screen.dart';
 import 'screens/report_submitted_screen.dart';
 import 'screens/report_view_screen.dart';
 import 'screens/reports_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'theme.dart';
 
@@ -115,8 +118,10 @@ class SmartSumbongApp extends StatelessWidget {
         '/emergency': (_) => const EmergencyScreen(),
         '/reports': (_) => ReportsScreen(auth: auth),
         '/map': (_) => MapScreen(auth: auth),
-        '/settings': (_) => const _Placeholder('Settings'),
-        '/notifications': (_) => const _Placeholder('Notifications'),
+        '/settings': (_) => SettingsScreen(auth: auth),
+        '/edit-profile': (_) => EditProfileScreen(auth: auth),
+        '/languages': (_) => const _Placeholder('Languages'),
+        '/notifications': (_) => const NotificationsScreen(),
         '/submit-report': (_) => const ReportCategoryScreen(),
 
         '/login': (_) => LoginScreen(auth: auth),
