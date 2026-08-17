@@ -11,6 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
   geolocator: ^13.0.2
+  flutter_map: ^7.0.2
+  image_picker: ^1.1.2
+  latlong2: ^0.9.1
   shared_preferences: ^2.3.3
   cupertino_icons: ^1.0.8
 

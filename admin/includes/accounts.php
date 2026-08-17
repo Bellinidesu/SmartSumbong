@@ -81,6 +81,26 @@ function render_account_screen(string $role): void
                         $flash = 'Account reinstated.';
                         break;
 
+                    case 'reset_password':
+                        // Re-authenticated for the same reason promote
+                        // and step_down are: this hands working
+                        // credentials for someone else's account to
+                        // whoever is at the keyboard, and the database
+                        // only knows that an admin is calling.
+                        Supabase::signIn($admin['email'], (string) ($_POST['password'] ?? ''));
+                        $issued = $db->rpc('admin_reset_password', [
+                            'p_user' => $target,
+                        ]);
+                        // The RPC returns the password once and never
+                        // stores it. If it is lost between here and the
+                        // counter, the only remedy is another reset.
+                        $_SESSION['issued_password'] = is_array($issued)
+                            ? (string) reset($issued)
+                            : (string) $issued;
+                        $flash = 'Temporary password issued. Read it to them in person '
+                               . 'and do not send it by message.';
+                        break;
+
                     case 'promote':
                         // The database only knows the caller is an admin.
                         // Re-signing in is what proves it is still the
@@ -434,6 +454,23 @@ function render_account_detail(
 
     <?php if ($flash): ?>
       <div class="flash flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
+      <?php
+        // Shown once and cleared. Kept out of the flash text itself so a
+        // reload, a screenshot of the toast, or a shoulder at the desk
+        // does not carry it any further than it has to go.
+        $issuedPassword = $_SESSION['issued_password'] ?? null;
+        unset($_SESSION['issued_password']);
+      ?>
+      <?php if ($issuedPassword !== null): ?>
+        <div class="issued-password" role="status">
+          <span class="issued-password__label">Temporary password</span>
+          <code class="issued-password__value"><?= e($issuedPassword) ?></code>
+          <span class="issued-password__note">
+            Shown once. It is not stored anywhere and cannot be looked up
+            again &mdash; if it is lost, issue another.
+          </span>
+        </div>
+      <?php endif; ?>
     <?php endif; ?>
 
     <div class="case-top">
@@ -570,6 +607,37 @@ function render_account_detail(
               <textarea id="suspend-reason" name="reason" rows="3" maxlength="200"
                         placeholder="e.g. Repeatedly filed fraudulent complaints."></textarea>
               <button class="btn-deny-confirm" type="submit" name="action" value="suspend">Confirm suspension</button>
+            </div>
+
+            <!--
+              Password reset. There is no self-service route: the sign-in
+              address is derived from the phone number and its domain
+              receives no mail, so the barangay is the only way back in
+              for someone who has forgotten their password.
+
+              Check their ID first, the same way it was checked when the
+              account was approved. That inspection is the whole security
+              of this control.
+            -->
+            <button class="btn-secondary" type="button" data-reveal="reset-panel"
+                    aria-expanded="false">
+              Reset Password
+            </button>
+
+            <div class="deny-panel" id="reset-panel" hidden>
+              <p class="control-note">
+                Only do this with the person in front of you and their ID in
+                hand. They will be shown a temporary password once &mdash; read
+                it to them, do not send it. They must change it when they
+                next sign in.
+              </p>
+              <label class="field-label" for="reset-password">
+                Your password &mdash; confirms it is you at the keyboard
+              </label>
+              <input id="reset-password" type="password" name="password"
+                     autocomplete="current-password" required>
+              <button class="btn-deny-confirm" type="submit" name="action"
+                      value="reset_password">Issue temporary password</button>
             </div>
 
           <?php else: ?>

@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'screens/duty_screen.dart';
+import 'screens/tanod_shell.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
 import 'theme.dart';
@@ -57,7 +57,7 @@ class SmartSumbongTanodApp extends StatelessWidget {
       routes: {
         '/': (_) => LaunchGate(auth: auth),
         '/login': (_) => LoginScreen(auth: auth),
-        '/duty': (_) => const DutyScreen(),
+        '/duty': (_) => const TanodShell(),
         '/verification-pending': (_) =>
             const _Placeholder('Verification pending'),
         '/verification-rejected': (_) =>

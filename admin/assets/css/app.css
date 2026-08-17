@@ -1825,3 +1825,71 @@ a.btn-accept { text-decoration: none; }
 .trail-ok  { background: #e9f6ec; color: #16652c; }
 .trail-bad { background: #fdeaea; color: #a01818; flex-direction: column; gap: 3px; }
 .trail-ok svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+
+/* ---------- password reset ----------------------------------- */
+/* Deliberately not styled like Suspend. Both are consequential,
+   but suspension is a sanction and this is a service — a red
+   button teaches the operator to hesitate over the wrong one. */
+.btn-secondary {
+  height: 50px;
+  background: #fff;
+  color: var(--navy);
+  border: 1px solid var(--rule);
+  margin-top: 10px;
+}
+.btn-secondary:hover { background: #f4f6fb; }
+
+#reset-panel {
+  background: #f4f6fb;
+  border-color: var(--rule);
+}
+#reset-panel input[type="password"] {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-input);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--ink);
+  background: #fff;
+}
+#reset-panel input[type="password"]:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 1px;
+}
+#reset-panel .btn-deny-confirm { background: var(--navy); }
+#reset-panel .btn-deny-confirm:hover { filter: brightness(1.15); }
+
+/* The password itself. Large and monospaced because it is read
+   aloud across a counter, and the whole point of excluding I, O,
+   0 and 1 is lost if it is set in a face that confuses them. */
+.issued-password {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #fffbe9;
+  border: 1px solid #e8d48a;
+  border-radius: var(--r-input);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.issued-password__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.issued-password__value {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--ink);
+  user-select: all;
+}
+.issued-password__note {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
