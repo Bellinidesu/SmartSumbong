@@ -18,7 +18,7 @@
 //     connection per pending signup, on the free tier, for a static screen.
 //   * It is the wrong shape. The applicant is not watching a live feed;
 //     they are waiting on a human decision that takes minutes to hours and
-//     arrives by SMS anyway (Verify User Account UC). Realtime is for the
+//     is a human decision that takes minutes to hours. Realtime is for the
 //     admin map, where seconds matter.
 //
 // So: refresh when the app comes back to the foreground, plus a manual
@@ -212,8 +212,9 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
 
               const Text(
                 'The barangay is checking your ID and photo against their '
-                'records. You will get a text message once your account is '
-                'approved.',
+                'records. This screen updates on its own once your '
+                'account is approved \u2014 you can close the app and '
+                'come back.',
                 style: TextStyle(fontSize: 14, color: Tokens.navy, height: 1.5),
               ),
               const SizedBox(height: 20),

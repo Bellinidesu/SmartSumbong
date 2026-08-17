@@ -83,6 +83,14 @@ class _LaunchGateState extends State<LaunchGate> {
         return;
       }
 
+      // A temporary password is still in force. Nothing else happens
+      // until it is replaced — the administrator who issued it can sign
+      // in as this account until then.
+      if (s.mustChangePassword) {
+        _go('/change-password');
+        return;
+      }
+
       _go(switch (s.status) {
         VerificationState.verified => '/home',
         VerificationState.rejected => '/verification-rejected',

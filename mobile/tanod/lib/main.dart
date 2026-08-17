@@ -14,6 +14,8 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'screens/tanod_shell.dart';
+import 'screens/account_status_screen.dart';
+import 'screens/change_password_screen.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
 import 'theme.dart';
@@ -58,11 +60,17 @@ class SmartSumbongTanodApp extends StatelessWidget {
         '/': (_) => LaunchGate(auth: auth),
         '/login': (_) => LoginScreen(auth: auth),
         '/duty': (_) => const TanodShell(),
+        '/change-password': (_) => ChangePasswordScreen(auth: auth),
         '/verification-pending': (_) =>
             const _Placeholder('Verification pending'),
-        '/verification-rejected': (_) =>
-            const _Placeholder('Verification rejected'),
-        '/account-suspended': (_) => const _Placeholder('Account suspended'),
+        '/verification-rejected': (_) => AccountStatusScreen(
+              auth: auth,
+              block: AccountBlock.rejected,
+              canRegisterAgain: false),
+        '/account-suspended': (_) => AccountStatusScreen(
+              auth: auth,
+              block: AccountBlock.suspended,
+              canRegisterAgain: false),
       },
     );
   }

@@ -15,6 +15,8 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/complaint_category.dart';
+import 'screens/account_status_screen.dart';
+import 'screens/change_password_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/emergency_screen.dart';
 import 'screens/home_screen.dart';
@@ -109,10 +111,20 @@ class SmartSumbongApp extends StatelessWidget {
       routes: {
         '/': (_) => LaunchGate(auth: auth),
         '/register': (_) => RegisterScreen(auth: auth, uploader: uploader),
+
+        // Same screen, other role. A named route rather than a
+        // constructed one because RegisterScreen needs auth and the
+        // uploader, and only main holds those.
+        '/register-tanod': (_) => RegisterScreen(
+              auth: auth,
+              uploader: uploader,
+              role: AccountRole.tanod,
+            ),
         '/verification-pending': (_) => VerificationPendingScreen(auth: auth),
-        '/verification-rejected': (_) =>
-            const _Placeholder('Verification rejected'),
-        '/account-suspended': (_) => const _Placeholder('Account suspended'),
+        '/verification-rejected': (_) => AccountStatusScreen(
+              auth: auth, block: AccountBlock.rejected),
+        '/account-suspended': (_) => AccountStatusScreen(
+              auth: auth, block: AccountBlock.suspended),
         '/home': (_) => HomeScreen(auth: auth),
 
         // Tabs and destinations reachable from Home. Each becomes a real
@@ -128,6 +140,7 @@ class SmartSumbongApp extends StatelessWidget {
         '/submit-report': (_) => const ReportCategoryScreen(),
 
         '/login': (_) => LoginScreen(auth: auth),
+        '/change-password': (_) => ChangePasswordScreen(auth: auth),
         '/onboarding': (_) => const OnboardingScreen(),
         '/roles': (_) => const RolePickerScreen(),
       },

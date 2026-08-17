@@ -38,6 +38,16 @@ enum IdDocumentType {
     barangayId,
     driversLicense,
   ];
+
+  /// What a tanod submits. Barangay 183 has a handful of tanods and most
+  /// Philippine barangays are the same, so this is never a queue to
+  /// automate — the admin knows the roster by name and checks the
+  /// document against it. Barangay ID first because most barangays issue
+  /// no separate appointment order (0019).
+  static const tanodOptions = [
+    barangayId,
+    barangayAppointment,
+  ];
 }
 
 enum AccountRole {
@@ -68,6 +78,8 @@ class VerificationSnapshot {
     this.submittedAt,
     this.dueAt,
     this.isSuspended = false,
+    this.mustChangePassword = false,
+    this.reason,
   });
 
   final VerificationState status;
@@ -78,6 +90,18 @@ class VerificationSnapshot {
   final DateTime? dueAt;
 
   final bool isSuspended;
+
+  /// An administrator issued a temporary password (0028). Until it is
+  /// changed, that administrator holds working credentials for this
+  /// account — so the client forces a change before allowing anything
+  /// else, rather than merely suggesting one.
+  final bool mustChangePassword;
+
+  /// What the admin typed when denying or suspending. verify_user_account
+  /// and set_account_suspension both write it here, and the Deny panel
+  /// in the portal says out loud that the applicant sees it — so a
+  /// screen that withholds it makes a liar of the operator.
+  final String? reason;
 
   /// True once the two-hour service target has passed. Admins have been
   /// notified by sweep_overdue_verifications(); nothing happens to the
@@ -263,6 +287,28 @@ class AuthService {
       '${normalisedMobile.replaceAll(RegExp(r'[^0-9]'), '')}'
       '@auth.smartsumbong.local';
 
+  /// Sets a new password and clears the temporary-password flag.
+  ///
+  /// Two calls that must both land. updateUser() changes the credential;
+  /// clear_password_change_flag() releases the client from the forced
+  /// change. If the second fails the password is already changed, so the
+  /// user is not locked out — they simply see the screen again, which is
+  /// the harmless direction for this to fail in.
+  Future<void> changePassword(String newPassword) async {
+    if (_client.auth.currentUser == null) {
+      throw const AuthRequiredException();
+    }
+    if (newPassword.length < 8) {
+      throw RegistrationException(
+        'Your password must be at least 8 characters long.',
+        field: 'password',
+      );
+    }
+
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+    await _client.rpc('clear_password_change_flag');
+  }
+
   Future<void> signOut() => _client.auth.signOut();
 
   /// One row, four columns, for the Verification Pending screen.
@@ -281,7 +327,8 @@ class AuthService {
           .from('users')
           .select(
             'verification_status, verification_submitted_at, '
-            'verification_due_at, is_suspended',
+            'verification_due_at, is_suspended, must_change_password, '
+            'rejection_reason',
           )
           .eq('id', uid)
           .maybeSingle();
@@ -295,6 +342,11 @@ class AuthService {
         submittedAt: _parseTs(row['verification_submitted_at']),
         dueAt: _parseTs(row['verification_due_at']),
         isSuspended: (row['is_suspended'] as bool?) ?? false,
+        mustChangePassword:
+            (row['must_change_password'] as bool?) ?? false,
+        reason: (row['rejection_reason'] as String?)?.trim().isEmpty ?? true
+            ? null
+            : (row['rejection_reason'] as String).trim(),
       );
     } on PostgrestException catch (e) {
       // JWT expired or otherwise unusable.
