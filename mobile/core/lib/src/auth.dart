@@ -38,6 +38,16 @@ enum IdDocumentType {
     barangayId,
     driversLicense,
   ];
+
+  /// What a tanod submits. Barangay 183 has a handful of tanods and most
+  /// Philippine barangays are the same, so this is never a queue to
+  /// automate — the admin knows the roster by name and checks the
+  /// document against it. Barangay ID first because most barangays issue
+  /// no separate appointment order (0019).
+  static const tanodOptions = [
+    barangayId,
+    barangayAppointment,
+  ];
 }
 
 enum AccountRole {

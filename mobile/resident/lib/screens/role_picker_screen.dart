@@ -81,23 +81,21 @@ class RolePickerScreen extends StatelessWidget {
                         fallback: Icons.local_police,
                         background: const Color(0xFFFF9800),
                         foreground: Tokens.navy,
-                        // Inert by design in this build. It answers
-                        // rather than doing nothing, because a card that
-                        // swallows a tap reads as broken — and this one
-                        // will get tapped by anyone handed the phone.
-                        onTap: () {
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(
-                              const SnackBar(
-                                backgroundColor: Tokens.navy,
-                                content: Text(
-                                  'The tanod app is not part of this '
-                                  'build yet.',
-                                ),
-                              ),
-                            );
-                        },
+                        // A tanod registers here and then uses the
+                        // separate tanod app. Registration lives in this
+                        // app because it is the one a person installs
+                        // first, and because the signup path — trigger,
+                        // verification queue, admin approval — is the
+                        // same one either role goes through.
+                        //
+                        // The admin checks the Barangay ID against the
+                        // barangay's own roster. That is the whole
+                        // control for a staff account, and it is why
+                        // self-registration is safe here: nobody becomes
+                        // a tanod without a person who knows the roster
+                        // saying so.
+                        onTap: () => Navigator.of(context)
+                            .pushNamed('/register-tanod'),
                       ),
                     ],
                   ),

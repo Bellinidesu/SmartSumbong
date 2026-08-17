@@ -289,6 +289,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
 
                 _IdTypeDropdown(
+                  role: widget.role,
                   value: _idType,
                   open: _dropdownOpen,
                   error: _errors['id_type'],
@@ -470,9 +471,14 @@ class _IdTypeDropdown extends StatelessWidget {
     required this.open,
     required this.onToggle,
     required this.onSelect,
+    this.role = AccountRole.resident,
     this.error,
     this.enabled = true,
   });
+
+  /// Decides which documents are offered. A tanod proves an appointment,
+  /// not residence, so the two lists have nothing to do with each other.
+  final AccountRole role;
 
   final IdDocumentType? value;
   final bool open;
@@ -493,7 +499,12 @@ class _IdTypeDropdown extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.end,
             spacing: 8,
             children: [
-              Text('Attach a Valid ID', style: t.labelLarge),
+              Text(
+                role == AccountRole.tanod
+                    ? 'Attach your Barangay ID'
+                    : 'Attach a Valid ID',
+                style: t.labelLarge,
+              ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
                 child: Text('(Information should be readable.)',
@@ -520,7 +531,10 @@ class _IdTypeDropdown extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          value?.label ?? 'Select a Valid ID',
+                          value?.label ??
+                              (role == AccountRole.tanod
+                                  ? 'Select your document'
+                                  : 'Select a Valid ID'),
                           style: t.bodyMedium,
                         ),
                       ),
@@ -535,7 +549,9 @@ class _IdTypeDropdown extends StatelessWidget {
               ),
               if (open) ...[
                 const Divider(height: 1, color: Tokens.divider),
-                for (final o in IdDocumentType.residentOptions)
+                for (final o in role == AccountRole.tanod
+                    ? IdDocumentType.tanodOptions
+                    : IdDocumentType.residentOptions)
                   InkWell(
                     onTap: () => onSelect(o),
                     child: Container(
