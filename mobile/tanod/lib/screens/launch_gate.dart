@@ -52,14 +52,6 @@ class _LaunchGateState extends State<LaunchGate> {
         return;
       }
 
-      // A temporary password is still in force. Nothing else happens
-      // until it is replaced — the administrator who issued it can sign
-      // in as this account until then.
-      if (s.mustChangePassword) {
-        _go('/change-password');
-        return;
-      }
-
       // Verified, but is this a tanod? A resident account reaching here
       // would see an empty ticket list and a duty toggle that silently
       // refuses to save, because duty_status is constrained to tanods
@@ -69,7 +61,7 @@ class _LaunchGateState extends State<LaunchGate> {
         return;
       }
 
-      _go('/duty');
+      _go('/home');
     } on AuthRequiredException {
       await widget.auth.signOut();
       _go('/login');

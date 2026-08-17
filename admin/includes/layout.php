@@ -292,10 +292,20 @@ function timeline_title(array $log): string
     $old = $log['old_status'] ?? null;
     $new = $log['new_status'] ?? '';
 
-    if ($old === null) {
+    // A null old_status used to mean "this is the first entry", and the
+    // filing log is indeed written that way. But the SLA and dispatch
+    // sweeps in 0002 insert (report_id, new_status, remark, is_system)
+    // and leave old_status null too — so a breach three days into a case
+    // was being titled "Complaint Filed", above the entries it followed.
+    //
+    // is_system separates them. The barangay never files a complaint;
+    // residents do, through file_report(), which records the actor. So a
+    // system row with no previous status is a note about the case, not
+    // the start of it.
+    if ($old === null && empty($log['is_system'])) {
         return 'Complaint Filed';
     }
-    if ($old === $new) {
+    if ($old === null || $old === $new) {
         return 'Case updated';
     }
     return match ($new) {
