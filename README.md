@@ -20,7 +20,34 @@ Three actors: **Resident**, **Barangay Tanod**, **Barangay Admin**.
 | Admin portal | PHP + Bootstrap 5 |
 | Mobile client | Flutter (web prototype first) |
 | Media | Cloudinary (live), barangay server (cold archive) |
-| Push / SMS / Email | FCM · Semaphore PH · Resend |
+| Push | FCM (planned) |
+| SMS / Email | Not used. See below. |
+
+### On SMS and email
+
+Neither is a dependency, and no path through the system requires one.
+
+The sign-in identity is the mobile number, and the auth address derived
+from it (`639XXXXXXXXX@auth.smartsumbong.local`) is on a reserved domain
+that cannot receive mail — deliberately, so that nothing can be looked
+up and nothing enumerated (migration 0021). One consequence is that
+Supabase's built-in password reset mails an address that does not exist.
+
+The reset path is therefore in person: the barangay checks an ID at the
+counter, the same inspection that approved the account, and issues a
+temporary password the resident must change on next sign-in (migrations
+0028 and 0029). It costs nothing to run, needs no SMS credit, and works
+during an outage.
+
+Verification is a human decision that takes minutes to hours. The
+pending screen polls rather than waiting on a message.
+
+SMS through Semaphore remains an option and would improve the
+experience — it reaches a handset with no data connection, which no
+push notification can. It is not built because it carries a per-message
+cost against a system specified to run at no ongoing cost, and because
+making it a dependency would mean the barangay stops being able to
+verify accounts when the load runs out.
 
 ## Getting started
 

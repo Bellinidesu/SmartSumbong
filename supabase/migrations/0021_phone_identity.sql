@@ -37,16 +37,20 @@
 --
 -- .local is reserved by RFC 6762 and is not resolvable, so these
 -- addresses cannot receive mail. That is deliberate: nothing should ever
--- try to send to them. Password reset goes by OTP to the phone
--- (Semaphore), which is the path every resident can use.
+-- try to send to them.
+--
+-- [Amended by 0028.] This originally said reset would go by OTP to the
+-- phone through Semaphore. It does not. Semaphore was never configured,
+-- and reset is now in person: the barangay checks an ID and issues a
+-- temporary password. See 0028_password_reset.sql.
 --
 -- WHAT THIS COSTS, stated plainly for turnover.md:
 --
 --   * auth.users.email will be full of synthetic addresses. That is not
 --     a fault. Real contact addresses are in public.users.email.
 --   * Supabase's built-in password reset mails the auth address and will
---     therefore go nowhere. Reset is OTP-by-SMS; do not enable the
---     built-in flow.
+--     therefore go nowhere. Do not enable the built-in flow. Reset is
+--     admin_reset_password() from the portal (0028).
 --   * Changing a resident's phone number changes their login identity.
 --     It requires updating auth.users.email as well, which needs the
 --     service role. There is no admin path for it yet.
