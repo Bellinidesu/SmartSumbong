@@ -68,6 +68,7 @@ class VerificationSnapshot {
     this.submittedAt,
     this.dueAt,
     this.isSuspended = false,
+    this.mustChangePassword = false,
   });
 
   final VerificationState status;
@@ -78,6 +79,12 @@ class VerificationSnapshot {
   final DateTime? dueAt;
 
   final bool isSuspended;
+
+  /// An administrator issued a temporary password (0028). Until it is
+  /// changed, that administrator holds working credentials for this
+  /// account — so the client forces a change before allowing anything
+  /// else, rather than merely suggesting one.
+  final bool mustChangePassword;
 
   /// True once the two-hour service target has passed. Admins have been
   /// notified by sweep_overdue_verifications(); nothing happens to the
@@ -263,6 +270,28 @@ class AuthService {
       '${normalisedMobile.replaceAll(RegExp(r'[^0-9]'), '')}'
       '@auth.smartsumbong.local';
 
+  /// Sets a new password and clears the temporary-password flag.
+  ///
+  /// Two calls that must both land. updateUser() changes the credential;
+  /// clear_password_change_flag() releases the client from the forced
+  /// change. If the second fails the password is already changed, so the
+  /// user is not locked out — they simply see the screen again, which is
+  /// the harmless direction for this to fail in.
+  Future<void> changePassword(String newPassword) async {
+    if (_client.auth.currentUser == null) {
+      throw const AuthRequiredException();
+    }
+    if (newPassword.length < 8) {
+      throw RegistrationException(
+        'Your password must be at least 8 characters long.',
+        field: 'password',
+      );
+    }
+
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+    await _client.rpc('clear_password_change_flag');
+  }
+
   Future<void> signOut() => _client.auth.signOut();
 
   /// One row, four columns, for the Verification Pending screen.
@@ -281,7 +310,7 @@ class AuthService {
           .from('users')
           .select(
             'verification_status, verification_submitted_at, '
-            'verification_due_at, is_suspended',
+            'verification_due_at, is_suspended, must_change_password',
           )
           .eq('id', uid)
           .maybeSingle();
@@ -295,6 +324,8 @@ class AuthService {
         submittedAt: _parseTs(row['verification_submitted_at']),
         dueAt: _parseTs(row['verification_due_at']),
         isSuspended: (row['is_suspended'] as bool?) ?? false,
+        mustChangePassword:
+            (row['must_change_password'] as bool?) ?? false,
       );
     } on PostgrestException catch (e) {
       // JWT expired or otherwise unusable.

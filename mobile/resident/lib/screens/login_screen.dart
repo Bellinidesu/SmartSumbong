@@ -353,17 +353,27 @@ class _LoginScreenState extends State<LoginScreen> {
   void _forgotPassword() {
     // Rose's design resets by OTP to the phone (2077:16 -> 2143:282 ->
     // 2077:17 -> 2143:205). That needs Semaphore, which is not
-    // configured. Until it is, the truthful answer is the one an admin
-    // would give anyway.
+    // configured.
+    //
+    // What exists instead is admin_reset_password (0028): the barangay
+    // checks an ID at the counter, the same inspection that approved the
+    // account, and issues a temporary password the resident must then
+    // change. So this dialog is not an apology for a missing feature —
+    // it is the instruction for the route that works.
+    //
+    // No "request a reset" button here on purpose. It would need an
+    // endpoint taking a phone number, which is the enumeration surface
+    // 0021 removed, and it would tell the admin nothing they will not
+    // learn when the person walks in.
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Tokens.bg,
         title: const Text('Forgot password'),
         content: const Text(
-          'Password reset by text message is not available yet. Please '
-          'visit the barangay hall with a valid ID and ask the staff to '
-          'reset your account.',
+          'Bring a valid ID to the barangay hall and ask the staff to '
+          'reset your password. They will give you a temporary one, and '
+          'the app will ask you to choose your own when you sign in.',
           style: TextStyle(height: 1.4),
         ),
         actions: [

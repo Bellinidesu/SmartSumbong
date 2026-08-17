@@ -18,6 +18,7 @@ import 'models/complaint_category.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/emergency_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/change_password_screen.dart';
 import 'screens/languages_screen.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
@@ -128,6 +129,7 @@ class SmartSumbongApp extends StatelessWidget {
         '/submit-report': (_) => const ReportCategoryScreen(),
 
         '/login': (_) => LoginScreen(auth: auth),
+        '/change-password': (_) => ChangePasswordScreen(auth: auth),
         '/onboarding': (_) => const OnboardingScreen(),
         '/roles': (_) => const RolePickerScreen(),
       },
