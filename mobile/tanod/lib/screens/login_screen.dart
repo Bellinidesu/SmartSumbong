@@ -17,9 +17,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../theme.dart';
+
+/// Whether this handset keeps the session across launches. Read by the
+/// launch gate, written here.
+const rememberMeKey = 'remember_me';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.auth});
@@ -36,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _busy = false;
   bool _obscure = true;
+  bool _remember = true;
   String? _error;
 
   @override
@@ -57,6 +63,16 @@ class _LoginScreenState extends State<LoginScreen> {
         mobileNumber: _mobile.text,
         password: _password.text,
       );
+      // Recorded only once the credentials are accepted, so a failed
+      // attempt never changes how the next launch behaves.
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(rememberMeKey, _remember);
+      } catch (_) {
+        // Storage unavailable: the session persists, which is the
+        // existing behaviour and the safer of the two.
+      }
+
       if (!mounted) return;
       // Back to the gate, which checks verification, suspension and
       // role before deciding where this account belongs.
@@ -82,7 +98,19 @@ class _LoginScreenState extends State<LoginScreen> {
     final t = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: SafeArea(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.55,
+              child: Image.asset(
+                'assets/images/texture.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              ),
+            ),
+          ),
+          SafeArea(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
@@ -91,11 +119,18 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
                 Center(
-                  child: Text('SmartSumbong', style: t.headlineLarge),
+                  child: FractionallySizedBox(
+                    widthFactor: 0.72,
+                    child: Image.asset(
+                      'assets/images/logo-wordmark.png',
+                      semanticLabel: 'SmartSumbong',
+                      filterQuality: FilterQuality.medium,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Center(
                   child: Text(
                     'Tanod Profile',
@@ -158,6 +193,61 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: Checkbox(
+                              value: _remember,
+                              onChanged: _busy
+                                  ? null
+                                  : (v) =>
+                                      setState(() => _remember = v ?? true),
+                              side: const BorderSide(color: Tokens.navy),
+                              checkColor: Tokens.orange,
+                              fillColor: WidgetStateProperty.resolveWith(
+                                (st) => st.contains(WidgetState.selected)
+                                    ? Tokens.navy
+                                    : Colors.transparent,
+                              ),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Remember me',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: Tokens.navy,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: _busy ? null : _forgotPassword,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Forgot password?',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                                color: Tokens.navy,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Tokens.navy,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
                       if (_error != null) ...[
                         const SizedBox(height: 10),
                         Text(
@@ -197,16 +287,57 @@ class _LoginScreenState extends State<LoginScreen> {
                 // appointment against their own roster. Registration
                 // lives in the resident app for residents only until the
                 // barangay says otherwise.
+                // The frame carries "Back to Roles" and "Sign Up". Neither
+                // exists here: this app has no role picker, and tanod
+                // registration lives in the resident app because that is
+                // the one a person installs first. Rather than two
+                // buttons that go nowhere, one line that says where to
+                // go.
                 Center(
                   child: Text(
-                    'Accounts are issued by the barangay office.',
-                    style: t.bodyMedium?.copyWith(fontSize: 12),
+                    'To register as a tanod, use the SmartSumbong app '
+                    'for residents. The barangay office approves the '
+                    'account.',
+                    textAlign: TextAlign.center,
+                    style: t.bodyMedium?.copyWith(fontSize: 11.5),
                   ),
                 ),
               ],
             ),
           ),
         ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+extension _Recovery on _LoginScreenState {
+  /// Rose's design resets by OTP to the phone. That needs Semaphore,
+  /// which is not configured. What exists instead is
+  /// admin_reset_password (0028): the barangay checks an ID at the
+  /// counter and issues a temporary password the tanod must then change.
+  /// So this is not an apology for a missing feature — it is the
+  /// instruction for the route that works.
+  void _forgotPassword() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Tokens.bg,
+        title: const Text('Forgot password'),
+        content: const Text(
+          'Ask the barangay office to reset your password. They will '
+          'give you a temporary one, and the app will ask you to choose '
+          'your own when you sign in.',
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }

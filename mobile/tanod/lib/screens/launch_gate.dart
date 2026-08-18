@@ -7,10 +7,12 @@
 // dispatch policy keys off, so it is the honest thing to check.
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme.dart';
+import 'login_screen.dart' show rememberMeKey;
 
 class LaunchGate extends StatefulWidget {
   const LaunchGate({super.key, required this.auth});
@@ -37,6 +39,15 @@ class _LaunchGateState extends State<LaunchGate> {
       return;
     }
 
+    // "Remember me" was left unticked at the last sign-in. The session
+    // is on disk because supabase_flutter always persists it, so honour
+    // the choice here — this runs only on a cold start.
+    if (!await _remembered()) {
+      await widget.auth.signOut();
+      _go('/login');
+      return;
+    }
+
     try {
       final s = await widget.auth.verificationStatus();
 
@@ -52,6 +63,14 @@ class _LaunchGateState extends State<LaunchGate> {
         return;
       }
 
+      // A temporary password is still in force. Nothing else happens
+      // until it is replaced — the administrator who issued it can sign
+      // in as this account until then.
+      if (s.mustChangePassword) {
+        _go('/change-password');
+        return;
+      }
+
       // Verified, but is this a tanod? A resident account reaching here
       // would see an empty ticket list and a duty toggle that silently
       // refuses to save, because duty_status is constrained to tanods
@@ -61,15 +80,25 @@ class _LaunchGateState extends State<LaunchGate> {
         return;
       }
 
+      // '/home', not '/duty'. Duty status moved onto the home screen
+      // with HOME - TANOD and the standalone duty screen is gone.
       _go('/home');
     } on AuthRequiredException {
       await widget.auth.signOut();
       _go('/login');
-    } catch (_) {
+    } on PostgrestException catch (e) {
+      // Named, not swallowed. A refused policy and a malformed call both
+      // land here, and "check your connection" sends whoever is testing
+      // to look at the wifi.
+      if (mounted) {
+        setState(() => _error = 'The barangay\u2019s system refused the '
+            'request. (${e.message})');
+      }
+    } catch (e) {
       if (mounted) {
         setState(() => _error =
             'Could not reach the barangay\u2019s system. Check your '
-            'connection and try again.');
+            'connection and try again.\n\n$e');
       }
     }
   }
@@ -81,6 +110,18 @@ class _LaunchGateState extends State<LaunchGate> {
     return r as String?;
   }
 
+  /// Absent means remember. Only an explicit false signs the account
+  /// out, so a storage failure can never lock anyone out of their own
+  /// session.
+  Future<bool> _remembered() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(rememberMeKey) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   void _go(String route) {
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(route);
@@ -89,8 +130,25 @@ class _LaunchGateState extends State<LaunchGate> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Tokens.navy,
-      body: SafeArea(
+      // Ink rather than the resident's blue, and a gradient rather than
+      // a flat fill: white text on unbroken #14181D reads as a crash
+      // screen. Lifting the centre toward slate keeps the wordmark and
+      // the spinner sitting on something, and keeps contrast well above
+      // the point where the text stops being legible outdoors.
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF14181D),
+              Color(0xFF2C333D),
+              Color(0xFF14181D),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+        ),
+        child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
@@ -181,6 +239,7 @@ class _LaunchGateState extends State<LaunchGate> {
               const Spacer(),
             ],
           ),
+        ),
         ),
       ),
     );

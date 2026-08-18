@@ -22,7 +22,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme.dart';
 import '../widgets/tanod_nav_bar.dart';
-import 'ticket_screen.dart';
+import 'dispatch_order.dart';
 import 'tickets_screen.dart';
 
 /// Mirrors `public.duty_state` in 0001.
@@ -262,10 +262,9 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   }
 
   Future<void> _open(Ticket t) async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => TicketScreen(ticket: t)),
-    );
-    if (changed == true) await _load();
+    // A card over this screen, not a push. TANOD - VIEW DISPATCH draws
+    // Home still visible behind it.
+    if (await showDispatchOrder(context, t)) await _load();
   }
 
   @override
@@ -759,8 +758,13 @@ class _AlertRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
+          // Not handsets. The frame draws phone icons, which made sense
+          // when these rows were imagined as calls — but they are
+          // dispatch outcomes: accepted or resolved against expired.
+          // Nobody phoned anyone, and an icon that says otherwise is a
+          // small lie repeated on every row.
           Icon(
-            responded ? Icons.phone_in_talk : Icons.phone_missed,
+            responded ? Icons.check_circle : Icons.cancel_outlined,
             size: 20,
             color: colour,
           ),

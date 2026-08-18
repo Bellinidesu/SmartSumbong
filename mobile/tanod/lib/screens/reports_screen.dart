@@ -20,7 +20,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme.dart';
 import '../widgets/tanod_nav_bar.dart';
-import 'ticket_screen.dart';
+import 'dispatch_order.dart';
 import 'tickets_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -398,10 +398,10 @@ class _AssignedCard extends StatelessWidget {
   /// and the instructions are already on it, and three separate modals
   /// showing one thing each would be more taps to see less.
   Future<void> _open(BuildContext context) async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => TicketScreen(ticket: row.toTicket())),
-    );
-    if (changed == true) await onUpdated();
+    // The same card. Because the ticket is already accepted it opens on
+    // the update pane rather than the order pane — Accept and Reroute
+    // would both raise on a row in 'accepted'.
+    if (await showDispatchOrder(context, row.toTicket())) await onUpdated();
   }
 
   static String _date(DateTime? d) {

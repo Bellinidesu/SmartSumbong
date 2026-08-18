@@ -31,7 +31,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/foreground.png"
+  adaptive_icon_background: "#FF9800"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  
 flutter:
   assets:
     - assets/images/
