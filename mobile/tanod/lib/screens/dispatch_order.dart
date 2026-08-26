@@ -73,6 +73,14 @@ class _DispatchOrder extends StatefulWidget {
 class _DispatchOrderState extends State<_DispatchOrder> {
   _Pane _pane = _Pane.order;
 
+  /// Where View Map / View Attached Media / View Instructions return to.
+  /// Usually [_Pane.order] — but an already-accepted ticket opens
+  /// straight into [_Pane.update] (see initState), and a tanod who taps
+  /// View Map from there and then Back should land back on the update
+  /// form, not on the order pane's Accept/Reroute buttons, which would
+  /// raise on a ticket that is not in 'pending' any more.
+  _Pane _returnPane = _Pane.order;
+
   Map<String, dynamic>? _report;
   List<String> _evidence = const [];
   bool _loading = true;
@@ -83,6 +91,12 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   final _reason = TextEditingController();
   final _update = TextEditingController();
   final _photos = <File>[];
+
+  // Optional field-proof video. One only — dispatch_media has no
+  // notion of "several videos" the way it does photos, and a tanod
+  // filing an update from the field has neither the time nor the
+  // data budget to shoot more than one short clip.
+  File? _video;
   final _picker = ImagePicker();
 
   @override
@@ -90,9 +104,14 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     super.initState();
     // Already accepted tickets arrive here from Reports and go straight
     // to the update pane — the order pane's Accept and Reroute would
-    // both raise, since neither RPC touches a row in 'accepted'.
+    // both raise, since neither RPC touches a row in 'accepted'. Kim's
+    // note during the QA exchange (26 Aug 2026) was that this pane used
+    // to show nothing about what the report even was — see the summary
+    // box _updatePane() now opens with, sourced from the same _report /
+    // _evidence load() every pane already uses.
     if (widget.ticket.state == DispatchState.accepted) {
       _pane = _Pane.update;
+      _returnPane = _Pane.update;
     }
     _load();
   }
@@ -208,7 +227,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       // dispatch and moves the report to resolved; a resolved dispatch
       // is not editable, so if that ran and the upload then failed the
       // case would close with the proof permanently missing.
-      if (_photos.isNotEmpty) {
+      if (_photos.isNotEmpty || _video != null) {
         final uploader = MediaUploader(
           cloudName: _cloudName,
           uploadPreset: _uploadPreset,
@@ -216,6 +235,14 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         final rows = <Map<String, dynamic>>[];
         for (final f in _photos) {
           final up = await uploader.upload(f, kind: MediaKind.fieldProof);
+          rows.add({
+            'dispatch_id': widget.ticket.dispatchId,
+            ...up.toJson(),
+          });
+        }
+        if (_video != null) {
+          final up =
+              await uploader.uploadVideo(_video!, kind: MediaKind.fieldProof);
           rows.add({
             'dispatch_id': widget.ticket.dispatchId,
             ...up.toJson(),
@@ -252,6 +279,14 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
   Future<void> _addPhoto() async {
     if (_photos.length >= 3) return;
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: AppPermission.camera,
+      title: 'Camera access',
+      rationale: 'SmartSumbong needs camera access to attach photo proof '
+          'to this dispatch.',
+    );
+    if (!granted || !mounted) return;
     try {
       final x = await _picker.pickImage(
           source: ImageSource.camera, imageQuality: 90);
@@ -264,6 +299,33 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       if (mounted) setState(() => _error = 'Could not open the camera.');
     }
   }
+
+  Future<void> _addVideo() async {
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: AppPermission.camera,
+      title: 'Camera access',
+      rationale: 'SmartSumbong needs camera access to attach video proof '
+          'to this dispatch.',
+    );
+    if (!granted || !mounted) return;
+    try {
+      final uploader = MediaUploader(
+        cloudName: _cloudName,
+        uploadPreset: _uploadPreset,
+      );
+      final f = await uploader.pickVideo(source: ImageSource.camera);
+      if (f == null || !mounted) return;
+      setState(() {
+        _video = f;
+        _error = null;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not open the camera.');
+    }
+  }
+
+  void _removeVideo() => setState(() => _video = null);
 
   void _close() => Navigator.of(context).pop(_changed);
 
@@ -355,7 +417,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             label: 'Back',
             filled: true,
             colour: Tokens.navy,
-            onTap: () => setState(() => _pane = _Pane.order),
+            onTap: () => setState(() => _pane = _returnPane),
           ),
         ],
       );
@@ -398,17 +460,26 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               _Link(
                 icon: Icons.place_outlined,
                 label: 'View Map',
-                onTap: () => setState(() => _pane = _Pane.map),
+                onTap: () => setState(() {
+                  _returnPane = _Pane.order;
+                  _pane = _Pane.map;
+                }),
               ),
               _Link(
                 icon: Icons.camera_alt_outlined,
                 label: 'View Attached Media',
-                onTap: () => setState(() => _pane = _Pane.media),
+                onTap: () => setState(() {
+                  _returnPane = _Pane.order;
+                  _pane = _Pane.media;
+                }),
               ),
               _Link(
                 icon: Icons.my_location,
                 label: 'View Instructions',
-                onTap: () => setState(() => _pane = _Pane.instructions),
+                onTap: () => setState(() {
+                  _returnPane = _Pane.order;
+                  _pane = _Pane.instructions;
+                }),
               ),
             ],
           ),
@@ -730,6 +801,66 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        _header(),
+        const SizedBox(height: 12),
+
+        // What Kim's QA note (26 Aug 2026) was missing: an
+        // already-accepted ticket used to open straight into this form
+        // with no reminder of what the report even was. Same summary
+        // box the order pane shows, same _report/_evidence this pane
+        // already loads — just never displayed here before.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Tokens.navy),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Field(label: 'Complainant: ', value: 'Anonymous'),
+              const SizedBox(height: 6),
+              _Field(
+                label: 'Description: ',
+                value: '“${widget.ticket.description}”',
+              ),
+              const SizedBox(height: 6),
+              _Field(
+                label: 'Deadline: ',
+                value: _dateOf(widget.ticket.dueAt),
+              ),
+              const SizedBox(height: 10),
+
+              _Link(
+                icon: Icons.place_outlined,
+                label: 'View Map',
+                onTap: () => setState(() {
+                  _returnPane = _Pane.update;
+                  _pane = _Pane.map;
+                }),
+              ),
+              _Link(
+                icon: Icons.camera_alt_outlined,
+                label: 'View Attached Media',
+                onTap: () => setState(() {
+                  _returnPane = _Pane.update;
+                  _pane = _Pane.media;
+                }),
+              ),
+              _Link(
+                icon: Icons.my_location,
+                label: 'View Instructions',
+                onTap: () => setState(() {
+                  _returnPane = _Pane.update;
+                  _pane = _Pane.instructions;
+                }),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
         const Text(
           'Submit an update',
           style: TextStyle(
@@ -862,6 +993,81 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                                     color: Tokens.navy,
                                   )),
                               Text('(Max. 10 MB)',
+                                  style: TextStyle(
+                                      fontSize: 8, color: Tokens.navy)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Same single-clip reasoning as the resident report screen's
+              // _VideoAttach: one optional video, not a strip of them.
+              if (_video != null)
+                Container(
+                  width: 118,
+                  height: 62,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Tokens.navy.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Icon(Icons.videocam, color: Tokens.navy, size: 18),
+                      const Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Video attached',
+                              style:
+                                  TextStyle(fontSize: 9, color: Tokens.navy)),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: _removeVideo,
+                        child: const Icon(Icons.close,
+                            size: 14, color: Tokens.navy),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                InkWell(
+                  onTap: _busy ? null : _addVideo,
+                  child: CustomPaint(
+                    painter: _DashedBorder(colour: Tokens.navy),
+                    child: SizedBox(
+                      width: 118,
+                      height: 62,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Tokens.navy,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Icon(Icons.videocam,
+                                size: 14, color: Tokens.bg),
+                          ),
+                          const SizedBox(width: 6),
+                          const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Attach Video',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10,
+                                    color: Tokens.navy,
+                                  )),
+                              Text('(Max. 25 MB)',
                                   style: TextStyle(
                                       fontSize: 8, color: Tokens.navy)),
                             ],

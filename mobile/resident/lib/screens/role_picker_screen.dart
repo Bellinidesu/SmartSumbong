@@ -12,6 +12,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class RolePickerScreen extends StatelessWidget {
@@ -19,6 +20,7 @@ class RolePickerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return Scaffold(
       body: Stack(
         children: [
@@ -51,9 +53,9 @@ class RolePickerScreen extends StatelessWidget {
 
                   const Spacer(flex: 3),
 
-                  const Text(
-                    'What\u2019s your role?',
-                    style: TextStyle(
+                  Text(
+                    s.roleTitle,
+                    style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
@@ -66,7 +68,7 @@ class RolePickerScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _RoleCard(
-                        label: 'I\u2019m a Resident',
+                        label: s.roleResident,
                         asset: 'assets/images/residenthd.png',
                         fallback: Icons.person,
                         background: Tokens.navy,
@@ -76,7 +78,7 @@ class RolePickerScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 16),
                       _RoleCard(
-                        label: 'I\u2019m a Tanod',
+                        label: s.roleTanod,
                         asset: 'assets/images/tanodhd.png',
                         fallback: Icons.local_police,
                         background: const Color(0xFFFF9800),

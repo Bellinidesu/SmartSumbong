@@ -9,7 +9,11 @@ if (current_admin()) {
 }
 
 $error  = null;
-$notice = isset($_GET['expired']) ? 'Your session ended. Please sign in again.' : null;
+$notice = match (true) {
+    isset($_GET['expired']) => 'Your session ended. Please sign in again.',
+    isset($_GET['reset'])   => 'Your password has been changed. Sign in with your new password.',
+    default                 => null,
+};
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check($_POST['csrf'] ?? null)) {

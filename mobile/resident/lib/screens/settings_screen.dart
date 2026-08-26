@@ -11,6 +11,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 
@@ -59,6 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _logOut() async {
+    final s = context.s;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => Dialog(
@@ -69,9 +71,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Log Out',
-                style: TextStyle(
+              Text(
+                s.settingsLogOut,
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,
                   fontSize: 22,
@@ -79,10 +81,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Are you sure you want to log out?',
+              Text(
+                s.settingsLogOutConfirmBody,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Tokens.bg),
+                style: const TextStyle(fontSize: 14, color: Tokens.bg),
               ),
               const SizedBox(height: 20),
               Row(
@@ -98,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(50),
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(s.settingsCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -113,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(50),
                         ),
                       ),
-                      child: const Text('Log Out'),
+                      child: Text(s.settingsLogOut),
                     ),
                   ),
                 ],
@@ -136,6 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       bottomNavigationBar:
@@ -146,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.fromLTRB(30, 24, 30, 24),
           children: [
             Center(
-              child: Text('Settings',
+              child: Text(s.settingsTitle,
                   style: t.headlineLarge?.copyWith(fontSize: 28)),
             ),
             const SizedBox(height: 28),
@@ -203,9 +206,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: const Color(0xFFFF9800),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
-                            'Edit Profile',
-                            style: TextStyle(
+                          child: Text(
+                            s.settingsEditProfile,
+                            style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w700,
                               fontSize: 11,
@@ -223,34 +226,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             _SettingsRow(
               icon: Icons.person_outline,
-              label: 'Personal Information',
+              label: s.settingsPersonalInfo,
               onTap: () => Navigator.of(context)
                   .pushNamed('/edit-profile')
                   .then((_) => _load()),
             ),
             _SettingsRow(
               icon: Icons.language,
-              label: 'Languages',
+              label: s.settingsLanguages,
               onTap: () => Navigator.of(context).pushNamed('/languages'),
             ),
             _SettingsRow(
               icon: Icons.facebook,
-              label: 'Facebook',
+              label: s.settingsFacebook,
               onTap: () async {
                 final uri = Uri.parse(_facebookUrl);
                 if (!await launchUrl(uri,
                     mode: LaunchMode.externalApplication)) {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Could not open the barangay page.')),
+                    SnackBar(content: Text(s.settingsFacebookError)),
                   );
                 }
               },
             ),
             _SettingsRow(
               icon: Icons.logout,
-              label: 'Log Out',
+              label: s.settingsLogOut,
               showChevron: false,
               onTap: _busy ? null : _logOut,
             ),

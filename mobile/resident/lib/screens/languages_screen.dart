@@ -2,73 +2,44 @@
 //
 // Figma: LANGUAGES.
 //
-// The screen from the design, with the choice recorded per handset.
-// Nothing is translated yet: i18n is deferred for both apps, so English
-// is the only option that changes anything today. Filipino is offered
-// because the frame offers it and because the barangay asked for it —
-// but it is marked as not yet available rather than silently doing
-// nothing, since a radio button that appears to take and then changes
-// no text is the worse failure.
+// Was a stub: choice recorded, nothing rendered. As of 26 Aug 2026
+// (Rose's notes, Group 5's QA exchange) it actually switches the app's
+// language — see i18n.dart for the lookup table and why it's a plain
+// Dart class rather than the generated flutter_localizations pipeline.
+// This screen no longer touches SharedPreferences itself; that lives in
+// LocaleController now, shared with every other screen in the app.
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
-const languageKey = 'language';
-
-class LanguagesScreen extends StatefulWidget {
+class LanguagesScreen extends StatelessWidget {
   const LanguagesScreen({super.key});
 
-  @override
-  State<LanguagesScreen> createState() => _LanguagesScreenState();
-}
-
-class _LanguagesScreenState extends State<LanguagesScreen> {
-  String _value = 'en';
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final v = prefs.getString(languageKey);
-      if (!mounted || v == null) return;
-      setState(() => _value = v);
-    } catch (_) {
-      // Falls back to English, which is what the app renders anyway.
-    }
-  }
-
-  Future<void> _choose(String v) async {
-    setState(() => _value = v);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(languageKey, v);
-    } catch (_) {
-      // The choice stands for this session either way.
-    }
-
-    if (v == 'fil' && mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            backgroundColor: Tokens.navy,
-            content: Text('Filipino is not available yet. The app will '
-                'stay in English for now.'),
-          ),
-        );
-    }
+  void _choose(BuildContext context, AppLocale locale) {
+    final controller = AppLocaleScope.controllerOf(context);
+    final already = controller.value == locale;
+    controller.set(locale);
+    if (already) return;
+    final s = Strings(locale);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: Tokens.navy,
+          content: Text(locale == AppLocale.fil
+              ? s.languagesChangedToFilipino
+              : s.languagesChangedToEnglish),
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final value = AppLocaleScope.of(context);
+    final s = context.s;
 
     return Scaffold(
       backgroundColor: Tokens.bg,
@@ -78,20 +49,20 @@ class _LanguagesScreenState extends State<LanguagesScreen> {
           child: Column(
             children: [
               const SizedBox(height: 16),
-              Text('Select Language',
+              Text(s.languagesTitle,
                   style: t.headlineLarge?.copyWith(fontSize: 24)),
               const SizedBox(height: 28),
 
               _LanguageRow(
-                label: 'Filipino / Tagalog',
-                selected: _value == 'fil',
-                onTap: () => _choose('fil'),
+                label: s.languagesFilipino,
+                selected: value == AppLocale.fil,
+                onTap: () => _choose(context, AppLocale.fil),
               ),
               const SizedBox(height: 14),
               _LanguageRow(
-                label: 'English',
-                selected: _value == 'en',
-                onTap: () => _choose('en'),
+                label: s.languagesEnglish,
+                selected: value == AppLocale.en,
+                onTap: () => _choose(context, AppLocale.en),
               ),
 
               const SizedBox(height: 30),
@@ -103,7 +74,7 @@ class _LanguagesScreenState extends State<LanguagesScreen> {
                     borderRadius: BorderRadius.circular(50),
                   ),
                 ),
-                child: const Text('Back'),
+                child: Text(s.languagesBack),
               ),
 
               const Spacer(),

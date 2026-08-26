@@ -99,6 +99,28 @@ final class Supabase
     }
 
     /**
+     * Ask GoTrue to email a password-recovery link to $email.
+     *
+     * Only ever meaningful for admin accounts: they sign in with a real
+     * address (login.php), unlike residents and tanods, whose sign-in
+     * address is synthetic and receives no mail (migration 0021) — that
+     * is why this lives on the admin side only, and why admin recovery
+     * can be self-serve when the resident/tanod one deliberately is not.
+     *
+     * GoTrue answers 200 whether or not $email belongs to an account, so
+     * the caller cannot and must not use this to tell the two apart —
+     * show the same message either way.
+     */
+    public static function recover(string $email, string $redirectTo): void
+    {
+        $client = new self();
+        $client->request('POST', '/auth/v1/recover', [
+            'email'       => $email,
+            'redirect_to' => $redirectTo,
+        ]);
+    }
+
+    /**
      * Change something GoTrue owns rather than the users table — in
      * practice the password. Supabase requires a recent session for
      * this, which is why the form asks for the current one first.

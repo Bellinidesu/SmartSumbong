@@ -55,6 +55,34 @@
 // bakes rotation into the pixels, so orientation survives without the
 // tag. Do not set keepExif: true. Do not rely on Cloudinary or on the
 // picker for this.
+//
+// VIDEO — added 26 Aug 2026, and this does NOT get the same treatment.
+// flutter_image_compress only handles still images; there is no video
+// re-encode step in this project, so pickVideo()/uploadVideo() send the
+// file exactly as the device produced it. Two things follow from that:
+//
+//   1. No size reduction beyond the picker's own maxDuration cap on
+//      camera capture, hence the smaller _maxVideoBytes than a resident
+//      might expect for "just a few seconds of video."
+//   2. Location metadata is NOT stripped, unlike photos. Whether a
+//      given video actually carries GPS depends on the device and OS —
+//      unlike EXIF on photos, which was tested and confirmed present,
+//      this has not been verified against a real device. Treat an
+//      anonymous complaint's video attachment as a WEAKER anonymity
+//      guarantee than its photos until someone tests this and either
+//      confirms it's clean or a stripping step gets added.
+//
+// CLOUDINARY PRESET — this matters before video upload works at all.
+// `smartsumbong_unsigned` (see the config block above) was set up for
+// images only: "Allowed formats: jpg, png, webp" and an incoming
+// transformation that forces jpg output. Sending a video through it
+// will likely be rejected outright. Someone with access to the
+// Cloudinary dashboard needs to either widen that preset to allow
+// mp4/mov/webm with a video-appropriate (or no) incoming
+// transformation, or create a second unsigned preset for video and pass
+// its name in here. This code cannot make that change — it only
+// assumes the preset in `uploadPreset` already accepts video once
+// someone has done so.
 
 import 'dart:convert';
 import 'dart:io';
@@ -143,6 +171,15 @@ class MediaUploader {
   /// ceiling server-side; this only saves a doomed upload.
   static const _maxBytes = 10 * 1024 * 1024;
 
+  /// Camera-recorded video is capped at this length by the picker
+  /// itself (see pickVideo). A gallery-picked video isn't — there is no
+  /// duration-reading library in this project to check one after the
+  /// fact — so this byte ceiling is the only backstop for that path.
+  /// Higher than _maxBytes because even a short clip outweighs a photo.
+  static const _maxVideoBytes = 25 * 1024 * 1024;
+
+  static const _maxVideoDuration = Duration(seconds: 30);
+
   /// Mirrors `public.is_media_url()` in migration 0018.
   ///
   /// No folder segment. The preset uses dynamic folders with "use asset
@@ -160,8 +197,24 @@ class MediaUploader {
     r'\.(jpg|jpeg|png|webp)$',
   );
 
+  /// The same shape as `_pinnedUrl`, one path segment different
+  /// (`video` not `image`) and a video extension set instead of an
+  /// image one. See `_pinnedUrl`'s own comment for what this constrains
+  /// and what it doesn't.
+  static final _pinnedVideoUrl = RegExp(
+    r'^https://res\.cloudinary\.com/nwb2kryl/video/upload/v[0-9]+/'
+    r'(reports|dispatch)/'
+    r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    r'\.(mp4|mov|webm|3gp)$',
+  );
+
   Uri get _endpoint =>
       Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+
+  /// Cloudinary uses a distinct endpoint per resource type — this is
+  /// not the same URL as `_endpoint` with a query string swapped.
+  Uri get _videoEndpoint =>
+      Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/video/upload');
 
   /// Pick one photo and hand back a file that is scaled, re-encoded, and
   /// stripped of metadata. The returned file is a temporary copy — the
@@ -180,6 +233,19 @@ class MediaUploader {
       limit: limit,
     );
     return [for (final x in picked) await _sanitise(File(x.path))];
+  }
+
+  /// Pick one video. Unlike [pick], the returned file is NOT re-encoded
+  /// or stripped of metadata — see this file's VIDEO header comment for
+  /// what that means for anonymity. `maxDuration` only constrains a
+  /// fresh camera recording; a video chosen from the gallery can be
+  /// longer, and [_maxVideoBytes] in [uploadVideo] is what catches that.
+  Future<File?> pickVideo({ImageSource source = ImageSource.gallery}) async {
+    final picked = await _picker.pickVideo(
+      source: source,
+      maxDuration: source == ImageSource.camera ? _maxVideoDuration : null,
+    );
+    return picked == null ? null : File(picked.path);
   }
 
   /// The EXIF strip. Everything the app uploads passes through here.
@@ -341,6 +407,154 @@ class MediaUploader {
       bytes: (json['bytes'] as num?)?.toInt() ?? length,
       publicId: json['public_id'] as String? ?? publicId,
     );
+  }
+
+  /// Upload one video. A near-copy of [upload]/[_postOnce] rather than a
+  /// shared implementation — the two differ in endpoint, size ceiling,
+  /// pinned-URL pattern and MIME mapping, and this project has no way to
+  /// compile-check a merged version, so the safer choice was to leave
+  /// the already-working photo path untouched and write this one
+  /// alongside it. [kind] should be [MediaKind.reportPhoto] or
+  /// [MediaKind.fieldProof] — [_pinnedVideoUrl] only accepts those two
+  /// folders; identity documents stay photo-only.
+  Future<UploadedMedia> uploadVideo(
+    File file, {
+    required MediaKind kind,
+    int attempts = 3,
+    void Function(int sent, int total)? onProgress,
+  }) async {
+    final length = await file.length();
+    if (length <= 0) {
+      throw MediaUploadException('That file is empty.');
+    }
+    if (length > _maxVideoBytes) {
+      throw MediaUploadException(
+        'That video is larger than 25 MB. Try a shorter clip.',
+      );
+    }
+
+    final publicId = '${kind.folder}/${_uuid.v4()}';
+
+    Object? lastError;
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await _postVideoOnce(file, publicId, length, onProgress);
+      } on MediaUploadException catch (e) {
+        lastError = e;
+        if (!e.isRetryable || attempt == attempts) rethrow;
+      } on SocketException catch (e) {
+        lastError = e;
+        if (attempt == attempts) {
+          throw MediaUploadException(
+            'No connection while uploading. Your report has not been sent.',
+            isRetryable: true,
+          );
+        }
+      } on HttpException catch (e) {
+        lastError = e;
+        if (attempt == attempts) {
+          throw MediaUploadException(
+            'The upload was interrupted. Please try again.',
+            isRetryable: true,
+          );
+        }
+      }
+      await Future<void>.delayed(Duration(seconds: 1 << (attempt - 1)));
+    }
+    throw MediaUploadException('Upload failed: $lastError', isRetryable: true);
+  }
+
+  Future<UploadedMedia> _postVideoOnce(
+    File file,
+    String publicId,
+    int length,
+    void Function(int sent, int total)? onProgress,
+  ) async {
+    final request = http.MultipartRequest('POST', _videoEndpoint)
+      ..fields['upload_preset'] = uploadPreset
+      ..fields['public_id'] = publicId
+      ..fields['source'] = 'smartsumbong-mobile'
+      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    onProgress?.call(0, length);
+
+    final streamed = await _client.send(request).timeout(
+          // Video takes longer than a photo to transcode server-side on
+          // Cloudinary's end; the upload response waits for that.
+          const Duration(seconds: 120),
+          onTimeout: () => throw MediaUploadException(
+            'The upload timed out. Please try again on a better connection.',
+            isRetryable: true,
+          ),
+        );
+
+    final body = await streamed.stream.bytesToString();
+    onProgress?.call(length, length);
+
+    if (streamed.statusCode >= 500) {
+      throw MediaUploadException(
+        'Cloudinary is not responding. Please try again shortly.',
+        isRetryable: true,
+      );
+    }
+
+    final Map<String, dynamic> json;
+    try {
+      json = jsonDecode(body) as Map<String, dynamic>;
+    } on FormatException {
+      throw MediaUploadException(
+        'Unexpected response from the media service.',
+        isRetryable: true,
+      );
+    }
+
+    if (streamed.statusCode != 200) {
+      final message =
+          (json['error'] as Map<String, dynamic>?)?['message'] as String? ??
+              'Upload rejected (HTTP ${streamed.statusCode}).';
+      // A rejected video is exactly what happens if the Cloudinary
+      // preset has not been widened yet — see this file's VIDEO header
+      // comment. _friendly() doesn't know that, so say it plainly here
+      // rather than let a resident read "format not supported" and
+      // think their phone made a bad video.
+      throw MediaUploadException(
+        _looksLikePresetRejection(message)
+            ? 'Video uploads are not enabled yet. Please attach photos '
+                'for now, or report this to the barangay.'
+            : _friendly(message),
+      );
+    }
+
+    final url = json['secure_url'] as String?;
+    if (url == null || !_pinnedVideoUrl.hasMatch(url)) {
+      throw MediaUploadException(
+        'The media service returned an address this app will not accept. '
+        'Check the upload preset configuration.',
+      );
+    }
+
+    final format = (json['format'] as String? ?? 'mp4').toLowerCase();
+    return UploadedMedia(
+      mediaUrl: url,
+      mimeType: switch (format) {
+        'mov' => 'video/quicktime',
+        'webm' => 'video/webm',
+        '3gp' => 'video/3gpp',
+        _ => 'video/mp4',
+      },
+      bytes: (json['bytes'] as num?)?.toInt() ?? length,
+      publicId: json['public_id'] as String? ?? publicId,
+    );
+  }
+
+  /// Cloudinary's wording for "this preset doesn't allow this format /
+  /// resource type" varies, but these substrings have covered it in
+  /// testing against the image preset with a deliberately wrong format.
+  static bool _looksLikePresetRejection(String cloudinaryMessage) {
+    final m = cloudinaryMessage.toLowerCase();
+    return m.contains('format') ||
+        m.contains('resource type') ||
+        m.contains('not allowed');
   }
 
   String _friendly(String cloudinaryMessage) {

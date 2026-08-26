@@ -14,6 +14,23 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme.dart';
 import 'login_screen.dart' show rememberMeKey;
 
+/// True until this app process's first `_decide()` finishes, then false
+/// for the rest of the process's life.
+///
+/// "Remember me" is a promise about surviving an app *restart* — it has
+/// nothing to decide the second time this screen is reached in the same
+/// run, which happens on every successful sign-in and again after
+/// setting a new password (both route back through '/'). Without this
+/// guard, unchecking "Remember me" would sign a tanod right back out the
+/// instant they landed here — the very screen after they typed their
+/// password correctly — because the flag they just set for *next time*
+/// was being re-read as though this were next time. Module-level rather
+/// than per-widget: a fresh LaunchGate instance is constructed on every
+/// one of those re-entries, so instance state cannot carry this across
+/// them. See the resident app's launch_gate.dart, where the same bug was
+/// found and fixed first.
+bool _isColdStart = true;
+
 class LaunchGate extends StatefulWidget {
   const LaunchGate({super.key, required this.auth});
 
@@ -41,11 +58,16 @@ class _LaunchGateState extends State<LaunchGate> {
 
     // "Remember me" was left unticked at the last sign-in. The session
     // is on disk because supabase_flutter always persists it, so honour
-    // the choice here — this runs only on a cold start.
-    if (!await _remembered()) {
-      await widget.auth.signOut();
-      _go('/login');
-      return;
+    // the choice here — but only once per process, the actual cold
+    // start. See _isColdStart above for why re-checking on every visit
+    // to this screen is the wrong thing, not merely a redundant one.
+    if (_isColdStart) {
+      _isColdStart = false;
+      if (!await _remembered()) {
+        await widget.auth.signOut();
+        _go('/login');
+        return;
+      }
     }
 
     try {
