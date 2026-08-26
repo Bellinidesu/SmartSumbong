@@ -25,6 +25,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 /// Whether this handset should keep the session across app launches.
@@ -61,12 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
+    final s = context.s;
     _fieldErrors.clear();
     if (AuthService.normaliseMobile(_mobile.text) == null) {
-      _fieldErrors['mobile'] = 'Enter a number like 09171234567.';
+      _fieldErrors['mobile'] = s.loginPhoneError;
     }
     if (_password.text.isEmpty) {
-      _fieldErrors['password'] = 'Enter your password.';
+      _fieldErrors['password'] = s.loginPasswordEmptyError;
     }
     if (_fieldErrors.isNotEmpty) {
       setState(() => _error = null);
@@ -99,14 +101,18 @@ class _LoginScreenState extends State<LoginScreen> {
       // know, and duplicating that decision here would be a second place
       // to keep in step.
       Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+    } on LoginLockedException catch (e) {
+      if (!mounted) return;
+      setState(() =>
+          _error = context.s.loginLockedMessage(e.minutesRemaining));
     } on RegistrationException catch (e) {
       setState(() {
         _error = e.message;
         if (e.field != null) _fieldErrors[e.field!] = e.message;
       });
     } catch (_) {
-      setState(() => _error =
-          'Could not reach the barangay\u2019s system. Check your connection.');
+      if (!mounted) return;
+      setState(() => _error = context.s.loginOfflineError);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -115,6 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       body: Stack(
@@ -153,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 32),
                 Center(
                   child: Text(
-                    'Resident Profile',
+                    s.loginProfileHeading,
                     style: t.headlineLarge?.copyWith(
                       fontSize: 28,
                       fontStyle: FontStyle.italic,
@@ -181,8 +188,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _OnNavyField(
-                        label: 'Phone Number',
-                        hint: 'Enter phone number',
+                        label: s.loginPhoneLabel,
+                        hint: s.loginPhoneHint,
                         controller: _mobile,
                         error: _fieldErrors['mobile'] ??
                             _fieldErrors['mobile_number'],
@@ -194,8 +201,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       _OnNavyField(
-                        label: 'Password',
-                        hint: 'Enter password',
+                        label: s.loginPasswordLabel,
+                        hint: s.loginPasswordHint,
                         controller: _password,
                         error: _fieldErrors['password'],
                         enabled: !_busy,
@@ -228,9 +235,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Remember me',
-                            style: TextStyle(
+                          Text(
+                            s.loginRememberMe,
+                            style: const TextStyle(
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
                               color: Tokens.bg,
@@ -245,9 +252,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             minimumSize: const Size(0, 32),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: const Text(
-                            'Forgot password?',
-                            style: TextStyle(
+                          child: Text(
+                            s.loginForgotPassword,
+                            style: const TextStyle(
                               fontSize: 12,
                               decoration: TextDecoration.underline,
                               decorationColor: Tokens.bg,
@@ -284,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white),
                               )
-                            : const Text('Log In'),
+                            : Text(s.loginButton),
                       ),
                       const SizedBox(height: 12),
 
@@ -307,7 +314,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontSize: 16,
                           ),
                         ),
-                        child: const Text('Back to Roles'),
+                        child: Text(s.loginBackToRoles),
                       ),
                       const SizedBox(height: 20),
 
@@ -320,14 +327,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextButton.styleFrom(
                             foregroundColor: Tokens.bg,
                           ),
-                          child: const Text.rich(
+                          child: Text.rich(
                             TextSpan(
-                              text: 'Don\u2019t have an account yet? ',
-                              style: TextStyle(fontSize: 13),
+                              text: s.loginNoAccountPrefix,
+                              style: const TextStyle(fontSize: 13),
                               children: [
                                 TextSpan(
-                                  text: 'Sign Up',
-                                  style: TextStyle(
+                                  text: s.loginSignUp,
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.underline,
                                   ),
@@ -365,21 +372,20 @@ class _LoginScreenState extends State<LoginScreen> {
     // endpoint taking a phone number, which is the enumeration surface
     // 0021 removed, and it would tell the admin nothing they will not
     // learn when the person walks in.
+    final s = context.s;
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Tokens.bg,
-        title: const Text('Forgot password'),
-        content: const Text(
-          'Bring a valid ID to the barangay hall and ask the staff to '
-          'reset your password. They will give you a temporary one, and '
-          'the app will ask you to choose your own when you sign in.',
-          style: TextStyle(height: 1.4),
+        title: Text(s.loginForgotDialogTitle),
+        content: Text(
+          s.loginForgotDialogBody,
+          style: const TextStyle(height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(s.loginDialogOk),
           ),
         ],
       ),

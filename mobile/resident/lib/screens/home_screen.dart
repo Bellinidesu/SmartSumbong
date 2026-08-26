@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 
@@ -119,6 +120,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       bottomNavigationBar: const ResidentNavBar(current: ResidentTab.home),
@@ -175,25 +177,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
               Text(
                 _loading
-                    ? 'Welcome!'
+                    ? s.homeWelcomeGeneric
                     : (_firstName == null
-                        ? 'Welcome!'
-                        : 'Welcome, $_firstName!'),
+                        ? s.homeWelcomeGeneric
+                        : s.homeWelcomeNamed(_firstName!)),
                 style: t.headlineLarge?.copyWith(fontSize: 22),
               ),
               Text(
-                'How are you doing today?',
+                s.homeSubtitle,
                 style: t.titleMedium?.copyWith(fontSize: 13),
               ),
               const SizedBox(height: 18),
 
               _ActionCard(
-                title: 'Need urgent and immediate help?',
-                body: 'You can view and call the emergency services '
-                    'directly from our app.',
+                title: s.homeEmergencyTitle,
+                body: s.homeEmergencyBody,
                 actions: [
                   _CardAction(
-                    label: 'Go to Emergency',
+                    label: s.homeEmergencyLabel,
                     onTap: () =>
                         Navigator.of(context).pushReplacementNamed('/emergency'),
                   ),
@@ -202,17 +203,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 12),
 
               _ActionCard(
-                title: 'Help us improve our barangay',
-                body: 'Want to report a problem in your area? Submit a '
-                    'report so we can fix the issue.',
+                title: s.homeReportTitle,
+                body: s.homeReportBody,
                 actions: [
                   _CardAction(
-                    label: 'Report an issue',
+                    label: s.homeReportIssue,
                     onTap: () =>
                         Navigator.of(context).pushNamed('/submit-report'),
                   ),
                   _CardAction(
-                    label: 'View reports',
+                    label: s.homeViewReports,
                     onTap: () =>
                         Navigator.of(context).pushReplacementNamed('/reports'),
                   ),
@@ -221,12 +221,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 12),
 
               _ActionCard(
-                title: 'View map',
-                body: 'Get a view of Barangay 183, Pasay City and see '
-                    'your reports pinned on the map.',
+                title: s.homeMapTitle,
+                body: s.homeMapBody,
                 actions: [
                   _CardAction(
-                    label: 'View map',
+                    label: s.homeViewMap,
                     onTap: () =>
                         Navigator.of(context).pushReplacementNamed('/map'),
                   ),

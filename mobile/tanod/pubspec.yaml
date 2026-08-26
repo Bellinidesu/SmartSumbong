@@ -15,6 +15,7 @@ dependencies:
   image_picker: ^1.1.2
   latlong2: ^0.9.1
   shared_preferences: ^2.3.3
+  url_launcher: ^6.3.1
   cupertino_icons: ^1.0.8
 
   # supabase_flutter is not listed here for the same reason it is not
@@ -30,8 +31,18 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/foreground.png"
+  adaptive_icon_background: "#FF9800"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  
 flutter:
+  assets:
+    - assets/images/
   fonts:
     - family: Poppins
       fonts:

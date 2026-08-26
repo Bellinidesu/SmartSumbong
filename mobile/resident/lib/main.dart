@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'i18n.dart';
 import 'models/complaint_category.dart';
 import 'screens/account_status_screen.dart';
 import 'screens/change_password_screen.dart';
@@ -58,11 +59,16 @@ Future<void> main() async {
   }
 
   await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
-  runApp(const SmartSumbongApp());
+  // Loaded once, before the first frame, so the very first screen already
+  // renders in whatever language the resident chose last time — not a
+  // flash of English that then switches.
+  final locale = await LocaleController.load();
+  runApp(SmartSumbongApp(locale: locale));
 }
 
 class SmartSumbongApp extends StatelessWidget {
-  const SmartSumbongApp({super.key});
+  const SmartSumbongApp({super.key, required this.locale});
+  final LocaleController locale;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +78,9 @@ class SmartSumbongApp extends StatelessWidget {
       uploadPreset: _uploadPreset,
     );
 
-    return MaterialApp(
+    return AppLocaleScope(
+      controller: locale,
+      child: MaterialApp(
       title: 'SmartSumbong',
       debugShowCheckedModeBanner: false,
       theme: buildResidentTheme(),
@@ -144,6 +152,7 @@ class SmartSumbongApp extends StatelessWidget {
         '/onboarding': (_) => const OnboardingScreen(),
         '/roles': (_) => const RolePickerScreen(),
       },
+      ),
     );
   }
 }

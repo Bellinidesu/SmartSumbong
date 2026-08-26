@@ -13,7 +13,12 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'screens/tanod_shell.dart';
+import 'screens/edit_profile_screen.dart';
+import 'screens/languages_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/tanod_home_screen.dart';
+import 'screens/notifications_screen.dart';
+import 'screens/reports_screen.dart';
 import 'screens/account_status_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/launch_gate.dart';
@@ -59,7 +64,14 @@ class SmartSumbongTanodApp extends StatelessWidget {
       routes: {
         '/': (_) => LaunchGate(auth: auth),
         '/login': (_) => LoginScreen(auth: auth),
-        '/duty': (_) => const TanodShell(),
+        // '/duty' is gone. Duty status lives on Home now, per
+        // HOME - TANOD, so the launch gate lands here instead.
+        '/home': (_) => TanodHomeScreen(auth: auth),
+        '/reports': (_) => const ReportsScreen(),
+        '/notifications': (_) => const NotificationsScreen(),
+        '/settings': (_) => SettingsScreen(auth: auth),
+        '/edit-profile': (_) => EditProfileScreen(auth: auth),
+        '/languages': (_) => const LanguagesScreen(),
         '/change-password': (_) => ChangePasswordScreen(auth: auth),
         '/verification-pending': (_) =>
             const _Placeholder('Verification pending'),

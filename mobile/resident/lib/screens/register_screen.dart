@@ -83,6 +83,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (_fullName.text.trim().isEmpty) {
       _errors['full_name'] = 'Please enter your full name.';
+    } else if (!_looksLikeLastFirst(_fullName.text)) {
+      _errors['full_name'] =
+          'Enter your name as Last Name, First Name (e.g. Dela Cruz, Juan).';
     }
 
     // Optional. Many residents do not have an email address, and
@@ -126,6 +129,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return _errors.isEmpty;
   }
 
+  /// Mirrors the check `handle_new_auth_user()` makes server-side
+  /// (migration 0032) — a comma with something on both sides. Loose on
+  /// purpose: "Dela Cruz, Juan", "Dela Cruz, Juan Miguel" and "Dela
+  /// Cruz, Juan, Jr." all pass; only a missing comma, or nothing on one
+  /// side of it, fails.
+  static bool _looksLikeLastFirst(String name) {
+    final idx = name.indexOf(',');
+    if (idx <= 0) return false;
+    final before = name.substring(0, idx).trim();
+    final after = name.substring(idx + 1).trim();
+    return before.isNotEmpty && after.isNotEmpty;
+  }
+
   /// `+639XXXXXXXXX`, or null if it is not a Philippine mobile number.
   String? _normalisedMobile() {
     final digits = _mobile.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -142,6 +158,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _capture({required bool selfie}) async {
     setState(() => _banner = null);
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: AppPermission.camera,
+      title: 'Camera access',
+      rationale: selfie
+          ? 'SmartSumbong needs your camera to take a selfie, so the '
+              'barangay can match you to your ID.'
+          : 'SmartSumbong needs your camera to take a photo of your ID.',
+    );
+    if (!granted || !mounted) return;
     try {
       final f = await widget.uploader.pick(source: ImageSource.camera);
       if (f == null) return;
@@ -166,6 +192,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_validate()) return;
+
+    final confirmed = await _confirmReview();
+    if (confirmed != true) return;
 
     setState(() {
       _busy = true;
@@ -209,6 +238,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  // ---------- review-before-submit ----------------------------
+
+  /// Shown after validation passes, before anything is uploaded or
+  /// written. Cheaper to catch a wrong ID photo or a typo'd number here
+  /// than after it is sitting in the Admin Verification queue — the
+  /// applicant cannot edit a submitted application, only wait for a
+  /// decision or register again from scratch.
+  ///
+  /// Returns true only if the applicant tapped "Confirm & Submit".
+  /// Dismissing the dialog any other way (barrier tap, back gesture)
+  /// resolves to null/false and _submit() simply stops, leaving every
+  /// typed field and picked photo exactly as it was.
+  Future<bool?> _confirmReview() {
+    final t = Theme.of(context).textTheme;
+    final mobile = _normalisedMobile() ?? _mobile.text.trim();
+    final email = _email.text.trim();
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Tokens.bg,
+        title: Text('Review before you submit', style: t.titleMedium),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'The barangay verifies your account against this. Make '
+                'sure it matches your ID before you send it.',
+                style: TextStyle(fontSize: 12, color: Tokens.muted, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              _ReviewRow('Full Name', _fullName.text.trim()),
+              if (email.isNotEmpty) _ReviewRow('Email Address', email),
+              _ReviewRow('Phone Number', mobile),
+              _ReviewRow(
+                'Account type',
+                widget.role == AccountRole.tanod ? 'Tanod' : 'Resident',
+              ),
+              _ReviewRow('ID type', _idType?.label ?? ''),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _ReviewPhoto('Your ID', _idFile)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _ReviewPhoto('Your selfie', _selfieFile)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actionsOverflowButtonSpacing: 8,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Go back and edit'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Confirm & Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ---------- build ------------------------------------------
 
   @override
@@ -242,7 +339,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 _Field(
                   label: 'Full Name',
-                  hint: 'Enter your full name',
+                  note: '(Format: Last Name, First Name)',
+                  hint: 'e.g. Dela Cruz, Juan',
                   controller: _fullName,
                   error: _errors['full_name'],
                   textCapitalization: TextCapitalization.words,
@@ -666,6 +764,75 @@ class _PhotoRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ReviewRow extends StatelessWidget {
+  const _ReviewRow(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                color: Tokens.muted,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value.isEmpty ? '—' : value,
+              style: const TextStyle(fontSize: 14, color: Tokens.navy),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ReviewPhoto extends StatelessWidget {
+  const _ReviewPhoto(this.label, this.file);
+
+  final String label;
+  final File? file;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              color: Tokens.muted,
+            ),
+          ),
+          const SizedBox(height: 4),
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Tokens.field,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Tokens.divider),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: file == null
+                  ? const Icon(Icons.photo_camera_outlined, color: Tokens.muted)
+                  : Image.file(file!, fit: BoxFit.cover),
+            ),
+          ),
+        ],
+      );
 }
 
 class _Agreement extends StatelessWidget {

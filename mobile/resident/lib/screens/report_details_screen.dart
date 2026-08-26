@@ -84,6 +84,13 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   final _photos = <File>[];
   final _uploaded = <UploadedMedia>[]; // held across retries
 
+  // Optional. One video per report — file_report()/report_media has
+  // no notion of "several" the way photos do, and a single short clip
+  // already covers what a photo strip can't (motion, sound, a longer
+  // pan across a scene).
+  File? _video;
+  UploadedMedia? _uploadedVideo; // held across retries, same reasoning
+
   bool _anonymous = false;
   bool _acknowledged = false;
   bool _busy = false;
@@ -167,6 +174,14 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       setState(() => _banner = 'You can attach up to $_maxPhotos photos.');
       return;
     }
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: AppPermission.photos,
+      title: 'Photo access',
+      rationale: 'SmartSumbong needs access to your photos to attach '
+          'evidence to this report.',
+    );
+    if (!granted || !mounted) return;
     setState(() => _banner = null);
     try {
       final f = await widget.uploader.pick();
@@ -187,6 +202,37 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       // uploaded would misalign them, so start that part over — the
       // photos themselves are still on the device.
       _uploaded.clear();
+    });
+  }
+
+  // ---------- video --------------------------------------------
+
+  Future<void> _addVideo() async {
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: AppPermission.photos,
+      title: 'Photo and video access',
+      rationale: 'SmartSumbong needs access to your videos to attach '
+          'evidence to this report.',
+    );
+    if (!granted || !mounted) return;
+    setState(() => _banner = null);
+    try {
+      final f = await widget.uploader.pickVideo();
+      if (f == null) return;
+      setState(() {
+        _video = f;
+        _uploadedVideo = null; // a new file invalidates any prior upload
+      });
+    } on MediaUploadException catch (e) {
+      setState(() => _banner = e.message);
+    }
+  }
+
+  void _removeVideo() {
+    setState(() {
+      _video = null;
+      _uploadedVideo = null;
     });
   }
 
@@ -227,12 +273,20 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           );
         }
       }
+      if (_video != null && _uploadedVideo == null) {
+        _uploadedVideo = await widget.uploader
+            .uploadVideo(_video!, kind: MediaKind.reportPhoto);
+      }
 
       // Cloudinary's count of the stored asset, not a placeholder.
       // report_media_bytes_check rejects zero, and enforce_media_cap()
-      // sums this column for the 10 MB ceiling — a zero here would make
-      // that cap meaningless as well as failing the insert.
-      final media = [for (final m in _uploaded) m.toJson()];
+      // sums this column for the 35 MB combined ceiling (migration
+      // 0033) — a zero here would make that cap meaningless as well
+      // as failing the insert.
+      final media = [
+        for (final m in _uploaded) m.toJson(),
+        if (_uploadedVideo != null) _uploadedVideo!.toJson(),
+      ];
 
       final row = await Supabase.instance.client.rpc(
         'file_report',
@@ -269,8 +323,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     if (m.contains('maximum of') && m.contains('photos')) {
       return 'You can attach up to $_maxPhotos photos.';
     }
-    if (m.contains('10 mb')) {
-      return 'Your photos are too large altogether. Remove one and try again.';
+    if (m.contains('35 mb')) {
+      return 'Your photos and video are too large altogether. '
+          'Remove one and try again.';
     }
     if (m.contains('_url_pinned')) {
       return 'Your photos could not be attached. Please retake them.';
@@ -357,6 +412,13 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                       enabled: !_busy,
                       onAdd: _addPhoto,
                       onRemove: _removePhoto,
+                    ),
+                    const SizedBox(height: 16),
+                    _VideoAttach(
+                      video: _video,
+                      enabled: !_busy,
+                      onAdd: _addVideo,
+                      onRemove: _removeVideo,
                     ),
                     const SizedBox(height: 24),
 
@@ -801,6 +863,87 @@ class _PhotoStrip extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// One optional video, styled to match [_PhotoStrip]'s "Attach Media"
+/// tile. Deliberately singular — file_report()/report_media has no
+/// notion of "several videos" the way photos do.
+class _VideoAttach extends StatelessWidget {
+  const _VideoAttach({
+    required this.video,
+    required this.enabled,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final File? video;
+  final bool enabled;
+  final VoidCallback onAdd;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (video != null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Tokens.field,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.videocam, color: Tokens.navy),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'A video is attached to this report.',
+                style: TextStyle(fontSize: 12, color: Tokens.navy),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.cancel, color: Tokens.navy),
+              onPressed: enabled ? onRemove : null,
+            ),
+          ],
+        ),
+      );
+    }
+    return InkWell(
+      onTap: enabled ? onAdd : null,
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Tokens.field,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: CustomPaint(
+          painter: _DashedBorder(),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.videocam_outlined, color: Tokens.navy, size: 22),
+              SizedBox(height: 6),
+              Text('Attach a short video (optional)',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: Tokens.navy,
+                  )),
+              Text('(Max: 25 MB, about 30 seconds)',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                    color: Tokens.navy,
+                  )),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

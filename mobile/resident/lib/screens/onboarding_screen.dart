@@ -15,6 +15,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 /// Set once the resident has seen or skipped the introduction.
@@ -28,8 +29,8 @@ class _Page {
     this.wordmark = false,
   });
 
-  final String title;
-  final String body;
+  final String Function(Strings s) title;
+  final String Function(Strings s) body;
   final String? image;
 
   /// The first page leads with the logo rather than an illustration.
@@ -39,29 +40,37 @@ class _Page {
 const _pages = <_Page>[
   _Page(
     wordmark: true,
-    title: 'Welcome to SmartSumbong!',
-    body: 'SmartSumbong is your trusted platform to voice your concerns '
-        'and make a difference in your barangay.',
+    title: _title1,
+    body: _body1,
   ),
   _Page(
     image: 'assets/images/OB2.png',
-    title: 'Voice out. Be heard.',
-    body: 'Your voice matters\u2014stand up, be heard, and shape the future '
-        'of your community.',
+    title: _title2,
+    body: _body2,
   ),
   _Page(
     image: 'assets/images/OB3.png',
-    title: 'Stay updated.',
-    body: 'Track your reports and see real change happening in your '
-        'community.',
+    title: _title3,
+    body: _body3,
   ),
   _Page(
     image: 'assets/images/OB4.png',
-    title: 'Get help instantly.',
-    body: 'Just tap to connect with responders and take action when it '
-        'matters most.',
+    title: _title4,
+    body: _body4,
   ),
 ];
+
+// Static functions rather than closures so `_pages` can stay a `const`
+// list \u2014 the copy itself still comes from [Strings], so it still
+// switches with the language.
+String _title1(Strings s) => s.onboardTitle1;
+String _body1(Strings s) => s.onboardBody1;
+String _title2(Strings s) => s.onboardTitle2;
+String _body2(Strings s) => s.onboardBody2;
+String _title3(Strings s) => s.onboardTitle3;
+String _body3(Strings s) => s.onboardBody3;
+String _title4(Strings s) => s.onboardTitle4;
+String _body4(Strings s) => s.onboardBody4;
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -152,12 +161,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       // is nothing yet to skip past.
                       if (_index > 0)
                         _PillButton(
-                          label: 'Skip',
+                          label: context.s.onboardSkip,
                           filled: false,
                           onTap: _finish,
                         ),
                       _PillButton(
-                        label: last ? 'Start' : 'Next',
+                        label: last ? context.s.onboardStart : context.s.onboardNext,
                         filled: true,
                         onTap: _next,
                       ),
@@ -180,6 +189,7 @@ class _PageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 36),
       child: Column(
@@ -211,7 +221,7 @@ class _PageView extends StatelessWidget {
           const SizedBox(height: 8),
 
           Text(
-            page.title,
+            page.title(s),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontFamily: 'Poppins',
@@ -223,7 +233,7 @@ class _PageView extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            page.body,
+            page.body(s),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 13,

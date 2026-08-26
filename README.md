@@ -39,6 +39,16 @@ temporary password the resident must change on next sign-in (migrations
 0028 and 0029). It costs nothing to run, needs no SMS credit, and works
 during an outage.
 
+The admin portal is the one exception. An administrator signs in with a
+real email address (`login.php`), not a synthetic one, so Supabase's
+built-in recovery mail actually reaches them —
+`admin/forgot-password.php` and `admin/reset-password.php` use it.
+**This needs one manual step per environment:** add
+`<your deployment URL>/admin/reset-password.php` to Supabase Dashboard →
+Authentication → URL Configuration → Redirect URLs, or GoTrue will
+refuse the recovery link with an unauthorized-redirect error. There is
+no equivalent for residents or tanods — see above.
+
 Verification is a human decision that takes minutes to hours. The
 pending screen polls rather than waiting on a message.
 
@@ -82,7 +92,8 @@ docs/schema.md         schema reference, function map, use case coverage
 docs/deployment.md     fresh install and first-admin bootstrap
 docs/turnover.md       account ownership, break-glass, succession, known gaps
 docs/manual.md         admin portal guide for barangay staff
-admin/                 PHP admin portal (login, cases, case, dashboard, logout)
+admin/                 PHP admin portal (login, forgot/reset password, cases,
+                       case, dashboard, logout)
 ```
 
 ## Conventions

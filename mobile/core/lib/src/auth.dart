@@ -143,6 +143,22 @@ class RegistrationException implements Exception {
   String toString() => message;
 }
 
+/// Five wrong passwords against the same number, whether or not that
+/// number belongs to anyone — migration 0031. Deliberately its own type
+/// rather than a flavour of [RegistrationException]: a login screen may
+/// want to show a countdown or disable the form for [secondsRemaining],
+/// which a plain message string cannot carry.
+class LoginLockedException implements Exception {
+  const LoginLockedException(this.secondsRemaining);
+  final int secondsRemaining;
+
+  int get minutesRemaining => (secondsRemaining / 60).ceil();
+
+  @override
+  String toString() =>
+      'Too many failed attempts. Try again in $minutesRemaining minute(s).';
+}
+
 class AuthService {
   AuthService(this._client);
 
@@ -209,6 +225,14 @@ class AuthService {
   /// The auth address is recomputed from the number typed, so there is no
   /// lookup: nothing to enumerate, no endpoint that turns a phone number
   /// into someone's real email. See migration 0021.
+  ///
+  /// Five wrong passwords against the same typed number — registered or
+  /// not, see [LoginLockedException] — lock that number out for thirty
+  /// minutes (migration 0031). The lockout is checked before GoTrue is
+  /// even called, so a locked-out caller never gets a chance to keep
+  /// guessing, and only an actual wrong-credentials rejection counts as a
+  /// failure: a suspended account, an unconfirmed one, or Supabase's own
+  /// rate limit are not the resident guessing, so they do not count.
   Future<void> signIn({
     required String mobileNumber,
     required String password,
@@ -221,11 +245,18 @@ class AuthService {
       );
     }
 
+    final lock = await _checkLockout(mobile);
+    if (lock != null) throw lock;
+
     try {
       await _client.auth.signInWithPassword(
         email: authEmailFor(mobile),
         password: password,
       );
+      // Wiped on success, not just left to expire, so a resident who
+      // mistypes a few times and then gets it right is not still
+      // carrying a near-miss count into their next session.
+      await _clearFailure(mobile);
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
 
@@ -251,16 +282,76 @@ class AuthService {
       }
 
       // Deliberately does not distinguish "no such number" from "wrong
-      // password". Either would confirm whether a number is registered.
+      // password" — either detail would confirm whether a number is
+      // registered. Group 5's QA exchange (26 Aug 2026) read this as a
+      // dead end: no path back for someone who mistyped their password,
+      // and no nudge for someone who was never registered. The fix is
+      // not to tell the two apart — it's to name both remedies every
+      // time, since either one might be the resident's actual situation
+      // and naming both leaks nothing that isn't leaked by naming one.
       if (m.contains('invalid login') || m.contains('invalid credentials')) {
+        final failure = await _registerFailure(mobile);
+        if (failure != null) throw failure;
         throw RegistrationException(
-          'That mobile number and password do not match an account.',
+          'That mobile number and password do not match an account. '
+          'Double-check both and try again. If you haven’t signed up '
+          'yet, use Sign Up below. If you’ve forgotten your password, '
+          'visit the barangay hall with a valid ID to reset it.',
         );
       }
 
       // Anything unmatched carries the underlying reason. A generic
       // message here cost twenty minutes of guesswork once already.
       throw RegistrationException('Could not sign you in. (${e.message})');
+    }
+  }
+
+  /// Null when not locked. Errors from the RPC itself (offline, cold
+  /// start) are swallowed here — a resident who cannot reach the lockout
+  /// check should still be allowed to attempt a normal sign-in, which
+  /// will fail on its own and clearly if something is actually wrong.
+  Future<LoginLockedException?> _checkLockout(String mobile) async {
+    try {
+      final rows = await _client
+          .rpc('check_login_lockout', params: {'p_mobile': mobile}) as List;
+      if (rows.isEmpty) return null;
+      final row = rows.first as Map<String, dynamic>;
+      if (row['locked'] == true) {
+        return LoginLockedException(row['seconds_remaining'] as int? ?? 1800);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Records a wrong-password attempt. Returns the lockout exception if
+  /// this attempt was the fifth; otherwise null, so the caller falls
+  /// through to the ordinary wrong-credentials message. Failing to reach
+  /// this RPC never blocks the resident from seeing that ordinary
+  /// message — the lockout is a hardening layer, not the primary error
+  /// path.
+  Future<LoginLockedException?> _registerFailure(String mobile) async {
+    try {
+      final rows = await _client.rpc('register_login_failure',
+          params: {'p_mobile': mobile}) as List;
+      if (rows.isEmpty) return null;
+      final row = rows.first as Map<String, dynamic>;
+      if (row['locked'] == true) {
+        return LoginLockedException(row['seconds_remaining'] as int? ?? 1800);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _clearFailure(String mobile) async {
+    try {
+      await _client.rpc('clear_login_attempts', params: {'p_mobile': mobile});
+    } catch (_) {
+      // Harmless either way: check_login_lockout only ever blocks on an
+      // active lock, and a stray unlocked row does nothing on its own.
     }
   }
 
@@ -417,6 +508,15 @@ class AuthService {
     if (m.contains('full_name is required')) {
       return RegistrationException('Please enter your full name.',
           field: 'full_name');
+    }
+    // Client already enforces this (register_screen.dart), so reaching
+    // here means a caller bypassed the app's own form — still worth a
+    // message that says what to fix rather than a raw Postgres error.
+    if (m.contains('full_name must be in the form')) {
+      return RegistrationException(
+        'Enter your name as Last Name, First Name (e.g. Dela Cruz, Juan).',
+        field: 'full_name',
+      );
     }
     if (m.contains('mobile_number is required')) {
       return RegistrationException('Please enter your mobile number.',

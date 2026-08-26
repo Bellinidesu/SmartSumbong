@@ -2,8 +2,22 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Android 13+ (API 33) granular media permissions. The system
+         Photo Picker that image_picker uses for gallery source needs
+         neither of these — it grants access per-item without a broad
+         permission at all — so on a modern handset requesting these
+         resolves as already-granted and PermissionGate's dialog never
+         actually shows. They exist for the two things that still need a
+         real runtime grant: capturing evidence with the camera on any
+         version, and reading the gallery directly on Android 12 and
+         below via the legacy permission below. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
     <application
-        android:label="resident"
+        android:label="SmartSumbong Resident"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

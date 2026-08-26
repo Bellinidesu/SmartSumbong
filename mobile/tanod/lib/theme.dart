@@ -11,14 +11,26 @@
 import 'package:flutter/material.dart';
 
 abstract final class Tokens {
-  /// The tanod accent. The resident app is navy on grey; the tanod app
-  /// is the same shapes with orange carrying the primary action, which
-  /// is how LOG IN RESPONDER differs from LOG IN RESIDENT. Keeping one
-  /// token set means a fix to either app's spacing is a fix to both.
+  /// The tanod accent. Orange carries the primary action, which is how
+  /// LOG IN RESPONDER differs from LOG IN RESIDENT.
   static const orange = Color(0xFFFF9800);
 
-  /// Barangay navy. Every label, border and filled button.
-  static const navy = Color(0xFF00308F);
+  /// The tanod app runs on ink, not the barangay navy.
+  ///
+  /// Two apps in the same hands doing different jobs should not look
+  /// alike. A tanod holding both — filing as a resident off shift,
+  /// working the queue on it — needs to know at a glance which one is
+  /// open, and a glance is all they get standing in the street.
+  ///
+  /// Still named `navy` deliberately. Every screen in this app already
+  /// reads Tokens.navy, and renaming it would mean touching a dozen
+  /// files to change one value. The name records where the colour came
+  /// from; the value is what ships.
+  static const navy = Color(0xFF14181D);
+
+  /// The barangay navy, kept for anything that has to match the seals
+  /// or the wordmark rather than the app chrome.
+  static const brandNavy = Color(0xFF00308F);
 
   /// Page background.
   static const bg = Color(0xFFF3F3F3);
