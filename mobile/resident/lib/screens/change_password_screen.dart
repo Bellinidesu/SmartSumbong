@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -47,12 +48,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     FocusScope.of(context).unfocus();
 
     if (_password.text.length < 8) {
-      setState(() => _error = 'Your password must be at least 8 characters '
-          'long.');
+      setState(() => _error = context.s.changePasswordTooShort);
       return;
     }
     if (_password.text != _confirm.text) {
-      setState(() => _error = 'The two passwords do not match.');
+      setState(() => _error = context.s.changePasswordMismatch);
       return;
     }
 
@@ -82,8 +82,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Could not set your new password. Please check your '
-            'connection and try again.';
+        _error = context.s.changePasswordFailed;
       });
     }
   }
@@ -98,6 +97,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     // No back button and no gesture out. Signing out is the only other
     // way off this screen, and it is offered explicitly below.
@@ -113,35 +113,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 24),
-                  Text('Set a new password',
+                  Text(s.changePasswordTitle,
                       textAlign: TextAlign.center,
                       style: t.headlineLarge?.copyWith(fontSize: 24)),
                   const SizedBox(height: 10),
-                  const Text(
-                    'The barangay gave you a temporary password. Choose your '
-                    'own now so that only you know it.',
+                  Text(
+                    s.changePasswordBody,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontSize: 13, height: 1.45, color: Tokens.navy),
+                        fontSize: 13, height: 1.45, color: context.colors.navy),
                   ),
                   const SizedBox(height: 28),
 
-                  const _Label('New password',
-                      note: '(At least 8 characters.)'),
+                  _Label(s.changePasswordNewLabel,
+                      note: s.changePasswordNewNote),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _password,
                     enabled: !_busy,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      hintText: 'Enter your new password',
+                      hintText: s.changePasswordNewHint,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscure
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           size: 20,
-                          color: Tokens.navy,
+                          color: context.colors.navy,
                         ),
                         onPressed: () =>
                             setState(() => _obscure = !_obscure),
@@ -151,16 +150,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  const _Label('Confirm password',
-                      note: '(Both must match.)'),
+                  _Label(s.changePasswordConfirmLabel,
+                      note: s.changePasswordConfirmNote),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _confirm,
                     enabled: !_busy,
                     obscureText: _obscure,
                     onSubmitted: (_) => _busy ? null : _submit(),
-                    decoration: const InputDecoration(
-                      hintText: 'Type it again',
+                    decoration: InputDecoration(
+                      hintText: s.changePasswordConfirmHint,
                     ),
                     onChanged: (_) => setState(() => _error = null),
                   ),
@@ -169,8 +168,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     const SizedBox(height: 12),
                     Text(
                       _error!,
-                      style: const TextStyle(
-                          fontSize: 12, height: 1.35, color: Tokens.hint),
+                      style: TextStyle(
+                          fontSize: 12, height: 1.35, color: context.colors.hint),
                     ),
                   ],
                   const SizedBox(height: 28),
@@ -178,19 +177,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   FilledButton(
                     onPressed: _busy ? null : _submit,
                     child: _busy
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Tokens.bg),
+                                strokeWidth: 2, color: context.colors.bg),
                           )
-                        : const Text('Save password'),
+                        : Text(s.changePasswordSave),
                   ),
                   const SizedBox(height: 12),
 
                   TextButton(
                     onPressed: _busy ? null : _signOut,
-                    child: const Text('Sign out instead'),
+                    child: Text(s.changePasswordSignOutInstead),
                   ),
                 ],
               ),
@@ -211,11 +210,11 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RichText(
         text: TextSpan(
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w700,
             fontSize: 14,
-            color: Tokens.navy,
+            color: context.colors.navy,
           ),
           children: [
             TextSpan(text: text),

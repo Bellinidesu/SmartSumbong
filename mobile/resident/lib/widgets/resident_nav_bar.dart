@@ -36,8 +36,8 @@ class ResidentNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Tokens.navy,
+      decoration: BoxDecoration(
+        color: context.colors.navy,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
@@ -95,7 +95,7 @@ class _NavItem extends StatelessWidget {
               Icon(
                 tab.icon,
                 size: 26,
-                color: Tokens.bg.withValues(alpha: active ? 1 : 0.75),
+                color: context.colors.bg.withValues(alpha: active ? 1 : 0.75),
               ),
               const SizedBox(height: 4),
               Text(
@@ -106,7 +106,7 @@ class _NavItem extends StatelessWidget {
                   fontFamily: 'Poppins',
                   fontSize: 11,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: Tokens.bg.withValues(alpha: active ? 1 : 0.75),
+                  color: context.colors.bg.withValues(alpha: active ? 1 : 0.75),
                 ),
               ),
             ],

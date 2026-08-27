@@ -223,22 +223,22 @@ class _PageView extends StatelessWidget {
           Text(
             page.title(s),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 22,
               height: 1.2,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 10),
           Text(
             page.body(s),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.4,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
 
@@ -268,7 +268,7 @@ class _Dots extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: i <= active ? Tokens.navy : Tokens.divider,
+              color: i <= active ? context.colors.navy : context.colors.divider,
             ),
           ),
       ],
@@ -296,8 +296,8 @@ class _PillButton extends StatelessWidget {
           ? FilledButton(
               onPressed: onTap,
               style: FilledButton.styleFrom(
-                backgroundColor: Tokens.navy,
-                foregroundColor: Tokens.bg,
+                backgroundColor: context.colors.navy,
+                foregroundColor: context.colors.bg,
                 minimumSize: const Size(108, 38),
                 padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
@@ -314,9 +314,9 @@ class _PillButton extends StatelessWidget {
           : OutlinedButton(
               onPressed: onTap,
               style: OutlinedButton.styleFrom(
-                backgroundColor: Tokens.field,
-                foregroundColor: Tokens.navy,
-                side: const BorderSide(color: Tokens.navy),
+                backgroundColor: context.colors.field,
+                foregroundColor: context.colors.navy,
+                side: BorderSide(color: context.colors.navy),
                 minimumSize: const Size(108, 38),
                 padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(

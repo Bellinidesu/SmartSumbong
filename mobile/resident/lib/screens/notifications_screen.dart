@@ -27,6 +27,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class AppNotification {
@@ -119,34 +120,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not load your notifications.');
+      setState(() => _error = context.s.notificationsLoadError);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
-          color: Tokens.navy,
+          color: context.colors.navy,
           child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(30, 24, 30, 8),
                 child: Center(
-                  child: Text('Notifications',
+                  child: Text(s.notificationsTitle,
                       style: t.headlineLarge?.copyWith(fontSize: 28)),
                 ),
               ),
-              Expanded(child: _body()),
+              Expanded(child: _body(s)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(43, 0, 43, 16),
                 child: FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Back'),
+                  child: Text(s.notificationsBack),
                 ),
               ),
             ],
@@ -156,18 +158,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _body() {
+  Widget _body(Strings s) {
     if (_error != null) {
       return ListView(children: [
         const SizedBox(height: 80),
         Text(_error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Tokens.hint)),
+            style: TextStyle(color: context.colors.hint)),
       ]);
     }
 
     if (_items == null) {
-      return const Center(child: CircularProgressIndicator(color: Tokens.navy));
+      return Center(child: CircularProgressIndicator(color: context.colors.navy));
     }
 
     if (_items!.isEmpty) {
@@ -177,23 +179,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         children: [
           const SizedBox(height: 100),
           Icon(Icons.mark_chat_unread_outlined,
-              size: 56, color: Tokens.navy.withValues(alpha: 0.6)),
+              size: 56, color: context.colors.navy.withValues(alpha: 0.6)),
           const SizedBox(height: 20),
-          const Text(
-            'No Notifications',
+          Text(
+            s.notificationsEmptyTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 20,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            "We'll let you know when there will be something to update you.",
+          Text(
+            s.notificationsEmptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, height: 1.35, color: Tokens.muted),
+            style: TextStyle(fontSize: 13, height: 1.35, color: context.colors.muted),
           ),
         ],
       );
@@ -202,9 +204,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(30, 8, 30, 16),
       itemCount: _items!.length,
-      separatorBuilder: (_, __) => const Padding(
+      separatorBuilder: (context, __) => Padding(
         padding: EdgeInsets.symmetric(vertical: 10),
-        child: Divider(height: 1, color: Tokens.navy),
+        child: Divider(height: 1, color: context.colors.navy),
       ),
       itemBuilder: (_, i) => _NotificationRow(item: _items![i]),
     );
@@ -221,7 +223,7 @@ class _NotificationRow extends StatelessWidget {
     // Bold + left bar reads as "new" in Figma's rows; here that is
     // unread specifically (see the file header for why).
     final emphasise = !item.isRead;
-    final color = item.isUrgent ? const Color(0xFFFF4949) : Tokens.navy;
+    final color = item.isUrgent ? const Color(0xFFFF4949) : context.colors.navy;
 
     final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +246,7 @@ class _NotificationRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Text(
-          _ago(item.createdAt),
+          _ago(context.s, item.createdAt),
           style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.75)),
         ),
       ],
@@ -258,18 +260,14 @@ class _NotificationRow extends StatelessWidget {
     );
   }
 
-  static String _ago(DateTime utc) {
+  static String _ago(Strings s, DateTime utc) {
     final d = DateTime.now().difference(utc.toLocal());
-    if (d.inMinutes < 1) return 'Just now';
-    if (d.inMinutes < 60) return '${d.inMinutes}m';
-    if (d.inHours < 24) return '${d.inHours}h';
-    if (d.inDays < 7) return '${d.inDays}d';
+    if (d.inMinutes < 1) return s.notificationsJustNow;
+    if (d.inMinutes < 60) return s.notificationsMinutesAgo(d.inMinutes);
+    if (d.inHours < 24) return s.notificationsHoursAgo(d.inHours);
+    if (d.inDays < 7) return s.notificationsDaysAgo(d.inDays);
 
     final l = utc.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[l.month - 1]} ${l.day}';
+    return '${s.monthAbbr(l.month)} ${l.day}';
   }
 }

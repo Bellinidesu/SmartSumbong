@@ -22,6 +22,7 @@
 import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 enum AccountBlock { rejected, suspended }
@@ -83,6 +84,7 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return PopScope(
       canPop: false,
@@ -106,8 +108,8 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
 
                 Text(
                   _isRejected
-                      ? 'Registration not approved'
-                      : 'Account suspended',
+                      ? s.accountStatusRejectedTitle
+                      : s.accountStatusSuspendedTitle,
                   textAlign: TextAlign.center,
                   style: t.headlineLarge?.copyWith(fontSize: 24),
                 ),
@@ -115,14 +117,11 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
 
                 Text(
                   _isRejected
-                      ? 'The barangay reviewed your registration and did '
-                          'not approve it.'
-                      : 'The barangay has suspended this account. You '
-                          'cannot file or follow up on complaints while '
-                          'it is suspended.',
+                      ? s.accountStatusRejectedBody
+                      : s.accountStatusSuspendedBody,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 14, height: 1.5, color: Tokens.navy),
+                  style: TextStyle(
+                      fontSize: 14, height: 1.5, color: context.colors.navy),
                 ),
 
                 if (_loading) ...[
@@ -140,29 +139,29 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Tokens.field,
-                      border: Border.all(color: Tokens.navy),
+                      color: context.colors.field,
+                      border: Border.all(color: context.colors.navy),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Reason given',
+                        Text(
+                          s.accountStatusReasonGiven,
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
-                            color: Tokens.navy,
+                            color: context.colors.navy,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           _reason!,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 13,
                               height: 1.45,
-                              color: Tokens.navy),
+                              color: context.colors.navy),
                         ),
                       ],
                     ),
@@ -173,18 +172,12 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                 Text(
                   _isRejected
                       ? (widget.canRegisterAgain
-                          ? 'If you think this is a mistake, visit the '
-                              'barangay hall with a valid ID. You can '
-                              'register again once the problem is fixed.'
-                          : 'If you think this is a mistake, visit the '
-                              'barangay hall with your Barangay ID. To '
-                              'register again, use the SmartSumbong app '
-                              'for residents.')
-                      : 'To have this looked at, visit the barangay hall '
-                          'with a valid ID.',
+                          ? s.accountStatusRejectedCanRegister
+                          : s.accountStatusRejectedCannotRegister)
+                      : s.accountStatusSuspendedNote,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 12.5, height: 1.5, color: Tokens.muted),
+                  style: TextStyle(
+                      fontSize: 12.5, height: 1.5, color: context.colors.muted),
                 ),
 
                 const Spacer(flex: 2),
@@ -201,14 +194,14 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                             .pushNamedAndRemoveUntil('/register', (_) => false);
                       }
                     },
-                    child: const Text('Register again'),
+                    child: Text(s.accountStatusRegisterAgain),
                   ),
                 if (_isRejected && widget.canRegisterAgain)
                   const SizedBox(height: 10),
 
                 OutlinedButton(
                   onPressed: _signOut,
-                  child: const Text('Sign out'),
+                  child: Text(s.accountStatusSignOut),
                 ),
                 const SizedBox(height: 24),
               ],

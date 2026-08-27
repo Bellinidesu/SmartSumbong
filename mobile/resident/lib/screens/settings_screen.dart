@@ -85,8 +85,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = context.s;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Tokens.navy,
+      builder: (context) => Dialog(
+        backgroundColor: context.colors.navy,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -108,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 s.settingsLogOutConfirmBody,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Tokens.bg),
+                style: TextStyle(fontSize: 14, color: context.colors.bg),
               ),
               const SizedBox(height: 20),
               Row(
@@ -117,8 +117,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Tokens.bg,
-                        side: const BorderSide(color: Tokens.bg),
+                        foregroundColor: context.colors.bg,
+                        side: BorderSide(color: context.colors.bg),
                         minimumSize: const Size.fromHeight(42),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
@@ -132,8 +132,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: FilledButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: FilledButton.styleFrom(
-                        backgroundColor: Tokens.field,
-                        foregroundColor: Tokens.navy,
+                        backgroundColor: context.colors.field,
+                        foregroundColor: context.colors.navy,
                         minimumSize: const Size.fromHeight(42),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
@@ -183,18 +183,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   width: 72,
                   height: 72,
-                  decoration: const BoxDecoration(
-                    color: Tokens.navy,
+                  decoration: BoxDecoration(
+                    color: context.colors.navy,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     _initials(_name),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
-                      color: Tokens.bg,
+                      color: context.colors.bg,
                     ),
                   ),
                 ),
@@ -205,18 +205,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         _name ?? '\u2014',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
-                          color: Tokens.navy,
+                          color: context.colors.navy,
                         ),
                       ),
                       if (_mobile != null)
                         Text(
                           _mask(_mobile!),
-                          style: const TextStyle(
-                              fontSize: 12, color: Tokens.muted),
+                          style: TextStyle(
+                              fontSize: 12, color: context.colors.muted),
                         ),
                       const SizedBox(height: 6),
                       InkWell(
@@ -261,8 +261,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => Navigator.of(context).pushNamed('/languages'),
             ),
             _SettingsRow(
+              icon: Icons.dark_mode_outlined,
+              label: s.settingsAppearance,
+              onTap: () => Navigator.of(context).pushNamed('/appearance'),
+            ),
+            _SettingsRow(
               icon: Icons.privacy_tip_outlined,
-              label: 'Terms & Privacy Notice',
+              label: s.termsPrivacyTitle,
               onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
             ),
             _SettingsRow(
@@ -290,7 +295,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Center(
                 child: Text(
                   'SmartSumbong Resident • v$_version',
-                  style: const TextStyle(fontSize: 11, color: Tokens.muted),
+                  style: TextStyle(fontSize: 11, color: context.colors.muted),
                 ),
               ),
             ],
@@ -337,16 +342,16 @@ class _SettingsRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
-            Icon(icon, color: Tokens.navy, size: 22),
+            Icon(icon, color: context.colors.navy, size: 22),
             const SizedBox(width: 18),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 14, color: Tokens.navy),
+                style: TextStyle(fontSize: 14, color: context.colors.navy),
               ),
             ),
             if (showChevron)
-              const Icon(Icons.chevron_right, color: Tokens.navy, size: 20),
+              Icon(Icons.chevron_right, color: context.colors.navy, size: 20),
           ],
         ),
       ),

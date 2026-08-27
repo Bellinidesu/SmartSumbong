@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import 'login_screen.dart' show rememberMeKey;
 import 'onboarding_screen.dart' show onboardingSeenKey;
@@ -125,9 +126,7 @@ class _LaunchGateState extends State<LaunchGate> {
       // Offline, or Supabase unreachable. Do not guess and do not strand
       // the user on a spinner — offer a retry.
       if (mounted) {
-        setState(() => _error =
-            'Could not reach the barangay\u2019s system. Check your '
-            'connection and try again.');
+        setState(() => _error = context.s.launchGateOfflineError);
       }
     }
   }
@@ -162,8 +161,9 @@ class _LaunchGateState extends State<LaunchGate> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return Scaffold(
-      backgroundColor: Tokens.navy,
+      backgroundColor: context.colors.navy,
       body: Column(
         children: [
           // The official half. Three seals on the barangay blue: this is
@@ -227,8 +227,8 @@ class _LaunchGateState extends State<LaunchGate> {
             flex: 6,
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Tokens.bg,
+              decoration: BoxDecoration(
+                color: context.colors.bg,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
               ),
               child: SafeArea(
@@ -249,7 +249,7 @@ class _LaunchGateState extends State<LaunchGate> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Sumbong na may resibo,\naksyong garantisado!',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -257,7 +257,7 @@ class _LaunchGateState extends State<LaunchGate> {
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,
                                 height: 1.15,
-                                color: Tokens.navy,
+                                color: context.colors.navy,
                               ),
                             ),
                           ],
@@ -265,28 +265,28 @@ class _LaunchGateState extends State<LaunchGate> {
                       ),
 
                       if (_error == null) ...[
-                        const SizedBox(
+                        SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: Tokens.navy),
+                              strokeWidth: 2.5, color: context.colors.navy),
                         ),
                         const SizedBox(height: 14),
-                        const Text(
-                          'Mabuhay! Signing you in\u2026',
+                        Text(
+                          s.launchGateSigningIn,
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
-                            color: Tokens.navy,
+                            color: context.colors.navy,
                           ),
                         ),
                       ] else ...[
                         Text(
                           _error!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 13, height: 1.4, color: Tokens.navy),
+                          style: TextStyle(
+                              fontSize: 13, height: 1.4, color: context.colors.navy),
                         ),
                         const SizedBox(height: 16),
                         SizedBox(
@@ -296,7 +296,7 @@ class _LaunchGateState extends State<LaunchGate> {
                               setState(() => _error = null);
                               _decide();
                             },
-                            child: const Text('Try again'),
+                            child: Text(s.launchGateTryAgain),
                           ),
                         ),
                       ],

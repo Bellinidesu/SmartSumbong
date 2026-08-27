@@ -40,6 +40,7 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 
@@ -81,9 +82,15 @@ enum ReportStatus {
   bool get canRequestReopen => isFinished;
 
   /// Cancelled is drawn in red in the design — it is the one outcome the
-  /// resident caused, and it reads differently from a rejection.
-  Color get labelColour =>
-      this == ReportStatus.cancelled ? const Color(0xFFFF4949) : Tokens.bg;
+  /// resident caused, and it reads differently from a rejection. Takes a
+  /// [BuildContext] (rather than being a plain getter) because the
+  /// non-cancelled colour is the theme's `bg` — dark mode's whole point
+  /// is that value differs by brightness, and an enum has no context of
+  /// its own to read that from.
+  Color labelColour(BuildContext context) =>
+      this == ReportStatus.cancelled
+          ? const Color(0xFFFF4949)
+          : context.colors.bg;
 }
 
 /// The filter above the list. Groups map to several wire values.
@@ -189,7 +196,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ]);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Could not load your reports. Pull to retry.');
+      setState(() => _error = context.s.reportsLoadError);
     }
   }
 
@@ -206,14 +213,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     // Figma 2864:332 — the same navy pill dialog as everywhere else in
     // the app, not a plain Material AlertDialog. This used to be one;
     // fixed during the Figma parity pass (27 Aug 2026).
+    final s = context.s;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => _ActionDialog(
-        title: 'Confirm to cancel?',
-        body: 'Once you cancel, the case can’t be opened again.',
-        secondaryLabel: 'Back',
+        title: s.reportsCancelConfirmTitle,
+        body: s.reportsCancelConfirmBody,
+        secondaryLabel: s.reportsDialogBack,
         onSecondary: () => Navigator.of(context).pop(false),
-        primaryLabel: 'Confirm',
+        primaryLabel: s.reportsConfirm,
         onPrimary: () => Navigator.of(context).pop(true),
       ),
     );
@@ -228,8 +236,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         context: context,
         barrierDismissible: false,
         builder: (_) => _ActionDialog(
-          title: 'Report has been cancelled.',
-          primaryLabel: 'Back',
+          title: s.reportsCancelledTitle,
+          primaryLabel: s.reportsDialogBack,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       );
@@ -290,7 +298,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (!mounted) return;
       // Honest about what happened: the request is with the barangay,
       // the report has not changed state.
-      _toast('Your request has been sent to the barangay.');
+      _toast(context.s.reportsRequestSent);
       _load();
     } on PostgrestException catch (e) {
       if (!mounted) return;
@@ -300,20 +308,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   String _friendly(String raw) {
     final m = raw.toLowerCase();
+    final s = context.s;
     if (m.contains('already started working')) {
-      return 'The barangay has already started on this report, so it can '
-          'no longer be cancelled.';
+      return s.reportsErrorAlreadyStarted;
     }
     if (m.contains('only a finished report')) {
-      return 'Only a completed report can be reopened.';
+      return s.reportsErrorOnlyCompletedReopen;
     }
     if (m.contains('only the resident')) {
-      return 'You can only do this to your own reports.';
+      return s.reportsErrorOwnReportsOnly;
     }
     if (m.contains('say why')) {
-      return 'Please give a reason.';
+      return s.reportsErrorGiveReason;
     }
-    return 'That did not work. Please try again.';
+    return s.reportsErrorGeneric;
   }
 
   void _toast(String message) {
@@ -321,7 +329,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text(message),
-        backgroundColor: Tokens.navy,
+        backgroundColor: context.colors.navy,
       ));
   }
 
@@ -330,6 +338,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       bottomNavigationBar: const ResidentNavBar(current: ResidentTab.reports),
@@ -341,7 +350,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              Text('View your Reports',
+              Text(s.reportsViewTitle,
                   style: t.labelLarge?.copyWith(fontSize: 18)),
               const SizedBox(height: 10),
               _FilterBox(
@@ -353,8 +362,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _load,
-                  color: Tokens.navy,
-                  child: _body(t),
+                  color: context.colors.navy,
+                  child: _body(t, s),
                 ),
               ),
             ],
@@ -364,20 +373,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _body(TextTheme t) {
+  Widget _body(TextTheme t, Strings s) {
     if (_error != null) {
       return ListView(
         children: [
           const SizedBox(height: 80),
           Text(_error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Tokens.hint)),
+              style: TextStyle(color: context.colors.hint)),
         ],
       );
     }
 
     if (_reports == null) {
-      return const Center(child: CircularProgressIndicator(color: Tokens.navy));
+      return Center(child: CircularProgressIndicator(color: context.colors.navy));
     }
 
     final visible = _visible;
@@ -386,14 +395,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           const SizedBox(height: 100),
           Icon(Icons.description_outlined,
-              size: 48, color: Tokens.navy.withValues(alpha: 0.4)),
+              size: 48, color: context.colors.navy.withValues(alpha: 0.4)),
           const SizedBox(height: 16),
           Text(
             _filter == ReportFilter.all
-                ? 'You have not filed any reports yet.'
-                : 'No ${_filter.label.toLowerCase()} reports.',
+                ? s.reportsEmptyAll
+                : s.reportsEmptyFiltered(
+                    s.reportFilterLabel(_filter.name).toLowerCase()),
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Tokens.muted),
+            style: TextStyle(color: context.colors.muted),
           ),
         ],
       );
@@ -431,8 +441,8 @@ class _FilterBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Tokens.field,
-        border: Border.all(color: Tokens.navy),
+        color: context.colors.field,
+        border: Border.all(color: context.colors.navy),
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -441,12 +451,13 @@ class _FilterBox extends StatelessWidget {
           value: value,
           isExpanded: true,
           borderRadius: BorderRadius.circular(20),
-          dropdownColor: Tokens.field,
-          icon: const Icon(Icons.expand_more, color: Tokens.navy, size: 20),
-          style: const TextStyle(fontSize: 14, color: Tokens.navy),
+          dropdownColor: context.colors.field,
+          icon: Icon(Icons.expand_more, color: context.colors.navy, size: 20),
+          style: TextStyle(fontSize: 14, color: context.colors.navy),
           items: [
             for (final f in ReportFilter.values)
-              DropdownMenuItem(value: f, child: Text(f.label)),
+              DropdownMenuItem(
+                  value: f, child: Text(context.s.reportFilterLabel(f.name))),
           ],
           onChanged: (f) => f == null ? null : onChanged(f),
         ),
@@ -470,6 +481,7 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return InkWell(
       onTap: onView,
       borderRadius: BorderRadius.circular(20),
@@ -477,8 +489,8 @@ class _ReportCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(20, 15, 10, 10),
         decoration: BoxDecoration(
-          color: Tokens.navy,
-          border: Border.all(color: Tokens.bg),
+          color: context.colors.navy,
+          border: Border.all(color: context.colors.bg),
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
             BoxShadow(
@@ -501,33 +513,34 @@ class _ReportCard extends StatelessWidget {
                         const TextSpan(text: '('),
                         TextSpan(
                           text: '${report.trackingId} - '
-                              '${report.status.label}',
-                          style: TextStyle(color: report.status.labelColour),
+                              '${s.reportStatusLabel(report.status.wire)}',
+                          style: TextStyle(
+                              color: report.status.labelColour(context)),
                         ),
                         const TextSpan(text: ') '),
                         TextSpan(text: report.subject),
                       ],
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
                       height: 1.1,
-                      color: Tokens.bg,
+                      color: context.colors.bg,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Submitted on ${_formatDate(report.createdAt)}',
-                    style: const TextStyle(fontSize: 12, color: Tokens.bg),
+                    s.reportsSubmittedOn(_formatDate(s, report.createdAt)),
+                    style: TextStyle(fontSize: 12, color: context.colors.bg),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '\u201C${report.description}\u201D',
+                    s.reportsCardDescription(report.description),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 12, height: 1.25, color: Tokens.bg),
+                    style: TextStyle(
+                        fontSize: 12, height: 1.25, color: context.colors.bg),
                   ),
                 ],
               ),
@@ -543,13 +556,9 @@ class _ReportCard extends StatelessWidget {
     );
   }
 
-  static String _formatDate(DateTime utc) {
+  static String _formatDate(Strings s, DateTime utc) {
     final d = utc.toLocal();
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+    return '${s.monthFull(d.month)} ${d.day}, ${d.year}';
   }
 }
 
@@ -565,8 +574,9 @@ class _CardMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz, color: Tokens.bg, size: 20),
+      icon: Icon(Icons.more_horiz, color: context.colors.bg, size: 20),
       color: const Color(0xFFFF9800),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       onSelected: (v) {
@@ -580,44 +590,44 @@ class _CardMenu extends StatelessWidget {
         }
       },
       itemBuilder: (_) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'view',
           height: 36,
           child: Row(children: [
-            Icon(Icons.visibility_outlined, size: 16, color: Tokens.bg),
-            SizedBox(width: 8),
-            Text('View',
+            Icon(Icons.visibility_outlined, size: 16, color: context.colors.bg),
+            const SizedBox(width: 8),
+            Text(s.reportsMenuView,
                 style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
-                    color: Tokens.bg)),
+                    color: context.colors.bg)),
           ]),
         ),
         if (onCancel != null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'cancel',
             height: 36,
             child: Row(children: [
-              Icon(Icons.cancel_outlined, size: 16, color: Tokens.bg),
-              SizedBox(width: 8),
-              Text('Cancel',
-                  style: TextStyle(fontSize: 12, color: Tokens.bg)),
+              Icon(Icons.cancel_outlined, size: 16, color: context.colors.bg),
+              const SizedBox(width: 8),
+              Text(s.reportsMenuCancel,
+                  style: TextStyle(fontSize: 12, color: context.colors.bg)),
             ]),
           ),
         if (onReopen != null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'reopen',
             height: 36,
             child: Row(children: [
-              Icon(Icons.refresh, size: 16, color: Tokens.bg),
-              SizedBox(width: 8),
-              Text('Reopen',
+              Icon(Icons.refresh, size: 16, color: context.colors.bg),
+              const SizedBox(width: 8),
+              Text(s.reportsMenuReopen,
                   style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
-                      color: Tokens.bg)),
+                      color: context.colors.bg)),
             ]),
           ),
       ],
@@ -653,7 +663,7 @@ class _ActionDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Tokens.navy,
+      backgroundColor: context.colors.navy,
       insetPadding: const EdgeInsets.symmetric(horizontal: 44),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       child: Padding(
@@ -676,10 +686,10 @@ class _ActionDialog extends StatelessWidget {
               Text(
                 body!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   height: 1.35,
-                  color: Tokens.bg,
+                  color: context.colors.bg,
                 ),
               ),
             ],
@@ -727,8 +737,8 @@ class _DialogPill extends StatelessWidget {
         ? FilledButton(
             onPressed: onTap,
             style: FilledButton.styleFrom(
-              backgroundColor: Tokens.bg,
-              foregroundColor: Tokens.navy,
+              backgroundColor: context.colors.bg,
+              foregroundColor: context.colors.navy,
               minimumSize: size,
               padding: EdgeInsets.zero,
               shape: shape,
@@ -743,8 +753,8 @@ class _DialogPill extends StatelessWidget {
         : OutlinedButton(
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Tokens.bg,
-              side: const BorderSide(color: Tokens.bg),
+              foregroundColor: context.colors.bg,
+              side: BorderSide(color: context.colors.bg),
               minimumSize: size,
               padding: EdgeInsets.zero,
               shape: shape,
@@ -782,7 +792,7 @@ class _ReasonDialogState extends State<_ReasonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Tokens.bg,
+      backgroundColor: context.colors.bg,
       title: Text(widget.title, style: const TextStyle(fontSize: 18)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -799,11 +809,11 @@ class _ReasonDialogState extends State<_ReasonDialog> {
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
               filled: true,
-              fillColor: Tokens.field,
-              hintText: 'Your reason',
+              fillColor: context.colors.field,
+              hintText: context.s.reportsReasonDialogHint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Tokens.navy),
+                borderSide: BorderSide(color: context.colors.navy),
               ),
             ),
           ),
@@ -812,11 +822,11 @@ class _ReasonDialogState extends State<_ReasonDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Back'),
+          child: Text(context.s.reportsDialogBack),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('Send request'),
+          child: Text(context.s.reportsReasonDialogSend),
         ),
       ],
     );
@@ -899,9 +909,8 @@ class _ReopenSheetState extends State<_ReopenSheet> {
     final granted = await PermissionGate.ensure(
       context,
       permission: AppPermission.photos,
-      title: 'Photo access',
-      rationale: 'SmartSumbong needs access to your photos to attach '
-          'evidence to this reopen request.',
+      title: context.s.reportsPhotoAccessTitle,
+      rationale: context.s.reportsPhotoAccessBody,
     );
     if (!granted || !mounted) return;
     setState(() => _banner = null);
@@ -918,16 +927,15 @@ class _ReopenSheetState extends State<_ReopenSheet> {
 
   Future<void> _submit() async {
     if (_reason == null) {
-      setState(() => _error = 'Please choose a reason.');
+      setState(() => _error = context.s.reportsReasonRequired);
       return;
     }
     if (_concern.text.trim().isEmpty) {
-      setState(() => _error = 'Please describe your concern.');
+      setState(() => _error = context.s.reportsConcernRequired);
       return;
     }
     if (!_acknowledged) {
-      setState(() =>
-          _error = 'Please confirm the information above is accurate.');
+      setState(() => _error = context.s.reportsAckRequired);
       return;
     }
 
@@ -960,6 +968,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
   @override
   Widget build(BuildContext context) {
     final r = widget.report;
+    final s = context.s;
     final inset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -976,21 +985,21 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
               decoration: BoxDecoration(
-                color: Tokens.navy,
+                color: context.colors.navy,
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Reopen:\n(${r.trackingId} - ${r.status.label}) '
-                    '${r.subject}',
-                    style: const TextStyle(
+                    s.reportsReopenHeader(r.trackingId,
+                        s.reportStatusLabel(r.status.wire), r.subject),
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                       height: 1.25,
-                      color: Tokens.bg,
+                      color: context.colors.bg,
                     ),
                   ),
                 ],
@@ -1010,40 +1019,40 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Tokens.field,
-                    border: Border.all(color: Tokens.navy),
+                    color: context.colors.field,
+                    border: Border.all(color: context.colors.navy),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (widget.closingRemark != null) ...[
-                        const Text(
-                          'Original Closing Remarks',
+                        Text(
+                          s.reportsOriginalClosingRemarks,
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
-                            color: Tokens.navy,
+                            color: context.colors.navy,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           widget.closingRemark!,
-                          style: const TextStyle(
-                              fontSize: 12, height: 1.35, color: Tokens.navy),
+                          style: TextStyle(
+                              fontSize: 12, height: 1.35, color: context.colors.navy),
                         ),
                       ],
                       if (r.closedAt != null) ...[
                         if (widget.closingRemark != null)
                           const SizedBox(height: 8),
                         Text(
-                          'Date Closed: ${_formatDate(r.closedAt!)}',
-                          style: const TextStyle(
+                          s.reportsDateClosed(_formatDate(s, r.closedAt!)),
+                          style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
-                            color: Tokens.navy,
+                            color: context.colors.navy,
                           ),
                         ),
                       ],
@@ -1059,34 +1068,33 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Tokens.field,
-                border: Border.all(color: Tokens.navy),
+                color: context.colors.field,
+                border: Border.all(color: context.colors.navy),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text(
-                'Note: Reopening asks the barangay to look at this case '
-                'again. If this is a new problem rather than the same '
-                'one, please file a new report instead.',
+              child: Text(
+                s.reportsReopenNote,
                 style: TextStyle(fontSize: 12, height: 1.35,
-                    color: Tokens.navy),
+                    color: context.colors.navy),
               ),
             ),
             const SizedBox(height: 16),
 
-            const Text('Reason of Reopen',
+            Text(s.reportsReasonOfReopen,
                 style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: Tokens.navy)),
+                    color: context.colors.navy)),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
               initialValue: _reason,
               isExpanded: true,
-              hint: const Text('Select a Reason'),
+              hint: Text(s.reportsSelectAReason),
               items: [
                 for (final v in _reopenReasons)
-                  DropdownMenuItem(value: v, child: Text(v)),
+                  DropdownMenuItem(
+                      value: v, child: Text(s.reportsReopenReasonLabel(v))),
               ],
               onChanged: (v) => setState(() {
                 _reason = v;
@@ -1100,20 +1108,20 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               maxLines: 4,
               maxLength: 500,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Enter your concern here.',
+              decoration: InputDecoration(
+                hintText: s.reportsConcernHint,
               ),
               onChanged: (_) => setState(() => _error = null),
             ),
 
             const SizedBox(height: 14),
 
-            const Text('(Optional)',
+            Text(s.reportsOptional,
                 style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: Tokens.navy)),
+                    color: context.colors.navy)),
             const SizedBox(height: 6),
             _ReopenPhotoTile(
               photo: _photo,
@@ -1125,7 +1133,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
             if (_banner != null) ...[
               const SizedBox(height: 10),
               Text(_banner!,
-                  style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+                  style: TextStyle(color: context.colors.hint, fontSize: 12)),
             ],
             const SizedBox(height: 14),
 
@@ -1150,12 +1158,11 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'I acknowledge that the information I am submitting is, '
-                    'to the best of my knowledge, accurate and complete.',
+                    s.reportsAckReopen,
                     style: TextStyle(
-                        fontSize: 12, color: Tokens.navy, height: 1.3),
+                        fontSize: 12, color: context.colors.navy, height: 1.3),
                   ),
                 ),
               ],
@@ -1164,7 +1171,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
             if (_error != null) ...[
               const SizedBox(height: 6),
               Text(_error!,
-                  style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+                  style: TextStyle(color: context.colors.hint, fontSize: 12)),
             ],
             const SizedBox(height: 8),
 
@@ -1174,7 +1181,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                   child: OutlinedButton(
                     onPressed:
                         _busy ? null : () => Navigator.of(context).pop(),
-                    child: const Text('Back'),
+                    child: Text(s.reportsDialogBack),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -1182,13 +1189,13 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                   child: FilledButton(
                     onPressed: _busy ? null : _submit,
                     child: _busy
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Tokens.bg),
+                                strokeWidth: 2, color: context.colors.bg),
                           )
-                        : const Text('Submit'),
+                        : Text(s.reportsSubmit),
                   ),
                 ),
               ],
@@ -1199,13 +1206,9 @@ class _ReopenSheetState extends State<_ReopenSheet> {
     );
   }
 
-  static String _formatDate(DateTime utc) {
+  static String _formatDate(Strings s, DateTime utc) {
     final d = utc.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+    return '${s.monthAbbr(d.month)} ${d.day}, ${d.year}';
   }
 }
 
@@ -1231,7 +1234,7 @@ class _ReopenPhotoTile extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Tokens.field,
+          color: context.colors.field,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -1242,14 +1245,14 @@ class _ReopenPhotoTile extends StatelessWidget {
                   Image.file(photo!, width: 40, height: 40, fit: BoxFit.cover),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
-                'A photo is attached to this request.',
-                style: TextStyle(fontSize: 12, color: Tokens.navy),
+                context.s.reportsPhotoAttachedNote,
+                style: TextStyle(fontSize: 12, color: context.colors.navy),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.cancel, color: Tokens.navy),
+              icon: Icon(Icons.cancel, color: context.colors.navy),
               onPressed: enabled ? onRemove : null,
             ),
           ],
@@ -1263,28 +1266,28 @@ class _ReopenPhotoTile extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Tokens.field,
+          color: context.colors.field,
           borderRadius: BorderRadius.circular(25),
         ),
         child: CustomPaint(
-          painter: _ReopenDashedBorder(),
-          child: const Column(
+          painter: _ReopenDashedBorder(color: context.colors.navy),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add_box_outlined, color: Tokens.navy, size: 22),
-              SizedBox(height: 6),
-              Text('Attach Media',
+              Icon(Icons.add_box_outlined, color: context.colors.navy, size: 22),
+              const SizedBox(height: 6),
+              Text(context.s.reportsAttachMedia,
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
-                    color: Tokens.navy,
+                    color: context.colors.navy,
                   )),
-              Text('(Max: 10 MB)',
+              Text(context.s.reportsMaxPhotoSize,
                   style: TextStyle(
                     fontSize: 10,
                     fontStyle: FontStyle.italic,
-                    color: Tokens.navy,
+                    color: context.colors.navy,
                   )),
             ],
           ),
@@ -1295,10 +1298,16 @@ class _ReopenPhotoTile extends StatelessWidget {
 }
 
 class _ReopenDashedBorder extends CustomPainter {
+  // No BuildContext of its own -- see _DashedBorder in
+  // report_details_screen.dart for the same pattern and why.
+  const _ReopenDashedBorder({required this.color});
+
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Tokens.navy
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -1323,5 +1332,6 @@ class _ReopenDashedBorder extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ReopenDashedBorder oldDelegate) =>
+      oldDelegate.color != color;
 }

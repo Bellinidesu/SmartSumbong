@@ -45,6 +45,7 @@ import 'screens/report_view_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/terms_privacy_screen.dart';
+import 'screens/theme_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'theme.dart';
 
@@ -120,15 +121,24 @@ Future<void> main() async {
     // renders in whatever language the resident chose last time — not a
     // flash of English that then switches.
     final locale = await LocaleController.load();
-    runApp(SmartSumbongApp(locale: locale));
+    // Same reasoning as locale: load the saved theme choice before the
+    // first frame, so a resident who picked Dark does not see a flash
+    // of Light on every cold start.
+    final themeController = await ThemeController.load();
+    runApp(SmartSumbongApp(locale: locale, themeController: themeController));
   }, (error, stack) {
     CrashReporting.recordError(error, stack);
   });
 }
 
 class SmartSumbongApp extends StatelessWidget {
-  const SmartSumbongApp({super.key, required this.locale});
+  const SmartSumbongApp({
+    super.key,
+    required this.locale,
+    required this.themeController,
+  });
   final LocaleController locale;
+  final ThemeController themeController;
 
   @override
   Widget build(BuildContext context) {
@@ -140,15 +150,25 @@ class SmartSumbongApp extends StatelessWidget {
           _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
     );
 
-    return AppLocaleScope(
-      controller: locale,
-      child: MaterialApp(
-      title: 'SmartSumbong',
-      debugShowCheckedModeBanner: false,
-      theme: buildResidentTheme(),
-      navigatorKey: navigatorKey,
-      builder: (context, child) =>
-          ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+    return AppThemeScope(
+      controller: themeController,
+      // A Builder, not the outer `context` above: MaterialApp needs a
+      // context *below* AppThemeScope to depend on it and rebuild its
+      // `theme`/`darkTheme` when the mode changes — the context this
+      // build() method already has is above the scope it just created.
+      child: Builder(builder: (context) {
+        final mode = AppThemeScope.of(context);
+        return AppLocaleScope(
+          controller: locale,
+          child: MaterialApp(
+          title: 'SmartSumbong',
+          debugShowCheckedModeBanner: false,
+          theme: buildResidentTheme(Brightness.light),
+          darkTheme: buildResidentTheme(Brightness.dark),
+          themeMode: mode,
+          navigatorKey: navigatorKey,
+          builder: (context, child) =>
+              ConnectivityBanner(child: child ?? const SizedBox.shrink()),
       // Every launch goes through the gate, which decides where the
       // person actually belongs: no session, pending, verified,
       // rejected or suspended. A fixed initialRoute cannot know.
@@ -210,6 +230,7 @@ class SmartSumbongApp extends StatelessWidget {
         '/edit-profile': (_) =>
             EditProfileScreen(auth: auth, uploader: uploader),
         '/languages': (_) => const LanguagesScreen(),
+        '/appearance': (_) => const ThemeScreen(),
         '/notifications': (_) => const NotificationsScreen(),
         '/terms-privacy': (_) => const TermsPrivacyScreen(),
         '/submit-report': (_) => const ReportCategoryScreen(),
@@ -219,7 +240,9 @@ class SmartSumbongApp extends StatelessWidget {
         '/onboarding': (_) => const OnboardingScreen(),
         '/roles': (_) => const RolePickerScreen(),
       },
-      ),
+          ),
+        );
+      }),
     );
   }
 }
@@ -238,29 +261,33 @@ class _ConfigError extends StatelessWidget {
   const _ConfigError(this.missing);
   final List<String> missing;
 
+  // Shown before Supabase, Firebase, or any of the app's own scopes
+  // (locale, theme) exist yet — the earliest possible bail-out, so it
+  // uses the light palette directly rather than reading through
+  // AppThemeScope, which isn't wired above this widget.
   @override
   Widget build(BuildContext context) => MaterialApp(
         home: Scaffold(
-          backgroundColor: Tokens.bg,
+          backgroundColor: AppColors.light.bg,
           body: Padding(
             padding: const EdgeInsets.all(24),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'Missing build configuration',
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Tokens.navy),
+                        color: AppColors.light.navy),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     '${missing.join(', ')}\n\n'
                     'Run with --dart-define-from-file=dart_defines.json',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Tokens.hint),
+                    style: TextStyle(color: AppColors.light.hint),
                   ),
                 ],
               ),

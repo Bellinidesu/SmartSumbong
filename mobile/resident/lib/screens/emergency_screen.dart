@@ -30,6 +30,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 
@@ -202,10 +203,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       if (!mounted) return;
       // Never clear the cache on failure — a stale hotline beats none.
       setState(() {
-        _error = _groups == null
-            ? 'Could not load the emergency numbers. Check your connection '
-                'and pull down to try again.'
-            : null;
+        _error = _groups == null ? context.s.emergencyLoadError : null;
         _stale = _groups != null;
       });
     }
@@ -220,9 +218,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         bottom: false,
         child: RefreshIndicator(
           onRefresh: _load,
-          color: Tokens.navy,
+          color: context.colors.navy,
           child: _HotlineList(
-            title: 'Need help?',
+            title: context.s.emergencyNeedHelp,
             groups: _groups,
             error: _error,
             stale: _stale,
@@ -264,7 +262,7 @@ class HotlineGroupScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _HotlineList(
-                title: 'Need help?',
+                title: context.s.emergencyNeedHelp,
                 groups: groups,
                 error: null,
                 stale: false,
@@ -276,7 +274,7 @@ class HotlineGroupScreen extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Back'),
+                  child: Text(context.s.emergencyBack),
                 ),
               ),
             ),
@@ -307,7 +305,7 @@ class _HotlineList extends StatelessWidget {
     final t = Theme.of(context).textTheme;
 
     if (groups == null && error == null) {
-      return const Center(child: CircularProgressIndicator(color: Tokens.navy));
+      return Center(child: CircularProgressIndicator(color: context.colors.navy));
     }
 
     return ListView(
@@ -318,8 +316,7 @@ class _HotlineList extends StatelessWidget {
             style: t.headlineLarge?.copyWith(fontSize: 28)),
         const SizedBox(height: 8),
         Text(
-          'Below are emergency services. View and select the number you '
-          'want to copy or dial.',
+          context.s.emergencyInstructions,
           textAlign: TextAlign.center,
           style: t.titleMedium?.copyWith(fontSize: 14, height: 1.25),
         ),
@@ -329,12 +326,12 @@ class _HotlineList extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Tokens.hint.withValues(alpha: 0.08),
-              border: Border.all(color: Tokens.hint),
+              color: context.colors.hint.withValues(alpha: 0.08),
+              border: Border.all(color: context.colors.hint),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 13)),
+                style: TextStyle(color: context.colors.hint, fontSize: 13)),
           ),
 
         if (stale)
@@ -342,12 +339,12 @@ class _HotlineList extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                const Icon(Icons.cloud_off, size: 14, color: Tokens.muted),
+                Icon(Icons.cloud_off, size: 14, color: context.colors.muted),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Showing the last numbers saved on this phone.',
-                    style: const TextStyle(fontSize: 11, color: Tokens.muted),
+                    context.s.emergencyStaleNote,
+                    style: TextStyle(fontSize: 11, color: context.colors.muted),
                   ),
                 ),
               ],
@@ -378,7 +375,7 @@ class _GroupCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       decoration: BoxDecoration(
-        color: Tokens.navy,
+        color: context.colors.navy,
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
@@ -395,11 +392,11 @@ class _GroupCard extends StatelessWidget {
             child: Text(
               group.name,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
-                color: Tokens.bg,
+                color: context.colors.bg,
               ),
             ),
           ),
@@ -425,23 +422,25 @@ class _NumberRow extends StatelessWidget {
   Future<void> _copy(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: number.dialable));
     if (!context.mounted) return;
+    final s = context.s;
     showDialog<void>(
       context: context,
       builder: (_) => _ConfirmSheet(
-        message: '${number.number} copied',
-        buttonLabel: 'Back',
+        message: s.emergencyNumberCopied(number.number),
+        buttonLabel: s.emergencyBack,
         onButton: () => Navigator.of(context).pop(),
       ),
     );
   }
 
   Future<void> _call(BuildContext context) async {
+    final s = context.s;
     final go = await showDialog<bool>(
       context: context,
       builder: (_) => _ConfirmSheet(
-        message: 'Call ${number.number}',
+        message: s.emergencyCallPrompt(number.number),
         onMessage: () => Navigator.of(context).pop(true),
-        buttonLabel: 'Cancel',
+        buttonLabel: s.emergencyCancel,
         onButton: () => Navigator.of(context).pop(false),
       ),
     );
@@ -452,9 +451,8 @@ class _NumberRow extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not open the dialler. The number is '
-              '${number.number}.'),
-          backgroundColor: Tokens.navy,
+          content: Text(context.s.emergencyDiallerFailed(number.number)),
+          backgroundColor: context.colors.navy,
         ),
       );
     }
@@ -465,7 +463,7 @@ class _NumberRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
       decoration: BoxDecoration(
-        color: Tokens.field,
+        color: context.colors.field,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -478,34 +476,34 @@ class _NumberRow extends StatelessWidget {
                 if (number.label != null)
                   Text(
                     number.label!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
-                      color: Tokens.navy,
+                      color: context.colors.navy,
                     ),
                   ),
                 Text(
                   number.number,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: Tokens.navy,
+                    color: context.colors.navy,
                   ),
                 ),
                 if (number.carrier != null)
                   Text(
                     number.carrier!,
-                    style: const TextStyle(fontSize: 9, color: Tokens.muted),
+                    style: TextStyle(fontSize: 9, color: context.colors.muted),
                   ),
               ],
             ),
           ),
           IconButton(
             onPressed: () => _copy(context),
-            icon: const Icon(Icons.copy_rounded, size: 18, color: Tokens.navy),
-            tooltip: 'Copy number',
+            icon: Icon(Icons.copy_rounded, size: 18, color: context.colors.navy),
+            tooltip: context.s.emergencyCopyNumberTooltip,
             visualDensity: VisualDensity.compact,
           ),
           InkWell(
@@ -543,7 +541,7 @@ class _LinkRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Tokens.navy,
+          color: context.colors.navy,
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
             BoxShadow(
@@ -560,22 +558,22 @@ class _LinkRow extends StatelessWidget {
                 final n when n.contains('police') => Icons.local_police_outlined,
                 _ => Icons.phone_in_talk_outlined,
               },
-              color: Tokens.bg,
+              color: context.colors.bg,
               size: 18,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 group.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
-                  color: Tokens.bg,
+                  color: context.colors.bg,
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right, color: Tokens.bg, size: 20),
+            Icon(Icons.chevron_right, color: context.colors.bg, size: 20),
           ],
         ),
       ),
@@ -621,23 +619,23 @@ class _ConfirmSheet extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Tokens.field,
+        color: context.colors.field,
         borderRadius: BorderRadius.circular(50),
       ),
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Poppins',
           fontWeight: FontWeight.w700,
           fontSize: 14,
-          color: Tokens.navy,
+          color: context.colors.navy,
         ),
       ),
     );
 
     return Dialog(
-      backgroundColor: Tokens.navy,
+      backgroundColor: context.colors.navy,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -662,8 +660,8 @@ class _ConfirmSheet extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: onButton,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Tokens.bg,
-                  side: const BorderSide(color: Tokens.bg),
+                  foregroundColor: context.colors.bg,
+                  side: BorderSide(color: context.colors.bg),
                   minimumSize: const Size.fromHeight(40),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(50),

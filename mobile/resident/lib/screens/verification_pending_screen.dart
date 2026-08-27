@@ -37,6 +37,7 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class VerificationPendingScreen extends StatefulWidget {
@@ -143,9 +144,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = userInitiated
-            ? 'Could not check right now. Please try again in a moment.'
-            : null;
+        _error = userInitiated ? context.s.verificationCheckError : null;
       });
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -160,40 +159,42 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
 
   /// What the applicant reads about timing. Three states, all true.
   String _windowLine() {
+    final s = context.s;
     final due = _snapshot?.dueAt;
-    if (due == null) return 'The barangay usually reviews within two hours.';
+    if (due == null) return s.verificationWindowDefault;
 
     final left = due.difference(DateTime.now());
     if (left.isNegative) {
       // sweep_overdue_verifications() runs every ten minutes and notifies
       // every admin once an account passes its due time. This is a
       // statement of fact, not reassurance.
-      return 'This is taking longer than usual. The barangay has been '
-          'notified and will review your account as soon as they can.';
+      return s.verificationOverdue;
     }
     if (left.inMinutes < 1) {
-      return 'The barangay should review your account any moment now.';
+      return s.verificationAnyMoment;
     }
     final h = left.inHours;
     final m = left.inMinutes % 60;
-    final pretty = h > 0 ? '${h}h ${m}m' : '${m}m';
-    return 'About $pretty left in the barangay\u2019s two-hour review window.';
+    final pretty = h > 0 ? s.verificationLeftHM(h, m) : s.verificationLeftM(m);
+    return s.verificationAboutLeft(pretty);
   }
 
   String _lastCheckedLine() {
-    if (_busy) return 'Checking\u2026';
+    final s = context.s;
+    if (_busy) return s.verificationChecking;
     if (_lastChecked == null) return '';
     final ago = DateTime.now().difference(_lastChecked!);
-    if (ago.inSeconds < 30) return 'Checked just now';
-    if (ago.inMinutes < 1) return 'Checked less than a minute ago';
-    if (ago.inMinutes == 1) return 'Checked 1 minute ago';
-    if (ago.inMinutes < 60) return 'Checked ${ago.inMinutes} minutes ago';
-    return 'Checked over an hour ago';
+    if (ago.inSeconds < 30) return s.verificationCheckedJustNow;
+    if (ago.inMinutes < 1) return s.verificationCheckedLessThanMinute;
+    if (ago.inMinutes == 1) return s.verificationChecked1Minute;
+    if (ago.inMinutes < 60) return s.verificationCheckedNMinutes(ago.inMinutes);
+    return s.verificationCheckedOverHour;
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
     final submitted = _snapshot?.submittedAt;
 
     return Scaffold(
@@ -205,17 +206,14 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
             children: [
               const Spacer(flex: 2),
 
-              Text('Almost there', style: t.titleMedium),
+              Text(s.verificationAlmostThere, style: t.titleMedium),
               const SizedBox(height: 6),
-              Text('Verification Pending', style: t.headlineLarge),
+              Text(s.verificationTitle, style: t.headlineLarge),
               const SizedBox(height: 24),
 
-              const Text(
-                'The barangay is checking your ID and photo against their '
-                'records. This screen updates on its own once your '
-                'account is approved \u2014 you can close the app and '
-                'come back.',
-                style: TextStyle(fontSize: 14, color: Tokens.navy, height: 1.5),
+              Text(
+                s.verificationBody,
+                style: TextStyle(fontSize: 14, color: context.colors.navy, height: 1.5),
               ),
               const SizedBox(height: 20),
 
@@ -223,8 +221,8 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Tokens.field,
-                  border: Border.all(color: Tokens.navy),
+                  color: context.colors.field,
+                  border: Border.all(color: context.colors.navy),
                   borderRadius: BorderRadius.circular(Tokens.dropdownRadius),
                 ),
                 child: Column(
@@ -232,15 +230,15 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
                   children: [
                     Text(
                       _windowLine(),
-                      style: const TextStyle(
-                          fontSize: 14, color: Tokens.navy, height: 1.4),
+                      style: TextStyle(
+                          fontSize: 14, color: context.colors.navy, height: 1.4),
                     ),
                     if (submitted != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Submitted ${_formatSubmitted(submitted)}',
-                        style: const TextStyle(
-                            fontSize: 12, color: Tokens.muted),
+                        s.verificationSubmitted(_formatSubmitted(s, submitted)),
+                        style: TextStyle(
+                            fontSize: 12, color: context.colors.muted),
                       ),
                     ],
                   ],
@@ -250,7 +248,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(_error!,
-                    style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+                    style: TextStyle(color: context.colors.hint, fontSize: 12)),
               ],
 
               const Spacer(flex: 3),
@@ -260,19 +258,19 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
                     ? () => _refresh(userInitiated: true)
                     : null,
                 child: _busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Tokens.bg),
+                            strokeWidth: 2, color: context.colors.bg),
                       )
-                    : const Text('Check my status'),
+                    : Text(s.verificationCheckStatus),
               ),
               const SizedBox(height: 8),
               Center(
                 child: Text(
                   _lastCheckedLine(),
-                  style: const TextStyle(fontSize: 12, color: Tokens.muted),
+                  style: TextStyle(fontSize: 12, color: context.colors.muted),
                 ),
               ),
 
@@ -288,7 +286,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
                                 .pushReplacementNamed('/login');
                           }
                         },
-                  child: const Text('Sign out'),
+                  child: Text(s.verificationSignOut),
                 ),
               ),
               const SizedBox(height: 16),
@@ -299,16 +297,12 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
     );
   }
 
-  String _formatSubmitted(DateTime utc) {
+  String _formatSubmitted(Strings s, DateTime utc) {
     final d = utc.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
     final h24 = d.hour;
     final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
     final ampm = h24 < 12 ? 'AM' : 'PM';
     final mm = d.minute.toString().padLeft(2, '0');
-    return '${months[d.month - 1]} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
+    return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
   }
 }

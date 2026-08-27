@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             bottom: false,
             child: RefreshIndicator(
               onRefresh: _load,
-              color: Tokens.navy,
+              color: context.colors.navy,
               child: ListView(
             padding: const EdgeInsets.fromLTRB(26, 12, 26, 24),
             children: [
@@ -287,7 +287,7 @@ class _NotificationBell extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFFFF9800),
                   borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: Tokens.bg, width: 1.5),
+                  border: Border.all(color: context.colors.bg, width: 1.5),
                 ),
                 child: Text(
                   unread > 99 ? '99+' : '$unread',
@@ -329,8 +329,8 @@ class _ActionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 15, 18, 16),
       decoration: BoxDecoration(
-        color: Tokens.navy,
-        border: Border.all(color: Tokens.bg),
+        color: context.colors.navy,
+        border: Border.all(color: context.colors.bg),
         borderRadius: BorderRadius.circular(25),
         boxShadow: const [
           BoxShadow(
@@ -345,21 +345,25 @@ class _ActionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            // Inverts to the page background, the same navy-card pattern
+            // used on the login screen — a literal white would vanish
+            // against the near-white card colour dark mode gives
+            // context.colors.navy.
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 15,
               height: 1.15,
-              color: Colors.white,
+              color: context.colors.bg,
             ),
           ),
           const SizedBox(height: 5),
           Text(
             body,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               height: 1.3,
-              color: Colors.white,
+              color: context.colors.bg,
             ),
           ),
           const SizedBox(height: 12),
@@ -376,16 +380,16 @@ class _ActionCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Tokens.bg,
+                      color: context.colors.bg,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       a.label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
-                        color: Tokens.navy,
+                        color: context.colors.navy,
                       ),
                     ),
                   ),

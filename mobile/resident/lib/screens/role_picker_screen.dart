@@ -55,11 +55,11 @@ class RolePickerScreen extends StatelessWidget {
 
                   Text(
                     s.roleTitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
-                      color: Tokens.navy,
+                      color: context.colors.navy,
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -71,8 +71,8 @@ class RolePickerScreen extends StatelessWidget {
                         label: s.roleResident,
                         asset: 'assets/images/residenthd.png',
                         fallback: Icons.person,
-                        background: Tokens.navy,
-                        foreground: Tokens.bg,
+                        background: context.colors.navy,
+                        foreground: context.colors.bg,
                         onTap: () =>
                             Navigator.of(context).pushNamed('/login'),
                       ),
@@ -82,7 +82,7 @@ class RolePickerScreen extends StatelessWidget {
                         asset: 'assets/images/tanodhd.png',
                         fallback: Icons.local_police,
                         background: const Color(0xFFFF9800),
-                        foreground: Tokens.navy,
+                        foreground: context.colors.navy,
                         // A tanod registers here and then uses the
                         // separate tanod app. Registration lives in this
                         // app because it is the one a person installs

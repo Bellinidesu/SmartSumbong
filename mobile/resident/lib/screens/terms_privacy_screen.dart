@@ -33,6 +33,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class TermsPrivacyScreen extends StatelessWidget {
@@ -41,13 +42,14 @@ class TermsPrivacyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Tokens.bg,
-        surfaceTintColor: Tokens.bg,
+        backgroundColor: context.colors.bg,
+        surfaceTintColor: context.colors.bg,
         elevation: 0,
-        foregroundColor: Tokens.navy,
+        foregroundColor: context.colors.navy,
       ),
       body: SafeArea(
         top: false,
@@ -55,116 +57,43 @@ class TermsPrivacyScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(30, 0, 30, 40),
           children: [
             Center(
-              child: Text('Terms & Privacy Notice',
+              child: Text(s.termsPrivacyTitle,
                   style: t.headlineLarge?.copyWith(fontSize: 26)),
             ),
             const SizedBox(height: 16),
-            _DraftBanner(),
+            const _DraftBanner(),
             const SizedBox(height: 24),
-            const _Section(
-              title: 'Who is collecting your information',
-              body:
-                  'SmartSumbong is operated for Barangay 183, Pasay City, as '
-                  'its local complaint-mapping system. For the purpose of the '
-                  'Data Privacy Act of 2012 (RA 10173), the barangay is the '
-                  'Personal Information Controller: it decides what this app '
-                  'collects and why, and it is who to contact about your '
-                  'data. The exact office and contact details a resident '
-                  'should use go here once the barangay confirms them -- '
-                  'this app currently only lists the barangay\'s Facebook '
-                  'page in Settings.',
+            _Section(
+              title: s.termsPrivacySection1Title,
+              body: s.termsPrivacySection1Body,
             ),
-            const _Section(
-              title: 'What we collect, and why',
-              body:
-                  '• Full name and mobile number, at sign-up -- your mobile '
-                  'number is how you sign in, so it doubles as your account '
-                  'identity.\n'
-                  '• A photo of a government or barangay ID and a selfie, at '
-                  'sign-up -- checked by a barangay officer before your '
-                  'account is approved, so that reports in the system can be '
-                  'traced to a real resident.\n'
-                  '• Email address and home address -- both optional, and '
-                  'editable any time in Edit Profile.\n'
-                  '• A profile photo, if you choose to add one.\n'
-                  '• Whatever you submit in a complaint report: category, '
-                  'description, photos or a short video, and the map '
-                  'location you place the pin at.\n'
-                  '• A device token, used only to deliver push '
-                  'notifications about your own reports and account.\n'
-                  '• System records of your reports\' status changes, kept '
-                  'as an accountability trail (who changed a report\'s '
-                  'status and when) rather than as anything collected about '
-                  'you directly.',
+            _Section(
+              title: s.termsPrivacySection2Title,
+              body: s.termsPrivacySection2Body,
             ),
-            const _Section(
-              title: 'How your photos are handled',
-              body:
-                  'Every photo and video this app uploads -- ID, selfie, '
-                  'profile photo, or report evidence -- has its metadata '
-                  '(including GPS location embedded by your phone\'s camera) '
-                  'stripped before it leaves your device, regardless of '
-                  'whether you took it with the camera or picked it from '
-                  'your gallery. The complaint\'s location comes only from '
-                  'the map pin you place, never from a photo\'s hidden '
-                  'metadata.',
+            _Section(
+              title: s.termsPrivacySection3Title,
+              body: s.termsPrivacySection3Body,
             ),
-            const _Section(
-              title: 'Who can see it',
-              body:
-                  'Your identity documents are visible only to barangay '
-                  'staff verifying your account. Report details are visible '
-                  'to barangay staff and the tanod assigned to your report. '
-                  'Other residents cannot see your name, contact details, or '
-                  'ID -- and can file reports anonymously, in which case even '
-                  'barangay staff see the report without your identity '
-                  'attached. Nothing collected here is sold, or shared with '
-                  'any organization outside the barangay\'s own operation of '
-                  'this system.',
+            _Section(
+              title: s.termsPrivacySection4Title,
+              body: s.termsPrivacySection4Body,
             ),
-            const _Section(
-              title: 'How it is stored',
-              body:
-                  'Data is stored in a Supabase-hosted database with '
-                  'row-level security rules that limit each account to its '
-                  'own records and role. Photos and videos are stored with '
-                  'Cloudinary. Passwords are never visible to barangay staff '
-                  'or stored by this app in plain form.',
+            _Section(
+              title: s.termsPrivacySection5Title,
+              body: s.termsPrivacySection5Body,
             ),
-            const _Section(
-              title: 'How long we keep it',
-              body:
-                  'Account and report records are kept for as long as they '
-                  'serve the barangay\'s record-keeping and accountability '
-                  'purposes. A specific retention period, and the process '
-                  'for a resident to request deletion of their account and '
-                  'data, is something the barangay needs to set -- this app '
-                  'does not yet have a self-service "delete my account" '
-                  'action, and one should be added before or shortly after '
-                  'this notice is finalised.',
+            _Section(
+              title: s.termsPrivacySection6Title,
+              body: s.termsPrivacySection6Body,
             ),
-            const _Section(
-              title: 'Your rights',
-              body:
-                  'Under the Data Privacy Act, you may ask to access, '
-                  'correct, or request deletion of your personal '
-                  'information, object to its processing, and file a '
-                  'complaint with the National Privacy Commission if you '
-                  'believe it has been mishandled. Until a dedicated request '
-                  'channel exists in this app, Personal Info and Phone '
-                  'Number changes can already be requested from Edit '
-                  'Profile, which notifies the barangay directly.',
+            _Section(
+              title: s.termsPrivacySection7Title,
+              body: s.termsPrivacySection7Body,
             ),
-            const _Section(
-              title: 'Terms of use',
-              body:
-                  'This app is for reporting genuine barangay concerns. '
-                  'Reports should be truthful and made in good faith; the '
-                  'barangay may suspend an account it finds is being used to '
-                  'file false, abusive, or repeatedly duplicate reports. '
-                  'Your account\'s verification status, and any suspension, '
-                  'is decided by barangay staff, not automatically by this '
-                  'app.',
+            _Section(
+              title: s.termsPrivacySection8Title,
+              body: s.termsPrivacySection8Body,
             ),
             const SizedBox(height: 8),
           ],
@@ -186,11 +115,9 @@ class _DraftBanner extends StatelessWidget {
         border: Border.all(color: const Color(0xFFFF9800)),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Text(
-        'This is a draft prepared from how the app actually handles your '
-        'data, for Barangay 183 to review, correct, and formally adopt. It '
-        'is not yet an approved barangay document.',
-        style: TextStyle(fontSize: 12, height: 1.4, color: Tokens.navy),
+      child: Text(
+        context.s.termsPrivacyDraftBanner,
+        style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.navy),
       ),
     );
   }
@@ -211,17 +138,17 @@ class _Section extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 14,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             body,
-            style: const TextStyle(fontSize: 13, height: 1.45, color: Tokens.navy),
+            style: TextStyle(fontSize: 13, height: 1.45, color: context.colors.navy),
           ),
         ],
       ),

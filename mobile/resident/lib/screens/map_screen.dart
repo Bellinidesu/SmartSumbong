@@ -24,6 +24,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 import 'reports_screen.dart' show ReportStatus;
@@ -227,24 +228,25 @@ class _MapScreenState extends State<MapScreen> {
   void _openPin(_Pin p) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Tokens.bg,
+      backgroundColor: context.colors.bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (_) => Padding(
+      builder: (context) => Padding(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '(${p.trackingId} - ${p.status.label}) ${p.subject}',
-              style: const TextStyle(
+              '(${p.trackingId} - ${context.s.reportStatusLabel(p.status.wire)}) '
+              '${p.subject}',
+              style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
                 height: 1.2,
-                color: Tokens.navy,
+                color: context.colors.navy,
               ),
             ),
             const SizedBox(height: 16),
@@ -255,7 +257,7 @@ class _MapScreenState extends State<MapScreen> {
                   Navigator.of(context).pop();
                   Navigator.of(context).pushNamed('/report', arguments: p.id);
                 },
-                child: const Text('View report'),
+                child: Text(context.s.mapViewReport),
               ),
             ),
           ],
@@ -267,6 +269,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
     final pins = _pins ?? const <_Pin>[];
 
     return Scaffold(
@@ -276,7 +279,7 @@ class _MapScreenState extends State<MapScreen> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            Text('Barangay 183 Map',
+            Text(s.mapTitle,
                 style: t.headlineLarge?.copyWith(fontSize: 28)),
             const SizedBox(height: 16),
 
@@ -287,7 +290,7 @@ class _MapScreenState extends State<MapScreen> {
                   borderRadius: BorderRadius.circular(25),
                   child: Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: Tokens.navy),
+                      border: Border.all(color: context.colors.navy),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Stack(
@@ -360,9 +363,10 @@ class _MapScreenState extends State<MapScreen> {
                                         child: Icon(
                                           Icons.location_on,
                                           size: 38,
-                                          color: p.status.labelColour ==
-                                                  Tokens.bg
-                                              ? Tokens.navy
+                                          color: p.status.labelColour(
+                                                      context) ==
+                                                  context.colors.bg
+                                              ? context.colors.navy
                                               : const Color(0xFFFF4949),
                                         ),
                                       ),
@@ -441,18 +445,17 @@ class _MapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Verbatim from the MAP and MAP - SEE REPORTS frames. The grammar in
     // the second string ("you will back to") is the designer's; it is
-    // reproduced as drawn because the copy was signed off as-is.
-    final String body = showing
-        ? 'Just click the \u2018eye\u2019 again and you will back to the '
-            'normal map. You can also move the map around.'
-        : 'Just click the \u2018eye\u2019 and you will see the locations '
-            'of your reports. You can also move the map around.';
+    // reproduced as drawn because the copy was signed off as-is. The
+    // Filipino translation (in i18n.dart) carries the meaning rather
+    // than that grammar quirk.
+    final s = context.s;
+    final String body = showing ? s.mapCardBodyShowing : s.mapCardBodyHidden;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(34, 15, 18, 15),
       decoration: BoxDecoration(
-        color: Tokens.field,
-        border: Border.all(color: Tokens.navy, width: 2),
+        color: context.colors.field,
+        border: Border.all(color: context.colors.navy, width: 2),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Row(
@@ -462,19 +465,19 @@ class _MapCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  showing ? 'Reports spotted!' : 'Want to see your reports?',
-                  style: const TextStyle(
+                  showing ? s.mapReportsSpotted : s.mapWantToSeeReports,
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 20,
-                    color: Tokens.navy,
+                    color: context.colors.navy,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   body,
-                  style: const TextStyle(
-                      fontSize: 14, height: 1.25, color: Tokens.navy),
+                  style: TextStyle(
+                      fontSize: 14, height: 1.25, color: context.colors.navy),
                 ),
               ],
             ),

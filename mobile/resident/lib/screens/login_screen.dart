@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
                   decoration: BoxDecoration(
-                    color: Tokens.navy,
+                    color: context.colors.navy,
                     borderRadius: BorderRadius.circular(50),
                     boxShadow: const [
                       BoxShadow(
@@ -223,11 +223,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? null
                                   : (v) =>
                                       setState(() => _remember = v ?? true),
-                              side: const BorderSide(color: Tokens.bg),
-                              checkColor: Tokens.navy,
+                              side: BorderSide(color: context.colors.bg),
+                              checkColor: context.colors.navy,
                               fillColor: WidgetStateProperty.resolveWith(
                                 (st) => st.contains(WidgetState.selected)
-                                    ? Tokens.bg
+                                    ? context.colors.bg
                                     : Colors.transparent,
                               ),
                               materialTapTargetSize:
@@ -237,27 +237,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(width: 8),
                           Text(
                             s.loginRememberMe,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
-                              color: Tokens.bg,
+                              color: context.colors.bg,
                             ),
                           ),
                           const Spacer(),
                         TextButton(
                           onPressed: _busy ? null : () => _forgotPassword(),
                           style: TextButton.styleFrom(
-                            foregroundColor: Tokens.bg,
+                            foregroundColor: context.colors.bg,
                             padding: EdgeInsets.zero,
                             minimumSize: const Size(0, 32),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
                             s.loginForgotPassword,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               decoration: TextDecoration.underline,
-                              decorationColor: Tokens.bg,
+                              decorationColor: context.colors.bg,
                             ),
                           ),
                         ),
@@ -302,8 +302,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 .pushNamedAndRemoveUntil(
                                     '/roles', (_) => false),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Tokens.bg,
-                          side: const BorderSide(color: Tokens.bg),
+                          foregroundColor: context.colors.bg,
+                          side: BorderSide(color: context.colors.bg),
                           minimumSize: const Size.fromHeight(44),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(50),
@@ -325,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               : () => Navigator.of(context)
                                   .pushReplacementNamed('/register'),
                           style: TextButton.styleFrom(
-                            foregroundColor: Tokens.bg,
+                            foregroundColor: context.colors.bg,
                           ),
                           child: Text.rich(
                             TextSpan(
@@ -375,8 +375,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final s = context.s;
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Tokens.bg,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.colors.bg,
         title: Text(s.loginForgotDialogTitle),
         content: Text(
           s.loginForgotDialogBody,
@@ -427,11 +427,11 @@ class _OnNavyField extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
               fontSize: 16,
-              color: Tokens.bg,
+              color: context.colors.bg,
             ),
           ),
         ),
@@ -441,11 +441,15 @@ class _OnNavyField extends StatelessWidget {
           obscureText: obscure,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          style: const TextStyle(fontSize: 14, color: Tokens.navy),
+          style: TextStyle(fontSize: 14, color: context.colors.navy),
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
-            fillColor: Colors.white,
+            // Inverts with the navy card the same way the label/border
+            // above do (see the card's own comment) — a literal white
+            // fill would vanish against the near-white card colour dark
+            // mode uses for context.colors.navy.
+            fillColor: context.colors.bg,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             border: OutlineInputBorder(
@@ -457,7 +461,7 @@ class _OnNavyField extends StatelessWidget {
                 : IconButton(
                     icon: Icon(
                       obscure ? Icons.visibility_off : Icons.visibility,
-                      color: Tokens.navy,
+                      color: context.colors.navy,
                       size: 20,
                     ),
                     onPressed: enabled ? onToggleObscure : null,

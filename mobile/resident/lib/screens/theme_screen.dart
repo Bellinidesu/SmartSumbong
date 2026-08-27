@@ -1,68 +1,61 @@
-// SmartSumbong — Select Language.
+// SmartSumbong — Appearance.
 //
-// Figma: LANGUAGES.
+// Added 27 Aug 2026 alongside dark mode itself — there is no Figma frame
+// for this screen because there is no Figma dark-mode design at all (the
+// file's own DOCUMENTATION page has only the one light palette). Built
+// to match `languages_screen.dart`'s pattern exactly: same row shape,
+// same radio-dot selection, same "pop back to Settings" button, since a
+// resident who has used one settings picker in this app already knows
+// how to use this one.
 //
-// Was a stub: choice recorded, nothing rendered. As of 26 Aug 2026
-// (Rose's notes, Group 5's QA exchange) it actually switches the app's
-// language — see i18n.dart for the lookup table and why it's a plain
-// Dart class rather than the generated flutter_localizations pipeline.
-// This screen no longer touches SharedPreferences itself; that lives in
-// LocaleController now, shared with every other screen in the app.
+// No snackbar confirmation the way Languages has one. Language changes
+// text you might not immediately register as different; a theme change
+// repaints this very screen the instant you tap a row, live, under your
+// thumb — that is the confirmation.
 
 import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
 
-class LanguagesScreen extends StatelessWidget {
-  const LanguagesScreen({super.key});
-
-  void _choose(BuildContext context, AppLocale locale) {
-    final controller = AppLocaleScope.controllerOf(context);
-    final already = controller.value == locale;
-    controller.set(locale);
-    if (already) return;
-    final s = Strings(locale);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          backgroundColor: context.colors.navy,
-          content: Text(locale == AppLocale.fil
-              ? s.languagesChangedToFilipino
-              : s.languagesChangedToEnglish),
-        ),
-      );
-  }
+class ThemeScreen extends StatelessWidget {
+  const ThemeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final value = AppLocaleScope.of(context);
+    final c = context.colors;
+    final mode = AppThemeScope.of(context);
+    final controller = AppThemeScope.controllerOf(context);
     final s = context.s;
 
     return Scaffold(
-      backgroundColor: context.colors.bg,
+      backgroundColor: c.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             children: [
               const SizedBox(height: 16),
-              Text(s.languagesTitle,
-                  style: t.headlineLarge?.copyWith(fontSize: 24)),
+              Text(s.themeTitle, style: t.headlineLarge?.copyWith(fontSize: 24)),
               const SizedBox(height: 28),
 
-              _LanguageRow(
-                label: s.languagesFilipino,
-                selected: value == AppLocale.fil,
-                onTap: () => _choose(context, AppLocale.fil),
+              _ThemeRow(
+                label: s.themeSystem,
+                selected: mode == ThemeMode.system,
+                onTap: () => controller.set(ThemeMode.system),
               ),
               const SizedBox(height: 14),
-              _LanguageRow(
-                label: s.languagesEnglish,
-                selected: value == AppLocale.en,
-                onTap: () => _choose(context, AppLocale.en),
+              _ThemeRow(
+                label: s.themeLight,
+                selected: mode == ThemeMode.light,
+                onTap: () => controller.set(ThemeMode.light),
+              ),
+              const SizedBox(height: 14),
+              _ThemeRow(
+                label: s.themeDark,
+                selected: mode == ThemeMode.dark,
+                onTap: () => controller.set(ThemeMode.dark),
               ),
 
               const SizedBox(height: 30),
@@ -74,7 +67,7 @@ class LanguagesScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(50),
                   ),
                 ),
-                child: Text(s.languagesBack),
+                child: Text(s.themeBack),
               ),
 
               const Spacer(),
@@ -86,8 +79,8 @@ class LanguagesScreen extends StatelessWidget {
   }
 }
 
-class _LanguageRow extends StatelessWidget {
-  const _LanguageRow({
+class _ThemeRow extends StatelessWidget {
+  const _ThemeRow({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -101,6 +94,7 @@ class _LanguageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Semantics(
       inMutuallyExclusiveGroup: true,
       selected: selected,
@@ -115,7 +109,7 @@ class _LanguageRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 14, color: context.colors.navy),
+                  style: TextStyle(fontSize: 14, color: c.navy),
                 ),
               ),
               Container(

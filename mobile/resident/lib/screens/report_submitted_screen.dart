@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class ReportSubmittedScreen extends StatefulWidget {
@@ -39,6 +40,7 @@ class _ReportSubmittedScreenState extends State<ReportSubmittedScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
     final id = widget.trackingId;
 
     return PopScope(
@@ -56,15 +58,13 @@ class _ReportSubmittedScreenState extends State<ReportSubmittedScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Report submitted',
+                  s.reportSubmittedTitle,
                   textAlign: TextAlign.center,
                   style: t.headlineLarge?.copyWith(fontSize: 30),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Thank you for letting us know about the issue. We will '
-                  'actively work on this case to continue bringing you '
-                  'good service.',
+                  s.reportSubmittedBody,
                   textAlign: TextAlign.center,
                   style: t.titleMedium?.copyWith(fontSize: 16, height: 1.25),
                 ),
@@ -81,7 +81,7 @@ class _ReportSubmittedScreenState extends State<ReportSubmittedScreen> {
                   width: 301,
                   child: FilledButton(
                     onPressed: _goHome,
-                    child: const Text('Back to Home'),
+                    child: Text(s.reportSubmittedBackHome),
                   ),
                 ),
               ],
@@ -126,17 +126,19 @@ class _TicketCard extends StatelessWidget {
                   children: [
                     Text(
                       trackingId,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
-                        color: Tokens.bg,
+                        color: context.colors.bg,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      copied ? 'Copied' : 'Reference Number',
-                      style: const TextStyle(fontSize: 12, color: Tokens.bg),
+                      copied
+                          ? context.s.reportSubmittedCopied
+                          : context.s.reportSubmittedReferenceNumber,
+                      style: TextStyle(fontSize: 12, color: context.colors.bg),
                     ),
                   ],
                 ),
@@ -145,10 +147,10 @@ class _TicketCard extends StatelessWidget {
                 onPressed: onCopy,
                 icon: Icon(
                   copied ? Icons.check : Icons.copy_rounded,
-                  color: Tokens.bg,
+                  color: context.colors.bg,
                   size: 20,
                 ),
-                tooltip: 'Copy reference number',
+                tooltip: context.s.reportSubmittedCopyTooltip,
               ),
             ],
           ),

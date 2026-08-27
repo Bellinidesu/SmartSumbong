@@ -22,6 +22,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import 'reports_screen.dart' show ReportStatus;
 
@@ -62,7 +63,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .maybeSingle();
 
       if (r == null) {
-        setState(() => _error = 'That report could not be found.');
+        setState(() => _error = context.s.reportViewNotFound);
         return;
       }
 
@@ -116,45 +117,46 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not load this report. Pull to retry.');
+      setState(() => _error = context.s.reportViewLoadError);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Tokens.bg,
-        surfaceTintColor: Tokens.bg,
+        backgroundColor: context.colors.bg,
+        surfaceTintColor: context.colors.bg,
         elevation: 0,
-        foregroundColor: Tokens.navy,
-        title: Text('View your Reports',
+        foregroundColor: context.colors.navy,
+        title: Text(s.reportViewTitle,
             style: t.labelLarge?.copyWith(fontSize: 18)),
       ),
       body: SafeArea(
         top: false,
         child: RefreshIndicator(
           onRefresh: _load,
-          color: Tokens.navy,
-          child: _body(t),
+          color: context.colors.navy,
+          child: _body(t, s),
         ),
       ),
     );
   }
 
-  Widget _body(TextTheme t) {
+  Widget _body(TextTheme t, Strings s) {
     if (_error != null) {
       return ListView(children: [
         const SizedBox(height: 80),
         Text(_error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Tokens.hint)),
+            style: TextStyle(color: context.colors.hint)),
       ]);
     }
     if (_report == null) {
-      return const Center(child: CircularProgressIndicator(color: Tokens.navy));
+      return Center(child: CircularProgressIndicator(color: context.colors.navy));
     }
 
     final r = _report!;
@@ -201,7 +203,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
         if (_timeline.isNotEmpty) ...[
           const SizedBox(height: 28),
-          Text('History', style: t.labelLarge?.copyWith(fontSize: 16)),
+          Text(s.reportViewHistory, style: t.labelLarge?.copyWith(fontSize: 16)),
           const SizedBox(height: 12),
           _Timeline(entries: _timeline),
         ],
@@ -213,7 +215,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Tokens.bg,
+      backgroundColor: context.colors.bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -259,12 +261,13 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 15, 20, 16),
       decoration: BoxDecoration(
-        color: Tokens.navy,
-        border: Border.all(color: Tokens.bg),
+        color: context.colors.navy,
+        border: Border.all(color: context.colors.bg),
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
@@ -281,18 +284,18 @@ class _ReportCard extends StatelessWidget {
             TextSpan(children: [
               const TextSpan(text: '('),
               TextSpan(
-                text: '$trackingId - ${status.label}',
-                style: TextStyle(color: status.labelColour),
+                text: '$trackingId - ${s.reportStatusLabel(status.wire)}',
+                style: TextStyle(color: status.labelColour(context)),
               ),
               const TextSpan(text: ') '),
               TextSpan(text: subject),
             ]),
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 18,
               height: 1.1,
-              color: Tokens.bg,
+              color: context.colors.bg,
             ),
           ),
           const SizedBox(height: 6),
@@ -308,27 +311,27 @@ class _ReportCard extends StatelessWidget {
               Text(
                 createdAt == null
                     ? ''
-                    : 'Submitted on ${_formatDate(createdAt!)}',
-                style: const TextStyle(fontSize: 12, color: Tokens.bg),
+                    : s.reportsSubmittedOn(_formatDate(s, createdAt!)),
+                style: TextStyle(fontSize: 12, color: context.colors.bg),
               ),
               if (isAnonymous)
-                const Row(
+                Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.visibility_off_outlined,
-                        size: 13, color: Tokens.bg),
-                    SizedBox(width: 3),
-                    Text('Anonymous',
-                        style: TextStyle(fontSize: 11, color: Tokens.bg)),
+                        size: 13, color: context.colors.bg),
+                    const SizedBox(width: 3),
+                    Text(s.reportViewAnonymous,
+                        style: TextStyle(fontSize: 11, color: context.colors.bg)),
                   ],
                 ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            '\u201C$description\u201D',
-            style: const TextStyle(
-                fontSize: 12, height: 1.25, color: Tokens.bg),
+            s.reportsCardDescription(description),
+            style: TextStyle(
+                fontSize: 12, height: 1.25, color: context.colors.bg),
           ),
 
           if (latitude != null && longitude != null) ...[
@@ -352,10 +355,10 @@ class _ReportCard extends StatelessWidget {
                         ? Container(
                             width: 200,
                             height: 134,
-                            color: Tokens.bg.withValues(alpha: 0.85),
-                            child: const Center(
+                            color: context.colors.bg.withValues(alpha: 0.85),
+                            child: Center(
                               child: Icon(Icons.play_circle_fill,
-                                  size: 40, color: Tokens.navy),
+                                  size: 40, color: context.colors.navy),
                             ),
                           )
                         : CachedNetworkImage(
@@ -366,18 +369,18 @@ class _ReportCard extends StatelessWidget {
                             placeholder: (_, __) => Container(
                               width: 200,
                               height: 134,
-                              color: Tokens.bg.withValues(alpha: 0.2),
-                              child: const Center(
+                              color: context.colors.bg.withValues(alpha: 0.2),
+                              child: Center(
                                 child: CircularProgressIndicator(
-                                    color: Tokens.bg, strokeWidth: 2),
+                                    color: context.colors.bg, strokeWidth: 2),
                               ),
                             ),
                             errorWidget: (_, __, ___) => Container(
                               width: 200,
                               height: 134,
-                              color: Tokens.bg.withValues(alpha: 0.15),
-                              child: const Icon(Icons.broken_image_outlined,
-                                  color: Tokens.bg),
+                              color: context.colors.bg.withValues(alpha: 0.15),
+                              child: Icon(Icons.broken_image_outlined,
+                                  color: context.colors.bg),
                             ),
                           ),
                   ),
@@ -390,13 +393,9 @@ class _ReportCard extends StatelessWidget {
     );
   }
 
-  static String _formatDate(DateTime utc) {
+  static String _formatDate(Strings s, DateTime utc) {
     final d = utc.toLocal();
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+    return '${s.monthFull(d.month)} ${d.day}, ${d.year}';
   }
 }
 
@@ -414,7 +413,7 @@ class _MiniMap extends StatelessWidget {
       child: Container(
         height: 189,
         decoration: BoxDecoration(
-          border: Border.all(color: Tokens.bg),
+          border: Border.all(color: context.colors.bg),
           borderRadius: BorderRadius.circular(25),
         ),
         child: FlutterMap(
@@ -436,8 +435,8 @@ class _MiniMap extends StatelessWidget {
                 width: 36,
                 height: 36,
                 alignment: Alignment.topCenter,
-                child: const Icon(Icons.location_on,
-                    size: 36, color: Tokens.navy),
+                child: Icon(Icons.location_on,
+                    size: 36, color: context.colors.navy),
               ),
             ]),
           ],
@@ -463,26 +462,26 @@ class _StatusNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     final (text, action) = switch (status) {
       ReportStatus.pendingReview || ReportStatus.validated => (
-          'The barangay is reviewing your report.',
+          s.reportViewReviewing,
           null,
         ),
       ReportStatus.assigned ||
       ReportStatus.inProgress ||
       ReportStatus.offlineInvestigation =>
-        ('A barangay tanod has been assigned and is working on this.', null),
+        (s.reportViewAssigned, null),
       ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived =>
         hasProof
-            ? ('Your report has been resolved. ', 'View Photo')
-            : ('Your report has been resolved.', null),
+            ? (s.reportViewResolvedWithProof, s.reportViewViewPhoto)
+            : (s.reportViewResolvedNoProof, null),
       ReportStatus.rejected => (
-          'This report was not accepted. Please visit the barangay hall '
-              'if you would like to know why.',
+          s.reportViewRejected,
           null,
         ),
       ReportStatus.cancelled => (
-          'You cancelled this report.',
+          s.reportViewCancelled,
           null,
         ),
     };
@@ -494,8 +493,8 @@ class _StatusNote extends StatelessWidget {
           margin: const EdgeInsets.only(left: 40),
           padding: const EdgeInsets.fromLTRB(14, 12, 18, 12),
           decoration: BoxDecoration(
-            color: Tokens.field,
-            border: Border.all(color: Tokens.navy),
+            color: context.colors.field,
+            border: Border.all(color: context.colors.navy),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text.rich(
@@ -510,26 +509,26 @@ class _StatusNote extends StatelessWidget {
                   ),
                   recognizer: null,
                 ),
-              if (action != null) const TextSpan(text: ' for the proof.'),
+              if (action != null) TextSpan(text: s.reportViewForTheProof),
             ]),
             textAlign: TextAlign.right,
-            style: const TextStyle(
-                fontSize: 12, height: 1.25, color: Tokens.navy),
+            style: TextStyle(
+                fontSize: 12, height: 1.25, color: context.colors.navy),
           ),
         ),
         if (action != null)
           TextButton(
             onPressed: onViewProof,
-            child: const Text('View Photo'),
+            child: Text(s.reportViewViewPhoto),
           ),
         if (reopenedCount > 0)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               reopenedCount == 1
-                  ? 'This report has been reopened once.'
-                  : 'This report has been reopened $reopenedCount times.',
-              style: const TextStyle(fontSize: 11, color: Tokens.muted),
+                  ? s.reportViewReopenedOnce
+                  : s.reportViewReopenedTimes(reopenedCount),
+              style: TextStyle(fontSize: 11, color: context.colors.muted),
             ),
           ),
       ],
@@ -573,6 +572,7 @@ class _TimelineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     final status = ReportStatus.parse(entry['new_status'] as String?);
     final when = DateTime.tryParse(entry['created_at'] as String? ?? '');
     final remark = entry['remark'] as String?;
@@ -589,15 +589,15 @@ class _TimelineRow extends StatelessWidget {
                   width: 10,
                   height: 10,
                   margin: const EdgeInsets.only(top: 4),
-                  decoration: const BoxDecoration(
-                    color: Tokens.navy,
+                  decoration: BoxDecoration(
+                    color: context.colors.navy,
                     shape: BoxShape.circle,
                   ),
                 ),
                 if (!isLast)
-                  const Expanded(
+                  Expanded(
                     child: VerticalDivider(
-                      color: Tokens.navy,
+                      color: context.colors.navy,
                       thickness: 1,
                       width: 10,
                     ),
@@ -612,26 +612,26 @@ class _TimelineRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    status.label,
-                    style: const TextStyle(
+                    s.reportStatusLabel(status.wire),
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
-                      color: Tokens.navy,
+                      color: context.colors.navy,
                     ),
                   ),
                   if (when != null)
                     Text(
-                      _formatWhen(when),
-                      style: const TextStyle(fontSize: 11, color: Tokens.muted),
+                      _formatWhen(s, when),
+                      style: TextStyle(fontSize: 11, color: context.colors.muted),
                     ),
                   if (remark != null && remark.trim().isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         remark,
-                        style: const TextStyle(
-                            fontSize: 12, height: 1.3, color: Tokens.navy),
+                        style: TextStyle(
+                            fontSize: 12, height: 1.3, color: context.colors.navy),
                       ),
                     ),
                 ],
@@ -643,17 +643,13 @@ class _TimelineRow extends StatelessWidget {
     );
   }
 
-  static String _formatWhen(DateTime utc) {
+  static String _formatWhen(Strings s, DateTime utc) {
     final d = utc.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
     final h24 = d.hour;
     final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
     final ampm = h24 < 12 ? 'AM' : 'PM';
     final mm = d.minute.toString().padLeft(2, '0');
-    return '${months[d.month - 1]} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
+    return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
   }
 }
 
@@ -692,9 +688,9 @@ class _PhotoViewer extends StatelessWidget {
                 fit: BoxFit.contain,
                 placeholder: (_, __) => const Center(
                     child: CircularProgressIndicator(color: Colors.white)),
-                errorWidget: (_, __, ___) => const Center(
-                  child: Text('Could not load this photo.',
-                      style: TextStyle(color: Colors.white)),
+                errorWidget: (_, __, ___) => Center(
+                  child: Text(context.s.reportViewCouldNotLoadPhoto,
+                      style: const TextStyle(color: Colors.white)),
                 ),
               ),
             ),
@@ -721,40 +717,40 @@ class _FeedbackCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final given = feedback;
+    final s = context.s;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
-        color: Tokens.field,
-        border: Border.all(color: Tokens.navy, width: 2),
+        color: context.colors.field,
+        border: Border.all(color: context.colors.navy, width: 2),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            given == null ? 'How did we do?' : 'Your feedback',
-            style: const TextStyle(
+            given == null ? s.reportViewHowDidWeDo : s.reportViewYourFeedback,
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 16,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 8),
 
           if (given == null) ...[
-            const Text(
-              'Tell the barangay how this complaint was handled. '
-              'Your rating helps them see what is working.',
-              style: TextStyle(fontSize: 13, height: 1.35, color: Tokens.navy),
+            Text(
+              s.reportViewFeedbackPrompt,
+              style: TextStyle(fontSize: 13, height: 1.35, color: context.colors.navy),
             ),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: onRate,
-                child: const Text('Give feedback'),
+                child: Text(s.reportViewGiveFeedback),
               ),
             ),
           ] else ...[
@@ -763,8 +759,8 @@ class _FeedbackCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 given['comment'] as String,
-                style: const TextStyle(
-                    fontSize: 13, height: 1.35, color: Tokens.navy),
+                style: TextStyle(
+                    fontSize: 13, height: 1.35, color: context.colors.navy),
               ),
             ],
           ],
@@ -819,7 +815,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
 
   Future<void> _submit() async {
     if (_rating == 0) {
-      setState(() => _error = 'Please choose a rating first.');
+      setState(() => _error = context.s.reportViewRatingRequired);
       return;
     }
 
@@ -842,22 +838,23 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
     } on PostgrestException catch (e) {
       if (!mounted) return;
       final m = e.message.toLowerCase();
+      final s = context.s;
       setState(() {
         _saving = false;
         // The unique constraint on report_id, and the RLS check that
         // only lets a resolved or closed report through, are the two
         // ways this legitimately fails.
         _error = m.contains('duplicate') || m.contains('unique')
-            ? 'You have already given feedback on this report.'
+            ? s.reportViewFeedbackDuplicate
             : m.contains('policy') || m.contains('row-level')
-                ? 'Feedback can only be given once a report is finished.'
-                : 'Could not send your feedback. Please try again.';
+                ? s.reportViewFeedbackNotFinished
+                : s.reportViewFeedbackFailed;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Could not send your feedback. Please try again.';
+        _error = context.s.reportViewFeedbackFailed;
       });
     }
   }
@@ -865,6 +862,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
   @override
   Widget build(BuildContext context) {
     final inset = MediaQuery.of(context).viewInsets.bottom;
+    final s = context.s;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + inset),
@@ -872,13 +870,13 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'How did we do?',
+          Text(
+            s.reportViewHowDidWeDo,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 20,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 16),
@@ -917,15 +915,15 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
             maxLines: 4,
             maxLength: 500,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              hintText: 'Anything you want to add? (optional)',
+            decoration: InputDecoration(
+              hintText: s.reportViewCommentHint,
             ),
           ),
 
           if (_error != null) ...[
             const SizedBox(height: 4),
             Text(_error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+                style: TextStyle(color: context.colors.hint, fontSize: 12)),
           ],
           const SizedBox(height: 12),
 
@@ -934,13 +932,13 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
             child: FilledButton(
               onPressed: _saving ? null : _submit,
               child: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Tokens.bg),
+                          strokeWidth: 2, color: context.colors.bg),
                     )
-                  : const Text('Send feedback'),
+                  : Text(s.reportViewSendFeedback),
             ),
           ),
         ],

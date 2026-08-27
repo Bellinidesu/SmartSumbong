@@ -40,6 +40,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -106,12 +107,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _validate() {
     _errors.clear();
+    final s = context.s;
 
     if (_fullName.text.trim().isEmpty) {
-      _errors['full_name'] = 'Please enter your full name.';
+      _errors['full_name'] = s.registerFullNameRequired;
     } else if (!_looksLikeLastFirst(_fullName.text)) {
-      _errors['full_name'] =
-          'Enter your name as Last Name, First Name (e.g. Dela Cruz, Juan).';
+      _errors['full_name'] = s.registerFullNameFormat;
     }
 
     // Optional. Many residents do not have an email address, and
@@ -120,22 +121,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email = _email.text.trim();
     if (email.isNotEmpty &&
         !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-      _errors['email'] = 'That email address does not look right.';
+      _errors['email'] = s.registerEmailInvalid;
     }
 
     // Philippine mobile numbers are 10 digits after the country code and
     // always begin with 9. Accept 09XXXXXXXXX, +639XXXXXXXXX and
     // 639XXXXXXXXX; store one normalised form.
     if (_normalisedMobile() == null) {
-      _errors['mobile_number'] =
-          'Enter a mobile number like 09171234567 or +639171234567.';
+      _errors['mobile_number'] = s.registerMobileInvalid;
     }
 
     if (_password.text.length < 8) {
-      _errors['password'] = 'Your password must be at least 8 characters long.';
+      _errors['password'] = s.registerPasswordTooShort;
     }
     if (_confirm.text != _password.text) {
-      _errors['confirm'] = 'Your password should match.';
+      _errors['confirm'] = s.registerPasswordMismatch;
     }
     // Figma's tanod signup (2613:921) has no ID-type dropdown — one
     // upload, implicitly the Barangay ID (see the header comment on why
@@ -144,10 +144,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // and never cleared for a tanod, so this only ever fires for a
     // resident who has not picked one yet.
     if (_idType == null) {
-      _errors['id_type'] = 'Please choose which ID you are attaching.';
+      _errors['id_type'] = s.registerIdTypeRequired;
     }
     if (_idFile == null && _idUrl == null) {
-      _errors['id_image'] = 'Please attach a photo of your ID.';
+      _errors['id_image'] = s.registerIdPhotoRequired;
     }
     // Figma's tanod signup has no selfie step at all — 0036 makes
     // selfie_url optional server-side for that role specifically, so
@@ -155,11 +155,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (widget.role != AccountRole.tanod &&
         _selfieFile == null &&
         _selfieUrl == null) {
-      _errors['selfie'] = 'Please take a photo of yourself.';
+      _errors['selfie'] = s.registerSelfieRequired;
     }
     if (!_agreed) {
-      _errors['agree'] =
-          'Please agree to the Terms and Conditions and Privacy Policy.';
+      _errors['agree'] = s.registerAgreeRequired;
     }
 
     setState(() {});
@@ -204,21 +203,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final source = await _chooseSource(context);
     if (source == null || !mounted) return;
 
+    final s = context.s;
     final granted = await PermissionGate.ensure(
       context,
       permission:
           source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
-      title: source == ImageSource.camera ? 'Camera access' : 'Photo access',
+      title: source == ImageSource.camera
+          ? s.registerCameraAccessTitle
+          : s.registerPhotoAccessTitle,
       rationale: source == ImageSource.camera
-          ? (selfie
-              ? 'SmartSumbong needs your camera to take a selfie, so the '
-                  'barangay can match you to your ID.'
-              : 'SmartSumbong needs your camera to take a photo of your ID.')
+          ? (selfie ? s.registerCameraSelfieRationale : s.registerCameraIdRationale)
           : (selfie
-              ? 'SmartSumbong needs access to your photos to choose a '
-                  'selfie, so the barangay can match you to your ID.'
-              : 'SmartSumbong needs access to your photos to choose a '
-                  'photo of your ID.'),
+              ? s.registerGallerySelfieRationale
+              : s.registerGalleryIdRationale),
     );
     if (!granted || !mounted) return;
     try {
@@ -247,7 +244,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<ImageSource?> _chooseSource(BuildContext context) {
     return showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: Tokens.bg,
+      backgroundColor: context.colors.bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -260,19 +257,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Tokens.divider,
+                color: context.colors.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined, color: Tokens.navy),
-              title: const Text('Take Photo'),
+              leading: Icon(Icons.photo_camera_outlined, color: context.colors.navy),
+              title: Text(context.s.registerTakePhoto),
               onTap: () =>
                   Navigator.of(sheetContext).pop(ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: Tokens.navy),
-              title: const Text('Choose from Gallery'),
+              leading: Icon(Icons.photo_library_outlined, color: context.colors.navy),
+              title: Text(context.s.registerChooseFromGallery),
               onTap: () =>
                   Navigator.of(sheetContext).pop(ImageSource.gallery),
             ),
@@ -331,7 +328,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (e.field != null) _errors[e.field!] = e.message;
       });
     } catch (e) {
-      setState(() => _banner = 'Something went wrong. Please try again.');
+      setState(() => _banner = context.s.registerSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -351,46 +348,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// typed field and picked photo exactly as it was.
   Future<bool?> _confirmReview() {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
     final mobile = _normalisedMobile() ?? _mobile.text.trim();
     final email = _email.text.trim();
 
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Tokens.bg,
-        title: Text('Review before you submit', style: t.titleMedium),
+        backgroundColor: context.colors.bg,
+        title: Text(s.registerReviewTitle, style: t.titleMedium),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'The barangay verifies your account against this. Make '
-                'sure it matches your ID before you send it.',
-                style: TextStyle(fontSize: 12, color: Tokens.muted, height: 1.4),
+              Text(
+                s.registerReviewIntro,
+                style: TextStyle(fontSize: 12, color: context.colors.muted, height: 1.4),
               ),
               const SizedBox(height: 16),
-              _ReviewRow('Full Name', _fullName.text.trim()),
-              if (email.isNotEmpty) _ReviewRow('Email Address', email),
-              _ReviewRow('Phone Number', mobile),
+              _ReviewRow(s.registerReviewFullName, _fullName.text.trim()),
+              if (email.isNotEmpty) _ReviewRow(s.registerReviewEmail, email),
+              _ReviewRow(s.registerReviewPhone, mobile),
               _ReviewRow(
-                'Account type',
-                widget.role == AccountRole.tanod ? 'Tanod' : 'Resident',
+                s.registerReviewAccountType,
+                widget.role == AccountRole.tanod
+                    ? s.registerReviewTanod
+                    : s.registerReviewResident,
               ),
-              _ReviewRow('ID type', _idType?.label ?? ''),
+              _ReviewRow(s.registerReviewIdType, _idType?.label ?? ''),
               const SizedBox(height: 12),
               // A tanod has nothing in the second slot — no selfie is
               // asked of that role (see _validate) — so the row is just
               // the one photo rather than an empty box beside it.
               widget.role == AccountRole.tanod
-                  ? _ReviewPhoto('Your ID', _idFile)
+                  ? _ReviewPhoto(s.registerReviewYourId, _idFile)
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: _ReviewPhoto('Your ID', _idFile)),
+                        Expanded(
+                            child: _ReviewPhoto(
+                                s.registerReviewYourId, _idFile)),
                         const SizedBox(width: 12),
                         Expanded(
-                            child: _ReviewPhoto('Your selfie', _selfieFile)),
+                            child: _ReviewPhoto(
+                                s.registerReviewYourSelfie, _selfieFile)),
                       ],
                     ),
             ],
@@ -400,11 +402,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Go back and edit'),
+            child: Text(s.registerGoBackAndEdit),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Confirm & Submit'),
+            child: Text(s.registerConfirmAndSubmit),
           ),
         ],
       ),
@@ -416,6 +418,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       body: SafeArea(
@@ -427,12 +430,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Create your Account', style: t.titleMedium),
+                Text(s.registerCreateAccount, style: t.titleMedium),
                 const SizedBox(height: 6),
                 Text(
                   widget.role == AccountRole.tanod
-                      ? 'Sign Up as Tanod'
-                      : 'Sign Up as Resident',
+                      ? s.registerSignUpTanod
+                      : s.registerSignUpResident,
                   style: t.headlineLarge,
                 ),
                 const SizedBox(height: Tokens.gap),
@@ -443,9 +446,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
 
                 _Field(
-                  label: 'Full Name',
-                  note: '(Format: Last Name, First Name)',
-                  hint: 'e.g. Dela Cruz, Juan',
+                  label: s.registerFullNameLabel,
+                  note: s.registerFullNameNote,
+                  hint: s.registerFullNameHint,
                   controller: _fullName,
                   error: _errors['full_name'],
                   textCapitalization: TextCapitalization.words,
@@ -460,18 +463,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // requirement.
                 if (widget.role != AccountRole.tanod)
                   _Field(
-                    label: 'Email Address',
-                    note: '(Optional)',
-                    hint: 'example@gmail.com',
+                    label: s.registerEmailLabel,
+                    note: s.registerEmailNote,
+                    hint: s.registerEmailHint,
                     controller: _email,
                     error: _errors['email'],
                     keyboardType: TextInputType.emailAddress,
                     enabled: !_busy,
                   ),
                 _Field(
-                  label: 'Phone Number',
-                  note: '(You will use this to sign in.)',
-                  hint: 'e.g. +63 1234567899',
+                  label: s.registerPhoneLabel,
+                  note: s.registerPhoneNote,
+                  hint: s.registerPhoneHint,
                   controller: _mobile,
                   error: _errors['mobile_number'],
                   keyboardType: TextInputType.phone,
@@ -481,18 +484,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   enabled: !_busy,
                 ),
                 _Field(
-                  label: 'Password',
-                  note: '(Your password must be at least 8 characters long.)',
-                  hint: 'Enter your password',
+                  label: s.registerPasswordLabel,
+                  note: s.registerPasswordNote,
+                  hint: s.registerPasswordHint,
                   controller: _password,
                   error: _errors['password'],
                   obscure: true,
                   enabled: !_busy,
                 ),
                 _Field(
-                  label: 'Confirm Password',
-                  note: '(Your password should match.)',
-                  hint: 'Confirm your password',
+                  label: s.registerConfirmPasswordLabel,
+                  note: s.registerConfirmPasswordNote,
+                  hint: s.registerConfirmPasswordHint,
                   controller: _confirm,
                   error: _errors['confirm'],
                   obscure: true,
@@ -522,13 +525,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 _PhotoRow(
                   label: widget.role == AccountRole.tanod
-                      ? 'Attach your Barangay ID'
-                      : 'Photo of your ID',
+                      ? s.registerAttachBarangayId
+                      : s.registerPhotoOfYourId,
                   caption: widget.role == AccountRole.tanod
-                      ? 'Make sure the details are readable'
+                      ? s.registerMakeSureReadable
                       : (_idType == null
-                          ? 'Choose an ID type first'
-                          : 'Make sure the details are readable'),
+                          ? s.registerChooseIdTypeFirst
+                          : s.registerMakeSureReadable),
                   file: _idFile,
                   uploaded: _idUrl != null,
                   error: _errors['id_image'],
@@ -540,8 +543,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 if (widget.role != AccountRole.tanod) ...[
                   const SizedBox(height: 16),
                   _PhotoRow(
-                    label: 'Photo of yourself',
-                    caption: 'So the barangay can match you to your ID',
+                    label: s.registerPhotoOfYourself,
+                    caption: s.registerSelfieCaption,
                     file: _selfieFile,
                     uploaded: _selfieUrl != null,
                     error: _errors['selfie'],
@@ -565,15 +568,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 FilledButton(
                   onPressed: _busy ? null : _submit,
                   child: _busy
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Tokens.bg,
+                            color: context.colors.bg,
                           ),
                         )
-                      : const Text('Sign Up'),
+                      : Text(s.registerSignUp),
                 ),
                 const SizedBox(height: 24),
 
@@ -582,7 +585,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onPressed: _busy
                         ? null
                         : () => Navigator.of(context).pushReplacementNamed('/login'),
-                    child: const Text('Already have an account? Sign in'),
+                    child: Text(s.registerAlreadyHaveAccount),
                   ),
                 ),
               ],
@@ -605,13 +608,13 @@ class _Banner extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Tokens.hint.withValues(alpha: 0.08),
-          border: Border.all(color: Tokens.hint),
+          color: context.colors.hint.withValues(alpha: 0.08),
+          border: Border.all(color: context.colors.hint),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           message,
-          style: const TextStyle(color: Tokens.hint, fontSize: 13),
+          style: TextStyle(color: context.colors.hint, fontSize: 13),
         ),
       );
 }
@@ -681,7 +684,7 @@ class _Field extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 20, top: 4),
               child: Text(error!,
-                  style: const TextStyle(color: Tokens.hint, fontSize: 11)),
+                  style: TextStyle(color: context.colors.hint, fontSize: 11)),
             ),
         ],
       ),
@@ -714,6 +717,7 @@ class _IdTypeDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -725,22 +729,21 @@ class _IdTypeDropdown extends StatelessWidget {
             children: [
               Text(
                 role == AccountRole.tanod
-                    ? 'Attach your Barangay ID'
-                    : 'Attach a Valid ID',
+                    ? s.registerAttachBarangayId
+                    : s.registerAttachValidId,
                 style: t.labelLarge,
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
-                child: Text('(Information should be readable.)',
-                    style: t.bodySmall),
+                child: Text(s.registerInfoReadableNote, style: t.bodySmall),
               ),
             ],
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Tokens.field,
-            border: Border.all(color: error == null ? Tokens.navy : Tokens.hint),
+            color: context.colors.field,
+            border: Border.all(color: error == null ? context.colors.navy : context.colors.hint),
             borderRadius: BorderRadius.circular(Tokens.dropdownRadius),
           ),
           clipBehavior: Clip.antiAlias,
@@ -757,22 +760,22 @@ class _IdTypeDropdown extends StatelessWidget {
                         child: Text(
                           value?.label ??
                               (role == AccountRole.tanod
-                                  ? 'Select your document'
-                                  : 'Select a Valid ID'),
+                                  ? s.registerSelectYourDocument
+                                  : s.registerSelectAValidId),
                           style: t.bodyMedium,
                         ),
                       ),
                       Icon(
                         open ? Icons.expand_less : Icons.expand_more,
                         size: 20,
-                        color: Tokens.navy,
+                        color: context.colors.navy,
                       ),
                     ],
                   ),
                 ),
               ),
               if (open) ...[
-                const Divider(height: 1, color: Tokens.divider),
+                Divider(height: 1, color: context.colors.divider),
                 for (final o in role == AccountRole.tanod
                     ? IdDocumentType.tanodOptions
                     : IdDocumentType.residentOptions)
@@ -780,9 +783,9 @@ class _IdTypeDropdown extends StatelessWidget {
                     onTap: () => onSelect(o),
                     child: Container(
                       width: double.infinity,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(color: Tokens.divider, width: 0.5),
+                          bottom: BorderSide(color: context.colors.divider, width: 0.5),
                         ),
                       ),
                       padding: const EdgeInsets.symmetric(
@@ -798,7 +801,7 @@ class _IdTypeDropdown extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 8, top: 4),
             child: Text(error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 11)),
+                style: TextStyle(color: context.colors.hint, fontSize: 11)),
           ),
       ],
     );
@@ -827,6 +830,7 @@ class _PhotoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -836,9 +840,9 @@ class _PhotoRow extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Tokens.field,
+              color: context.colors.field,
               border:
-                  Border.all(color: error == null ? Tokens.navy : Tokens.hint),
+                  Border.all(color: error == null ? context.colors.navy : context.colors.hint),
               borderRadius: BorderRadius.circular(Tokens.dropdownRadius),
             ),
             child: Row(
@@ -847,14 +851,14 @@ class _PhotoRow extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Tokens.bg,
+                    color: context.colors.bg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Tokens.divider),
+                    border: Border.all(color: context.colors.divider),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: file == null
                       ? Icon(Icons.photo_camera_outlined,
-                          color: enabled ? Tokens.navy : Tokens.muted)
+                          color: enabled ? context.colors.navy : context.colors.muted)
                       : Image.file(file!, fit: BoxFit.cover),
                 ),
                 const SizedBox(width: 12),
@@ -868,15 +872,15 @@ class _PhotoRow extends StatelessWidget {
                       Text(
                         file == null
                             ? caption
-                            : (uploaded ? 'Uploaded' : 'Tap to retake'),
-                        style: const TextStyle(
-                            fontSize: 12, color: Tokens.muted),
+                            : (uploaded ? s.registerUploaded : s.registerTapToRetake),
+                        style: TextStyle(
+                            fontSize: 12, color: context.colors.muted),
                       ),
                     ],
                   ),
                 ),
                 if (file != null)
-                  const Icon(Icons.check_circle, color: Tokens.navy, size: 20),
+                  Icon(Icons.check_circle, color: context.colors.navy, size: 20),
               ],
             ),
           ),
@@ -885,7 +889,7 @@ class _PhotoRow extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 8, top: 4),
             child: Text(error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 11)),
+                style: TextStyle(color: context.colors.hint, fontSize: 11)),
           ),
       ],
     );
@@ -906,17 +910,17 @@ class _ReviewRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
-                color: Tokens.muted,
+                color: context.colors.muted,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               value.isEmpty ? '—' : value,
-              style: const TextStyle(fontSize: 14, color: Tokens.navy),
+              style: TextStyle(fontSize: 14, color: context.colors.navy),
             ),
           ],
         ),
@@ -935,11 +939,11 @@ class _ReviewPhoto extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 11,
-              color: Tokens.muted,
+              color: context.colors.muted,
             ),
           ),
           const SizedBox(height: 4),
@@ -947,13 +951,13 @@ class _ReviewPhoto extends StatelessWidget {
             aspectRatio: 1,
             child: Container(
               decoration: BoxDecoration(
-                color: Tokens.field,
+                color: context.colors.field,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Tokens.divider),
+                border: Border.all(color: context.colors.divider),
               ),
               clipBehavior: Clip.antiAlias,
               child: file == null
-                  ? const Icon(Icons.photo_camera_outlined, color: Tokens.muted)
+                  ? Icon(Icons.photo_camera_outlined, color: context.colors.muted)
                   : Image.file(file!, fit: BoxFit.cover),
             ),
           ),
@@ -1005,16 +1009,16 @@ class _Agreement extends StatelessWidget {
                 child: Builder(
                   builder: (context) => RichText(
                     text: TextSpan(
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
-                        color: Tokens.navy,
+                        color: context.colors.navy,
                         height: 1.25,
                       ),
                       children: [
-                        const TextSpan(text: 'By checking, you agree to the '),
+                        TextSpan(text: context.s.registerAgreementPrefix),
                         TextSpan(
-                          text: 'Terms and Conditions and Privacy Policy',
+                          text: context.s.registerAgreementLink,
                           style: const TextStyle(
                             decoration: TextDecoration.underline,
                             fontWeight: FontWeight.w600,
@@ -1034,7 +1038,7 @@ class _Agreement extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 32, top: 4),
               child: Text(error!,
-                  style: const TextStyle(color: Tokens.hint, fontSize: 11)),
+                  style: TextStyle(color: context.colors.hint, fontSize: 11)),
             ),
         ],
       );

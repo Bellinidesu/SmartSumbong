@@ -41,6 +41,7 @@ import 'package:flutter/services.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -112,7 +113,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _banner = 'Could not load your profile.';
+          _banner = context.s.editProfileLoadError;
         });
       }
     }
@@ -123,9 +124,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final granted = await PermissionGate.ensure(
       context,
       permission: AppPermission.photos,
-      title: 'Photo access',
-      rationale: 'SmartSumbong needs access to your photos to update your '
-          'profile picture.',
+      title: context.s.editProfilePhotoAccessTitle,
+      rationale: context.s.editProfilePhotoAccessRationale,
     );
     if (!granted || !mounted) return;
     try {
@@ -143,7 +143,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final email = _email.text.trim();
     if (email.isNotEmpty &&
         !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-      setState(() => _emailError = 'That email address does not look right.');
+      setState(() => _emailError = context.s.editProfileEmailInvalid);
       return;
     }
 
@@ -181,12 +181,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _newAvatar = null;
         }
       });
+      final s = context.s;
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (_) => _ProfileDialog(
-          title: 'Changes Saved.',
-          primaryLabel: 'Continue',
+          title: s.editProfileChangesSavedTitle,
+          primaryLabel: s.editProfileContinue,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       );
@@ -194,10 +195,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       Navigator.of(context).pop();
     } on PostgrestException catch (e) {
       if (!mounted) return;
+      final s = context.s;
       setState(() {
         _banner = e.message.toLowerCase().contains('users_email_key')
-            ? 'That email address is already used by another account.'
-            : 'Could not save your profile. Please try again.';
+            ? s.editProfileEmailTaken
+            : s.editProfileSaveFailed;
       });
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -205,18 +207,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _requestChange(String field, String label) async {
+    final s = context.s;
     final value = await showDialog<String>(
       context: context,
       builder: (_) => _RequestDialog(
-        title: 'Change your $label',
+        title: s.editProfileChangeFieldTitle(label),
         prompt: field == 'mobile_number'
-            ? 'Your mobile number is how you sign in, so the barangay '
-                'changes it for you. Enter the new number and they will '
-                'be notified.'
-            : 'The barangay checked this name against your ID, so they '
-                'change it for you. Enter the correct name and they will '
-                'be notified.',
-        hint: field == 'mobile_number' ? '09171234567' : 'Your full name',
+            ? s.editProfileMobilePrompt
+            : s.editProfileNamePrompt,
+        hint: field == 'mobile_number' ? '09171234567' : s.editProfileFullNameHint,
         keyboardType:
             field == 'mobile_number' ? TextInputType.phone : TextInputType.name,
       ),
@@ -230,7 +229,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         : value.trim();
     if (normalised == null) {
       if (!mounted) return;
-      setState(() => _banner = 'Enter a mobile number like 09171234567.');
+      setState(() => _banner = context.s.editProfileMobileInvalid);
       return;
     }
 
@@ -241,9 +240,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your request has been sent to the barangay.'),
-          backgroundColor: Tokens.navy,
+        SnackBar(
+          content: Text(context.s.editProfileRequestSent),
+          backgroundColor: context.colors.navy,
         ),
       );
     } on PostgrestException catch (e) {
@@ -264,9 +263,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           .updateUser(UserAttributes(password: pair));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your password has been changed.'),
-          backgroundColor: Tokens.navy,
+        SnackBar(
+          content: Text(context.s.editProfilePasswordChanged),
+          backgroundColor: context.colors.navy,
         ),
       );
     } on AuthException catch (e) {
@@ -278,6 +277,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return PopScope(
       canPop: !_dirty,
@@ -286,12 +286,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final leave = await showDialog<bool>(
           context: context,
           builder: (_) => _ProfileDialog(
-            title: 'Unsaved Changes',
-            body: 'If you continue without saving, these changes will '
-                'be lost.',
-            secondaryLabel: 'Cancel',
+            title: s.editProfileUnsavedTitle,
+            body: s.editProfileUnsavedBody,
+            secondaryLabel: s.editProfileCancel,
             onSecondary: () => Navigator.of(context).pop(false),
-            primaryLabel: 'Continue',
+            primaryLabel: s.editProfileContinue,
             onPrimary: () => Navigator.of(context).pop(true),
           ),
         );
@@ -299,21 +298,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Tokens.bg,
-          surfaceTintColor: Tokens.bg,
+          backgroundColor: context.colors.bg,
+          surfaceTintColor: context.colors.bg,
           elevation: 0,
-          foregroundColor: Tokens.navy,
+          foregroundColor: context.colors.navy,
         ),
         body: SafeArea(
           top: false,
           child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Tokens.navy))
+              ? Center(
+                  child: CircularProgressIndicator(color: context.colors.navy))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(30, 0, 30, 32),
                   children: [
                     Center(
-                      child: Text('Edit Profile',
+                      child: Text(s.editProfileTitle,
                           style: t.headlineLarge?.copyWith(fontSize: 28)),
                     ),
                     const SizedBox(height: 24),
@@ -328,7 +327,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               width: 96,
                               height: 96,
                               decoration: BoxDecoration(
-                                color: Tokens.navy,
+                                color: context.colors.navy,
                                 shape: BoxShape.circle,
                                 image: _newAvatar != null
                                     ? DecorationImage(
@@ -345,16 +344,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               alignment: Alignment.center,
                               child: (_newAvatar != null || _avatarUrl != null)
                                   ? (_uploadingAvatar
-                                      ? const CircularProgressIndicator(
-                                          color: Tokens.bg, strokeWidth: 2)
+                                      ? CircularProgressIndicator(
+                                          color: context.colors.bg, strokeWidth: 2)
                                       : null)
                                   : Text(
                                       _SettingsInitials.of(_name),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Poppins',
                                         fontWeight: FontWeight.w700,
                                         fontSize: 32,
-                                        color: Tokens.bg,
+                                        color: context.colors.bg,
                                       ),
                                     ),
                             ),
@@ -368,14 +367,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 width: 30,
                                 height: 30,
                                 decoration: BoxDecoration(
-                                  color: Tokens.bg,
+                                  color: context.colors.bg,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                      color: Tokens.navy, width: 1.5),
+                                      color: context.colors.navy, width: 1.5),
                                 ),
                                 alignment: Alignment.center,
-                                child: const Icon(Icons.camera_alt_outlined,
-                                    size: 15, color: Tokens.navy),
+                                child: Icon(Icons.camera_alt_outlined,
+                                    size: 15, color: context.colors.navy),
                               ),
                             ),
                           ],
@@ -388,30 +387,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Tokens.hint.withValues(alpha: 0.08),
-                          border: Border.all(color: Tokens.hint),
+                          color: context.colors.hint.withValues(alpha: 0.08),
+                          border: Border.all(color: context.colors.hint),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(_banner!,
-                            style: const TextStyle(
-                                color: Tokens.hint, fontSize: 13)),
+                            style: TextStyle(
+                                color: context.colors.hint, fontSize: 13)),
                       ),
                       const SizedBox(height: 16),
                     ],
 
                     _LockedField(
-                      label: 'Name',
+                      label: s.editProfileNameLabel,
                       value: _name ?? '',
-                      note: 'The barangay changes this',
-                      onTap: () => _requestChange('full_name', 'name'),
+                      note: s.editProfileNameNote,
+                      onTap: () =>
+                          _requestChange('full_name', s.editProfileNameWord),
                     ),
                     const SizedBox(height: 18),
 
                     _EditableField(
-                      label: 'Email Address',
+                      label: s.editProfileEmailLabel,
                       controller: _email,
-                      hint: 'example@gmail.com',
-                      note: '(Optional)',
+                      hint: s.editProfileEmailHint,
+                      note: s.editProfileOptional,
                       error: _emailError,
                       enabled: !_saving,
                       keyboardType: TextInputType.emailAddress,
@@ -419,28 +419,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 18),
 
                     _EditableField(
-                      label: 'Address',
+                      label: s.editProfileAddressLabel,
                       controller: _address,
-                      hint: 'House/unit no., street, purok',
-                      note: '(Optional)',
+                      hint: s.editProfileAddressHint,
+                      note: s.editProfileOptional,
                       enabled: !_saving,
                       keyboardType: TextInputType.streetAddress,
                     ),
                     const SizedBox(height: 18),
 
                     _LockedField(
-                      label: 'Phone Number',
+                      label: s.editProfilePhoneLabel,
                       value: _mobile ?? '',
-                      note: 'This is how you sign in',
-                      onTap: () =>
-                          _requestChange('mobile_number', 'mobile number'),
+                      note: s.editProfilePhoneNote,
+                      onTap: () => _requestChange(
+                          'mobile_number', s.editProfilePhoneWord),
                     ),
                     const SizedBox(height: 18),
 
                     _LockedField(
-                      label: 'Password',
+                      label: s.editProfilePasswordLabel,
                       value: '\u2022' * 10,
-                      note: 'Change',
+                      note: s.editProfilePasswordChange,
                       onTap: _changePassword,
                     ),
                     const SizedBox(height: 32),
@@ -453,15 +453,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ? null
                                 : () => Navigator.of(context).maybePop(),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Tokens.navy,
-                              backgroundColor: Tokens.field,
+                              foregroundColor: context.colors.navy,
+                              backgroundColor: context.colors.field,
                               minimumSize: const Size.fromHeight(45),
-                              side: const BorderSide(color: Tokens.navy),
+                              side: BorderSide(color: context.colors.navy),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(50),
                               ),
                             ),
-                            child: const Text('BACK'),
+                            child: Text(s.editProfileBack),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -469,13 +469,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: FilledButton(
                             onPressed: (_saving || !_dirty) ? null : _save,
                             child: _saving
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: Tokens.bg),
+                                        strokeWidth: 2, color: context.colors.bg),
                                   )
-                                : const Text('SAVE'),
+                                : Text(s.editProfileSave),
                           ),
                         ),
                       ],
@@ -528,16 +528,16 @@ class _EditableField extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: Tokens.navy,
+                    color: context.colors.navy,
                   )),
               if (note != null) ...[
                 const SizedBox(width: 8),
                 Text(note!,
-                    style: const TextStyle(fontSize: 10, color: Tokens.muted)),
+                    style: TextStyle(fontSize: 10, color: context.colors.muted)),
               ],
             ],
           ),
@@ -546,14 +546,14 @@ class _EditableField extends StatelessWidget {
           controller: controller,
           enabled: enabled,
           keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14, color: Tokens.navy),
+          style: TextStyle(fontSize: 14, color: context.colors.navy),
           decoration: InputDecoration(hintText: hint),
         ),
         if (error != null)
           Padding(
             padding: const EdgeInsets.only(left: 20, top: 4),
             child: Text(error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 11)),
+                style: TextStyle(color: context.colors.hint, fontSize: 11)),
           ),
       ],
     );
@@ -584,11 +584,11 @@ class _LockedField extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 12, bottom: 6),
           child: Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
-                color: Tokens.navy,
+                color: context.colors.navy,
               )),
         ),
         InkWell(
@@ -598,8 +598,8 @@ class _LockedField extends StatelessWidget {
             height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: Tokens.bg,
-              border: Border.all(color: Tokens.muted),
+              color: context.colors.bg,
+              border: Border.all(color: context.colors.muted),
               borderRadius: BorderRadius.circular(50),
             ),
             child: Row(
@@ -607,13 +607,13 @@ class _LockedField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(fontSize: 14, color: Tokens.muted),
+                    style: TextStyle(fontSize: 14, color: context.colors.muted),
                   ),
                 ),
                 Text(note,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Tokens.navy,
+                      color: context.colors.navy,
                       decoration: TextDecoration.underline,
                     )),
               ],
@@ -654,7 +654,7 @@ class _RequestDialogState extends State<_RequestDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Tokens.bg,
+      backgroundColor: context.colors.bg,
       title: Text(widget.title, style: const TextStyle(fontSize: 18)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -678,11 +678,11 @@ class _RequestDialogState extends State<_RequestDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.s.editProfileCancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('Send request'),
+          child: Text(context.s.editProfileSendRequest),
         ),
       ],
     );
@@ -709,12 +709,13 @@ class _PasswordDialogState extends State<_PasswordDialog> {
   }
 
   void _submit() {
+    final s = context.s;
     if (_new.text.length < 8) {
-      setState(() => _error = 'Your password must be at least 8 characters.');
+      setState(() => _error = s.editProfilePasswordTooShort);
       return;
     }
     if (_new.text != _confirm.text) {
-      setState(() => _error = 'Your passwords should match.');
+      setState(() => _error = s.editProfilePasswordMismatch);
       return;
     }
     Navigator.of(context).pop(_new.text);
@@ -722,9 +723,11 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return AlertDialog(
-      backgroundColor: Tokens.bg,
-      title: const Text('Change password', style: TextStyle(fontSize: 18)),
+      backgroundColor: context.colors.bg,
+      title: Text(s.editProfileChangePasswordTitle,
+          style: const TextStyle(fontSize: 18)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -732,27 +735,29 @@ class _PasswordDialogState extends State<_PasswordDialog> {
             controller: _new,
             obscureText: true,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'New password'),
+            decoration: InputDecoration(hintText: s.editProfileNewPasswordHint),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _confirm,
             obscureText: true,
-            decoration: const InputDecoration(hintText: 'Confirm password'),
+            decoration:
+                InputDecoration(hintText: s.editProfileConfirmPasswordHint),
           ),
           if (_error != null) ...[
             const SizedBox(height: 10),
             Text(_error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+                style: TextStyle(color: context.colors.hint, fontSize: 12)),
           ],
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(s.editProfileCancel),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Change')),
+        FilledButton(
+            onPressed: _submit, child: Text(s.editProfilePasswordChange)),
       ],
     );
   }
@@ -787,7 +792,7 @@ class _ProfileDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Tokens.navy,
+      backgroundColor: context.colors.navy,
       insetPadding: const EdgeInsets.symmetric(horizontal: 44),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       child: Padding(
@@ -810,10 +815,10 @@ class _ProfileDialog extends StatelessWidget {
               Text(
                 body!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   height: 1.35,
-                  color: Tokens.bg,
+                  color: context.colors.bg,
                 ),
               ),
             ],
@@ -861,8 +866,8 @@ class _Pill extends StatelessWidget {
         ? FilledButton(
             onPressed: onTap,
             style: FilledButton.styleFrom(
-              backgroundColor: Tokens.bg,
-              foregroundColor: Tokens.navy,
+              backgroundColor: context.colors.bg,
+              foregroundColor: context.colors.navy,
               minimumSize: size,
               padding: EdgeInsets.zero,
               shape: shape,
@@ -877,8 +882,8 @@ class _Pill extends StatelessWidget {
         : OutlinedButton(
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Tokens.bg,
-              side: const BorderSide(color: Tokens.bg),
+              foregroundColor: context.colors.bg,
+              side: BorderSide(color: context.colors.bg),
               minimumSize: size,
               padding: EdgeInsets.zero,
               shape: shape,

@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
 
@@ -13,9 +14,10 @@ class ReportCategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -24,13 +26,13 @@ class ReportCategoryScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(29, 32, 29, 16),
                 children: [
                   Text(
-                    'Which category most accurately reflects the issue?',
+                    s.reportCategoryHeading,
                     textAlign: TextAlign.center,
                     style: t.headlineLarge?.copyWith(fontSize: 26, height: 1.15),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Select from the list below.',
+                    s.reportCategorySubtitle,
                     textAlign: TextAlign.center,
                     style: t.titleMedium?.copyWith(fontSize: 15),
                   ),
@@ -39,13 +41,10 @@ class ReportCategoryScreen extends StatelessWidget {
                   // it is the line that keeps this system inside its
                   // scope. Katarungang Pambarangay mediation is not what
                   // this app does.
-                  const Text(
-                    '*Note: We do not interfere with the official '
-                    'procedures, hearings, mediation, and settlement '
-                    'processes. If the case is severe, it will be '
-                    'escalated to proper authorities.',
+                  Text(
+                    s.reportCategoryNote,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       fontStyle: FontStyle.italic,
                       height: 1.3,
@@ -73,10 +72,10 @@ class ReportCategoryScreen extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Tokens.navy,
-                        backgroundColor: Tokens.field,
+                        foregroundColor: context.colors.navy,
+                        backgroundColor: context.colors.field,
                         minimumSize: const Size.fromHeight(45),
-                        side: const BorderSide(color: Tokens.navy),
+                        side: BorderSide(color: context.colors.navy),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
                         ),
@@ -86,7 +85,7 @@ class ReportCategoryScreen extends StatelessWidget {
                           fontSize: 16,
                         ),
                       ),
-                      child: const Text('Back'),
+                      child: Text(s.reportCategoryBack),
                     ),
                   ),
                 ],
@@ -116,8 +115,8 @@ class _CategoryCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(19, 14, 19, 18),
       decoration: BoxDecoration(
-        color: Tokens.navy,
-        border: Border.all(color: Tokens.bg),
+        color: context.colors.navy,
+        border: Border.all(color: context.colors.bg),
         borderRadius: BorderRadius.circular(25),
         boxShadow: const [
           BoxShadow(
@@ -132,11 +131,11 @@ class _CategoryCard extends StatelessWidget {
         children: [
           Text(
             category.label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 14,
-              color: Tokens.bg,
+              color: context.colors.bg,
             ),
           ),
           const SizedBox(height: 14),
@@ -167,8 +166,8 @@ class _OthersCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Tokens.navy,
-        border: Border.all(color: Tokens.bg),
+        color: context.colors.navy,
+        border: Border.all(color: context.colors.bg),
         borderRadius: BorderRadius.circular(25),
         boxShadow: const [
           BoxShadow(
@@ -181,18 +180,18 @@ class _OthersCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'If the issue was not mentioned above:',
+          Text(
+            context.s.reportCategoryOthersHeading,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 14,
-              color: Tokens.bg,
+              color: context.colors.bg,
             ),
           ),
           const SizedBox(height: 12),
           _IssuePill(
-            label: 'Others',
+            label: context.s.reportCategoryOthers,
             onTap: () => _choose(
               context,
               // No enum value for "Others". Peace, Order & Nuisance is
@@ -227,14 +226,14 @@ class _IssuePill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Tokens.field,
+          color: context.colors.field,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Tokens.navy,
+            color: context.colors.navy,
           ),
         ),
       ),
