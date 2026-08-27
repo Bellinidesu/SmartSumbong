@@ -30,12 +30,30 @@
 // ACCESS_MEDIA_LOCATION — a permission prompt that would tell the
 // resident exactly what it was doing. Live position is more accurate and
 // costs nothing.
+//
+// ON THE MANUAL ADDRESS FALLBACK. Figma (2547:103) offers a typed
+// address as a second way out of "location is off," alongside
+// re-requesting the permission — added during the parity pass (27 Aug
+// 2026) via OpenStreetMap's own Nominatim geocoder, the same zero-cost
+// family as the map tiles above and the barangay-boundary lookup
+// elsewhere in this app. A typed address only ever moves the pin on
+// this screen; it is never sent to file_report() as text and
+// report_media/reports carry only lat/lng, so nothing downstream needs
+// to know a pin came from a search box rather than a drag. A failed or
+// ambiguous lookup leaves the pin exactly where it was and just says
+// so — the resident can still drag it, same as before this existed.
+// Deliberately not autocomplete-as-you-type: Nominatim's usage policy
+// caps public requests at roughly one per second, and a single
+// on-submit search respects that without needing to think about
+// debouncing.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -81,6 +99,10 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   bool _locating = true;
   bool _locationDenied = false;
 
+  final _addressSearch = TextEditingController();
+  bool _geocoding = false;
+  String? _geocodeError;
+
   final _photos = <File>[];
   final _uploaded = <UploadedMedia>[]; // held across retries
 
@@ -108,10 +130,66 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   @override
   void dispose() {
     _description.dispose();
+    _addressSearch.dispose();
     super.dispose();
   }
 
   // ---------- location ---------------------------------------
+
+  Future<void> _searchAddress() async {
+    final q = _addressSearch.text.trim();
+    if (q.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _geocoding = true;
+      _geocodeError = null;
+    });
+    try {
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+        'format': 'json',
+        'limit': '1',
+        'countrycodes': 'ph',
+        // Biases the search toward the barangay without forcing the
+        // resident to type it — Nominatim treats this as ordinary query
+        // text, not a hard filter, so a mismatch costs relevance, not a
+        // failure.
+        'q': '$q, Barangay 183, Pasay City, Philippines',
+      });
+      final res = await http.get(uri, headers: {
+        // Required by Nominatim's usage policy for any non-browser
+        // client — identifies the app, not decoration.
+        'User-Agent': 'SmartSumbong-Resident/1.0 (Barangay 183, Pasay City)',
+      }).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode != 200) throw Exception('geocode ${res.statusCode}');
+      final results = jsonDecode(res.body) as List;
+      if (results.isEmpty) {
+        if (!mounted) return;
+        setState(() => _geocodeError = 'Could not find that address. Try '
+            'adding a landmark or street name.');
+        return;
+      }
+
+      final hit = results.first as Map<String, dynamic>;
+      final lat = double.tryParse(hit['lat'] as String? ?? '');
+      final lon = double.tryParse(hit['lon'] as String? ?? '');
+      if (lat == null || lon == null) throw Exception('geocode: bad coords');
+
+      if (!mounted) return;
+      setState(() {
+        _pin = LatLng(lat, lon);
+        // The circle described a GPS fix. A typed address is not one.
+        _accuracyMetres = null;
+      });
+      _map.move(_pin, 17);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _geocodeError = 'Could not look up that address right '
+          'now. You can still drag the map.');
+    } finally {
+      if (mounted) setState(() => _geocoding = false);
+    }
+  }
 
   Future<void> _locate() async {
     setState(() {
@@ -393,6 +471,16 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                       accuracyMetres: _accuracyMetres,
                       onRetry: _locate,
                     ),
+                    if (_locationDenied && !_locating) ...[
+                      const SizedBox(height: 10),
+                      _ManualAddressField(
+                        controller: _addressSearch,
+                        busy: _geocoding,
+                        error: _geocodeError,
+                        enabled: !_busy,
+                        onSearch: _searchAddress,
+                      ),
+                    ],
                     const SizedBox(height: 24),
 
                     const _StepLabel(2, 'Describe what happened'),
@@ -699,6 +787,68 @@ class _LocationStatus extends StatelessWidget {
     return const Text(
       'Pin placed by hand. Drag the map to adjust.',
       style: TextStyle(fontSize: 12, color: Tokens.muted),
+    );
+  }
+}
+
+/// Figma's second way out of "location is off" (2547:103), alongside
+/// _LocationStatus's "Enable Location" button above. Only shown once
+/// location has actually been denied — see this file's header for why
+/// a typed address never reaches file_report() as text.
+class _ManualAddressField extends StatelessWidget {
+  const _ManualAddressField({
+    required this.controller,
+    required this.busy,
+    required this.error,
+    required this.enabled,
+    required this.onSearch,
+  });
+
+  final TextEditingController controller;
+  final bool busy;
+  final String? error;
+  final bool enabled;
+  final VoidCallback onSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Or manually input your address',
+            style: TextStyle(fontSize: 12, color: Tokens.muted)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          enabled: enabled && !busy,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (_) => onSearch(),
+          style: const TextStyle(fontSize: 13, color: Tokens.navy),
+          decoration: InputDecoration(
+            hintText: 'e.g. 123 Sampaguita St., Purok 3',
+            suffixIcon: busy
+                ? const Padding(
+                    padding: EdgeInsets.all(13),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Tokens.navy),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.search, color: Tokens.navy),
+                    onPressed: enabled ? onSearch : null,
+                  ),
+          ),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 4),
+            child: Text(error!,
+                style: const TextStyle(color: Tokens.hint, fontSize: 11)),
+          ),
+      ],
     );
   }
 }

@@ -249,6 +249,13 @@ class _NotificationBell extends StatelessWidget {
   final int unread;
   final VoidCallback onTap;
 
+  // A greyed-out/desaturated navy, per a reference the user sent (a
+  // muted icon-in-circle treatment, Messenger's Android notification
+  // row) — the resident icon's own colour toned down rather than the
+  // flat navy used everywhere else, so the bell reads as a quieter,
+  // secondary control next to the page's actual content.
+  static const _mutedNavy = Color(0xFF39445A);
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -261,11 +268,14 @@ class _NotificationBell extends StatelessWidget {
             width: 39,
             height: 38,
             decoration: const BoxDecoration(
-              color: Tokens.navy,
+              color: _mutedNavy,
               shape: BoxShape.circle,
             ),
+            // Orange rather than white, matching the reference's
+            // darker-icon-on-muted-circle look with this app's own
+            // accent colour instead of white.
             child: const Icon(Icons.notifications_none_rounded,
-                color: Tokens.bg, size: 22),
+                color: Color(0xFFFF9800), size: 22),
           ),
           if (unread > 0)
             Positioned(

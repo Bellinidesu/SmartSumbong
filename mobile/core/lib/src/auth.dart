@@ -186,7 +186,10 @@ class AuthService {
     required String password,
     required IdDocumentType idType,
     required String idImageUrl,
-    required String selfieUrl,
+    // Required for a resident, optional for a tanod — 0036 makes
+    // handle_new_auth_user() enforce that split server-side; this
+    // parameter just stops being required on the client to match.
+    String? selfieUrl,
     String? contactEmail,
     AccountRole role = AccountRole.resident,
   }) async {

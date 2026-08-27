@@ -5,6 +5,12 @@
 // Four rows and a header. The header is the resident's own name and
 // number, which doubles as a check that they are signed in as who they
 // think they are — worth having on a shared handset.
+//
+// A fifth row, Terms & Privacy Notice, was added during the Figma parity
+// pass (27 Aug 2026) once terms_privacy_screen.dart existed to link to —
+// see that file's header for why this stopped being a "link once it
+// exists" TODO. Not itself a Figma frame; there is nowhere else in the
+// app a resident could otherwise find it.
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -93,7 +99,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,
                   fontSize: 22,
-                  color: Tokens.bg,
+                  // Figma (LOG OUT, 2260:2478): the dialog title is the
+                  // same orange as the Edit Profile badge, not white.
+                  color: Color(0xFFFF9800),
                 ),
               ),
               const SizedBox(height: 8),
@@ -251,6 +259,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.language,
               label: s.settingsLanguages,
               onTap: () => Navigator.of(context).pushNamed('/languages'),
+            ),
+            _SettingsRow(
+              icon: Icons.privacy_tip_outlined,
+              label: 'Terms & Privacy Notice',
+              onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
             ),
             _SettingsRow(
               icon: Icons.facebook,

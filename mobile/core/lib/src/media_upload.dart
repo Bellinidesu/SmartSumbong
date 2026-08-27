@@ -56,33 +56,43 @@
 // tag. Do not set keepExif: true. Do not rely on Cloudinary or on the
 // picker for this.
 //
-// VIDEO — added 26 Aug 2026, and this does NOT get the same treatment.
-// flutter_image_compress only handles still images; there is no video
-// re-encode step in this project, so pickVideo()/uploadVideo() send the
-// file exactly as the device produced it. Two things follow from that:
+// VIDEO — added 26 Aug 2026; location stripping added 27 Aug 2026 in
+// video_location_strip.dart. flutter_image_compress only handles still
+// images, so video is never re-encoded or resized the way a photo is —
+// pickVideo() sends the picked file's own pixels through untouched.
+// Two things follow from that:
 //
 //   1. No size reduction beyond the picker's own maxDuration cap on
 //      camera capture, hence the smaller _maxVideoBytes than a resident
 //      might expect for "just a few seconds of video."
-//   2. Location metadata is NOT stripped, unlike photos. Whether a
-//      given video actually carries GPS depends on the device and OS —
-//      unlike EXIF on photos, which was tested and confirmed present,
-//      this has not been verified against a real device. Treat an
-//      anonymous complaint's video attachment as a WEAKER anonymity
-//      guarantee than its photos until someone tests this and either
-//      confirms it's clean or a stripping step gets added.
+//   2. Location metadata IS stripped, same intent as the EXIF strip
+//      above, but by a different mechanism: rather than re-encoding
+//      (what flutter_image_compress does to a photo, and what this
+//      project deliberately did not pull in a video codec to do —
+//      see video_location_strip.dart's own header), pickVideo() edits
+//      the MP4/MOV/3GP container at the byte level to delete the "udta"
+//      metadata box a recorder may have written a location into,
+//      leaving every audio/video sample untouched. That file explains
+//      the full mechanism and its safety fallback; the short version is
+//      that any video whose structure isn't exactly understood is
+//      uploaded unmodified rather than risk a corrupted "edit."
 //
 // CLOUDINARY PRESET — this matters before video upload works at all.
-// `smartsumbong_unsigned` (see the config block above) was set up for
-// images only: "Allowed formats: jpg, png, webp" and an incoming
-// transformation that forces jpg output. Sending a video through it
-// will likely be rejected outright. Someone with access to the
-// Cloudinary dashboard needs to either widen that preset to allow
-// mp4/mov/webm with a video-appropriate (or no) incoming
-// transformation, or create a second unsigned preset for video and pass
-// its name in here. This code cannot make that change — it only
-// assumes the preset in `uploadPreset` already accepts video once
-// someone has done so.
+// `smartsumbong_unsigned` (see the config block above) is images only:
+// "Allowed formats: jpg, png, webp" and an incoming transformation that
+// forces jpg output. Sending a video through it is rejected outright, and
+// widening that same preset to also allow video would mean either
+// removing the jpg-forcing transformation (which every existing photo
+// upload depends on) or making it conditional on resource_type — both
+// riskier than just giving video its own preset. So: `videoUploadPreset`
+// below is a SEPARATE preset, `smartsumbong_unsigned_video` (created and
+// live in the Cloudinary dashboard as of 27 Aug 2026 — Unsigned, asset
+// folder smartsumbong, allowed formats mp4, no format conversion, no
+// incoming transformation), deliberately not sharing any config with the
+// photo one. If `videoUploadPreset` is ever unset again, this falls back
+// to reusing `uploadPreset` (the photo preset), which rejects video
+// exactly as before — a deliberate no-regression default, not a silent
+// success.
 
 import 'dart:convert';
 import 'dart:io';
@@ -92,6 +102,8 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+
+import 'video_location_strip.dart';
 
 /// Where an upload lands inside the `smartsumbong` asset folder.
 enum MediaKind {
@@ -145,6 +157,7 @@ class MediaUploader {
   MediaUploader({
     required this.cloudName,
     required this.uploadPreset,
+    this.videoUploadPreset,
     http.Client? client,
     ImagePicker? picker,
   })  : _client = client ?? http.Client(),
@@ -152,6 +165,12 @@ class MediaUploader {
 
   final String cloudName;
   final String uploadPreset;
+
+  /// A separate Cloudinary preset for video — see the CLOUDINARY PRESET
+  /// comment above this class for why it can't just reuse [uploadPreset].
+  /// Null falls back to [uploadPreset].
+  final String? videoUploadPreset;
+
   final http.Client _client;
   final ImagePicker _picker;
 
@@ -236,16 +255,20 @@ class MediaUploader {
   }
 
   /// Pick one video. Unlike [pick], the returned file is NOT re-encoded
-  /// or stripped of metadata — see this file's VIDEO header comment for
-  /// what that means for anonymity. `maxDuration` only constrains a
-  /// fresh camera recording; a video chosen from the gallery can be
-  /// longer, and [_maxVideoBytes] in [uploadVideo] is what catches that.
+  /// — the pixels and audio are exactly what the device produced — but
+  /// it IS run through [stripVideoLocation] to remove any embedded
+  /// location metadata, same intent as the photo EXIF strip below, by a
+  /// different mechanism; see this file's VIDEO header comment and
+  /// video_location_strip.dart. `maxDuration` only constrains a fresh
+  /// camera recording; a video chosen from the gallery can be longer,
+  /// and [_maxVideoBytes] in [uploadVideo] is what catches that.
   Future<File?> pickVideo({ImageSource source = ImageSource.gallery}) async {
     final picked = await _picker.pickVideo(
       source: source,
       maxDuration: source == ImageSource.camera ? _maxVideoDuration : null,
     );
-    return picked == null ? null : File(picked.path);
+    if (picked == null) return null;
+    return stripVideoLocation(File(picked.path));
   }
 
   /// The EXIF strip. Everything the app uploads passes through here.
@@ -471,7 +494,7 @@ class MediaUploader {
     void Function(int sent, int total)? onProgress,
   ) async {
     final request = http.MultipartRequest('POST', _videoEndpoint)
-      ..fields['upload_preset'] = uploadPreset
+      ..fields['upload_preset'] = videoUploadPreset ?? uploadPreset
       ..fields['public_id'] = publicId
       ..fields['source'] = 'smartsumbong-mobile'
       ..files.add(await http.MultipartFile.fromPath('file', file.path));

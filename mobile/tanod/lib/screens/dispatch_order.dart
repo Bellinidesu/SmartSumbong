@@ -33,6 +33,12 @@ import 'tickets_screen.dart';
 
 const _cloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
 const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
+// Optional: falls back to the photo preset (which now also accepts video,
+// per the Cloudinary preset widened 27 Aug 2026) when this dart-define is
+// not set, so builds that have not been updated with the new key yet do
+// not break.
+const _videoUploadPresetRaw =
+    String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET_VIDEO');
 
 const _red = Color(0xFFFF4949);
 const _green = Color(0xFF1FA84E);
@@ -238,6 +244,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         final uploader = MediaUploader(
           cloudName: _cloudName,
           uploadPreset: _uploadPreset,
+          videoUploadPreset:
+              _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
         );
         final rows = <Map<String, dynamic>>[];
         for (final f in _photos) {
@@ -320,6 +328,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       final uploader = MediaUploader(
         cloudName: _cloudName,
         uploadPreset: _uploadPreset,
+        videoUploadPreset:
+            _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
       );
       final f = await uploader.pickVideo(source: ImageSource.camera);
       if (f == null || !mounted) return;

@@ -34,7 +34,7 @@ dependencies:
   cached_network_image: ^3.4.1
 
   # Session tokens in the OS keystore instead of plain SharedPreferences.
-  flutter_secure_storage: ^11.0.0
+  flutter_secure_storage: 10.3.1
 
   # Distinguishing "no signal" from a real server error.
   connectivity_plus: ^7.3.1

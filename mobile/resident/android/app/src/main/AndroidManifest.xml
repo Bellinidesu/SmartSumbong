@@ -49,7 +49,32 @@
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
-            android:value="2" />           
+            android:value="2" />
+
+        <!-- Push notification icon + accent colour (27 Aug 2026), from a
+             reference the user sent: the small circle Android draws next
+             to a notification in the shade (Gmail's blue circle, Play
+             services' pink circle -- each app's own colour behind a
+             plain glyph). Without these two lines FCM falls back to the
+             launcher icon rendered as a plain white square, which is
+             what the app was actually showing before this.
+
+             ic_stat_notify (res/drawable-*dpi/) is a solid bell
+             silhouette -- Android discards an icon's colour here and
+             keeps only its alpha channel, tinting the shape itself
+             white regardless of what colour the source PNG is drawn
+             in, so a full-colour illustration would not survive this
+             the way it does everywhere else in the app. The circle
+             behind it is notification_color (res/values/
+             notification_colors.xml) -- this app's orange accent,
+             not the resident navy, so it doesn't just read as a solid
+             navy blob against a dark shade the way the in-app bell can. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

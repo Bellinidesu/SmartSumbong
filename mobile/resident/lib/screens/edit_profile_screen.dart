@@ -23,6 +23,18 @@
 //
 // Password is Supabase's own updateUser, which needs the current
 // session and nothing else.
+//
+// ADDRESS AND AVATAR — added during the Figma parity pass (27 Aug
+// 2026). Both are ordinary resident-editable fields (0038), the same
+// shape as email: neither is identity evidence an admin checked
+// against a government ID, so guard_privileged_user_fields() (0026)
+// never restricted them — they just didn't have columns yet. The
+// avatar upload reuses MediaKind.selfie's Cloudinary folder rather than
+// adding a new one, so is_media_url()'s folder allow-list (0018) does
+// not need widening for a photo that is, functionally, the same kind
+// of thing.
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,9 +44,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key, required this.auth});
+  const EditProfileScreen({super.key, required this.auth, required this.uploader});
 
   final AuthService auth;
+  final MediaUploader uploader;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -42,16 +55,24 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _email = TextEditingController();
+  final _address = TextEditingController();
 
   String? _name;
   String? _mobile;
   String _originalEmail = '';
+  String _originalAddress = '';
+  String? _avatarUrl;
+  File? _newAvatar;
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingAvatar = false;
   String? _banner;
   String? _emailError;
 
-  bool get _dirty => _email.text.trim() != _originalEmail;
+  bool get _dirty =>
+      _email.text.trim() != _originalEmail ||
+      _address.text.trim() != _originalAddress ||
+      _newAvatar != null;
 
   @override
   void initState() {
@@ -62,6 +83,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _email.dispose();
+    _address.dispose();
     super.dispose();
   }
 
@@ -72,7 +94,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final row = await client
           .from('users')
-          .select('full_name, mobile_number, email')
+          .select('full_name, mobile_number, email, address, avatar_url')
           .eq('id', uid)
           .maybeSingle();
       if (!mounted || row == null) return;
@@ -81,6 +103,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _mobile = row['mobile_number'] as String?;
         _originalEmail = (row['email'] as String?) ?? '';
         _email.text = _originalEmail;
+        _originalAddress = (row['address'] as String?) ?? '';
+        _address.text = _originalAddress;
+        _avatarUrl = row['avatar_url'] as String?;
         _loading = false;
       });
     } catch (_) {
@@ -90,6 +115,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _banner = 'Could not load your profile.';
         });
       }
+    }
+  }
+
+  Future<void> _pickAvatar() async {
+    setState(() => _banner = null);
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: AppPermission.photos,
+      title: 'Photo access',
+      rationale: 'SmartSumbong needs access to your photos to update your '
+          'profile picture.',
+    );
+    if (!granted || !mounted) return;
+    try {
+      final f = await widget.uploader.pick();
+      if (f == null) return;
+      setState(() => _newAvatar = f);
+    } on MediaUploadException catch (e) {
+      setState(() => _banner = e.message);
     }
   }
 
@@ -110,13 +154,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
+      String? avatarUrl = _avatarUrl;
+      if (_newAvatar != null) {
+        setState(() => _uploadingAvatar = true);
+        // Same folder as a registration selfie — see this file's header
+        // for why, rather than a dedicated MediaKind.avatar.
+        avatarUrl = (await widget.uploader
+                .upload(_newAvatar!, kind: MediaKind.selfie))
+            .mediaUrl;
+        if (mounted) setState(() => _uploadingAvatar = false);
+      }
+
       final uid = Supabase.instance.client.auth.currentUser!.id;
-      await Supabase.instance.client
-          .from('users')
-          .update({'email': email.isEmpty ? null : email}).eq('id', uid);
+      await Supabase.instance.client.from('users').update({
+        'email': email.isEmpty ? null : email,
+        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
+      }).eq('id', uid);
 
       if (!mounted) return;
-      setState(() => _originalEmail = email);
+      setState(() {
+        _originalEmail = email;
+        _originalAddress = _address.text.trim();
+        if (avatarUrl != null) {
+          _avatarUrl = avatarUrl;
+          _newAvatar = null;
+        }
+      });
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
@@ -255,22 +319,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 24),
 
                     Center(
-                      child: Container(
-                        width: 96,
-                        height: 96,
-                        decoration: const BoxDecoration(
-                          color: Tokens.navy,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _SettingsInitials.of(_name),
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 32,
-                            color: Tokens.bg,
-                          ),
+                      child: GestureDetector(
+                        onTap: _saving ? null : _pickAvatar,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 96,
+                              height: 96,
+                              decoration: BoxDecoration(
+                                color: Tokens.navy,
+                                shape: BoxShape.circle,
+                                image: _newAvatar != null
+                                    ? DecorationImage(
+                                        image: FileImage(_newAvatar!),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : (_avatarUrl != null
+                                        ? DecorationImage(
+                                            image: NetworkImage(_avatarUrl!),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null),
+                              ),
+                              alignment: Alignment.center,
+                              child: (_newAvatar != null || _avatarUrl != null)
+                                  ? (_uploadingAvatar
+                                      ? const CircularProgressIndicator(
+                                          color: Tokens.bg, strokeWidth: 2)
+                                      : null)
+                                  : Text(
+                                      _SettingsInitials.of(_name),
+                                      style: const TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 32,
+                                        color: Tokens.bg,
+                                      ),
+                                    ),
+                            ),
+                            // A small camera badge is the only hint that the
+                            // circle above is tappable — nothing else on this
+                            // screen suggests avatar upload lives here.
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Tokens.bg,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Tokens.navy, width: 1.5),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.camera_alt_outlined,
+                                    size: 15, color: Tokens.navy),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -307,6 +415,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       error: _emailError,
                       enabled: !_saving,
                       keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 18),
+
+                    _EditableField(
+                      label: 'Address',
+                      controller: _address,
+                      hint: 'House/unit no., street, purok',
+                      note: '(Optional)',
+                      enabled: !_saving,
+                      keyboardType: TextInputType.streetAddress,
                     ),
                     const SizedBox(height: 18),
 

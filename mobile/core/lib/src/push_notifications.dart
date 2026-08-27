@@ -68,7 +68,7 @@ class PushNotifications {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     await _local.initialize(
-      const InitializationSettings(
+      settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
       onDidReceiveNotificationResponse: (response) {
@@ -98,10 +98,10 @@ class PushNotifications {
       final n = message.notification;
       if (n == null) return;
       _local.show(
-        n.hashCode,
-        n.title,
-        n.body,
-        NotificationDetails(
+        id: n.hashCode,
+        title: n.title,
+        body: n.body,
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channel.id,
             _channel.name,

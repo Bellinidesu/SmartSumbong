@@ -44,6 +44,7 @@ import 'screens/report_submitted_screen.dart';
 import 'screens/report_view_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/terms_privacy_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'theme.dart';
 
@@ -51,6 +52,12 @@ const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const _supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 const _cloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
 const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
+// Optional: falls back to the photo preset (which now also accepts video,
+// per the Cloudinary preset widened 27 Aug 2026) when this dart-define is
+// not set, so builds that have not been updated with the new key yet do
+// not break.
+const _videoUploadPresetRaw =
+    String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET_VIDEO');
 
 /// Lets a push notification tap navigate before any screen's own
 /// BuildContext exists yet (a cold start from a killed state).
@@ -129,6 +136,8 @@ class SmartSumbongApp extends StatelessWidget {
     final uploader = MediaUploader(
       cloudName: _cloudName,
       uploadPreset: _uploadPreset,
+      videoUploadPreset:
+          _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
     );
 
     return AppLocaleScope(
@@ -195,12 +204,14 @@ class SmartSumbongApp extends StatelessWidget {
         // screen in turn; until then the placeholder keeps navigation
         // from throwing on an unknown route.
         '/emergency': (_) => const EmergencyScreen(),
-        '/reports': (_) => ReportsScreen(auth: auth),
+        '/reports': (_) => ReportsScreen(auth: auth, uploader: uploader),
         '/map': (_) => MapScreen(auth: auth),
         '/settings': (_) => SettingsScreen(auth: auth),
-        '/edit-profile': (_) => EditProfileScreen(auth: auth),
+        '/edit-profile': (_) =>
+            EditProfileScreen(auth: auth, uploader: uploader),
         '/languages': (_) => const LanguagesScreen(),
         '/notifications': (_) => const NotificationsScreen(),
+        '/terms-privacy': (_) => const TermsPrivacyScreen(),
         '/submit-report': (_) => const ReportCategoryScreen(),
 
         '/login': (_) => LoginScreen(auth: auth),

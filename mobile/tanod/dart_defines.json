@@ -1,6 +1,7 @@
 {
   "CLOUDINARY_CLOUD_NAME": "nwb2kryl",
   "CLOUDINARY_UPLOAD_PRESET": "smartsumbong_unsigned",
+  "CLOUDINARY_UPLOAD_PRESET_VIDEO": "smartsumbong_unsigned_video",
   "SUPABASE_URL": "https://xmkpokcnjzgxgwysperh.supabase.co",
   "SUPABASE_ANON_KEY": "sb_publishable_luTz-T7pfYkDOxtGX3okAQ_HJIWEPVW"
 }

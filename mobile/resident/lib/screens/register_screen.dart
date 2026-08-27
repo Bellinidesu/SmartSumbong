@@ -17,9 +17,24 @@
 // leaves an orphan in Cloudinary. There is no delete token on the unsigned
 // preset, so it stays. At one barangay's registration volume that is a
 // rounding error — noted in turnover.md rather than solved here.
+//
+// WHERE THIS SCREEN STOPS MATCHING SIGN UP AS TANOD (2613:921), AND WHY.
+//
+// Figma's tanod variant drops Email Address (done here — see the field
+// below) but also drops the selfie photo and the ID-type dropdown,
+// replacing both with one plain "Attach Media" upload for the Barangay
+// ID. Neither of those two is safe to drop from this side alone:
+// handle_new_auth_user() (0032) raises "selfie_url is required at
+// signup" unconditionally, with no role exemption, so an application
+// missing it fails the same way for a tanod as for a resident. Matching
+// Figma there means a migration decision — is selfie-to-ID matching
+// still wanted for a tanod, given the roster check at approval is a
+// second, independent control — not a widget change, and it has been
+// left for that decision rather than made silently here.
 
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -69,6 +84,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _errors = <String, String>{};
 
   @override
+  void initState() {
+    super.initState();
+    // Figma's tanod signup has no ID-type picker — one upload, implicitly
+    // the Barangay ID. Presetting this is what lets the dropdown stay
+    // hidden for that role without leaving _idType null (see _validate).
+    if (widget.role == AccountRole.tanod) {
+      _idType = IdDocumentType.barangayId;
+    }
+  }
+
+  @override
   void dispose() {
     for (final c in [_fullName, _email, _mobile, _password, _confirm]) {
       c.dispose();
@@ -111,13 +137,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_confirm.text != _password.text) {
       _errors['confirm'] = 'Your password should match.';
     }
+    // Figma's tanod signup (2613:921) has no ID-type dropdown — one
+    // upload, implicitly the Barangay ID (see the header comment on why
+    // the Barangay-Appointment option was dropped from the UI rather
+    // than kept behind a picker). _idType is set to that once, below,
+    // and never cleared for a tanod, so this only ever fires for a
+    // resident who has not picked one yet.
     if (_idType == null) {
       _errors['id_type'] = 'Please choose which ID you are attaching.';
     }
     if (_idFile == null && _idUrl == null) {
       _errors['id_image'] = 'Please attach a photo of your ID.';
     }
-    if (_selfieFile == null && _selfieUrl == null) {
+    // Figma's tanod signup has no selfie step at all — 0036 makes
+    // selfie_url optional server-side for that role specifically, so
+    // this only applies to a resident.
+    if (widget.role != AccountRole.tanod &&
+        _selfieFile == null &&
+        _selfieUrl == null) {
       _errors['selfie'] = 'Please take a photo of yourself.';
     }
     if (!_agreed) {
@@ -156,20 +193,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // ---------- photos -----------------------------------------
 
+  /// Neither Figma nor the original build offered a gallery option here —
+  /// only the camera. Registration photos still go through
+  /// [MediaUploader.pick]'s own strip-and-recompress step regardless of
+  /// source (see media_upload.dart's EXIF header), so a gallery pick is
+  /// exactly as safe as a fresh camera shot; there was no privacy reason
+  /// for the restriction, only that nobody had asked for it yet.
   Future<void> _capture({required bool selfie}) async {
     setState(() => _banner = null);
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+
     final granted = await PermissionGate.ensure(
       context,
-      permission: AppPermission.camera,
-      title: 'Camera access',
-      rationale: selfie
-          ? 'SmartSumbong needs your camera to take a selfie, so the '
-              'barangay can match you to your ID.'
-          : 'SmartSumbong needs your camera to take a photo of your ID.',
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera ? 'Camera access' : 'Photo access',
+      rationale: source == ImageSource.camera
+          ? (selfie
+              ? 'SmartSumbong needs your camera to take a selfie, so the '
+                  'barangay can match you to your ID.'
+              : 'SmartSumbong needs your camera to take a photo of your ID.')
+          : (selfie
+              ? 'SmartSumbong needs access to your photos to choose a '
+                  'selfie, so the barangay can match you to your ID.'
+              : 'SmartSumbong needs access to your photos to choose a '
+                  'photo of your ID.'),
     );
     if (!granted || !mounted) return;
     try {
-      final f = await widget.uploader.pick(source: ImageSource.camera);
+      final f = await widget.uploader.pick(source: source);
       if (f == null) return;
       setState(() {
         if (selfie) {
@@ -185,6 +238,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } on MediaUploadException catch (e) {
       setState(() => _banner = e.message);
     }
+  }
+
+  /// A plain bottom sheet, not the navy pill dialog used elsewhere — this
+  /// is a system-style action list (two equal choices, one of them a
+  /// cancel-by-dismissing), not a confirm/deny decision, so it does not
+  /// borrow that pattern.
+  Future<ImageSource?> _chooseSource(BuildContext context) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Tokens.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Tokens.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined, color: Tokens.navy),
+              title: const Text('Take Photo'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: Tokens.navy),
+              title: const Text('Choose from Gallery'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   // ---------- submit -----------------------------------------
@@ -207,9 +303,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _idUrl ??= (await widget.uploader
               .upload(_idFile!, kind: MediaKind.identityCard))
           .mediaUrl;
-      _selfieUrl ??=
-          (await widget.uploader.upload(_selfieFile!, kind: MediaKind.selfie))
-              .mediaUrl;
+      // Not asked of a tanod (see _validate) — nothing to upload.
+      if (_selfieFile != null) {
+        _selfieUrl ??= (await widget.uploader
+                .upload(_selfieFile!, kind: MediaKind.selfie))
+            .mediaUrl;
+      }
 
       await widget.auth.register(
         fullName: _fullName.text,
@@ -218,7 +317,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _password.text,
         idType: _idType!,
         idImageUrl: _idUrl!,
-        selfieUrl: _selfieUrl!,
+        selfieUrl: _selfieUrl,
         role: widget.role,
       );
 
@@ -280,14 +379,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               _ReviewRow('ID type', _idType?.label ?? ''),
               const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _ReviewPhoto('Your ID', _idFile)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _ReviewPhoto('Your selfie', _selfieFile)),
-                ],
-              ),
+              // A tanod has nothing in the second slot — no selfie is
+              // asked of that role (see _validate) — so the row is just
+              // the one photo rather than an empty box beside it.
+              widget.role == AccountRole.tanod
+                  ? _ReviewPhoto('Your ID', _idFile)
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _ReviewPhoto('Your ID', _idFile)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: _ReviewPhoto('Your selfie', _selfieFile)),
+                      ],
+                    ),
             ],
           ),
         ),
@@ -346,15 +451,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textCapitalization: TextCapitalization.words,
                   enabled: !_busy,
                 ),
-                _Field(
-                  label: 'Email Address',
-                  note: '(Optional)',
-                  hint: 'example@gmail.com',
-                  controller: _email,
-                  error: _errors['email'],
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !_busy,
-                ),
+                // Figma's Sign Up as Tanod (2613:921) has no Email Address
+                // field at all — a tanod's identity is already the roster
+                // check at approval, not a lookup key the way it can be
+                // for an anonymous resident. contact_email is optional in
+                // handle_new_auth_user() regardless of role, so hiding it
+                // here is a UI choice, not a workaround for a backend
+                // requirement.
+                if (widget.role != AccountRole.tanod)
+                  _Field(
+                    label: 'Email Address',
+                    note: '(Optional)',
+                    hint: 'example@gmail.com',
+                    controller: _email,
+                    error: _errors['email'],
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !_busy,
+                  ),
                 _Field(
                   label: 'Phone Number',
                   note: '(You will use this to sign in.)',
@@ -386,43 +499,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   enabled: !_busy,
                 ),
 
-                _IdTypeDropdown(
-                  role: widget.role,
-                  value: _idType,
-                  open: _dropdownOpen,
-                  error: _errors['id_type'],
-                  enabled: !_busy,
-                  onToggle: () =>
-                      setState(() => _dropdownOpen = !_dropdownOpen),
-                  onSelect: (v) => setState(() {
-                    _idType = v;
-                    _dropdownOpen = false;
-                    _errors.remove('id_type');
-                  }),
-                ),
-                const SizedBox(height: Tokens.gap),
+                // Figma's tanod signup (2613:921) has no dropdown — see
+                // the header comment and initState for why _idType is
+                // preset to barangayId instead of asked here.
+                if (widget.role != AccountRole.tanod)
+                  _IdTypeDropdown(
+                    role: widget.role,
+                    value: _idType,
+                    open: _dropdownOpen,
+                    error: _errors['id_type'],
+                    enabled: !_busy,
+                    onToggle: () =>
+                        setState(() => _dropdownOpen = !_dropdownOpen),
+                    onSelect: (v) => setState(() {
+                      _idType = v;
+                      _dropdownOpen = false;
+                      _errors.remove('id_type');
+                    }),
+                  ),
+                if (widget.role != AccountRole.tanod)
+                  const SizedBox(height: Tokens.gap),
 
                 _PhotoRow(
-                  label: 'Photo of your ID',
-                  caption: _idType == null
-                      ? 'Choose an ID type first'
-                      : 'Make sure the details are readable',
+                  label: widget.role == AccountRole.tanod
+                      ? 'Attach your Barangay ID'
+                      : 'Photo of your ID',
+                  caption: widget.role == AccountRole.tanod
+                      ? 'Make sure the details are readable'
+                      : (_idType == null
+                          ? 'Choose an ID type first'
+                          : 'Make sure the details are readable'),
                   file: _idFile,
                   uploaded: _idUrl != null,
                   error: _errors['id_image'],
                   enabled: !_busy && _idType != null,
                   onTap: () => _capture(selfie: false),
                 ),
-                const SizedBox(height: 16),
-                _PhotoRow(
-                  label: 'Photo of yourself',
-                  caption: 'So the barangay can match you to your ID',
-                  file: _selfieFile,
-                  uploaded: _selfieUrl != null,
-                  error: _errors['selfie'],
-                  enabled: !_busy,
-                  onTap: () => _capture(selfie: true),
-                ),
+                // Figma's tanod signup has no selfie step — see _validate
+                // and 0036 for why that is safe to drop for this role.
+                if (widget.role != AccountRole.tanod) ...[
+                  const SizedBox(height: 16),
+                  _PhotoRow(
+                    label: 'Photo of yourself',
+                    caption: 'So the barangay can match you to your ID',
+                    file: _selfieFile,
+                    uploaded: _selfieUrl != null,
+                    error: _errors['selfie'],
+                    enabled: !_busy,
+                    onTap: () => _capture(selfie: true),
+                  ),
+                ],
                 const SizedBox(height: Tokens.gap),
 
                 _Agreement(
@@ -864,20 +990,41 @@ class _Agreement extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // TODO: link these once the barangay's Terms and Privacy
-              // Notice exist. Collecting government IDs and complaint
-              // records makes a privacy notice naming the barangay as
-              // personal information controller a Data Privacy Act
-              // requirement, not a formality.
-              const Expanded(
-                child: Text(
-                  'By checking, you agree to the Terms and Conditions '
-                  'and Privacy Policy',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: Tokens.navy,
-                    height: 1.25,
+              // Linked to terms_privacy_screen.dart during the Figma
+              // parity pass (27 Aug 2026) -- this TODO used to say "link
+              // these once the barangay's Terms and Privacy Notice
+              // exist." That screen is a draft, not the barangay's
+              // approved one (see its own header for why that is still
+              // honest to link here): collecting a government ID and
+              // complaint records makes a privacy notice naming the
+              // barangay as personal information controller a Data
+              // Privacy Act requirement, not a formality, and a resident
+              // agreeing to "Terms and Conditions and Privacy Policy"
+              // ought to be able to tap through and read them.
+              Expanded(
+                child: Builder(
+                  builder: (context) => RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: Tokens.navy,
+                        height: 1.25,
+                      ),
+                      children: [
+                        const TextSpan(text: 'By checking, you agree to the '),
+                        TextSpan(
+                          text: 'Terms and Conditions and Privacy Policy',
+                          style: const TextStyle(
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => Navigator.of(context)
+                                .pushNamed('/terms-privacy'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -16,6 +16,25 @@
 // and the reason screen are Rose's verbatim, and what they do is raise a
 // request through request_reopen(). The success copy is the one visible
 // difference, and it is honest — the barangay decides.
+//
+// One thing that is NOT built to match Figma 2780:3806/2923:258: a
+// full-screen "Ticket Reopened" confirmation. Showing that would be a
+// lie — request_reopen() only files a request; the report's status does
+// not change until an admin calls the admin-only reopen_report(). The
+// toast ("Your request has been sent to the barangay") says what is
+// actually true and stays that way on purpose.
+//
+// The reason screen (2780:3594) picked up three things it was missing
+// during the Figma parity pass (27 Aug 2026): the Original Closing
+// Remarks / Date Closed context (status_logs_read already lets a
+// resident read their own trail, so this is a read, not a schema
+// change), the accuracy checkbox, and the optional Attach Media tile —
+// request_reopen() now takes p_media the same shape as file_report()'s
+// (migration 0037) and writes it into report_media same as any other
+// report evidence, so the 35 MB combined cap and the URL-pinning check
+// both still apply to it.
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -90,6 +109,7 @@ class ReportSummary {
     required this.description,
     required this.status,
     required this.createdAt,
+    this.closedAt,
   });
 
   final String id;
@@ -99,6 +119,11 @@ class ReportSummary {
   final ReportStatus status;
   final DateTime createdAt;
 
+  /// Null until the report is resolved or closed. Shown, with the closing
+  /// remark from status_logs, on the Reopen sheet (Figma 2780:3594) so the
+  /// resident can see what they are asking to reopen.
+  final DateTime? closedAt;
+
   factory ReportSummary.fromRow(Map<String, dynamic> r) => ReportSummary(
         id: r['id'] as String,
         trackingId: r['tracking_id'] as String? ?? '',
@@ -107,13 +132,18 @@ class ReportSummary {
         status: ReportStatus.parse(r['status'] as String?),
         createdAt:
             DateTime.tryParse(r['created_at'] as String? ?? '') ?? DateTime.now(),
+        closedAt: DateTime.tryParse(r['closed_at'] as String? ?? ''),
       );
 }
 
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key, required this.auth});
+  const ReportsScreen({super.key, required this.auth, required this.uploader});
 
   final AuthService auth;
+
+  /// Only needed for the Reopen sheet's optional evidence photo (0037) —
+  /// every other action on this screen is text-only.
+  final MediaUploader uploader;
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -147,7 +177,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       // what it means rather than relying on the policy for correctness.
       final rows = await client
           .from('reports')
-          .select('id, tracking_id, subject, description, status, created_at')
+          .select(
+              'id, tracking_id, subject, description, status, created_at, closed_at')
           .eq('resident_id', uid)
           .isFilter('deleted_at', null)
           .order('created_at', ascending: false);
@@ -172,27 +203,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // ---------- actions ----------------------------------------
 
   Future<void> _cancel(ReportSummary r) async {
+    // Figma 2864:332 — the same navy pill dialog as everywhere else in
+    // the app, not a plain Material AlertDialog. This used to be one;
+    // fixed during the Figma parity pass (27 Aug 2026).
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Tokens.bg,
-        title: const Text('Cancel this report?'),
-        content: Text(
-          'You are about to withdraw ${r.trackingId} — ${r.subject}. '
-          'The barangay will stop working on it. This cannot be undone.',
-          style: const TextStyle(height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep it'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Tokens.hint),
-            child: const Text('Cancel report'),
-          ),
-        ],
+      builder: (_) => _ActionDialog(
+        title: 'Confirm to cancel?',
+        body: 'Once you cancel, the case can’t be opened again.',
+        secondaryLabel: 'Back',
+        onSecondary: () => Navigator.of(context).pop(false),
+        primaryLabel: 'Confirm',
+        onPrimary: () => Navigator.of(context).pop(true),
       ),
     );
     if (confirmed != true) return;
@@ -201,7 +223,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
       await Supabase.instance.client
           .rpc('cancel_report', params: {'p_report': r.id});
       if (!mounted) return;
-      _toast('Report ${r.trackingId} has been cancelled.');
+      // Figma 2864:461 — a follow-up modal, not a snackbar.
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _ActionDialog(
+          title: 'Report has been cancelled.',
+          primaryLabel: 'Back',
+          onPrimary: () => Navigator.of(context).pop(),
+        ),
+      );
+      if (!mounted) return;
       _load();
     } on PostgrestException catch (e) {
       if (!mounted) return;
@@ -210,18 +242,50 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _requestReopen(ReportSummary r) async {
-    final reason = await showModalBottomSheet<String>(
+    // Figma 2780:3594 shows the original closing remark and date closed
+    // above the reopen form — the resident is being asked "reopen this
+    // specific outcome?" and that context is what makes the question
+    // answerable. status_logs_read (0003) already lets a resident read
+    // their own report's trail, so this costs one query, not a schema
+    // change.
+    String? closingRemark;
+    try {
+      final log = await Supabase.instance.client
+          .from('status_logs')
+          .select('remark')
+          .eq('report_id', r.id)
+          .inFilter('new_status', ['resolved', 'closed'])
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      closingRemark = (log?['remark'] as String?)?.trim();
+      if (closingRemark != null && closingRemark.isEmpty) closingRemark = null;
+    } catch (_) {
+      // The sheet still works without it; the resident just sees less
+      // context than the design shows.
+    }
+
+    if (!mounted) return;
+    final result = await showModalBottomSheet<_ReopenResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ReopenSheet(report: r),
+      builder: (_) => _ReopenSheet(
+        report: r,
+        closingRemark: closingRemark,
+        uploader: widget.uploader,
+      ),
     );
-    if (reason == null || reason.trim().isEmpty) return;
+    if (result == null || result.reason.trim().isEmpty) return;
 
     try {
       await Supabase.instance.client.rpc(
         'request_reopen',
-        params: {'p_report': r.id, 'p_reason': reason.trim()},
+        params: {
+          'p_report': r.id,
+          'p_reason': result.reason.trim(),
+          if (result.media != null) 'p_media': [result.media!.toJson()],
+        },
       );
       if (!mounted) return;
       // Honest about what happened: the request is with the barangay,
@@ -561,6 +625,140 @@ class _CardMenu extends StatelessWidget {
   }
 }
 
+/// The navy pill dialog from REPORTS - CONFIRM CANCEL and
+/// REPORTS - REPORT CANCELLED. Same shape as edit_profile_screen.dart's
+/// _ProfileDialog — orange title, optional white body, one or two pills
+/// — duplicated here rather than shared because every screen in this
+/// app that needs this look defines its own copy; there is no shared
+/// dialog widget in smartsumbong_core for it.
+class _ActionDialog extends StatelessWidget {
+  const _ActionDialog({
+    required this.title,
+    required this.primaryLabel,
+    required this.onPrimary,
+    this.body,
+    this.secondaryLabel,
+    this.onSecondary,
+  });
+
+  final String title;
+  final String? body;
+  final String primaryLabel;
+  final VoidCallback onPrimary;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+
+  static const _orange = Color(0xFFFF9800);
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Tokens.navy,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 44),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                color: _orange,
+              ),
+            ),
+            if (body != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                body!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: Tokens.bg,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (secondaryLabel != null) ...[
+                  _DialogPill(
+                    label: secondaryLabel!,
+                    onTap: onSecondary!,
+                    filled: false,
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                _DialogPill(label: primaryLabel, onTap: onPrimary, filled: true),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogPill extends StatelessWidget {
+  const _DialogPill({
+    required this.label,
+    required this.onTap,
+    required this.filled,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(50),
+    );
+    const size = Size(96, 38);
+
+    return filled
+        ? FilledButton(
+            onPressed: onTap,
+            style: FilledButton.styleFrom(
+              backgroundColor: Tokens.bg,
+              foregroundColor: Tokens.navy,
+              minimumSize: size,
+              padding: EdgeInsets.zero,
+              shape: shape,
+              textStyle: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            child: Text(label),
+          )
+        : OutlinedButton(
+            onPressed: onTap,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Tokens.bg,
+              side: const BorderSide(color: Tokens.bg),
+              minimumSize: size,
+              padding: EdgeInsets.zero,
+              shape: shape,
+              textStyle: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            child: Text(label),
+          );
+  }
+}
+
 /// Figma 2780:3762 — Reason of Reopen.
 class _ReasonDialog extends StatefulWidget {
   const _ReasonDialog({required this.title, required this.prompt});
@@ -648,10 +846,31 @@ const _reopenReasons = <String>[
   'Other',
 ];
 
+/// What the sheet hands back to [_ReportsScreenState._requestReopen] —
+/// the reason text plus, if the resident attached one, the already-
+/// uploaded photo. Uploading happens inside the sheet (same as every
+/// other photo picker in this app) so a failed upload is a banner here,
+/// not a half-finished RPC call in the parent.
+class _ReopenResult {
+  const _ReopenResult({required this.reason, this.media});
+  final String reason;
+  final UploadedMedia? media;
+}
+
 class _ReopenSheet extends StatefulWidget {
-  const _ReopenSheet({required this.report});
+  const _ReopenSheet({
+    required this.report,
+    required this.uploader,
+    this.closingRemark,
+  });
 
   final ReportSummary report;
+  final MediaUploader uploader;
+
+  /// The remark left on the status_logs row that resolved or closed this
+  /// report, if there is one. Figma 2780:3594 pairs this with Date Closed
+  /// so the resident can see the outcome they are asking to reopen.
+  final String? closingRemark;
 
   @override
   State<_ReopenSheet> createState() => _ReopenSheetState();
@@ -660,7 +879,15 @@ class _ReopenSheet extends StatefulWidget {
 class _ReopenSheetState extends State<_ReopenSheet> {
   final _concern = TextEditingController();
   String? _reason;
+  bool _acknowledged = false;
   String? _error;
+  String? _banner;
+  bool _busy = false;
+
+  /// Figma 2780:3594's "(Optional) Attach Media" — one photo, matching
+  /// request_reopen()'s p_media (0037), which takes a single-item array
+  /// the same shape as file_report()'s.
+  File? _photo;
 
   @override
   void dispose() {
@@ -668,7 +895,28 @@ class _ReopenSheetState extends State<_ReopenSheet> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _addPhoto() async {
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: AppPermission.photos,
+      title: 'Photo access',
+      rationale: 'SmartSumbong needs access to your photos to attach '
+          'evidence to this reopen request.',
+    );
+    if (!granted || !mounted) return;
+    setState(() => _banner = null);
+    try {
+      final f = await widget.uploader.pick();
+      if (f == null) return;
+      setState(() => _photo = f);
+    } on MediaUploadException catch (e) {
+      setState(() => _banner = e.message);
+    }
+  }
+
+  void _removePhoto() => setState(() => _photo = null);
+
+  Future<void> _submit() async {
     if (_reason == null) {
       setState(() => _error = 'Please choose a reason.');
       return;
@@ -677,7 +925,36 @@ class _ReopenSheetState extends State<_ReopenSheet> {
       setState(() => _error = 'Please describe your concern.');
       return;
     }
-    Navigator.of(context).pop('$_reason. ${_concern.text.trim()}');
+    if (!_acknowledged) {
+      setState(() =>
+          _error = 'Please confirm the information above is accurate.');
+      return;
+    }
+
+    UploadedMedia? media;
+    if (_photo != null) {
+      setState(() {
+        _busy = true;
+        _banner = null;
+      });
+      try {
+        media = await widget.uploader
+            .upload(_photo!, kind: MediaKind.reportPhoto);
+      } on MediaUploadException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _busy = false;
+          _banner = e.message;
+        });
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop(_ReopenResult(
+      reason: '$_reason. ${_concern.text.trim()}',
+      media: media,
+    ));
   }
 
   @override
@@ -720,6 +997,60 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               ),
             ),
             const SizedBox(height: 14),
+
+            // Figma 2780:3594 — the outcome being asked about, so the
+            // resident can see it before disputing it. Only shown when
+            // there is something to show: an older closed report from
+            // before status_logs remarks were consistently recorded may
+            // have neither.
+            if (r.closedAt != null || widget.closingRemark != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Tokens.field,
+                    border: Border.all(color: Tokens.navy),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.closingRemark != null) ...[
+                        const Text(
+                          'Original Closing Remarks',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: Tokens.navy,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.closingRemark!,
+                          style: const TextStyle(
+                              fontSize: 12, height: 1.35, color: Tokens.navy),
+                        ),
+                      ],
+                      if (r.closedAt != null) ...[
+                        if (widget.closingRemark != null)
+                          const SizedBox(height: 8),
+                        Text(
+                          'Date Closed: ${_formatDate(r.closedAt!)}',
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: Tokens.navy,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
 
             // Reopening does not happen here — the barangay decides,
             // because it restarts the SLA clock. Saying so up front is
@@ -775,24 +1106,89 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               onChanged: (_) => setState(() => _error = null),
             ),
 
-            if (_error != null)
+            const SizedBox(height: 14),
+
+            const Text('(Optional)',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: Tokens.navy)),
+            const SizedBox(height: 6),
+            _ReopenPhotoTile(
+              photo: _photo,
+              enabled: !_busy,
+              onAdd: _addPhoto,
+              onRemove: _removePhoto,
+            ),
+
+            if (_banner != null) ...[
+              const SizedBox(height: 10),
+              Text(_banner!,
+                  style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+            ],
+            const SizedBox(height: 14),
+
+            // Figma 2780:3594's checkbox, same wording pattern as the
+            // Submit Report acknowledgement (report_details_screen.dart)
+            // rather than the Sign Up agreement — this is about the
+            // reopen request being accurate, not about a Terms page.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _acknowledged,
+                    onChanged: _busy
+                        ? null
+                        : (v) => setState(() {
+                              _acknowledged = v ?? false;
+                              _error = null;
+                            }),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'I acknowledge that the information I am submitting is, '
+                    'to the best of my knowledge, accurate and complete.',
+                    style: TextStyle(
+                        fontSize: 12, color: Tokens.navy, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+
+            if (_error != null) ...[
+              const SizedBox(height: 6),
               Text(_error!,
                   style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+            ],
             const SizedBox(height: 8),
 
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed:
+                        _busy ? null : () => Navigator.of(context).pop(),
                     child: const Text('Back'),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: FilledButton(
-                    onPressed: _submit,
-                    child: const Text('Submit'),
+                    onPressed: _busy ? null : _submit,
+                    child: _busy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Tokens.bg),
+                          )
+                        : const Text('Submit'),
                   ),
                 ),
               ],
@@ -802,4 +1198,130 @@ class _ReopenSheetState extends State<_ReopenSheet> {
       ),
     );
   }
+
+  static String _formatDate(DateTime utc) {
+    final d = utc.toLocal();
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+  }
+}
+
+/// Figma 2780:3594's single "Attach Media" tile — same dashed-border
+/// language as report_details_screen.dart's photo/video attach tiles,
+/// reduced to the one optional photo request_reopen() (0037) accepts.
+class _ReopenPhotoTile extends StatelessWidget {
+  const _ReopenPhotoTile({
+    required this.photo,
+    required this.enabled,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final File? photo;
+  final bool enabled;
+  final VoidCallback onAdd;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (photo != null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Tokens.field,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child:
+                  Image.file(photo!, width: 40, height: 40, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'A photo is attached to this request.',
+                style: TextStyle(fontSize: 12, color: Tokens.navy),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.cancel, color: Tokens.navy),
+              onPressed: enabled ? onRemove : null,
+            ),
+          ],
+        ),
+      );
+    }
+    return InkWell(
+      onTap: enabled ? onAdd : null,
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Tokens.field,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: CustomPaint(
+          painter: _ReopenDashedBorder(),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_box_outlined, color: Tokens.navy, size: 22),
+              SizedBox(height: 6),
+              Text('Attach Media',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: Tokens.navy,
+                  )),
+              Text('(Max: 10 MB)',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                    color: Tokens.navy,
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReopenDashedBorder extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Tokens.navy
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(25),
+    );
+    final path = Path()..addRRect(rrect);
+
+    const dash = 6.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(d, (d + dash).clamp(0, metric.length)),
+          paint,
+        );
+        d += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
