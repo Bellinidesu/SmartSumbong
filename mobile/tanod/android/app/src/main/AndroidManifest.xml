@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Android 13+ (API 33) requires this explicit runtime grant before
+         ANY notification shows, including FCM push and local ones. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- See the same block in the resident app's manifest for why these
          two rarely trigger a visible prompt on Android 13+. -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>

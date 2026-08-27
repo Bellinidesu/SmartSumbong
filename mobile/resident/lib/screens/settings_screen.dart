@@ -7,6 +7,7 @@
 // think they are — worth having on a shared handset.
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,12 +32,27 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _name;
   String? _mobile;
+  String? _version;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadVersion();
+  }
+
+  // Useful now that builds are shared and installed manually rather than
+  // through a store that tracks versions for you -- worth being able to
+  // ask "which build is this?" without pulling the file's own metadata.
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() => _version = '${info.version} (${info.buildNumber})');
+    } catch (_) {
+      // Not worth surfacing an error over; the row just stays hidden.
+    }
   }
 
   Future<void> _load() async {
@@ -256,6 +272,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               showChevron: false,
               onTap: _busy ? null : _logOut,
             ),
+            if (_version != null) ...[
+              const SizedBox(height: 24),
+              Center(
+                child: Text(
+                  'SmartSumbong Resident • v$_version',
+                  style: const TextStyle(fontSize: 11, color: Tokens.muted),
+                ),
+              ),
+            ],
           ],
         ),
       ),

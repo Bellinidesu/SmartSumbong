@@ -76,10 +76,42 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   String? _error;
   String? _locationNote;
 
+  // Found during a QA pass on the "robust GIS" this app leans on:
+  // _pushLocation() only ever ran once, at the moment duty flipped on.
+  // location_is_fresh() (0005) discards anything older than 15 minutes,
+  // so a tanod who stayed on duty without reopening this exact screen
+  // silently dropped out of nearest_available_tanod's candidate pool —
+  // no error, no warning, just never dispatched. This re-pushes on a
+  // timer for as long as Home stays open and the tanod is on duty. It is
+  // NOT a background fix: closing the app or locking the screen still
+  // stops it, the same as before. A real background fix needs a
+  // foreground service (flutter_foreground_task or equivalent), which
+  // this pass deliberately did not add unverified — see the deploy
+  // notes for why.
+  Timer? _locationTimer;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _syncLocationTimer() {
+    if (_status == DutyState.onDuty) {
+      _locationTimer ??= Timer.periodic(
+        const Duration(minutes: 10),
+        (_) => _pushLocation(),
+      );
+    } else {
+      _locationTimer?.cancel();
+      _locationTimer = null;
+    }
   }
 
   Future<void> _load() async {
@@ -141,6 +173,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       });
 
       if (_status == DutyState.onDuty) await _pushLocation();
+      _syncLocationTimer();
     } on PostgrestException catch (e) {
       // Named rather than swallowed. A malformed select or a policy
       // refusal both land here, and "could not load" tells whoever is
@@ -188,6 +221,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       } else if (mounted) {
         setState(() => _locationNote = null);
       }
+      _syncLocationTimer();
     } on PostgrestException catch (e) {
       if (!mounted) return;
       setState(() {

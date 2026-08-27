@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1031518825779",
+    "project_id": "smartsumbong",
+    "storage_bucket": "smartsumbong.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1031518825779:android:015bde8adcd24e07e86246",
+        "android_client_info": {
+          "package_name": "ph.smartsumbong.resident"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqPwasmsk5zXy29UIwUyE6QhNVPi9SxrQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1031518825779:android:04c83db75ad160aae86246",
+        "android_client_info": {
+          "package_name": "ph.smartsumbong.tanod"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqPwasmsk5zXy29UIwUyE6QhNVPi9SxrQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

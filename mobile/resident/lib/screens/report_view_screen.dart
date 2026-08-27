@@ -15,6 +15,7 @@
 // status_logs_read already permits. Rose's frames do not show it, so it
 // sits below the fold as history rather than competing with the card.
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -35,8 +36,8 @@ class ReportViewScreen extends StatefulWidget {
 
 class _ReportViewScreenState extends State<ReportViewScreen> {
   Map<String, dynamic>? _report;
-  List<String> _photos = const [];
-  List<String> _proof = const [];
+  List<({String url, bool isVideo})> _photos = const [];
+  List<({String url, bool isVideo})> _proof = const [];
   List<Map<String, dynamic>> _timeline = const [];
   Map<String, dynamic>? _feedback;
   String? _error;
@@ -67,7 +68,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
       final media = await client
           .from('report_media')
-          .select('media_url')
+          .select('media_url, mime_type')
           .eq('report_id', widget.reportId);
 
       // Proof of resolution, readable by the resident since 0024. A
@@ -75,7 +76,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // the fix.
       final proof = await client
           .from('dispatch_media')
-          .select('media_url, dispatches!inner(report_id)')
+          .select('media_url, mime_type, dispatches!inner(report_id)')
           .eq('dispatches.report_id', widget.reportId);
 
       // Feedback is one row per report at most — the table has a unique
@@ -96,8 +97,20 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       if (!mounted) return;
       setState(() {
         _report = r;
-        _photos = [for (final m in media) m['media_url'] as String];
-        _proof = [for (final m in proof) m['media_url'] as String];
+        _photos = [
+          for (final m in media)
+            (
+              url: m['media_url'] as String,
+              isVideo: isVideoMime(m['mime_type'] as String?),
+            ),
+        ];
+        _proof = [
+          for (final m in proof)
+            (
+              url: m['media_url'] as String,
+              isVideo: isVideoMime(m['mime_type'] as String?),
+            ),
+        ];
         _timeline = List<Map<String, dynamic>>.from(logs);
         _feedback = fb;
       });
@@ -209,10 +222,10 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     if (saved == true) await _load();
   }
 
-  void _openPhoto(List<String> urls, int index) {
-    if (urls.isEmpty) return;
+  void _openPhoto(List<({String url, bool isVideo})> items, int index) {
+    if (items.isEmpty) return;
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => _PhotoViewer(urls: urls, initial: index),
+      builder: (_) => _PhotoViewer(items: items, initial: index),
     ));
   }
 }
@@ -241,7 +254,7 @@ class _ReportCard extends StatelessWidget {
   final bool isAnonymous;
   final double? latitude;
   final double? longitude;
-  final List<String> photos;
+  final List<({String url, bool isVideo})> photos;
   final ValueChanged<int> onViewPhoto;
 
   @override
@@ -335,14 +348,22 @@ class _ReportCard extends StatelessWidget {
                   onTap: () => onViewPhoto(i),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: Image.network(
-                      photos[i],
-                      width: 200,
-                      height: 134,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) => progress == null
-                          ? child
-                          : Container(
+                    child: photos[i].isVideo
+                        ? Container(
+                            width: 200,
+                            height: 134,
+                            color: Tokens.bg.withValues(alpha: 0.85),
+                            child: const Center(
+                              child: Icon(Icons.play_circle_fill,
+                                  size: 40, color: Tokens.navy),
+                            ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: photos[i].url,
+                            width: 200,
+                            height: 134,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(
                               width: 200,
                               height: 134,
                               color: Tokens.bg.withValues(alpha: 0.2),
@@ -351,14 +372,14 @@ class _ReportCard extends StatelessWidget {
                                     color: Tokens.bg, strokeWidth: 2),
                               ),
                             ),
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 200,
-                        height: 134,
-                        color: Tokens.bg.withValues(alpha: 0.15),
-                        child: const Icon(Icons.broken_image_outlined,
-                            color: Tokens.bg),
-                      ),
-                    ),
+                            errorWidget: (_, __, ___) => Container(
+                              width: 200,
+                              height: 134,
+                              color: Tokens.bg.withValues(alpha: 0.15),
+                              child: const Icon(Icons.broken_image_outlined,
+                                  color: Tokens.bg),
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -636,11 +657,13 @@ class _TimelineRow extends StatelessWidget {
   }
 }
 
-/// Figma 2613:709 — full-screen photo with pinch to zoom.
+/// Figma 2613:709 — full-screen photo with pinch to zoom. A video page
+/// embeds the shared player instead of an InteractiveViewer, since
+/// pinch-to-zoom on a playing video is not a thing anyone wants.
 class _PhotoViewer extends StatelessWidget {
-  const _PhotoViewer({required this.urls, required this.initial});
+  const _PhotoViewer({required this.items, required this.initial});
 
-  final List<String> urls;
+  final List<({String url, bool isVideo})> items;
   final int initial;
 
   @override
@@ -654,25 +677,29 @@ class _PhotoViewer extends StatelessWidget {
       ),
       body: PageView.builder(
         controller: PageController(initialPage: initial),
-        itemCount: urls.length,
-        itemBuilder: (_, i) => InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          child: Center(
-            child: Image.network(
-              urls[i],
-              fit: BoxFit.contain,
-              loadingBuilder: (_, child, progress) => progress == null
-                  ? child
-                  : const Center(
-                      child: CircularProgressIndicator(color: Colors.white)),
-              errorBuilder: (_, __, ___) => const Center(
-                child: Text('Could not load this photo.',
-                    style: TextStyle(color: Colors.white)),
+        itemCount: items.length,
+        itemBuilder: (_, i) {
+          final item = items[i];
+          if (item.isVideo) {
+            return InlineVideoPlayer(url: item.url);
+          }
+          return InteractiveViewer(
+            minScale: 1,
+            maxScale: 4,
+            child: Center(
+              child: CachedNetworkImage(
+                imageUrl: item.url,
+                fit: BoxFit.contain,
+                placeholder: (_, __) => const Center(
+                    child: CircularProgressIndicator(color: Colors.white)),
+                errorWidget: (_, __, ___) => const Center(
+                  child: Text('Could not load this photo.',
+                      style: TextStyle(color: Colors.white)),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

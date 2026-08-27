@@ -18,6 +18,33 @@ dependencies:
   supabase_flutter: ^2.8.0
   permission_handler: ^11.3.1
 
+  # Push notifications (FCM) + the local-notification display FCM itself
+  # does not do while the app is in the foreground.
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
+  flutter_local_notifications: ^22.3.0
+
+  # Crash visibility — rides on the same Firebase project as the above.
+  firebase_crashlytics: ^5.3.0
+
+  # Video playback for report/dispatch evidence, and image caching so a
+  # reopened report does not re-download every photo from Cloudinary.
+  video_player: ^2.14.0
+  chewie: ^1.15.0
+  cached_network_image: ^3.4.1
+
+  # Session tokens in the OS keystore instead of plain SharedPreferences.
+  flutter_secure_storage: ^11.0.0
+
+  # Distinguishing "no signal" from a real server error.
+  connectivity_plus: ^7.3.1
+
+  # App version shown in Settings, useful now that builds are distributed
+  # as a manually-shared APK rather than through a store with its own
+  # version tracking.
+  package_info_plus: ^10.2.1
+  device_info_plus: ^13.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

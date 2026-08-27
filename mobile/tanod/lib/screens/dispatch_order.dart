@@ -17,6 +17,7 @@
 
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
@@ -82,7 +83,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   _Pane _returnPane = _Pane.order;
 
   Map<String, dynamic>? _report;
-  List<String> _evidence = const [];
+  List<({String url, bool isVideo})> _evidence = const [];
   bool _loading = true;
   bool _busy = false;
   bool _changed = false;
@@ -134,13 +135,19 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           .single();
       final media = await client
           .from('report_media')
-          .select('media_url')
+          .select('media_url, mime_type')
           .eq('report_id', widget.ticket.reportId);
 
       if (!mounted) return;
       setState(() {
         _report = report;
-        _evidence = [for (final m in media) m['media_url'] as String];
+        _evidence = [
+          for (final m in media)
+            (
+              url: m['media_url'] as String,
+              isVideo: isVideoMime(m['mime_type'] as String?),
+            ),
+        ];
         _loading = false;
       });
     } catch (_) {
@@ -602,21 +609,42 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       height: 240,
       child: PageView(
         children: [
-          for (final url in _evidence)
+          for (final item in _evidence)
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                url,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Tokens.field,
-                  child: const Center(
-                    child: Icon(Icons.broken_image_outlined,
-                        color: Tokens.muted),
-                  ),
-                ),
-              ),
+              child: item.isVideo
+                  ? GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => VideoPlayerScreen(url: item.url),
+                        ),
+                      ),
+                      child: Container(
+                        color: Colors.black87,
+                        width: double.infinity,
+                        child: const Center(
+                          child: Icon(Icons.play_circle_fill,
+                              size: 48, color: Colors.white70),
+                        ),
+                      ),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: item.url,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      placeholder: (_, __) => Container(
+                        color: Tokens.field,
+                        child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        color: Tokens.field,
+                        child: const Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              color: Tokens.muted),
+                        ),
+                      ),
+                    ),
             ),
         ],
       ),
