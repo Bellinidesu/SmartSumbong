@@ -435,6 +435,12 @@ class Strings {
       'aking kaalaman, tama at kumpleto. Nauunawaan ko na ang '
       'impormasyong ito ay iproproseso para sa layunin ng pagsisiyasat '
       'at pagtugon sa aking ulat.');
+  // Draft save/restore, added 29 Aug 2026 — a half-filled report used to
+  // vanish if the app was killed or the connection dropped mid-fill.
+  String get reportDetailsDraftRestored => _t(
+      'Restored your unfinished report.',
+      'Naibalik ang hindi mo pa natatapos na ulat.');
+  String get reportDetailsDraftDiscard => _t('Discard', 'Itapon');
 
   // ---------- reports (view your reports, cancel, reopen) ----------
   /// Shared by ReportStatus.wire everywhere its label is shown to the
@@ -614,6 +620,22 @@ class Strings {
       'Hindi ma-load ang ulat na ito. I-pull para subukan ulit.');
   String get reportViewTitle =>
       _t('View your Reports', 'Tingnan ang Iyong mga Ulat');
+  // Share sheet, added 29 Aug 2026 — hands the tracking id off through
+  // SMS/Messenger/copy instead of a resident retyping it by hand.
+  String get reportViewShare => _t('Share', 'Ibahagi');
+  String reportViewShareText(
+    String trackingId,
+    String subject,
+    String statusLabel,
+  ) =>
+      _t(
+        'SmartSumbong complaint $trackingId ($statusLabel): $subject\n'
+        'Filed with Barangay 183, Pasay City.',
+        'Reklamo sa SmartSumbong $trackingId ($statusLabel): $subject\n'
+        'Isinampa sa Barangay 183, Pasay City.',
+      );
+  String get reportViewShareFailed => _t(
+      'Could not open the share menu.', 'Hindi mabuksan ang share menu.');
   String get reportViewHistory => _t('History', 'Kasaysayan');
   String get reportViewAnonymous => _t('Anonymous', 'Anonymous');
   String get reportViewCouldNotLoadPhoto => _t(
@@ -1331,4 +1353,64 @@ class Strings {
   String get themeLight => _t('Light', 'Maliwanag');
   String get themeDark => _t('Dark', 'Madilim');
   String get themeBack => _t('Back', 'Bumalik');
+
+  // ---------- settings: notification prefs + delete account (29 Aug 2026) ----------
+  String get settingsNotificationPrefs =>
+      _t('Notification Preferences', 'Mga Kagustuhan sa Abiso');
+  String get settingsDeleteAccount =>
+      _t('Delete Account', 'Burahin ang Account');
+
+  // ---------- notification preferences screen ----------
+  String get notifPrefsTitle => _t('Notifications', 'Mga Abiso');
+  String get notifPrefsSubtitle => _t(
+      'Choose which updates send a push to your phone. You will still '
+      'see every update in the app either way.',
+      'Piliin kung aling mga update ang magpapadala ng push sa iyong '
+      'telepono. Makikita mo pa rin ang lahat ng update sa app kahit '
+      'paano.');
+  String get notifPrefsBack => _t('Back', 'Bumalik');
+  String get notifPrefsLoadError => _t(
+      'Could not load your notification settings.',
+      'Hindi ma-load ang iyong mga setting ng abiso.');
+  String get notifPrefsUpdateFailed => _t(
+      'Could not save that. Please try again.',
+      'Hindi na-save iyon. Subukan ulit.');
+  String get notifPrefsAssignment => _t(
+      'A tanod is assigned to my report',
+      'May tanod na nakatalaga sa aking ulat');
+  String get notifPrefsReroute =>
+      _t('My report is reassigned', 'Muling itinalaga ang aking ulat');
+  String get notifPrefsStatusChange => _t(
+      'My report’s status changes', 'Nagbago ang status ng aking ulat');
+  String get notifPrefsEscalation =>
+      _t('Escalation alerts', 'Mga alerto sa escalation');
+  String get notifPrefsSlaWarning => _t(
+      'Response time warnings', 'Mga babala sa oras ng pagtugon');
+
+  // ---------- delete account ----------
+  String get deleteAccountConfirmTitle =>
+      _t('Delete your account?', 'Burahin ang iyong account?');
+  String get deleteAccountConfirmBody => _t(
+      'You will no longer be able to sign in, and your name, ID photo, '
+      'and other personal details will be removed. If you have filed '
+      'any reports, the reports themselves stay on record with the '
+      'barangay — just without your personal details attached. This '
+      'cannot be undone.',
+      'Hindi ka na makakapag-sign in, at aalisin ang iyong pangalan, '
+      'larawan ng ID, at iba pang personal na detalye. Kung may '
+      'naisumite kang mga ulat, mananatili ang mga ulat mismo sa '
+      'talaan ng barangay — wala lang mga personal na detalye. Hindi '
+      'na ito maaaring bawiin.');
+  String get deleteAccountTypeToConfirm => _t(
+      'Type DELETE below to confirm.', 'I-type ang DELETE sa ibaba para kumpirmahin.');
+  String get deleteAccountTypeMismatch => _t(
+      'Please type DELETE exactly to confirm.',
+      'Pakitype nang eksakto ang DELETE para kumpirmahin.');
+  String get deleteAccountConfirmButton =>
+      _t('Delete my account', 'Burahin ang aking account');
+  String get deleteAccountFailed => _t(
+      'Could not delete your account. Please try again, or visit the '
+      'barangay hall for help.',
+      'Hindi mabura ang iyong account. Subukan ulit, o pumunta sa '
+      'barangay hall para sa tulong.');
 }

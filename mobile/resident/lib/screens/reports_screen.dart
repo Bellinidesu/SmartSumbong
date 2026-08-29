@@ -34,6 +34,7 @@
 // report evidence, so the 35 MB combined cap and the URL-pinning check
 // both still apply to it.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -161,10 +162,52 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<ReportSummary>? _reports;
   String? _error;
 
+  // Live updates (29 Aug 2026 — see home_screen.dart's header for the
+  // same reasoning, and 0046 for the notifications side of it). reports
+  // has been in the realtime publication since 0004 for the admin map,
+  // so this list riding along costs nothing new at the database level —
+  // only the one extra open channel, while this screen is on screen.
+  RealtimeChannel? _liveChannel;
+  Timer? _liveDebounce;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _liveDebounce?.cancel();
+    if (_liveChannel != null) {
+      Supabase.instance.client.removeChannel(_liveChannel!);
+    }
+    super.dispose();
+  }
+
+  void _subscribeLive(String uid) {
+    if (_liveChannel != null) return;
+    _liveChannel = Supabase.instance.client
+        .channel('resident-reports-$uid')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'reports',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'resident_id',
+          value: uid,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..subscribe();
+  }
+
+  void _scheduleLiveReload() {
+    _liveDebounce?.cancel();
+    _liveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _load();
+    });
   }
 
   Future<void> _load() async {
@@ -176,6 +219,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       }
       return;
     }
+
+    _subscribeLive(uid);
 
     setState(() => _error = null);
     try {

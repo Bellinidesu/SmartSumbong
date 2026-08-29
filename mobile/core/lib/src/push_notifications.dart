@@ -94,11 +94,24 @@ class PushNotifications {
     // Foreground display. This is the ONE state Android does not handle
     // for a plain FCM notification message — everywhere else (background,
     // killed) the system tray shows it without any of this code running.
+    //
+    // The id is derived from report_id, not the notification's own
+    // hashCode (title+body), so a second status push for the SAME
+    // report replaces the first in the tray instead of stacking next to
+    // it — matching what send-dispatch-push now does server-side via
+    // android.notification.tag for the background/killed path this
+    // listener never sees. A notification with no report_id
+    // (verification) keeps the old per-message id, since there is
+    // nothing to collapse it against.
     FirebaseMessaging.onMessage.listen((message) {
       final n = message.notification;
       if (n == null) return;
+      final reportId = message.data['report_id'] as String?;
+      final notifId = (reportId != null && reportId.isNotEmpty)
+          ? reportId.hashCode
+          : n.hashCode;
       _local.show(
-        id: n.hashCode,
+        id: notifId,
         title: n.title,
         body: n.body,
         notificationDetails: NotificationDetails(
@@ -108,9 +121,12 @@ class PushNotifications {
             channelDescription: _channel.description,
             importance: Importance.high,
             priority: Priority.high,
+            // A remark can run long; the collapsed one-line preview
+            // Android shows by default cuts it off mid-sentence.
+            styleInformation: BigTextStyleInformation(n.body ?? ''),
           ),
         ),
-        payload: message.data['report_id'] as String?,
+        payload: reportId,
       );
     });
 

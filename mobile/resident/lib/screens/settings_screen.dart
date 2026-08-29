@@ -46,6 +46,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricEnabled = false;
   bool _biometricBusy = false;
 
+  bool _deletingAccount = false;
+
   @override
   void initState() {
     super.initState();
@@ -213,6 +215,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
   }
 
+  // Two gates, not one: the explanation dialog is where a resident learns
+  // what actually happens (sign-in disabled forever; kept reports lose
+  // their personal details, not their existence) — see 0045's own reasons
+  // for that split. Typing DELETE is the second gate, the same weight
+  // this app already gives an irreversible action nowhere else quite
+  // reaches. request_account_deletion() runs inside the delete-account
+  // Edge Function (0045's comment explains why it can't run from Flutter
+  // directly: only that function holds the service role key GoTrue's
+  // admin ban/delete calls need).
+  Future<void> _deleteAccount() async {
+    final s = context.s;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => _DeleteAccountDialog(s: s),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingAccount = true);
+    try {
+      await Supabase.instance.client.functions.invoke('delete-account');
+      await widget.auth.signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.deleteAccountFailed)),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingAccount = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -342,6 +377,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: _onBiometricToggle,
             ),
             _SettingsRow(
+              icon: Icons.notifications_none,
+              label: s.settingsNotificationPrefs,
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/notification-preferences'),
+            ),
+            _SettingsRow(
               icon: Icons.privacy_tip_outlined,
               label: s.termsPrivacyTitle,
               onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
@@ -359,6 +400,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                 }
               },
+            ),
+            _SettingsRow(
+              icon: Icons.delete_outline,
+              label: s.settingsDeleteAccount,
+              showChevron: false,
+              color: const Color(0xFFDC2626),
+              busy: _deletingAccount,
+              onTap: _deletingAccount ? null : _deleteAccount,
             ),
             _SettingsRow(
               icon: Icons.logout,
@@ -457,31 +506,167 @@ class _SettingsRow extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.showChevron = true,
+    this.color,
+    this.busy = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
   final bool showChevron;
+  final Color? color;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
+    final tint = color ?? context.colors.navy;
     return InkWell(
-      onTap: onTap,
+      onTap: busy ? null : onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
-            Icon(icon, color: context.colors.navy, size: 22),
+            Icon(icon, color: tint, size: 22),
             const SizedBox(width: 18),
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(fontSize: 14, color: context.colors.navy),
+                style: TextStyle(fontSize: 14, color: tint),
               ),
             ),
-            if (showChevron)
-              Icon(Icons.chevron_right, color: context.colors.navy, size: 20),
+            if (busy)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: tint),
+              )
+            else if (showChevron)
+              Icon(Icons.chevron_right, color: tint, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Two gates in one dialog: the explanation (why this differs from just
+/// signing out) and a typed "DELETE" the confirm button won't accept
+/// without — see _deleteAccount's own comment for why an irreversible
+/// action gets more friction here than anywhere else in this app.
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog({required this.s});
+
+  final Strings s;
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _controller = TextEditingController();
+  bool _match = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      final ok = _controller.text.trim() == 'DELETE';
+      if (ok != _match) setState(() => _match = ok);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.s;
+    const red = Color(0xFFDC2626);
+    return Dialog(
+      backgroundColor: context.colors.navy,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              s.deleteAccountConfirmTitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+                color: red,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              s.deleteAccountConfirmBody,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: context.colors.bg),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              s.deleteAccountTypeToConfirm,
+              style: TextStyle(fontSize: 12, color: context.colors.bg),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _controller,
+              autocorrect: false,
+              style: TextStyle(color: context.colors.bg),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: context.colors.field,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: context.colors.bg,
+                      side: BorderSide(color: context.colors.bg),
+                      minimumSize: const Size.fromHeight(42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                    ),
+                    child: Text(s.settingsCancel),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed:
+                        _match ? () => Navigator.of(context).pop(true) : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: red,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: red.withValues(alpha: 0.35),
+                      minimumSize: const Size.fromHeight(42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                    ),
+                    child: Text(s.deleteAccountConfirmButton),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

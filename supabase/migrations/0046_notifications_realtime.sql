@@ -1,0 +1,43 @@
+-- =============================================================
+-- SmartSumbong — 0046 Notifications realtime
+--
+-- Added so the resident app can keep the Home bell's unread count and
+-- the in-app Notifications inbox current on their own, without the
+-- resident pulling to refresh or leaving and reopening the app.
+-- Explicit ask, 29 Aug 2026: "reduce the need to refresh to near zero
+-- to really real time this app."
+--
+-- This directly revisits a call made the other way for a similar
+-- screen: verification_pending_screen.dart's header explains at length
+-- why public.users was deliberately kept OFF the realtime publication
+-- (identity images and mobile numbers in the row, a two-hour-long
+-- session holding a socket open for a static wait screen, no seconds-
+-- matter urgency). None of that applies here:
+--   * public.notifications holds no identity data — id, user_id, kind,
+--     report_id, message text, is_read, created_at. Nothing in it is
+--     more sensitive than what the Notifications screen already shows
+--     the resident who owns the row.
+--   * A resident with an open report is exactly the seconds/minutes-
+--     matter case the users-table comment carved out for the admin
+--     map — someone waiting to see whether "Assigned" turned into
+--     "Resolved" is the whole point of this request.
+--   * The screens that open a channel here (home_screen.dart,
+--     reports_screen.dart, report_view_screen.dart,
+--     notifications_screen.dart) are pushed with pushReplacementNamed,
+--     never stacked — resident_nav_bar.dart's tabs replace the current
+--     route rather than layering on top of it — so at most one of
+--     these channels is ever open per resident at a time, not four.
+--
+-- Default replica identity is left alone (not `full`, unlike 0004 did
+-- for reports): every screen that subscribes here treats the event as
+-- a signal to re-run its own already-authenticated select, never reads
+-- values out of the realtime payload itself, so there is no reason to
+-- pay for full-row replication on every update.
+--
+-- Realtime still respects RLS (0004's own note, still true): a
+-- resident's channel, filtered to their own user_id, receives nothing
+-- a plain SELECT against notifications_read would not already return
+-- them.
+-- =============================================================
+
+alter publication supabase_realtime add table public.notifications;

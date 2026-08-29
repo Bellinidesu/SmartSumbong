@@ -12,9 +12,21 @@
 // which is where complaint status updates already land (0002's
 // sweep functions write there) and where announcements would go if the
 // barangay ever wants in-app broadcast. It is read on entry and on
-// resume — same reasoning as Verification Pending: this is not a live
-// feed, and holding a websocket open for a badge is not worth the
-// connection.
+// resume, same as before —
+//
+// PLUS, since 29 Aug 2026, live: a channel on public.notifications
+// (0046) filtered to this resident's own user_id keeps the badge
+// current while Home is open, no pull or resume needed. This reverses
+// the old "not a live feed" call this file used to make for the exact
+// same badge — see 0046's own header for why the calculus changed
+// (notifications holds no identity data the way users does, and a
+// resident with an open report is exactly the seconds-matter case that
+// call was carving an exception for). The resume-based reload stays as
+// a fallback: a socket can drop or never open at all (older build, no
+// notification permission), and this badge should still be right the
+// next time the resident looks at this screen either way.
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -38,6 +50,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _unread = 0;
   bool _loading = true;
 
+  RealtimeChannel? _liveChannel;
+  Timer? _liveDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +63,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _liveDebounce?.cancel();
+    if (_liveChannel != null) {
+      Supabase.instance.client.removeChannel(_liveChannel!);
+    }
     super.dispose();
+  }
+
+  /// One channel per resident, opened once the first successful [_load]
+  /// confirms who they are — never re-opened by a later, live-triggered
+  /// [_load], since [_liveChannel] is already set by then.
+  void _subscribeLive(String uid) {
+    if (_liveChannel != null) return;
+    _liveChannel = Supabase.instance.client
+        .channel('home-notifications-$uid')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'notifications',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'user_id',
+          value: uid,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..subscribe();
+  }
+
+  /// A status change often writes more than one notifications row (and
+  /// a report update alongside it, on other screens) in the same
+  /// transaction — debounced so that lands as one reload, not several.
+  void _scheduleLiveReload() {
+    _liveDebounce?.cancel();
+    _liveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _load();
+    });
   }
 
   @override
@@ -87,6 +137,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _bounce('/verification-pending');
         return;
       }
+
+      _subscribeLive(uid);
 
       final unread = await client
           .from('notifications')

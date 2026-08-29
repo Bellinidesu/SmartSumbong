@@ -34,6 +34,7 @@ import 'screens/languages_screen.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/notification_prefs_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/register_screen.dart';
@@ -244,6 +245,7 @@ class SmartSumbongApp extends StatelessWidget {
         '/languages': (_) => const LanguagesScreen(),
         '/appearance': (_) => const ThemeScreen(),
         '/notifications': (_) => const NotificationsScreen(),
+        '/notification-preferences': (_) => const NotificationPrefsScreen(),
         '/terms-privacy': (_) => const TermsPrivacyScreen(),
         '/submit-report': (_) => const ReportCategoryScreen(),
 

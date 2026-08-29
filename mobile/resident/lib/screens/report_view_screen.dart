@@ -14,11 +14,24 @@
 // as "a linear progress timeline showing tracking updates" and which
 // status_logs_read already permits. Rose's frames do not show it, so it
 // sits below the fold as history rather than competing with the card.
+//
+// LIVE WHILE OPEN (29 Aug 2026 — see home_screen.dart's header for the
+// broader reasoning). This is the one screen where "seconds matter" is
+// most literally true: a resident staring at this exact report while a
+// tanod is dispatched should watch it move, not sit on a stale card
+// until they remember to pull down. A channel filtered to this single
+// report id (on reports) plus this single report's own log rows (on
+// status_logs) reloads the whole screen through the same _load() the
+// pull-to-refresh already used — one fetch path, not two that could
+// drift apart — the moment either changes.
+
+import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import 'package:share_plus/share_plus.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -43,10 +56,61 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   Map<String, dynamic>? _feedback;
   String? _error;
 
+  RealtimeChannel? _liveChannel;
+  Timer? _liveDebounce;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _subscribeLive();
+  }
+
+  @override
+  void dispose() {
+    _liveDebounce?.cancel();
+    if (_liveChannel != null) {
+      Supabase.instance.client.removeChannel(_liveChannel!);
+    }
+    super.dispose();
+  }
+
+  void _subscribeLive() {
+    _liveChannel = Supabase.instance.client
+        .channel('report-live-${widget.reportId}')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'reports',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'id',
+          value: widget.reportId,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'status_logs',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'report_id',
+          value: widget.reportId,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..subscribe();
+  }
+
+  // A status transition writes both a reports row and a status_logs row
+  // in the same transaction — debounced so those two realtime events
+  // become one reload, not two back-to-back fetches.
+  void _scheduleLiveReload() {
+    _liveDebounce?.cancel();
+    _liveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _load();
+    });
   }
 
   Future<void> _load() async {
@@ -134,6 +198,14 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         foregroundColor: context.colors.navy,
         title: Text(s.reportViewTitle,
             style: t.labelLarge?.copyWith(fontSize: 18)),
+        actions: [
+          if (_report != null)
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: s.reportViewShare,
+              onPressed: _share,
+            ),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -222,6 +294,35 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       builder: (_) => _FeedbackSheet(reportId: widget.reportId),
     );
     if (saved == true) await _load();
+  }
+
+  // Hands the tracking id off through the OS share sheet — SMS, Messenger,
+  // copy — rather than the resident retyping a 13-character code by hand
+  // to a neighbour or a barangay staffer. Never includes the resident's
+  // own name; is_anonymous already controls who the barangay tells, and
+  // this only ever repeats what's already on this screen (id, subject,
+  // status) — nothing that could re-identify an anonymous filer to
+  // whoever the share lands with.
+  Future<void> _share() async {
+    final r = _report;
+    if (r == null) return;
+    final s = context.s;
+    final trackingId = r['tracking_id'] as String? ?? '';
+    final subject = r['subject'] as String? ?? '';
+    final status = ReportStatus.parse(r['status'] as String?);
+    final text = s.reportViewShareText(
+      trackingId,
+      subject,
+      s.reportStatusLabel(status.wire),
+    );
+    try {
+      await SharePlus.instance.share(ShareParams(text: text));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.reportViewShareFailed)),
+      );
+    }
   }
 
   void _openPhoto(List<({String url, bool isVideo})> items, int index) {

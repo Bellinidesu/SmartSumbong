@@ -47,6 +47,7 @@
 // on-submit search respects that without needing to think about
 // debouncing.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -55,6 +56,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' hide Path;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -76,6 +78,17 @@ const _barangayCentre = LatLng(14.526905, 121.015543);
 const _maxPhotos = 5;
 
 const _maxDescription = 500;
+
+/// A half-filled report — typed description, picked photos, a video, the
+/// anonymity choice — used to be gone the moment the app was killed or a
+/// weak barangay connection dropped mid-fill. Nothing else on this screen
+/// changed to make that true; it was just never saved anywhere. One draft
+/// slot, not one per category: a resident filing a second report while an
+/// old draft sits unsent is the rare case, and this only ever restores
+/// into a screen whose category still matches what was saved (checked in
+/// `_restoreDraftIfAny` below) — a mismatch just leaves the draft alone
+/// rather than guessing which report a stray photo belonged to.
+const _draftPrefsKey = 'report_draft_v1';
 
 class ReportDetailsScreen extends StatefulWidget {
   const ReportDetailsScreen({
@@ -120,16 +133,22 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   String? _banner;
   final _errors = <String, String>{};
 
+  Timer? _draftDebounce;
+  bool _restoringDraft = false;
+
   @override
   void initState() {
     super.initState();
     _description =
         TextEditingController(text: widget.choice.descriptionPrefill);
+    _description.addListener(_scheduleDraftSave);
     _locate();
+    _restoreDraftIfAny();
   }
 
   @override
   void dispose() {
+    _draftDebounce?.cancel();
     _description.dispose();
     _addressSearch.dispose();
     super.dispose();
@@ -267,6 +286,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         _photos.add(f);
         _errors.remove('photos');
       });
+      _scheduleDraftSave();
     } on MediaUploadException catch (e) {
       setState(() => _banner = e.message);
     }
@@ -280,6 +300,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       // photos themselves are still on the device.
       _uploaded.clear();
     });
+    _scheduleDraftSave();
   }
 
   // ---------- video --------------------------------------------
@@ -300,6 +321,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         _video = f;
         _uploadedVideo = null; // a new file invalidates any prior upload
       });
+      _scheduleDraftSave();
     } on MediaUploadException catch (e) {
       setState(() => _banner = e.message);
     }
@@ -310,6 +332,129 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       _video = null;
       _uploadedVideo = null;
     });
+    _scheduleDraftSave();
+  }
+
+  // ---------- draft (save/restore an in-progress report) --------
+  //
+  // Debounced rather than saved on every keystroke — a resident typing a
+  // description doesn't need a disk write per character, just "the app
+  // was killed mid-sentence" coverage. Photo/video changes save
+  // immediately since those are already discrete, infrequent actions.
+
+  void _scheduleDraftSave() {
+    if (_restoringDraft) return; // don't save the draft we just loaded
+    _draftDebounce?.cancel();
+    _draftDebounce = Timer(const Duration(milliseconds: 600), _saveDraft);
+  }
+
+  Future<void> _saveDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final description = _description.text.trim();
+      // An empty, untouched form is nothing worth remembering — drop any
+      // previously-saved draft instead of writing a blank one back.
+      if (description.isEmpty && _photos.isEmpty && _video == null) {
+        await prefs.remove(_draftPrefsKey);
+        return;
+      }
+      await prefs.setString(
+        _draftPrefsKey,
+        jsonEncode({
+          'category': widget.choice.category.wire,
+          'description': description,
+          'photoPaths': _photos.map((f) => f.path).toList(),
+          'videoPath': _video?.path,
+          'anonymous': _anonymous,
+        }),
+      );
+    } catch (_) {
+      // A draft that fails to save just means nothing to restore later —
+      // never worth interrupting the resident over.
+    }
+  }
+
+  Future<void> _restoreDraftIfAny() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_draftPrefsKey);
+      if (raw == null) return;
+      final draft = jsonDecode(raw) as Map<String, dynamic>;
+
+      // Only ever restores into the same category it was saved from —
+      // a mismatch (resident backed out and picked a different category)
+      // leaves the old draft alone rather than guessing where it belongs.
+      if (draft['category'] != widget.choice.category.wire) return;
+
+      // Picked files can live in a cache directory the OS is free to
+      // clear between launches. Each path is checked before it's trusted
+      // — a photo that's gone is silently dropped, never shown as a
+      // broken thumbnail.
+      final photoPaths = (draft['photoPaths'] as List?)?.cast<String>() ?? [];
+      final restoredPhotos = <File>[];
+      for (final p in photoPaths) {
+        final f = File(p);
+        if (await f.exists()) restoredPhotos.add(f);
+      }
+      File? restoredVideo;
+      final videoPath = draft['videoPath'] as String?;
+      if (videoPath != null && await File(videoPath).exists()) {
+        restoredVideo = File(videoPath);
+      }
+      final restoredDescription = (draft['description'] as String?) ?? '';
+
+      final restoredSomething = restoredPhotos.isNotEmpty ||
+          restoredVideo != null ||
+          restoredDescription.isNotEmpty;
+      if (!restoredSomething || !mounted) return;
+
+      _restoringDraft = true;
+      setState(() {
+        if (restoredDescription.isNotEmpty) {
+          _description.text = restoredDescription;
+        }
+        _photos.addAll(restoredPhotos);
+        _video = restoredVideo;
+        _anonymous = (draft['anonymous'] as bool?) ?? _anonymous;
+      });
+      _restoringDraft = false;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.s.reportDetailsDraftRestored),
+            action: SnackBarAction(
+              label: context.s.reportDetailsDraftDiscard,
+              onPressed: () {
+                setState(() {
+                  _description.clear();
+                  _photos.clear();
+                  _uploaded.clear();
+                  _video = null;
+                  _uploadedVideo = null;
+                });
+                _clearDraft();
+              },
+            ),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      });
+    } catch (_) {
+      // A corrupt or unreadable draft is treated the same as no draft —
+      // the form just starts blank, same as before this existed.
+    }
+  }
+
+  Future<void> _clearDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_draftPrefsKey);
+    } catch (_) {
+      // Nothing to do — worst case a stale draft offers itself again
+      // next time, which _restoreDraftIfAny's own checks handle safely.
+    }
   }
 
   // ---------- submit -----------------------------------------
@@ -375,6 +520,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           'p_media': media,
         },
       );
+
+      // Filed successfully — the whole reason this draft existed is gone.
+      unawaited(_clearDraft());
 
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(
@@ -525,7 +673,10 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                           value: _anonymous,
                           onChanged: _busy
                               ? null
-                              : (v) => setState(() => _anonymous = v),
+                              : (v) {
+                                  setState(() => _anonymous = v);
+                                  _scheduleDraftSave();
+                                },
                           activeThumbColor: context.colors.bg,
                           activeTrackColor: context.colors.navy,
                         ),

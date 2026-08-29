@@ -35,6 +35,26 @@
 // insert itself failed, since that row already exists and already did
 // its job of being the resident's or tanod's in-app record regardless of
 // whether a phone ever buzzed.
+//
+// LIVE-UPDATING TRAY NOTIFICATIONS (added 29 Aug 2026, explicit ask: a
+// resident should be able to file a report, back out to their phone's
+// home screen, and just pull down the shade to see the CURRENT status
+// rather than a pile of every status the report has ever had). Every
+// report-linked push now carries android.notification.tag = report_id.
+// Two Android notifications with the same tag replace each other in the
+// drawer -- this is the one thing that works even when the app is fully
+// backgrounded or killed, because that case is drawn entirely by Android
+// itself from this payload; no Dart code runs to do it (see
+// firebaseMessagingBackgroundHandler's own comment in push_notifications.
+// dart). collapse_key rides along for the same report id so a device
+// that was offline only replays the latest status once it reconnects,
+// not every state it passed through -- capped at 4 distinct collapse
+// keys per sender at a time, which only matters if one resident has 5+
+// reports all mid-update while their phone is offline, a rare enough
+// case that it is not worth engineering around. Notifications with no
+// report_id (verification) are untouched -- there is nothing to collapse
+// them against, and collapsing unrelated account updates into one another
+// would drop information a resident hasn't seen yet.
 
 interface NotificationRecord {
   id: string;
@@ -142,6 +162,34 @@ async function getAccessToken(): Promise<string> {
   return json.access_token as string;
 }
 
+// Mute preferences (migration 0044). Checked here and only here — the
+// notifications row itself always gets written by whatever RPC created
+// it; this is the one place a push is actually sent, so it's the one
+// place that needs to know a resident asked not to be buzzed for this
+// kind. Fails open (returns false, i.e. "not muted") on any lookup
+// trouble: a fetch hiccup must never silently swallow a real
+// notification the recipient didn't ask to have suppressed.
+async function isKindMuted(userId: string, kind: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=muted_notification_kinds`,
+      {
+        headers: {
+          apikey: SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+      },
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as
+      { muted_notification_kinds: string[] | null }[];
+    return (rows[0]?.muted_notification_kinds ?? []).includes(kind);
+  } catch (e) {
+    console.error("Could not check mute preference:", e);
+    return false;
+  }
+}
+
 async function fetchDeviceTokens(userId: string): Promise<string[]> {
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/device_tokens?user_id=eq.${userId}&select=fcm_token`,
@@ -202,7 +250,18 @@ async function sendToToken(
             kind: record.kind,
             notification_id: record.id,
           },
-          android: { priority: "high" },
+          android: {
+            priority: "high",
+            // See the file header: same report id as both the collapse
+            // key and the tag, so repeat status pushes for one report
+            // replace each other instead of stacking.
+            ...(record.report_id
+              ? {
+                  collapse_key: record.report_id,
+                  notification: { tag: record.report_id },
+                }
+              : {}),
+          },
         },
       }),
     },
@@ -230,6 +289,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const record = payload.record;
+
+    if (await isKindMuted(record.user_id, record.kind)) {
+      // Still a real notification -- the row this webhook fired for
+      // already exists and already did its job as the in-app record.
+      // This only skips the phone buzz the recipient asked not to get.
+      return new Response("muted by recipient", { status: 200 });
+    }
+
     const tokens = await fetchDeviceTokens(record.user_id);
     if (tokens.length === 0) {
       // Normal, not an error: most users have not opened a build with

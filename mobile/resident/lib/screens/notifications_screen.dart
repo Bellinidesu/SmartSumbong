@@ -23,6 +23,15 @@
 // unread, which is the closest honest mapping to what the design is
 // pointing at ("this one is new, look at it") without inventing a
 // column nothing else reads.
+//
+// LIVE WHILE OPEN (29 Aug 2026 — see home_screen.dart's header and
+// 0046). A channel on this resident's own notifications rows reloads
+// the list — through the same _load() pull-to-refresh already used, so
+// a freshly-arrived row gets marked read the same way an already-open
+// screen implies it was seen — the moment one arrives, instead of only
+// when the resident next opens or drags down.
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -81,16 +90,55 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification>? _items;
   String? _error;
 
+  RealtimeChannel? _liveChannel;
+  Timer? _liveDebounce;
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void dispose() {
+    _liveDebounce?.cancel();
+    if (_liveChannel != null) {
+      Supabase.instance.client.removeChannel(_liveChannel!);
+    }
+    super.dispose();
+  }
+
+  void _subscribeLive(String uid) {
+    if (_liveChannel != null) return;
+    _liveChannel = Supabase.instance.client
+        .channel('notifications-inbox-$uid')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'notifications',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'user_id',
+          value: uid,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..subscribe();
+  }
+
+  void _scheduleLiveReload() {
+    _liveDebounce?.cancel();
+    _liveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _load();
+    });
+  }
+
   Future<void> _load() async {
     final client = Supabase.instance.client;
     final uid = client.auth.currentUser?.id;
     if (uid == null) return;
+
+    _subscribeLive(uid);
 
     setState(() => _error = null);
     try {

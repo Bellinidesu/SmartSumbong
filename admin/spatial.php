@@ -61,7 +61,16 @@ layout_head('Spatial Distribution', 'spatial.php');
         <option value="closed">Closed</option>
       </select>
 
+      <label class="visually-hidden" for="f-period">Hotspot analysis period</label>
+      <select id="f-period">
+        <option value="30">Last 30 days</option>
+        <option value="90" selected>Last 90 days</option>
+        <option value="365">Last 365 days</option>
+        <option value="0">All time</option>
+      </select>
+
       <label class="toggle"><input type="checkbox" id="f-heat"> Heatmap</label>
+      <label class="toggle"><input type="checkbox" id="f-hotspots"> Hotspots</label>
       <label class="toggle"><input type="checkbox" id="f-fog" checked> Dim outside 183</label>
     </div>
   </header>
@@ -100,6 +109,21 @@ layout_head('Spatial Distribution', 'spatial.php');
         <p class="map-side-head">Live incidents</p>
         <p class="map-side-note" id="map-status">Connecting&hellip;</p>
         <ol class="pin-list" id="pin-list"></ol>
+      </aside>
+
+      <button class="incident-badge" id="hotspot-toggle" aria-expanded="false"
+              aria-controls="hotspot-side" title="Hotspot clusters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2c-1.5 3-4.5 5.5-4.5 9.5a4.5 4.5 0 0 0 9 0c0-1.5-.6-2.5-1.3-3.4.1 1.6-.7 2.4-1.4 2.4.6-2.4-.4-4.6-1.8-8.5Z"/>
+        </svg>
+        <span class="incident-count" id="hotspot-count">0</span>
+      </button>
+
+      <aside class="map-side" id="hotspot-side" hidden>
+        <p class="map-side-head">Top hotspots</p>
+        <p class="map-side-note" id="hotspot-status">Turn on Hotspots to see recurring problem areas.</p>
+        <ol class="pin-list" id="hotspot-list"></ol>
       </aside>
     </div>
   </div>
@@ -409,6 +433,102 @@ if (new URLSearchParams(location.search).has('bounds')) {
 document.getElementById('f-fog').addEventListener('change', e => {
   if (!fog) return;
   e.target.checked ? fog.addTo(map) : map.removeLayer(fog);
+});
+
+// ---- hotspots: real spatial clustering, not just a visual blur -------
+// The Heatmap toggle above is a rendering aid over whatever the current
+// filters show. This is analysis: report_hotspots() (0042) runs an
+// actual density-based clustering pass in the database over a chosen
+// time window and hands back ranked, counted groups — "8 reports within
+// a block of each other this quarter" instead of a blur an admin has to
+// eyeball themselves.
+const hotspotLayer = L.layerGroup();
+let hotspots = [];
+
+function periodRange() {
+  const days = parseInt(document.getElementById('f-period').value, 10);
+  const to = new Date();
+  if (!days) return { from: '2000-01-01T00:00:00Z', to: to.toISOString() };
+  return { from: new Date(to.getTime() - days * 86400000).toISOString(), to: to.toISOString() };
+}
+
+// More reports, hotter colour — same principle as the pin/status legend
+// above: colour is a hint, never the only channel, so the popup and the
+// ranked list both spell the count out in text too.
+function hotspotColour(n) {
+  if (n >= 10) return '#dc2626';
+  if (n >= 6)  return '#f97316';
+  return '#f59e0b';
+}
+
+async function loadHotspots() {
+  const status = document.getElementById('hotspot-status');
+  const badge  = document.getElementById('hotspot-toggle');
+  const count  = document.getElementById('hotspot-count');
+  const list   = document.getElementById('hotspot-list');
+
+  if (!document.getElementById('f-hotspots').checked) {
+    hotspotLayer.clearLayers();
+    if (map.hasLayer(hotspotLayer)) map.removeLayer(hotspotLayer);
+    return;
+  }
+
+  const { from, to } = periodRange();
+  const cat = document.getElementById('f-category').value || null;
+
+  status.textContent = 'Analysing…';
+  const { data, error } = await sb.rpc('report_hotspots', { p_from: from, p_to: to, p_category: cat });
+  if (error) { status.textContent = 'Could not load hotspots: ' + error.message; return; }
+
+  hotspots = data || [];
+  hotspotLayer.clearLayers();
+
+  hotspots.forEach(h => {
+    const radius = 10 + Math.min(h.report_count, 20) * 1.4;
+    L.circleMarker([h.centroid_lat, h.centroid_lng], {
+      radius, color: '#fff', weight: 2,
+      fillColor: hotspotColour(h.report_count), fillOpacity: 0.55,
+    }).bindPopup(
+      '<strong>' + h.report_count + ' reports nearby</strong><br>' +
+      'Mostly ' + label(h.top_category) + '<br>' +
+      new Date(h.first_at).toLocaleDateString() + ' – ' + new Date(h.last_at).toLocaleDateString()
+    ).addTo(hotspotLayer);
+  });
+
+  if (!map.hasLayer(hotspotLayer)) hotspotLayer.addTo(map);
+
+  count.textContent = hotspots.length;
+  badge.classList.toggle('is-live', hotspots.length > 0);
+  status.textContent = hotspots.length
+    ? hotspots.length + ' recurring area' + (hotspots.length === 1 ? '' : 's') + ' found in this period.'
+    : 'No recurring hotspots in this period — complaints are spread out, or too few to cluster.';
+
+  list.innerHTML = '';
+  hotspots.slice(0, 15).forEach((h, i) => {
+    const li = document.createElement('li');
+    li.className = 'pin-item';
+    li.innerHTML =
+      '<span class="pin-dot" style="background:' + hotspotColour(h.report_count) + '"></span>' +
+      '<span class="pin-body">#' + (i + 1) + ' — ' + h.report_count + ' reports' +
+      '<small>' + label(h.top_category) + '</small></span>';
+    li.addEventListener('click', () => map.setView([h.centroid_lat, h.centroid_lng], 18));
+    list.appendChild(li);
+  });
+  if (!hotspots.length) {
+    list.innerHTML = '<li class="pin-empty">Nothing recurring enough to call a hotspot yet.</li>';
+  }
+}
+
+document.getElementById('f-hotspots').addEventListener('change', loadHotspots);
+document.getElementById('f-period').addEventListener('change', loadHotspots);
+document.getElementById('f-category').addEventListener('change', loadHotspots);
+
+const hotspotToggleBtn = document.getElementById('hotspot-toggle');
+const hotspotSide      = document.getElementById('hotspot-side');
+hotspotToggleBtn.addEventListener('click', () => {
+  const open = hotspotSide.hasAttribute('hidden');
+  open ? hotspotSide.removeAttribute('hidden') : hotspotSide.setAttribute('hidden', '');
+  hotspotToggleBtn.setAttribute('aria-expanded', String(open));
 });
 
 loadBoundary().then(load);

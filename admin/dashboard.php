@@ -121,6 +121,10 @@ layout_head('Dashboard', 'dashboard.php');
            value="<?= e($month->format('Y-m')) ?>" onchange="this.form.submit()">
   </form>
   <button class="btn-pdf" type="button" onclick="window.print()">Download PDF</button>
+  <!-- No-login version of a handful of these same figures, for residents
+       and anyone else. Opens in its own tab rather than navigating the
+       admin away from the session they're in. -->
+  <a class="btn-pdf" href="../public/transparency.php" target="_blank" rel="noopener">Public Transparency Page</a>
   <!-- The kapitan reads these figures over someone's shoulder and asks how
        current they are. Better on the screen than in the answer. -->
   <p class="as-of">Data as of <?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A, j M Y')) ?></p>
