@@ -107,6 +107,12 @@ enum ComplaintCategory {
 
   const ComplaintCategory(this.wire, this.label, this.issues);
 
+  /// Reads a stored row's category back out. Falls back to
+  /// peaceOrderNuisance on an unmatched value, for the same reason the
+  /// picker maps "Others" there — see this file's own header.
+  static ComplaintCategory parse(String? wire) => ComplaintCategory.values
+      .firstWhere((c) => c.wire == wire, orElse: () => peaceOrderNuisance);
+
   /// The value sent to Postgres. Must match the enum label exactly.
   final String wire;
 

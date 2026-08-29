@@ -74,6 +74,13 @@ comment on column public.users.ocr_processed_at is
 -- personnel.php read the queue through. Same signature otherwise; three
 -- columns appended at the end so existing positional callers (there are
 -- none outside includes/accounts.php, which selects by name) still work.
+--
+-- CREATE OR REPLACE cannot add a column to a RETURNS TABLE function on
+-- its own -- Postgres treats that as changing the OUT parameters, which
+-- it refuses (42P13, "cannot change return type of existing function").
+-- 0040 already knew this for review_report; account_directory was
+-- missed here, so the drop goes first, same as 0040 does for that one.
+drop function if exists public.account_directory(user_role);
 
 create or replace function public.account_directory(p_role user_role)
 returns table (

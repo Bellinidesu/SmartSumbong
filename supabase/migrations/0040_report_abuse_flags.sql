@@ -195,6 +195,11 @@ comment on function public.resident_abuse_reports(uuid) is
 -- account_directory (0013, extended by 0039 for OCR) -- one more
 -- column appended at the end, same reasoning 0039 already gave for
 -- appending rather than reordering: existing callers select by name.
+--
+-- Same drop-first requirement as review_report above and as 0039 now
+-- does for this same function -- CREATE OR REPLACE cannot add a column
+-- to a RETURNS TABLE function.
+drop function if exists public.account_directory(user_role);
 
 create or replace function public.account_directory(p_role user_role)
 returns table (
