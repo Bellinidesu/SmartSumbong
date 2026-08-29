@@ -523,6 +523,10 @@ class Strings {
       'Hindi iyon gumana. Subukan ulit.');
   String get reportsViewTitle =>
       _t('View your Reports', 'Tingnan ang Iyong mga Ulat');
+  /// Small orange eyebrow label above whichever open report the list
+  /// auto-expands to show its timeline for — see reports_screen.dart's
+  /// hero-card header comment for why exactly one report gets this.
+  String get reportsTrackingLabel => _t('TRACKING PROGRESS', 'SINUSUBAYBAYAN');
   String get reportsEmptyAll => _t(
       'You have not filed any reports yet.',
       'Wala ka pang isinumiteng ulat.');
@@ -637,6 +641,21 @@ class Strings {
   String get reportViewShareFailed => _t(
       'Could not open the share menu.', 'Hindi mabuksan ang share menu.');
   String get reportViewHistory => _t('History', 'Kasaysayan');
+  /// The synthetic first row report_view_screen.dart's timeline always
+  /// shows, built from the report's own created_at rather than a
+  /// status_logs row -- submission itself is never a logged transition,
+  /// so without this the timeline's first entry would be whatever the
+  /// first real transition happened to be, same gap the reference
+  /// mockup's own first row ("Report submitted") doesn't have.
+  String get reportViewSubmittedStep =>
+      _t('Report submitted', 'Naisumite ang ulat');
+  /// Subtext under the synthetic last row shown while a report is still
+  /// moving -- the next stage in pending_review/validated -> assigned/
+  /// in_progress/offline_investigation -> resolved, computed from the
+  /// same three buckets reportStatusLabel already collapses statuses
+  /// into, not a guess at what a tanod or admin will specifically do.
+  String get reportViewUpcomingStep =>
+      _t('Not yet reached', 'Hindi pa naaabot');
   String get reportViewAnonymous => _t('Anonymous', 'Anonymous');
   String get reportViewCouldNotLoadPhoto => _t(
       'Could not load this photo.', 'Hindi ma-load ang larawang ito.');

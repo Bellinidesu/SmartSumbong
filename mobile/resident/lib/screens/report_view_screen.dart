@@ -36,6 +36,8 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
+import '../location_lookup.dart';
+import '../models/complaint_category.dart';
 import '../theme.dart';
 import 'reports_screen.dart' show ReportStatus;
 
@@ -121,7 +123,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       final r = await client
           .from('reports')
           .select('id, tracking_id, subject, description, status, '
-              'latitude, longitude, is_anonymous, created_at, '
+              'category, latitude, longitude, is_anonymous, created_at, '
               'resolved_at, closed_at, reopened_count')
           .eq('id', widget.reportId)
           .maybeSingle();
@@ -212,13 +214,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         child: RefreshIndicator(
           onRefresh: _load,
           color: context.colors.navy,
-          child: _body(t, s),
+          child: _body(s),
         ),
       ),
     );
   }
 
-  Widget _body(TextTheme t, Strings s) {
+  Widget _body(Strings s) {
     if (_error != null) {
       return ListView(children: [
         const SizedBox(height: 80),
@@ -233,6 +235,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
     final r = _report!;
     final status = ReportStatus.parse(r['status'] as String?);
+    final category = ComplaintCategory.parse(r['category'] as String?);
     final lat = (r['latitude'] as num?)?.toDouble();
     final lng = (r['longitude'] as num?)?.toDouble();
 
@@ -242,6 +245,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         _ReportCard(
           trackingId: r['tracking_id'] as String? ?? '',
           subject: r['subject'] as String? ?? '',
+          category: category,
           description: r['description'] as String? ?? '',
           status: status,
           createdAt: DateTime.tryParse(r['created_at'] as String? ?? ''),
@@ -250,35 +254,33 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           longitude: lng,
           photos: _photos,
           onViewPhoto: (i) => _openPhoto(_photos, i),
-        ),
-
-        // The line under the card, which is the only real difference
-        // between Rose's six frames.
-        const SizedBox(height: 12),
-        _StatusNote(
-          status: status,
+          // Merged into the card itself -- the reference mockup runs the
+          // timeline on inside the same card, straight under the date
+          // band, rather than as a separate section below the fold the
+          // way this screen used to. Full remark text and time-of-day
+          // stay (unlike the compact copy this reference-driven card
+          // shows on the list) -- this is the one screen a resident
+          // actually reads history on, so trimming it here would lose
+          // real information for the sake of matching a mockup that was
+          // only ever drawn as a list-row preview.
+          timeline: _timeline,
+          // Absorbed into the card too (29 Aug 2026) -- the status note
+          // and the feedback box used to float below as their own
+          // separately bordered pieces (the line under the card that
+          // used to be "the only real difference between Rose's six
+          // frames"); the user's own call after seeing them looking
+          // disconnected from the card on the emulator. Both still only
+          // render the way they always did -- the status note's own
+          // switch on `status`, the feedback box's own switch on whether
+          // `_feedback` has landed yet -- just laid out as trailing
+          // sections of _ReportCard now instead of separate widgets in
+          // this ListView.
           hasProof: _proof.isNotEmpty,
           reopenedCount: (r['reopened_count'] as num?)?.toInt() ?? 0,
           onViewProof: () => _openPhoto(_proof, 0),
+          feedback: _feedback,
+          onRate: _openFeedback,
         ),
-
-        // Feedback closes the loop the resident started. RLS allows the
-        // insert only on a resolved or closed report, so the card is
-        // shown on exactly the states the database would accept.
-        if (status.isFinished) ...[
-          const SizedBox(height: 20),
-          _FeedbackCard(
-            feedback: _feedback,
-            onRate: _openFeedback,
-          ),
-        ],
-
-        if (_timeline.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          Text(s.reportViewHistory, style: t.labelLarge?.copyWith(fontSize: 16)),
-          const SizedBox(height: 12),
-          _Timeline(entries: _timeline),
-        ],
       ],
     );
   }
@@ -335,10 +337,22 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
 // ---------- pieces -------------------------------------------
 
+// Card layout below now follows the reference mockup's structure verbatim
+// (meta line + corner pill, title, body, tinted date band, timeline all
+// in one card) rather than Rose's six-frame design -- the user's own call
+// (29 Aug 2026): "figma is a reference ngl", this screen should read like
+// the mockup. What stays app-specific rather than mockup-verbatim: the
+// navy/orange/Poppins palette (kept, not the mockup's blue/Jakarta Sans,
+// so this screen doesn't clash with every other screen around it), and
+// the map + photo carousel (the mockup never had to render either since
+// it was static, but a resident checking their own filed report needs to
+// see the pin and their evidence, so both stay, slotted in after the
+// description).
 class _ReportCard extends StatelessWidget {
   const _ReportCard({
     required this.trackingId,
     required this.subject,
+    required this.category,
     required this.description,
     required this.status,
     required this.createdAt,
@@ -347,10 +361,17 @@ class _ReportCard extends StatelessWidget {
     required this.longitude,
     required this.photos,
     required this.onViewPhoto,
+    this.timeline = const [],
+    required this.hasProof,
+    required this.reopenedCount,
+    required this.onViewProof,
+    required this.feedback,
+    required this.onRate,
   });
 
   final String trackingId;
   final String subject;
+  final ComplaintCategory category;
   final String description;
   final ReportStatus status;
   final DateTime? createdAt;
@@ -360,135 +381,221 @@ class _ReportCard extends StatelessWidget {
   final List<({String url, bool isVideo})> photos;
   final ValueChanged<int> onViewPhoto;
 
+  /// This report's status_logs rows, oldest first. Same shape and same
+  /// source as reports_screen.dart's hero timeline, just never trimmed --
+  /// see the call site for why this screen keeps the full remark/time.
+  final List<Map<String, dynamic>> timeline;
+
+  /// The status note and feedback box's own inputs, unchanged from when
+  /// they were separate widgets below the card -- just threaded through
+  /// so build() can render them as trailing sections of this card
+  /// instead (29 Aug 2026).
+  final bool hasProof;
+  final int reopenedCount;
+  final VoidCallback onViewProof;
+  final Map<String, dynamic>? feedback;
+  final VoidCallback onRate;
+
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 15, 20, 16),
+      clipBehavior: Clip.antiAlias,
+      // Light card, not the navy fill this card used before this round --
+      // the user's own call, straying from Rose's frames on purpose for
+      // this screen. `field` is this app's existing "lighter than the
+      // page" surface token (already used by _FeedbackCard below), so
+      // this reuses an established light-card convention rather than
+      // inventing a new one; `navy` on it reads as dark accent-coloured
+      // text/border, same as it always has, just no longer the fill.
+      //
+      // 1:1 pass (29 Aug 2026): radius, padding, shadow and the section
+      // split below now match the mockup's .report-detail-card exactly
+      // (10px radius, transparent border, two-layer soft shadow, and a
+      // padded "top" block / full-bleed tinted "bottom" band / padded
+      // timeline block, instead of one uniform outer padding) -- only
+      // the font-family and the established navy/orange/muted/field/bg
+      // colour roles stay put, per the user's own framing of the ask.
       decoration: BoxDecoration(
-        color: context.colors.navy,
-        border: Border.all(color: context.colors.bg),
-        borderRadius: BorderRadius.circular(20),
+        color: context.colors.field,
+        borderRadius: BorderRadius.circular(10),
         boxShadow: const [
-          BoxShadow(
-            color: Color(0x4D121212),
-            blurRadius: 2.5,
-            offset: Offset(0, 5),
-          ),
+          BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x0F000000), blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text.rich(
-            TextSpan(children: [
-              const TextSpan(text: '('),
-              TextSpan(
-                text: '$trackingId - ${s.reportStatusLabel(status.wire)}',
-                style: TextStyle(color: status.labelColour(context)),
+          // rdc-top: header, body, and the app's own map/photo additions
+          // (the mockup has no equivalent for those two, so their own
+          // sizing is untouched) -- separated from the date band below
+          // by `divider`, the literal mapping for the mockup's
+          // var(--border), not an ad-hoc navy alpha.
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: context.colors.divider),
               ),
-              const TextSpan(text: ') '),
-              TextSpan(text: subject),
-            ]),
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-              height: 1.1,
-              color: context.colors.bg,
             ),
-          ),
-          const SizedBox(height: 6),
-          // A Wrap, not a Row: a long month name plus the anonymous
-          // badge overruns the card on a narrow handset, and the badge
-          // dropping to its own line is better than either clipping the
-          // date or shrinking it.
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 2,
-            children: [
-              Text(
-                createdAt == null
-                    ? ''
-                    : s.reportsSubmittedOn(_formatDate(s, createdAt!)),
-                style: TextStyle(fontSize: 12, color: context.colors.bg),
-              ),
-              if (isAnonymous)
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Row(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.visibility_off_outlined,
-                        size: 13, color: context.colors.bg),
-                    const SizedBox(width: 3),
-                    Text(s.reportViewAnonymous,
-                        style: TextStyle(fontSize: 11, color: context.colors.bg)),
-                  ],
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            s.reportsCardDescription(description),
-            style: TextStyle(
-                fontSize: 12, height: 1.25, color: context.colors.bg),
-          ),
-
-          if (latitude != null && longitude != null) ...[
-            const SizedBox(height: 14),
-            _MiniMap(point: LatLng(latitude!, longitude!)),
-          ],
-
-          if (photos.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 134,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: photos.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) => GestureDetector(
-                  onTap: () => onViewPhoto(i),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: photos[i].isVideo
-                        ? Container(
-                            width: 200,
-                            height: 134,
-                            color: context.colors.bg.withValues(alpha: 0.85),
-                            child: Center(
-                              child: Icon(Icons.play_circle_fill,
-                                  size: 40, color: context.colors.navy),
-                            ),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: photos[i].url,
-                            width: 200,
-                            height: 134,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) => Container(
-                              width: 200,
-                              height: 134,
-                              color: context.colors.bg.withValues(alpha: 0.2),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                    color: context.colors.bg, strokeWidth: 2),
-                              ),
-                            ),
-                            errorWidget: (_, __, ___) => Container(
-                              width: 200,
-                              height: 134,
-                              color: context.colors.bg.withValues(alpha: 0.15),
-                              child: Icon(Icons.broken_image_outlined,
-                                  color: context.colors.bg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ID · category, small and muted, directly above the
+                          // title -- same top line reports_screen.dart's card
+                          // uses, so a resident sees the identical pattern
+                          // whether they're skimming the list or reading one
+                          // report in full.
+                          Text(
+                            '$trackingId · ${category.label}',
+                            style: TextStyle(fontSize: 11, color: context.colors.muted),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subject,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              height: 1.1,
+                              color: context.colors.navy,
                             ),
                           ),
-                  ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _StatusPill(status: status),
+                  ],
                 ),
+                if (isAnonymous) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.visibility_off_outlined,
+                          size: 13, color: context.colors.muted),
+                      const SizedBox(width: 3),
+                      Text(s.reportViewAnonymous,
+                          style: TextStyle(fontSize: 11, color: context.colors.muted)),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 6),
+                // Full text, no ellipsis -- unlike the list card's 3-line clip,
+                // this is the one screen a resident reads their own complaint
+                // back on in full.
+                Text(
+                  s.reportsCardDescription(description),
+                  style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.muted),
+                ),
+
+                if (latitude != null && longitude != null) ...[
+                  const SizedBox(height: 14),
+                  _MiniMap(point: LatLng(latitude!, longitude!)),
+                ],
+
+                // 29 Aug 2026: the map got bigger and the evidence photos
+                // moved off a strip of small 200x134 thumbnails and onto
+                // one big swipeable frame close to the map's own size --
+                // neither had a mockup layout to be 1:1 against (see the
+                // Round 7 write-up), this is the user's own direct call
+                // after seeing both cramped side by side on the emulator.
+                if (photos.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _MediaCarousel(photos: photos, onViewPhoto: onViewPhoto),
+                ],
+              ],
+            ),
+          ),
+
+          // rdc-bottom: a full-bleed tinted strip, not a nested rounded
+          // chip -- the mockup runs this the full width of the card.
+          // 1:1 pass (29 Aug 2026): the 🕐 emoji glyph is gone, replaced
+          // by a proper Icons widget (this app's own established icon
+          // pack -- Material Icons, already used everywhere else on this
+          // screen, not a new dependency), and the mockup's
+          // "📍 <place>" line is back, fed by a best-effort
+          // reverse-geocode lookup rather than a stored address column --
+          // see location_lookup.dart's header for why.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            color: context.colors.bg,
+            child: Row(
+              children: [
+                if (latitude != null && longitude != null)
+                  _LocationLabel(latitude: latitude!, longitude: longitude!),
+                if (createdAt != null) ...[
+                  Icon(Icons.access_time_rounded,
+                      size: 12, color: context.colors.muted),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatDate(s, createdAt!),
+                    style: TextStyle(fontSize: 11, color: context.colors.muted),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          if (createdAt != null || timeline.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+              child: _Timeline(
+                entries: timeline,
+                submittedAt: createdAt,
+                upcomingWire: status.isOngoing
+                    ? (status == ReportStatus.pendingReview ||
+                            status == ReportStatus.validated
+                        ? 'assigned'
+                        : 'resolved')
+                    : null,
               ),
             ),
-          ],
+
+          // Status note -- "Your report has been resolved.", the one
+          // line that differs between Rose's six frames -- used to float
+          // below the card as its own bordered bubble; now just another
+          // divided section, same top-border pattern the rdc-top/
+          // rdc-bottom split above already uses.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: context.colors.divider)),
+            ),
+            child: _StatusNote(
+              status: status,
+              hasProof: hasProof,
+              reopenedCount: reopenedCount,
+              onViewProof: onViewProof,
+            ),
+          ),
+
+          // Feedback closes the loop the resident started. RLS allows
+          // the insert only on a resolved or closed report, so this
+          // only ever shows on the states the database would accept.
+          // Also absorbed into the card (29 Aug 2026), same reasoning
+          // as the status note above.
+          if (status.isFinished)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: context.colors.divider)),
+              ),
+              child: _FeedbackCard(feedback: feedback, onRate: onRate),
+            ),
         ],
       ),
     );
@@ -497,6 +604,103 @@ class _ReportCard extends StatelessWidget {
   static String _formatDate(Strings s, DateTime utc) {
     final d = utc.toLocal();
     return '${s.monthFull(d.month)} ${d.day}, ${d.year}';
+  }
+}
+
+/// The mockup's "📍 <place>" footer meta item, resolved from the
+/// report's coordinates via location_lookup.dart rather than a stored
+/// address string -- see that file's header for the full reasoning.
+/// Renders nothing (not a coordinate pair, not an error) while loading
+/// or when the lookup comes back empty, including its own trailing gap
+/// so the date beside it never ends up with a stray double space when
+/// there's nothing to show. Same widget as reports_screen.dart's own
+/// copy -- duplicated, not shared, per this app's established
+/// convention for screen-specific widgets.
+class _LocationLabel extends StatefulWidget {
+  const _LocationLabel({required this.latitude, required this.longitude});
+  final double latitude;
+  final double longitude;
+
+  @override
+  State<_LocationLabel> createState() => _LocationLabelState();
+}
+
+class _LocationLabelState extends State<_LocationLabel> {
+  late Future<String?> _future =
+      ReverseGeocode.lookup(widget.latitude, widget.longitude);
+
+  @override
+  void didUpdateWidget(covariant _LocationLabel old) {
+    super.didUpdateWidget(old);
+    if (old.latitude != widget.latitude || old.longitude != widget.longitude) {
+      _future = ReverseGeocode.lookup(widget.latitude, widget.longitude);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _future,
+      builder: (context, snap) {
+        final name = snap.data;
+        if (name == null || name.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.location_on_outlined,
+                  size: 12, color: context.colors.muted),
+              const SizedBox(width: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Text(
+                  name,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: context.colors.muted),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The rounded corner badge the reference mockup puts status in, rather
+/// than this screen's old inline coloured text folded into the title.
+/// Same shape as reports_screen.dart's card, but its own tint logic --
+/// ReportStatus.labelColour returns this app's bg colour for the normal
+/// case, tuned for text sitting on a navy card. On this card the fill is
+/// light, so that would read as invisible near-white text; a solid tint
+/// pill (soft navy fill, navy text -- red for cancelled, same one
+/// exception labelColour already carves out) is this file's own version
+/// of the same "just one accent colour, not a status rainbow" rule.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.status});
+  final ReportStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = status == ReportStatus.cancelled;
+    final tint = danger ? const Color(0xFFFF4949) : context.colors.navy;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        context.s.reportStatusLabel(status.wire),
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
+          color: tint,
+        ),
+      ),
+    );
   }
 }
 
@@ -512,9 +716,12 @@ class _MiniMap extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(25),
       child: Container(
-        height: 189,
+        // Bumped 189 -> 240 (29 Aug 2026) -- the user's own call after
+        // seeing it live on the emulator next to the evidence photos
+        // below, which read as cramped at the old size.
+        height: 240,
         decoration: BoxDecoration(
-          border: Border.all(color: context.colors.bg),
+          border: Border.all(color: context.colors.navy.withValues(alpha: 0.12)),
           borderRadius: BorderRadius.circular(25),
         ),
         child: FlutterMap(
@@ -547,7 +754,116 @@ class _MiniMap extends StatelessWidget {
   }
 }
 
-/// The one line that differs between Rose's six frames.
+/// The evidence photos/videos a resident attached, shown one at a time
+/// large and swipeable -- not as a strip of small 200x134 thumbnails --
+/// so this reads with the same visual weight as the map above it rather
+/// than as an afterthought squeezed underneath it. A small dot rail
+/// beneath the frame is the only affordance for "there's more than one";
+/// tapping the frame still opens the full-screen _PhotoViewer, same as
+/// the old thumbnail strip did.
+class _MediaCarousel extends StatefulWidget {
+  const _MediaCarousel({required this.photos, required this.onViewPhoto});
+
+  final List<({String url, bool isVideo})> photos;
+  final ValueChanged<int> onViewPhoto;
+
+  @override
+  State<_MediaCarousel> createState() => _MediaCarouselState();
+}
+
+class _MediaCarouselState extends State<_MediaCarousel> {
+  final _controller = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: SizedBox(
+            height: 220,
+            width: double.infinity,
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: widget.photos.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) {
+                final photo = widget.photos[i];
+                return GestureDetector(
+                  onTap: () => widget.onViewPhoto(i),
+                  child: photo.isVideo
+                      ? Container(
+                          color: context.colors.navy.withValues(alpha: 0.08),
+                          child: Center(
+                            child: Icon(Icons.play_circle_fill,
+                                size: 48, color: context.colors.navy),
+                          ),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: photo.url,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          placeholder: (_, __) => Container(
+                            color: context.colors.navy.withValues(alpha: 0.08),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                  color: context.colors.navy, strokeWidth: 2),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            color: context.colors.navy.withValues(alpha: 0.08),
+                            child: Icon(Icons.broken_image_outlined,
+                                color: context.colors.navy),
+                          ),
+                        ),
+                );
+              },
+            ),
+          ),
+        ),
+        if (widget.photos.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < widget.photos.length; i++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _page ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == _page
+                        ? context.colors.navy
+                        : context.colors.divider,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The one line that differs between Rose's six frames. Used to be its
+/// own right-margined, bordered chat bubble floating below the card;
+/// absorbed into the card itself as of 29 Aug 2026 (see the card's own
+/// build() for the section that now wraps this), so the bubble's own
+/// border/fill/radius/margin are gone -- just the text and its actions.
+/// Centered rather than right-aligned as of the same round's follow-up
+/// feedback -- this reads as the card's own closing line now that it
+/// lives inside the card, not a message bubble handed across a chat.
 class _StatusNote extends StatelessWidget {
   const _StatusNote({
     required this.status,
@@ -588,34 +904,25 @@ class _StatusNote extends StatelessWidget {
     };
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          margin: const EdgeInsets.only(left: 40),
-          padding: const EdgeInsets.fromLTRB(14, 12, 18, 12),
-          decoration: BoxDecoration(
-            color: context.colors.field,
-            border: Border.all(color: context.colors.navy),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text.rich(
-            TextSpan(children: [
-              TextSpan(text: text),
-              if (action != null)
-                TextSpan(
-                  text: action,
-                  style: const TextStyle(
-                    decoration: TextDecoration.underline,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  recognizer: null,
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(text: text),
+            if (action != null)
+              TextSpan(
+                text: action,
+                style: const TextStyle(
+                  decoration: TextDecoration.underline,
+                  fontWeight: FontWeight.w700,
                 ),
-              if (action != null) TextSpan(text: s.reportViewForTheProof),
-            ]),
-            textAlign: TextAlign.right,
-            style: TextStyle(
-                fontSize: 12, height: 1.25, color: context.colors.navy),
-          ),
+                recognizer: null,
+              ),
+            if (action != null) TextSpan(text: s.reportViewForTheProof),
+          ]),
+          textAlign: TextAlign.center,
+          style:
+              TextStyle(fontSize: 12, height: 1.4, color: context.colors.navy),
         ),
         if (action != null)
           TextButton(
@@ -629,6 +936,7 @@ class _StatusNote extends StatelessWidget {
               reopenedCount == 1
                   ? s.reportViewReopenedOnce
                   : s.reportViewReopenedTimes(reopenedCount),
+              textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: context.colors.muted),
             ),
           ),
@@ -637,47 +945,78 @@ class _StatusNote extends StatelessWidget {
   }
 }
 
-/// From status_logs. The Track Complaint Status use case calls for "a
-/// linear progress timeline showing tracking updates" and "formal
-/// remarks appended by responding personnel or administrators".
+/// From status_logs, plus two synthetic rows neither table has to offer:
+/// a first "Report submitted" node built from the report's own
+/// created_at (submission itself is never a logged transition, so
+/// without this the timeline's first real row would be whatever
+/// happened to transition it first), and, only while the report is
+/// still moving, a last "not yet reached" node for the next stage --
+/// see report_view_screen's card build() for how upcomingWire is
+/// computed (the same three status buckets reportStatusLabel already
+/// collapses into, not a guess at specifics). The Track Complaint
+/// Status use case calls for "a linear progress timeline showing
+/// tracking updates" and "formal remarks appended by responding
+/// personnel or administrators" -- the remarks stay on the real rows.
 class _Timeline extends StatelessWidget {
-  const _Timeline({required this.entries});
+  const _Timeline({
+    required this.entries,
+    required this.submittedAt,
+    this.upcomingWire,
+  });
+
   final List<Map<String, dynamic>> entries;
+  final DateTime? submittedAt;
+  final String? upcomingWire;
 
   @override
   Widget build(BuildContext context) {
+    final hasUpcoming = upcomingWire != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (submittedAt != null)
+          _SubmittedStepRow(
+            when: submittedAt!,
+            hasMore: entries.isNotEmpty || hasUpcoming,
+          ),
         for (var i = 0; i < entries.length; i++)
           _TimelineRow(
             entry: entries[i],
-            isFirst: i == 0,
-            isLast: i == entries.length - 1,
+            isCurrent: i == entries.length - 1 && hasUpcoming,
+            isFinalNode: i == entries.length - 1 && !hasUpcoming,
           ),
+        if (upcomingWire != null) _UpcomingStepRow(wire: upcomingWire!),
       ],
     );
   }
 }
 
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({
-    required this.entry,
-    required this.isFirst,
-    required this.isLast,
+/// The dot-and-line shell every timeline row shares, so the submitted /
+/// real / upcoming rows all line up in the same 24px-wide rail
+/// regardless of which one draws the dot.
+class _TimelineRail extends StatelessWidget {
+  const _TimelineRail({
+    required this.dot,
+    required this.hasLineBelow,
+    required this.bottomPadding,
+    this.lineColor,
+    required this.child,
   });
 
-  final Map<String, dynamic> entry;
-  final bool isFirst;
-  final bool isLast;
+  final Widget dot;
+  final bool hasLineBelow;
+  final double bottomPadding;
+
+  /// Mockup nuance from the raw markup, not just the CSS rules: only the
+  /// line below a fully-`done` dot gets the accent colour -- the line
+  /// below the `active`/current dot stays neutral, since what follows
+  /// is unknown/future. Callers pass `navy` after a done row and
+  /// `divider` after the current row; unset falls back to `divider`.
+  final Color? lineColor;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final s = context.s;
-    final status = ReportStatus.parse(entry['new_status'] as String?);
-    final when = DateTime.tryParse(entry['created_at'] as String? ?? '');
-    final remark = entry['remark'] as String?;
-
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,20 +1025,12 @@ class _TimelineRow extends StatelessWidget {
             width: 24,
             child: Column(
               children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(top: 4),
-                  decoration: BoxDecoration(
-                    color: context.colors.navy,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                if (!isLast)
+                dot,
+                if (hasLineBelow)
                   Expanded(
                     child: VerticalDivider(
-                      color: context.colors.navy,
-                      thickness: 1,
+                      color: lineColor ?? context.colors.divider,
+                      thickness: 2,
                       width: 10,
                     ),
                   ),
@@ -708,50 +1039,189 @@ class _TimelineRow extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.reportStatusLabel(status.wire),
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: context.colors.navy,
-                    ),
-                  ),
-                  if (when != null)
-                    Text(
-                      _formatWhen(s, when),
-                      style: TextStyle(fontSize: 11, color: context.colors.muted),
-                    ),
-                  if (remark != null && remark.trim().isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        remark,
-                        style: TextStyle(
-                            fontSize: 12, height: 1.3, color: context.colors.navy),
-                      ),
-                    ),
-                ],
-              ),
+              padding: EdgeInsets.only(bottom: bottomPadding),
+              child: child,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  static String _formatWhen(Strings s, DateTime utc) {
-    final d = utc.toLocal();
-    final h24 = d.hour;
-    final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
-    final ampm = h24 < 12 ? 'AM' : 'PM';
-    final mm = d.minute.toString().padLeft(2, '0');
-    return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
+class _SubmittedStepRow extends StatelessWidget {
+  const _SubmittedStepRow({required this.when, required this.hasMore});
+  final DateTime when;
+  final bool hasMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    return _TimelineRail(
+      hasLineBelow: hasMore,
+      bottomPadding: hasMore ? 20 : 0,
+      // Always a "done" node -- the line below it (if any) gets the
+      // accent colour, same as the mockup's .tl-line.done.
+      lineColor: context.colors.navy,
+      dot: Container(
+        width: 14,
+        height: 14,
+        margin: const EdgeInsets.only(top: 2),
+        decoration: BoxDecoration(color: context.colors.navy, shape: BoxShape.circle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.reportViewSubmittedStep,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: context.colors.navy,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(_formatWhen(s, when),
+              style: TextStyle(fontSize: 11, color: context.colors.muted)),
+        ],
+      ),
+    );
   }
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({
+    required this.entry,
+    required this.isCurrent,
+    required this.isFinalNode,
+  });
+
+  final Map<String, dynamic> entry;
+
+  /// This is the report's status right now -- the report is still
+  /// moving and an upcoming row follows. Gets the app's one accent
+  /// colour and a soft ring so "you are here" actually reads as current
+  /// rather than just another line in a flat list.
+  final bool isCurrent;
+
+  /// This is the last row drawn, full stop -- no line beneath it. True
+  /// for the true last entry on a finished/rejected/cancelled report
+  /// (where isCurrent is always false: nothing is "still moving"); false
+  /// whenever an upcoming row follows, current or not.
+  final bool isFinalNode;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final status = ReportStatus.parse(entry['new_status'] as String?);
+    final when = DateTime.tryParse(entry['created_at'] as String? ?? '');
+    final remark = entry['remark'] as String?;
+
+    return _TimelineRail(
+      hasLineBelow: !isFinalNode,
+      bottomPadding: isFinalNode ? 0 : 20,
+      // A done real entry (not the current one) leads into another done
+      // or current row -- accent line. The current row's own line leads
+      // to the not-yet-reached upcoming row -- neutral, per the mockup.
+      lineColor: isCurrent ? context.colors.divider : context.colors.navy,
+      dot: Container(
+        width: 14,
+        height: 14,
+        margin: const EdgeInsets.only(top: 2),
+        decoration: BoxDecoration(
+          color: isCurrent ? const Color(0xFFFF9800) : context.colors.navy,
+          shape: BoxShape.circle,
+          boxShadow: isCurrent
+              ? const [
+                  BoxShadow(color: Color(0x55FF9800), blurRadius: 0, spreadRadius: 3),
+                ]
+              : null,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.reportStatusLabel(status.wire),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: context.colors.navy,
+            ),
+          ),
+          if (when != null) ...[
+            const SizedBox(height: 2),
+            Text(_formatWhen(s, when),
+                style: TextStyle(fontSize: 11, color: context.colors.muted)),
+          ],
+          if (remark != null && remark.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                remark,
+                style: TextStyle(fontSize: 12, height: 1.3, color: context.colors.navy),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The greyed, not-yet-happened last row -- see the card's upcomingWire
+/// computation for why this is safe to show without inventing data: the
+/// label is one of the three buckets reportStatusLabel already collapses
+/// every real status into, never a guess at a specific next action.
+class _UpcomingStepRow extends StatelessWidget {
+  const _UpcomingStepRow({required this.wire});
+  final String wire;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    return _TimelineRail(
+      hasLineBelow: false,
+      bottomPadding: 0,
+      dot: Container(
+        width: 14,
+        height: 14,
+        margin: const EdgeInsets.only(top: 2),
+        decoration: BoxDecoration(
+          color: context.colors.field,
+          shape: BoxShape.circle,
+          border: Border.all(color: context.colors.divider, width: 2.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.reportStatusLabel(wire),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: context.colors.muted,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(s.reportViewUpcomingStep,
+              style: TextStyle(fontSize: 11, color: context.colors.muted)),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatWhen(Strings s, DateTime utc) {
+  final d = utc.toLocal();
+  final h24 = d.hour;
+  final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
+  final ampm = h24 < 12 ? 'AM' : 'PM';
+  final mm = d.minute.toString().padLeft(2, '0');
+  return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
 }
 
 /// Figma 2613:709 — full-screen photo with pinch to zoom. A video page
@@ -808,7 +1278,15 @@ class _PhotoViewer extends StatelessWidget {
 /// Shown under a resolved or closed report. Either an invitation to
 /// rate, or the rating already given — feedback cannot be edited,
 /// because the table takes one row per report and the barangay is
-/// reading these as a record of how a case landed at the time.
+/// reading these as a record of how a case landed at the time. Used to
+/// be its own separately bordered box below the card; absorbed into the
+/// card itself as of 29 Aug 2026 (see the card's own build() for the
+/// section that now wraps this), so the box's own border/fill/radius
+/// are gone -- just the content, sized to match the rest of the card's
+/// now-14px titles and 12px body text rather than its old standalone
+/// 16px/13px. Centered as of the same round's follow-up feedback --
+/// reads as the card's closing summary now, not a left-aligned body
+/// section, matching _StatusNote's own centering right above it.
 class _FeedbackCard extends StatelessWidget {
   const _FeedbackCard({required this.feedback, required this.onRate});
 
@@ -820,53 +1298,48 @@ class _FeedbackCard extends StatelessWidget {
     final given = feedback;
     final s = context.s;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(
-        color: context.colors.field,
-        border: Border.all(color: context.colors.navy, width: 2),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          given == null ? s.reportViewHowDidWeDo : s.reportViewYourFeedback,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: context.colors.navy,
+          ),
+        ),
+        const SizedBox(height: 6),
+
+        if (given == null) ...[
           Text(
-            given == null ? s.reportViewHowDidWeDo : s.reportViewYourFeedback,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: context.colors.navy,
+            s.reportViewFeedbackPrompt,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.muted),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onRate,
+              child: Text(s.reportViewGiveFeedback),
             ),
           ),
-          const SizedBox(height: 8),
-
-          if (given == null) ...[
+        ] else ...[
+          _Stars(rating: (given['rating'] as num?)?.toInt() ?? 0),
+          if ((given['comment'] as String?)?.trim().isNotEmpty ?? false) ...[
+            const SizedBox(height: 8),
             Text(
-              s.reportViewFeedbackPrompt,
-              style: TextStyle(fontSize: 13, height: 1.35, color: context.colors.navy),
+              given['comment'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 12, height: 1.4, color: context.colors.muted),
             ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: onRate,
-                child: Text(s.reportViewGiveFeedback),
-              ),
-            ),
-          ] else ...[
-            _Stars(rating: (given['rating'] as num?)?.toInt() ?? 0),
-            if ((given['comment'] as String?)?.trim().isNotEmpty ?? false) ...[
-              const SizedBox(height: 10),
-              Text(
-                given['comment'] as String,
-                style: TextStyle(
-                    fontSize: 13, height: 1.35, color: context.colors.navy),
-              ),
-            ],
           ],
         ],
-      ),
+      ],
     );
   }
 }
