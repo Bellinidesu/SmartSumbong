@@ -34,11 +34,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _version;
   bool _busy = false;
 
+  final _biometrics = BiometricAuthService();
+  bool _biometricEnabled = false;
+  bool _biometricBusy = false;
+
   @override
   void initState() {
     super.initState();
     _load();
     _loadVersion();
+    _loadBiometricSetting();
+  }
+
+  Future<void> _loadBiometricSetting() async {
+    final enabled = await BiometricAuthService.enabled();
+    if (!mounted) return;
+    setState(() => _biometricEnabled = enabled);
+  }
+
+  /// Turning it on asks for an actual fingerprint/face scan before the
+  /// toggle commits -- proving right now, while the tanod is looking at
+  /// the screen, that the prompt this will show on every future cold
+  /// start (and background resume -- see BiometricLockGate) actually
+  /// works on this phone. Turning it off needs no such proof; there is
+  /// nothing to break by disabling. Off by default, same as the resident
+  /// app -- opt-in, not something that slows anyone down until they ask
+  /// for it.
+  Future<void> _onBiometricToggle(bool value) async {
+    if (!value) {
+      await BiometricAuthService.setEnabled(false);
+      if (mounted) setState(() => _biometricEnabled = false);
+      return;
+    }
+
+    setState(() => _biometricBusy = true);
+    try {
+      if (!await _biometrics.isAvailable()) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('No Face ID or fingerprint is set up on this device.')),
+        );
+        return;
+      }
+
+      final confirmed = await _biometrics
+          .authenticate('Confirm to turn on Face ID / fingerprint unlock');
+      if (!mounted) return;
+
+      if (confirmed) {
+        await BiometricAuthService.setEnabled(true);
+        if (mounted) setState(() => _biometricEnabled = true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Could not confirm. Face ID / fingerprint unlock was not '
+                  'turned on.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _biometricBusy = false);
+    }
   }
 
   // Useful now that builds are shared and installed manually rather than
@@ -248,6 +306,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: 'Languages',
               onTap: () => Navigator.of(context).pushNamed('/languages'),
             ),
+            _SettingsToggleRow(
+              icon: Icons.fingerprint,
+              label: 'Unlock with Face ID / fingerprint',
+              value: _biometricEnabled,
+              busy: _biometricBusy,
+              onChanged: _onBiometricToggle,
+            ),
             _SettingsRow(
               icon: Icons.facebook,
               label: 'Facebook',
@@ -297,6 +362,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mobile.length < 4) return mobile;
     return '${mobile.substring(0, 3)} \u2022\u2022\u2022\u2022\u2022\u2022 '
         '${mobile.substring(mobile.length - 4)}';
+  }
+}
+
+/// Same row shape as [_SettingsRow], but for a plain on/off setting
+/// rather than a link to another screen -- a Switch in place of the
+/// chevron, and no [onTap] on the row itself, so a stray tap on the
+/// label doesn't silently flip the switch. Not itself a Figma frame --
+/// there is nowhere in the design this setting was ever specified. See
+/// the resident app's settings_screen.dart, where the same row was
+/// added first.
+class _SettingsToggleRow extends StatelessWidget {
+  const _SettingsToggleRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.busy = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool value;
+  final bool busy;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: Tokens.navy, size: 22),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 14, color: Tokens.navy),
+            ),
+          ),
+          if (busy)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Tokens.navy),
+            )
+          else
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Tokens.navy,
+            ),
+        ],
+      ),
+    );
   }
 }
 

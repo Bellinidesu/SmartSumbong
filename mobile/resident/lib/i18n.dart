@@ -252,6 +252,18 @@ class Strings {
   String get settingsEditProfile => _t('Edit Profile', 'I-edit ang Profile');
   String get settingsLanguages => _t('Languages', 'Mga Wika');
   String get settingsAppearance => _t('Appearance', 'Anyo');
+  String get settingsBiometricUnlock => _t(
+      'Unlock with Face ID / fingerprint',
+      'I-unlock gamit ang Face ID / fingerprint');
+  String get settingsBiometricUnavailable => _t(
+      'No Face ID or fingerprint is set up on this device.',
+      'Walang naka-set up na Face ID o fingerprint sa device na ito.');
+  String get settingsBiometricConfirmReason => _t(
+      'Confirm to turn on Face ID / fingerprint unlock',
+      'Kumpirmahin para i-on ang Face ID / fingerprint unlock');
+  String get settingsBiometricEnableFailed => _t(
+      'Could not confirm. Face ID / fingerprint unlock was not turned on.',
+      'Hindi makumpirma. Hindi na-on ang Face ID / fingerprint unlock.');
   String get settingsFacebook => _t('Facebook', 'Facebook');
   String get settingsFacebookError => _t(
       'Could not open the barangay page.',
@@ -957,6 +969,20 @@ class Strings {
       'Hindi ma-abot ang sistema ng barangay. Suriin ang iyong koneksyon '
       'at subukan ulit.');
   String get launchGateTryAgain => _t('Try again', 'Subukan Ulit');
+  String get launchGateBiometricReason =>
+      _t('Unlock SmartSumbong', 'I-unlock ang SmartSumbong');
+
+  // ---------- background-resume lock screen ----------
+  // Shown by BiometricLockGate (smartsumbong_core) when the app is
+  // reopened from the background with Face ID / fingerprint unlock on --
+  // see settingsBiometricUnlock above for the toggle itself.
+  String get lockGateTitle => _t('Locked', 'Naka-lock');
+  String get lockGateBody => _t(
+      'Unlock with Face ID or fingerprint to continue.',
+      'I-unlock gamit ang Face ID o fingerprint para magpatuloy.');
+  String get lockGateUnlock => _t('Unlock', 'I-unlock');
+  String get lockGateFallback =>
+      _t('Use password instead', 'Gamitin na lang ang password');
 
   // ---------- report submitted ----------
   String get reportSubmittedTitle =>

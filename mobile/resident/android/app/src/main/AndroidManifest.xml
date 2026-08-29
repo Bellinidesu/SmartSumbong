@@ -19,6 +19,10 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
+    <!-- local_auth (Settings' Face ID / fingerprint unlock toggle) --
+         androidx.biometric's own required permission for reading the
+         device's enrolled biometrics through BiometricPrompt. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:label="SmartSumbong Resident"
         android:name="${applicationName}"
@@ -54,19 +58,19 @@
         <!-- Push notification icon + accent colour (27 Aug 2026), from a
              reference the user sent: the small circle Android draws next
              to a notification in the shade (Gmail's blue circle, Play
-             services' pink circle -- each app's own colour behind a
+             services' pink circle, each app's own colour behind a
              plain glyph). Without these two lines FCM falls back to the
              launcher icon rendered as a plain white square, which is
              what the app was actually showing before this.
 
              ic_stat_notify (res/drawable-*dpi/) is a solid bell
-             silhouette -- Android discards an icon's colour here and
+             silhouette; Android discards an icon's colour here and
              keeps only its alpha channel, tinting the shape itself
              white regardless of what colour the source PNG is drawn
              in, so a full-colour illustration would not survive this
              the way it does everywhere else in the app. The circle
              behind it is notification_color (res/values/
-             notification_colors.xml) -- this app's orange accent,
+             notification_colors.xml), this app's orange accent,
              not the resident navy, so it doesn't just read as a solid
              navy blob against a dark shade the way the in-app bell can. -->
         <meta-data

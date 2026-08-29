@@ -34,6 +34,12 @@ dependencies:
   cached_network_image: ^3.4.1
 
   # Session tokens in the OS keystore instead of plain SharedPreferences.
+  # Pinned below 11.0.0 deliberately: that release bumped its required
+  # Android compileSdk to 37, which this project's Android Gradle Plugin
+  # (9.0.1) does not yet officially support (its own docs cap recommended
+  # compileSdk at 36). 10.3.1 is the last release before that bump and
+  # covers everything this app actually uses (plain read/write/delete,
+  # no biometric options, no encryptedSharedPreferences param).
   flutter_secure_storage: 10.3.1
 
   # Distinguishing "no signal" from a real server error.
@@ -44,6 +50,19 @@ dependencies:
   # version tracking.
   package_info_plus: ^10.2.1
   device_info_plus: ^13.2.0
+
+  # Face ID / fingerprint unlock (biometric_auth.dart, biometric_lock_
+  # gate.dart), shared by both apps -- reads whatever biometric the
+  # resident or tanod already enrolled in their phone's own OS, purely
+  # local, nothing sent anywhere.
+  local_auth: ^3.0.2
+
+  # The above two files' opt-in flag lives here rather than in
+  # secure_session_storage.dart's Keystore-backed storage -- it is a
+  # per-handset UI preference, not a credential, so it follows the same
+  # plain-SharedPreferences pattern as each app's own "remember me" and
+  # onboarding-seen flags rather than needing the Keystore's guarantees.
+  shared_preferences: ^2.3.3
 
 dev_dependencies:
   flutter_test:

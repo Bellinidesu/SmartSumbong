@@ -43,6 +43,7 @@ class LaunchGate extends StatefulWidget {
 class _LaunchGateState extends State<LaunchGate> {
   String? _error;
   bool _wrongApp = false;
+  final _biometrics = BiometricAuthService();
 
   @override
   void initState() {
@@ -67,6 +68,24 @@ class _LaunchGateState extends State<LaunchGate> {
         await widget.auth.signOut();
         _go('/login');
         return;
+      }
+
+      // Opt-in, set from the Settings toggle -- see smartsumbong_core's
+      // biometric_auth.dart. A declined, failed, or cancelled prompt
+      // never touches the session sitting on disk; it only sends this
+      // one cold start to the password screen instead of restoring
+      // silently, exactly as if "remember me" had been off just this
+      // once. The account is never signed out over this. See the
+      // resident app's launch_gate.dart, where the same gate was added
+      // first.
+      if (await BiometricAuthService.enabled() &&
+          await _biometrics.isAvailable()) {
+        final unlocked =
+            await _biometrics.authenticate('Unlock SmartSumbong');
+        if (!unlocked) {
+          _go('/login');
+          return;
+        }
       }
     }
 

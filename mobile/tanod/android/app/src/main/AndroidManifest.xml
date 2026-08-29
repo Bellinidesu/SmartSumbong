@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
+    <!-- local_auth (Settings' Face ID / fingerprint unlock toggle) --
+         androidx.biometric's own required permission for reading the
+         device's enrolled biometrics through BiometricPrompt. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:label="SmartSumbong Tanod"
         android:name="${applicationName}"

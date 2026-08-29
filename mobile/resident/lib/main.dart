@@ -167,8 +167,20 @@ class SmartSumbongApp extends StatelessWidget {
           darkTheme: buildResidentTheme(Brightness.dark),
           themeMode: mode,
           navigatorKey: navigatorKey,
-          builder: (context, child) =>
-              ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+          builder: (context, child) => BiometricLockGate(
+            reason: context.s.launchGateBiometricReason,
+            title: context.s.lockGateTitle,
+            body: context.s.lockGateBody,
+            unlockLabel: context.s.lockGateUnlock,
+            fallbackLabel: context.s.lockGateFallback,
+            // Not a sign-out -- see biometric_lock_gate.dart's header.
+            // The session on disk is left alone; this only sends the
+            // resident to the password screen instead of the app
+            // content the lock was covering.
+            onFallback: () => navigatorKey.currentState
+                ?.pushNamedAndRemoveUntil('/login', (_) => false),
+            child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+          ),
       // Every launch goes through the gate, which decides where the
       // person actually belongs: no session, pending, verified,
       // rejected or suspended. A fixed initialRoute cannot know.

@@ -38,14 +38,67 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _name;
   String? _mobile;
+  String? _avatarUrl;
   String? _version;
   bool _busy = false;
+
+  final _biometrics = BiometricAuthService();
+  bool _biometricEnabled = false;
+  bool _biometricBusy = false;
 
   @override
   void initState() {
     super.initState();
     _load();
     _loadVersion();
+    _loadBiometricSetting();
+  }
+
+  Future<void> _loadBiometricSetting() async {
+    final enabled = await BiometricAuthService.enabled();
+    if (!mounted) return;
+    setState(() => _biometricEnabled = enabled);
+  }
+
+  /// Turning it on asks for an actual fingerprint/face scan before the
+  /// toggle commits -- proving right now, while the resident is looking
+  /// at the screen, that the prompt this will show on every future cold
+  /// start actually works on this phone. Turning it off needs no such
+  /// proof; there is nothing to break by disabling.
+  Future<void> _onBiometricToggle(bool value) async {
+    final s = context.s;
+
+    if (!value) {
+      await BiometricAuthService.setEnabled(false);
+      if (mounted) setState(() => _biometricEnabled = false);
+      return;
+    }
+
+    setState(() => _biometricBusy = true);
+    try {
+      if (!await _biometrics.isAvailable()) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.settingsBiometricUnavailable)),
+        );
+        return;
+      }
+
+      final confirmed =
+          await _biometrics.authenticate(s.settingsBiometricConfirmReason);
+      if (!mounted) return;
+
+      if (confirmed) {
+        await BiometricAuthService.setEnabled(true);
+        if (mounted) setState(() => _biometricEnabled = true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.settingsBiometricEnableFailed)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _biometricBusy = false);
+    }
   }
 
   // Useful now that builds are shared and installed manually rather than
@@ -68,13 +121,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final row = await client
           .from('users')
-          .select('full_name, mobile_number')
+          .select('full_name, mobile_number, avatar_url')
           .eq('id', uid)
           .maybeSingle();
       if (!mounted || row == null) return;
       setState(() {
         _name = row['full_name'] as String?;
         _mobile = row['mobile_number'] as String?;
+        _avatarUrl = row['avatar_url'] as String?;
       });
     } catch (_) {
       // The rows below still work; only the header is missing.
@@ -186,17 +240,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                     color: context.colors.navy,
                     shape: BoxShape.circle,
+                    // Same pattern as Edit Profile's avatar circle: a saved
+                    // avatar_url paints as the circle's own background image,
+                    // and only an unset avatar falls back to the initials
+                    // text below. Previously this row never even read
+                    // avatar_url, so a resident who set a photo on Edit
+                    // Profile still saw blank initials the moment they came
+                    // back here.
+                    image: _avatarUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(_avatarUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    _initials(_name),
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
-                      color: context.colors.bg,
-                    ),
-                  ),
+                  child: _avatarUrl != null
+                      ? null
+                      : Text(
+                          _initials(_name),
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 24,
+                            color: context.colors.bg,
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -265,6 +334,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: s.settingsAppearance,
               onTap: () => Navigator.of(context).pushNamed('/appearance'),
             ),
+            _SettingsToggleRow(
+              icon: Icons.fingerprint,
+              label: s.settingsBiometricUnlock,
+              value: _biometricEnabled,
+              busy: _biometricBusy,
+              onChanged: _onBiometricToggle,
+            ),
             _SettingsRow(
               icon: Icons.privacy_tip_outlined,
               label: s.termsPrivacyTitle,
@@ -318,6 +394,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mobile.length < 4) return mobile;
     return '${mobile.substring(0, 3)} \u2022\u2022\u2022\u2022\u2022\u2022 '
         '${mobile.substring(mobile.length - 4)}';
+  }
+}
+
+/// Same row shape as [_SettingsRow], but for a plain on/off setting
+/// rather than a link to another screen -- a Switch in place of the
+/// chevron, and no [onTap] on the row itself, so a stray tap on the
+/// label doesn't silently flip the switch a Figma frame never drew.
+/// Not itself a Figma frame, same as the Terms & Privacy row above it --
+/// there is nowhere in the design this setting was ever specified.
+class _SettingsToggleRow extends StatelessWidget {
+  const _SettingsToggleRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.busy = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool value;
+  final bool busy;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: context.colors.navy, size: 22),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 14, color: context.colors.navy),
+            ),
+          ),
+          if (busy)
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: context.colors.navy),
+            )
+          else
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: context.colors.navy,
+            ),
+        ],
+      ),
+    );
   }
 }
 

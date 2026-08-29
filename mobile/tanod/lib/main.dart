@@ -116,8 +116,15 @@ class SmartSumbongTanodApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTanodTheme(),
       navigatorKey: navigatorKey,
-      builder: (context, child) =>
-          ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => BiometricLockGate(
+        // Not a sign-out -- see biometric_lock_gate.dart's header. The
+        // session on disk is left alone; this only sends the tanod to
+        // the password screen instead of the app content the lock was
+        // covering.
+        onFallback: () => navigatorKey.currentState
+            ?.pushNamedAndRemoveUntil('/login', (_) => false),
+        child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+      ),
       initialRoute: '/',
       routes: {
         '/': (_) => LaunchGate(auth: auth),

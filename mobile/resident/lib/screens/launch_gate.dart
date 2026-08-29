@@ -55,6 +55,7 @@ class LaunchGate extends StatefulWidget {
 
 class _LaunchGateState extends State<LaunchGate> {
   String? _error;
+  final _biometrics = BiometricAuthService();
 
   @override
   void initState() {
@@ -90,6 +91,24 @@ class _LaunchGateState extends State<LaunchGate> {
         await widget.auth.signOut();
         _go('/roles');
         return;
+      }
+
+      // Opt-in, set from the Settings toggle -- see biometric_auth.dart.
+      // A declined, failed, or cancelled prompt never touches the session
+      // sitting on disk; it only sends this one cold start to the
+      // password screen instead of restoring silently, exactly as if
+      // "remember me" had been off just this once. The account is never
+      // signed out over this, so a resident who fails or skips the
+      // prompt loses nothing but has to type their password like before
+      // this feature existed.
+      if (await BiometricAuthService.enabled() &&
+          await _biometrics.isAvailable()) {
+        final unlocked =
+            await _biometrics.authenticate(context.s.launchGateBiometricReason);
+        if (!unlocked) {
+          _go('/login');
+          return;
+        }
       }
     }
 
@@ -163,7 +182,15 @@ class _LaunchGateState extends State<LaunchGate> {
   Widget build(BuildContext context) {
     final s = context.s;
     return Scaffold(
-      backgroundColor: context.colors.navy,
+      // Only ever visible as a small triangle at the product card's two
+      // rounded top corners below -- BoxDecoration's rounded corners
+      // don't paint all the way into their own bounding box's corner,
+      // so whatever sits behind peeks through right there. Deliberately
+      // fixed rather than context.colors.navy: the hero band above it
+      // (loading-bg.png + _SealWash) is itself fixed regardless of
+      // theme, so this sliver has to match that fixed blue artwork, not
+      // flip to dark mode's near-white "navy" and stick out against it.
+      backgroundColor: AppColors.light.navy,
       body: Column(
         children: [
           // The official half. Three seals on the barangay blue: this is
@@ -176,15 +203,36 @@ class _LaunchGateState extends State<LaunchGate> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // The composite from the design: gradient, blur and
-                // contours already flattened, exported at 4x so it stays
-                // sharp on a 1220px handset.
-                Image.asset(
-                  'assets/images/loading-bg.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                ),
-                const Positioned.fill(child: _SealWash()),
+                // Light: the composite from the design, gradient, blur
+                // and contours already flattened, exported at 4x so it
+                // stays sharp on a 1220px handset. Dark: there is no
+                // dark version of that artwork to export, so this is a
+                // plain in-code gradient in the same family as the rest
+                // of the dark palette rather than a second image asset
+                // -- worth a look on a real device, same caveat as the
+                // dark palette itself.
+                if (context.isDark)
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xFF24406E),
+                          Color(0xFF152C52),
+                          Color(0xFF0D1B33),
+                        ],
+                        stops: [0.0, 0.55, 1.0],
+                      ),
+                    ),
+                  )
+                else
+                  Image.asset(
+                    'assets/images/loading-bg.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                  ),
+                Positioned.fill(child: _SealWash(dark: context.isDark)),
                 SafeArea(
                   bottom: false,
                   child: Padding(
@@ -315,41 +363,66 @@ class _LaunchGateState extends State<LaunchGate> {
 
 /// Lightens the band the seals sit in, and deepens the band below it.
 ///
-/// All three seals are navy line work on a navy gradient, which is why
-/// they read poorly unmodified. Rather than framing each one, this
-/// lifts the top of the background close to white so the line work has
-/// something to sit against, then falls away to a deepened blue that
-/// gives the white card's shoulder an edge to land on.
+/// All three seals carry some navy line work (most visibly the "Bagong
+/// Pilipinas"/"Bagong Villamor" wordmarks under two of them) that reads
+/// poorly unmodified against a navy-family background, light or dark.
+/// Rather than framing each one, this lifts the top of the background so
+/// that line work has something to sit against, then falls away to a
+/// deepened tone that gives the card's shoulder below an edge to land
+/// on.
 ///
-/// The stops are the whole design. [_washTop] has to go far enough that
-/// navy reads cleanly — a pale blue looks considered and is still hard
-/// to read, which is worse than not trying. Tune on the handset, in
-/// daylight, not on a monitor.
+/// Two colour sets, not one reactive set of colours: composited against
+/// its own background (loading-bg.png in light, the in-code gradient
+/// above in dark) rather than swapped in isolation, so each needed its
+/// own tuning pass rather than being derivable from the other. Checked
+/// against the actual seal artwork composited on the dark gradient's
+/// tones (the seal graphics themselves read fine on dark navy even
+/// unlifted; it's specifically those two wordmark captions that need
+/// the lift) but, same as the rest of dark mode, not checked on a real
+/// handset yet.
+///
+/// The stops are the whole design. [_washTop]/[_washTopDark] have to go
+/// far enough that navy reads cleanly — a pale blue looks considered
+/// and is still hard to read, which is worse than not trying. Tune on
+/// the handset, in daylight, not on a monitor.
 class _SealWash extends StatelessWidget {
-  const _SealWash();
+  const _SealWash({required this.dark});
 
-  /// Near-white behind the seals.
+  final bool dark;
+
+  /// Near-white behind the seals, light mode.
   static const _washTop = Color(0xF2FFFFFF);
 
-  /// Where the lift has fully released back to the artwork.
+  /// A translucent pale blue-lavender lift, dark mode -- enough to give
+  /// the wordmark captions something to sit against without the stark
+  /// white-out a light-mode wash would be against a dark background.
+  static const _washTopDark = Color(0xB3B9C8EA);
+
+  /// Where the lift has fully released back to the artwork, both modes.
   static const _washClear = 0.46;
 
-  /// A deepening toward the shoulder of the card below.
+  /// A deepening toward the shoulder of the card below, light mode.
   static const _washBottom = Color(0x33001A4D);
+
+  /// Same idea, dark mode -- the in-code gradient above is already
+  /// close to the card's own colour by its bottom edge, so this only
+  /// needs to nudge the seam rather than do the heavy lifting light
+  /// mode's version does.
+  static const _washBottomDark = Color(0x59000814);
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            _washTop,
-            Color(0x00FFFFFF),
-            _washBottom,
+            dark ? _washTopDark : _washTop,
+            const Color(0x00FFFFFF),
+            dark ? _washBottomDark : _washBottom,
           ],
-          stops: [0.0, _washClear, 1.0],
+          stops: const [0.0, _washClear, 1.0],
         ),
       ),
     );

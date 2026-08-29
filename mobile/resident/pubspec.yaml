@@ -43,6 +43,11 @@ dependencies:
   smartsumbong_core:
    path: ../core
   exif: ^3.3.0
+  # local_auth (Face ID / fingerprint unlock) is not listed here: it
+  # arrives through smartsumbong_core, same as flutter_secure_storage
+  # and supabase_flutter already do, because nothing in this app imports
+  # 'package:local_auth/...' directly -- only BiometricAuthService and
+  # BiometricLockGate, both from smartsumbong_core.
   
 dev_dependencies:
   flutter_launcher_icons: ^0.14.1

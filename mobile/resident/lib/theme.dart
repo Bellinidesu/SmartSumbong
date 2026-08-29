@@ -178,15 +178,22 @@ class AppThemeScope extends InheritedNotifier<ThemeController> {
 /// dependency, so the calling widget rebuilds when the mode changes,
 /// and (in [ThemeMode.system]) when the OS brightness does.
 extension AppThemeContext on BuildContext {
-  AppColors get colors {
+  Brightness get _resolvedBrightness {
     final mode = AppThemeScope.of(this);
-    final brightness = switch (mode) {
+    return switch (mode) {
       ThemeMode.light => Brightness.light,
       ThemeMode.dark => Brightness.dark,
       ThemeMode.system => MediaQuery.platformBrightnessOf(this),
     };
-    return AppColors.resolve(brightness);
   }
+
+  AppColors get colors => AppColors.resolve(_resolvedBrightness);
+
+  /// For the handful of spots that need a yes/no rather than a colour --
+  /// a second image asset to pick between, or a decision a Color alone
+  /// can't express. Resolves exactly the way [colors] does, so the two
+  /// can never disagree about which mode is showing.
+  bool get isDark => _resolvedBrightness == Brightness.dark;
 }
 
 ThemeData buildResidentTheme(Brightness brightness) {
