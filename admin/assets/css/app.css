@@ -930,6 +930,22 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 }
 .field-hint { font-size: 11.5px; color: var(--ink-soft); margin: 6px 0 0; line-height: 1.5; }
 
+/* case.php's "Flag as abusive" checkbox in the Deny panel -- same
+   inline-checkbox shape as .remember on the login screen, sized up
+   slightly since this one sits in a form full of larger controls
+   rather than beside a small "Forgot password?" link. */
+.field-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  margin: 10px 0 2px;
+}
+.field-check input { width: 14px; height: 14px; accent-color: var(--navy); }
+
 .control-field textarea,
 .control-field input[type="datetime-local"],
 .deny-panel textarea {

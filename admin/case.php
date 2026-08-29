@@ -54,6 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'p_report'   => $id,
                         'p_decision' => 'reject',
                         'p_remark'   => trim((string) ($_POST['reason'] ?? '')),
+                        // Checkbox, so its mere presence in $_POST means
+                        // checked — absent means unchecked, never sent
+                        // by the browser at all, so an ordinary honest-
+                        // mistake denial never touches the resident's
+                        // strike count.
+                        'p_abusive'  => isset($_POST['abusive']),
                     ]);
                     $flash = 'Complaint denied. The resident has been told why.';
                     break;
@@ -181,6 +187,24 @@ foreach ($dispatches as $d) {
 
 $status   = $report['status'] ?? '';
 $canJudge = $status === 'pending_review';
+
+// Context for the Deny panel: has this resident been flagged abusive
+// before, and how many times. Fetched only while it can actually matter
+// — once a decision is already made the count cannot change what
+// happened here. resident_abuse_reports() returns full rows because
+// accounts.php's profile panel needs them too; this screen only needs
+// count($abuseHistory).
+$abuseHistory = [];
+if ($canJudge && $report && !empty($report['resident']['id'])) {
+    try {
+        $abuseHistory = $db->rpc('resident_abuse_reports', [
+            'p_user' => $report['resident']['id'],
+        ]);
+    } catch (SupabaseError) {
+        // Not worth blocking the review over; the panel just shows no
+        // history note instead of failing the page.
+    }
+}
 $canAssign = in_array($status, ['validated', 'in_progress', 'offline_investigation'], true)
              && $active === null;
 
@@ -322,6 +346,23 @@ layout_head('Case Review', 'cases.php');
           </label>
           <textarea id="reason" name="reason" rows="3" maxlength="200" required
                     placeholder="e.g. Outside barangay jurisdiction — refer to the city ENRO."></textarea>
+
+          <label class="field-check">
+            <input type="checkbox" name="abusive" value="1">
+            Flag as abusive or fabricated
+          </label>
+          <p class="control-note">
+            Only for a fake, malicious, or bad-faith report — not an honest
+            mistake like the wrong barangay or a duplicate. Three flagged
+            reports from the same resident automatically restrict their
+            account from filing new ones, the same way Suspend does today.
+            <?php if (count($abuseHistory) > 0): ?>
+              This resident already has
+              <strong><?= (int) count($abuseHistory) ?></strong>
+              on file<?= count($abuseHistory) >= 2 ? ' — one more will restrict them.' : '.' ?>
+            <?php endif; ?>
+          </p>
+
           <button class="btn-deny-confirm" type="submit" name="action" value="deny">
             Confirm denial
           </button>

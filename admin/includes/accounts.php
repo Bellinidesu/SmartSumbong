@@ -182,8 +182,21 @@ function render_account_screen(string $role): void
     }
 
     if ($person) {
+        // Only a resident can have reports of their own to be flagged
+        // abusive — tanod accounts never file complaints, so the RPC
+        // is skipped for them rather than called just to get back [].
+        $abuseHistory = [];
+        if (!$isTanod) {
+            try {
+                $abuseHistory = $db->rpc('resident_abuse_reports', ['p_user' => $person['id']]);
+            } catch (SupabaseError) {
+                // The profile still renders; the panel just shows no
+                // history note instead of failing the whole page.
+            }
+        }
+
         render_account_detail($person, $noun, $idLabel, $self, $navFile, $title, $flash,
-                              $dupes[$person['id']] ?? []);
+                              $dupes[$person['id']] ?? [], $abuseHistory);
         return;
     }
 
@@ -445,7 +458,8 @@ function account_status_pills(array $a): string
 
 function render_account_detail(
     array $p, string $noun, string $idLabel,
-    string $self, string $navFile, string $title, ?array $flash, array $dupes = []
+    string $self, string $navFile, string $title, ?array $flash, array $dupes = [],
+    array $abuseHistory = []
 ): void {
     $pending = $p['verification_status'] === 'pending';
 
@@ -543,6 +557,37 @@ function render_account_detail(
             </a>
           <?php endif; ?>
         </div>
+
+        <?php if ($noun === 'Resident'): ?>
+          <div class="case-block">
+            <h3 class="case-sub">Abuse History</h3>
+            <?php if (!$abuseHistory): ?>
+              <p class="case-none">No complaints from this resident have been flagged as abusive or fabricated.</p>
+            <?php else: ?>
+              <p class="clock-line<?= count($abuseHistory) >= 3 ? ' is-late' : '' ?>">
+                <strong><?= count($abuseHistory) ?></strong> report<?= count($abuseHistory) === 1 ? '' : 's' ?>
+                flagged as abusive or fabricated<?php if (count($abuseHistory) >= 3): ?>
+                  &mdash; this account was automatically restricted after the third flag.
+                <?php elseif (count($abuseHistory) === 2): ?>
+                  &mdash; one more flag will automatically restrict this account.
+                <?php else: ?>.<?php endif; ?>
+              </p>
+              <dl class="detail-list">
+                <?php foreach ($abuseHistory as $ab): ?>
+                  <dt class="mono"><?= e($ab['tracking_id']) ?></dt>
+                  <dd>
+                    <?= e($ab['subject']) ?><br>
+                    <span class="clock-line" style="margin:0">
+                      Denied <?= e(long_datetime($ab['flagged_at'])) ?><?php if (!empty($ab['remark'])): ?>
+                        &mdash; <?= e($ab['remark']) ?>
+                      <?php endif; ?>
+                    </span>
+                  </dd>
+                <?php endforeach; ?>
+              </dl>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
       </section>
 
       <aside class="card card--controls">
