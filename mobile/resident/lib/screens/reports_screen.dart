@@ -210,6 +210,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? _heroTimelineFor;
   List<Map<String, dynamic>> _heroTimeline = const [];
 
+  /// report_id -> the tanod's own resolution note, for every finished
+  /// report in the CURRENT list. Added 29 Aug 2026 to close the gap the
+  /// resident spotted: report_view_screen.dart's card already swaps in
+  /// this text once a report is resolved (see that file's
+  /// _resolutionNote() and its header comment for where the text comes
+  /// from -- submit_field_report, 0002, writes it straight into
+  /// status_logs.remark, already resident-readable, no schema/RLS
+  /// change), but this screen's list cards kept showing the resident's
+  /// own original description even after resolution, because they never
+  /// fetched a timeline at all -- only the hero card does, via
+  /// _syncHeroTimeline().
+  ///
+  /// Deliberately ONE query for the whole visible list rather than the
+  /// hero's per-report pattern: a resident's Completed filter can hold
+  /// dozens of cards, and firing one status_logs query per card would be
+  /// the N+1 this comment exists to avoid. See _loadResolutionNotes().
+  Map<String, String> _resolutionNotes = const {};
+
+  /// report_id -> "TANOD <NAME>" or "SYSTEM", the byline for the entry
+  /// in _resolutionNotes. Added 29 Aug 2026, same round: a remark with
+  /// no byline reads like an anonymous status line even though it's
+  /// someone's own account of what they did. status_logs.remark never
+  /// carries a name (0002 never wrote one, and status_logs is immutable
+  /// -- 0015 -- so it never will for reports already resolved), so this
+  /// comes from 0049's my_resolution_authors RPC instead: a narrow,
+  /// read-only function that resolves status_logs.changed_by to a name
+  /// ONLY for the caller's own resolved reports, rather than widening
+  /// RLS on public.users the way 0047's header explicitly rejected doing
+  /// for the auto-dispatch case. Absent (no key) means the byline isn't
+  /// known yet or the lookup found nothing to say -- the card just shows
+  /// the bare remark, same as before this existed.
+  Map<String, String> _resolutionAuthors = const {};
+
   // Live updates (29 Aug 2026 — see home_screen.dart's header for the
   // same reasoning, and 0046 for the notifications side of it). reports
   // has been in the realtime publication since 0004 for the admin map,
@@ -287,10 +320,91 @@ class _ReportsScreenState extends State<ReportsScreen> {
       setState(() => _reports = [
             for (final r in rows) ReportSummary.fromRow(r),
           ]);
-      await _syncHeroTimeline();
+      await Future.wait([_syncHeroTimeline(), _loadResolutionNotes()]);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = context.s.reportsLoadError);
+    }
+  }
+
+  /// Batch fetch for _resolutionNotes -- one status_logs query covering
+  /// every finished report in _reports, not one per card. Mirrors
+  /// report_view_screen.dart's _resolutionNote() exactly (same finished
+  /// set, same 'resolved' wire value, same "most recent wins" rule for a
+  /// report that was reopened and resolved again), just done as a batch
+  /// group-by instead of one report's timeline scan.
+  Future<void> _loadResolutionNotes() async {
+    const finished = {
+      ReportStatus.resolved,
+      ReportStatus.closed,
+      ReportStatus.archived,
+    };
+    final ids = (_reports ?? const <ReportSummary>[])
+        .where((r) => finished.contains(r.status))
+        .map((r) => r.id)
+        .toList();
+    if (ids.isEmpty) {
+      if (mounted &&
+          (_resolutionNotes.isNotEmpty || _resolutionAuthors.isNotEmpty)) {
+        setState(() {
+          _resolutionNotes = const {};
+          _resolutionAuthors = const {};
+        });
+      }
+      return;
+    }
+    try {
+      // Newest first, so the first row seen per report_id below is the
+      // latest 'resolved' entry -- the same entry a reopened-then-
+      // resolved-again report's timeline would surface last.
+      final rows = await Supabase.instance.client
+          .from('status_logs')
+          .select('report_id, remark, created_at')
+          .inFilter('report_id', ids)
+          .eq('new_status', 'resolved')
+          .order('created_at', ascending: false);
+      if (!mounted) return;
+      final notes = <String, String>{};
+      for (final row in rows) {
+        final id = row['report_id'] as String?;
+        if (id == null || notes.containsKey(id)) continue;
+        final remark = (row['remark'] as String?)?.trim();
+        if (remark != null && remark.isNotEmpty) notes[id] = remark;
+      }
+      setState(() => _resolutionNotes = notes);
+    } catch (_) {
+      // Cards still show fine without it -- falls back to the resident's
+      // own description, same as before this existed.
+    }
+    await _loadResolutionAuthors(ids);
+  }
+
+  /// Who wrote each note in _resolutionNotes -- "TANOD <NAME>" or
+  /// "SYSTEM" -- via 0049's my_resolution_authors RPC. Kept as its own
+  /// try/catch, separate from the remark fetch above: a byline the app
+  /// can't resolve is a reason to show the remark bare, never a reason
+  /// to hide the remark itself.
+  Future<void> _loadResolutionAuthors(List<String> ids) async {
+    try {
+      final rows = await Supabase.instance.client
+          .rpc('my_resolution_authors', params: {'p_report_ids': ids});
+      if (!mounted) return;
+      final authors = <String, String>{};
+      for (final row in rows as List) {
+        final id = row['report_id'] as String?;
+        if (id == null) continue;
+        final isSystem = row['is_system'] as bool? ?? false;
+        final name = (row['author_name'] as String?)?.trim();
+        if (isSystem) {
+          authors[id] = 'SYSTEM';
+        } else if (name != null && name.isNotEmpty) {
+          authors[id] = 'TANOD ${name.toUpperCase()}';
+        }
+      }
+      setState(() => _resolutionAuthors = authors);
+    } catch (_) {
+      // The note still shows with no byline -- see the field's own doc
+      // comment.
     }
   }
 
@@ -581,6 +695,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           report: r,
           isHero: isHero,
           timeline: isHero ? _heroTimeline : const [],
+          resolutionNote: _resolutionNotes[r.id],
+          resolutionAuthor: _resolutionAuthors[r.id],
           onView: () => Navigator.of(context)
               .pushNamed('/report', arguments: r.id)
               .then((_) => _load()),
@@ -648,6 +764,8 @@ class _ReportCard extends StatelessWidget {
     required this.onView,
     this.isHero = false,
     this.timeline = const [],
+    this.resolutionNote,
+    this.resolutionAuthor,
     this.onCancel,
     this.onReopen,
   });
@@ -664,6 +782,21 @@ class _ReportCard extends StatelessWidget {
   /// report_view_screen.dart's timeline reads. Only ever non-empty when
   /// isHero is true; a non-hero card ignores it entirely.
   final List<Map<String, dynamic>> timeline;
+
+  /// The tanod's own resolution note, when this report is finished and
+  /// one exists — ReportsScreen._loadResolutionNotes() batch-fetches
+  /// this for the whole visible list. Null for an ongoing report, a
+  /// finished one with no remark on file, or while the batch fetch is
+  /// still in flight (the card just shows the description meanwhile,
+  /// same as it always has).
+  final String? resolutionNote;
+
+  /// "TANOD <NAME>" or "SYSTEM" — who wrote [resolutionNote], from 0049's
+  /// my_resolution_authors RPC (ReportsScreen._loadResolutionAuthors()).
+  /// Null whenever resolutionNote is null, and also possible even when
+  /// resolutionNote is set (byline not resolved yet, or the lookup found
+  /// nothing) — in that case the note still renders, just without one.
+  final String? resolutionAuthor;
 
   final VoidCallback? onCancel;
   final VoidCallback? onReopen;
@@ -761,8 +894,32 @@ class _ReportCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          s.reportsCardDescription(report.description),
+                        // A resolution note gets a bold byline ("TANOD
+                        // <NAME>: " / "SYSTEM: ") ahead of the text it
+                        // belongs to -- added 29 Aug 2026 so this reads
+                        // as someone's own account of what they did,
+                        // not an anonymous status line. The plain
+                        // description never gets one; it's the
+                        // resident's own words, no byline needed.
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              if (resolutionNote != null &&
+                                  resolutionAuthor != null)
+                                TextSpan(
+                                  text: '$resolutionAuthor: ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: context.colors.navy,
+                                  ),
+                                ),
+                              TextSpan(
+                                text: resolutionNote ??
+                                    s.reportsCardDescription(
+                                        report.description),
+                              ),
+                            ],
+                          ),
                           maxLines: isHero ? 4 : 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -914,17 +1071,43 @@ class _LocationLabelState extends State<_LocationLabel> {
 /// ReportStatus.labelColour -- that extension returns this app's bg
 /// colour, tuned for text sitting on the navy card this used to be; on
 /// this now-light card that would read as invisible near-white text.
-/// Same one exception as labelColour still keeps (red for cancelled),
-/// just re-derived for a light background -- see
-/// report_view_screen.dart's own copy of this same fix.
+///
+/// COLOUR PER STATUS (29 Aug 2026) -- same change, same reasoning, as
+/// report_view_screen.dart's own copy of this widget: the mockup's
+/// .status-pill carries a different colour per status (orange/pending,
+/// blue/progress, green/resolved), not one accent reused everywhere.
+/// Matched to this app's palette -- orange (existing accent) for
+/// pending, navy (primary ink) for in-progress, a new green
+/// (context.colors has no success token; #16A34A, the mockup's own
+/// --success) for completed, `hint` (the theme's existing red, not a
+/// one-off literal) for cancelled, and `muted` for rejected -- a real
+/// distinct colour rejected never had before, even though this
+/// screen's own labelColour doc already says cancelled "reads
+/// differently from a rejection". `switch` on the exact enum member so
+/// `archived` (Completed, but not `isFinished`) isn't missed by a
+/// narrower check.
+///
+/// Still local to this widget, not folded into ReportStatus.labelColour
+/// -- see report_view_screen.dart's copy of this same note for why
+/// (map_screen.dart's pin colouring depends on that extension's current
+/// two-colour contract).
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
   final ReportStatus status;
 
   @override
   Widget build(BuildContext context) {
-    final danger = status == ReportStatus.cancelled;
-    final tint = danger ? const Color(0xFFFF4949) : context.colors.navy;
+    final tint = switch (status) {
+      ReportStatus.cancelled => context.colors.hint,
+      ReportStatus.rejected => context.colors.muted,
+      ReportStatus.resolved ||
+      ReportStatus.closed ||
+      ReportStatus.archived =>
+        const Color(0xFF16A34A),
+      ReportStatus.pendingReview || ReportStatus.validated =>
+        const Color(0xFFFF9800),
+      _ => context.colors.navy, // assigned / inProgress / offlineInvestigation
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(

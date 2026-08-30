@@ -58,6 +58,15 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   Map<String, dynamic>? _feedback;
   String? _error;
 
+  /// "TANOD <NAME>" or "SYSTEM" -- who wrote the resolution note
+  /// _ReportCard._resolutionNote() pulls from _timeline. Same 0049
+  /// my_resolution_authors RPC reports_screen.dart's list uses; see that
+  /// file's _resolutionAuthors field for the full reasoning (status_logs
+  /// is immutable, so the byline can't be baked into remark at write
+  /// time — it has to be resolved at read time instead). Null until the
+  /// lookup lands, or when there's nothing to say.
+  String? _resolutionAuthor;
+
   RealtimeChannel? _liveChannel;
   Timer? _liveDebounce;
 
@@ -181,9 +190,39 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         _timeline = List<Map<String, dynamic>>.from(logs);
         _feedback = fb;
       });
+      await _loadResolutionAuthor();
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = context.s.reportViewLoadError);
+    }
+  }
+
+  /// Byline for _resolutionAuthor -- see that field's doc comment. Its
+  /// own try/catch, same as reports_screen.dart's list version: failing
+  /// to resolve a byline is never a reason to blank the screen the rest
+  /// of _load() just populated.
+  Future<void> _loadResolutionAuthor() async {
+    try {
+      final rows = await Supabase.instance.client.rpc(
+          'my_resolution_authors',
+          params: {
+            'p_report_ids': [widget.reportId]
+          });
+      if (!mounted) return;
+      String? author;
+      for (final row in rows as List) {
+        final isSystem = row['is_system'] as bool? ?? false;
+        final name = (row['author_name'] as String?)?.trim();
+        if (isSystem) {
+          author = 'SYSTEM';
+        } else if (name != null && name.isNotEmpty) {
+          author = 'TANOD ${name.toUpperCase()}';
+        }
+        break;
+      }
+      setState(() => _resolutionAuthor = author);
+    } catch (_) {
+      // The note still shows with no byline.
     }
   }
 
@@ -264,6 +303,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           // real information for the sake of matching a mockup that was
           // only ever drawn as a list-row preview.
           timeline: _timeline,
+          resolutionAuthor: _resolutionAuthor,
           // Absorbed into the card too (29 Aug 2026) -- the status note
           // and the feedback box used to float below as their own
           // separately bordered pieces (the line under the card that
@@ -362,6 +402,7 @@ class _ReportCard extends StatelessWidget {
     required this.photos,
     required this.onViewPhoto,
     this.timeline = const [],
+    this.resolutionAuthor,
     required this.hasProof,
     required this.reopenedCount,
     required this.onViewProof,
@@ -386,6 +427,14 @@ class _ReportCard extends StatelessWidget {
   /// see the call site for why this screen keeps the full remark/time.
   final List<Map<String, dynamic>> timeline;
 
+  /// "TANOD <NAME>" or "SYSTEM" -- who wrote _resolutionNote(), from
+  /// ReportViewScreen's own 0049 lookup (_loadResolutionAuthor()). See
+  /// reports_screen.dart's parallel field for the full reasoning. Null
+  /// whenever _resolutionNote() is null, and also possible even when it
+  /// isn't (byline not resolved yet, or nothing to say) -- the note
+  /// still renders either way, just without one.
+  final String? resolutionAuthor;
+
   /// The status note and feedback box's own inputs, unchanged from when
   /// they were separate widgets below the card -- just threaded through
   /// so build() can render them as trailing sections of this card
@@ -396,9 +445,46 @@ class _ReportCard extends StatelessWidget {
   final Map<String, dynamic>? feedback;
   final VoidCallback onRate;
 
+  /// What actually happened, in the tanod's own words -- not the
+  /// resident's original complaint text. 29 Aug 2026: the mockup's own
+  /// card body isn't a static description at all, it's a live status
+  /// narrative ("Maintenance team replaced the faulty bulb. Streetlight
+  /// is now operational."). submit_field_report() (0002) already writes
+  /// that exact free-text note into the 'resolved' transition's
+  /// status_logs.remark -- the same `timeline` this card already has,
+  /// no new query and no RLS change, since a resident could always read
+  /// their own status_logs (0001). Only defined for reports that have
+  /// actually been resolved (checked on `status` directly, the same
+  /// resolved/closed/archived set the status pill's green covers --
+  /// deliberately not `isFinished`, which excludes archived for an
+  /// unrelated reason, whether a reopen is still offered). Searching
+  /// `timeline.reversed` for the most recent 'resolved' row rather than
+  /// just the last row matters for a reopened-then-resolved-again
+  /// report: it finds the CURRENT resolution, not a stale one from
+  /// before a reopen. Null (falls back to the original description)
+  /// when the report was never resolved, or was resolved with no field
+  /// text to show (an edge case, not the common path).
+  String? _resolutionNote() {
+    const finished = {
+      ReportStatus.resolved,
+      ReportStatus.closed,
+      ReportStatus.archived,
+    };
+    if (!finished.contains(status)) return null;
+    for (final entry in timeline.reversed) {
+      if (entry['new_status'] == 'resolved') {
+        final remark = (entry['remark'] as String?)?.trim();
+        return (remark != null && remark.isNotEmpty) ? remark : null;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final resolutionNote = _resolutionNote();
+    final bodyText = resolutionNote ?? s.reportsCardDescription(description);
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
@@ -493,9 +579,22 @@ class _ReportCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 // Full text, no ellipsis -- unlike the list card's 3-line clip,
                 // this is the one screen a resident reads their own complaint
-                // back on in full.
-                Text(
-                  s.reportsCardDescription(description),
+                // (or, once resolved, its resolution note -- see
+                // _resolutionNote() above) back on in full.
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      if (resolutionNote != null && resolutionAuthor != null)
+                        TextSpan(
+                          text: '$resolutionAuthor: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                      TextSpan(text: bodyText),
+                    ],
+                  ),
                   style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.muted),
                 ),
 
@@ -672,19 +771,57 @@ class _LocationLabelState extends State<_LocationLabel> {
 /// than this screen's old inline coloured text folded into the title.
 /// Same shape as reports_screen.dart's card, but its own tint logic --
 /// ReportStatus.labelColour returns this app's bg colour for the normal
-/// case, tuned for text sitting on a navy card. On this card the fill is
-/// light, so that would read as invisible near-white text; a solid tint
-/// pill (soft navy fill, navy text -- red for cancelled, same one
-/// exception labelColour already carves out) is this file's own version
-/// of the same "just one accent colour, not a status rainbow" rule.
+/// case, tuned for text sitting on a navy card; on this light card that
+/// would read as invisible near-white text, which is why this file
+/// never called it for the pill.
+///
+/// COLOUR PER STATUS (29 Aug 2026). The mockup's own .status-pill isn't
+/// one accent colour -- it's three (warning-orange/pending,
+/// primary-blue/progress, success-green/resolved), each carrying real
+/// meaning at a glance. Matched here with the app's own palette rather
+/// than importing the mockup's blue: pending reuses the app's one
+/// existing accent orange, in-progress uses navy (the app's primary
+/// ink, already read as "the app is doing something" everywhere else),
+/// and completed gets a new green -- context.colors has no success
+/// token, so this is the one new colour this pass introduces, matched
+/// to the mockup's own --success (#16A34A). Cancelled keeps its
+/// existing red, now the theme's own `hint` token instead of a
+/// one-off literal -- same colour role (the small red warnings
+/// elsewhere in the app), one fewer hard-coded hex in this file.
+/// Rejected gets `muted`, not folded into any of the above: this
+/// class's own labelColour doc already says cancelled "reads
+/// differently from a rejection" but the code never actually gave
+/// rejected a distinct colour until now -- it silently fell into the
+/// same bucket as in-progress. `switch` on the enum member (not the
+/// three-value `label` bucket already collapses to) so a status that's
+/// merely `isFinished` doesn't accidentally miss `archived`, which
+/// belongs to the same Completed bucket but isn't `isFinished` (see
+/// that getter's own comment).
+///
+/// Deliberately still local to this file's `_StatusPill`, not folded
+/// into `ReportStatus.labelColour` -- that extension is also read by
+/// map_screen.dart's pin colouring (`labelColour(context) ==
+/// context.colors.bg` as its "not cancelled" check), and widening its
+/// contract to five colours would silently break that comparison for
+/// every status but exactly one. Out of scope for a card-styling pass;
+/// flagged rather than touched.
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.status});
   final ReportStatus status;
 
   @override
   Widget build(BuildContext context) {
-    final danger = status == ReportStatus.cancelled;
-    final tint = danger ? const Color(0xFFFF4949) : context.colors.navy;
+    final tint = switch (status) {
+      ReportStatus.cancelled => context.colors.hint,
+      ReportStatus.rejected => context.colors.muted,
+      ReportStatus.resolved ||
+      ReportStatus.closed ||
+      ReportStatus.archived =>
+        const Color(0xFF16A34A),
+      ReportStatus.pendingReview || ReportStatus.validated =>
+        const Color(0xFFFF9800),
+      _ => context.colors.navy, // assigned / inProgress / offlineInvestigation
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
