@@ -464,11 +464,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
       });
     }
     try {
+      // `ascending: true` is not the default here -- postgrest-dart's own
+      // default is DESCENDING (newest first); left unstated, this
+      // rendered the mini-timeline's rows newest-to-oldest, upside down
+      // from what _MiniTimelineRow's own top-to-bottom rail assumes.
+      // Caught 30 Aug 2026 alongside the same bug in
+      // report_view_screen.dart's full timeline (see that file's
+      // parallel comment for the screenshot that surfaced it) -- no
+      // byline fetch added here to match, though: _MiniTimelineRow never
+      // renders `remark` at all (status + date only, by design -- see
+      // its own header on why this compact view stays text-light), so
+      // there's no text here for a byline to prefix.
       final logs = await Supabase.instance.client
           .from('status_logs')
           .select('old_status, new_status, remark, created_at')
           .eq('report_id', hero.id)
-          .order('created_at');
+          .order('created_at', ascending: true);
       // The hero could have changed again while this was in flight
       // (another live reload, or the resident switching filters) --
       // never let a slow response overwrite a newer one.

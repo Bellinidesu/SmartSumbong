@@ -58,15 +58,6 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   Map<String, dynamic>? _feedback;
   String? _error;
 
-  /// "TANOD <NAME>" or "SYSTEM" -- who wrote the resolution note
-  /// _ReportCard._resolutionNote() pulls from _timeline. Same 0049
-  /// my_resolution_authors RPC reports_screen.dart's list uses; see that
-  /// file's _resolutionAuthors field for the full reasoning (status_logs
-  /// is immutable, so the byline can't be baked into remark at write
-  /// time — it has to be resolved at read time instead). Null until the
-  /// lookup lands, or when there's nothing to say.
-  String? _resolutionAuthor;
-
   RealtimeChannel? _liveChannel;
   Timer? _liveDebounce;
 
@@ -164,11 +155,23 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .eq('report_id', widget.reportId)
           .maybeSingle();
 
+      // `id` is selected so _withAuthorLabels() below can match each row
+      // back to its byline. `ascending: true` is not the default here --
+      // postgrest-dart's own default is DESCENDING (newest first), which
+      // this screen's timeline was silently rendering in for as long as
+      // this call left it unstated: newest-to-oldest, upside down from
+      // what a "timeline" and this widget's own top-to-bottom rail
+      // drawing both assume. Caught 30 Aug 2026 off a live screenshot
+      // where "Report submitted" (always first, built separately from
+      // the report's own created_at) was followed by the newest real
+      // entry, then older ones, ending on the OLDEST real entry at the
+      // very bottom -- exactly backwards. Explicit from here on so this
+      // can't silently regress if a future edit reorders the call.
       final logs = await client
           .from('status_logs')
-          .select('old_status, new_status, remark, created_at')
+          .select('id, old_status, new_status, remark, created_at')
           .eq('report_id', widget.reportId)
-          .order('created_at');
+          .order('created_at', ascending: true);
 
       if (!mounted) return;
       setState(() {
@@ -190,39 +193,53 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         _timeline = List<Map<String, dynamic>>.from(logs);
         _feedback = fb;
       });
-      await _loadResolutionAuthor();
+      await _loadTimelineAuthors();
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = context.s.reportViewLoadError);
     }
   }
 
-  /// Byline for _resolutionAuthor -- see that field's doc comment. Its
-  /// own try/catch, same as reports_screen.dart's list version: failing
-  /// to resolve a byline is never a reason to blank the screen the rest
-  /// of _load() just populated.
-  Future<void> _loadResolutionAuthor() async {
+  /// Tags every row already in _timeline with an 'author_label' key --
+  /// "TANOD <NAME>" or "SYSTEM" -- via 0049's my_status_log_authors RPC,
+  /// scoped to this one report. _TimelineRow reads entry['author_label']
+  /// directly, and _ReportCard's own resolution-note lookup (its
+  /// _resolution() method) picks the same key off whichever entry it
+  /// finds -- one RPC call backs both the full timeline's bylines and
+  /// the card body's, since the resolution note IS one timeline entry's
+  /// remark. Its own try/catch, same as reports_screen.dart's list
+  /// version: failing to resolve a byline is never a reason to blank the
+  /// timeline the rest of _load() just populated.
+  Future<void> _loadTimelineAuthors() async {
     try {
       final rows = await Supabase.instance.client.rpc(
-          'my_resolution_authors',
-          params: {
-            'p_report_ids': [widget.reportId]
-          });
+          'my_status_log_authors',
+          params: {'p_report_id': widget.reportId});
       if (!mounted) return;
-      String? author;
+      final labels = <String, String>{};
       for (final row in rows as List) {
+        final id = row['status_log_id'] as String?;
+        if (id == null) continue;
         final isSystem = row['is_system'] as bool? ?? false;
         final name = (row['author_name'] as String?)?.trim();
         if (isSystem) {
-          author = 'SYSTEM';
+          labels[id] = 'SYSTEM';
         } else if (name != null && name.isNotEmpty) {
-          author = 'TANOD ${name.toUpperCase()}';
+          labels[id] = 'TANOD ${name.toUpperCase()}';
         }
-        break;
       }
-      setState(() => _resolutionAuthor = author);
+      if (labels.isEmpty) return;
+      setState(() {
+        _timeline = [
+          for (final entry in _timeline)
+            if (labels.containsKey(entry['id']))
+              {...entry, 'author_label': labels[entry['id']]}
+            else
+              entry,
+        ];
+      });
     } catch (_) {
-      // The note still shows with no byline.
+      // Rows still show with no byline.
     }
   }
 
@@ -303,7 +320,6 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           // real information for the sake of matching a mockup that was
           // only ever drawn as a list-row preview.
           timeline: _timeline,
-          resolutionAuthor: _resolutionAuthor,
           // Absorbed into the card too (29 Aug 2026) -- the status note
           // and the feedback box used to float below as their own
           // separately bordered pieces (the line under the card that
@@ -402,7 +418,6 @@ class _ReportCard extends StatelessWidget {
     required this.photos,
     required this.onViewPhoto,
     this.timeline = const [],
-    this.resolutionAuthor,
     required this.hasProof,
     required this.reopenedCount,
     required this.onViewProof,
@@ -426,14 +441,6 @@ class _ReportCard extends StatelessWidget {
   /// source as reports_screen.dart's hero timeline, just never trimmed --
   /// see the call site for why this screen keeps the full remark/time.
   final List<Map<String, dynamic>> timeline;
-
-  /// "TANOD <NAME>" or "SYSTEM" -- who wrote _resolutionNote(), from
-  /// ReportViewScreen's own 0049 lookup (_loadResolutionAuthor()). See
-  /// reports_screen.dart's parallel field for the full reasoning. Null
-  /// whenever _resolutionNote() is null, and also possible even when it
-  /// isn't (byline not resolved yet, or nothing to say) -- the note
-  /// still renders either way, just without one.
-  final String? resolutionAuthor;
 
   /// The status note and feedback box's own inputs, unchanged from when
   /// they were separate widgets below the card -- just threaded through
@@ -461,29 +468,41 @@ class _ReportCard extends StatelessWidget {
   /// `timeline.reversed` for the most recent 'resolved' row rather than
   /// just the last row matters for a reopened-then-resolved-again
   /// report: it finds the CURRENT resolution, not a stale one from
-  /// before a reopen. Null (falls back to the original description)
-  /// when the report was never resolved, or was resolved with no field
-  /// text to show (an edge case, not the common path).
-  String? _resolutionNote() {
+  /// before a reopen. note is null (falls back to the original
+  /// description) when the report was never resolved, or was resolved
+  /// with no field text to show (an edge case, not the common path).
+  ///
+  /// note and author come from the SAME timeline entry, in one pass --
+  /// author is just entry['author_label'], the byline
+  /// ReportViewScreen's _loadTimelineAuthors() already tagged every
+  /// timeline row with via 0049's my_status_log_authors RPC. No separate
+  /// lookup: the resolution note IS one timeline entry's remark, so its
+  /// byline is that same entry's byline. A null author is normal (the
+  /// lookup hasn't landed yet, or found nothing to say) -- the note
+  /// still renders either way, just without one.
+  ({String? note, String? author}) _resolution() {
     const finished = {
       ReportStatus.resolved,
       ReportStatus.closed,
       ReportStatus.archived,
     };
-    if (!finished.contains(status)) return null;
+    if (!finished.contains(status)) return (note: null, author: null);
     for (final entry in timeline.reversed) {
       if (entry['new_status'] == 'resolved') {
         final remark = (entry['remark'] as String?)?.trim();
-        return (remark != null && remark.isNotEmpty) ? remark : null;
+        if (remark == null || remark.isEmpty) return (note: null, author: null);
+        return (note: remark, author: entry['author_label'] as String?);
       }
     }
-    return null;
+    return (note: null, author: null);
   }
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final resolutionNote = _resolutionNote();
+    final resolution = _resolution();
+    final resolutionNote = resolution.note;
+    final resolutionAuthor = resolution.author;
     final bodyText = resolutionNote ?? s.reportsCardDescription(description);
     return Container(
       width: double.infinity,
@@ -580,7 +599,7 @@ class _ReportCard extends StatelessWidget {
                 // Full text, no ellipsis -- unlike the list card's 3-line clip,
                 // this is the one screen a resident reads their own complaint
                 // (or, once resolved, its resolution note -- see
-                // _resolutionNote() above) back on in full.
+                // _resolution() above) back on in full.
                 Text.rich(
                   TextSpan(
                     children: [
@@ -1254,6 +1273,13 @@ class _TimelineRow extends StatelessWidget {
     final status = ReportStatus.parse(entry['new_status'] as String?);
     final when = DateTime.tryParse(entry['created_at'] as String? ?? '');
     final remark = entry['remark'] as String?;
+    // "TANOD <NAME>" / "SYSTEM" -- see ReportViewScreen's
+    // _loadTimelineAuthors(). Null while the lookup is still in flight,
+    // or for a synthetic row (submitted/upcoming) that never has one --
+    // those don't build a _TimelineRow at all, so this is only ever
+    // null here because the real lookup hasn't landed or had nothing to
+    // add, never because a row is somehow author-less by nature.
+    final author = entry['author_label'] as String?;
 
     return _TimelineRail(
       hasLineBelow: !isFinalNode,
@@ -1296,8 +1322,17 @@ class _TimelineRow extends StatelessWidget {
           if (remark != null && remark.trim().isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                remark,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (author != null)
+                      TextSpan(
+                        text: '$author: ',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    TextSpan(text: remark),
+                  ],
+                ),
                 style: TextStyle(fontSize: 12, height: 1.3, color: context.colors.navy),
               ),
             ),
