@@ -679,6 +679,14 @@ class Strings {
   String get reportViewForTheProof =>
       _t(' for the proof.', ' para sa patunay.');
   String get reportViewViewPhoto => _t('View Photo', 'Tingnan ang Larawan');
+  /// The centered toggle under the status note bubble (Round 17, 30 Aug
+  /// 2026) that expands/collapses the full row-by-row status_logs
+  /// history -- brought back after direct feedback that the barangay
+  /// liked having it, even though none of Rose's six frames draw it.
+  String get reportViewShowTimeline =>
+      _t('View Full Timeline', 'Tingnan ang Buong Takbo');
+  String get reportViewHideTimeline =>
+      _t('Hide Timeline', 'Itago ang Takbo');
   String get reportViewReopenedOnce => _t(
       'This report has been reopened once.',
       'Nabuksan muli ang ulat na ito nang isang beses.');
