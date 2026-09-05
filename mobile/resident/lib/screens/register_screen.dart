@@ -82,6 +82,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _idUrl;
   String? _selfieUrl;
 
+  /// On-device OCR triage on the ID photo (id_ocr.dart), kicked off the
+  /// moment a photo is picked so it has already run by the time the
+  /// applicant finishes the rest of the form -- see _capture and _submit.
+  /// Never awaited anywhere that could block or fail the signup itself;
+  /// see AuthService.submitIdOcrResult for why a failure here is silent.
+  Future<IdOcrResult>? _ocrFuture;
+
   final _errors = <String, String>{};
 
   @override
@@ -230,6 +237,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _idFile = f;
           _idUrl = null;
           _errors.remove('id_image');
+          // Fire-and-forget: runs on-device while the applicant is still
+          // filling in the rest of the form. _submit awaits this later,
+          // matched against whatever _idType ends up being at that point
+          // (see runIdOcr's own doc comment for why not now).
+          _ocrFuture = runIdOcr(f, enteredFullName: _fullName.text);
         }
       });
     } on MediaUploadException catch (e) {
@@ -317,6 +329,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
         selfieUrl: _selfieUrl,
         role: widget.role,
       );
+
+      // Best-effort OCR triage write, now that the account exists and
+      // _idType is guaranteed final. A timeout guards against a
+      // pathological on-device hang; any other failure is already
+      // swallowed inside AuthService.submitIdOcrResult itself. Either
+      // way this must never block or fail the signup the applicant is
+      // actually waiting on.
+      final ocrFuture = _ocrFuture;
+      if (ocrFuture != null) {
+        try {
+          final result = await ocrFuture.timeout(const Duration(seconds: 8));
+          await widget.auth
+              .submitIdOcrResult(result.withSelectedType(_idType!));
+        } catch (_) {
+          // Advisory only -- see id_ocr.dart's header.
+        }
+      }
 
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/verification-pending');

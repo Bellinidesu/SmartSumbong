@@ -5,6 +5,8 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'id_ocr.dart' show IdOcrResult;
+
 /// Mirrors `public.id_document_type` in migration 0019. The wire values
 /// must match the enum labels exactly — the signup trigger casts the
 /// string and raises if it is not a recognised document type.
@@ -220,6 +222,27 @@ class AuthService {
       throw _translate(e.message);
     } on PostgrestException catch (e) {
       throw _translate(e.message);
+    }
+  }
+
+  /// Writes on-device OCR triage results (id_ocr.dart, migration 0039)
+  /// to the just-created account's own row. Call this only after
+  /// [register] has succeeded — signUp leaves the client signed in as
+  /// the new account, and it is that session, via users_self_update's
+  /// RLS policy (0003), that actually authorizes the write; nothing
+  /// here checks a role or grants anything on its own.
+  ///
+  /// Advisory only, same as everything else in id_ocr.dart: any failure
+  /// here is swallowed rather than surfaced, because a resident whose
+  /// signup otherwise succeeded must never see an error over a feature
+  /// that exists purely to help the admin triage the queue faster.
+  Future<void> submitIdOcrResult(IdOcrResult result) async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      await _client.from('users').update(result.toColumns()).eq('id', uid);
+    } catch (_) {
+      // Advisory only — see doc comment above.
     }
   }
 

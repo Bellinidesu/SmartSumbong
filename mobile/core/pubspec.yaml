@@ -64,6 +64,13 @@ dependencies:
   # onboarding-seen flags rather than needing the Keystore's guarantees.
   shared_preferences: ^2.3.3
 
+  # On-device OCR triage for ID photos at registration (id_ocr.dart,
+  # migration 0039) -- reads what an ID photo says, entirely on the
+  # phone, no network call, nothing about the photo leaves the device.
+  # Not identity verification (see id_ocr.dart's header); the admin
+  # still decides everything, this only orders/labels their queue.
+  google_mlkit_text_recognition: ^0.17.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -8,3 +8,4 @@ export 'src/push_notifications.dart';
 export 'src/crash_reporting.dart';
 export 'src/biometric_auth.dart';
 export 'src/biometric_lock_gate.dart';
+export 'src/id_ocr.dart';
