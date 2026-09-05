@@ -118,6 +118,7 @@ $report = null;
 $media = $logs = $dispatches = $roster = [];
 $policy = null;
 $feedback = null;
+$proof = [];
 
 try {
     $rows = $db->select('reports', [
@@ -152,6 +153,27 @@ try {
             'report_id' => 'eq.' . $id,
             'order'     => 'assigned_at.desc',
         ]);
+
+        // Field proof. dispatch_media is keyed to the dispatch rather
+        // than the report, so it needs the ids from above — and it is
+        // fetched at all because until now the admin had no way to see
+        // it. 0024 gave the filing resident a look at these photos
+        // months before the barangay could. (Pulled in from the
+        // Codespaces copy, 5 Sep 2026 — see the tracking doc.)
+        $liveIds = array_values(array_filter(array_map(
+            fn($d) => $d['id'] ?? null,
+            $dispatches
+        )));
+        if ($liveIds) {
+            $proofRows = $db->select('dispatch_media', [
+                'select'      => 'dispatch_id,media_url,bytes,uploaded_at',
+                'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
+                'order'       => 'uploaded_at.asc',
+            ]);
+            foreach ($proofRows as $r) {
+                $proof[$r['dispatch_id']][] = $r;
+            }
+        }
 
         // Tamper check on this complaint's trail. Cheap (a handful of
         // hashes) and it makes the guarantee visible rather than a claim
@@ -310,20 +332,83 @@ layout_head('Case Review', 'cases.php');
     </div>
 
     <div class="case-block">
-      <h3 class="case-sub">Attached Photo</h3>
+      <h3 class="case-sub">Attached Evidence</h3>
       <?php if (!$media): ?>
-        <p class="case-none">No photo was attached to this complaint.</p>
+        <p class="case-none">No photo or video was attached to this complaint.</p>
       <?php else: ?>
         <div class="media-strip">
           <?php foreach ($media as $m): ?>
-            <a class="media-thumb" href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
-              <img src="<?= e($m['media_url']) ?>" alt="Evidence submitted with <?= e($report['tracking_id']) ?>" loading="lazy">
-              <span class="media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
-            </a>
+            <?php $mime = (string) ($m['mime_type'] ?? ''); ?>
+            <?php if (str_starts_with($mime, 'video/')): ?>
+              <!-- Video support has existed since 0033, but this viewer used to
+                   render every attachment as an <img> regardless of mime_type —
+                   a video just showed as a broken image with no way to watch
+                   it. Not wrapped in the usual <a>: a click on the native
+                   controls would otherwise also fire the anchor's navigation. -->
+              <div class="media-thumb media-thumb--video">
+                <video controls preload="metadata" playsinline>
+                  <source src="<?= e($m['media_url']) ?>" type="<?= e($mime) ?>">
+                  Your browser cannot play this video.
+                  <a href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">Open it directly</a>.
+                </video>
+                <span class="media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
+              </div>
+            <?php else: ?>
+              <a class="media-thumb" href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
+                <img src="<?= e($m['media_url']) ?>" alt="Evidence submitted with <?= e($report['tracking_id']) ?>" loading="lazy">
+                <span class="media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
+              </a>
+            <?php endif; ?>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>
+
+    <?php
+    // Only dispatches that were actually resolved carry a field
+    // report. A rerouted or expired one has a reason, not an outcome,
+    // and that belongs in the timeline rather than here. (Pulled in
+    // from the Codespaces copy, 5 Sep 2026 — see the tracking doc.)
+    $resolved = array_values(array_filter(
+        $dispatches,
+        fn($d) => ($d['state'] ?? '') === 'resolved'
+    ));
+    ?>
+    <?php if ($resolved): ?>
+      <div class="case-block">
+        <h3 class="case-sub">Field Report</h3>
+        <?php foreach ($resolved as $d): ?>
+          <?php $shots = $proof[$d['id']] ?? []; ?>
+          <p class="case-meta">
+            <?= e($d['tanod']['full_name'] ?? 'Barangay tanod') ?>
+            <?php if (!empty($d['resolved_at'])): ?>
+              &middot; <?= e(long_datetime($d['resolved_at'])) ?>
+            <?php endif; ?>
+          </p>
+          <?php if (!empty($d['field_report_text'])): ?>
+            <p class="case-body"><?= nl2br(e($d['field_report_text'])) ?></p>
+          <?php else: ?>
+            <p class="case-none">No narrative was submitted.</p>
+          <?php endif; ?>
+
+          <?php if ($shots): ?>
+            <div class="media-strip">
+              <?php foreach ($shots as $m): ?>
+                <a class="media-thumb" href="<?= e($m['media_url']) ?>"
+                   target="_blank" rel="noopener">
+                  <img src="<?= e($m['media_url']) ?>"
+                       alt="Proof photo for <?= e($report['tracking_id']) ?>"
+                       loading="lazy">
+                  <span class="media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <p class="case-none">No photo proof was attached.</p>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
   </section>
 
   <!-- ---------- admin controls ---------- -->

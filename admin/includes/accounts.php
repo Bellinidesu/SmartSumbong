@@ -287,6 +287,10 @@ function render_account_screen(string $role): void
                 <td><?= account_status_pills($a) ?><?php
                     if (!empty($dupes[$a['id']])): ?>
                       <span class="pill pill--escalated" title="<?= e(implode('; ', $dupes[$a['id']])) ?>">Possible duplicate</span>
+                    <?php endif; ?><?php
+                    if (!empty($a['ocr_flags'])): ?>
+                      <span class="pill pill--escalated"
+                            title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>">OCR flag</span>
                     <?php endif; ?></td>
                 <td class="cell-action">
                   <a class="btn-review" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
@@ -421,6 +425,42 @@ function duplicate_flags(array $accounts): array
     return $out;
 }
 
+/**
+ * Human label for what the applicant's on-device OCR pass (0039) read the
+ * ID photo as. Independent of id_type (what the applicant selected at
+ * signup) — account_directory() does not currently return id_type, so
+ * this screen can show what OCR detected but not a side-by-side compare
+ * against what was picked in the dropdown.
+ */
+function id_document_type_label(?string $t): string
+{
+    return match ($t) {
+        'barangay_id'          => 'Barangay ID',
+        'drivers_license'      => "Driver's License",
+        'passport'             => 'Passport',
+        'philsys'              => 'PhilSys ID',
+        'postal_id'            => 'Postal ID',
+        'barangay_appointment' => 'Barangay Appointment',
+        default                => 'Unrecognized document',
+    };
+}
+
+/**
+ * Human label for one of 0039's machine-generated ocr_flags entries.
+ * Unknown flags (a future client build adding a new one) still render
+ * readably rather than as a raw snake_case string or a blank pill.
+ */
+function ocr_flag_label(string $flag): string
+{
+    return match ($flag) {
+        'type_mismatch' => 'ID type does not match',
+        'unreadable'    => 'ID could not be read',
+        'name_mismatch' => 'Name does not match',
+        'no_id_number'  => 'No ID number found',
+        default         => ucfirst(str_replace('_', ' ', $flag)),
+    };
+}
+
 /** Status, suspension and the two-hour clock, as pills. */
 function account_status_pills(array $a): string
 {
@@ -543,6 +583,45 @@ function render_account_detail(
             </a>
           <?php endif; ?>
         </div>
+
+        <?php if (!empty($p['id_image_url'])): ?>
+        <!-- OCR triage (0039): the applicant's own device reads the ID
+             photo and flags anything worth a second look before the admin
+             opens it. Advisory only — never gates verification, just
+             orders the queue and points at what to check first. The data
+             has been flowing through account_directory() since 0039; this
+             box is the first place any of it actually reaches a screen. -->
+        <div class="case-block">
+          <h3 class="case-sub">OCR Triage</h3>
+          <?php if (empty($p['ocr_detected_type']) && empty($p['ocr_flags'])
+                    && empty($p['ocr_extracted_name']) && empty($p['ocr_extracted_number'])): ?>
+            <p class="case-none">No OCR flags on file for this ID.</p>
+          <?php else: ?>
+            <?php if (!empty($p['ocr_flags'])): ?>
+              <div class="case-flags">
+                <?php foreach ($p['ocr_flags'] as $flag): ?>
+                  <span class="pill pill--escalated"><?= e(ocr_flag_label((string) $flag)) ?></span>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+            <dl class="detail-list">
+              <?php if (!empty($p['ocr_detected_type'])): ?>
+                <dt>OCR read this as</dt><dd><?= e(id_document_type_label($p['ocr_detected_type'])) ?></dd>
+              <?php endif; ?>
+              <?php if (!empty($p['ocr_extracted_name'])): ?>
+                <dt>Name on the ID</dt><dd><?= e($p['ocr_extracted_name']) ?></dd>
+              <?php endif; ?>
+              <?php if (!empty($p['ocr_extracted_number'])): ?>
+                <dt>ID number</dt><dd class="mono"><?= e($p['ocr_extracted_number']) ?></dd>
+              <?php endif; ?>
+            </dl>
+            <p class="case-none" style="margin-top:8px">
+              Advisory only, read off the photo by the applicant's own device &mdash;
+              cross-check it against the ID photo above before deciding.
+            </p>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
 
         <div class="case-block">
           <h3 class="case-sub">Uploaded Selfie</h3>
