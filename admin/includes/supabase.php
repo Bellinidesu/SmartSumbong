@@ -56,7 +56,9 @@ final class Supabase
         $raw    = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err    = curl_error($ch);
-        curl_close($ch);
+        // curl_close() is a deliberate no-op since PHP 8.0 (deprecated in
+        // 8.5) -- the handle is freed automatically when it goes out of
+        // scope, so the call was removed rather than kept as dead code.
 
         if ($raw === false) {
             throw new SupabaseError('Could not reach the database: ' . $err);
@@ -171,7 +173,7 @@ final class Supabase
             ],
         ]);
         $raw = curl_exec($ch);
-        curl_close($ch);
+        // curl_close() removed -- see the comment in request() above.
 
         // Content-Range comes back as "0-0/57"; the total is after the slash.
         if (is_string($raw) && preg_match('#Content-Range:\s*\d+-\d+/(\d+)#i', $raw, $m)) {
