@@ -117,6 +117,7 @@ $error = null;
 $report = null;
 $media = $logs = $dispatches = $roster = [];
 $policy = null;
+$feedback = null;
 
 try {
     $rows = $db->select('reports', [
@@ -167,6 +168,16 @@ try {
             'limit'    => '1',
         ]);
         $policy = $sla[0] ?? null;
+
+        // Resident's post-resolution rating, if any. feedback_read (0003)
+        // already lets an admin see any resident's row, so this is a
+        // plain select, not a new RPC — same pattern as $media, $logs.
+        $fb = $db->select('feedback', [
+            'select'    => 'rating,comment,submitted_at',
+            'report_id' => 'eq.' . $id,
+            'limit'     => '1',
+        ]);
+        $feedback = $fb[0] ?? null;
     }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
@@ -523,6 +534,34 @@ layout_head('Case Review', 'cases.php');
       </li>
     </ol>
   </section>
+
+  <!-- ---------- resident feedback ---------- -->
+  <!-- Only ever possible on a finished report — feedback_insert (0003)
+       requires status in (resolved, closed), same gate the resident
+       app's own feedback card uses. Shown either way once finished, so
+       "no rating yet" reads as a fact, not a missing feature. -->
+  <?php if (in_array($status, ['resolved', 'closed'], true)): ?>
+  <section class="card card--feedback">
+    <h3 class="case-sub">Resident Feedback</h3>
+    <?php if ($feedback): ?>
+      <div class="fb-stars" role="img"
+           aria-label="Rated <?= (int) $feedback['rating'] ?> out of 5 stars">
+        <?php for ($i = 1; $i <= 5; $i++): ?>
+          <svg class="fb-star<?= $i <= (int) $feedback['rating'] ? ' is-filled' : '' ?>"
+               viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        <?php endfor; ?>
+      </div>
+      <?php if (!empty($feedback['comment'])): ?>
+        <p class="fb-comment">&ldquo;<?= nl2br(e($feedback['comment'])) ?>&rdquo;</p>
+      <?php endif; ?>
+      <p class="tl-when">Submitted <?= e(long_datetime($feedback['submitted_at'])) ?></p>
+    <?php else: ?>
+      <p class="case-none">The resident has not left feedback on this complaint yet.</p>
+    <?php endif; ?>
+  </section>
+  <?php endif; ?>
 </div>
 
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">

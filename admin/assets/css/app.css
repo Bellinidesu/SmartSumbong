@@ -834,6 +834,16 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 .card--controls  { grid-column: 2; grid-row: 1 / span 1; }
 .case-strip      { grid-column: 1; }
 .card--timeline  { grid-column: 1; }
+.card--feedback  { grid-column: 1; }
+
+/* Mirrors the resident app's star rating on a finished report — same
+   accent, same "not left feedback yet" honesty instead of just hiding
+   the section (see report_view_screen.dart Round 19's lesson: never
+   let an empty state read as a bug). */
+.fb-stars { display: flex; gap: 4px; margin-bottom: 10px; }
+.fb-star  { width: 20px; height: 20px; fill: none; stroke: var(--ink-faint); stroke-width: 1.5; }
+.fb-star.is-filled { fill: var(--orange); stroke: var(--orange); }
+.fb-comment { font-style: italic; color: #303648; margin-bottom: 8px; }
 
 .case-heading {
   font-size: 27px;
