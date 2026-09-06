@@ -21,6 +21,8 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 import 'auth.dart' show IdDocumentType;
 
@@ -80,31 +82,77 @@ class IdOcrResult {
 /// still read back part of a header even when the rest is lost.
 const Map<IdDocumentType, List<String>> _headerHints = {
   IdDocumentType.driversLicense: [
+    // "DRIVER'S LICENSE" and "LAND TRANSPORTATION OFFICE" both confirmed
+    // printed, verbatim, against a real LTO card photo.
     "DRIVER'S LICENSE",
     'DRIVERS LICENSE',
     'LAND TRANSPORTATION OFFICE',
+    // The reviewed photo's crop didn't include a "NON-PROFESSIONAL" /
+    // "PROFESSIONAL" line — not contradicted, just not yet seen directly
+    // the way the two hints above now have been.
     'NON-PROFESSIONAL',
     'PROFESSIONAL DRIVER',
   ],
   IdDocumentType.passport: [
     'PASSPORT',
+    // The Filipino word actually printed on the cover, below the seal
+    // ("PILIPINAS" above it, "PASAPORTE" below) — confirmed 6 Sep, and
+    // distinctive to a passport specifically, unlike the masthead text.
+    'PASAPORTE',
     'DEPARTMENT OF FOREIGN AFFAIRS',
-    'REPUBLIKA NG PILIPINAS',
+    // 'REPUBLIKA NG PILIPINAS' deliberately NOT listed here — it's the
+    // standard national masthead nearly every Philippine government ID
+    // prints, PhilSys included (see the 6 Sep false positive this
+    // caused: a genuine PhilSys card matched here first, since passport
+    // is checked before philsys below, before ever reaching philsys's
+    // own, actually-distinctive hints). A phrase belongs in this list
+    // only if it doesn't also appear on one of the other five documents.
   ],
   IdDocumentType.philsys: [
     'PHILIPPINE IDENTIFICATION CARD',
-    'PHILSYS',
     'PAMBANSANG PAGKAKAKILANLAN',
+    // 'PHILSYS' removed 6 Sep — that's the name of the government
+    // registration SYSTEM, never text actually printed on the physical
+    // card itself (the card is called "PhilID"). Confirmed against a
+    // real card photo; this hint had simply never matched anything.
   ],
   IdDocumentType.postalId: [
+    // All three confirmed against a real PHLPOST card sample: the card's
+    // title is "POSTAL IDENTITY CARD" (contains "POSTAL ID"), it also
+    // carries a repeated "POSTAL ID" watermark, the "PHLPOST" wordmark
+    // appears top-right, and the issuer line reads "Philippine Postal
+    // Corporation" (contains "PHILIPPINE POSTAL").
     'POSTAL ID',
     'PHLPOST',
     'PHILIPPINE POSTAL',
   ],
   IdDocumentType.barangayId: [
+    // Still no real Barangay 183 ID sample to check against. Ace asked
+    // (5 Sep) to check for the barangay's own identifying details as a
+    // placeholder in the meantime, so a resident-issued card at least
+    // has a chance of matching on its address text:
+    'BARANGAY 183',
+    'VILLAMOR',
+    'PASAY CITY',
+    // Generic guesses, kept as a fallback — barangay IDs aren't
+    // nationally standardised the way the other five document types
+    // are (every barangay designs its own), so these aren't confirmed
+    // printed on an actual Barangay 183 card either.
     'BARANGAY ID',
     'BARANGAY IDENTIFICATION',
-    'BARANGAY CLEARANCE',
+    // 'BARANGAY CLEARANCE' removed 6 Sep — that's a different real
+    // document (a certificate of residency/good standing, not an ID
+    // card), so it had no business being a hint for this type at all.
+    //
+    // Caution: 'PASAY CITY' (and, less plausibly, 'BARANGAY 183') could
+    // also turn up in an address line printed on one of the other five
+    // document types for a resident who lives there — e.g. a Postal ID.
+    // That only matters if none of that document's own, more
+    // distinctive hints already matched first, since this type is
+    // checked fifth of the six (only barangayAppointment comes after
+    // it) — worth another look once a real Barangay 183 card sample
+    // lets these placeholders be replaced with its actual printed
+    // header text.
   ],
   IdDocumentType.barangayAppointment: [
     'APPOINTMENT',
@@ -148,7 +196,7 @@ Future<IdOcrResult> runIdOcr(
 
     IdDocumentType? detected;
     for (final entry in _headerHints.entries) {
-      if (entry.value.any(upper.contains)) {
+      if (entry.value.any((hint) => _fuzzyContains(upper, hint))) {
         detected = entry.key;
         break;
       }
@@ -156,7 +204,14 @@ Future<IdOcrResult> runIdOcr(
 
     final flags = <String>[];
 
-    final extractedName = _extractName(text);
+    // Label-anchored first (reads the printed field labels themselves —
+    // "Apelyido/Last Name" etc. — and takes the line directly under each
+    // one), falling back to the old longest-caps-line guess only when no
+    // label was found at all (a non-PhilSys ID, or a crop that lost the
+    // labels). See both extractors' own doc comments for why the label
+    // approach is materially more reliable than picking by line length.
+    final lines = _sortedLines(result);
+    final extractedName = _extractNameByLabel(lines) ?? _extractName(text);
     if (extractedName == null ||
         !_namesOverlap(extractedName, enteredFullName)) {
       flags.add('name_mismatch');
@@ -180,12 +235,179 @@ Future<IdOcrResult> runIdOcr(
   }
 }
 
+/// Re-runs [runIdOcr] against an ID photo that isn't already a local
+/// file — [imageUrl] is expected to be `users.id_image_url`, the
+/// barangay's own Cloudinary address (see media_upload.dart), not a
+/// Supabase Storage object, so a plain unauthenticated HTTPS GET is all
+/// that's needed to fetch it.
+///
+/// Built for the admin-requested re-check flow (migration 0050): an
+/// account that registered before this OCR feature existed (or whose
+/// first read flagged something worth a second look) has a photo
+/// sitting in storage but no local [File] to hand [runIdOcr] — this
+/// downloads it to a throwaway temp file, runs the same on-device pass,
+/// and cleans up after itself either way.
+///
+/// Returns null only when the photo itself could not be fetched
+/// (offline, a bad or expired address) — that is a network failure, not
+/// an OCR result, and callers should leave any pending re-check request
+/// alone so the next app open simply tries again. A photo that WAS
+/// fetched but reads back as gibberish still comes back as a normal
+/// [IdOcrResult] with the `unreadable` flag, exactly as [runIdOcr]
+/// already behaves for a bad photo taken fresh.
+Future<IdOcrResult?> runIdOcrFromUrl(
+  String imageUrl, {
+  required String enteredFullName,
+}) async {
+  File? temp;
+  try {
+    final response = await http.get(Uri.parse(imageUrl));
+    if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+      return null;
+    }
+    final dir = await getTemporaryDirectory();
+    temp = File(
+      '${dir.path}/ocr_rescan_${DateTime.now().microsecondsSinceEpoch}.jpg',
+    );
+    await temp.writeAsBytes(response.bodyBytes);
+    return await runIdOcr(temp, enteredFullName: enteredFullName);
+  } catch (_) {
+    return null;
+  } finally {
+    if (temp != null) {
+      unawaited(temp.delete().catchError((_) => temp!));
+    }
+  }
+}
+
+/// The printed field labels PhilSys puts directly above each part of the
+/// holder's name (see the photo this was written against: "Apelyido/Last
+/// Name" above "LEDIAC", "Mga Pangalan/Given Names" above "ACE AHMERSON",
+/// "Gitnang Apelyido/Middle Name" above "ELLO") — three separate short
+/// lines, which is exactly why [_extractName]'s "longest all-caps line"
+/// heuristic reliably grabs the one long address line instead. English
+/// and Filipino phrasing both listed since ML Kit reads whichever the
+/// card actually shows a clean line for.
+const Map<String, List<String>> _nameLabelHints = {
+  'last': ['APELYIDO', 'LAST NAME'],
+  'given': ['MGA PANGALAN', 'GIVEN NAME', 'GIVEN NAMES', 'PANGALAN'],
+  'middle': ['GITNANG APELYIDO', 'MIDDLE NAME'],
+};
+
+/// Every recognised line across every block, top-to-bottom by its
+/// position on the photo. ML Kit's blocks are not guaranteed to already
+/// be in a single reading order for a multi-block layout, but an ID
+/// card's fields are effectively one column, so sorting every line by
+/// its own vertical position is enough to put "a label" directly before
+/// "the value printed under it", which is all [_extractNameByLabel]
+/// actually needs.
+List<String> _sortedLines(RecognizedText result) {
+  final lines = <TextLine>[
+    for (final block in result.blocks) ...block.lines,
+  ];
+  lines.sort((a, b) => a.boundingBox.top.compareTo(b.boundingBox.top));
+  return [for (final l in lines) l.text.trim()];
+}
+
+/// Reads the name off the printed field labels themselves rather than
+/// guessing by line length (see [_nameLabelHints]'s doc comment for why
+/// that guess fails). For each label this recognises, the very next
+/// line is taken as that field's value — skipped if it doesn't actually
+/// look like a name (mostly letters, in caps) — so a misread label with
+/// garbage immediately after it contributes nothing rather than garbage.
+/// Only PhilSys prints the name this way among the six accepted document
+/// types; every other type returns null here and falls back to
+/// [_extractName] in the caller.
+///
+/// Assembled as Last + Given + Middle. [_namesOverlap]'s token-overlap
+/// check is order-independent, so this doesn't need to match the
+/// applicant's own "Last Name, First Name" entry format exactly.
+String? _extractNameByLabel(List<String> lines) {
+  final parts = <String, String>{};
+  for (var i = 0; i < lines.length - 1; i++) {
+    final line = lines[i].toUpperCase();
+    for (final entry in _nameLabelHints.entries) {
+      if (parts.containsKey(entry.key)) continue;
+      if (!entry.value.any((hint) => _fuzzyContains(line, hint))) continue;
+
+      final value = lines[i + 1].trim();
+      if (value.length < 2 || value.length > 40) continue;
+      if (value != value.toUpperCase()) continue;
+      final withoutSpaces = value.replaceAll(' ', '');
+      final letters = withoutSpaces.replaceAll(RegExp(r'[^A-Za-z]'), '');
+      if (withoutSpaces.isEmpty || letters.length < withoutSpaces.length * 0.7) {
+        continue;
+      }
+      parts[entry.key] = value;
+    }
+  }
+  final assembled =
+      [parts['last'], parts['given'], parts['middle']]
+          .whereType<String>()
+          .join(' ')
+          .trim();
+  return assembled.isEmpty ? null : assembled;
+}
+
+/// Approximate substring match: true if some contiguous span of
+/// [haystack] is within a small edit distance of [needle], not just an
+/// exact `.contains()`. A glare-washed or slightly blurred photo reads
+/// back header and label text with a handful of wrong characters far
+/// more often than it reads back nothing at all — "PAMBANSANG
+/// PAGKAKAKILANLAN" missing one or two letters should still count as a
+/// match, an exact substring check never would. Short needles (under 6
+/// characters) are excluded from fuzzing since a couple of tolerated
+/// errors against a very short phrase risks matching almost anything.
+bool _fuzzyContains(String haystack, String needle, {double maxErrorRate = 0.22}) {
+  if (needle.isEmpty) return false;
+  if (haystack.contains(needle)) return true;
+  if (needle.length < 6) return false;
+
+  final maxErrors = (needle.length * maxErrorRate).floor();
+  if (maxErrors == 0) return false;
+
+  final minLen = math.max(1, needle.length - maxErrors);
+  final maxLen = math.min(haystack.length, needle.length + maxErrors);
+  for (var start = 0; start <= haystack.length - minLen; start++) {
+    for (var len = minLen; len <= maxLen && start + len <= haystack.length; len++) {
+      if (_levenshtein(haystack.substring(start, start + len), needle) <= maxErrors) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/// Classic edit distance, iterative two-row form (no need to keep the
+/// full matrix — only ever compared against short header/label phrases,
+/// never whole-document text, so this stays cheap).
+int _levenshtein(String a, String b) {
+  if (a == b) return 0;
+  if (a.isEmpty) return b.length;
+  if (b.isEmpty) return a.length;
+
+  var prev = List<int>.generate(b.length + 1, (j) => j);
+  for (var i = 1; i <= a.length; i++) {
+    final curr = List<int>.filled(b.length + 1, 0);
+    curr[0] = i;
+    for (var j = 1; j <= b.length; j++) {
+      final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+      curr[j] = math.min(math.min(curr[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
+    }
+    prev = curr;
+  }
+  return prev[b.length];
+}
+
 /// Best-effort name line: the longest mostly-alphabetic, all-caps line
 /// that isn't part of one of the known headers. Philippine IDs print the
 /// holder's name in caps far more reliably than they label a "Name:"
 /// field ML Kit could key off of, so this is a cheap heuristic rather
 /// than a field lookup — it is shown to the admin to eyeball, never
-/// compared against any registry.
+/// compared against any registry. Kept as the fallback for the five
+/// document types [_extractNameByLabel] doesn't handle (see its own doc
+/// comment) — see id_ocr's 6 Sep revision for why this alone was not
+/// enough on its own for PhilSys specifically.
 String? _extractName(String text) {
   String? best;
   for (final rawLine in text.split('\n')) {

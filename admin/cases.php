@@ -20,7 +20,7 @@ session_start_once();
 // Coming back from a case should land on the list you left, not on an
 // unfiltered one you have to rebuild. Any explicit parameter wins; a bare
 // visit restores what you last looked at.
-if (!isset($_GET['q'], $_GET['status'], $_GET['sort']) && $_SERVER['QUERY_STRING'] === ''
+if (!isset($_GET['q'], $_GET['status'], $_GET['sort']) && ($_SERVER['QUERY_STRING'] ?? '') === ''
     && !empty($_SESSION['cases_view'])) {
     $_GET = $_SESSION['cases_view'] + $_GET;
 }
@@ -114,7 +114,11 @@ layout_head('Case Reports', 'cases.php');
 <!-- ---------- notifications ---------- -->
 <section class="panel">
   <header class="panel-bar">
-    <h2 class="panel-title">Notification (<?= count($notifications) ?>)</h2>
+    <h2 class="panel-title">Notification (<span id="notif-count"><?= count($notifications) ?></span>)
+      <span class="live-badge" id="live-badge" title="Updates as they happen — no reload needed">
+        <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">Live</span>
+      </span>
+    </h2>
     <form class="panel-search" method="get">
       <?= nav_icon('search') ?>
       <input type="search" name="nq" placeholder="Search Here" value="<?= e($_GET['nq'] ?? '') ?>">
@@ -122,9 +126,9 @@ layout_head('Case Reports', 'cases.php');
     <div class="panel-sort">Short by: <strong>Unread</strong></div>
   </header>
 
-  <div class="notif-list">
+  <div class="notif-list" id="notif-list">
     <?php if (!$notifications): ?>
-      <p class="empty">Nothing new. Notifications appear here when a report is
+      <p class="empty" id="notif-empty">Nothing new. Notifications appear here when a report is
          escalated, a deadline is missed, or a tanod files a resolution.</p>
     <?php endif; ?>
 
@@ -146,13 +150,13 @@ layout_head('Case Reports', 'cases.php');
 <!-- ---------- complaint register ---------- -->
 <section class="panel">
   <header class="panel-bar">
-    <h2 class="panel-title">Reports (<?= count($reports) ?>)</h2>
+    <h2 class="panel-title">Reports (<span id="reports-count"><?= count($reports) ?></span>)</h2>
 
     <?php $atc = count($attention ?? []); ?>
-    <a class="chip-filter<?= $view === 'attention' ? ' is-on' : '' ?>"
+    <a class="chip-filter<?= $view === 'attention' ? ' is-on' : '' ?>" id="attention-chip"
        href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter]))) ?>">
       Needs attention
-      <span class="chip-num<?= $atc > 0 ? ' is-hot' : '' ?>"><?= $atc ?></span>
+      <span class="chip-num<?= $atc > 0 ? ' is-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
     </a>
 
     <form class="panel-search" method="get">
@@ -192,7 +196,7 @@ layout_head('Case Reports', 'cases.php');
           <th scope="col"><span class="visually-hidden">Action</span></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="reports-tbody">
         <?php if (!$reports): ?>
           <tr class="row-empty">
             <td colspan="6">
@@ -232,5 +236,190 @@ layout_head('Case Reports', 'cases.php');
     </table>
   </div>
 </section>
+
+<script src="assets/vendor/supabase/supabase.js"></script>
+<script>
+// Realtime for the case list + notifications panel — explicit ask, 6 Sep
+// 2026: "the entire system needs to work realtime." reports, dispatches,
+// status_logs and notifications have all been in the supabase_realtime
+// publication since migrations 0004/0046; the map (spatial.php) already
+// proved the pattern out. This applies the same idiom here: a postgres_changes
+// event is a signal to re-run the same authenticated PostgREST-equivalent
+// query the initial page load used, never a payload to trust or patch in
+// directly (0046's own stated reasoning — default replica identity, RLS
+// still enforced through Realtime).
+(function () {
+  if (!window.supabase) { return; }
+  const { createClient } = supabase;
+
+  const TOKEN = <?= json_encode(access_token()) ?>;
+  const ADMIN_ID = <?= json_encode($admin['id']) ?>;
+  const sb = createClient(
+    <?= json_encode(supabase_url()) ?>,
+    <?= json_encode(supabase_key()) ?>,
+    { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
+      auth: { persistSession: false, autoRefreshToken: false } }
+  );
+  sb.realtime.setAuth(TOKEN);
+
+  // The view this page loaded with. Realtime keeps re-querying against
+  // this exact filter/sort/search, so a new complaint appears live only
+  // where it would actually belong once the page is reloaded too — it
+  // never silently changes what the admin is looking at.
+  const SORT_COL   = <?= json_encode($SORTABLE[$sortCol]) ?>;
+  const SORT_ASC   = <?= json_encode($sortDir === 'asc') ?>;
+  const STATUS     = <?= json_encode($filter) ?>;
+  const SEARCH     = <?= json_encode($search) ?>;
+  const VIEW       = <?= json_encode($view) ?>;
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+  const titleCase = s => String(s ?? '').replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+  function statusClass(s) {
+    switch (s) {
+      case 'pending_review': return 'pending';
+      case 'validated': return 'validated';
+      case 'assigned': return 'assigned';
+      case 'in_progress':
+      case 'offline_investigation': return 'progress';
+      case 'resolved': return 'resolved';
+      case 'closed':
+      case 'archived': return 'closed';
+      case 'rejected': return 'rejected';
+      default: return 'pending';
+    }
+  }
+  function shortDate(iso) {
+    if (!iso) return '';
+    const parts = new Intl.DateTimeFormat('en-US',
+      { timeZone: 'Asia/Manila', month: '2-digit', day: '2-digit', year: '2-digit' })
+      .formatToParts(new Date(iso));
+    const get = t => (parts.find(p => p.type === t) || {}).value || '';
+    return get('month') + '/' + get('day') + '/' + get('year');
+  }
+  function relativeTime(iso) {
+    if (!iso) return '';
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + ' min ago';
+    if (mins < 1440) return Math.floor(mins / 60) + ' hr ago';
+    return new Intl.DateTimeFormat('en-US',
+      { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+      .format(new Date(iso));
+  }
+  function isAttention(r) {
+    const open = !['resolved', 'closed', 'archived', 'rejected'].includes(r.status);
+    const overdue = open && r.due_at && new Date(r.due_at).getTime() < Date.now();
+    return overdue || !!r.awaiting_unit_since || r.status === 'pending_review';
+  }
+
+  function renderReports(all) {
+    const filtered = VIEW === 'attention' ? all.filter(isAttention) : all;
+    document.getElementById('reports-count').textContent = filtered.length;
+    document.getElementById('attention-count').textContent =
+      all.filter(isAttention).length;
+
+    const tbody = document.getElementById('reports-tbody');
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr class="row-empty"><td colspan="6">' +
+        (SEARCH || STATUS ? 'No complaint matches that search.' : 'No complaints have been filed yet.') +
+        '</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtered.map(r => {
+      const who = r.is_anonymous
+        ? '<span class="anon">Anonymous</span>'
+        : escapeHtml((r.resident && r.resident.full_name) || 'Unknown');
+      const escalated = (r.escalation_level || 0) > 0
+        ? '<span class="pill pill--escalated" title="Escalated">Escalated</span>' : '';
+      return '<tr>' +
+        '<td>' + who + '</td>' +
+        '<td class="mono">' + escapeHtml(r.tracking_id) + '</td>' +
+        '<td>' + escapeHtml(titleCase(r.category)) + '</td>' +
+        '<td><span class="pill pill--' + statusClass(r.status) + '">' +
+          escapeHtml(titleCase(r.status)) + '</span>' + escalated + '</td>' +
+        '<td>' + shortDate(r.created_at) + '</td>' +
+        '<td class="cell-action"><a class="btn-review" href="case.php?id=' +
+          encodeURIComponent(r.id) + '">Review</a></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function renderNotifications(rows) {
+    document.getElementById('notif-count').textContent = rows.length;
+    const list = document.getElementById('notif-list');
+    if (!rows.length) {
+      list.innerHTML = '<p class="empty" id="notif-empty">Nothing new. Notifications appear here when a report is' +
+        ' escalated, a deadline is missed, or a tanod files a resolution.</p>';
+      return;
+    }
+    list.innerHTML = rows.map(n => {
+      const review = n.report_id
+        ? '<a class="btn-review" href="case.php?id=' + encodeURIComponent(n.report_id) + '">Review</a>' : '';
+      return '<article class="notif">' +
+        '<span class="notif-dot" aria-hidden="true"></span>' +
+        '<div class="notif-body"><p class="notif-msg">' + escapeHtml(n.message) + '</p>' +
+        '<p class="notif-when">' + escapeHtml(relativeTime(n.created_at)) + '</p></div>' +
+        review + '</article>';
+    }).join('');
+  }
+
+  async function loadReports() {
+    let q = sb.from('reports')
+      .select('id,tracking_id,subject,category,status,created_at,is_anonymous,'
+        + 'escalation_level,due_at,awaiting_unit_since,'
+        + 'resident:users!reports_resident_id_fkey(full_name)')
+      .is('deleted_at', null)
+      .order(SORT_COL, { ascending: SORT_ASC })
+      .limit(100);
+    if (STATUS) q = q.eq('status', STATUS);
+    if (SEARCH) {
+      const needle = SEARCH.replace(/,/g, ' ');
+      q = q.or('tracking_id.ilike.*' + needle + '*,subject.ilike.*' + needle + '*');
+    }
+    const { data, error } = await q;
+    if (error) return; // stale view is safer than a half-rendered one
+    renderReports(data || []);
+  }
+
+  async function loadNotifications() {
+    const { data, error } = await sb.from('notifications')
+      .select('id,kind,message,created_at,is_read,report_id')
+      .eq('user_id', ADMIN_ID)
+      .eq('is_read', false)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error) return;
+    renderNotifications(data || []);
+  }
+
+  // Bursts (a batch import, several tanods updating at once) collapse into
+  // one refetch instead of one per row.
+  const debounced = (fn, timerRef) => () => {
+    clearTimeout(timerRef.id);
+    timerRef.id = setTimeout(fn, 250);
+  };
+  const kickReports = debounced(loadReports, { id: null });
+  const kickNotifs  = debounced(loadNotifications, { id: null });
+
+  sb.channel('cases-list')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, kickReports)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications',
+                               filter: 'user_id=eq.' + ADMIN_ID }, kickNotifs)
+    .subscribe(status => {
+      const badge = document.getElementById('live-badge'),
+            text  = document.getElementById('live-badge-text');
+      if (status === 'SUBSCRIBED') {
+        badge.classList.remove('is-down'); text.textContent = 'Live';
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        badge.classList.add('is-down'); text.textContent = 'Reconnecting…';
+      }
+    });
+})();
+</script>
 
 <?php layout_foot(); ?>

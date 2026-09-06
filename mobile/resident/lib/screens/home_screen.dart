@@ -117,7 +117,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final profile = await client
           .from('users')
-          .select('full_name, verification_status, is_suspended')
+          .select('full_name, verification_status, is_suspended, '
+              'id_image_url, id_type, ocr_rescan_requested_at')
           .eq('id', uid)
           .maybeSingle();
 
@@ -140,6 +141,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       _subscribeLive(uid);
 
+      // Migration 0050: an admin asked for this account's already-
+      // uploaded ID photo to be re-scanned (it predates on-device OCR,
+      // or its first read flagged something worth a second look).
+      // Fire-and-forget — this is advisory triage for the admin, same
+      // as the original registration-time OCR pass, and must never
+      // hold up or interrupt the resident's own screen.
+      if (profile['ocr_rescan_requested_at'] != null &&
+          profile['id_image_url'] != null) {
+        unawaited(_maybeRescanId(
+          imageUrl: profile['id_image_url'] as String,
+          fullName: profile['full_name'] as String? ?? '',
+          idTypeWire: profile['id_type'] as String?,
+        ));
+      }
+
       final unread = await client
           .from('notifications')
           .count(CountOption.exact)
@@ -156,6 +172,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Offline. Show the screen anyway — the cards are static and the
       // buttons still work; only the greeting and badge are missing.
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Downloads this resident's own already-uploaded ID photo and runs
+  /// the same on-device OCR pass registration does, then submits it —
+  /// which also clears `ocr_rescan_requested_at` (AuthService.
+  /// submitIdOcrResult). A failed download (offline, dropped mid-scan)
+  /// leaves the request pending for the next app open rather than
+  /// recording a false result — see runIdOcrFromUrl's own doc comment.
+  Future<void> _maybeRescanId({
+    required String imageUrl,
+    required String fullName,
+    required String? idTypeWire,
+  }) async {
+    try {
+      final result = await runIdOcrFromUrl(imageUrl, enteredFullName: fullName);
+      if (result == null) return;
+      final selected = AuthService.idDocumentTypeFromWire(idTypeWire);
+      await widget.auth.submitIdOcrResult(
+        selected == null ? result : result.withSelectedType(selected),
+      );
+    } catch (_) {
+      // Advisory only, same framing as the rest of this feature.
     }
   }
 

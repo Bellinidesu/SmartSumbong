@@ -81,6 +81,17 @@ function render_account_screen(string $role): void
                         $flash = 'Account reinstated.';
                         break;
 
+                    case 'request_ocr_rescan':
+                        // 0050. OCR runs on-device only, once, at
+                        // registration — this just flags the account so
+                        // the resident's own app re-runs it against the
+                        // already-uploaded photo next time it's open.
+                        $db->rpc('request_ocr_rescan', [
+                            'p_user' => $target,
+                        ]);
+                        $flash = 'Re-check requested. It will run automatically next time they open the app.';
+                        break;
+
                     case 'reset_password':
                         // Re-authenticated for the same reason promote
                         // and step_down are: this hands working
@@ -196,7 +207,7 @@ function render_account_screen(string $role): void
         }
 
         render_account_detail($person, $noun, $idLabel, $self, $navFile, $title, $flash,
-                              $dupes[$person['id']] ?? [], $abuseHistory);
+                              $dupes[$person['id']] ?? [], $abuseHistory, $role);
         return;
     }
 
@@ -227,18 +238,22 @@ function render_account_screen(string $role): void
       <div class="alert-bar" role="alert"><?= e($error) ?></div>
     <?php endif; ?>
 
-    <?php if ($overdue > 0): ?>
-      <div class="flash flash--error" role="alert">
-        <?= $overdue ?> registration<?= $overdue === 1 ? '' : 's' ?>
-        <?= $overdue === 1 ? 'has' : 'have' ?> passed the two-hour verification window.
-      </div>
-    <?php endif; ?>
+    <!-- Always rendered so realtime polling below (added 6 Sep 2026) can
+         toggle it as accounts age past the window, rather than only being
+         able to show a banner that already existed at page load. -->
+    <div class="flash flash--error" id="overdue-banner" role="alert"
+         style="<?= $overdue > 0 ? '' : 'display:none' ?>">
+      <span id="overdue-text"><?= $overdue ?> registration<?= $overdue === 1 ? '' : 's' ?>
+        <?= $overdue === 1 ? 'has' : 'have' ?> passed the two-hour verification window.</span>
+    </div>
 
     <section class="panel">
       <header class="panel-bar">
         <h2 class="panel-title">
-          <?= e($noun) ?> Accounts (<?= count($accounts) ?>)<?php
-            if ($pending > 0): ?> &middot; <span class="pending-count"><?= $pending ?> awaiting review</span><?php endif; ?>
+          <?= e($noun) ?> Accounts (<span id="accounts-count"><?= count($accounts) ?></span>)<span id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>> &middot; <span class="pending-count" id="pending-count"><?= $pending ?></span> awaiting review</span>
+          <span class="live-badge" id="live-badge" title="New registrations appear here on their own">
+            <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">Live</span>
+          </span>
         </h2>
 
         <form class="panel-search" method="get">
@@ -270,7 +285,7 @@ function render_account_screen(string $role): void
               <th scope="col"><span class="visually-hidden">Action</span></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="accounts-tbody">
             <?php if (!$accounts): ?>
               <tr class="row-empty">
                 <td colspan="5"><?= $search !== ''
@@ -291,6 +306,11 @@ function render_account_screen(string $role): void
                     if (!empty($a['ocr_flags'])): ?>
                       <span class="pill pill--escalated"
                             title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>">OCR flag</span>
+                    <?php endif; ?><?php
+                    if (!empty($a['ocr_rescan_requested_at'])
+                        && (empty($a['ocr_processed_at'])
+                            || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?>
+                      <span class="pill" title="Waiting for them to open the app">Re-check pending</span>
                     <?php endif; ?></td>
                 <td class="cell-action">
                   <a class="btn-review" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
@@ -382,6 +402,190 @@ function render_account_screen(string $role): void
         </form>
       </dialog>
     <?php endif; ?>
+
+    <script src="assets/vendor/supabase/supabase.js"></script>
+    <script>
+    // Realtime for the verification queue — explicit ask, 6 Sep 2026: "the
+    // entire system needs to work realtime," and this is exactly the
+    // "new additions" case: a fresh registration should appear here on
+    // its own. public.users is deliberately NOT in the supabase_realtime
+    // publication (migration 0046's own reasoning: identity images and
+    // mobile numbers in the row), so there is no push signal to
+    // subscribe to here the way cases.php/dashboard.php could. A short
+    // poll of the same account_directory() RPC the page already calls is
+    // the honest way to still keep this current without asking the team
+    // to reopen that privacy decision.
+    (function () {
+      if (!window.supabase) { return; }
+      const { createClient } = supabase;
+
+      const TOKEN = <?= json_encode(access_token()) ?>;
+      const ROLE  = <?= json_encode($role) ?>;
+      const SELF  = <?= json_encode($self) ?>;
+      const SEARCH = <?= json_encode($search) ?>;
+      const SORT_NEWEST = <?= json_encode(($_GET['sort'] ?? '') === 'newest') ?>;
+      const sb = createClient(
+        <?= json_encode(supabase_url()) ?>,
+        <?= json_encode(supabase_key()) ?>,
+        { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
+          auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      sb.realtime.setAuth(TOKEN);
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      const titleCase = s => String(s || '').replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+
+      function ocrFlagLabel(f) {
+        switch (f) {
+          case 'type_mismatch': return 'ID type does not match';
+          case 'unreadable': return 'ID could not be read';
+          case 'name_mismatch': return 'Name does not match';
+          case 'no_id_number': return 'No ID number found';
+          default: return titleCase(f);
+        }
+      }
+
+      function statusPillsHtml(a) {
+        var out = [];
+        if (a.verification_status === 'verified') out.push('<span class="pill pill--resolved">Verified</span>');
+        else if (a.verification_status === 'rejected') out.push('<span class="pill pill--rejected">Rejected</span>');
+        else out.push('<span class="pill pill--pending">Pending</span>');
+
+        if (a.is_suspended) out.push('<span class="pill pill--rejected">Suspended</span>');
+
+        if (a.verification_status === 'pending') {
+          if (a.is_overdue) out.push('<span class="pill pill--escalated">Overdue</span>');
+          else if (a.minutes_left !== null && a.minutes_left !== undefined) {
+            out.push('<span class="pill pill--validated">' + Math.trunc(a.minutes_left) + ' min left</span>');
+          }
+        }
+        if (a.holding_incident) out.push('<span class="pill pill--assigned">On an incident</span>');
+        if (a.duty_status) out.push('<span class="pill pill--closed">' + escapeHtml(titleCase(a.duty_status)) + '</span>');
+        return out.join(' ');
+      }
+
+      // Mirrors duplicate_flags() in this same file exactly, so a live
+      // refresh flags the same collisions a reload would.
+      function normalizeName(name) {
+        var stripped = String(name || '').toLowerCase().replace(/[^\p{L}\s]/gu, ' ');
+        return stripped.split(/\s+/).filter(Boolean).sort().join(' ');
+      }
+      function duplicateFlags(accounts) {
+        var byMobile = {}, byName = {}, out = {};
+        accounts.forEach(function (a) {
+          var m = String(a.mobile_number || '').replace(/\D+/g, '');
+          var n = normalizeName(a.full_name);
+          if (m) { (byMobile[m] = byMobile[m] || []).push(a); }
+          if (n) { (byName[n] = byName[n] || []).push(a); }
+        });
+        Object.keys(byMobile).forEach(function (k) {
+          var group = byMobile[k];
+          if (group.length < 2) return;
+          group.forEach(function (a) {
+            var others = group.filter(function (b) { return b.id !== a.id; });
+            (out[a.id] = out[a.id] || []).push('Same mobile number as '
+              + others.map(function (b) { return b.full_name; }).join(', '));
+          });
+        });
+        Object.keys(byName).forEach(function (k) {
+          var group = byName[k];
+          if (group.length < 2) return;
+          group.forEach(function (a) {
+            (out[a.id] = out[a.id] || []).push('Same name as another account (' + group.length + ' total)');
+          });
+        });
+        return out;
+      }
+
+      function renderAccounts(accounts) {
+        var filtered = accounts;
+        if (SEARCH) {
+          var needle = SEARCH.toLowerCase();
+          filtered = filtered.filter(function (a) {
+            return ((a.full_name || '') + ' ' + (a.email || '') + ' ' + (a.mobile_number || ''))
+              .toLowerCase().indexOf(needle) !== -1;
+          });
+        }
+        if (SORT_NEWEST) {
+          filtered = filtered.slice().sort(function (x, y) {
+            return String(y.created_at).localeCompare(String(x.created_at));
+          });
+        }
+        var dupes = duplicateFlags(accounts);
+
+        document.getElementById('accounts-count').textContent = filtered.length;
+        var pending = accounts.filter(function (a) { return a.verification_status === 'pending'; }).length;
+        var overdue = accounts.filter(function (a) { return a.is_overdue; }).length;
+
+        var pendingWrap = document.getElementById('pending-wrap');
+        pendingWrap.hidden = pending === 0;
+        document.getElementById('pending-count').textContent = pending;
+
+        var overdueBanner = document.getElementById('overdue-banner');
+        overdueBanner.style.display = overdue > 0 ? '' : 'none';
+        document.getElementById('overdue-text').textContent =
+          overdue + ' registration' + (overdue === 1 ? '' : 's') + ' '
+          + (overdue === 1 ? 'has' : 'have') + ' passed the two-hour verification window.';
+
+        var tbody = document.getElementById('accounts-tbody');
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr class="row-empty"><td colspan="5">' +
+            (SEARCH ? 'No account matches that search.'
+                    : 'No ' + escapeHtml(<?= json_encode(strtolower($noun)) ?>) + ' accounts have registered yet.') +
+            '</td></tr>';
+          return;
+        }
+        tbody.innerHTML = filtered.map(function (a) {
+          var extra = '';
+          if (dupes[a.id] && dupes[a.id].length) {
+            extra += '<span class="pill pill--escalated" title="' + escapeHtml(dupes[a.id].join('; ')) + '">Possible duplicate</span>';
+          }
+          if (a.ocr_flags && a.ocr_flags.length) {
+            extra += '<span class="pill pill--escalated" title="' +
+              escapeHtml(a.ocr_flags.map(ocrFlagLabel).join('; ')) + '">OCR flag</span>';
+          }
+          if (a.ocr_rescan_requested_at &&
+              (!a.ocr_processed_at || String(a.ocr_processed_at) < String(a.ocr_rescan_requested_at))) {
+            extra += '<span class="pill" title="Waiting for them to open the app">Re-check pending</span>';
+          }
+          return '<tr>' +
+            '<td>' + escapeHtml(a.full_name) + '</td>' +
+            '<td class="mono">' + escapeHtml(a.mobile_number) + '</td>' +
+            '<td>' + escapeHtml(a.email) + '</td>' +
+            '<td>' + statusPillsHtml(a) + extra + '</td>' +
+            '<td class="cell-action"><a class="btn-review" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
+              (a.verification_status === 'pending' ? 'Review' : 'View') + '</a></td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      let timer = null;
+      function scheduleRefresh() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          sb.rpc('account_directory', { p_role: ROLE }).then(function (res) {
+            if (res.error || !res.data) return;
+            renderAccounts(res.data);
+          });
+        }, 300);
+      }
+
+      // No push signal exists for this table (see comment above), so
+      // "live" here means "polls quietly" rather than "pushed instantly."
+      // Said plainly rather than dressed up as the same thing cases.php
+      // and dashboard.php do.
+      setInterval(scheduleRefresh, 20000);
+
+      var badge = document.getElementById('live-badge'),
+          text  = document.getElementById('live-badge-text');
+      text.textContent = 'Live (updates every 20s)';
+    })();
+    </script>
 
     <?php
     layout_foot();
@@ -499,7 +703,7 @@ function account_status_pills(array $a): string
 function render_account_detail(
     array $p, string $noun, string $idLabel,
     string $self, string $navFile, string $title, ?array $flash, array $dupes = [],
-    array $abuseHistory = []
+    array $abuseHistory = [], string $role = 'resident'
 ): void {
     $pending = $p['verification_status'] === 'pending';
 
@@ -527,6 +731,14 @@ function render_account_detail(
       <?php endif; ?>
     <?php endif; ?>
 
+    <!-- Same reasoning as case.php: this page has a deny-reason textarea
+         and password fields live on screen, so a background change is
+         announced rather than silently swapped in. -->
+    <div class="update-banner" id="update-banner" role="status">
+      <span>This account has changed since you opened it.</span>
+      <a href="<?= e($self) ?>?id=<?= e($p['id']) ?>">Refresh to see it</a>
+    </div>
+
     <div class="case-top">
       <a class="back-link" href="<?= e($self) ?>" aria-label="Back to the list">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -535,6 +747,9 @@ function render_account_detail(
         </svg>
       </a>
       <span class="chip-tab"><?= e($noun) ?> Account</span>
+      <span class="live-badge" id="live-badge" title="Watching this account for changes">
+        <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">Live (checks every 20s)</span>
+      </span>
     </div>
 
     <div class="case-grid">
@@ -593,9 +808,21 @@ function render_account_detail(
              box is the first place any of it actually reaches a screen. -->
         <div class="case-block">
           <h3 class="case-sub">OCR Triage</h3>
+          <?php
+            $ocrRescanPending = !empty($p['ocr_rescan_requested_at'])
+                && (empty($p['ocr_processed_at'])
+                    || (string) $p['ocr_processed_at'] < (string) $p['ocr_rescan_requested_at']);
+          ?>
           <?php if (empty($p['ocr_detected_type']) && empty($p['ocr_flags'])
                     && empty($p['ocr_extracted_name']) && empty($p['ocr_extracted_number'])): ?>
-            <p class="case-none">No OCR flags on file for this ID.</p>
+            <?php if (empty($p['ocr_processed_at'])): ?>
+              <p class="case-none">
+                OCR has never run on this account &mdash; it registered before this
+                feature existed, or on an older app build.
+              </p>
+            <?php else: ?>
+              <p class="case-none">OCR ran and found nothing to flag on this ID.</p>
+            <?php endif; ?>
           <?php else: ?>
             <?php if (!empty($p['ocr_flags'])): ?>
               <div class="case-flags">
@@ -618,6 +845,12 @@ function render_account_detail(
             <p class="case-none" style="margin-top:8px">
               Advisory only, read off the photo by the applicant's own device &mdash;
               cross-check it against the ID photo above before deciding.
+            </p>
+          <?php endif; ?>
+          <?php if ($ocrRescanPending): ?>
+            <p class="control-note" style="margin-top:8px">
+              Re-check requested <?= e(relative_time($p['ocr_rescan_requested_at'])) ?> &mdash;
+              waiting for them to open the app.
             </p>
           <?php endif; ?>
         </div>
@@ -675,6 +908,18 @@ function render_account_detail(
         <form method="post" class="control-stack">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="id" value="<?= e($p['id']) ?>">
+
+          <?php if (!empty($p['id_image_url'])): ?>
+            <?php if ($ocrRescanPending): ?>
+              <p class="control-note">
+                ID re-check requested <?= e(relative_time($p['ocr_rescan_requested_at'])) ?>.
+              </p>
+            <?php else: ?>
+              <button class="btn-secondary" type="submit" name="action" value="request_ocr_rescan">
+                Request ID Re-check
+              </button>
+            <?php endif; ?>
+          <?php endif; ?>
 
           <?php if ($pending): ?>
             <p class="control-note">
@@ -801,6 +1046,64 @@ function render_account_detail(
         if (open) { panel.querySelector('textarea').focus(); }
       });
     });
+    </script>
+
+    <script src="assets/vendor/supabase/supabase.js"></script>
+    <script>
+    // Same polling idiom as the list view above, and the same reason:
+    // public.users carries no realtime push (0046's privacy decision).
+    // This page has a deny/suspend textarea and password fields on
+    // screen, so a detected change raises the banner above rather than
+    // rewriting the account details out from under whatever the admin
+    // is mid-typing.
+    (function () {
+      if (!window.supabase) { return; }
+      const { createClient } = supabase;
+
+      const TOKEN = <?= json_encode(access_token()) ?>;
+      const ROLE  = <?= json_encode($role) ?>;
+      const ACCOUNT_ID = <?= json_encode($p['id']) ?>;
+      const sb = createClient(
+        <?= json_encode(supabase_url()) ?>,
+        <?= json_encode(supabase_key()) ?>,
+        { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
+          auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      sb.realtime.setAuth(TOKEN);
+
+      // Excludes minutes_left/is_overdue on purpose — those already tick
+      // on their own via the countdown script above and would otherwise
+      // raise the banner every 20 seconds for no real change.
+      function fingerprint(a) {
+        return JSON.stringify([
+          a.verification_status, !!a.is_suspended, a.rejection_reason || '',
+          !!a.holding_incident, a.duty_status || '',
+          a.ocr_detected_type || '', (a.ocr_flags || []).slice().sort(),
+          a.ocr_extracted_name || '', a.ocr_extracted_number || '',
+          a.ocr_processed_at || '', a.ocr_rescan_requested_at || ''
+        ]);
+      }
+      const INITIAL_FINGERPRINT = <?= json_encode(json_encode([
+          $p['verification_status'] ?? null, (bool) ($p['is_suspended'] ?? false),
+          $p['rejection_reason'] ?? '', (bool) ($p['holding_incident'] ?? false),
+          $p['duty_status'] ?? '', $p['ocr_detected_type'] ?? '',
+          array_values($p['ocr_flags'] ?? []), $p['ocr_extracted_name'] ?? '',
+          $p['ocr_extracted_number'] ?? '',
+          $p['ocr_processed_at'] ?? '', $p['ocr_rescan_requested_at'] ?? '',
+      ])) ?>;
+
+      function poll() {
+        sb.rpc('account_directory', { p_role: ROLE }).then(function (res) {
+          if (res.error || !res.data) return;
+          var found = res.data.find(function (a) { return a.id === ACCOUNT_ID; });
+          if (!found) { return; } // account left this role's queue entirely (rare) — nothing safe to compare
+          if (fingerprint(found) !== INITIAL_FINGERPRINT) {
+            document.getElementById('update-banner').classList.add('is-shown');
+          }
+        });
+      }
+      setInterval(poll, 20000);
+    })();
     </script>
 
     <?php

@@ -240,10 +240,30 @@ class AuthService {
     final uid = _client.auth.currentUser?.id;
     if (uid == null) return;
     try {
-      await _client.from('users').update(result.toColumns()).eq('id', uid);
+      await _client.from('users').update({
+        ...result.toColumns(),
+        // Clears any pending admin-requested re-check (migration 0050).
+        // A no-op at ordinary registration time, since the column is
+        // already null then — this is the one place both the first-run
+        // and the re-check path converge, so clearing it here rather
+        // than in two callers can't fall out of sync.
+        'ocr_rescan_requested_at': null,
+      }).eq('id', uid);
     } catch (_) {
       // Advisory only — see doc comment above.
     }
+  }
+
+  /// The identity-document type matching [wire] (`users.id_type`'s wire
+  /// value), or null if it doesn't match any known [IdDocumentType] —
+  /// an older row, a future value this build predates, or simply no
+  /// selection on file yet.
+  static IdDocumentType? idDocumentTypeFromWire(String? wire) {
+    if (wire == null) return null;
+    for (final t in IdDocumentType.values) {
+      if (t.wire == wire) return t;
+    }
+    return null;
   }
 
   /// Sign in with a phone number.
