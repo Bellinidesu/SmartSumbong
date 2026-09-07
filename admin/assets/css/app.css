@@ -704,6 +704,30 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 .btn-review:hover { background: #cf3a23; }
 .btn-review:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
+/* Quick Verify (6 Sep 2026) — offered next to Review/View only on a
+   pending account whose ID photo OCR has actually checked and found
+   nothing wrong with (account_ocr_is_clean()). A <form> is block-level
+   by default, which would otherwise drop it onto its own line under
+   Review inside .cell-action's right-aligned cell. */
+.cell-action form.quick-verify-form { display: inline-block; margin-left: 6px; }
+.btn-quick-verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  background: #fff;
+  border: 1px solid var(--navy);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-quick-verify:hover { background: #f4f6fb; }
+.btn-quick-verify:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn-quick-verify svg { width: 14px; height: 14px; }
+
 /* ---------- register ---------- */
 
 .table-wrap {
@@ -1679,6 +1703,59 @@ a.btn-accept { text-decoration: none; }
 }
 @keyframes connBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .conn-dot { animation: none; } }
+
+/* ---- update banner: case.php / accounts.php / summary.php ----
+   For pages with live form inputs on screen (a deny reason, a resolution
+   note, a password field) an in-place data swap risks wiping what the
+   admin is mid-typing. This is the safer realtime idiom for those pages:
+   announce that something changed and let the admin choose when to look,
+   rather than silently rewriting the page under them. Styled off the
+   existing .flash--ok tone (calm, not alarming — nothing is wrong). */
+.update-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 16px;
+  border-radius: var(--r-input);
+  font-size: 13.5px;
+  margin-bottom: 16px;
+  background: #e3f7e8;
+  color: #16652c;
+}
+.update-banner.is-shown { display: flex; }
+.update-banner a {
+  color: #16652c;
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* ---- live badge: cases.php / dashboard.php realtime status ----
+   Unlike .conn-strip above (an overlay that only appears when the map's
+   feed has dropped), this sits inline in a panel header and stays
+   visible the whole time — an admin watching for a new complaint to
+   come in needs to know the feed is live, not just find out after it
+   has already gone quiet. */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a7f37;
+  margin-left: 10px;
+}
+.live-badge .live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #22c55e;
+}
+.live-badge.is-down { color: #8a1420; }
+.live-badge.is-down .live-dot {
+  background: #c62828;
+  animation: connBlink 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .live-badge .live-dot { animation: none; } }
 
 /* ---- long tables keep their headings ---- */
 .table-wrap { max-height: calc(100dvh - 260px); overflow: auto; }

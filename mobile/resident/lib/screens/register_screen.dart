@@ -298,6 +298,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     FocusScope.of(context).unfocus();
     if (!_validate()) return;
 
+    // Resolved once here (before either dialog), reused below when the
+    // account actually gets created, so a slow on-device OCR pass is
+    // never awaited twice. Advisory only either way -- see
+    // AuthService.submitIdOcrResult's own doc comment for why a failure
+    // resolving this never blocks the signup itself.
+    final ocrPreCheck = await _resolveOcrPreCheck();
+    if (ocrPreCheck != null && _hasPhotoConcern(ocrPreCheck)) {
+      final proceed = await _confirmOcrConcern(ocrPreCheck);
+      if (proceed != true) {
+        // "Retake Photo" -- go straight back to the camera/gallery sheet
+        // rather than leaving them staring at the form. A dismissed
+        // dialog (barrier tap, back gesture) also lands here and does
+        // the same thing, which is a reasonable default for a heads-up
+        // dialog with no real "cancel" affordance.
+        if (mounted) await _capture(selfie: false);
+        return;
+      }
+    }
+
     final confirmed = await _confirmReview();
     if (confirmed != true) return;
 
@@ -330,14 +349,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         role: widget.role,
       );
 
-      // Best-effort OCR triage write, now that the account exists and
-      // _idType is guaranteed final. A timeout guards against a
-      // pathological on-device hang; any other failure is already
-      // swallowed inside AuthService.submitIdOcrResult itself. Either
-      // way this must never block or fail the signup the applicant is
-      // actually waiting on.
+      // Best-effort OCR triage write, now that the account exists.
+      // Reuses ocrPreCheck when it's already resolved (the common case,
+      // since OCR usually finishes well before the applicant reaches
+      // this point) rather than awaiting the same on-device pass twice.
+      // A timeout guards the fallback path against a pathological
+      // on-device hang; any other failure is already swallowed inside
+      // AuthService.submitIdOcrResult itself. Either way this must never
+      // block or fail the signup the applicant is actually waiting on.
       final ocrFuture = _ocrFuture;
-      if (ocrFuture != null) {
+      if (ocrPreCheck != null) {
+        await widget.auth.submitIdOcrResult(ocrPreCheck);
+      } else if (ocrFuture != null) {
         try {
           final result = await ocrFuture.timeout(const Duration(seconds: 8));
           await widget.auth
@@ -361,6 +384,78 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  // ---------- on-device OCR pre-submit check ------------------
+
+  /// Awaits [_ocrFuture] (started back in [_capture]) against whatever
+  /// [_idType] the applicant has settled on by the time they tap Sign
+  /// Up -- the same "evaluate late, not at capture time" reasoning
+  /// [runIdOcr]'s own doc comment gives for [IdOcrResult.withSelectedType].
+  /// Returns null on any failure (timeout, no photo yet, on-device model
+  /// hiccup) -- silently, the same as everywhere else this OCR pass is
+  /// advisory rather than load-bearing.
+  Future<IdOcrResult?> _resolveOcrPreCheck() async {
+    final future = _ocrFuture;
+    if (future == null || _idType == null) return null;
+    try {
+      final result = await future.timeout(const Duration(seconds: 8));
+      return result.withSelectedType(_idType!);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Only the two flags that actually mean "this photo itself looks
+  /// wrong" gate the heads-up dialog. `name_mismatch` and `no_id_number`
+  /// are left out on purpose -- a compound or unusual name, or an ID
+  /// format without a printed number, can trip those on a perfectly
+  /// genuine photo, and the barangay's own human review (not this
+  /// on-device pass) is where that kind of judgment call belongs.
+  bool _hasPhotoConcern(IdOcrResult result) =>
+      result.flags.contains('unreadable') ||
+      result.flags.contains('type_mismatch');
+
+  /// A heads-up, not a gate: either button lets the applicant proceed to
+  /// [_confirmReview] and submit. Retaking is one tap closer than
+  /// scrolling back up to the ID photo row, which is the whole point --
+  /// catching a bad photo here costs a retake, catching it after
+  /// submission costs the applicant a wait for a denial they cannot
+  /// self-correct (see [_confirmReview]'s own doc comment).
+  Future<bool?> _confirmOcrConcern(IdOcrResult result) {
+    final s = context.s;
+    final reasons = <String>[];
+    if (result.flags.contains('unreadable')) {
+      reasons.add(s.registerOcrConcernUnreadable);
+    }
+    if (result.flags.contains('type_mismatch')) {
+      final detected = result.detectedType?.label;
+      reasons.add(detected == null
+          ? s.registerOcrConcernTypeUnclear(_idType!.label)
+          : s.registerOcrConcernTypeMismatch(detected, _idType!.label));
+    }
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: context.colors.bg,
+        title: Text(s.registerOcrConcernTitle),
+        content: Text(
+          '${reasons.join(' ')}\n\n${s.registerOcrConcernFooter}',
+          style: TextStyle(fontSize: 13, color: context.colors.navy, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(s.registerRetakePhoto),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(s.registerContinueAnyway),
+          ),
+        ],
+      ),
+    );
   }
 
   // ---------- review-before-submit ----------------------------

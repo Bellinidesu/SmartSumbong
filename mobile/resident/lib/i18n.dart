@@ -821,6 +821,28 @@ class Strings {
       _t('Go back and edit', 'Bumalik at i-edit');
   String get registerConfirmAndSubmit =>
       _t('Confirm & Submit', 'Kumpirmahin at Isumite');
+  // On-device OCR pre-submit check (6 Sep 2026) — a heads-up shown before
+  // the application is sent, not a rejection: the barangay still makes
+  // the actual decision either way. See register_screen.dart's _submit().
+  String get registerOcrConcernTitle =>
+      _t('Double-check your ID photo', 'Suriin muli ang larawan ng iyong ID');
+  String get registerOcrConcernUnreadable => _t(
+      "We couldn't read this ID photo clearly.",
+      'Hindi malinaw na nabasa ang larawan ng ID na ito.');
+  String registerOcrConcernTypeMismatch(String detected, String selected) => _t(
+      "This looks more like a $detected than the $selected you selected.",
+      'Mukhang $detected ito kaysa sa $selected na pinili mo.');
+  String registerOcrConcernTypeUnclear(String selected) => _t(
+      "This doesn't look like a $selected to us.",
+      'Hindi ito mukhang $selected sa amin.');
+  String get registerOcrConcernFooter => _t(
+      "This is just a heads-up, not a rejection — the barangay will still "
+      'review your application either way.',
+      'Isa lang itong paalala, hindi pagtanggi — susuriin pa rin ng '
+      'barangay ang iyong aplikasyon.');
+  String get registerRetakePhoto => _t('Retake Photo', 'Kumuha Ulit');
+  String get registerContinueAnyway =>
+      _t('Continue Anyway', 'Magpatuloy Pa Rin');
   String get registerCreateAccount =>
       _t('Create your Account', 'Gumawa ng Iyong Account');
   String get registerSignUpTanod =>

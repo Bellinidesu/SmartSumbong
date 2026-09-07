@@ -1,0 +1,33 @@
+# SmartSumbong — project-root web-server rules.
+#
+# Written ahead of real hosting (6 Sep 2026), not for the local `php -S`
+# dev server (which ignores .htaccess entirely — this only matters once
+# a real Apache host points its document root at this project folder,
+# the same layout config.php and transparency.php's own relative paths
+# already assume; see that discussion for why).
+#
+# Apache-specific and UNTESTED against a real host, since none is picked
+# yet. Verify this actually works (and adjust the syntax if the eventual
+# host runs something other than Apache 2.4+, or has mod_rewrite/
+# mod_headers disabled) before relying on it in production.
+#
+# What this defends against: once the document root is this folder, the
+# .env file sitting right here (real Supabase keys) would otherwise be
+# directly downloadable at https://yourdomain/.env, and things like
+# supabase/, mobile/, and this README have no business being served over
+# HTTP at all. Only admin/ (behind its own login) and public/ (the
+# transparency page) are meant to answer a request.
+
+# Block every dotfile outright — .env, .git, .env.example, etc.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Block everything except the two folders this project actually serves.
+# (The bare root "/" is intentionally not aliased to public/transparency.php
+# here — decide that once a real domain exists and it's clear whether the
+# barangay wants the public page to BE the homepage.)
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/admin/
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^ - [F]

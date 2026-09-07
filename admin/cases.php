@@ -65,7 +65,7 @@ try {
     // join happens in the database, not in a second round trip.
     $query = [
         'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,'
-                  . 'escalation_level,due_at,awaiting_unit_since,'
+                  . 'escalation_level,due_at,awaiting_unit_since,reopened_count,'
                   . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'order'      => $sort,
@@ -225,6 +225,9 @@ layout_head('Case Reports', 'cases.php');
               <?php if (($r['escalation_level'] ?? 0) > 0): ?>
                 <span class="pill pill--escalated" title="Escalated">Escalated</span>
               <?php endif; ?>
+              <?php if (($r['reopened_count'] ?? 0) > 0): ?>
+                <span class="pill pill--pending">Reopened <?= (int) $r['reopened_count'] ?>&times;</span>
+              <?php endif; ?>
             </td>
             <td><?= e(short_date($r['created_at'])) ?></td>
             <td class="cell-action">
@@ -336,12 +339,14 @@ layout_head('Case Reports', 'cases.php');
         : escapeHtml((r.resident && r.resident.full_name) || 'Unknown');
       const escalated = (r.escalation_level || 0) > 0
         ? '<span class="pill pill--escalated" title="Escalated">Escalated</span>' : '';
+      const reopened = (r.reopened_count || 0) > 0
+        ? '<span class="pill pill--pending">Reopened ' + r.reopened_count + '&times;</span>' : '';
       return '<tr>' +
         '<td>' + who + '</td>' +
         '<td class="mono">' + escapeHtml(r.tracking_id) + '</td>' +
         '<td>' + escapeHtml(titleCase(r.category)) + '</td>' +
         '<td><span class="pill pill--' + statusClass(r.status) + '">' +
-          escapeHtml(titleCase(r.status)) + '</span>' + escalated + '</td>' +
+          escapeHtml(titleCase(r.status)) + '</span>' + escalated + reopened + '</td>' +
         '<td>' + shortDate(r.created_at) + '</td>' +
         '<td class="cell-action"><a class="btn-review" href="case.php?id=' +
           encodeURIComponent(r.id) + '">Review</a></td>' +
@@ -371,7 +376,7 @@ layout_head('Case Reports', 'cases.php');
   async function loadReports() {
     let q = sb.from('reports')
       .select('id,tracking_id,subject,category,status,created_at,is_anonymous,'
-        + 'escalation_level,due_at,awaiting_unit_since,'
+        + 'escalation_level,due_at,awaiting_unit_since,reopened_count,'
         + 'resident:users!reports_resident_id_fkey(full_name)')
       .is('deleted_at', null)
       .order(SORT_COL, { ascending: SORT_ASC })

@@ -127,32 +127,34 @@ const Map<IdDocumentType, List<String>> _headerHints = {
     'PHILIPPINE POSTAL',
   ],
   IdDocumentType.barangayId: [
-    // Still no real Barangay 183 ID sample to check against. Ace asked
-    // (5 Sep) to check for the barangay's own identifying details as a
-    // placeholder in the meantime, so a resident-issued card at least
-    // has a chance of matching on its address text:
-    'BARANGAY 183',
-    'VILLAMOR',
-    'PASAY CITY',
-    // Generic guesses, kept as a fallback — barangay IDs aren't
-    // nationally standardised the way the other five document types
-    // are (every barangay designs its own), so these aren't confirmed
-    // printed on an actual Barangay 183 card either.
+    // Still no real Barangay 183 ID sample to check against — these are
+    // the same generic guesses as before (barangay IDs aren't
+    // nationally standardised: every barangay designs its own), not
+    // confirmed printed on an actual Barangay 183 card.
     'BARANGAY ID',
     'BARANGAY IDENTIFICATION',
     // 'BARANGAY CLEARANCE' removed 6 Sep — that's a different real
     // document (a certificate of residency/good standing, not an ID
     // card), so it had no business being a hint for this type at all.
     //
-    // Caution: 'PASAY CITY' (and, less plausibly, 'BARANGAY 183') could
-    // also turn up in an address line printed on one of the other five
-    // document types for a resident who lives there — e.g. a Postal ID.
-    // That only matters if none of that document's own, more
-    // distinctive hints already matched first, since this type is
-    // checked fifth of the six (only barangayAppointment comes after
-    // it) — worth another look once a real Barangay 183 card sample
-    // lets these placeholders be replaced with its actual printed
-    // header text.
+    // 'BARANGAY 183' / 'VILLAMOR' / 'PASAY CITY' (added 5 Sep as
+    // placeholders, on the idea that a real Barangay 183 card would at
+    // least print its own barangay's name) removed again 6 Sep on a
+    // second look: this app's entire user base lives in Barangay 183,
+    // Pasay — which means those three phrases are near-guaranteed to
+    // print in the ADDRESS field of every other document type too (the
+    // PHLPost Postal ID sample confirmed this outright: its own address
+    // line reads "BRGY. RIVERA ... PASAY CITY"). That isn't a rare
+    // edge case worth a one-line caution, like the first pass treated
+    // it — for this specific population it's closer to the norm, so
+    // keeping those hints here would have meant Postal IDs, PhilSys
+    // cards, driver's licenses, all regularly misdetected as Barangay
+    // ID whenever their own real header hints failed to fuzzy-match
+    // first. An address fact about who uses this app can never be a
+    // reliable signal for which document TYPE someone uploaded; better
+    // to have no positive signal at all here than a false one this
+    // likely. Left as an open item until a real card sample provides
+    // actual header/title text instead of a proxy for it.
   ],
   IdDocumentType.barangayAppointment: [
     'APPOINTMENT',
@@ -292,6 +294,18 @@ const Map<String, List<String>> _nameLabelHints = {
   'last': ['APELYIDO', 'LAST NAME'],
   'given': ['MGA PANGALAN', 'GIVEN NAME', 'GIVEN NAMES', 'PANGALAN'],
   'middle': ['GITNANG APELYIDO', 'MIDDLE NAME'],
+  // Last-resort only — see the assembly step at the end of
+  // _extractNameByLabel. A plain "Name" label with no Last/Given/Middle
+  // split is the most generic convention an ID card can use, which is
+  // exactly the realistic case for a Barangay ID or tanod appointment
+  // letter: neither has a national standard to read real field labels
+  // off of the way PhilSys does, so this leans on a near-universal
+  // English word instead of guessing barangay-specific text (see the
+  // address-based hints removed from _headerHints above, 6 Sep, for why
+  // that kind of guess doesn't hold up for this app's population).
+  // Deliberately just the bare word, no Filipino equivalent added here:
+  // 'PANGALAN' alone already sits in 'given' above and gets tried first.
+  'full': ['NAME'],
 };
 
 /// Every recognised line across every block, top-to-bottom by its
@@ -315,13 +329,21 @@ List<String> _sortedLines(RecognizedText result) {
 /// line is taken as that field's value — skipped if it doesn't actually
 /// look like a name (mostly letters, in caps) — so a misread label with
 /// garbage immediately after it contributes nothing rather than garbage.
-/// Only PhilSys prints the name this way among the six accepted document
-/// types; every other type returns null here and falls back to
-/// [_extractName] in the caller.
+/// PhilSys is the only one of the six accepted document types confirmed
+/// to print the Last/Given/Middle split this reads first; a document
+/// whose own combined header line happens to contain "Last Name" or
+/// "Given Name(s)" verbatim (the driver's license and Postal ID samples
+/// checked 6 Sep both do, just combined into one header rather than
+/// split across three) benefits too, incidentally. Anything else falls
+/// through to the generic 'full' entry (a bare "Name" label) before
+/// giving up and handing back to [_extractName] in the caller.
 ///
-/// Assembled as Last + Given + Middle. [_namesOverlap]'s token-overlap
-/// check is order-independent, so this doesn't need to match the
-/// applicant's own "Last Name, First Name" entry format exactly.
+/// Assembled as Last + Given + Middle when any of those three matched;
+/// the generic 'full' match is used only when none of them did, since a
+/// real Last/Given/Middle read is always more specific. [_namesOverlap]'s
+/// token-overlap check is order-independent, so none of this needs to
+/// match the applicant's own "Last Name, First Name" entry format
+/// exactly.
 String? _extractNameByLabel(List<String> lines) {
   final parts = <String, String>{};
   for (var i = 0; i < lines.length - 1; i++) {
@@ -346,7 +368,7 @@ String? _extractNameByLabel(List<String> lines) {
           .whereType<String>()
           .join(' ')
           .trim();
-  return assembled.isEmpty ? null : assembled;
+  return assembled.isNotEmpty ? assembled : parts['full'];
 }
 
 /// Approximate substring match: true if some contiguous span of

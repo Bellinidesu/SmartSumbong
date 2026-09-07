@@ -264,6 +264,15 @@ layout_head('Case Review', 'cases.php');
   <?php layout_foot(); exit; ?>
 <?php endif; ?>
 
+<!-- This page has live inputs on it (a deny reason, a dispatch note, a
+     target date) that a silent data swap would risk wiping out mid-type.
+     So unlike cases.php/dashboard.php, realtime here announces rather
+     than rewrites — the admin chooses when to reload. -->
+<div class="update-banner" id="update-banner" role="status">
+  <span>This case has new activity since you opened it.</span>
+  <a href="case.php?id=<?= e($id) ?>">Refresh to see it</a>
+</div>
+
 <div class="case-top">
   <a class="back-link" href="cases.php" aria-label="Back to case reports">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -272,6 +281,9 @@ layout_head('Case Review', 'cases.php');
     </svg>
   </a>
   <span class="chip-tab">Original Report</span>
+  <span class="live-badge" id="live-badge" title="Watching this case for new activity">
+    <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">Live</span>
+  </span>
 </div>
 
 <div class="case-grid<?= $canAssign ? ' case-grid--assign' : '' ?>">
@@ -729,6 +741,75 @@ layout_head('Case Review', 'cases.php');
     }).addTo(map);
     L.marker([lat, lng]).addTo(map);
   }
+})();
+</script>
+
+<script src="assets/vendor/supabase/supabase.js"></script>
+<script>
+// Realtime, added 6 Sep 2026 — explicit ask: "the entire system needs to
+// work realtime." This is the one page in the portal with live form
+// inputs on screen at the same time as the data that could change under
+// it (a deny reason mid-type, a dispatch note, a target date), so unlike
+// cases.php/dashboard.php it never rewrites the DOM itself — it only
+// raises the .update-banner above and leaves reloading to the admin.
+(function () {
+  if (!window.supabase) { return; }
+  const { createClient } = supabase;
+
+  const TOKEN = <?= json_encode(access_token()) ?>;
+  const REPORT_ID = <?= json_encode($id) ?>;
+  const sb = createClient(
+    <?= json_encode(supabase_url()) ?>,
+    <?= json_encode(supabase_key()) ?>,
+    { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
+      auth: { persistSession: false, autoRefreshToken: false } }
+  );
+  sb.realtime.setAuth(TOKEN);
+
+  function showBanner() {
+    document.getElementById('update-banner').classList.add('is-shown');
+  }
+
+  sb.channel('case-' + REPORT_ID)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reports',
+                               filter: 'id=eq.' + REPORT_ID }, showBanner)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'status_logs',
+                               filter: 'report_id=eq.' + REPORT_ID }, showBanner)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatches',
+                               filter: 'report_id=eq.' + REPORT_ID }, showBanner)
+    .subscribe(function (status) {
+      var badge = document.getElementById('live-badge'),
+          text  = document.getElementById('live-badge-text');
+      if (status === 'SUBSCRIBED') {
+        badge.classList.remove('is-down'); text.textContent = 'Live';
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        badge.classList.add('is-down'); text.textContent = 'Reconnecting…';
+      }
+    });
+
+  // feedback and dispatch_media are not in the supabase_realtime
+  // publication (only reports/dispatches/status_logs/notifications are —
+  // see migrations 0004/0046), so a change to either has no push signal.
+  // A light poll is the honest way to still surface them as "current"
+  // without asking the team to publish two more tables just for this.
+  const INITIAL_FEEDBACK_AT = <?= json_encode($feedback['submitted_at'] ?? null) ?>;
+  const LIVE_DISPATCH_IDS   = <?= json_encode(array_values($liveIds ?? [])) ?>;
+  const INITIAL_PROOF_COUNT = <?= json_encode(array_sum(array_map('count', $proof))) ?>;
+
+  async function pollUnpublished() {
+    if (INITIAL_FEEDBACK_AT === null) {
+      const { data } = await sb.from('feedback').select('submitted_at')
+        .eq('report_id', REPORT_ID).limit(1);
+      if (data && data.length) { showBanner(); return; }
+    }
+    if (LIVE_DISPATCH_IDS.length) {
+      const { count } = await sb.from('dispatch_media')
+        .select('id', { count: 'exact', head: true })
+        .in('dispatch_id', LIVE_DISPATCH_IDS);
+      if (typeof count === 'number' && count > INITIAL_PROOF_COUNT) { showBanner(); return; }
+    }
+  }
+  setInterval(pollUnpublished, 25000);
 })();
 </script>
 

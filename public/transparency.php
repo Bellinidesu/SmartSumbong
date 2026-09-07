@@ -41,6 +41,15 @@ require_once __DIR__ . '/../admin/includes/config.php';
 require_once __DIR__ . '/../admin/includes/supabase.php';
 require_once __DIR__ . '/../admin/includes/layout.php';
 
+// This page's whole point is showing figures that change as complaints are
+// filed and resolved. Without an explicit no-cache instruction, a browser
+// (or a CDN, once real hosting exists) is free to keep serving whatever
+// copy it fetched on the visitor's first visit — which is exactly what
+// happened during testing 6 Sep 2026: "All time" kept showing 0 long after
+// real reports existed, purely because the browser never re-fetched.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 $db = new Supabase();
 
 $tz     = new DateTimeZone('Asia/Manila');

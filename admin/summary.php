@@ -144,6 +144,12 @@ $rate     = $tanodIds ? round(count($onDuty) / $possible * 100) : null;
 
 $periodLabel = $from->format('M j, Y') . ' — ' . $to->format('M j, Y');
 
+// This report's period can include today (the quick ranges above all do,
+// except "Last month"), in which case the figures below can still move
+// while it's on screen. A closed, past period is a fixed report and
+// should read as one — no live badge, nothing to watch.
+$isOngoing = !$isPrint && $to >= new DateTimeImmutable('today', $tz);
+
 if (!$isPrint) { layout_head('Report Summary', 'summary.php'); }
 else { print_head($periodLabel); }
 ?>
@@ -153,9 +159,24 @@ else { print_head($periodLabel); }
 <?php endif; ?>
 
 <?php if (!$isPrint): ?>
+<?php if ($isOngoing): ?>
+  <!-- A signed, printable document should never move under an admin's
+       feet — figures here only ever change on an explicit refresh, never
+       in place, and only shown at all when the period is still open. -->
+  <div class="update-banner" id="update-banner" role="status">
+    <span>New activity has been recorded for this period.</span>
+    <a href="summary.php">Refresh to include it</a>
+  </div>
+<?php endif; ?>
 <section class="panel">
   <header class="panel-bar">
-    <h2 class="panel-title">Report Period:</h2>
+    <h2 class="panel-title">Report Period:
+      <?php if ($isOngoing): ?>
+        <span class="live-badge" id="live-badge" title="This period is still open — watching for new activity">
+          <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">Watching</span>
+        </span>
+      <?php endif; ?>
+    </h2>
     <form class="period-form" method="get">
       <label class="visually-hidden" for="from">From</label>
       <input type="date" id="from" name="from" value="<?= e($from->format('Y-m-d')) ?>">
@@ -295,6 +316,48 @@ else { print_head($periodLabel); }
   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
   </body></html>
 <?php else: ?>
+  <?php if ($isOngoing): ?>
+  <script src="assets/vendor/supabase/supabase.js"></script>
+  <script>
+  // Realtime, 6 Sep 2026 — only wired up for an open period (see
+  // $isOngoing above). This report is meant to be printed and signed, so
+  // unlike cases.php/dashboard.php it never rewrites its own figures —
+  // it only tells the admin new activity exists and lets them choose to
+  // reload with it included, the same non-destructive idiom case.php and
+  // accounts.php use. attendance is not in the supabase_realtime
+  // publication, so the Tanod Attendance Rate tile isn't watched here —
+  // only reports/dispatches/status_logs are.
+  (function () {
+    if (!window.supabase) { return; }
+    const { createClient } = supabase;
+    const TOKEN = <?= json_encode(access_token()) ?>;
+    const sb = createClient(
+      <?= json_encode(supabase_url()) ?>,
+      <?= json_encode(supabase_key()) ?>,
+      { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
+        auth: { persistSession: false, autoRefreshToken: false } }
+    );
+    sb.realtime.setAuth(TOKEN);
+
+    sb.channel('summary-period')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' },
+        function () { document.getElementById('update-banner').classList.add('is-shown'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatches' },
+        function () { document.getElementById('update-banner').classList.add('is-shown'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'status_logs' },
+        function () { document.getElementById('update-banner').classList.add('is-shown'); })
+      .subscribe(function (status) {
+        var badge = document.getElementById('live-badge'),
+            text  = document.getElementById('live-badge-text');
+        if (!badge) return;
+        if (status === 'SUBSCRIBED') { badge.classList.remove('is-down'); text.textContent = 'Watching'; }
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          badge.classList.add('is-down'); text.textContent = 'Reconnecting…';
+        }
+      });
+  })();
+  </script>
+  <?php endif; ?>
   <?php layout_foot(); ?>
 <?php endif; ?>
 

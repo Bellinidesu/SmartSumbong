@@ -316,6 +316,23 @@ function render_account_screen(string $role): void
                   <a class="btn-review" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
                     <?= $a['verification_status'] === 'pending' ? 'Review' : 'View' ?>
                   </a>
+                  <?php if ($a['verification_status'] === 'pending'
+                            && account_ocr_is_clean($a)
+                            && empty($dupes[$a['id']])): ?>
+                    <form method="post" class="quick-verify-form"
+                          data-name="<?= e($a['full_name']) ?>">
+                      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                      <input type="hidden" name="id" value="<?= e($a['id']) ?>">
+                      <button class="btn-quick-verify" type="submit" name="action" value="approve"
+                              title="OCR read a clean, matching ID with no flags — verify without opening the full review">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Quick Verify
+                      </button>
+                    </form>
+                  <?php endif; ?>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -424,6 +441,11 @@ function render_account_screen(string $role): void
       const SELF  = <?= json_encode($self) ?>;
       const SEARCH = <?= json_encode($search) ?>;
       const SORT_NEWEST = <?= json_encode(($_GET['sort'] ?? '') === 'newest') ?>;
+      // Same session token every page load (csrf_token() memoizes it) --
+      // safe to bake into the JS-rendered Quick Verify forms below the
+      // same way the PHP-rendered ones already carry it as a hidden
+      // input.
+      const CSRF = <?= json_encode(csrf_token()) ?>;
       const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
@@ -440,6 +462,15 @@ function render_account_screen(string $role): void
       const titleCase = s => String(s || '').replace(/_/g, ' ')
         .replace(/\b\w/g, c => c.toUpperCase());
 
+      // Mirrors account_ocr_is_clean() in this same file exactly.
+      function ocrIsClean(a) {
+        if (!a.id_image_url || !a.ocr_processed_at) return false;
+        if (a.ocr_flags && a.ocr_flags.length) return false;
+        var rescanPending = a.ocr_rescan_requested_at &&
+          String(a.ocr_processed_at) < String(a.ocr_rescan_requested_at);
+        return !rescanPending;
+      }
+
       function ocrFlagLabel(f) {
         switch (f) {
           case 'type_mismatch': return 'ID type does not match';
@@ -450,13 +481,25 @@ function render_account_screen(string $role): void
         }
       }
 
+      // Mirrors is_self_deleted_account() in this same file exactly — the
+      // fixed sentence request_account_deletion() (0045) writes into
+      // suspended_reason is the only thing that tells a self-deleted
+      // account apart from an ordinary admin suspension.
+      function isSelfDeletedAccount(a) {
+        return String(a.suspended_reason || '').indexOf('Account deleted by the resident') === 0;
+      }
+
       function statusPillsHtml(a) {
         var out = [];
         if (a.verification_status === 'verified') out.push('<span class="pill pill--resolved">Verified</span>');
         else if (a.verification_status === 'rejected') out.push('<span class="pill pill--rejected">Rejected</span>');
         else out.push('<span class="pill pill--pending">Pending</span>');
 
-        if (a.is_suspended) out.push('<span class="pill pill--rejected">Suspended</span>');
+        if (a.is_suspended) {
+          out.push(isSelfDeletedAccount(a)
+            ? '<span class="pill pill--rejected">Deleted by Resident</span>'
+            : '<span class="pill pill--rejected">Suspended</span>');
+        }
 
         if (a.verification_status === 'pending') {
           if (a.is_overdue) out.push('<span class="pill pill--escalated">Overdue</span>');
@@ -553,16 +596,44 @@ function render_account_screen(string $role): void
               (!a.ocr_processed_at || String(a.ocr_processed_at) < String(a.ocr_rescan_requested_at))) {
             extra += '<span class="pill" title="Waiting for them to open the app">Re-check pending</span>';
           }
+          var quickVerify = '';
+          if (a.verification_status === 'pending' && ocrIsClean(a) &&
+              !(dupes[a.id] && dupes[a.id].length)) {
+            quickVerify =
+              '<form method="post" class="quick-verify-form" data-name="' + escapeHtml(a.full_name) + '">' +
+                '<input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '">' +
+                '<input type="hidden" name="id" value="' + escapeHtml(a.id) + '">' +
+                '<button class="btn-quick-verify" type="submit" name="action" value="approve" ' +
+                  'title="OCR read a clean, matching ID with no flags — verify without opening the full review">' +
+                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+                    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                    '<polyline points="20 6 9 17 4 12"/></svg>' +
+                  'Quick Verify' +
+                '</button>' +
+              '</form>';
+          }
           return '<tr>' +
             '<td>' + escapeHtml(a.full_name) + '</td>' +
             '<td class="mono">' + escapeHtml(a.mobile_number) + '</td>' +
             '<td>' + escapeHtml(a.email) + '</td>' +
             '<td>' + statusPillsHtml(a) + extra + '</td>' +
             '<td class="cell-action"><a class="btn-review" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
-              (a.verification_status === 'pending' ? 'Review' : 'View') + '</a></td>' +
+              (a.verification_status === 'pending' ? 'Review' : 'View') + '</a>' + quickVerify + '</td>' +
             '</tr>';
         }).join('');
       }
+
+      // Delegated so it also covers rows renderAccounts() replaces on
+      // every 20s poll -- a listener bound to the original elements
+      // would go stale the moment the tbody's innerHTML is rewritten.
+      document.getElementById('accounts-tbody').addEventListener('submit', function (e) {
+        var form = e.target.closest('.quick-verify-form');
+        if (!form) return;
+        var name = form.dataset.name || 'this account';
+        if (!confirm('Verify ' + name + ' now? OCR read a clean, matching ID with no flags.')) {
+          e.preventDefault();
+        }
+      });
 
       let timer = null;
       function scheduleRefresh() {
@@ -631,10 +702,10 @@ function duplicate_flags(array $accounts): array
 
 /**
  * Human label for what the applicant's on-device OCR pass (0039) read the
- * ID photo as. Independent of id_type (what the applicant selected at
- * signup) — account_directory() does not currently return id_type, so
- * this screen can show what OCR detected but not a side-by-side compare
- * against what was picked in the dropdown.
+ * ID photo as, or (since migration 0051) what the applicant themselves
+ * selected at signup — id_type and ocr_detected_type share this same enum
+ * and label set, so a true side-by-side compare is possible: see the
+ * "Applicant selected" line in the OCR Triage card below.
  */
 function id_document_type_label(?string $t): string
 {
@@ -665,6 +736,43 @@ function ocr_flag_label(string $flag): string
     };
 }
 
+/**
+ * True only when OCR has actually run on this account's ID photo AND
+ * came back with nothing to flag -- an account where OCR never ran
+ * (registered before the feature existed, or a re-check is still
+ * mid-flight) is deliberately NOT "clean": there is no positive evidence
+ * either way, so it stays in ordinary manual review rather than skipping
+ * it. This is what gates the Quick Verify shortcut (6 Sep 2026) -- an
+ * admin still has to click it, but only ever sees it offered on an
+ * account OCR has actually looked at and found nothing wrong with.
+ */
+function account_ocr_is_clean(array $a): bool
+{
+    if (empty($a['id_image_url']) || empty($a['ocr_processed_at'])) {
+        return false;
+    }
+    if (!empty($a['ocr_flags'])) {
+        return false;
+    }
+    $rescanPending = !empty($a['ocr_rescan_requested_at'])
+        && (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'];
+    return !$rescanPending;
+}
+
+/**
+ * True only for a resident who used self-service account deletion (0045)
+ * on an account that had reports on file, not an ordinary admin
+ * suspension. request_account_deletion() always writes this exact prefix
+ * into suspended_reason, so it doubles as a reliable marker without a
+ * dedicated boolean column — an admin-typed suspension reason could
+ * theoretically coincide, but not with this specific, deliberately-worded
+ * sentence.
+ */
+function is_self_deleted_account(array $a): bool
+{
+    return str_starts_with((string) ($a['suspended_reason'] ?? ''), 'Account deleted by the resident');
+}
+
 /** Status, suspension and the two-hour clock, as pills. */
 function account_status_pills(array $a): string
 {
@@ -677,7 +785,9 @@ function account_status_pills(array $a): string
     };
 
     if (!empty($a['is_suspended'])) {
-        $out[] = '<span class="pill pill--rejected">Suspended</span>';
+        $out[] = is_self_deleted_account($a)
+            ? '<span class="pill pill--rejected">Deleted by Resident</span>'
+            : '<span class="pill pill--rejected">Suspended</span>';
     }
 
     if ($a['verification_status'] === 'pending') {
@@ -808,6 +918,11 @@ function render_account_detail(
              box is the first place any of it actually reaches a screen. -->
         <div class="case-block">
           <h3 class="case-sub">OCR Triage</h3>
+          <?php if (!empty($p['id_type'])): ?>
+            <p class="case-meta">
+              Applicant selected: <?= e(id_document_type_label($p['id_type'])) ?>
+            </p>
+          <?php endif; ?>
           <?php
             $ocrRescanPending = !empty($p['ocr_rescan_requested_at'])
                 && (empty($p['ocr_processed_at'])
@@ -952,13 +1067,24 @@ function render_account_detail(
             </div>
 
           <?php elseif (!empty($p['is_suspended'])): ?>
+            <?php $selfDeleted = is_self_deleted_account($p); ?>
             <p class="control-note">
-              This account is suspended and cannot sign in.
-              <?php if (!empty($p['rejection_reason'])): ?>
-                Reason on file: <?= e($p['rejection_reason']) ?>
+              <?= $selfDeleted
+                  ? 'This resident deleted their own account. Their filed reports remain on record — the name, email, and phone number you see here have been intentionally scrubbed, not just hidden.'
+                  : 'This account is suspended and cannot sign in.' ?>
+              <?php if (!empty($p['suspended_reason'])): ?>
+                Reason on file: <?= e($p['suspended_reason']) ?>
               <?php endif; ?>
             </p>
-            <button class="btn-accept" type="submit" name="action" value="reinstate">Reinstate Account</button>
+            <?php if ($selfDeleted): ?>
+              <p class="case-none">
+                Reinstating would not restore their original name, email, or
+                phone number — those are gone, not just concealed. There is
+                nothing meaningful to reinstate this account to.
+              </p>
+            <?php else: ?>
+              <button class="btn-accept" type="submit" name="action" value="reinstate">Reinstate Account</button>
+            <?php endif; ?>
 
           <?php elseif ($p['verification_status'] === 'verified'): ?>
             <p class="control-note">
@@ -1080,7 +1206,8 @@ function render_account_detail(
           !!a.holding_incident, a.duty_status || '',
           a.ocr_detected_type || '', (a.ocr_flags || []).slice().sort(),
           a.ocr_extracted_name || '', a.ocr_extracted_number || '',
-          a.ocr_processed_at || '', a.ocr_rescan_requested_at || ''
+          a.ocr_processed_at || '', a.ocr_rescan_requested_at || '',
+          a.suspended_reason || '', a.id_type || ''
         ]);
       }
       const INITIAL_FINGERPRINT = <?= json_encode(json_encode([
@@ -1090,6 +1217,7 @@ function render_account_detail(
           array_values($p['ocr_flags'] ?? []), $p['ocr_extracted_name'] ?? '',
           $p['ocr_extracted_number'] ?? '',
           $p['ocr_processed_at'] ?? '', $p['ocr_rescan_requested_at'] ?? '',
+          $p['suspended_reason'] ?? '', $p['id_type'] ?? '',
       ])) ?>;
 
       function poll() {
