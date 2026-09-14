@@ -10,6 +10,7 @@
 !public/**
 !index.php
 !.htaccess
+!docker-entrypoint.sh
 
 # Never bake real secrets into an image layer even by accident — Render
 # env vars supply these at runtime instead (see config.php's env()).
