@@ -11,8 +11,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import 'login_screen.dart' show rememberMeKey;
+
+/// This screen's own fixed dark gradient (see build() below) never
+/// changes with the app's theme setting -- it is a splash/brand moment,
+/// not a themed UI surface, the same way the resident app's launch gate
+/// hero band stays fixed regardless of dark mode. So the text and
+/// controls painted on top of it use these two literals -- the exact
+/// values `Tokens.bg`/`Tokens.navy` held before dark mode existed --
+/// rather than `context.colors.bg`/`context.colors.navy`, which would
+/// go near-black in dark mode and vanish against this gradient.
+const _fixedBg = Color(0xFFF3F3F3);
+const _fixedNavy = Color(0xFF14181D);
 
 /// True until this app process's first `_decide()` finishes, then false
 /// for the rest of the process's life.
@@ -80,8 +92,8 @@ class _LaunchGateState extends State<LaunchGate> {
       // first.
       if (await BiometricAuthService.enabled() &&
           await _biometrics.isAvailable()) {
-        final unlocked =
-            await _biometrics.authenticate('Unlock SmartSumbong');
+        final unlocked = await _biometrics
+            .authenticate(context.s.launchGateBiometricReason);
         if (!unlocked) {
           _go('/login');
           return;
@@ -94,6 +106,16 @@ class _LaunchGateState extends State<LaunchGate> {
 
       if (s.isSuspended) {
         _go('/account-suspended');
+        return;
+      }
+
+      // Checked ahead of the wrong-app/verification branches below for
+      // the same reason suspension is: it is the more final state.
+      // finalize_retirement() (0052) never un-sets is_retired, so there
+      // is no "and it might still change" ordering question the way
+      // pending verification has.
+      if (s.isRetired) {
+        _go('/account-retired');
         return;
       }
 
@@ -132,14 +154,14 @@ class _LaunchGateState extends State<LaunchGate> {
       // land here, and "check your connection" sends whoever is testing
       // to look at the wifi.
       if (mounted) {
-        setState(() => _error = 'The barangay\u2019s system refused the '
-            'request. (${e.message})');
+        final s = context.s;
+        setState(
+            () => _error = s.launchGatePostgrestError(e.message));
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error =
-            'Could not reach the barangay\u2019s system. Check your '
-            'connection and try again.\n\n$e');
+        final s = context.s;
+        setState(() => _error = s.launchGateOfflineError('$e'));
       }
     }
   }
@@ -170,6 +192,7 @@ class _LaunchGateState extends State<LaunchGate> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return Scaffold(
       // Ink rather than the resident's blue, and a gradient rather than
       // a flat fill: white text on unbroken #14181D reads as a crash
@@ -202,7 +225,7 @@ class _LaunchGateState extends State<LaunchGate> {
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w800,
                   fontSize: 30,
-                  color: Tokens.bg,
+                  color: _fixedBg,
                 ),
               ),
               const SizedBox(height: 4),
@@ -218,13 +241,11 @@ class _LaunchGateState extends State<LaunchGate> {
               const Spacer(),
 
               if (_wrongApp) ...[
-                const Text(
-                  'This account is not a barangay tanod. Please use the '
-                  'SmartSumbong resident app to file and follow up on '
-                  'complaints.',
+                Text(
+                  s.launchGateWrongApp,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 13, height: 1.4, color: Tokens.bg),
+                  style: const TextStyle(
+                      fontSize: 13, height: 1.4, color: _fixedBg),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -232,13 +253,13 @@ class _LaunchGateState extends State<LaunchGate> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Tokens.orange,
-                      foregroundColor: Tokens.navy,
+                      foregroundColor: _fixedNavy,
                     ),
                     onPressed: () async {
                       await widget.auth.signOut();
                       _go('/login');
                     },
-                    child: const Text('Sign out'),
+                    child: Text(s.launchGateSignOut),
                   ),
                 ),
               ] else if (_error != null) ...[
@@ -246,7 +267,7 @@ class _LaunchGateState extends State<LaunchGate> {
                   _error!,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 13, height: 1.4, color: Tokens.bg),
+                      fontSize: 13, height: 1.4, color: _fixedBg),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -254,13 +275,13 @@ class _LaunchGateState extends State<LaunchGate> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Tokens.orange,
-                      foregroundColor: Tokens.navy,
+                      foregroundColor: _fixedNavy,
                     ),
                     onPressed: () {
                       setState(() => _error = null);
                       _decide();
                     },
-                    child: const Text('Try again'),
+                    child: Text(s.launchGateTryAgain),
                   ),
                 ),
               ] else ...[
@@ -271,9 +292,9 @@ class _LaunchGateState extends State<LaunchGate> {
                       strokeWidth: 2.5, color: Tokens.orange),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Signing you in\u2026',
-                  style: TextStyle(fontSize: 14, color: Tokens.bg),
+                Text(
+                  s.launchGateSigningIn,
+                  style: const TextStyle(fontSize: 14, color: _fixedBg),
                 ),
               ],
 

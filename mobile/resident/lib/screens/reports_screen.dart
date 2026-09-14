@@ -38,6 +38,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -1698,17 +1699,67 @@ class _ReopenSheetState extends State<_ReopenSheet> {
     super.dispose();
   }
 
+  /// Gallery-only until 9 Sep 2026 — same gap as the other photo pickers
+  /// in this app, fixed the same day (see report_details_screen.dart's
+  /// _chooseSource for why offering the camera here is safe).
+  Future<ImageSource?> _chooseSource(BuildContext context) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: context.colors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
+              title: Text(context.s.reportsTakePhoto),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
+              title: Text(context.s.reportsChooseFromGallery),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _addPhoto() async {
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final s = context.s;
     final granted = await PermissionGate.ensure(
       context,
-      permission: AppPermission.photos,
-      title: context.s.reportsPhotoAccessTitle,
-      rationale: context.s.reportsPhotoAccessBody,
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera
+          ? s.reportsCameraAccessTitle
+          : s.reportsPhotoAccessTitle,
+      rationale: source == ImageSource.camera
+          ? s.reportsCameraAccessRationale
+          : s.reportsPhotoAccessBody,
     );
     if (!granted || !mounted) return;
     setState(() => _banner = null);
     try {
-      final f = await widget.uploader.pick();
+      final f = await widget.uploader.pick(source: source);
       if (f == null) return;
       setState(() => _photo = f);
     } on MediaUploadException catch (e) {

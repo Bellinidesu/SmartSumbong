@@ -10,9 +10,12 @@
 // screen has seen them, and asking them to tap each one to clear a badge
 // is a chore that teaches them to ignore the badge.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 class AppNotification {
@@ -60,16 +63,61 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification>? _items;
   String? _error;
 
+  // Live while open (8 Sep 2026 — mirrors resident's notifications_
+  // screen.dart / this app's own tanod_home_screen.dart). A channel on
+  // this tanod's own notifications rows reloads the list through the
+  // same _load() pull-to-refresh already used, so a freshly-arrived row
+  // gets marked read the moment it arrives instead of only on the next
+  // manual open or pull.
+  RealtimeChannel? _liveChannel;
+  Timer? _liveDebounce;
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void dispose() {
+    _liveDebounce?.cancel();
+    if (_liveChannel != null) {
+      Supabase.instance.client.removeChannel(_liveChannel!);
+    }
+    super.dispose();
+  }
+
+  void _subscribeLive(String uid) {
+    if (_liveChannel != null) return;
+    _liveChannel = Supabase.instance.client
+        .channel('tanod-notifications-$uid')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'notifications',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'user_id',
+          value: uid,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..subscribe();
+  }
+
+  void _scheduleLiveReload() {
+    _liveDebounce?.cancel();
+    _liveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _load();
+    });
+  }
+
   Future<void> _load() async {
     final client = Supabase.instance.client;
     final uid = client.auth.currentUser?.id;
     if (uid == null) return;
+
+    _subscribeLive(uid);
 
     setState(() => _error = null);
     try {
@@ -99,7 +147,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not load your notifications.');
+      setState(() => _error = context.s.notificationsLoadError);
     }
   }
 
@@ -109,62 +157,64 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Tokens.bg,
-        surfaceTintColor: Tokens.bg,
+        backgroundColor: context.colors.bg,
+        surfaceTintColor: context.colors.bg,
         elevation: 0,
-        foregroundColor: Tokens.navy,
-        title: Text('Notifications',
+        foregroundColor: context.colors.navy,
+        title: Text(context.s.notificationsTitle,
             style: t.labelLarge?.copyWith(fontSize: 18)),
       ),
       body: SafeArea(
         top: false,
         child: RefreshIndicator(
           onRefresh: _load,
-          color: Tokens.navy,
-          child: _body(),
+          color: context.colors.navy,
+          child: _body(context),
         ),
       ),
     );
   }
 
-  Widget _body() {
+  Widget _body(BuildContext context) {
     if (_error != null) {
       return ListView(children: [
         const SizedBox(height: 80),
         Text(_error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Tokens.hint)),
+            style: TextStyle(color: context.colors.hint)),
       ]);
     }
 
     if (_items == null) {
-      return const Center(child: CircularProgressIndicator(color: Tokens.navy));
+      return Center(
+          child: CircularProgressIndicator(color: context.colors.navy));
     }
 
     if (_items!.isEmpty) {
+      final s = context.s;
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 44),
         children: [
           const SizedBox(height: 120),
           Icon(Icons.notifications_off_outlined,
-              size: 56, color: Tokens.navy.withValues(alpha: 0.35)),
+              size: 56, color: context.colors.navy.withValues(alpha: 0.35)),
           const SizedBox(height: 20),
-          const Text(
-            'No notifications yet',
+          Text(
+            s.notificationsEmptyTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 18,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'When the barangay updates one of your reports, you will '
-            'see it here.',
+          Text(
+            s.notificationsEmptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, height: 1.35, color: Tokens.muted),
+            style:
+                TextStyle(fontSize: 13, height: 1.35, color: context.colors.muted),
           ),
         ],
       );
@@ -194,15 +244,16 @@ class _NotificationCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: unread ? Tokens.navy : Tokens.field,
-        border: Border.all(color: Tokens.navy),
+        color: unread ? context.colors.navy : context.colors.field,
+        border: Border.all(color: context.colors.navy),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(item.icon,
-              size: 20, color: unread ? Tokens.bg : Tokens.navy),
+              size: 20,
+              color: unread ? context.colors.bg : context.colors.navy),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -213,17 +264,17 @@ class _NotificationCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.35,
-                    color: unread ? Tokens.bg : Tokens.navy,
+                    color: unread ? context.colors.bg : context.colors.navy,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _ago(item.createdAt),
+                  _ago(context, item.createdAt),
                   style: TextStyle(
                     fontSize: 11,
                     color: unread
-                        ? Tokens.bg.withValues(alpha: 0.75)
-                        : Tokens.muted,
+                        ? context.colors.bg.withValues(alpha: 0.75)
+                        : context.colors.muted,
                   ),
                 ),
               ],
@@ -234,21 +285,20 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 
-  static String _ago(DateTime utc) {
+  static String _ago(BuildContext context, DateTime utc) {
+    final s = context.s;
     final d = DateTime.now().difference(utc.toLocal());
-    if (d.inMinutes < 1) return 'Just now';
-    if (d.inMinutes < 60) return '${d.inMinutes} minutes ago';
+    if (d.inMinutes < 1) return s.notificationsJustNow;
+    if (d.inMinutes < 60) return s.notificationsMinutesAgo(d.inMinutes);
     if (d.inHours < 24) {
-      return d.inHours == 1 ? 'An hour ago' : '${d.inHours} hours ago';
+      return d.inHours == 1
+          ? s.notificationsAnHourAgo
+          : s.notificationsHoursAgo(d.inHours);
     }
-    if (d.inDays == 1) return 'Yesterday';
-    if (d.inDays < 7) return '${d.inDays} days ago';
+    if (d.inDays == 1) return s.notificationsYesterday;
+    if (d.inDays < 7) return s.notificationsDaysAgo(d.inDays);
 
     final l = utc.toLocal();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[l.month - 1]} ${l.day}, ${l.year}';
+    return '${s.monthAbbr(l.month)} ${l.day}, ${l.year}';
   }
 }

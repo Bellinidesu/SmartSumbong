@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Scratch notes dropped here mid-session (auth_patch.md, pubspec_deps.md).
+# Lowercase on purpose: the root .gitignore's "Drop/" rule is case-sensitive
+# and doesn't match this folder, so it needs its own rule.
+drop/

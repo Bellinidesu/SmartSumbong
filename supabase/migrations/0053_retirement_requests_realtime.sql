@@ -1,0 +1,24 @@
+-- SmartSumbong — put retirement_requests on the realtime publication.
+--
+-- "The entire system needs to work realtime" (6 Sep 2026) already reached
+-- reports/dispatches/status_logs (0004) and notifications (0046). This
+-- table (0052) was the one gap left in the admin portal: the Retirement
+-- Requests queue only ever loaded once, on page load, with no refresh
+-- mechanism at all — not even the 20-second poll accounts.php/personnel.php
+-- fall back to for public.users.
+--
+-- That fallback exists for a specific reason 0046 spells out: public.users
+-- carries identity photos and mobile numbers, so it was deliberately kept
+-- out of the publication rather than pushed to every subscriber. None of
+-- that reasoning applies here. retirement_requests_queue() (0052) already
+-- joins in a name for display, but the table itself carries no photo, no
+-- mobile number, nothing beyond a tanod_id, a status, and a timestamp —
+-- the same shape as dispatches/status_logs, which have been publishing
+-- since 0004 with no such exception. So this gets true push, the same as
+-- the case list and dashboard, rather than another poll.
+--
+-- RLS needs no change to make this safe: retirement_requests_read (0052)
+-- is already `tanod_id = auth.uid() or public.is_admin()`, which is
+-- exactly the scope an admin's realtime subscription should see, and
+-- Realtime enforces that policy the same way PostgREST does.
+alter publication supabase_realtime add table public.retirement_requests;

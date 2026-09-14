@@ -22,6 +22,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // a bug, and is the one manual step the app-code changes here cannot do
 // for you (it needs your own Firebase login).
 import 'firebase_options.dart';
+import 'i18n.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/languages_screen.dart';
 import 'screens/settings_screen.dart';
@@ -30,8 +31,12 @@ import 'screens/notifications_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/account_status_screen.dart';
 import 'screens/change_password_screen.dart';
+import 'screens/extra_admin_services_screen.dart';
 import 'screens/launch_gate.dart';
 import 'screens/login_screen.dart';
+import 'screens/retirement_screen.dart';
+import 'screens/terms_privacy_screen.dart';
+import 'screens/theme_screen.dart';
 import 'theme.dart';
 
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -98,57 +103,100 @@ Future<void> main() async {
       }
     });
 
-    runApp(const SmartSumbongTanodApp());
+    // Loaded once, before the first frame, so the very first screen
+    // already renders in whatever language/theme the tanod chose last
+    // time — not a flash of English/Light that then switches. Mirrors
+    // the resident app's own startup sequence exactly.
+    final locale = await LocaleController.load();
+    final themeController = await ThemeController.load();
+    runApp(SmartSumbongTanodApp(locale: locale, themeController: themeController));
   }, (error, stack) {
     CrashReporting.recordError(error, stack);
   });
 }
 
 class SmartSumbongTanodApp extends StatelessWidget {
-  const SmartSumbongTanodApp({super.key});
+  const SmartSumbongTanodApp({
+    super.key,
+    required this.locale,
+    required this.themeController,
+  });
+
+  final LocaleController locale;
+  final ThemeController themeController;
 
   @override
   Widget build(BuildContext context) {
     final auth = AuthService(Supabase.instance.client);
 
-    return MaterialApp(
-      title: 'SmartSumbong Tanod',
-      debugShowCheckedModeBanner: false,
-      theme: buildTanodTheme(),
-      navigatorKey: navigatorKey,
-      builder: (context, child) => BiometricLockGate(
-        // Not a sign-out -- see biometric_lock_gate.dart's header. The
-        // session on disk is left alone; this only sends the tanod to
-        // the password screen instead of the app content the lock was
-        // covering.
-        onFallback: () => navigatorKey.currentState
-            ?.pushNamedAndRemoveUntil('/login', (_) => false),
-        child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (_) => LaunchGate(auth: auth),
-        '/login': (_) => LoginScreen(auth: auth),
-        // '/duty' is gone. Duty status lives on Home now, per
-        // HOME - TANOD, so the launch gate lands here instead.
-        '/home': (_) => TanodHomeScreen(auth: auth),
-        '/reports': (_) => const ReportsScreen(),
-        '/notifications': (_) => const NotificationsScreen(),
-        '/settings': (_) => SettingsScreen(auth: auth),
-        '/edit-profile': (_) => EditProfileScreen(auth: auth),
-        '/languages': (_) => const LanguagesScreen(),
-        '/change-password': (_) => ChangePasswordScreen(auth: auth),
-        '/verification-pending': (_) =>
-            const _Placeholder('Verification pending'),
-        '/verification-rejected': (_) => AccountStatusScreen(
-              auth: auth,
-              block: AccountBlock.rejected,
-              canRegisterAgain: false),
-        '/account-suspended': (_) => AccountStatusScreen(
-              auth: auth,
-              block: AccountBlock.suspended,
-              canRegisterAgain: false),
-      },
+    return AppThemeScope(
+      controller: themeController,
+      // A Builder, not the outer `context` above: MaterialApp needs a
+      // context *below* AppThemeScope to depend on it and rebuild its
+      // `theme`/`darkTheme` when the mode changes — the context this
+      // build() method already has is above the scope it just created.
+      child: Builder(builder: (context) {
+        final mode = AppThemeScope.of(context);
+        return AppLocaleScope(
+          controller: locale,
+          child: MaterialApp(
+            title: 'SmartSumbong Tanod',
+            debugShowCheckedModeBanner: false,
+            theme: buildTanodTheme(Brightness.light),
+            darkTheme: buildTanodTheme(Brightness.dark),
+            themeMode: mode,
+            navigatorKey: navigatorKey,
+            builder: (context, child) => BiometricLockGate(
+              reason: context.s.launchGateBiometricReason,
+              title: context.s.lockGateTitle,
+              body: context.s.lockGateBody,
+              unlockLabel: context.s.lockGateUnlock,
+              fallbackLabel: context.s.lockGateFallback,
+              // Not a sign-out -- see biometric_lock_gate.dart's header.
+              // The session on disk is left alone; this only sends the
+              // tanod to the password screen instead of the app content
+              // the lock was covering.
+              onFallback: () => navigatorKey.currentState
+                  ?.pushNamedAndRemoveUntil('/login', (_) => false),
+              child:
+                  ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+            ),
+            initialRoute: '/',
+            routes: {
+              '/': (_) => LaunchGate(auth: auth),
+              '/login': (_) => LoginScreen(auth: auth),
+              // '/duty' is gone. Duty status lives on Home now, per
+              // HOME - TANOD, so the launch gate lands here instead.
+              '/home': (_) => TanodHomeScreen(auth: auth),
+              '/reports': (_) => const ReportsScreen(),
+              '/notifications': (_) => const NotificationsScreen(),
+              '/settings': (_) => SettingsScreen(auth: auth),
+              '/edit-profile': (_) => EditProfileScreen(auth: auth),
+              '/languages': (_) => const LanguagesScreen(),
+              '/appearance': (_) => const ThemeScreen(),
+              '/change-password': (_) => ChangePasswordScreen(auth: auth),
+              '/verification-pending': (_) =>
+                  const _Placeholder('Verification pending'),
+              '/verification-rejected': (_) => AccountStatusScreen(
+                  auth: auth,
+                  block: AccountBlock.rejected,
+                  canRegisterAgain: false),
+              '/account-suspended': (_) => AccountStatusScreen(
+                  auth: auth,
+                  block: AccountBlock.suspended,
+                  canRegisterAgain: false),
+              '/account-retired': (_) => AccountStatusScreen(
+                  auth: auth,
+                  block: AccountBlock.retired,
+                  canRegisterAgain: false),
+              '/terms-privacy': (_) => const TermsPrivacyScreen(),
+              '/extra-admin-services': (_) =>
+                  ExtraAdminServicesScreen(auth: auth),
+              '/retirement': (_) => RetirementScreen(auth: auth),
+            },
+          ),
+        );
+      }),
     );
   }
 }

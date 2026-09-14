@@ -28,6 +28,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import 'tickets_screen.dart';
 
@@ -55,23 +56,43 @@ enum _Pane {
   submitted,
 }
 
+/// Which pane [showDispatchOrder] should land on, for a caller that
+/// wants a specific view rather than the ticket's default (the order
+/// pane for a pending ticket, the update pane for an accepted one).
+///
+/// Added 9 Sep 2026: Reports' View Map / View Attached Media / View
+/// Instructions links used to all call [showDispatchOrder] the same way
+/// no matter which was tapped, so all three landed on whichever pane the
+/// ticket's state defaulted to (the update form, for anything in
+/// Reports) — flagged in the CAPSTONE G12 chat. This lets a caller say
+/// which pane it actually meant.
+enum DispatchTarget { order, map, media, instructions }
+
 /// Opens the dispatch order over whatever is behind it. Returns true if
 /// anything changed, so the caller can reload.
-Future<bool> showDispatchOrder(BuildContext context, Ticket ticket) async {
+Future<bool> showDispatchOrder(
+  BuildContext context,
+  Ticket ticket, {
+  DispatchTarget target = DispatchTarget.order,
+}) async {
   final changed = await showGeneralDialog<bool>(
     context: context,
     barrierDismissible: false,
     barrierColor: const Color(0x66FFFFFF),
-    barrierLabel: 'Dispatch order',
-    pageBuilder: (_, __, ___) => _DispatchOrder(ticket: ticket),
+    barrierLabel: context.s.dispatchBarrierLabel,
+    pageBuilder: (_, __, ___) => _DispatchOrder(ticket: ticket, target: target),
   );
   return changed ?? false;
 }
 
 class _DispatchOrder extends StatefulWidget {
-  const _DispatchOrder({required this.ticket});
+  const _DispatchOrder({
+    required this.ticket,
+    this.target = DispatchTarget.order,
+  });
 
   final Ticket ticket;
+  final DispatchTarget target;
 
   @override
   State<_DispatchOrder> createState() => _DispatchOrderState();
@@ -116,10 +137,21 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     // to show nothing about what the report even was — see the summary
     // box _updatePane() now opens with, sourced from the same _report /
     // _evidence load() every pane already uses.
-    if (widget.ticket.state == DispatchState.accepted) {
-      _pane = _Pane.update;
-      _returnPane = _Pane.update;
-    }
+    final basePane = widget.ticket.state == DispatchState.accepted
+        ? _Pane.update
+        : _Pane.order;
+    _returnPane = basePane;
+
+    // A caller that asked for a specific pane (Reports' View Map / View
+    // Attached Media / View Instructions links) lands there directly;
+    // Back still returns to [basePane], same as opening that pane from
+    // inside the card itself.
+    _pane = switch (widget.target) {
+      DispatchTarget.map => _Pane.map,
+      DispatchTarget.media => _Pane.media,
+      DispatchTarget.instructions => _Pane.instructions,
+      DispatchTarget.order => basePane,
+    };
     _load();
   }
 
@@ -182,22 +214,21 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       setState(() {
         _busy = false;
         _error = e.message.contains('already actioned')
-            ? 'This ticket is no longer yours to accept. It may have '
-                'timed out or been reassigned.'
-            : 'Could not accept this ticket. Please try again.';
+            ? context.s.dispatchAcceptStale
+            : context.s.dispatchAcceptFailed;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Could not accept this ticket. Please try again.';
+        _error = context.s.dispatchAcceptFailed;
       });
     }
   }
 
   Future<void> _reroute() async {
     if (_reason.text.trim().isEmpty) {
-      setState(() => _error = 'A reason is required to reroute.');
+      setState(() => _error = context.s.dispatchRerouteReasonRequired);
       return;
     }
     setState(() {
@@ -218,14 +249,14 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Could not reroute this ticket. Please try again.';
+        _error = context.s.dispatchRerouteFailed;
       });
     }
   }
 
   Future<void> _submitUpdate() async {
     if (_update.text.trim().isEmpty) {
-      setState(() => _error = 'Please describe what was done.');
+      setState(() => _error = context.s.dispatchUpdateDescribeRequired);
       return;
     }
     setState(() {
@@ -281,47 +312,104 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = '${e.message} Your report has not been sent yet.';
+        _error = context.s.dispatchUpdateUploadFailed(e.message);
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Could not submit your report. Please try again.';
+        _error = context.s.dispatchUpdateSubmitFailed;
       });
     }
   }
 
+  /// Camera or gallery, per the CAPSTONE G12 feedback that attaching
+  /// media forced the camera open with no way to pick an existing shot.
+  /// Mirrors the resident app's register_screen.dart `_chooseSource`.
+  Future<ImageSource?> _chooseSource(BuildContext context) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: context.colors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
+              title: Text(context.s.dispatchTakePhoto),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
+              title: Text(context.s.dispatchChooseFromGallery),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _addPhoto() async {
     if (_photos.length >= 3) return;
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final s = context.s;
     final granted = await PermissionGate.ensure(
       context,
-      permission: AppPermission.camera,
-      title: 'Camera access',
-      rationale: 'SmartSumbong needs camera access to attach photo proof '
-          'to this dispatch.',
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera
+          ? s.dispatchCameraAccessTitle
+          : s.dispatchPhotoAccessTitle,
+      rationale: source == ImageSource.camera
+          ? s.dispatchCameraAccessPhotoRationale
+          : s.dispatchGalleryAccessPhotoRationale,
     );
     if (!granted || !mounted) return;
     try {
-      final x = await _picker.pickImage(
-          source: ImageSource.camera, imageQuality: 90);
+      final x = await _picker.pickImage(source: source, imageQuality: 90);
       if (x == null || !mounted) return;
       setState(() {
         _photos.add(File(x.path));
         _error = null;
       });
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not open the camera.');
+      if (mounted) {
+        setState(() => _error = context.s.dispatchMediaOpenFailed);
+      }
     }
   }
 
   Future<void> _addVideo() async {
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final s = context.s;
     final granted = await PermissionGate.ensure(
       context,
-      permission: AppPermission.camera,
-      title: 'Camera access',
-      rationale: 'SmartSumbong needs camera access to attach video proof '
-          'to this dispatch.',
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera
+          ? s.dispatchCameraAccessTitle
+          : s.dispatchPhotoAccessTitle,
+      rationale: source == ImageSource.camera
+          ? s.dispatchCameraAccessVideoRationale
+          : s.dispatchGalleryAccessVideoRationale,
     );
     if (!granted || !mounted) return;
     try {
@@ -331,14 +419,16 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         videoUploadPreset:
             _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
       );
-      final f = await uploader.pickVideo(source: ImageSource.camera);
+      final f = await uploader.pickVideo(source: source);
       if (f == null || !mounted) return;
       setState(() {
         _video = f;
         _error = null;
       });
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not open the camera.');
+      if (mounted) {
+        setState(() => _error = context.s.dispatchMediaOpenFailed);
+      }
     }
   }
 
@@ -365,8 +455,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Tokens.bg,
-                  border: Border.all(color: reroute ? _red : Tokens.navy,
+                  color: context.colors.bg,
+                  border: Border.all(color: reroute ? _red : context.colors.navy,
                       width: 2),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
@@ -403,20 +493,21 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   Widget _header() => Column(
         children: [
           Text(
-            'DISPATCH ORDER:\n${widget.ticket.trackingId}',
+            '${context.s.dispatchOrderHeaderLabel}\n${widget.ticket.trackingId}',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w800,
               fontSize: 19,
               height: 1.2,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 2),
           Text(
-            'Submitted on: ${_date(_report?['created_at'] as String?)}',
-            style: const TextStyle(fontSize: 11, color: Tokens.navy),
+            context.s
+                .dispatchSubmittedOn(_date(_report?['created_at'] as String?)),
+            style: TextStyle(fontSize: 11, color: context.colors.navy),
           ),
         ],
       );
@@ -431,9 +522,9 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           inner,
           const SizedBox(height: 16),
           _Pill(
-            label: 'Back',
+            label: context.s.dispatchBack,
             filled: true,
-            colour: Tokens.navy,
+            colour: context.colors.navy,
             onTap: () => setState(() => _pane = _returnPane),
           ),
         ],
@@ -450,7 +541,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           decoration: BoxDecoration(
-            border: Border.all(color: Tokens.navy),
+            border: Border.all(color: context.colors.navy),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -461,22 +552,24 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               // `id = auth.uid() or is_admin()`, so a tanod cannot read
               // the filer's row at all. A name here needs that policy
               // loosened, which is the barangay's call.
-              _Field(label: 'Complainant: ', value: 'Anonymous'),
+              _Field(
+                  label: context.s.dispatchComplainantLabel,
+                  value: context.s.reportsFilerAnonymous),
               const SizedBox(height: 6),
               _Field(
-                label: 'Description: ',
+                label: context.s.reportsDescriptionLabel,
                 value: '\u201C${widget.ticket.description}\u201D',
               ),
               const SizedBox(height: 6),
               _Field(
-                label: 'Deadline: ',
+                label: context.s.reportsDeadlineLabel,
                 value: _dateOf(widget.ticket.dueAt),
               ),
               const SizedBox(height: 10),
 
               _Link(
                 icon: Icons.place_outlined,
-                label: 'View Map',
+                label: context.s.reportsViewMap,
                 onTap: () => setState(() {
                   _returnPane = _Pane.order;
                   _pane = _Pane.map;
@@ -484,15 +577,15 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               ),
               _Link(
                 icon: Icons.camera_alt_outlined,
-                label: 'View Attached Media',
+                label: context.s.reportsViewMedia,
                 onTap: () => setState(() {
                   _returnPane = _Pane.order;
                   _pane = _Pane.media;
                 }),
               ),
               _Link(
-                icon: Icons.my_location,
-                label: 'View Instructions',
+                icon: Icons.info_outline,
+                label: context.s.reportsViewInstructions,
                 onTap: () => setState(() {
                   _returnPane = _Pane.order;
                   _pane = _Pane.instructions;
@@ -514,7 +607,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _Pill(
-              label: 'Reroute',
+              label: context.s.dispatchReroute,
               filled: true,
               colour: _red,
               width: 108,
@@ -527,7 +620,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             ),
             const SizedBox(width: 16),
             _Pill(
-              label: 'Accept',
+              label: context.s.dispatchAccept,
               filled: true,
               colour: _green,
               width: 108,
@@ -538,9 +631,9 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         ),
         const SizedBox(height: 10),
         _Pill(
-          label: 'Back',
+          label: context.s.dispatchBack,
           filled: true,
-          colour: Tokens.navy,
+          colour: context.colors.navy,
           width: 108,
           onTap: _close,
         ),
@@ -559,11 +652,11 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         width: double.infinity,
         child: lat == null || lon == null
             ? Container(
-                color: Tokens.field,
-                child: const Center(
-                  child: Text('No location on this report',
+                color: context.colors.field,
+                child: Center(
+                  child: Text(context.s.dispatchNoLocation,
                       style:
-                          TextStyle(fontSize: 12, color: Tokens.muted)),
+                          TextStyle(fontSize: 12, color: context.colors.muted)),
                 ),
               )
             : FlutterMap(
@@ -585,8 +678,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                       point: LatLng(lat, lon),
                       width: 38,
                       height: 38,
-                      child: const Icon(Icons.location_on,
-                          size: 38, color: Tokens.navy),
+                      child: Icon(Icons.location_on,
+                          size: 38, color: context.colors.navy),
                     ),
                   ]),
                 ],
@@ -606,12 +699,12 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       return Container(
         height: 240,
         decoration: BoxDecoration(
-          color: Tokens.field,
+          color: context.colors.field,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Center(
-          child: Text('The resident attached no photos.',
-              style: TextStyle(fontSize: 12, color: Tokens.muted)),
+        child: Center(
+          child: Text(context.s.dispatchNoMedia,
+              style: TextStyle(fontSize: 12, color: context.colors.muted)),
         ),
       );
     }
@@ -643,15 +736,15 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                       fit: BoxFit.cover,
                       width: double.infinity,
                       placeholder: (_, __) => Container(
-                        color: Tokens.field,
+                        color: context.colors.field,
                         child: const Center(
                             child: CircularProgressIndicator(strokeWidth: 2)),
                       ),
                       errorWidget: (_, __, ___) => Container(
-                        color: Tokens.field,
-                        child: const Center(
+                        color: context.colors.field,
+                        child: Center(
                           child: Icon(Icons.broken_image_outlined,
-                              color: Tokens.muted),
+                              color: context.colors.muted),
                         ),
                       ),
                     ),
@@ -669,37 +762,32 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        border: Border.all(color: Tokens.navy),
+        border: Border.all(color: context.colors.navy),
         borderRadius: BorderRadius.circular(12),
       ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Admin Directives:',
+            Text(
+              context.s.dispatchAdminDirectivesTitle,
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
-                color: Tokens.navy,
+                color: context.colors.navy,
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              text.isEmpty
-                  ? 'The admin left no directives on this ticket. Use your '
-                      'judgement and record what you find.'
-                  : text,
-              style: const TextStyle(
-                  fontSize: 11.5, height: 1.45, color: Tokens.navy),
+              text.isEmpty ? context.s.dispatchNoDirectives : text,
+              style: TextStyle(
+                  fontSize: 11.5, height: 1.45, color: context.colors.navy),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Note for Responder: Proceed with caution. Your safety and '
-              'the safety of the people at the scene come before the '
-              'deadline.',
-              style: TextStyle(
+            Text(
+              context.s.dispatchResponderNote,
+              style: const TextStyle(
                 fontSize: 10.5,
                 height: 1.4,
                 fontStyle: FontStyle.italic,
@@ -716,11 +804,10 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Are you sure you want to reroute this assigned complaint to '
-          'another Tanod?',
+        Text(
+          context.s.dispatchRerouteConfirmTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w800,
             fontSize: 17,
@@ -729,18 +816,18 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'This action cannot be undone and will be logged.',
+        Text(
+          context.s.dispatchRerouteConfirmBody,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, height: 1.35, color: _red),
+          style: const TextStyle(fontSize: 11, height: 1.35, color: _red),
         ),
         const SizedBox(height: 14),
 
         Align(
           alignment: Alignment.centerLeft,
-          child: const Text(
-            'Please provide your reason',
-            style: TextStyle(
+          child: Text(
+            context.s.dispatchRerouteReasonLabel,
+            style: const TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 11.5,
@@ -757,8 +844,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             maxLength: 200,
             enabled: !_busy,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              hintText: 'Input here...',
+            decoration: InputDecoration(
+              hintText: context.s.dispatchInputHint,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -779,7 +866,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         const SizedBox(height: 14),
 
         _Pill(
-          label: 'Confirm',
+          label: context.s.dispatchConfirm,
           filled: true,
           colour: _red,
           busy: _busy,
@@ -787,7 +874,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         ),
         const SizedBox(height: 10),
         _Pill(
-          label: 'Cancel',
+          label: context.s.dispatchCancel,
           filled: false,
           colour: _red,
           onTap: _busy
@@ -806,29 +893,28 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         children: [
           const SizedBox(height: 20),
           Text(
-            '${widget.ticket.trackingId} - ${widget.ticket.subject} has '
-            'been accepted.',
+            context.s.dispatchAcceptedTitle(
+                widget.ticket.trackingId, widget.ticket.subject),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w800,
               fontSize: 19,
               height: 1.25,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Kindly ensure that the necessary actions are taken in a '
-            'timely manner.',
+          Text(
+            context.s.dispatchAcceptedBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11.5, height: 1.4, color: Tokens.navy),
+            style: TextStyle(fontSize: 11.5, height: 1.4, color: context.colors.navy),
           ),
           const SizedBox(height: 28),
           _Pill(
-            label: 'Back',
+            label: context.s.dispatchBack,
             filled: true,
-            colour: Tokens.navy,
+            colour: context.colors.navy,
             onTap: _close,
           ),
           const SizedBox(height: 12),
@@ -851,28 +937,30 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           decoration: BoxDecoration(
-            border: Border.all(color: Tokens.navy),
+            border: Border.all(color: context.colors.navy),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Field(label: 'Complainant: ', value: 'Anonymous'),
+              _Field(
+                  label: context.s.dispatchComplainantLabel,
+                  value: context.s.reportsFilerAnonymous),
               const SizedBox(height: 6),
               _Field(
-                label: 'Description: ',
+                label: context.s.reportsDescriptionLabel,
                 value: '“${widget.ticket.description}”',
               ),
               const SizedBox(height: 6),
               _Field(
-                label: 'Deadline: ',
+                label: context.s.reportsDeadlineLabel,
                 value: _dateOf(widget.ticket.dueAt),
               ),
               const SizedBox(height: 10),
 
               _Link(
                 icon: Icons.place_outlined,
-                label: 'View Map',
+                label: context.s.reportsViewMap,
                 onTap: () => setState(() {
                   _returnPane = _Pane.update;
                   _pane = _Pane.map;
@@ -880,15 +968,15 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               ),
               _Link(
                 icon: Icons.camera_alt_outlined,
-                label: 'View Attached Media',
+                label: context.s.reportsViewMedia,
                 onTap: () => setState(() {
                   _returnPane = _Pane.update;
                   _pane = _Pane.media;
                 }),
               ),
               _Link(
-                icon: Icons.my_location,
-                label: 'View Instructions',
+                icon: Icons.info_outline,
+                label: context.s.reportsViewInstructions,
                 onTap: () => setState(() {
                   _returnPane = _Pane.update;
                   _pane = _Pane.instructions;
@@ -899,40 +987,40 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         ),
         const SizedBox(height: 14),
 
-        const Text(
-          'Submit an update',
+        Text(
+          context.s.reportsSubmitUpdate,
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w800,
             fontSize: 20,
-            color: Tokens.navy,
+            color: context.colors.navy,
           ),
         ),
         const SizedBox(height: 14),
 
         Align(
           alignment: Alignment.centerLeft,
-          child: const Text(
-            'Please provide a report',
+          child: Text(
+            context.s.dispatchProvideReportLabel,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 11.5,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
         ),
         const SizedBox(height: 6),
         _Box(
-          colour: Tokens.navy,
+          colour: context.colors.navy,
           child: TextField(
             controller: _update,
             maxLines: 4,
             maxLength: 300,
             enabled: !_busy,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              hintText: 'Input here...',
+            decoration: InputDecoration(
+              hintText: context.s.dispatchInputHint,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -947,13 +1035,13 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
         Align(
           alignment: Alignment.centerLeft,
-          child: const Text(
-            'Submit a photo evidence of the complaint response',
+          child: Text(
+            context.s.dispatchPhotoEvidenceLabel,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 11.5,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
         ),
@@ -978,15 +1066,15 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                       top: -6,
                       right: -6,
                       child: Material(
-                        color: Tokens.navy,
+                        color: context.colors.navy,
                         shape: const CircleBorder(),
                         child: InkWell(
                           customBorder: const CircleBorder(),
                           onTap: () => setState(() => _photos.removeAt(i)),
-                          child: const Padding(
+                          child: Padding(
                             padding: EdgeInsets.all(3),
                             child: Icon(Icons.close,
-                                size: 14, color: Tokens.bg),
+                                size: 14, color: context.colors.bg),
                           ),
                         ),
                       ),
@@ -1001,7 +1089,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 InkWell(
                   onTap: _busy ? null : _addPhoto,
                   child: CustomPaint(
-                    painter: _DashedBorder(colour: Tokens.navy),
+                    painter: _DashedBorder(colour: context.colors.navy),
                     child: SizedBox(
                       width: 118,
                       height: 62,
@@ -1012,27 +1100,27 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                             width: 20,
                             height: 20,
                             decoration: BoxDecoration(
-                              color: Tokens.navy,
+                              color: context.colors.navy,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Icon(Icons.add,
-                                size: 14, color: Tokens.bg),
+                            child: Icon(Icons.add,
+                                size: 14, color: context.colors.bg),
                           ),
                           const SizedBox(width: 6),
-                          const Column(
+                          Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Attach Media',
+                              Text(context.s.dispatchAttachMedia,
                                   style: TextStyle(
                                     fontFamily: 'Poppins',
                                     fontWeight: FontWeight.w700,
                                     fontSize: 10,
-                                    color: Tokens.navy,
+                                    color: context.colors.navy,
                                   )),
-                              Text('(Max. 10 MB)',
+                              Text(context.s.dispatchMaxPhotoSize,
                                   style: TextStyle(
-                                      fontSize: 8, color: Tokens.navy)),
+                                      fontSize: 8, color: context.colors.navy)),
                             ],
                           ),
                         ],
@@ -1049,25 +1137,25 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                   height: 62,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: Tokens.navy.withValues(alpha: 0.06),
+                    color: context.colors.navy.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.videocam, color: Tokens.navy, size: 18),
-                      const Expanded(
+                      Icon(Icons.videocam, color: context.colors.navy, size: 18),
+                      Expanded(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Video attached',
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(context.s.dispatchVideoAttached,
                               style:
-                                  TextStyle(fontSize: 9, color: Tokens.navy)),
+                                  TextStyle(fontSize: 9, color: context.colors.navy)),
                         ),
                       ),
                       InkWell(
                         onTap: _removeVideo,
-                        child: const Icon(Icons.close,
-                            size: 14, color: Tokens.navy),
+                        child: Icon(Icons.close,
+                            size: 14, color: context.colors.navy),
                       ),
                     ],
                   ),
@@ -1076,7 +1164,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 InkWell(
                   onTap: _busy ? null : _addVideo,
                   child: CustomPaint(
-                    painter: _DashedBorder(colour: Tokens.navy),
+                    painter: _DashedBorder(colour: context.colors.navy),
                     child: SizedBox(
                       width: 118,
                       height: 62,
@@ -1087,27 +1175,27 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                             width: 20,
                             height: 20,
                             decoration: BoxDecoration(
-                              color: Tokens.navy,
+                              color: context.colors.navy,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Icon(Icons.videocam,
-                                size: 14, color: Tokens.bg),
+                            child: Icon(Icons.videocam,
+                                size: 14, color: context.colors.bg),
                           ),
                           const SizedBox(width: 6),
-                          const Column(
+                          Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Attach Video',
+                              Text(context.s.dispatchAttachVideo,
                                   style: TextStyle(
                                     fontFamily: 'Poppins',
                                     fontWeight: FontWeight.w700,
                                     fontSize: 10,
-                                    color: Tokens.navy,
+                                    color: context.colors.navy,
                                   )),
-                              Text('(Max. 25 MB)',
+                              Text(context.s.dispatchMaxVideoSize,
                                   style: TextStyle(
-                                      fontSize: 8, color: Tokens.navy)),
+                                      fontSize: 8, color: context.colors.navy)),
                             ],
                           ),
                         ],
@@ -1128,17 +1216,17 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         const SizedBox(height: 16),
 
         _Pill(
-          label: 'Submit',
+          label: context.s.dispatchSubmit,
           filled: true,
-          colour: Tokens.navy,
+          colour: context.colors.navy,
           busy: _busy,
           onTap: _busy ? null : _submitUpdate,
         ),
         const SizedBox(height: 8),
         _Pill(
-          label: 'Back',
+          label: context.s.dispatchBack,
           filled: false,
-          colour: Tokens.navy,
+          colour: context.colors.navy,
           onTap: _busy ? null : _close,
         ),
       ],
@@ -1150,21 +1238,21 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         children: [
           const SizedBox(height: 20),
           Text(
-            '${widget.ticket.trackingId}\nReport has been submitted.',
+            context.s.dispatchSubmittedTitle(widget.ticket.trackingId),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w800,
               fontSize: 19,
               height: 1.3,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 28),
           _Pill(
-            label: 'Back',
+            label: context.s.dispatchBack,
             filled: true,
-            colour: Tokens.navy,
+            colour: context.colors.navy,
             onTap: _close,
           ),
           const SizedBox(height: 12),
@@ -1173,16 +1261,12 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
   // ---------- dates ---------------------------------------------
 
-  static String _date(String? iso) => _dateOf(DateTime.tryParse(iso ?? ''));
+  String _date(String? iso) => _dateOf(DateTime.tryParse(iso ?? ''));
 
-  static String _dateOf(DateTime? d) {
-    if (d == null) return 'not set';
-    const m = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
+  String _dateOf(DateTime? d) {
+    if (d == null) return context.s.reportsDeadlineNotSet;
     final l = d.toLocal();
-    return '${m[l.month - 1]} ${l.day}, ${l.year}';
+    return '${context.s.monthFull(l.month)} ${l.day}, ${l.year}';
   }
 }
 
@@ -1197,8 +1281,8 @@ class _Field extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RichText(
         text: TextSpan(
-          style: const TextStyle(
-              fontSize: 11, height: 1.4, color: Tokens.navy),
+          style: TextStyle(
+              fontSize: 11, height: 1.4, color: context.colors.navy),
           children: [
             TextSpan(
                 text: label,
@@ -1227,16 +1311,16 @@ class _Link extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 5),
           child: Row(
             children: [
-              Icon(icon, size: 15, color: Tokens.navy),
+              Icon(icon, size: 15, color: context.colors.navy),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: Tokens.navy,
+                  color: context.colors.navy,
                   decoration: TextDecoration.underline,
-                  decorationColor: Tokens.navy,
+                  decorationColor: context.colors.navy,
                 ),
               ),
             ],
@@ -1289,7 +1373,7 @@ class _Pill extends StatelessWidget {
             width: 18,
             height: 18,
             child: CircularProgressIndicator(
-                strokeWidth: 2, color: filled ? Tokens.bg : colour),
+                strokeWidth: 2, color: filled ? context.colors.bg : colour),
           )
         : Text(label);
 
@@ -1298,7 +1382,7 @@ class _Pill extends StatelessWidget {
             onPressed: onTap,
             style: FilledButton.styleFrom(
               backgroundColor: colour,
-              foregroundColor: Tokens.bg,
+              foregroundColor: context.colors.bg,
               minimumSize: const Size(0, 40),
               padding: const EdgeInsets.symmetric(horizontal: 20),
               shape: shape,

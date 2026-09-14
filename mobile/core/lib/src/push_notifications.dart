@@ -107,9 +107,19 @@ class PushNotifications {
       final n = message.notification;
       if (n == null) return;
       final reportId = message.data['report_id'] as String?;
-      final notifId = (reportId != null && reportId.isNotEmpty)
-          ? reportId.hashCode
-          : n.hashCode;
+      // Masked to a positive signed 32-bit value. String.hashCode is a
+      // full-width 32-bit hash, so roughly half its outputs exceed
+      // 0x7FFFFFFF; StandardMessageCodec then encodes those as an Int64
+      // crossing the platform channel, and flutter_local_notifications'
+      // Android side casts the id straight to a Java int (`(Integer)
+      // arguments.get(ID)`), throwing ClassCastException on anything
+      // that arrived as a Long. Masking keeps the "same report_id
+      // collapses in the tray" behaviour this id exists for (see the
+      // comment above) while guaranteeing it always fits.
+      final notifId = ((reportId != null && reportId.isNotEmpty)
+              ? reportId.hashCode
+              : n.hashCode) &
+          0x7fffffff;
       _local.show(
         id: notifId,
         title: n.title,

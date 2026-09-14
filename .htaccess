@@ -6,28 +6,34 @@
 # the same layout config.php and transparency.php's own relative paths
 # already assume; see that discussion for why).
 #
-# Apache-specific and UNTESTED against a real host, since none is picked
-# yet. Verify this actually works (and adjust the syntax if the eventual
-# host runs something other than Apache 2.4+, or has mod_rewrite/
-# mod_headers disabled) before relying on it in production.
+# Confirmed working under the Docker/Apache setup used for the Sep 29-30
+# defense deploy (php:8.3-apache, mod_rewrite + AllowOverride All enabled
+# in the Dockerfile). Re-verify if the eventual turnover host runs
+# something other than Apache 2.4+.
 #
 # What this defends against: once the document root is this folder, the
 # .env file sitting right here (real Supabase keys) would otherwise be
 # directly downloadable at https://yourdomain/.env, and things like
 # supabase/, mobile/, and this README have no business being served over
-# HTTP at all. Only admin/ (behind its own login) and public/ (the
-# transparency page) are meant to answer a request.
+# HTTP at all. Only admin/ (behind its own login), public/ (the
+# transparency page), and the root landing page are meant to answer a
+# request.
 
 # Block every dotfile outright — .env, .git, .env.example, etc.
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
 
-# Block everything except the two folders this project actually serves.
-# (The bare root "/" is intentionally not aliased to public/transparency.php
-# here — decide that once a real domain exists and it's clear whether the
-# barangay wants the public page to BE the homepage.)
 RewriteEngine On
+
+# Bare domain root -> the small landing page in this folder, so visiting
+# the live URL directly doesn't just hit the deny-everything-else rule
+# below. (mod_rewrite strips the leading slash before matching, so "/"
+# is an empty string here.)
+RewriteRule ^$ index.php [L]
+
+# Block everything except the three things this project actually serves.
 RewriteCond %{REQUEST_URI} !^/admin/
 RewriteCond %{REQUEST_URI} !^/public/
+RewriteCond %{REQUEST_URI} !^/index\.php$
 RewriteRule ^ - [F]

@@ -23,13 +23,27 @@
 //
 // Password is Supabase's own updateUser, which needs the current
 // session and nothing else.
+//
+// ADDRESS AND AVATAR — ported from the resident app's Figma parity pass
+// (27 Aug 2026), which tanod never got at the time ("focus first on the
+// resident app"). Both are ordinary tanod-editable fields (0038), the
+// same shape as email — not identity evidence, so no privileged-field
+// guard applies. The avatar upload reuses MediaKind.selfie's Cloudinary
+// folder, same as resident, rather than adding a new one.
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
+
+const _cloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
+const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key, required this.auth});
@@ -42,16 +56,28 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _email = TextEditingController();
+  final _address = TextEditingController();
+  final _uploader = MediaUploader(
+    cloudName: _cloudName,
+    uploadPreset: _uploadPreset,
+  );
 
   String? _name;
   String? _mobile;
   String _originalEmail = '';
+  String _originalAddress = '';
+  String? _avatarUrl;
+  File? _newAvatar;
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingAvatar = false;
   String? _banner;
   String? _emailError;
 
-  bool get _dirty => _email.text.trim() != _originalEmail;
+  bool get _dirty =>
+      _email.text.trim() != _originalEmail ||
+      _address.text.trim() != _originalAddress ||
+      _newAvatar != null;
 
   @override
   void initState() {
@@ -62,6 +88,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _email.dispose();
+    _address.dispose();
     super.dispose();
   }
 
@@ -72,7 +99,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final row = await client
           .from('users')
-          .select('full_name, mobile_number, email')
+          .select('full_name, mobile_number, email, address, avatar_url')
           .eq('id', uid)
           .maybeSingle();
       if (!mounted || row == null) return;
@@ -81,15 +108,87 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _mobile = row['mobile_number'] as String?;
         _originalEmail = (row['email'] as String?) ?? '';
         _email.text = _originalEmail;
+        _originalAddress = (row['address'] as String?) ?? '';
+        _address.text = _originalAddress;
+        _avatarUrl = row['avatar_url'] as String?;
         _loading = false;
       });
     } catch (_) {
       if (mounted) {
         setState(() {
           _loading = false;
-          _banner = 'Could not load your profile.';
+          _banner = context.s.editProfileLoadError;
         });
       }
+    }
+  }
+
+  /// Gallery-only until 9 Sep 2026 — same gap as resident's, fixed the
+  /// same day for the same reason (see resident's
+  /// report_details_screen.dart _chooseSource for why this is safe).
+  Future<ImageSource?> _chooseSource(BuildContext context) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: context.colors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
+              title: Text(context.s.editProfileTakePhoto),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
+              title: Text(context.s.editProfileChooseFromGallery),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAvatar() async {
+    setState(() => _banner = null);
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final s = context.s;
+    final granted = await PermissionGate.ensure(
+      context,
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera
+          ? s.editProfileCameraAccessTitle
+          : s.editProfilePhotoAccessTitle,
+      rationale: source == ImageSource.camera
+          ? s.editProfileCameraAccessRationale
+          : s.editProfilePhotoAccessRationale,
+    );
+    if (!granted || !mounted) return;
+    try {
+      final f = await _uploader.pick(source: source);
+      if (f == null || !mounted) return;
+      setState(() => _newAvatar = f);
+    } on MediaUploadException catch (e) {
+      if (!mounted) return;
+      setState(() => _banner = e.message);
     }
   }
 
@@ -99,7 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final email = _email.text.trim();
     if (email.isNotEmpty &&
         !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-      setState(() => _emailError = 'That email address does not look right.');
+      setState(() => _emailError = context.s.editProfileEmailInvalid);
       return;
     }
 
@@ -110,19 +209,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
+      String? avatarUrl = _avatarUrl;
+      if (_newAvatar != null) {
+        setState(() => _uploadingAvatar = true);
+        // Same folder as a registration selfie — see this file's header
+        // for why, rather than a dedicated MediaKind.avatar.
+        avatarUrl =
+            (await _uploader.upload(_newAvatar!, kind: MediaKind.selfie))
+                .mediaUrl;
+        if (mounted) setState(() => _uploadingAvatar = false);
+      }
+
       final uid = Supabase.instance.client.auth.currentUser!.id;
-      await Supabase.instance.client
-          .from('users')
-          .update({'email': email.isEmpty ? null : email}).eq('id', uid);
+      await Supabase.instance.client.from('users').update({
+        'email': email.isEmpty ? null : email,
+        'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
+      }).eq('id', uid);
 
       if (!mounted) return;
-      setState(() => _originalEmail = email);
+      setState(() {
+        _originalEmail = email;
+        _originalAddress = _address.text.trim();
+        if (avatarUrl != null) {
+          _avatarUrl = avatarUrl;
+          _newAvatar = null;
+        }
+      });
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (_) => _ProfileDialog(
-          title: 'Changes Saved.',
-          primaryLabel: 'Continue',
+          title: context.s.editProfileChangesSavedTitle,
+          primaryLabel: context.s.editProfileContinue,
           onPrimary: () => Navigator.of(context).pop(),
         ),
       );
@@ -132,8 +251,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
       setState(() {
         _banner = e.message.toLowerCase().contains('users_email_key')
-            ? 'That email address is already used by another account.'
-            : 'Could not save your profile. Please try again.';
+            ? context.s.editProfileEmailTaken
+            : context.s.editProfileSaveFailed;
       });
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -144,15 +263,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final value = await showDialog<String>(
       context: context,
       builder: (_) => _RequestDialog(
-        title: 'Change your $label',
+        title: context.s.editProfileChangeFieldTitle(label),
         prompt: field == 'mobile_number'
-            ? 'Your mobile number is how you sign in, so the barangay '
-                'changes it for you. Enter the new number and they will '
-                'be notified.'
-            : 'The barangay checked this name against your ID, so they '
-                'change it for you. Enter the correct name and they will '
-                'be notified.',
-        hint: field == 'mobile_number' ? '09171234567' : 'Your full name',
+            ? context.s.editProfileMobilePrompt
+            : context.s.editProfileNamePrompt,
+        hint: field == 'mobile_number'
+            ? '09171234567'
+            : context.s.editProfileFullNameHint,
         keyboardType:
             field == 'mobile_number' ? TextInputType.phone : TextInputType.name,
       ),
@@ -166,7 +283,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         : value.trim();
     if (normalised == null) {
       if (!mounted) return;
-      setState(() => _banner = 'Enter a mobile number like 09171234567.');
+      setState(() => _banner = context.s.editProfileMobileInvalid);
       return;
     }
 
@@ -177,9 +294,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your request has been sent to the barangay.'),
-          backgroundColor: Tokens.navy,
+        SnackBar(
+          content: Text(context.s.editProfileRequestSent),
+          backgroundColor: context.colors.navy,
         ),
       );
     } on PostgrestException catch (e) {
@@ -200,9 +317,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           .updateUser(UserAttributes(password: pair));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your password has been changed.'),
-          backgroundColor: Tokens.navy,
+        SnackBar(
+          content: Text(context.s.editProfilePasswordChanged),
+          backgroundColor: context.colors.navy,
         ),
       );
     } on AuthException catch (e) {
@@ -222,12 +339,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final leave = await showDialog<bool>(
           context: context,
           builder: (_) => _ProfileDialog(
-            title: 'Unsaved Changes',
-            body: 'If you continue without saving, these changes will '
-                'be lost.',
-            secondaryLabel: 'Cancel',
+            title: context.s.editProfileUnsavedTitle,
+            body: context.s.editProfileUnsavedBody,
+            secondaryLabel: context.s.editProfileCancel,
             onSecondary: () => Navigator.of(context).pop(false),
-            primaryLabel: 'Continue',
+            primaryLabel: context.s.editProfileContinue,
             onPrimary: () => Navigator.of(context).pop(true),
           ),
         );
@@ -235,42 +351,85 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Tokens.bg,
-          surfaceTintColor: Tokens.bg,
+          backgroundColor: context.colors.bg,
+          surfaceTintColor: context.colors.bg,
           elevation: 0,
-          foregroundColor: Tokens.navy,
+          foregroundColor: context.colors.navy,
         ),
         body: SafeArea(
           top: false,
           child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Tokens.navy))
+              ? Center(
+                  child: CircularProgressIndicator(color: context.colors.navy))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(30, 0, 30, 32),
                   children: [
                     Center(
-                      child: Text('Edit Profile',
+                      child: Text(context.s.editProfileTitle,
                           style: t.headlineLarge?.copyWith(fontSize: 28)),
                     ),
                     const SizedBox(height: 24),
 
                     Center(
-                      child: Container(
-                        width: 96,
-                        height: 96,
-                        decoration: const BoxDecoration(
-                          color: Tokens.navy,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _SettingsInitials.of(_name),
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 32,
-                            color: Tokens.bg,
-                          ),
+                      child: GestureDetector(
+                        onTap: _saving ? null : _pickAvatar,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 96,
+                              height: 96,
+                              decoration: BoxDecoration(
+                                color: context.colors.navy,
+                                shape: BoxShape.circle,
+                                image: _newAvatar != null
+                                    ? DecorationImage(
+                                        image: FileImage(_newAvatar!),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : (_avatarUrl != null
+                                        ? DecorationImage(
+                                            image: NetworkImage(_avatarUrl!),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null),
+                              ),
+                              alignment: Alignment.center,
+                              child: (_newAvatar != null || _avatarUrl != null)
+                                  ? (_uploadingAvatar
+                                      ? CircularProgressIndicator(
+                                          color: context.colors.bg, strokeWidth: 2)
+                                      : null)
+                                  : Text(
+                                      _SettingsInitials.of(_name),
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 32,
+                                        color: context.colors.bg,
+                                      ),
+                                    ),
+                            ),
+                            // A small camera badge is the only hint that
+                            // the circle above is tappable.
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: context.colors.bg,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: context.colors.navy, width: 1.5),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(Icons.camera_alt_outlined,
+                                    size: 15, color: context.colors.navy),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -280,49 +439,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Tokens.hint.withValues(alpha: 0.08),
-                          border: Border.all(color: Tokens.hint),
+                          color: context.colors.hint.withValues(alpha: 0.08),
+                          border: Border.all(color: context.colors.hint),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(_banner!,
-                            style: const TextStyle(
-                                color: Tokens.hint, fontSize: 13)),
+                            style: TextStyle(
+                                color: context.colors.hint, fontSize: 13)),
                       ),
                       const SizedBox(height: 16),
                     ],
 
                     _LockedField(
-                      label: 'Name',
+                      label: context.s.editProfileNameLabel,
                       value: _name ?? '',
-                      note: 'The barangay changes this',
-                      onTap: () => _requestChange('full_name', 'name'),
+                      note: context.s.editProfileNameNote,
+                      onTap: () => _requestChange(
+                          'full_name', context.s.editProfileNameWord),
                     ),
                     const SizedBox(height: 18),
 
                     _EditableField(
-                      label: 'Email Address',
+                      label: context.s.editProfileEmailLabel,
                       controller: _email,
-                      hint: 'example@gmail.com',
-                      note: '(Optional)',
+                      hint: context.s.editProfileEmailHint,
+                      note: context.s.editProfileOptional,
                       error: _emailError,
                       enabled: !_saving,
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 18),
 
-                    _LockedField(
-                      label: 'Phone Number',
-                      value: _mobile ?? '',
-                      note: 'This is how you sign in',
-                      onTap: () =>
-                          _requestChange('mobile_number', 'mobile number'),
+                    _EditableField(
+                      label: context.s.editProfileAddressLabel,
+                      controller: _address,
+                      hint: context.s.editProfileAddressHint,
+                      note: context.s.editProfileOptional,
+                      enabled: !_saving,
+                      keyboardType: TextInputType.streetAddress,
                     ),
                     const SizedBox(height: 18),
 
                     _LockedField(
-                      label: 'Password',
+                      label: context.s.editProfilePhoneLabel,
+                      value: _mobile ?? '',
+                      note: context.s.editProfilePhoneNote,
+                      onTap: () => _requestChange(
+                          'mobile_number', context.s.editProfilePhoneWord),
+                    ),
+                    const SizedBox(height: 18),
+
+                    _LockedField(
+                      label: context.s.editProfilePasswordLabel,
                       value: '\u2022' * 10,
-                      note: 'Change',
+                      note: context.s.editProfilePasswordChange,
                       onTap: _changePassword,
                     ),
                     const SizedBox(height: 32),
@@ -335,15 +505,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ? null
                                 : () => Navigator.of(context).maybePop(),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Tokens.navy,
-                              backgroundColor: Tokens.field,
+                              foregroundColor: context.colors.navy,
+                              backgroundColor: context.colors.field,
                               minimumSize: const Size.fromHeight(45),
-                              side: const BorderSide(color: Tokens.navy),
+                              side: BorderSide(color: context.colors.navy),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(50),
                               ),
                             ),
-                            child: const Text('Back'),
+                            child: Text(context.s.editProfileBack),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -351,13 +521,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: FilledButton(
                             onPressed: (_saving || !_dirty) ? null : _save,
                             child: _saving
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: Tokens.bg),
+                                        strokeWidth: 2, color: context.colors.bg),
                                   )
-                                : const Text('Save'),
+                                : Text(context.s.editProfileSave),
                           ),
                         ),
                       ],
@@ -410,16 +580,16 @@ class _EditableField extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: Tokens.navy,
+                    color: context.colors.navy,
                   )),
               if (note != null) ...[
                 const SizedBox(width: 8),
                 Text(note!,
-                    style: const TextStyle(fontSize: 10, color: Tokens.muted)),
+                    style: TextStyle(fontSize: 10, color: context.colors.muted)),
               ],
             ],
           ),
@@ -428,14 +598,14 @@ class _EditableField extends StatelessWidget {
           controller: controller,
           enabled: enabled,
           keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14, color: Tokens.navy),
+          style: TextStyle(fontSize: 14, color: context.colors.navy),
           decoration: InputDecoration(hintText: hint),
         ),
         if (error != null)
           Padding(
             padding: const EdgeInsets.only(left: 20, top: 4),
             child: Text(error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 11)),
+                style: TextStyle(color: context.colors.hint, fontSize: 11)),
           ),
       ],
     );
@@ -466,11 +636,11 @@ class _LockedField extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 12, bottom: 6),
           child: Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
-                color: Tokens.navy,
+                color: context.colors.navy,
               )),
         ),
         InkWell(
@@ -480,8 +650,8 @@ class _LockedField extends StatelessWidget {
             height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: Tokens.bg,
-              border: Border.all(color: Tokens.muted),
+              color: context.colors.bg,
+              border: Border.all(color: context.colors.muted),
               borderRadius: BorderRadius.circular(50),
             ),
             child: Row(
@@ -489,13 +659,13 @@ class _LockedField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(fontSize: 14, color: Tokens.muted),
+                    style: TextStyle(fontSize: 14, color: context.colors.muted),
                   ),
                 ),
                 Text(note,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Tokens.navy,
+                      color: context.colors.navy,
                       decoration: TextDecoration.underline,
                     )),
               ],
@@ -536,7 +706,7 @@ class _RequestDialogState extends State<_RequestDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Tokens.bg,
+      backgroundColor: context.colors.bg,
       title: Text(widget.title, style: const TextStyle(fontSize: 18)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -560,11 +730,11 @@ class _RequestDialogState extends State<_RequestDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.s.editProfileCancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('Send request'),
+          child: Text(context.s.editProfileSendRequest),
         ),
       ],
     );
@@ -591,12 +761,13 @@ class _PasswordDialogState extends State<_PasswordDialog> {
   }
 
   void _submit() {
+    final s = context.s;
     if (_new.text.length < 8) {
-      setState(() => _error = 'Your password must be at least 8 characters.');
+      setState(() => _error = s.editProfilePasswordTooShort);
       return;
     }
     if (_new.text != _confirm.text) {
-      setState(() => _error = 'Your passwords should match.');
+      setState(() => _error = s.editProfilePasswordMismatch);
       return;
     }
     Navigator.of(context).pop(_new.text);
@@ -605,8 +776,9 @@ class _PasswordDialogState extends State<_PasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Tokens.bg,
-      title: const Text('Change password', style: TextStyle(fontSize: 18)),
+      backgroundColor: context.colors.bg,
+      title: Text(context.s.editProfileChangePasswordTitle,
+          style: const TextStyle(fontSize: 18)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -614,27 +786,30 @@ class _PasswordDialogState extends State<_PasswordDialog> {
             controller: _new,
             obscureText: true,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'New password'),
+            decoration:
+                InputDecoration(hintText: context.s.editProfileNewPasswordHint),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _confirm,
             obscureText: true,
-            decoration: const InputDecoration(hintText: 'Confirm password'),
+            decoration: InputDecoration(
+                hintText: context.s.editProfileConfirmPasswordHint),
           ),
           if (_error != null) ...[
             const SizedBox(height: 10),
             Text(_error!,
-                style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+                style: TextStyle(color: context.colors.hint, fontSize: 12)),
           ],
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.s.editProfileCancel),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Change')),
+        FilledButton(
+            onPressed: _submit, child: Text(context.s.editProfilePasswordChange)),
       ],
     );
   }
@@ -672,11 +847,11 @@ class _ProfileDialog extends StatelessWidget {
     // keeping as drawn rather than unifying, because the tanod app is
     // used outdoors in daylight where the lighter card reads better.
     return Dialog(
-      backgroundColor: Tokens.bg,
+      backgroundColor: context.colors.bg,
       insetPadding: const EdgeInsets.symmetric(horizontal: 44),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(25),
-        side: const BorderSide(color: Tokens.navy, width: 2),
+        side: BorderSide(color: context.colors.navy, width: 2),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
@@ -686,11 +861,11 @@ class _ProfileDialog extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
                 fontSize: 18,
-                color: Tokens.navy,
+                color: context.colors.navy,
               ),
             ),
             if (body != null) ...[
@@ -698,10 +873,10 @@ class _ProfileDialog extends StatelessWidget {
               Text(
                 body!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   height: 1.35,
-                  color: Tokens.navy,
+                  color: context.colors.navy,
                 ),
               ),
             ],
@@ -749,8 +924,8 @@ class _Pill extends StatelessWidget {
         ? FilledButton(
             onPressed: onTap,
             style: FilledButton.styleFrom(
-              backgroundColor: Tokens.navy,
-              foregroundColor: Tokens.bg,
+              backgroundColor: context.colors.navy,
+              foregroundColor: context.colors.bg,
               minimumSize: size,
               padding: EdgeInsets.zero,
               shape: shape,
@@ -765,8 +940,8 @@ class _Pill extends StatelessWidget {
         : OutlinedButton(
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Tokens.navy,
-              side: const BorderSide(color: Tokens.navy),
+              foregroundColor: context.colors.navy,
+              side: BorderSide(color: context.colors.navy),
               minimumSize: size,
               padding: EdgeInsets.zero,
               shape: shape,

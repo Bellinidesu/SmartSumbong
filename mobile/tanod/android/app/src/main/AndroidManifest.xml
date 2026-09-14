@@ -47,6 +47,25 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Push notification icon + accent colour, mirroring the resident
+             app's fix (27 Aug 2026) — see the fuller comment in its
+             manifest. Without these two lines FCM falls back to the
+             launcher icon rendered as a plain white square in the shade.
+
+             Reuses the exact same ic_stat_notify asset and orange
+             notification_color the resident app uses (copy both from
+             ../../../../../resident/android/app/src/main/res/ into the
+             matching res/ subfolders here — the device bridge can't reach
+             files this deep to copy them itself, see the instructions
+             given alongside this change). Orange is already this app's own
+             accent (Tokens.orange), so no new colour value is needed. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

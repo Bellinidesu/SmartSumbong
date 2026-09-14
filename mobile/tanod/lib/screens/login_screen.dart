@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 
 /// Whether this handset keeps the session across launches. Read by the
@@ -77,6 +78,18 @@ class _LoginScreenState extends State<LoginScreen> {
       // Back to the gate, which checks verification, suspension and
       // role before deciding where this account belongs.
       Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+    } on LoginLockedException catch (e) {
+      // Backend (0031) locks a number out after 5 failed logins for
+      // either role, but this screen never showed that specific
+      // message — a locked-out tanod just saw the generic "check your
+      // connection" text below, with no idea why a correct-looking
+      // password kept failing. Mirrors the resident login screen's
+      // handling of the same shared exception.
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = context.s.loginLockedMessage(e.minutesRemaining);
+      });
     } on RegistrationException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -87,8 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Could not sign you in. Please check your connection '
-            'and try again.';
+        _error = context.s.loginOfflineError;
       });
     }
   }
@@ -96,6 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       body: Stack(
@@ -133,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
                 Center(
                   child: Text(
-                    'Tanod Profile',
+                    s.loginTanodProfile,
                     style: t.headlineLarge?.copyWith(
                       fontSize: 22,
                       fontStyle: FontStyle.italic,
@@ -154,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const _Label('Phone Number'),
+                      _Label(s.loginPhoneLabel),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _mobile,
@@ -164,13 +177,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           FilteringTextInputFormatter.allow(
                               RegExp(r'[0-9+ ]')),
                         ],
-                        decoration: const InputDecoration(
-                          hintText: 'Enter phone number',
+                        decoration: InputDecoration(
+                          hintText: s.loginPhoneHint,
                         ),
                       ),
                       const SizedBox(height: 14),
 
-                      const _Label('Password'),
+                      _Label(s.loginPasswordLabel),
                       const SizedBox(height: 6),
                       TextField(
                         controller: _password,
@@ -178,14 +191,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: _obscure,
                         onSubmitted: (_) => _busy ? null : _submit(),
                         decoration: InputDecoration(
-                          hintText: 'Enter password',
+                          hintText: s.loginPasswordHint,
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscure
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
                               size: 20,
-                              color: Tokens.navy,
+                              color: context.colors.navy,
                             ),
                             onPressed: () =>
                                 setState(() => _obscure = !_obscure),
@@ -205,11 +218,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? null
                                   : (v) =>
                                       setState(() => _remember = v ?? true),
-                              side: const BorderSide(color: Tokens.navy),
+                              side: BorderSide(color: context.colors.navy),
                               checkColor: Tokens.orange,
                               fillColor: WidgetStateProperty.resolveWith(
                                 (st) => st.contains(WidgetState.selected)
-                                    ? Tokens.navy
+                                    ? context.colors.navy
                                     : Colors.transparent,
                               ),
                               materialTapTargetSize:
@@ -217,12 +230,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Remember me',
+                          Text(
+                            s.loginRememberMe,
                             style: TextStyle(
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
-                              color: Tokens.navy,
+                              color: context.colors.navy,
                             ),
                           ),
                           const Spacer(),
@@ -234,14 +247,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               tapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text(
-                              'Forgot password?',
+                            child: Text(
+                              s.loginForgotPassword,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontStyle: FontStyle.italic,
-                                color: Tokens.navy,
+                                color: context.colors.navy,
                                 decoration: TextDecoration.underline,
-                                decorationColor: Tokens.navy,
+                                decorationColor: context.colors.navy,
                               ),
                             ),
                           ),
@@ -252,10 +265,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 10),
                         Text(
                           _error!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             height: 1.3,
-                            color: Tokens.navy,
+                            color: context.colors.navy,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -265,17 +278,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       FilledButton(
                         onPressed: _busy ? null : _submit,
                         style: FilledButton.styleFrom(
-                          backgroundColor: Tokens.navy,
-                          foregroundColor: Tokens.bg,
+                          backgroundColor: context.colors.navy,
+                          foregroundColor: context.colors.bg,
                         ),
                         child: _busy
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Tokens.bg),
+                                    strokeWidth: 2, color: context.colors.bg),
                               )
-                            : const Text('Log In'),
+                            : Text(s.loginButton),
                       ),
                     ],
                   ),
@@ -295,9 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // go.
                 Center(
                   child: Text(
-                    'To register as a tanod, use the SmartSumbong app '
-                    'for residents. The barangay office approves the '
-                    'account.',
+                    s.loginRegisterNote,
                     textAlign: TextAlign.center,
                     style: t.bodyMedium?.copyWith(fontSize: 11.5),
                   ),
@@ -321,21 +332,20 @@ extension _Recovery on _LoginScreenState {
   /// So this is not an apology for a missing feature — it is the
   /// instruction for the route that works.
   void _forgotPassword() {
+    final s = context.s;
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Tokens.bg,
-        title: const Text('Forgot password'),
-        content: const Text(
-          'Ask the barangay office to reset your password. They will '
-          'give you a temporary one, and the app will ask you to choose '
-          'your own when you sign in.',
-          style: TextStyle(height: 1.4),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: dialogContext.colors.bg,
+        title: Text(s.loginForgotDialogTitle),
+        content: Text(
+          s.loginForgotDialogBody,
+          style: const TextStyle(height: 1.4),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(s.loginDialogOk),
           ),
         ],
       ),
@@ -351,11 +361,11 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Poppins',
           fontWeight: FontWeight.w700,
           fontSize: 14,
-          color: Tokens.navy,
+          color: context.colors.navy,
         ),
       );
 }

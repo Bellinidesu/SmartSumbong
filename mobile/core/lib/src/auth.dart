@@ -82,6 +82,8 @@ class VerificationSnapshot {
     this.isSuspended = false,
     this.mustChangePassword = false,
     this.reason,
+    this.isRetired = false,
+    this.retiredAt,
   });
 
   final VerificationState status;
@@ -92,6 +94,18 @@ class VerificationSnapshot {
   final DateTime? dueAt;
 
   final bool isSuspended;
+
+  /// Set only by finalize_retirement() (migration 0052) on approval, and
+  /// never by the tanod themselves — see request_retirement()'s own
+  /// comment on why this is a two-step ask-then-decide flow rather than
+  /// a flag the app can flip on its own. Checked by the tanod launch
+  /// gate the same way [isSuspended] already is: after sign-in, client
+  /// side, no GoTrue ban involved, exactly the reasoning 0013 gives for
+  /// suspension.
+  final bool isRetired;
+
+  /// When an admin approved the request. Also UTC; null until retired.
+  final DateTime? retiredAt;
 
   /// An administrator issued a temporary password (0028). Until it is
   /// changed, that administrator holds working credentials for this
@@ -446,6 +460,30 @@ class AuthService {
     await _client.rpc('clear_password_change_flag');
   }
 
+  /// Re-confirms the currently signed-in account's own password without
+  /// ending the session. Reuses [signIn]'s own mechanism — a fresh
+  /// signInWithPassword against this account's synthetic email — aimed
+  /// at the account already signed in rather than at a login form,
+  /// because no "verify current password" API exists in this codebase
+  /// to call instead.
+  ///
+  /// Built for the tanod app's password-gated surfaces: entering "Extra
+  /// Administrative Services" and confirming a retirement request both
+  /// need proof that whoever is holding the phone right now is still the
+  /// account holder, not just that the session token is still valid.
+  /// Returns false — never throws — for a wrong password, so the caller
+  /// can show an inline error the same way a login screen would.
+  Future<bool> verifyPassword(String password) async {
+    final email = _client.auth.currentUser?.email;
+    if (email == null) return false;
+    try {
+      await _client.auth.signInWithPassword(email: email, password: password);
+      return true;
+    } on AuthException {
+      return false;
+    }
+  }
+
   Future<void> signOut() => _client.auth.signOut();
 
   /// One row, four columns, for the Verification Pending screen.
@@ -465,7 +503,7 @@ class AuthService {
           .select(
             'verification_status, verification_submitted_at, '
             'verification_due_at, is_suspended, must_change_password, '
-            'rejection_reason',
+            'rejection_reason, is_retired, retired_at',
           )
           .eq('id', uid)
           .maybeSingle();
@@ -484,6 +522,8 @@ class AuthService {
         reason: (row['rejection_reason'] as String?)?.trim().isEmpty ?? true
             ? null
             : (row['rejection_reason'] as String).trim(),
+        isRetired: (row['is_retired'] as bool?) ?? false,
+        retiredAt: _parseTs(row['retired_at']),
       );
     } on PostgrestException catch (e) {
       // JWT expired or otherwise unusable.

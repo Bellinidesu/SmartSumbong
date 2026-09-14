@@ -15,11 +15,13 @@
 
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/tanod_nav_bar.dart';
 import 'dispatch_order.dart';
@@ -45,14 +47,14 @@ enum DutyState {
   }
 }
 
-/// Which half of Alert History a past dispatch belongs to.
+/// Which half of Activity History a past dispatch belongs to.
 ///
 /// Responded and Missed are not opinions — they are dispatch states.
 /// accepted and resolved mean the tanod answered; expired means the
 /// accept window elapsed with no response and 0006 alerted the admin.
 /// A rerouted ticket is neither: it was answered, with a reason, and it
 /// belongs in neither column.
-enum AlertKind { responded, missed }
+enum ActivityKind { responded, missed }
 
 class TanodHomeScreen extends StatefulWidget {
   const TanodHomeScreen({super.key, required this.auth});
@@ -69,7 +71,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   DutyState? _picked;
 
   List<Ticket> _incoming = const [];
-  List<_Alert> _alerts = const [];
+  List<_ActivityEntry> _activity = const [];
 
   bool _loading = true;
   bool _saving = false;
@@ -90,6 +92,18 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   // notes for why.
   Timer? _locationTimer;
 
+  // Live updates (8 Sep 2026 — mirrors resident's home_screen.dart /
+  // reports_screen.dart). Home shows Incoming Dispatch and Alert
+  // History straight off `dispatches`, and until now this screen only
+  // ever reloaded on initState or a manual pull — an admin dispatch, an
+  // accept elsewhere, or an expiry sat unseen until the tanod happened
+  // to pull down. `dispatches` has been in the realtime publication
+  // since 0004 for the admin map, so this rides along for free at the
+  // database level; the only new cost is the one open channel while
+  // Home is on screen.
+  RealtimeChannel? _liveChannel;
+  Timer? _liveDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -99,7 +113,42 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   @override
   void dispose() {
     _locationTimer?.cancel();
+    _liveDebounce?.cancel();
+    if (_liveChannel != null) {
+      Supabase.instance.client.removeChannel(_liveChannel!);
+    }
     super.dispose();
+  }
+
+  /// One channel per tanod, opened once the first successful [_load]
+  /// confirms who they are — never re-opened by a later, live-triggered
+  /// [_load], since [_liveChannel] is already set by then.
+  void _subscribeLive(String uid) {
+    if (_liveChannel != null) return;
+    _liveChannel = Supabase.instance.client
+        .channel('tanod-home-$uid')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'dispatches',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'tanod_id',
+          value: uid,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..subscribe();
+  }
+
+  /// A single dispatch action (accept, resolve, expire) can touch more
+  /// than one row in the same transaction — debounced so that lands as
+  /// one reload, not several. Same 400ms window resident uses.
+  void _scheduleLiveReload() {
+    _liveDebounce?.cancel();
+    _liveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _load();
+    });
   }
 
   void _syncLocationTimer() {
@@ -119,6 +168,8 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       final client = Supabase.instance.client;
       final uid = client.auth.currentUser!.id;
 
+      _subscribeLive(uid);
+
       final me = await client
           .from('users')
           .select('full_name, duty_status')
@@ -135,7 +186,10 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
           .inFilter('state', ['assigned', 'accepted'])
           .order('assigned_at', ascending: false);
 
-      // Alert History, "in the past 7 days" per the frame.
+      // Activity History, "in the past 7 days" per the frame. Carries
+      // field_report_text and dispatch_media now (9 Sep 2026) so a
+      // responded row can show what the tanod actually submitted, not
+      // just that they submitted something — see _ActivityEntry below.
       final since = DateTime.now()
           .toUtc()
           .subtract(const Duration(days: 7))
@@ -151,7 +205,9 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       final past = await client
           .from('dispatches')
           .select('id, state, assigned_at, accepted_at, resolved_at, '
-              'reports(tracking_id, subject, is_anonymous)')
+              'field_report_text, '
+              'reports(tracking_id, subject, is_anonymous), '
+              'dispatch_media(media_url, mime_type)')
           .eq('tanod_id', uid)
           .inFilter('state', ['accepted', 'resolved', 'expired'])
           .gte('assigned_at', since)
@@ -166,8 +222,9 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
         _incoming = [
           for (final r in open) Ticket.fromRow(r as Map<String, dynamic>),
         ];
-        _alerts = [
-          for (final r in past) _Alert.fromRow(r as Map<String, dynamic>),
+        _activity = [
+          for (final r in past)
+            _ActivityEntry.fromRow(r as Map<String, dynamic>),
         ];
         _loading = false;
       });
@@ -181,13 +238,13 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Could not load your dashboard. (${e.message})';
+        _error = context.s.homeLoadError(e.message);
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Could not load your dashboard. Check your connection.';
+        _error = context.s.homeLoadOffline;
       });
     }
   }
@@ -227,14 +284,14 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       setState(() {
         _saving = false;
         _error = e.message.toLowerCase().contains('duty_only_for_tanod')
-            ? 'This account is not registered as a barangay tanod.'
-            : 'Could not update your status. Please try again.';
+            ? context.s.homeNotTanod
+            : context.s.homeStatusUpdateFailed;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Could not update your status. Please try again.';
+        _error = context.s.homeStatusUpdateFailed;
       });
     }
   }
@@ -246,7 +303,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   /// rather than swallowed.
   Future<void> _pushLocation() async {
     if (!mounted) return;
-    setState(() => _locationNote = 'Sharing your location\u2026');
+    setState(() => _locationNote = context.s.homeLocationSharing);
 
     try {
       var perm = await Geolocator.checkPermission();
@@ -257,9 +314,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
           perm == LocationPermission.deniedForever ||
           !await Geolocator.isLocationServiceEnabled()) {
         if (mounted) {
-          setState(() => _locationNote =
-              'Location is off. You are on duty but cannot be sent '
-              'nearby complaints until you turn it on.');
+          setState(() => _locationNote = context.s.homeLocationOff);
         }
         return;
       }
@@ -284,13 +339,11 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       final ok = (row['last_location_at'] as String?) != null;
 
       if (!mounted) return;
-      setState(() => _locationNote = ok
-          ? 'Location shared. You can be sent nearby complaints.'
-          : 'Could not share your location. Submit On Duty again to retry.');
+      setState(() => _locationNote =
+          ok ? context.s.homeLocationShared : context.s.homeLocationShareFailed);
     } catch (_) {
       if (mounted) {
-        setState(() => _locationNote =
-            'Could not share your location. Submit On Duty again to retry.');
+        setState(() => _locationNote = context.s.homeLocationShareFailed);
       }
     }
   }
@@ -304,6 +357,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       bottomNavigationBar: const TanodNavBar(current: TanodTab.home),
@@ -323,7 +377,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
             bottom: false,
             child: RefreshIndicator(
               onRefresh: _load,
-              color: Tokens.navy,
+              color: context.colors.navy,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(26, 12, 26, 24),
                 children: [
@@ -352,12 +406,12 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
 
                   Text(
                     _loading || _firstName == null
-                        ? 'Welcome!'
-                        : 'Welcome, $_firstName!',
+                        ? s.homeWelcome
+                        : s.homeWelcomeName(_firstName!),
                     style: t.headlineLarge?.copyWith(fontSize: 22),
                   ),
                   const SizedBox(height: 2),
-                  Text('How are you doing today?',
+                  Text(s.homeHowAreYou,
                       style: t.bodyMedium?.copyWith(fontSize: 12)),
                   const SizedBox(height: 16),
 
@@ -372,8 +426,8 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                   if (_error != null) ...[
                     const SizedBox(height: 8),
                     Text(_error!,
-                        style: const TextStyle(
-                            fontSize: 12, color: Tokens.hint)),
+                        style: TextStyle(
+                            fontSize: 12, color: context.colors.hint)),
                   ],
                   const SizedBox(height: 16),
 
@@ -393,7 +447,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                     const SizedBox(height: 16),
                   ],
 
-                  _AlertHistoryCard(loading: _loading, alerts: _alerts),
+                  _ActivityHistoryCard(loading: _loading, entries: _activity),
                 ],
               ),
             ),
@@ -423,8 +477,9 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return _Card(
-      title: 'What\u2019s your status?',
+      title: s.homeStatusQuestion,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -434,10 +489,11 @@ class _StatusCard extends StatelessWidget {
                 child: DropdownButtonFormField<DutyState>(
                   initialValue: picked,
                   isExpanded: true,
-                  hint: const Text('Select a Status'),
+                  hint: Text(s.homeSelectStatus),
                   items: [
-                    for (final s in DutyState.values)
-                      DropdownMenuItem(value: s, child: Text(s.label)),
+                    for (final d in DutyState.values)
+                      DropdownMenuItem(
+                          value: d, child: Text(s.dutyStateLabel(d.wire))),
                   ],
                   onChanged: saving ? null : onPick,
                 ),
@@ -455,13 +511,13 @@ class _StatusCard extends StatelessWidget {
                     ),
                   ),
                   child: saving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Tokens.bg),
+                              strokeWidth: 2, color: context.colors.bg),
                         )
-                      : const Text('Submit'),
+                      : Text(s.homeSubmit),
                 ),
               ),
             ],
@@ -469,8 +525,8 @@ class _StatusCard extends StatelessWidget {
           if (note != null) ...[
             const SizedBox(height: 8),
             Text(note!,
-                style: const TextStyle(
-                    fontSize: 11.5, height: 1.35, color: Tokens.muted)),
+                style: TextStyle(
+                    fontSize: 11.5, height: 1.35, color: context.colors.muted)),
           ],
         ],
       ),
@@ -494,21 +550,19 @@ class _IncomingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      title: 'Incoming Dispatch',
+      title: context.s.homeIncomingDispatch,
       child: loading
           ? const Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
               child: Center(child: CircularProgressIndicator()),
             )
           : tickets.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   child: Text(
-                    'Nothing assigned to you right now. Set yourself On '
-                    'Duty and share your location to be sent nearby '
-                    'complaints.',
+                    context.s.homeIncomingEmpty,
                     style: TextStyle(
-                        fontSize: 12, height: 1.4, color: Tokens.muted),
+                        fontSize: 12, height: 1.4, color: context.colors.muted),
                   ),
                 )
               // Bounded and scrolled within the card, as the frame
@@ -523,7 +577,7 @@ class _IncomingCard extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 10),
                       itemCount: tickets.length,
                       separatorBuilder: (_, __) =>
-                          const Divider(height: 16, color: Tokens.divider),
+                          Divider(height: 16, color: context.colors.divider),
                       itemBuilder: (_, i) => _DispatchRow(
                         ticket: tickets[i],
                         onOpen: () => onOpen(tickets[i]),
@@ -558,10 +612,10 @@ class _DispatchRow extends StatelessWidget {
             children: [
               RichText(
                 text: TextSpan(
-                  style: const TextStyle(
-                      fontSize: 12, height: 1.35, color: Tokens.navy),
+                  style: TextStyle(
+                      fontSize: 12, height: 1.35, color: context.colors.navy),
                   children: [
-                    const TextSpan(text: 'You have been assigned to '),
+                    TextSpan(text: context.s.homeAssignedTo),
                     TextSpan(
                       text: ticket.trackingId,
                       style: const TextStyle(
@@ -574,8 +628,8 @@ class _DispatchRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                _date(ticket.assignedAt),
-                style: const TextStyle(fontSize: 10, color: Tokens.muted),
+                _date(context, ticket.assignedAt),
+                style: TextStyle(fontSize: 10, color: context.colors.muted),
               ),
               const SizedBox(height: 6),
               SizedBox(
@@ -595,12 +649,12 @@ class _DispatchRow extends StatelessWidget {
                       fontSize: 11,
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('View Details'),
-                      SizedBox(width: 4),
-                      Icon(Icons.chevron_right, size: 14),
+                      Text(context.s.homeViewDetails),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right, size: 14),
                     ],
                   ),
                 ),
@@ -612,21 +666,17 @@ class _DispatchRow extends StatelessWidget {
           padding: const EdgeInsets.only(top: 2),
           child: Text(
             _time(ticket.assignedAt),
-            style: const TextStyle(fontSize: 10, color: Tokens.muted),
+            style: TextStyle(fontSize: 10, color: context.colors.muted),
           ),
         ),
       ],
     );
   }
 
-  static String _date(DateTime? d) {
+  static String _date(BuildContext context, DateTime? d) {
     if (d == null) return '';
-    const m = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
     final l = d.toLocal();
-    return '${m[l.month - 1]} ${l.day}, ${l.year}';
+    return '${context.s.monthFull(l.month)} ${l.day}, ${l.year}';
   }
 
   static String _time(DateTime? d) {
@@ -638,88 +688,118 @@ class _DispatchRow extends StatelessWidget {
   }
 }
 
-// ---------- alert history --------------------------------------
+// ---------- activity history -------------------------------------
+//
+// Replaced 9 Sep 2026 (CAPSTONE G12 feedback): this card used to be
+// "Alert History" — a tracking ID and a timestamp per row, nothing about
+// what the tanod actually did. It carried no trace of a submitted update
+// anywhere else in the app either. This is the same list of the tanod's
+// own past dispatches, but a responded row now expands to show the
+// field report text and any photo/video proof they attached — the same
+// data submit_field_report() and dispatch_media already store, read
+// back through RLS the tanod already has (dispatch_media_read admits
+// `d.tanod_id = auth.uid()`).
 
-class _Alert {
-  _Alert({
+class _ActivityEntry {
+  _ActivityEntry({
     required this.kind,
     required this.who,
     required this.trackingId,
     required this.at,
+    required this.reportText,
+    required this.media,
   });
 
-  final AlertKind kind;
+  final ActivityKind kind;
   final String who;
   final String trackingId;
   final DateTime? at;
 
-  factory _Alert.fromRow(Map<String, dynamic> d) {
+  /// What the tanod wrote in submit_field_report(). Empty for a missed
+  /// (expired) dispatch — nothing was ever submitted for those.
+  final String reportText;
+  final List<({String url, bool isVideo})> media;
+
+  factory _ActivityEntry.fromRow(Map<String, dynamic> d) {
     final r = (d['reports'] ?? const {}) as Map<String, dynamic>;
     final subject = (r['subject'] as String? ?? '').trim();
     final ticket = r['tracking_id'] as String? ?? '';
+    final missed = (d['state'] as String?) == 'expired';
+    final rawMedia = (d['dispatch_media'] as List?) ?? const [];
 
-    return _Alert(
-      kind: (d['state'] as String?) == 'expired'
-          ? AlertKind.missed
-          : AlertKind.responded,
-      who: subject.isEmpty ? ticket : '$ticket \u2014 $subject',
-      trackingId: r['tracking_id'] as String? ?? '',
-      at: DateTime.tryParse(d['assigned_at'] as String? ?? ''),
+    return _ActivityEntry(
+      kind: missed ? ActivityKind.missed : ActivityKind.responded,
+      who: subject.isEmpty ? ticket : '$ticket — $subject',
+      trackingId: ticket,
+      // A resolved dispatch reports back on when it was resolved, not
+      // when it was first assigned — that is the moment the activity
+      // actually happened. Missed and still-accepted rows have no
+      // resolved_at, so they fall back to assigned_at as before.
+      at: DateTime.tryParse((d['resolved_at'] ?? d['assigned_at']) as String? ?? ''),
+      reportText: (d['field_report_text'] as String? ?? '').trim(),
+      media: [
+        for (final m in rawMedia)
+          (
+            url: (m as Map<String, dynamic>)['media_url'] as String,
+            isVideo: isVideoMime(m['mime_type'] as String?),
+          ),
+      ],
     );
   }
 }
 
-class _AlertHistoryCard extends StatefulWidget {
-  const _AlertHistoryCard({required this.loading, required this.alerts});
+class _ActivityHistoryCard extends StatefulWidget {
+  const _ActivityHistoryCard({required this.loading, required this.entries});
 
   final bool loading;
-  final List<_Alert> alerts;
+  final List<_ActivityEntry> entries;
 
   @override
-  State<_AlertHistoryCard> createState() => _AlertHistoryCardState();
+  State<_ActivityHistoryCard> createState() => _ActivityHistoryCardState();
 }
 
-class _AlertHistoryCardState extends State<_AlertHistoryCard> {
-  AlertKind? _filter; // null = All
+class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
+  ActivityKind? _filter; // null = All
 
   @override
   Widget build(BuildContext context) {
     final shown = _filter == null
-        ? widget.alerts
-        : widget.alerts.where((a) => a.kind == _filter).toList();
+        ? widget.entries
+        : widget.entries.where((a) => a.kind == _filter).toList();
 
+    final s = context.s;
     return _Card(
-      title: 'Alert History',
-      trailing: 'in the past 7 days',
+      title: s.homeActivityHistory,
+      trailing: s.homeAlertHistoryTrailing,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               _Tab(
-                label: 'All',
+                label: s.homeTabAll,
                 active: _filter == null,
-                colour: Tokens.navy,
+                colour: context.colors.navy,
                 onTap: () => setState(() => _filter = null),
               ),
               const SizedBox(width: 18),
               _Tab(
-                label: 'Responded',
-                active: _filter == AlertKind.responded,
+                label: s.homeTabResponded,
+                active: _filter == ActivityKind.responded,
                 colour: const Color(0xFF1FA84E),
                 onTap: () =>
-                    setState(() => _filter = AlertKind.responded),
+                    setState(() => _filter = ActivityKind.responded),
               ),
               const SizedBox(width: 18),
               _Tab(
-                label: 'Missed',
-                active: _filter == AlertKind.missed,
+                label: s.homeTabMissed,
+                active: _filter == ActivityKind.missed,
                 colour: const Color(0xFFFF4949),
-                onTap: () => setState(() => _filter = AlertKind.missed),
+                onTap: () => setState(() => _filter = ActivityKind.missed),
               ),
             ],
           ),
-          const Divider(height: 16, color: Tokens.divider),
+          Divider(height: 16, color: context.colors.divider),
 
           if (widget.loading)
             const Padding(
@@ -727,15 +807,15 @@ class _AlertHistoryCardState extends State<_AlertHistoryCard> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (shown.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                'Nothing in the past seven days.',
-                style: TextStyle(fontSize: 12, color: Tokens.muted),
+                s.homeAlertHistoryEmpty,
+                style: TextStyle(fontSize: 12, color: context.colors.muted),
               ),
             )
           else
-            for (final a in shown) _AlertRow(alert: a),
+            for (final a in shown) _ActivityRow(entry: a),
         ],
       ),
     );
@@ -777,57 +857,183 @@ class _Tab extends StatelessWidget {
   }
 }
 
-class _AlertRow extends StatelessWidget {
-  const _AlertRow({required this.alert});
+/// A responded entry expands to show the field report text and any
+/// attached photo/video — the "activity" this card is now named for.
+/// A missed entry has nothing to expand into (nothing was ever
+/// submitted), so it stays a single row, same as before.
+class _ActivityRow extends StatefulWidget {
+  const _ActivityRow({required this.entry});
 
-  final _Alert alert;
+  final _ActivityEntry entry;
+
+  @override
+  State<_ActivityRow> createState() => _ActivityRowState();
+}
+
+class _ActivityRowState extends State<_ActivityRow> {
+  bool _open = false;
 
   @override
   Widget build(BuildContext context) {
-    final responded = alert.kind == AlertKind.responded;
+    final entry = widget.entry;
+    final responded = entry.kind == ActivityKind.responded;
     final colour =
         responded ? const Color(0xFF1FA84E) : const Color(0xFFFF4949);
+    final expandable =
+        responded && (entry.reportText.isNotEmpty || entry.media.isNotEmpty);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Not handsets. The frame draws phone icons, which made sense
-          // when these rows were imagined as calls — but they are
-          // dispatch outcomes: accepted or resolved against expired.
-          // Nobody phoned anyone, and an icon that says otherwise is a
-          // small lie repeated on every row.
-          Icon(
-            responded ? Icons.check_circle : Icons.cancel_outlined,
-            size: 20,
-            color: colour,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          InkWell(
+            onTap: expandable ? () => setState(() => _open = !_open) : null,
+            child: Row(
               children: [
-                Text(
-                  alert.who,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                    color: colour,
+                // Not handsets. The frame draws phone icons, which made
+                // sense when these rows were imagined as calls — but
+                // they are dispatch outcomes: accepted or resolved
+                // against expired. Nobody phoned anyone, and an icon
+                // that says otherwise is a small lie repeated on every
+                // row.
+                Icon(
+                  responded ? Icons.check_circle : Icons.cancel_outlined,
+                  size: 20,
+                  color: colour,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.who,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: colour,
+                        ),
+                      ),
+                      Text(
+                        _DispatchRow._date(context, entry.at),
+                        style: TextStyle(
+                            fontSize: 10, color: context.colors.muted),
+                      ),
+                    ],
                   ),
                 ),
                 Text(
-                  _DispatchRow._date(alert.at),
-                  style: const TextStyle(fontSize: 10, color: Tokens.muted),
+                  _DispatchRow._time(entry.at),
+                  style: TextStyle(fontSize: 10, color: context.colors.muted),
                 ),
+                if (expandable) ...[
+                  const SizedBox(width: 4),
+                  Icon(_open ? Icons.expand_less : Icons.expand_more,
+                      size: 18, color: context.colors.muted),
+                ],
               ],
             ),
           ),
-          Text(
-            _DispatchRow._time(alert.at),
-            style: const TextStyle(fontSize: 10, color: Tokens.muted),
-          ),
+
+          if (_open && expandable)
+            Padding(
+              padding: const EdgeInsets.only(left: 30, top: 4, right: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.reportText.isEmpty
+                        ? context.s.homeActivityNoText
+                        : '${context.s.homeActivityFieldReportLabel}'
+                            '“${entry.reportText}”',
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.4,
+                        fontStyle: entry.reportText.isEmpty
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                        color: context.colors.navy),
+                  ),
+                  if (entry.media.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 52,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: entry.media.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (_, i) =>
+                            _ActivityThumb(item: entry.media[i]),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _ActivityThumb extends StatelessWidget {
+  const _ActivityThumb({required this.item});
+
+  final ({String url, bool isVideo}) item;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () {
+        if (item.isVideo) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => VideoPlayerScreen(url: item.url),
+            ),
+          );
+        } else {
+          showDialog<void>(
+            context: context,
+            builder: (_) => Dialog(
+              backgroundColor: Colors.transparent,
+              child: InteractiveViewer(
+                child: CachedNetworkImage(imageUrl: item.url),
+              ),
+            ),
+          );
+        }
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: item.isVideo
+            ? Container(
+                width: 52,
+                height: 52,
+                color: Colors.black87,
+                child: const Icon(Icons.play_circle_fill,
+                    size: 24, color: Colors.white70),
+              )
+            : CachedNetworkImage(
+                imageUrl: item.url,
+                width: 52,
+                height: 52,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  width: 52,
+                  height: 52,
+                  color: context.colors.field,
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  width: 52,
+                  height: 52,
+                  color: context.colors.field,
+                  child: Icon(Icons.broken_image_outlined,
+                      size: 18, color: context.colors.muted),
+                ),
+              ),
       ),
     );
   }
@@ -848,8 +1054,8 @@ class _Card extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       decoration: BoxDecoration(
-        color: Tokens.bg,
-        border: Border.all(color: Tokens.navy),
+        color: context.colors.bg,
+        border: Border.all(color: context.colors.navy),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -860,11 +1066,11 @@ class _Card extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
-                  color: Tokens.navy,
+                  color: context.colors.navy,
                 ),
               ),
               if (trailing != null) ...[
@@ -880,7 +1086,7 @@ class _Card extends StatelessWidget {
               ],
             ],
           ),
-          const Divider(height: 14, color: Tokens.divider),
+          Divider(height: 14, color: context.colors.divider),
           child,
         ],
       ),
@@ -901,12 +1107,12 @@ class _NotificationBell extends StatelessWidget {
       child: Container(
         width: 39,
         height: 38,
-        decoration: const BoxDecoration(
-          color: Tokens.navy,
+        decoration: BoxDecoration(
+          color: context.colors.navy,
           shape: BoxShape.circle,
         ),
-        child: const Icon(Icons.notifications_none_rounded,
-            color: Tokens.bg, size: 22),
+        child: Icon(Icons.notifications_none_rounded,
+            color: context.colors.bg, size: 22),
       ),
     );
   }

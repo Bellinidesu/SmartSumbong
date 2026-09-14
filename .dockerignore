@@ -1,0 +1,17 @@
+# Only admin/ and public/ (plus the two root files they need) ever get
+# built into the image. Everything else in the repo — mobile apps,
+# Supabase project, docs, git history, secrets — has no business inside
+# a container that just serves the PHP portal and the public dashboard.
+*
+
+!admin/
+!admin/**
+!public/
+!public/**
+!index.php
+!.htaccess
+
+# Never bake real secrets into an image layer even by accident — Render
+# env vars supply these at runtime instead (see config.php's env()).
+.env
+.env.*

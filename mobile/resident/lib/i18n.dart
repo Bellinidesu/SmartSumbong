@@ -335,6 +335,24 @@ class Strings {
       'this report.',
       'Kailangan ng SmartSumbong ng access sa iyong mga video para '
       'maidagdag ang ebidensya sa ulat na ito.');
+  // Added 9 Sep 2026: camera-or-gallery choice for report evidence,
+  // mirroring register_screen.dart's existing pattern — see
+  // report_details_screen.dart's _chooseSource for why this is safe.
+  String get reportDetailsTakePhoto => _t('Take Photo', 'Kumuha ng Larawan');
+  String get reportDetailsChooseFromGallery =>
+      _t('Choose from Gallery', 'Pumili mula sa Gallery');
+  String get reportDetailsCameraAccessTitle =>
+      _t('Camera access', 'Access sa Camera');
+  String get reportDetailsCameraAccessPhotoRationale => _t(
+      'SmartSumbong needs camera access to attach photo evidence to '
+      'this report.',
+      'Kailangan ng SmartSumbong ng access sa camera para maidagdag ang '
+      'patunay na larawan sa ulat na ito.');
+  String get reportDetailsCameraAccessVideoRationale => _t(
+      'SmartSumbong needs camera access to attach video evidence to '
+      'this report.',
+      'Kailangan ng SmartSumbong ng access sa camera para maidagdag ang '
+      'patunay na video sa ulat na ito.');
   String get reportDetailsDescriptionValidation => _t(
       'Please describe the issue in a little more detail.',
       'Pakidetalye pa nang kaunti ang paglalarawan ng isyu.');
@@ -575,6 +593,18 @@ class Strings {
       'this reopen request.',
       'Kailangan ng SmartSumbong ng access sa iyong mga larawan para '
       'maidagdag ang ebidensya sa kahilingang ito na buksan muli.');
+  // Added 9 Sep 2026: camera-or-gallery choice for the reopen sheet's
+  // optional photo — same fix, same reasoning as report_details_screen.
+  String get reportsTakePhoto => _t('Take Photo', 'Kumuha ng Larawan');
+  String get reportsChooseFromGallery =>
+      _t('Choose from Gallery', 'Pumili mula sa Gallery');
+  String get reportsCameraAccessTitle =>
+      _t('Camera access', 'Access sa Camera');
+  String get reportsCameraAccessRationale => _t(
+      'SmartSumbong needs camera access to attach evidence to this '
+      'reopen request.',
+      'Kailangan ng SmartSumbong ng access sa camera para maidagdag ang '
+      'ebidensya sa kahilingang ito na buksan muli.');
   String get reportsReasonRequired =>
       _t('Please choose a reason.', 'Pumili ng dahilan.');
   String get reportsConcernRequired => _t(
@@ -1314,6 +1344,18 @@ class Strings {
       'profile picture.',
       'Kailangan ng SmartSumbong ng access sa iyong mga larawan para '
       'i-update ang iyong profile picture.');
+  // Added 9 Sep 2026: camera-or-gallery choice for the avatar picker,
+  // same reasoning as report_details_screen.dart's — safe regardless of
+  // source since MediaUploader.pick strips EXIF either way.
+  String get editProfileTakePhoto => _t('Take Photo', 'Kumuha ng Larawan');
+  String get editProfileChooseFromGallery =>
+      _t('Choose from Gallery', 'Pumili mula sa Gallery');
+  String get editProfileCameraAccessTitle =>
+      _t('Camera access', 'Access sa Camera');
+  String get editProfileCameraAccessRationale => _t(
+      'SmartSumbong needs camera access to update your profile picture.',
+      'Kailangan ng SmartSumbong ng access sa camera para i-update ang '
+      'iyong profile picture.');
   String get editProfileEmailInvalid => _t(
       'That email address does not look right.',
       'Mukhang mali ang email address na iyon.');

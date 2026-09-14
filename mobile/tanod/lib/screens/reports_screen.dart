@@ -15,9 +15,12 @@
 // only moves a row in `assigned`, and submit_field_report() only one in
 // `accepted`.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/tanod_nav_bar.dart';
 import 'dispatch_order.dart';
@@ -35,16 +38,62 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? _error;
   String? _openId;
 
+  // Live updates (8 Sep 2026 — mirrors resident's reports_screen.dart
+  // and this app's own tanod_home_screen.dart). Before this, an update
+  // elsewhere (the tanod resolves the same ticket from another device,
+  // an admin reroutes it) sat unseen here until a manual pull.
+  RealtimeChannel? _liveChannel;
+  Timer? _liveDebounce;
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void dispose() {
+    _liveDebounce?.cancel();
+    if (_liveChannel != null) {
+      Supabase.instance.client.removeChannel(_liveChannel!);
+    }
+    super.dispose();
+  }
+
+  /// One channel per tanod, opened once the first successful [_load]
+  /// confirms who they are — never re-opened by a later, live-triggered
+  /// [_load], since [_liveChannel] is already set by then.
+  void _subscribeLive(String uid) {
+    if (_liveChannel != null) return;
+    _liveChannel = Supabase.instance.client
+        .channel('tanod-reports-$uid')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'dispatches',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'tanod_id',
+          value: uid,
+        ),
+        callback: (_) => _scheduleLiveReload(),
+      )
+      ..subscribe();
+  }
+
+  void _scheduleLiveReload() {
+    _liveDebounce?.cancel();
+    _liveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _load();
+    });
+  }
+
   Future<void> _load() async {
     try {
       final client = Supabase.instance.client;
       final uid = client.auth.currentUser!.id;
+
+      _subscribeLive(uid);
 
       final rows = await client
           .from('dispatches')
@@ -65,18 +114,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
       });
     } on PostgrestException catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Could not load your dispatches. '
-          '(${e.message})');
+      setState(() => _error = context.s.reportsLoadError(e.message));
     } catch (_) {
       if (!mounted) return;
-      setState(() =>
-          _error = 'Could not load your dispatches. Check your connection.');
+      setState(() => _error = context.s.reportsLoadOffline);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       bottomNavigationBar: const TanodNavBar(current: TanodTab.reports),
@@ -97,20 +145,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 14),
-                Text('Assigned Dispatch',
+                Text(s.reportsTitle,
                     style: t.headlineLarge?.copyWith(fontSize: 20)),
                 Container(
                   width: 150,
                   height: 2,
                   margin: const EdgeInsets.only(top: 6),
-                  color: Tokens.navy,
+                  color: context.colors.navy,
                 ),
                 const SizedBox(height: 14),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _load,
-                    color: Tokens.navy,
-                    child: _body(),
+                    color: context.colors.navy,
+                    child: _body(context),
                   ),
                 ),
               ],
@@ -121,7 +169,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _body() {
+  Widget _body(BuildContext context) {
+    final s = context.s;
     if (_error != null) {
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 26),
@@ -129,11 +178,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 60),
           Text(_error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Tokens.hint, fontSize: 12)),
+              style: TextStyle(color: context.colors.hint, fontSize: 12)),
           const SizedBox(height: 14),
           Center(
             child: FilledButton(
-                onPressed: _load, child: const Text('Try again')),
+                onPressed: _load, child: Text(s.reportsTryAgain)),
           ),
         ],
       );
@@ -146,25 +195,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (rows.isEmpty) {
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 26),
-        children: const [
-          SizedBox(height: 70),
-          Icon(Icons.assignment_outlined, size: 44, color: Tokens.muted),
-          SizedBox(height: 12),
+        children: [
+          const SizedBox(height: 70),
+          Icon(Icons.assignment_outlined, size: 44, color: context.colors.muted),
+          const SizedBox(height: 12),
           Text(
-            'Nothing assigned to you.',
+            s.reportsEmptyTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 15,
-              color: Tokens.navy,
+              color: context.colors.navy,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
-            'Tickets appear here once you accept them from Home.',
+            s.reportsEmptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, height: 1.4, color: Tokens.muted),
+            style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.muted),
           ),
         ],
       );
@@ -268,8 +317,8 @@ class _AssignedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Tokens.bg,
-        border: Border.all(color: Tokens.navy, width: 1.5),
+        color: context.colors.bg,
+        border: Border.all(color: context.colors.navy, width: 1.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -287,11 +336,11 @@ class _AssignedCard extends StatelessWidget {
                       children: [
                         Text(
                           '${row.trackingId} - ${row.subject}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w700,
                             fontSize: 12.5,
-                            color: Tokens.navy,
+                            color: context.colors.navy,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -299,15 +348,15 @@ class _AssignedCard extends StatelessWidget {
                           text: TextSpan(
                             style: const TextStyle(fontSize: 10),
                             children: [
-                              const TextSpan(
-                                text: 'Deadline: ',
-                                style: TextStyle(
+                              TextSpan(
+                                text: context.s.reportsDeadlineLabel,
+                                style: const TextStyle(
                                     color: _red,
                                     fontWeight: FontWeight.w700),
                               ),
                               TextSpan(
-                                text: _date(row.dueAt),
-                                style: const TextStyle(color: Tokens.navy),
+                                text: _date(context, row.dueAt),
+                                style: TextStyle(color: context.colors.navy),
                               ),
                             ],
                           ),
@@ -316,41 +365,44 @@ class _AssignedCard extends StatelessWidget {
                     ),
                   ),
                   Icon(open ? Icons.expand_less : Icons.expand_more,
-                      color: Tokens.navy),
+                      color: context.colors.navy),
                 ],
               ),
             ),
           ),
 
           if (open) ...[
-            const Divider(height: 1, color: Tokens.divider),
+            Divider(height: 1, color: context.colors.divider),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Line(label: 'User: ', value: row.filer),
+                  _Line(
+                      label: context.s.reportsUserLabel,
+                      value: context.s.reportsFilerAnonymous),
                   const SizedBox(height: 6),
                   _Line(
-                    label: 'Description: ',
+                    label: context.s.reportsDescriptionLabel,
                     value: '\u201C${row.description}\u201D',
                   ),
                   const SizedBox(height: 12),
 
                   _LinkRow(
                     icon: Icons.place_outlined,
-                    label: 'View Map',
-                    onTap: () => _open(context),
+                    label: context.s.reportsViewMap,
+                    onTap: () => _open(context, target: DispatchTarget.map),
                   ),
                   _LinkRow(
                     icon: Icons.image_outlined,
-                    label: 'View Attached Media',
-                    onTap: () => _open(context),
+                    label: context.s.reportsViewMedia,
+                    onTap: () => _open(context, target: DispatchTarget.media),
                   ),
                   _LinkRow(
                     icon: Icons.info_outline,
-                    label: 'View Instructions',
-                    onTap: () => _open(context),
+                    label: context.s.reportsViewInstructions,
+                    onTap: () =>
+                        _open(context, target: DispatchTarget.instructions),
                   ),
                   const SizedBox(height: 10),
 
@@ -374,12 +426,12 @@ class _AssignedCard extends StatelessWidget {
                             fontSize: 11,
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Submit an update'),
-                            SizedBox(width: 4),
-                            Icon(Icons.chevron_right, size: 14),
+                            Text(context.s.reportsSubmitUpdate),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.chevron_right, size: 14),
                           ],
                         ),
                       ),
@@ -394,24 +446,28 @@ class _AssignedCard extends StatelessWidget {
     );
   }
 
-  /// All four openers land on the ticket screen. The map, the evidence
-  /// and the instructions are already on it, and three separate modals
-  /// showing one thing each would be more taps to see less.
-  Future<void> _open(BuildContext context) async {
-    // The same card. Because the ticket is already accepted it opens on
-    // the update pane rather than the order pane — Accept and Reroute
-    // would both raise on a row in 'accepted'.
-    if (await showDispatchOrder(context, row.toTicket())) await onUpdated();
+  /// All four openers land on the same dispatch card — the map, the
+  /// evidence and the instructions are already on it, so a fresh modal
+  /// for each would be more taps to see less. What changed 9 Sep 2026
+  /// (CAPSTONE G12 feedback: the three view links all landed on the
+  /// submit-update form) is that each link now says which pane it wants
+  /// rather than leaving it to the ticket's default. "Submit an update"
+  /// still passes no target, so it opens on the update pane — the ticket
+  /// is already accepted, and the order pane's Accept/Reroute would
+  /// raise on a row in that state.
+  Future<void> _open(
+    BuildContext context, {
+    DispatchTarget target = DispatchTarget.order,
+  }) async {
+    if (await showDispatchOrder(context, row.toTicket(), target: target)) {
+      await onUpdated();
+    }
   }
 
-  static String _date(DateTime? d) {
-    if (d == null) return 'not set';
-    const m = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
+  static String _date(BuildContext context, DateTime? d) {
+    if (d == null) return context.s.reportsDeadlineNotSet;
     final l = d.toLocal();
-    return '${m[l.month - 1]} ${l.day}, ${l.year}';
+    return '${context.s.monthFull(l.month)} ${l.day}, ${l.year}';
   }
 }
 
@@ -424,8 +480,8 @@ class _Line extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RichText(
         text: TextSpan(
-          style: const TextStyle(
-              fontSize: 11, height: 1.4, color: Tokens.navy),
+          style: TextStyle(
+              fontSize: 11, height: 1.4, color: context.colors.navy),
           children: [
             TextSpan(
                 text: label,
@@ -455,15 +511,15 @@ class _LinkRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: Tokens.navy),
+            Icon(icon, size: 16, color: context.colors.navy),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11.5,
-                color: Tokens.navy,
+                color: context.colors.navy,
                 decoration: TextDecoration.underline,
-                decorationColor: Tokens.navy,
+                decorationColor: context.colors.navy,
               ),
             ),
           ],

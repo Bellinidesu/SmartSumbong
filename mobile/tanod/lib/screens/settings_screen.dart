@@ -12,6 +12,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/tanod_nav_bar.dart';
 
@@ -67,20 +68,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
+    final s = context.s;
     setState(() => _biometricBusy = true);
     try {
       if (!await _biometrics.isAvailable()) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('No Face ID or fingerprint is set up on this device.')),
+          SnackBar(content: Text(s.settingsBiometricUnavailable)),
         );
         return;
       }
 
-      final confirmed = await _biometrics
-          .authenticate('Confirm to turn on Face ID / fingerprint unlock');
+      final confirmed =
+          await _biometrics.authenticate(s.settingsBiometricConfirmReason);
       if (!mounted) return;
 
       if (confirmed) {
@@ -88,10 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (mounted) setState(() => _biometricEnabled = true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Could not confirm. Face ID / fingerprint unlock was not '
-                  'turned on.')),
+          SnackBar(content: Text(s.settingsBiometricEnableFailed)),
         );
       }
     } finally {
@@ -132,61 +129,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _logOut() async {
+    final s = context.s;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Tokens.navy,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: dialogContext.colors.navy,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Log Out',
+              Text(
+                s.settingsLogOut,
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,
                   fontSize: 22,
-                  color: Tokens.bg,
+                  color: dialogContext.colors.bg,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Are you sure you want to log out?',
+              Text(
+                s.settingsLogOutConfirmBody,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Tokens.bg),
+                style: TextStyle(fontSize: 14, color: dialogContext.colors.bg),
               ),
               const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(false),
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Tokens.bg,
-                        side: const BorderSide(color: Tokens.bg),
+                        foregroundColor: dialogContext.colors.bg,
+                        side: BorderSide(color: dialogContext.colors.bg),
                         minimumSize: const Size.fromHeight(42),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
                         ),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(s.settingsCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(true),
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
                       style: FilledButton.styleFrom(
-                        backgroundColor: Tokens.field,
-                        foregroundColor: Tokens.navy,
+                        backgroundColor: dialogContext.colors.field,
+                        foregroundColor: dialogContext.colors.navy,
                         minimumSize: const Size.fromHeight(42),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
                         ),
                       ),
-                      child: const Text('Log Out'),
+                      child: Text(s.settingsLogOut),
                     ),
                   ),
                 ],
@@ -209,6 +207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return Scaffold(
       bottomNavigationBar:
@@ -219,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.fromLTRB(30, 24, 30, 24),
           children: [
             Center(
-              child: Text('Settings',
+              child: Text(s.settingsTitle,
                   style: t.headlineLarge?.copyWith(fontSize: 28)),
             ),
             const SizedBox(height: 28),
@@ -229,18 +228,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   width: 72,
                   height: 72,
-                  decoration: const BoxDecoration(
-                    color: Tokens.navy,
+                  decoration: BoxDecoration(
+                    color: context.colors.navy,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     _initials(_name),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
-                      color: Tokens.bg,
+                      color: context.colors.bg,
                     ),
                   ),
                 ),
@@ -251,18 +250,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         _name ?? '\u2014',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
-                          color: Tokens.navy,
+                          color: context.colors.navy,
                         ),
                       ),
                       if (_mobile != null)
                         Text(
                           _mask(_mobile!),
-                          style: const TextStyle(
-                              fontSize: 12, color: Tokens.muted),
+                          style: TextStyle(
+                              fontSize: 12, color: context.colors.muted),
                         ),
                       const SizedBox(height: 6),
                       InkWell(
@@ -273,12 +272,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
+                            // Same orange as the Edit Profile chip
+                            // elsewhere in the app -- an unthemed accent.
                             color: const Color(0xFFFF9800),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
-                            'Edit Profile',
-                            style: TextStyle(
+                          child: Text(
+                            s.settingsEditProfile,
+                            style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w700,
                               fontSize: 11,
@@ -296,41 +297,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             _SettingsRow(
               icon: Icons.person_outline,
-              label: 'Personal Information',
+              label: s.settingsPersonalInfo,
               onTap: () => Navigator.of(context)
                   .pushNamed('/edit-profile')
                   .then((_) => _load()),
             ),
             _SettingsRow(
               icon: Icons.language,
-              label: 'Languages',
+              label: s.settingsLanguages,
               onTap: () => Navigator.of(context).pushNamed('/languages'),
+            ),
+            _SettingsRow(
+              icon: Icons.dark_mode_outlined,
+              label: s.settingsAppearance,
+              onTap: () => Navigator.of(context).pushNamed('/appearance'),
             ),
             _SettingsToggleRow(
               icon: Icons.fingerprint,
-              label: 'Unlock with Face ID / fingerprint',
+              label: s.settingsBiometricUnlock,
               value: _biometricEnabled,
               busy: _biometricBusy,
               onChanged: _onBiometricToggle,
             ),
             _SettingsRow(
               icon: Icons.facebook,
-              label: 'Facebook',
+              label: s.settingsFacebook,
               onTap: () async {
                 final uri = Uri.parse(_facebookUrl);
                 if (!await launchUrl(uri,
                     mode: LaunchMode.externalApplication)) {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Could not open the barangay page.')),
+                    SnackBar(content: Text(s.settingsFacebookError)),
                   );
                 }
               },
             ),
             _SettingsRow(
+              icon: Icons.description_outlined,
+              label: s.settingsTermsPrivacy,
+              onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
+            ),
+            _SettingsRow(
+              icon: Icons.admin_panel_settings_outlined,
+              label: s.settingsExtraAdminServices,
+              onTap: () =>
+                  Navigator.of(context).pushNamed('/extra-admin-services'),
+            ),
+            _SettingsRow(
               icon: Icons.logout,
-              label: 'Log Out',
+              label: s.settingsLogOut,
               showChevron: false,
               onTap: _busy ? null : _logOut,
             ),
@@ -339,7 +355,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Center(
                 child: Text(
                   'SmartSumbong Tanod • v$_version',
-                  style: const TextStyle(fontSize: 11, color: Tokens.muted),
+                  style: TextStyle(fontSize: 11, color: context.colors.muted),
                 ),
               ),
             ],
@@ -393,25 +409,26 @@ class _SettingsToggleRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          Icon(icon, color: Tokens.navy, size: 22),
+          Icon(icon, color: context.colors.navy, size: 22),
           const SizedBox(width: 18),
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 14, color: Tokens.navy),
+              style: TextStyle(fontSize: 14, color: context.colors.navy),
             ),
           ),
           if (busy)
-            const SizedBox(
+            SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Tokens.navy),
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: context.colors.navy),
             )
           else
             Switch(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: Tokens.navy,
+              activeThumbColor: context.colors.navy,
             ),
         ],
       ),
@@ -440,16 +457,16 @@ class _SettingsRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
-            Icon(icon, color: Tokens.navy, size: 22),
+            Icon(icon, color: context.colors.navy, size: 22),
             const SizedBox(width: 18),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 14, color: Tokens.navy),
+                style: TextStyle(fontSize: 14, color: context.colors.navy),
               ),
             ),
             if (showChevron)
-              const Icon(Icons.chevron_right, color: Tokens.navy, size: 20),
+              Icon(Icons.chevron_right, color: context.colors.navy, size: 20),
           ],
         ),
       ),

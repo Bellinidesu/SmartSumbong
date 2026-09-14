@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SmartSumbong push notification accent colour (27 Aug 2026).
+         This is the circle Android draws behind the small notification
+         icon in the notification shade (the reference the user sent —
+         Gmail's blue circle, Play services' pink circle, etc. are the
+         same mechanism, each app's own accent colour). Referenced from
+         AndroidManifest.xml's default_notification_color meta-data,
+         kept in its own file rather than added to colors.xml because
+         that file sits too many folders deep for this session's device
+         bridge to read-modify-write safely without risking clobbering
+         whatever else is in it blind. -->
+    <color name="notification_color">#FFFF9800</color>
+</resources>

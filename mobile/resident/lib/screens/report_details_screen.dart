@@ -55,6 +55,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -266,21 +267,75 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   // ---------- photos -----------------------------------------
 
+  /// Gallery-only until 9 Sep 2026 — a resident filing a complaint had no
+  /// way to take a fresh photo, only to attach one already on the phone.
+  /// register_screen.dart already offers this choice for the ID/selfie
+  /// step, and the reasoning there applies here too: [MediaUploader.pick]
+  /// strips EXIF and re-encodes regardless of source (see
+  /// media_upload.dart's EXIF header), so a camera shot is exactly as
+  /// safe — including for the anonymous option — as a gallery pick.
+  Future<ImageSource?> _chooseSource(BuildContext context) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: context.colors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
+              title: Text(context.s.reportDetailsTakePhoto),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
+              title: Text(context.s.reportDetailsChooseFromGallery),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _addPhoto() async {
     if (_photos.length >= _maxPhotos) {
       setState(() => _banner = context.s.reportDetailsPhotoLimit(_maxPhotos));
       return;
     }
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final s = context.s;
     final granted = await PermissionGate.ensure(
       context,
-      permission: AppPermission.photos,
-      title: context.s.reportDetailsPhotoAccessTitle,
-      rationale: context.s.reportDetailsPhotoAccessBody,
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera
+          ? s.reportDetailsCameraAccessTitle
+          : s.reportDetailsPhotoAccessTitle,
+      rationale: source == ImageSource.camera
+          ? s.reportDetailsCameraAccessPhotoRationale
+          : s.reportDetailsPhotoAccessBody,
     );
     if (!granted || !mounted) return;
     setState(() => _banner = null);
     try {
-      final f = await widget.uploader.pick();
+      final f = await widget.uploader.pick(source: source);
       if (f == null) return;
       setState(() {
         _photos.add(f);
@@ -306,16 +361,24 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   // ---------- video --------------------------------------------
 
   Future<void> _addVideo() async {
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final s = context.s;
     final granted = await PermissionGate.ensure(
       context,
-      permission: AppPermission.photos,
-      title: context.s.reportDetailsVideoAccessTitle,
-      rationale: context.s.reportDetailsVideoAccessBody,
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera
+          ? s.reportDetailsCameraAccessTitle
+          : s.reportDetailsVideoAccessTitle,
+      rationale: source == ImageSource.camera
+          ? s.reportDetailsCameraAccessVideoRationale
+          : s.reportDetailsVideoAccessBody,
     );
     if (!granted || !mounted) return;
     setState(() => _banner = null);
     try {
-      final f = await widget.uploader.pickVideo();
+      final f = await widget.uploader.pickVideo(source: source);
       if (f == null) return;
       setState(() {
         _video = f;
