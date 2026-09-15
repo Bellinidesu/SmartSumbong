@@ -1,11 +1,14 @@
-# SmartSumbong — admin portal + public transparency page, containerized
-# for Render's free Docker web service (or any other Docker host).
+# SmartSumbong — admin portal, containerized for Render's free Docker web
+# service (or any other Docker host).
 #
-# Only admin/ and public/ are ever served — mobile/, supabase/, docs/, and
-# everything else in the repo stay out of the image (see .dockerignore).
-# The portal talks to Supabase over HTTPS (cURL, PostgREST + GoTrue), so
-# there is nothing to install beyond PHP + curl + mbstring — no database
-# driver, no composer, no build step.
+# Only admin/ (plus the root landing page) is ever served — mobile/,
+# supabase/, docs/, and everything else in the repo stay out of the image
+# (see .dockerignore). public/ (the transparency dashboard) was removed
+# 15 Sep 2026 along with its own COPY step below — Ace: "completely remove
+# the transparency page we dont need it" — see .htaccess and index.php for
+# the rest of that removal. The portal talks to Supabase over HTTPS (cURL,
+# PostgREST + GoTrue), so there is nothing to install beyond PHP + curl +
+# mbstring — no database driver, no composer, no build step.
 
 FROM php:8.3-apache
 
@@ -19,7 +22,6 @@ RUN apt-get update \
 WORKDIR /var/www/html
 
 COPY admin/ ./admin/
-COPY public/ ./public/
 COPY index.php .htaccess ./
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

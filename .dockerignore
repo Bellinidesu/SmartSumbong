@@ -1,13 +1,12 @@
-# Only admin/ and public/ (plus the two root files they need) ever get
-# built into the image. Everything else in the repo — mobile apps,
-# Supabase project, docs, git history, secrets — has no business inside
-# a container that just serves the PHP portal and the public dashboard.
+# Only admin/ (plus the two root files it needs) ever gets built into the
+# image. Everything else in the repo — mobile apps, Supabase project,
+# docs, git history, secrets — has no business inside a container that
+# just serves the PHP portal. public/ (the transparency dashboard) was
+# removed 15 Sep 2026 and dropped from this allowlist along with it.
 *
 
 !admin/
 !admin/**
-!public/
-!public/**
 !index.php
 !.htaccess
 !docker-entrypoint.sh
