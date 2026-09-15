@@ -52,22 +52,15 @@ layout_head('Spatial Distribution', 'spatial.php');
       <label class="visually-hidden" for="f-status">Filter by status</label>
       <select id="f-status">
         <option value="">All statuses</option>
-        <option value="open">Open only</option>
-        <option value="pending_review">Pending Review</option>
-        <option value="validated">Validated</option>
-        <option value="assigned">Assigned</option>
+        <option value="under_review">Under Review</option>
         <option value="in_progress">In Progress</option>
         <option value="resolved">Resolved</option>
-        <option value="closed">Closed</option>
+        <option value="rejected">Rejected</option>
       </select>
 
-      <label class="visually-hidden" for="f-period">Hotspot analysis period</label>
-      <select id="f-period">
-        <option value="30">Last 30 days</option>
-        <option value="90" selected>Last 90 days</option>
-        <option value="365">Last 365 days</option>
-        <option value="0">All time</option>
-      </select>
+      <label class="visually-hidden" for="f-period">Hotspot analysis month</label>
+      <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>">
+      <label class="toggle"><input type="checkbox" id="f-period-all"> All time</label>
 
       <label class="toggle"><input type="checkbox" id="f-heat"> Heatmap</label>
       <label class="toggle"><input type="checkbox" id="f-hotspots"> Hotspots</label>
@@ -92,6 +85,13 @@ layout_head('Spatial Distribution', 'spatial.php');
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>
+        </svg>
+      </button>
+
+      <button class="map-btn" id="expand-btn" type="button" title="Expand map to full screen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
         </svg>
       </button>
 
@@ -181,7 +181,15 @@ const AREA = L.latLngBounds(
   [RESIDENTIAL_CENTRE[0] - SPAN_LAT, RESIDENTIAL_CENTRE[1] - SPAN_LNG],
   [RESIDENTIAL_CENTRE[0] + SPAN_LAT, RESIDENTIAL_CENTRE[1] + SPAN_LNG]
 );
-const OPEN = ['pending_review','validated','assigned','in_progress','offline_investigation'];
+// Collapsed from the raw 8-value enum to the four buckets an admin
+// actually scans for on a map (Rose's feedback, 15 Sep 2026) — the full
+// breakdown is still one click away on Case Reports.
+const STATUS_GROUPS = {
+  under_review: ['pending_review', 'validated'],
+  in_progress:  ['assigned', 'in_progress', 'offline_investigation'],
+  resolved:     ['resolved', 'closed', 'archived'],
+  rejected:     ['rejected'],
+};
 
 const COLOUR = {
   pending_review: '#f59e0b', validated: '#f59e0b',
@@ -296,8 +304,7 @@ function visible() {
   const st  = document.getElementById('f-status').value;
   return all.filter(r => {
     if (cat && r.category !== cat) return false;
-    if (st === 'open')  return OPEN.includes(r.status);
-    if (st && r.status !== st) return false;
+    if (st && !(STATUS_GROUPS[st] || []).includes(r.status)) return false;
     return true;
   });
 }
@@ -347,7 +354,7 @@ function draw() {
 // ---- data + realtime ---------------------------------------------
 async function load() {
   const { data, error } = await sb.from('reports')
-    .select('id,tracking_id,subject,category,status,latitude,longitude,created_at')
+    .select('id,tracking_id,subject,category,status,latitude,longitude,created_at,due_at')
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
@@ -383,8 +390,18 @@ sb.channel('reports-spatial')
 // A popup covers the map and closes the moment you look away. A drawer
 // keeps the complaint on screen while the map stays exactly where the
 // admin left it.
+function fmtDate(iso) {
+  if (!iso) return null;
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  }).format(new Date(iso));
+}
+
 function showDetail(r) {
   const box = document.getElementById('pin-detail');
+  const submitted = fmtDate(r.created_at) || '—';
+  const deadline  = fmtDate(r.due_at);
   box.innerHTML =
     '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
     '<p class="detail-id">' + r.tracking_id + '</p>' +
@@ -392,6 +409,10 @@ function showDetail(r) {
     '<p class="detail-sub">' + (r.subject || '') + '</p>' +
     '<p class="detail-status"><span class="pin-dot" style="background:' +
       (COLOUR[r.status] || '#9aa1ab') + '"></span>' + label(r.status) + '</p>' +
+    '<dl class="detail-dates">' +
+      '<dt>Submitted</dt><dd>' + submitted + '</dd>' +
+      '<dt>Deadline</dt><dd>' + (deadline || 'No deadline set') + '</dd>' +
+    '</dl>' +
     '<a class="detail-open" href="case.php?id=' + r.id + '">Open this case</a>';
   box.removeAttribute('hidden');
   box.querySelector('.detail-x').addEventListener('click',
@@ -404,6 +425,28 @@ document.getElementById('fit-btn').addEventListener('click', () => {
   if (!rows.length) { map.setView(RESIDENTIAL_CENTRE, DEFAULT_ZOOM); return; }
   map.fitBounds(L.latLngBounds(rows.map(r => [r.latitude, r.longitude])),
                 { padding: [60, 60], maxZoom: 18 });
+});
+
+// Full-screen the map itself (the Fullscreen API target has to be the
+// .map-shell wrapper, not #map, or Leaflet's own absolutely-positioned
+// dock and detail panel would be left behind outside the fullscreen
+// element). Leaflet caches its container size, so it needs an explicit
+// nudge once the browser has actually finished resizing the element.
+const expandBtn = document.getElementById('expand-btn');
+const mapShell  = document.querySelector('.map-shell');
+expandBtn.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    (mapShell.requestFullscreen || mapShell.webkitRequestFullscreen || function(){}).call(mapShell)
+      .catch(() => {});
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  const active = document.fullscreenElement === mapShell;
+  expandBtn.classList.toggle('is-active', active);
+  expandBtn.title = active ? 'Exit full screen' : 'Expand map to full screen';
+  setTimeout(() => map.invalidateSize(), 120);
 });
 
 // Collapsed by default: the map is the screen, the list is a drawer.
@@ -446,10 +489,17 @@ const hotspotLayer = L.layerGroup();
 let hotspots = [];
 
 function periodRange() {
-  const days = parseInt(document.getElementById('f-period').value, 10);
   const to = new Date();
-  if (!days) return { from: '2000-01-01T00:00:00Z', to: to.toISOString() };
-  return { from: new Date(to.getTime() - days * 86400000).toISOString(), to: to.toISOString() };
+  if (document.getElementById('f-period-all').checked) {
+    return { from: '2000-01-01T00:00:00Z', to: to.toISOString() };
+  }
+  const val = document.getElementById('f-period').value; // 'YYYY-MM'
+  if (!val) { return { from: '2000-01-01T00:00:00Z', to: to.toISOString() }; }
+  const [y, m] = val.split('-').map(Number);
+  return {
+    from: new Date(Date.UTC(y, m - 1, 1)).toISOString(),
+    to:   new Date(Date.UTC(y, m, 1)).toISOString(),
+  };
 }
 
 // More reports, hotter colour — same principle as the pin/status legend
@@ -522,6 +572,10 @@ async function loadHotspots() {
 document.getElementById('f-hotspots').addEventListener('change', loadHotspots);
 document.getElementById('f-period').addEventListener('change', loadHotspots);
 document.getElementById('f-category').addEventListener('change', loadHotspots);
+document.getElementById('f-period-all').addEventListener('change', e => {
+  document.getElementById('f-period').disabled = e.target.checked;
+  loadHotspots();
+});
 
 const hotspotToggleBtn = document.getElementById('hotspot-toggle');
 const hotspotSide      = document.getElementById('hotspot-side');

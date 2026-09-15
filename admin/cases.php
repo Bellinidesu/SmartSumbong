@@ -20,14 +20,27 @@ session_start_once();
 // Coming back from a case should land on the list you left, not on an
 // unfiltered one you have to rebuild. Any explicit parameter wins; a bare
 // visit restores what you last looked at.
-if (!isset($_GET['q'], $_GET['status'], $_GET['sort']) && ($_SERVER['QUERY_STRING'] ?? '') === ''
-    && !empty($_SESSION['cases_view'])) {
+if (!isset($_GET['q'], $_GET['status'], $_GET['sort'], $_GET['month'], $_GET['category'])
+    && ($_SERVER['QUERY_STRING'] ?? '') === '' && !empty($_SESSION['cases_view'])) {
     $_GET = $_SESSION['cases_view'] + $_GET;
 }
 
-$search = trim((string) ($_GET['q'] ?? ''));
-$filter = (string) ($_GET['status'] ?? '');
-$view   = (string) ($_GET['view'] ?? '');
+// The seven categories are fixed per the Scope and Limitations — the same
+// list cases.php's category dropdown and the resident app's own filing
+// form both draw from.
+const CATEGORIES = [
+    'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
+    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
+];
+
+$search   = trim((string) ($_GET['q'] ?? ''));
+$filter   = (string) ($_GET['status'] ?? '');
+$category = (string) ($_GET['category'] ?? '');
+$month    = (string) ($_GET['month'] ?? '');
+$view     = (string) ($_GET['view'] ?? '');
+
+if (!in_array($category, CATEGORIES, true)) { $category = ''; }
+if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
 
 // Clicking a column heading sorts by it; clicking the same one again
 // reverses. PostgREST cannot order by an embedded resident name, so that
@@ -39,7 +52,7 @@ if (!isset($SORTABLE[$sortCol])) { $sortCol = 'date'; }
 $sort = $SORTABLE[$sortCol] . '.' . $sortDir;
 
 $_SESSION['cases_view'] = array_filter([
-    'q' => $search, 'status' => $filter, 'view' => $view,
+    'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month, 'view' => $view,
     'by' => $sortCol, 'dir' => $sortDir,
 ], fn($v) => $v !== '');
 
@@ -65,7 +78,7 @@ try {
     // join happens in the database, not in a second round trip.
     $query = [
         'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,'
-                  . 'escalation_level,due_at,awaiting_unit_since,reopened_count,'
+                  . 'escalation_level,due_at,awaiting_unit_since,reopened_count,appealed_at,'
                   . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'order'      => $sort,
@@ -73,6 +86,16 @@ try {
     ];
     if ($filter !== '') {
         $query['status'] = 'eq.' . $filter;
+    }
+    if ($category !== '') {
+        $query['category'] = 'eq.' . $category;
+    }
+    if ($month !== '') {
+        $mtz   = new DateTimeZone('Asia/Manila');
+        $start = DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', $mtz);
+        $end   = $start->modify('first day of next month');
+        $query['and'] = "(created_at.gte.{$start->format(DateTimeInterface::ATOM)},"
+                       . "created_at.lt.{$end->format(DateTimeInterface::ATOM)})";
     }
     if ($search !== '') {
         // Match either the tracking id or the subject line.
@@ -123,7 +146,7 @@ layout_head('Case Reports', 'cases.php');
       <?= nav_icon('search') ?>
       <input type="search" name="nq" placeholder="Search Here" value="<?= e($_GET['nq'] ?? '') ?>">
     </form>
-    <div class="panel-sort">Short by: <strong>Unread</strong></div>
+    <div class="panel-sort">Sort by: <strong>Unread</strong></div>
   </header>
 
   <div class="notif-list" id="notif-list">
@@ -154,7 +177,7 @@ layout_head('Case Reports', 'cases.php');
 
     <?php $atc = count($attention ?? []); ?>
     <a class="chip-filter<?= $view === 'attention' ? ' is-on' : '' ?>" id="attention-chip"
-       href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter]))) ?>">
+       href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
       Needs attention
       <span class="chip-num<?= $atc > 0 ? ' is-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
     </a>
@@ -163,11 +186,27 @@ layout_head('Case Reports', 'cases.php');
       <?= nav_icon('search') ?>
       <input type="search" name="q" placeholder="Search Here" value="<?= e($search) ?>">
       <input type="hidden" name="status" value="<?= e($filter) ?>">
+      <input type="hidden" name="category" value="<?= e($category) ?>">
+      <input type="hidden" name="month" value="<?= e($month) ?>">
       <input type="hidden" name="sort" value="<?= e($_GET['sort'] ?? 'newest') ?>">
     </form>
 
     <form class="panel-sort" method="get">
       <input type="hidden" name="q" value="<?= e($search) ?>">
+      <label class="filter-option">
+        <input type="month" name="month" value="<?= e($month) ?>"
+               onchange="this.form.submit()" aria-label="Filter by month">
+      </label>
+      <label class="filter-option">
+        <select name="category" onchange="this.form.submit()">
+          <option value="">All Categories</option>
+          <?php foreach (CATEGORIES as $c): ?>
+            <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>>
+              <?= e(category_label($c)) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </label>
       <label class="filter-option">
         <select name="status" onchange="this.form.submit()">
           <option value="">Filter Option</option>
@@ -200,7 +239,7 @@ layout_head('Case Reports', 'cases.php');
         <?php if (!$reports): ?>
           <tr class="row-empty">
             <td colspan="6">
-              <?= $search !== '' || $filter !== ''
+              <?= $search !== '' || $filter !== '' || $category !== '' || $month !== ''
                   ? 'No complaint matches that search.'
                   : 'No complaints have been filed yet.' ?>
             </td>
@@ -227,6 +266,9 @@ layout_head('Case Reports', 'cases.php');
               <?php endif; ?>
               <?php if (($r['reopened_count'] ?? 0) > 0): ?>
                 <span class="pill pill--pending">Reopened <?= (int) $r['reopened_count'] ?>&times;</span>
+              <?php endif; ?>
+              <?php if (!empty($r['appealed_at'])): ?>
+                <span class="pill pill--pending" title="Reinstated on appeal">Appealed</span>
               <?php endif; ?>
             </td>
             <td><?= e(short_date($r['created_at'])) ?></td>
@@ -272,6 +314,9 @@ layout_head('Case Reports', 'cases.php');
   const SORT_COL   = <?= json_encode($SORTABLE[$sortCol]) ?>;
   const SORT_ASC   = <?= json_encode($sortDir === 'asc') ?>;
   const STATUS     = <?= json_encode($filter) ?>;
+  const CATEGORY   = <?= json_encode($category) ?>;
+  const MONTH_FROM = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->format(DateTimeInterface::ATOM) : null) ?>;
+  const MONTH_TO   = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->modify('first day of next month')->format(DateTimeInterface::ATOM) : null) ?>;
   const SEARCH     = <?= json_encode($search) ?>;
   const VIEW       = <?= json_encode($view) ?>;
 
@@ -329,7 +374,7 @@ layout_head('Case Reports', 'cases.php');
     const tbody = document.getElementById('reports-tbody');
     if (!filtered.length) {
       tbody.innerHTML = '<tr class="row-empty"><td colspan="6">' +
-        (SEARCH || STATUS ? 'No complaint matches that search.' : 'No complaints have been filed yet.') +
+        (SEARCH || STATUS || CATEGORY || MONTH_FROM ? 'No complaint matches that search.' : 'No complaints have been filed yet.') +
         '</td></tr>';
       return;
     }
@@ -341,12 +386,14 @@ layout_head('Case Reports', 'cases.php');
         ? '<span class="pill pill--escalated" title="Escalated">Escalated</span>' : '';
       const reopened = (r.reopened_count || 0) > 0
         ? '<span class="pill pill--pending">Reopened ' + r.reopened_count + '&times;</span>' : '';
+      const appealed = r.appealed_at
+        ? '<span class="pill pill--pending" title="Reinstated on appeal">Appealed</span>' : '';
       return '<tr>' +
         '<td>' + who + '</td>' +
         '<td class="mono">' + escapeHtml(r.tracking_id) + '</td>' +
         '<td>' + escapeHtml(titleCase(r.category)) + '</td>' +
         '<td><span class="pill pill--' + statusClass(r.status) + '">' +
-          escapeHtml(titleCase(r.status)) + '</span>' + escalated + reopened + '</td>' +
+          escapeHtml(titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</td>' +
         '<td>' + shortDate(r.created_at) + '</td>' +
         '<td class="cell-action"><a class="btn-review" href="case.php?id=' +
           encodeURIComponent(r.id) + '">Review</a></td>' +
@@ -376,12 +423,14 @@ layout_head('Case Reports', 'cases.php');
   async function loadReports() {
     let q = sb.from('reports')
       .select('id,tracking_id,subject,category,status,created_at,is_anonymous,'
-        + 'escalation_level,due_at,awaiting_unit_since,reopened_count,'
+        + 'escalation_level,due_at,awaiting_unit_since,reopened_count,appealed_at,'
         + 'resident:users!reports_resident_id_fkey(full_name)')
       .is('deleted_at', null)
       .order(SORT_COL, { ascending: SORT_ASC })
       .limit(100);
     if (STATUS) q = q.eq('status', STATUS);
+    if (CATEGORY) q = q.eq('category', CATEGORY);
+    if (MONTH_FROM) q = q.gte('created_at', MONTH_FROM).lt('created_at', MONTH_TO);
     if (SEARCH) {
       const needle = SEARCH.replace(/,/g, ' ');
       q = q.or('tracking_id.ilike.*' + needle + '*,subject.ilike.*' + needle + '*');

@@ -640,13 +640,14 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 .panel-sort {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-left: auto;
   font-size: 12.5px;
   color: #fff;
-  white-space: nowrap;
 }
-.panel-sort select {
+.panel-sort select,
+.panel-sort input[type="month"] {
   height: 30px;
   padding: 0 8px;
   font: inherit;
@@ -1205,6 +1206,16 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   letter-spacing: -.01em;
 }
 .chart-period { margin-left: auto; font-size: 12.5px; color: var(--ink-soft); }
+.chart-filter select {
+  height: 28px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 12.5px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+}
 .chart-note   { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 14px; line-height: 1.5; }
 
 /* The two heights that stop the runaway. */
@@ -1230,12 +1241,25 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 }
 .donut-centre span { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
 
-/* counters left, two donuts right — the Figma's middle band */
+/* counters left, two donuts right — the Figma's middle band.
+   align-items was "start", which sizes each of the three grid items to
+   its own content instead of the row's tallest — but the tile-stack
+   (three stacked .tile cards) is taller than either .donut-card, so the
+   left column hung visibly below the two donut cards' bottom borders.
+   Confirmed live (15 Sep 2026, task #82) and fixed with the grid default
+   ("stretch" — restated explicitly here rather than just deleted, so a
+   future edit doesn't reintroduce "start" without knowing why): every
+   item in the row is stretched to the tallest one, so both donut cards'
+   borders now extend to match the tile stack's height instead of
+   stopping short of it. .tile-stack itself has no visible border (only
+   the individual .tile children do), so stretching it just adds blank
+   space below the third tile inside an invisible flex container — no
+   visual change there, only to the two donut cards. */
 .dash-mid {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 22px;
 }
 .tile-stack { display: flex; flex-direction: column; gap: 14px; }
@@ -1345,7 +1369,8 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 /* ---------- Spatial Distribution (Figma 2:1164) ---------- */
 
 .map-toolbar { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap; }
-.map-toolbar select {
+.map-toolbar select,
+.map-toolbar input[type="month"] {
   border: 1px solid var(--rule);
   border-radius: var(--r-pill);
   padding: 7px 12px;
@@ -1354,6 +1379,7 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   background: #fff;
   color: var(--ink);
 }
+.map-toolbar input[type="month"]:disabled { opacity: .5; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); }
 .toggle input { accent-color: var(--navy); }
 
@@ -1458,10 +1484,12 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
 
 /* ---------- Report Summary (Figma 282:1631) ---------- */
 
-.period-form { display: flex; align-items: center; gap: 8px; margin-left: 18px; }
-.period-form input[type="date"] {
+.period-form { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-left: 18px; }
+.period-form input[type="date"],
+.period-form select {
   border: 1px solid var(--rule); border-radius: var(--r-input);
   padding: 7px 10px; font-family: var(--font-body); font-size: 13px;
+  background: #fff; color: var(--ink);
 }
 .period-dash { font-size: 12.5px; color: var(--ink-soft); }
 .btn-period {
@@ -1891,6 +1919,18 @@ a.btn-accept { text-decoration: none; }
 .detail-cat { margin: 2px 0 6px; font-size: 12px; color: var(--ink-soft); }
 .detail-sub { margin: 0 0 8px; font-size: 13px; }
 .detail-status { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; font-size: 12.5px; }
+.detail-dates {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.detail-dates dt { color: var(--ink-soft); }
+.detail-dates dd { margin: 0; }
+.map-btn.is-active { background: var(--navy); color: #fff; }
+.map-shell:fullscreen { width: 100%; height: 100%; border-radius: 0; }
+.map-shell:-webkit-full-screen { width: 100%; height: 100%; border-radius: 0; }
 .detail-open {
   display: inline-block; background: var(--navy); color: #fff;
   border-radius: var(--r-input); padding: 8px 14px;
@@ -2018,3 +2058,76 @@ a.btn-accept { text-decoration: none; }
 }
 .case-block .media-strip { margin-top: 12px; }
 .case-block .case-body + .media-strip { margin-top: 12px; }
+
+/* ---------- Profile pictures (0054) ----------
+   The picture a resident/tanod set for themselves in Edit Profile, now
+   surfaced in Residents/Personnel. An account that never set one gets a
+   two-letter initials badge instead of a blank circle. */
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.avatar--sm { width: 28px; height: 28px; font-size: 11px; }
+.avatar--lg { width: 64px; height: 64px; font-size: 22px; }
+
+.cell-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.case-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ---------- Extra Administrative Services (0055) ----------
+   Succession moved here from Residents/Personnel's dialog — it is now
+   an always-visible panel section rather than a modal, so .succession's
+   fixed/centered positioning doesn't apply; the search box keeps its
+   old spacing rule below. */
+.succession-body { padding-top: 4px; }
+.succession-search { margin: 12px 0 6px; }
+
+.handover-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 4px 0 4px 26px;
+}
+.handover-fields .control-field { flex: 1 1 180px; }
+.handover-fields select,
+.handover-fields input[type="number"] {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-input);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+}
+
+.handover-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn-link-inline {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+}

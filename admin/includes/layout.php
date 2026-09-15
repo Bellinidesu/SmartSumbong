@@ -16,7 +16,7 @@ function nav_items(): array
         ['cases.php',      'Case Reports',        'chat'],
         ['residents.php',  'Residents',           'users'],
         ['personnel.php',  'Personnel',           'user'],
-        ['retirement-requests.php', 'Retirement Requests', 'badge'],
+        ['retirement-requests.php', 'Extra Administrative Services', 'badge'],
         ['profile.php',    'Edit Profile',        'gear'],
     ];
 }

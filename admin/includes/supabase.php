@@ -30,7 +30,7 @@ final class Supabase
         string $path,
         ?array $body = null,
         array $extraHeaders = []
-    ): array {
+    ): array|string|int|float|bool|null {
         $headers = [
             'apikey: ' . supabase_key(),
             'Content-Type: application/json',
@@ -77,7 +77,20 @@ final class Supabase
             throw new SupabaseError((string) $msg, $status);
         }
 
-        return is_array($data) ? $data : [];
+        // PostgREST's response shape follows the Postgres function's own
+        // return type: a JSON array of rows for select/insert/update and
+        // for any set- or table-returning RPC, but a bare JSON scalar
+        // (string/number/boolean) for an RPC whose function returns a
+        // plain scalar -- admin_reset_password() returning text is
+        // exactly this case. This used to coerce anything non-array to
+        // [], which silently discarded every such scalar: the temporary
+        // password admin_reset_password() generated was thrown away here
+        // and accounts.php stored an empty string instead, so the reveal
+        // block never rendered. Every other rpc() caller in this
+        // codebase either ignores the return value or calls a
+        // table-returning function (always decodes to an array already),
+        // so returning $data as-is is safe everywhere, not just here.
+        return $data;
     }
 
     // ---------- auth ----------
@@ -193,8 +206,20 @@ final class Supabase
         return $this->request('PATCH', "/rest/v1/{$table}{$qs}", $patch, ['Prefer' => 'return=representation']);
     }
 
-    /** Call a Postgres function. This is how dispatch actions are performed. */
-    public function rpc(string $fn, array $args = []): array
+    /**
+     * Call a Postgres function. This is how dispatch actions are
+     * performed.
+     *
+     * Returns whatever the function's own return type produces: an
+     * array of rows for a table/set-returning function (account_
+     * directory, dashboard_metrics, ...), or the bare scalar for
+     * anything that returns a single plain value instead (text, an
+     * enum, a boolean, ...) -- admin_reset_password() is the one
+     * caller in this codebase that actually reads such a scalar back
+     * today. Callers that only care about success/failure can keep
+     * ignoring the return value exactly as before.
+     */
+    public function rpc(string $fn, array $args = []): array|string|int|float|bool|null
     {
         return $this->request('POST', "/rest/v1/rpc/{$fn}", $args);
     }

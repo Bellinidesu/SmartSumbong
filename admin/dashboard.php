@@ -41,13 +41,24 @@ $month = $month->setDate((int) $month->format('Y'), (int) $month->format('n'), 1
                ->setTime(0, 0);
 $next  = $month->modify('+1 month');
 
+// Same fixed 7-category list as cases.php/summary.php — only used here to
+// scope the Resolution Efficiency chart (0056); every other visual on
+// this page stays computed over the whole month.
+const CATEGORIES = [
+    'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
+    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
+];
+$effCategory = (string) ($_GET['eff_category'] ?? '');
+if (!in_array($effCategory, CATEGORIES, true)) { $effCategory = ''; }
+
 $error   = null;
 $metrics = null;
 
 try {
     $metrics = $db->rpc('dashboard_metrics', [
-        'p_from' => $month->format(DateTimeInterface::ATOM),
-        'p_to'   => $next->format(DateTimeInterface::ATOM),
+        'p_from'     => $month->format(DateTimeInterface::ATOM),
+        'p_to'       => $next->format(DateTimeInterface::ATOM),
+        'p_category' => $effCategory ?: null,
     ]);
     // Same call, previous month. A number on its own says nothing —
     // "31 complaints" is either a quiet month or a crisis depending on
@@ -119,8 +130,8 @@ layout_head('Dashboard', 'dashboard.php');
     <label class="visually-hidden" for="month">Reporting month</label>
     <input type="month" id="month" name="month"
            value="<?= e($month->format('Y-m')) ?>" onchange="this.form.submit()">
+    <input type="hidden" name="eff_category" value="<?= e($effCategory) ?>">
   </form>
-  <button class="btn-pdf" type="button" onclick="window.print()">Download PDF</button>
   <!-- No-login version of a handful of these same figures, for residents
        and anyone else. Opens in its own tab rather than navigating the
        admin away from the session they're in. -->
@@ -224,10 +235,23 @@ layout_head('Dashboard', 'dashboard.php');
   <header class="chart-head">
     <h2 class="chart-title">Resolution efficiency</h2>
     <span class="chart-period"><?= e($month->format('F Y')) ?></span>
+    <form class="chart-filter" method="get">
+      <input type="hidden" name="month" value="<?= e($month->format('Y-m')) ?>">
+      <label class="visually-hidden" for="eff_category">Filter by category</label>
+      <select id="eff_category" name="eff_category" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        <?php foreach (CATEGORIES as $c): ?>
+          <option value="<?= e($c) ?>" <?= $effCategory === $c ? 'selected' : '' ?>>
+            <?= e(category_label($c)) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </form>
   </header>
   <p class="chart-note">
     Average hours taken to finish a complaint, against the hours its
     category was allowed. Below the dashed line is inside the SLA.
+    <?= $effCategory !== '' ? 'Showing ' . e(category_label($effCategory)) . ' only.' : '' ?>
   </p>
   <div class="chart-box"><canvas id="chart-efficiency"></canvas></div>
 </section>
@@ -438,6 +462,7 @@ layout_head('Dashboard', 'dashboard.php');
   var PREV_TILES   = <?= json_encode($prevTiles ?: null) ?>;
   var MONTH_FROM   = <?= json_encode($month->format(DateTimeInterface::ATOM)) ?>;
   var MONTH_TO     = <?= json_encode($next->format(DateTimeInterface::ATOM)) ?>;
+  var EFF_CATEGORY = <?= json_encode($effCategory ?: null) ?>;
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -555,7 +580,7 @@ layout_head('Dashboard', 'dashboard.php');
   function scheduleRefresh() {
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(function () {
-      sb.rpc('dashboard_metrics', { p_from: MONTH_FROM, p_to: MONTH_TO }).then(function (res) {
+      sb.rpc('dashboard_metrics', { p_from: MONTH_FROM, p_to: MONTH_TO, p_category: EFF_CATEGORY }).then(function (res) {
         if (res.error || !res.data) return; // stale figures beat a half-applied update
         applyMetrics(res.data);
       });

@@ -68,10 +68,20 @@ $fromISO = $from->format(DateTimeInterface::ATOM);
 $toISO   = $to->format(DateTimeInterface::ATOM);
 $isPrint = isset($_GET['print']);
 
+// The seven categories are fixed per the Scope and Limitations — same list
+// cases.php's category dropdown draws from.
+const CATEGORIES = [
+    'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
+    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
+];
+$category = (string) ($_GET['category'] ?? '');
+if (!in_array($category, CATEGORIES, true)) { $category = ''; }
+
 if (!$isPrint) {
     $_SESSION['summary_period'] = [
-        'from' => $from->format('Y-m-d'),
-        'to'   => $to->format('Y-m-d'),
+        'from'     => $from->format('Y-m-d'),
+        'to'       => $to->format('Y-m-d'),
+        'category' => $category,
     ];
 }
 
@@ -80,7 +90,7 @@ $error = null;
 $reports = $dispatches = $logs = $attendance = [];
 
 try {
-    $reports = $db->select('reports', [
+    $reportsQuery = [
         'select'     => 'id,tracking_id,subject,category,status,is_anonymous,created_at,'
                       . 'due_at,resolved_at,closed_at,escalation_level,'
                       . 'resident:users!reports_resident_id_fkey(full_name)',
@@ -88,7 +98,15 @@ try {
         'and'        => "(created_at.gte.{$fromISO},created_at.lte.{$toISO})",
         'order'      => 'created_at.asc',
         'limit'      => '500',
-    ]);
+    ];
+    // Category narrows the Resident Report Ledger only — the Tanod
+    // Activity Timeline and Report Case Timeline stay period-only, since
+    // they describe the barangay's overall effort for the period, not one
+    // category's slice of it.
+    if ($category !== '') {
+        $reportsQuery['category'] = 'eq.' . $category;
+    }
+    $reports = $db->select('reports', $reportsQuery);
 
     $dispatches = $db->select('dispatches', [
         'select'      => 'id,state,assigned_at,accepted_at,resolved_at,field_report_text,'
@@ -150,8 +168,10 @@ $periodLabel = $from->format('M j, Y') . ' — ' . $to->format('M j, Y');
 // should read as one — no live badge, nothing to watch.
 $isOngoing = !$isPrint && $to >= new DateTimeImmutable('today', $tz);
 
+$categoryLabel = $category !== '' ? category_label($category) : 'All Categories';
+
 if (!$isPrint) { layout_head('Report Summary', 'summary.php'); }
-else { print_head($periodLabel); }
+else { print_head($periodLabel, $categoryLabel); }
 ?>
 
 <?php if ($error): ?>
@@ -183,17 +203,26 @@ else { print_head($periodLabel); }
       <span class="period-dash">to</span>
       <label class="visually-hidden" for="to">To</label>
       <input type="date" id="to" name="to" value="<?= e($to->format('Y-m-d')) ?>">
+      <label class="visually-hidden" for="category">Category</label>
+      <select id="category" name="category">
+        <option value="">All Categories</option>
+        <?php foreach (CATEGORIES as $c): ?>
+          <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>>
+            <?= e(category_label($c)) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
       <button class="btn-period" type="submit">Apply</button>
     </form>
     <div class="quick-ranges">
       <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
         <a class="chip-filter<?= $range === $key ? ' is-on' : '' ?>"
-           href="?range=<?= e($key) ?>"><?= e($lbl) ?></a>
+           href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>"><?= e($lbl) ?></a>
       <?php endforeach; ?>
     </div>
 
     <a class="btn-pdf" target="_blank" rel="noopener"
-       href="summary.php?print=1&amp;from=<?= e($from->format('Y-m-d')) ?>&amp;to=<?= e($to->format('Y-m-d')) ?>">
+       href="summary.php?print=1&amp;from=<?= e($from->format('Y-m-d')) ?>&amp;to=<?= e($to->format('Y-m-d')) ?>&amp;category=<?= e($category) ?>">
       Download PDF Report
     </a>
   </header>
@@ -367,7 +396,7 @@ else { print_head($periodLabel); }
  * right, issuing body centred; then a ruled line carrying the report
  * name and the period, the way a paper carries name and section.
  */
-function print_head(string $period): void
+function print_head(string $period, string $categoryLabel = 'All Categories'): void
 {
     $img = fn(string $f) => is_file(__DIR__ . '/assets/img/' . $f) ? 'assets/img/' . $f : null;
     $seal = $img('brgy-183-seal.png');
@@ -396,7 +425,7 @@ function print_head(string $period): void
 
   <div class="doc-rule">
     <span class="doc-left">COMPLAINT REPORT SUMMARY</span>
-    <span class="doc-right"><?= e($period) ?></span>
+    <span class="doc-right"><?= e($period) ?> &middot; <?= e($categoryLabel) ?></span>
   </div>
 
   <h1 class="doc-title">Smart Sumbong &mdash; Barangay Complaint Summary</h1>

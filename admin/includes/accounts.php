@@ -112,28 +112,6 @@ function render_account_screen(string $role): void
                                . 'and do not send it by message.';
                         break;
 
-                    case 'promote':
-                        // The database only knows the caller is an admin.
-                        // Re-signing in is what proves it is still the
-                        // person who owns the account at the keyboard.
-                        Supabase::signIn($admin['email'], (string) ($_POST['password'] ?? ''));
-                        $db->rpc('promote_to_admin', [
-                            'p_user'   => (string) ($_POST['successor'] ?? ''),
-                            'p_reason' => trim((string) ($_POST['reason'] ?? '')) ?: null,
-                        ]);
-                        $flash = 'Administrator access granted. You can now step down if you are leaving.';
-                        $target = '';
-                        break;
-
-                    case 'step_down':
-                        Supabase::signIn($admin['email'], (string) ($_POST['password'] ?? ''));
-                        $db->rpc('step_down_as_admin', [
-                            'p_new_role' => ($_POST['new_role'] ?? 'resident') === 'tanod' ? 'tanod' : 'resident',
-                        ]);
-                        logout();
-                        header('Location: login.php?steppeddown=1');
-                        exit;
-
                     default:
                         $flash = 'Unknown action.';
                         $level = 'error';
@@ -163,17 +141,6 @@ function render_account_screen(string $role): void
         $accounts = $db->rpc('account_directory', ['p_role' => $role]);
     } catch (SupabaseError $ex) {
         $error = safe_error($ex);
-    }
-
-    $transfer   = isset($_GET['transfer']);
-    $candSearch = trim((string) ($_GET['cand'] ?? ''));
-    $candidates = [];
-    if ($transfer && !$error) {
-        try {
-            $candidates = $db->rpc('admin_candidates', ['p_search' => $candSearch ?: null]);
-        } catch (SupabaseError $ex) {
-            $error = safe_error($ex);
-        }
     }
 
     // A complaint system is worth gaming: one person, several accounts,
@@ -220,8 +187,14 @@ function render_account_screen(string $role): void
         }));
     }
 
-    if (($_GET['sort'] ?? '') === 'newest') {
-        usort($accounts, fn($x, $y) => strcmp((string) $y['created_at'], (string) $x['created_at']));
+    // Filter, not a sort — Rose's feedback (15 Sep 2026): the two options
+    // people actually reach for are "show me who still needs review" and
+    // "show me who's already in," not a re-ordering of the same list.
+    $statusFilter = (string) ($_GET['sort'] ?? '');
+    if ($statusFilter === 'pending') {
+        $accounts = array_values(array_filter($accounts, fn($a) => $a['verification_status'] === 'pending'));
+    } elseif ($statusFilter === 'verified') {
+        $accounts = array_values(array_filter($accounts, fn($a) => $a['verification_status'] === 'verified'));
     }
 
     $pending = count(array_filter($accounts, fn($a) => $a['verification_status'] === 'pending'));
@@ -261,14 +234,13 @@ function render_account_screen(string $role): void
           <input type="search" name="q" placeholder="Search Here" value="<?= e($search) ?>">
         </form>
 
-        <a class="btn-pdf" href="<?= e($self) ?>?transfer=1">Transfer Administration</a>
-
         <form class="panel-sort" method="get">
           <input type="hidden" name="q" value="<?= e($search) ?>">
-          <label>Short by:
+          <label>Filter:
             <select name="sort" onchange="this.form.submit()">
-              <option value="">Awaiting review first</option>
-              <option value="newest" <?= ($_GET['sort'] ?? '') === 'newest' ? 'selected' : '' ?>>Newest</option>
+              <option value="">All accounts</option>
+              <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>Pending Verification</option>
+              <option value="verified" <?= $statusFilter === 'verified' ? 'selected' : '' ?>>Verified</option>
             </select>
           </label>
         </form>
@@ -296,7 +268,7 @@ function render_account_screen(string $role): void
 
             <?php foreach ($accounts as $a): ?>
               <tr>
-                <td><?= e($a['full_name']) ?></td>
+                <td class="cell-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e($a['full_name']) ?></span></td>
                 <td class="mono"><?= e($a['mobile_number']) ?></td>
                 <td><?= e($a['email']) ?></td>
                 <td><?= account_status_pills($a) ?><?php
@@ -341,85 +313,6 @@ function render_account_screen(string $role): void
       </div>
     </section>
 
-    <?php if ($transfer): ?>
-      <dialog class="succession" id="transfer" open>
-        <h2 class="doc-h">Transfer Administration</h2>
-        <p class="control-note">
-          Only verified accounts appear below. Verification is the step where the
-          barangay confirmed the person lives in 183, so an outsider cannot be
-          appointed. Appoint your successor first &mdash; you cannot step down
-          while you are the only administrator.
-        </p>
-
-        <form method="get" class="panel-search succession-search">
-          <?= nav_icon('search') ?>
-          <input type="hidden" name="transfer" value="1">
-          <input type="search" name="cand" placeholder="Type the successor's name"
-                 value="<?= e($candSearch) ?>" autofocus>
-        </form>
-
-        <form method="post">
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-
-          <div class="cand-list">
-            <?php if (!$candidates): ?>
-              <p class="case-none">No verified account matches that name.</p>
-            <?php endif; ?>
-            <?php foreach ($candidates as $c): ?>
-              <label class="roster-row">
-                <input type="radio" name="successor" value="<?= e($c['id']) ?>" required>
-                <span class="roster-name"><?= e($c['full_name']) ?>
-                  <small class="roster-dist"><?= e($c['email']) ?></small></span>
-                <span class="roster-state is-on"><?= e(strtoupper($c['role'])) ?></span>
-                <span class="roster-pick">Appoint</span>
-              </label>
-            <?php endforeach; ?>
-          </div>
-
-          <div class="control-field">
-            <label class="field-label" for="t-reason">Reason for the handover</label>
-            <input type="text" id="t-reason" name="reason" maxlength="200"
-                   placeholder="e.g. Turnover following the October 2026 barangay election">
-          </div>
-
-          <div class="control-field">
-            <label class="field-label" for="t-pass">Your password</label>
-            <input type="password" id="t-pass" name="password" required autocomplete="current-password">
-            <p class="field-hint">Confirms it is you making this change.</p>
-          </div>
-
-          <div class="confirm-actions" style="justify-content:flex-start">
-            <button class="btn-accept" type="submit" name="action" value="promote">Grant admin access</button>
-            <a class="btn-deny" href="<?= e($self) ?>">Cancel</a>
-          </div>
-        </form>
-
-        <form method="post" class="step-down">
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <h3 class="case-sub">Stepping down</h3>
-          <p class="control-note">
-            Once your successor has admin access, hand over. You will be signed out
-            and returned to a normal account. This is refused while you are the only
-            administrator.
-          </p>
-          <div class="control-field">
-            <label class="field-label" for="t-role">Return to</label>
-            <select id="t-role" name="new_role">
-              <option value="resident">Resident</option>
-              <option value="tanod">Tanod</option>
-            </select>
-          </div>
-          <div class="control-field">
-            <label class="field-label" for="t-pass2">Your password</label>
-            <input type="password" id="t-pass2" name="password" required autocomplete="current-password">
-          </div>
-          <button class="btn-deny-confirm" type="submit" name="action" value="step_down">
-            Step down as administrator
-          </button>
-        </form>
-      </dialog>
-    <?php endif; ?>
-
     <script src="assets/vendor/supabase/supabase.js"></script>
     <script>
     // Realtime for the verification queue — explicit ask, 6 Sep 2026: "the
@@ -440,7 +333,7 @@ function render_account_screen(string $role): void
       const ROLE  = <?= json_encode($role) ?>;
       const SELF  = <?= json_encode($self) ?>;
       const SEARCH = <?= json_encode($search) ?>;
-      const SORT_NEWEST = <?= json_encode(($_GET['sort'] ?? '') === 'newest') ?>;
+      const STATUS_FILTER = <?= json_encode($statusFilter) ?>;
       // Same session token every page load (csrf_token() memoizes it) --
       // safe to bake into the JS-rendered Quick Verify forms below the
       // same way the PHP-rendered ones already carry it as a hidden
@@ -461,6 +354,24 @@ function render_account_screen(string $role): void
       }
       const titleCase = s => String(s || '').replace(/_/g, ' ')
         .replace(/\b\w/g, c => c.toUpperCase());
+
+      // Mirrors account_avatar_html()/account_initials() in this same
+      // file exactly, so a live refresh shows the same picture (or the
+      // same initials fallback) a reload would.
+      function initials(name) {
+        var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return '?';
+        var first = parts[0].charAt(0);
+        var last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+        return (first + last).toUpperCase();
+      }
+      function avatarHtml(url, name, size) {
+        var cls = 'avatar avatar--' + size;
+        if (url) {
+          return '<img class="' + cls + '" src="' + escapeHtml(url) + '" alt="" loading="lazy">';
+        }
+        return '<span class="' + cls + ' avatar--fallback" aria-hidden="true">' + escapeHtml(initials(name)) + '</span>';
+      }
 
       // Mirrors account_ocr_is_clean() in this same file exactly.
       function ocrIsClean(a) {
@@ -554,10 +465,8 @@ function render_account_screen(string $role): void
               .toLowerCase().indexOf(needle) !== -1;
           });
         }
-        if (SORT_NEWEST) {
-          filtered = filtered.slice().sort(function (x, y) {
-            return String(y.created_at).localeCompare(String(x.created_at));
-          });
+        if (STATUS_FILTER === 'pending' || STATUS_FILTER === 'verified') {
+          filtered = filtered.filter(function (a) { return a.verification_status === STATUS_FILTER; });
         }
         var dupes = duplicateFlags(accounts);
 
@@ -613,7 +522,7 @@ function render_account_screen(string $role): void
               '</form>';
           }
           return '<tr>' +
-            '<td>' + escapeHtml(a.full_name) + '</td>' +
+            '<td class="cell-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(a.full_name) + '</span></td>' +
             '<td class="mono">' + escapeHtml(a.mobile_number) + '</td>' +
             '<td>' + escapeHtml(a.email) + '</td>' +
             '<td>' + statusPillsHtml(a) + extra + '</td>' +
@@ -773,6 +682,32 @@ function is_self_deleted_account(array $a): bool
     return str_starts_with((string) ($a['suspended_reason'] ?? ''), 'Account deleted by the resident');
 }
 
+/**
+ * The picture a resident or tanod chose for themselves in Edit Profile
+ * (migration 0038's avatar_url) — falls back to a two-letter initials
+ * badge when they never set one, rather than reusing the verification
+ * selfie: that photo is identity evidence taken once at registration for
+ * an admin to check against an ID, not the everyday picture someone
+ * picked for their own account.
+ */
+function account_avatar_html(?string $url, string $name, string $size = 'sm'): string
+{
+    $cls = 'avatar avatar--' . $size;
+    if (!empty($url)) {
+        return '<img class="' . $cls . '" src="' . e($url) . '" alt="" loading="lazy">';
+    }
+    return '<span class="' . $cls . ' avatar--fallback" aria-hidden="true">' . e(account_initials($name)) . '</span>';
+}
+
+function account_initials(string $name): string
+{
+    $parts = array_values(array_filter(preg_split('/\s+/', trim($name)) ?: []));
+    if (!$parts) return '?';
+    $first = mb_substr($parts[0], 0, 1);
+    $last  = count($parts) > 1 ? mb_substr($parts[count($parts) - 1], 0, 1) : '';
+    return mb_strtoupper($first . $last);
+}
+
 /** Status, suspension and the two-hour clock, as pills. */
 function account_status_pills(array $a): string
 {
@@ -864,7 +799,7 @@ function render_account_detail(
 
     <div class="case-grid">
       <section class="card card--complaint">
-        <h1 class="case-heading"><?= e($p['full_name']) ?></h1>
+        <h1 class="case-heading"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><span><?= e($p['full_name']) ?></span></h1>
         <div class="case-flags"><?= account_status_pills($p) ?></div>
 
         <?php if ($pending && !empty($p['due_at'])): ?>
@@ -1083,7 +1018,8 @@ function render_account_detail(
                 nothing meaningful to reinstate this account to.
               </p>
             <?php else: ?>
-              <button class="btn-accept" type="submit" name="action" value="reinstate">Reinstate Account</button>
+              <button class="btn-accept" type="submit" name="action" value="reinstate"
+                      onclick="return confirm('Reinstate <?= e(addslashes($p['full_name'])) ?>? They will be able to sign in again.')">Reinstate Account</button>
             <?php endif; ?>
 
           <?php elseif ($p['verification_status'] === 'verified'): ?>

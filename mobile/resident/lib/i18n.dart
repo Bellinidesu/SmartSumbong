@@ -646,6 +646,78 @@ class Strings {
       'A photo is attached to this request.',
       'May naka-attach na larawan sa kahilingang ito.');
 
+  // ---------- appeal a rejected report (10 Sep 2026, request_appeal 0057) ----------
+  // The rejected path's own Cancel/Reopen — same request-not-decide split
+  // as Reopen above (request_appeal() only files the request; the
+  // barangay's appeal_report() is what actually reinstates the case), so
+  // most of this section deliberately mirrors the Reopen strings just
+  // above it rather than inventing new phrasing for the same shape of
+  // action.
+  String get reportsMenuAppeal => _t('Appeal', 'Umapela');
+  String get reportsErrorOnlyRejectedAppeal => _t(
+      'Only a rejected complaint can be appealed.',
+      'Isang tinanggihang ulat lamang ang maaaring iapela.');
+  String get reportsAppealReasonIncorrect => _t(
+      'The rejection reason is incorrect',
+      'Mali ang dahilan ng pagtanggi');
+  String get reportsAppealReasonMoreEvidence => _t(
+      'I have more evidence to support this',
+      'May karagdagan akong ebidensya para dito');
+  String get reportsAppealReasonShouldNotBeDenied => _t(
+      'This should not have been denied',
+      'Hindi ito dapat tinanggihan');
+  String get reportsAppealReasonOther => _t('Other', 'Iba pa');
+  /// Same wire/label split as reportsReopenReasonLabel — the canonical
+  /// English value is what request_appeal() sends and the barangay
+  /// reads, only the on-screen label translates.
+  String reportsAppealReasonLabel(String english) {
+    switch (english) {
+      case 'The rejection reason is incorrect':
+        return reportsAppealReasonIncorrect;
+      case 'I have more evidence to support this':
+        return reportsAppealReasonMoreEvidence;
+      case 'This should not have been denied':
+        return reportsAppealReasonShouldNotBeDenied;
+      case 'Other':
+        return reportsAppealReasonOther;
+      default:
+        return english;
+    }
+  }
+  String get reportsAppealPhotoAccessBody => _t(
+      'SmartSumbong needs access to your photos to attach evidence to '
+      'this appeal.',
+      'Kailangan ng SmartSumbong ng access sa iyong mga larawan para '
+      'maidagdag ang ebidensya sa apela na ito.');
+  String get reportsAppealCameraAccessRationale => _t(
+      'SmartSumbong needs camera access to attach evidence to this '
+      'appeal.',
+      'Kailangan ng SmartSumbong ng access sa camera para maidagdag ang '
+      'ebidensya sa apela na ito.');
+  String reportsAppealHeader(
+          String trackingId, String statusLabel, String subject) =>
+      _t('Appeal:\n($trackingId - $statusLabel) $subject',
+          'Umapela:\n($trackingId - $statusLabel) $subject');
+  String get reportsOriginalDenialReason => _t(
+      'Original Denial Reason', 'Orihinal na Dahilan ng Pagtanggi');
+  String reportsDateDenied(String date) =>
+      _t('Date Denied: $date', 'Petsa ng Pagtanggi: $date');
+  String get reportsAppealNote => _t(
+      'Note: An appeal asks the barangay to review this denial again. If '
+      'this is a new problem rather than a dispute of this decision, '
+      'please file a new report instead.',
+      'Paalala: Ang pag-apela ay humihiling sa barangay na suriin ulit '
+      'ang pagtanggi na ito. Kung ito ay bagong problema at hindi '
+      'pagtutol sa desisyong ito, mangyaring mag-file na lamang ng '
+      'bagong ulat.');
+  String get reportsReasonOfAppeal =>
+      _t('Reason of Appeal', 'Dahilan ng Pag-apela');
+  String get reportsAckAppeal => _t(
+      'I acknowledge that the information I am submitting is, to the '
+      'best of my knowledge, accurate and complete.',
+      'Kinikilala ko na ang impormasyong isinusumite ko ay, sa abot ng '
+      'aking kaalaman, tama at kumpleto.');
+
   // ---------- report view (view a report) ----------
   String get reportViewNotFound => _t(
       'That report could not be found.', 'Hindi mahanap ang ulat na iyon.');

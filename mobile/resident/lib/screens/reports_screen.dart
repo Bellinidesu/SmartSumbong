@@ -33,6 +33,21 @@
 // (migration 0037) and writes it into report_media same as any other
 // report evidence, so the 35 MB combined cap and the URL-pinning check
 // both still apply to it.
+//
+// A THIRD ACTION, ADDED 10 SEP 2026, NOT IN ANY FIGMA FRAME: Appeal.
+// Rose's feedback list asked for a way to dispute a rejected complaint —
+// the one outcome that previously had no resident-facing recourse at
+// all (Cancel never applied to it, and Reopen is gated to isFinished,
+// which rejected deliberately is not). Built as the rejected path's own
+// Cancel/Reopen pair rather than folding it into Reopen: request_appeal()
+// and appeal_report() (0057) are new, but they follow request_reopen()/
+// reopen_report()'s exact split, so the same "request, not a decision"
+// honesty applies — see _requestAppeal's own comment. The sheet
+// (_AppealSheet, bottom of this file) is a deliberate near-duplicate of
+// _ReopenSheet for the same reason report_view_screen.dart gives for NOT
+// collapsing its six status frames into fewer than they need: the copy
+// differs throughout, so sharing the widget would just be an if/else
+// wearing a trenchcoat.
 
 import 'dart:async';
 import 'dart:io';
@@ -84,6 +99,12 @@ enum ReportStatus {
       this == ReportStatus.resolved || this == ReportStatus.closed;
 
   bool get canRequestReopen => isFinished;
+
+  /// The rejected path's own version of canRequestReopen — added 10 Sep
+  /// 2026 alongside request_appeal() (0057). A denial is not "finished"
+  /// in the sense isFinished means (nobody did any work), so it gets its
+  /// own gate rather than being folded into that one.
+  bool get canRequestAppeal => this == ReportStatus.rejected;
 
   /// Still moving — not resolved/closed/archived, not rejected, not
   /// cancelled. Exactly the states worth a resident watching in real
@@ -592,6 +613,68 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
+  /// The appeal counterpart to [_requestReopen] — same shape end to end
+  /// (fetch context, show a sheet, raise a request, be honest that
+  /// nothing has changed yet), for a rejected complaint instead of a
+  /// finished one. request_appeal() (0057) only files the request;
+  /// appeal_report() (admin-only) is what actually reinstates the case.
+  Future<void> _requestAppeal(ReportSummary r) async {
+    // Same reasoning as _requestReopen's closing-remark fetch: the
+    // resident is being asked "dispute this specific denial?", so the
+    // denial reason and when it happened are shown above the form.
+    String? denialRemark;
+    DateTime? deniedAt;
+    try {
+      final log = await Supabase.instance.client
+          .from('status_logs')
+          .select('remark, created_at')
+          .eq('report_id', r.id)
+          .eq('new_status', 'rejected')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      denialRemark = (log?['remark'] as String?)?.trim();
+      if (denialRemark != null && denialRemark.isEmpty) denialRemark = null;
+      deniedAt = DateTime.tryParse(log?['created_at'] as String? ?? '');
+    } catch (_) {
+      // The sheet still works without it; the resident just sees less
+      // context than the design shows for Reopen.
+    }
+
+    if (!mounted) return;
+    final result = await showModalBottomSheet<_AppealResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AppealSheet(
+        report: r,
+        denialRemark: denialRemark,
+        deniedAt: deniedAt,
+        uploader: widget.uploader,
+      ),
+    );
+    if (result == null || result.reason.trim().isEmpty) return;
+
+    try {
+      await Supabase.instance.client.rpc(
+        'request_appeal',
+        params: {
+          'p_report': r.id,
+          'p_reason': result.reason.trim(),
+          if (result.media != null) 'p_media': [result.media!.toJson()],
+        },
+      );
+      if (!mounted) return;
+      // Same honesty as _requestReopen — the request is with the
+      // barangay, the report has not changed state.
+      _toast(context.s.reportsRequestSent);
+      _load();
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      _toast(_friendly(e.message));
+    }
+  }
+
   String _friendly(String raw) {
     final m = raw.toLowerCase();
     final s = context.s;
@@ -601,10 +684,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (m.contains('only a finished report')) {
       return s.reportsErrorOnlyCompletedReopen;
     }
+    if (m.contains('only a rejected complaint')) {
+      return s.reportsErrorOnlyRejectedAppeal;
+    }
     if (m.contains('only the resident')) {
       return s.reportsErrorOwnReportsOnly;
     }
-    if (m.contains('say why')) {
+    if (m.contains('say why') || m.contains('explain why')) {
       return s.reportsErrorGiveReason;
     }
     return s.reportsErrorGeneric;
@@ -715,6 +801,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           onCancel: r.status.canCancel ? () => _cancel(r) : null,
           onReopen:
               r.status.canRequestReopen ? () => _requestReopen(r) : null,
+          onAppeal:
+              r.status.canRequestAppeal ? () => _requestAppeal(r) : null,
         );
       },
     );
@@ -780,6 +868,7 @@ class _ReportCard extends StatelessWidget {
     this.resolutionAuthor,
     this.onCancel,
     this.onReopen,
+    this.onAppeal,
   });
 
   final ReportSummary report;
@@ -812,6 +901,7 @@ class _ReportCard extends StatelessWidget {
 
   final VoidCallback? onCancel;
   final VoidCallback? onReopen;
+  final VoidCallback? onAppeal;
 
   static const _orange = Color(0xFFFF9800);
 
@@ -950,6 +1040,7 @@ class _ReportCard extends StatelessWidget {
                         onView: onView,
                         onCancel: onCancel,
                         onReopen: onReopen,
+                        onAppeal: onAppeal,
                       ),
                     ],
                   ),
@@ -1360,11 +1451,17 @@ enum _RowKind { submitted, entry, upcoming }
 /// rather than present and failing — a menu that offers Cancel on a
 /// dispatched report teaches the resident the app is unreliable.
 class _CardMenu extends StatelessWidget {
-  const _CardMenu({required this.onView, this.onCancel, this.onReopen});
+  const _CardMenu({
+    required this.onView,
+    this.onCancel,
+    this.onReopen,
+    this.onAppeal,
+  });
 
   final VoidCallback onView;
   final VoidCallback? onCancel;
   final VoidCallback? onReopen;
+  final VoidCallback? onAppeal;
 
   @override
   Widget build(BuildContext context) {
@@ -1381,6 +1478,8 @@ class _CardMenu extends StatelessWidget {
             onCancel?.call();
           case 'reopen':
             onReopen?.call();
+          case 'appeal':
+            onAppeal?.call();
         }
       },
       itemBuilder: (_) => [
@@ -1417,6 +1516,21 @@ class _CardMenu extends StatelessWidget {
               Icon(Icons.refresh, size: 16, color: context.colors.bg),
               const SizedBox(width: 8),
               Text(s.reportsMenuReopen,
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: context.colors.bg)),
+            ]),
+          ),
+        if (onAppeal != null)
+          PopupMenuItem(
+            value: 'appeal',
+            height: 36,
+            child: Row(children: [
+              Icon(Icons.gavel_outlined, size: 16, color: context.colors.bg),
+              const SizedBox(width: 8),
+              Text(s.reportsMenuAppeal,
                   style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w700,
@@ -2178,4 +2292,424 @@ class _ReopenDashedBorder extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ReopenDashedBorder oldDelegate) =>
       oldDelegate.color != color;
+}
+
+// ---------- appeal (10 Sep 2026, request_appeal 0057) ---------
+//
+// The rejected path's own Reopen sheet. Structured as a near-duplicate
+// of _ReopenSheet just above rather than a shared parametrised widget —
+// same call this file already makes for _ActionDialog/_ReasonDialog
+// versus a one-off dialog: the two forms read a different context
+// (denial reason + date denied, not closing remark + date closed) and
+// carry different copy throughout, so a shared widget would just be an
+// if/else in disguise. _ReopenPhotoTile and _ReopenDashedBorder ARE
+// reused as-is, though — those two are already copy-free (a generic
+// "Attach Media" tile), so duplicating them would be copying for its
+// own sake.
+
+/// Developer-invented, same status as _reopenReasons — on the list of
+/// values the barangay still has to confirm.
+const _appealReasons = <String>[
+  'The rejection reason is incorrect',
+  'I have more evidence to support this',
+  'This should not have been denied',
+  'Other',
+];
+
+/// What the sheet hands back to [_ReportsScreenState._requestAppeal] —
+/// mirrors _ReopenResult exactly.
+class _AppealResult {
+  const _AppealResult({required this.reason, this.media});
+  final String reason;
+  final UploadedMedia? media;
+}
+
+class _AppealSheet extends StatefulWidget {
+  const _AppealSheet({
+    required this.report,
+    required this.uploader,
+    this.denialRemark,
+    this.deniedAt,
+  });
+
+  final ReportSummary report;
+  final MediaUploader uploader;
+
+  /// The remark left on the status_logs row that rejected this report,
+  /// if there is one — the outcome being disputed, shown the same way
+  /// _ReopenSheet shows the closing remark it is asking to reopen.
+  final String? denialRemark;
+
+  /// When that rejection happened. Read from status_logs.created_at by
+  /// the caller rather than a stored column — reports has no
+  /// rejected_at, only resolved_at/closed_at (see ReportSummary).
+  final DateTime? deniedAt;
+
+  @override
+  State<_AppealSheet> createState() => _AppealSheetState();
+}
+
+class _AppealSheetState extends State<_AppealSheet> {
+  final _concern = TextEditingController();
+  String? _reason;
+  bool _acknowledged = false;
+  String? _error;
+  String? _banner;
+  bool _busy = false;
+
+  /// One optional photo, matching request_appeal()'s p_media (0057),
+  /// the same shape request_reopen() already takes.
+  File? _photo;
+
+  @override
+  void dispose() {
+    _concern.dispose();
+    super.dispose();
+  }
+
+  Future<ImageSource?> _chooseSource(BuildContext context) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: context.colors.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
+              title: Text(context.s.reportsTakePhoto),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
+              title: Text(context.s.reportsChooseFromGallery),
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addPhoto() async {
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final s = context.s;
+    final granted = await PermissionGate.ensure(
+      context,
+      permission:
+          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: source == ImageSource.camera
+          ? s.reportsCameraAccessTitle
+          : s.reportsPhotoAccessTitle,
+      rationale: source == ImageSource.camera
+          ? s.reportsAppealCameraAccessRationale
+          : s.reportsAppealPhotoAccessBody,
+    );
+    if (!granted || !mounted) return;
+    setState(() => _banner = null);
+    try {
+      final f = await widget.uploader.pick(source: source);
+      if (f == null) return;
+      setState(() => _photo = f);
+    } on MediaUploadException catch (e) {
+      setState(() => _banner = e.message);
+    }
+  }
+
+  void _removePhoto() => setState(() => _photo = null);
+
+  Future<void> _submit() async {
+    if (_reason == null) {
+      setState(() => _error = context.s.reportsReasonRequired);
+      return;
+    }
+    if (_concern.text.trim().isEmpty) {
+      setState(() => _error = context.s.reportsConcernRequired);
+      return;
+    }
+    if (!_acknowledged) {
+      setState(() => _error = context.s.reportsAckRequired);
+      return;
+    }
+
+    UploadedMedia? media;
+    if (_photo != null) {
+      setState(() {
+        _busy = true;
+        _banner = null;
+      });
+      try {
+        media = await widget.uploader
+            .upload(_photo!, kind: MediaKind.reportPhoto);
+      } on MediaUploadException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _busy = false;
+          _banner = e.message;
+        });
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop(_AppealResult(
+      reason: '$_reason. ${_concern.text.trim()}',
+      media: media,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.report;
+    final s = context.s;
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + inset),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+
+            // The navy header card carrying the ticket being appealed —
+            // same shape as _ReopenSheet's own header card.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              decoration: BoxDecoration(
+                color: context.colors.navy,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.reportsAppealHeader(r.trackingId,
+                        s.reportStatusLabel(r.status.wire), r.subject),
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      height: 1.25,
+                      color: context.colors.bg,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // The denial being disputed, so the resident can see it
+            // before appealing it — mirrors _ReopenSheet's closing-
+            // remark box for the rejected path.
+            if (widget.deniedAt != null || widget.denialRemark != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.colors.field,
+                    border: Border.all(color: context.colors.navy),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.denialRemark != null) ...[
+                        Text(
+                          s.reportsOriginalDenialReason,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.denialRemark!,
+                          style: TextStyle(
+                              fontSize: 12, height: 1.35, color: context.colors.navy),
+                        ),
+                      ],
+                      if (widget.deniedAt != null) ...[
+                        if (widget.denialRemark != null)
+                          const SizedBox(height: 8),
+                        Text(
+                          s.reportsDateDenied(_formatDate(s, widget.deniedAt!)),
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+            // Appealing does not happen here — the barangay decides.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: context.colors.field,
+                border: Border.all(color: context.colors.navy),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                s.reportsAppealNote,
+                style: TextStyle(fontSize: 12, height: 1.35,
+                    color: context.colors.navy),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Text(s.reportsReasonOfAppeal,
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: context.colors.navy)),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              initialValue: _reason,
+              isExpanded: true,
+              hint: Text(s.reportsSelectAReason),
+              items: [
+                for (final v in _appealReasons)
+                  DropdownMenuItem(
+                      value: v, child: Text(s.reportsAppealReasonLabel(v))),
+              ],
+              onChanged: (v) => setState(() {
+                _reason = v;
+                _error = null;
+              }),
+            ),
+            const SizedBox(height: 14),
+
+            TextField(
+              controller: _concern,
+              maxLines: 4,
+              maxLength: 500,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: s.reportsConcernHint,
+              ),
+              onChanged: (_) => setState(() => _error = null),
+            ),
+
+            const SizedBox(height: 14),
+
+            Text(s.reportsOptional,
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: context.colors.navy)),
+            const SizedBox(height: 6),
+            _ReopenPhotoTile(
+              photo: _photo,
+              enabled: !_busy,
+              onAdd: _addPhoto,
+              onRemove: _removePhoto,
+            ),
+
+            if (_banner != null) ...[
+              const SizedBox(height: 10),
+              Text(_banner!,
+                  style: TextStyle(color: context.colors.hint, fontSize: 12)),
+            ],
+            const SizedBox(height: 14),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _acknowledged,
+                    onChanged: _busy
+                        ? null
+                        : (v) => setState(() {
+                              _acknowledged = v ?? false;
+                              _error = null;
+                            }),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    s.reportsAckAppeal,
+                    style: TextStyle(
+                        fontSize: 12, color: context.colors.navy, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+
+            if (_error != null) ...[
+              const SizedBox(height: 6),
+              Text(_error!,
+                  style: TextStyle(color: context.colors.hint, fontSize: 12)),
+            ],
+            const SizedBox(height: 8),
+
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed:
+                        _busy ? null : () => Navigator.of(context).pop(),
+                    child: Text(s.reportsDialogBack),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _busy ? null : _submit,
+                    child: _busy
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: context.colors.bg),
+                          )
+                        : Text(s.reportsSubmit),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _formatDate(Strings s, DateTime utc) {
+    final d = utc.toLocal();
+    return '${s.monthAbbr(d.month)} ${d.day}, ${d.year}';
+  }
 }

@@ -91,6 +91,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $flash = 'Dispatched. The tanod has been notified.';
                     break;
 
+                // 0057 — the resident's appeal of a denial. Grants it
+                // straight to 'validated' with a fresh SLA window; there
+                // is no separate "deny the appeal" action because
+                // declining is simply not acting on it, the same way an
+                // unactioned reopen request just stays finished.
+                case 'appeal_grant':
+                    $db->rpc('appeal_report', [
+                        'p_report' => $id,
+                        'p_remark' => trim((string) ($_POST['remark'] ?? '')) ?: null,
+                    ]);
+                    $flash = 'Appeal granted. The complaint is back with the barangay.';
+                    break;
+
                 default:
                     $flash = 'Unknown action.';
                     $level = 'error';
@@ -124,7 +137,7 @@ try {
     $rows = $db->select('reports', [
         'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
                   . 'latitude,longitude,due_at,escalated_at,escalation_level,reopened_count,'
-                  . 'awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
+                  . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
                   . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
         'id'         => 'eq.' . $id,
         'deleted_at' => 'is.null',
@@ -220,6 +233,22 @@ foreach ($dispatches as $d) {
 
 $status   = $report['status'] ?? '';
 $canJudge = $status === 'pending_review';
+
+// 0057 — is there a live appeal request sitting on this rejected
+// complaint? $logs is oldest-first, so the newest entry decides: an
+// appeal that has already been granted moved the status off 'rejected'
+// (this branch never runs then), and an appeal that was granted and the
+// case rejected again would leave a newer, different-remarked entry on
+// top — so reading only the last row is enough to tell "pending" from
+// "already asked about, nothing since".
+$appealReason = null;
+if ($status === 'rejected' && $logs) {
+    $last = $logs[count($logs) - 1];
+    if (($last['new_status'] ?? '') === 'rejected'
+        && str_starts_with((string) ($last['remark'] ?? ''), 'Resident appealed the rejection:')) {
+        $appealReason = trim(substr((string) $last['remark'], strlen('Resident appealed the rejection:')));
+    }
+}
 
 // Context for the Deny panel: has this resident been flagged abusive
 // before, and how many times. Fetched only while it can actually matter
@@ -330,6 +359,9 @@ layout_head('Case Review', 'cases.php');
       <?php endif; ?>
       <?php if (($report['reopened_count'] ?? 0) > 0): ?>
         <span class="pill pill--pending">Reopened <?= (int) $report['reopened_count'] ?>&times;</span>
+      <?php endif; ?>
+      <?php if (!empty($report['appealed_at'])): ?>
+        <span class="pill pill--pending" title="Reinstated on appeal">Appealed</span>
       <?php endif; ?>
     </div>
 
@@ -532,6 +564,43 @@ layout_head('Case Review', 'cases.php');
         </div>
 
         <button class="btn-dispatch" type="submit" name="action" value="dispatch">Dispatch</button>
+      </form>
+
+    <?php elseif ($status === 'rejected' && $appealReason !== null): ?>
+      <!-- 0057 — the resident disputed this denial. Granting hands the
+           case straight back to the roster (canAssign becomes true on
+           reload, same as any freshly validated complaint) rather than
+           adding a second review step the design never asked for. -->
+      <form method="post" class="control-stack" id="appeal-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+
+        <p class="kbd-hint">The resident is appealing this denial.</p>
+
+        <div class="control-field">
+          <label class="field-label">Resident's reason</label>
+          <p class="case-body"><?= e($appealReason) ?></p>
+        </div>
+
+        <div class="control-field">
+          <label for="remark" class="field-label">
+            Note for the trail (optional)
+          </label>
+          <textarea id="remark" name="remark" rows="2" maxlength="300"
+                    placeholder="e.g. New photos confirm the report — reinstating."></textarea>
+        </div>
+
+        <button class="btn-accept" type="submit" name="action" value="appeal_grant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Grant Appeal
+        </button>
+        <p class="control-note">
+          Moves this complaint back to Validated with a fresh resolution
+          window. To decline, simply leave this as is — the complaint
+          stays denied.
+        </p>
       </form>
 
     <?php else: ?>
