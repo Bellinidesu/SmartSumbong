@@ -50,8 +50,7 @@ declare(strict_types=1);
     <h1>SmartSumbong</h1>
     <p class="sub">Localized complaint mapping for Barangay 183, Pasay City.</p>
     <div class="links">
-      <a class="btn btn-primary" href="public/transparency.php">View Public Transparency Dashboard</a>
-      <a class="btn btn-secondary" href="admin/login.php">Barangay Admin Login</a>
+      <a class="btn btn-primary" href="admin/login.php">Barangay Admin Login</a>
     </div>
     <footer>Capstone project &middot; Group 12 &middot; Barangay 183, Pasay City</footer>
   </div>

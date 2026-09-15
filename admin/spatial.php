@@ -511,6 +511,84 @@ function hotspotColour(n) {
   return '#f59e0b';
 }
 
+// Distance in metres between two lat/lng points — plain haversine, no
+// PostGIS needed client-side. Used only to approximate which loaded
+// reports fall inside a given hotspot circle, matching report_hotspots()'s
+// own eps=45m clustering radius (0042) closely enough for display purposes.
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Rose's feedback (15 Sep 2026): clicking a hotspot should show a submitted
+// date and a deadline, the same way clicking an individual pin already
+// does (showDetail() above). A hotspot is an aggregate of several reports
+// though, not one, so there is no single submitted date/deadline to read
+// off the row the way showDetail() can — report_hotspots() (0042) only
+// ever returns the cluster's centroid, count, top category, and first/last
+// report timestamps, never the member reports themselves. Rather than add
+// a new RPC just to list cluster membership, this reconstructs it
+// client-side: `all` already holds every report visible on the map, so
+// filtering to whichever of those sit within report_hotspots()'s own 45m
+// clustering radius of this hotspot's centroid (and inside the same
+// period/category the hotspot analysis is currently scoped to) recovers
+// the same group of reports well enough to show real dates from, not just
+// the cluster's own summary numbers.
+function showHotspotDetail(h) {
+  const { from, to } = periodRange();
+  const cat = document.getElementById('f-category').value || null;
+  const fromMs = new Date(from).getTime(), toMs = new Date(to).getTime();
+
+  const members = all.filter(r => {
+    if (cat && r.category !== cat) return false;
+    const t = new Date(r.created_at).getTime();
+    if (t < fromMs || t >= toMs) return false;
+    return haversineMeters(r.latitude, r.longitude, h.centroid_lat, h.centroid_lng) <= 45;
+  });
+
+  const open = members.filter(r =>
+    !['resolved', 'closed', 'archived', 'rejected'].includes(r.status) && r.due_at);
+  let nearestDeadline = null;
+  open.forEach(r => {
+    if (!nearestDeadline || new Date(r.due_at) < new Date(nearestDeadline)) nearestDeadline = r.due_at;
+  });
+
+  const submitted = fmtDate(h.first_at) || '—';
+  const submittedRange = (h.last_at && h.last_at !== h.first_at)
+    ? submitted + ' – ' + (fmtDate(h.last_at) || '—') : submitted;
+  const deadlineText = nearestDeadline
+    ? fmtDate(nearestDeadline) + ' (nearest of ' + open.length + ' still open)'
+    : 'No open deadlines in this cluster';
+
+  const box = document.getElementById('pin-detail');
+  box.innerHTML =
+    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
+    '<p class="detail-id">Hotspot &mdash; ' + h.report_count + ' report' + (h.report_count === 1 ? '' : 's') + '</p>' +
+    '<p class="detail-cat">Mostly ' + label(h.top_category) + '</p>' +
+    '<dl class="detail-dates">' +
+      '<dt>Submitted</dt><dd>' + submittedRange + '</dd>' +
+      '<dt>Deadline</dt><dd>' + deadlineText + '</dd>' +
+    '</dl>' +
+    (members.length
+      ? '<p class="detail-sub">Reports in this cluster:</p>' +
+        '<ol class="pin-list" style="margin:0">' +
+        members.slice(0, 8).map(r =>
+          '<li class="pin-item">' +
+            '<span class="pin-dot" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
+            '<span class="pin-body"><a href="case.php?id=' + r.id + '">' + r.tracking_id + '</a>' +
+            '<small>' + label(r.category) + '</small></span>' +
+          '</li>').join('') +
+        '</ol>'
+      : '');
+  box.removeAttribute('hidden');
+  box.querySelector('.detail-x').addEventListener('click',
+    () => box.setAttribute('hidden', ''));
+}
+
 async function loadHotspots() {
   const status = document.getElementById('hotspot-status');
   const badge  = document.getElementById('hotspot-toggle');
@@ -538,11 +616,7 @@ async function loadHotspots() {
     L.circleMarker([h.centroid_lat, h.centroid_lng], {
       radius, color: '#fff', weight: 2,
       fillColor: hotspotColour(h.report_count), fillOpacity: 0.55,
-    }).bindPopup(
-      '<strong>' + h.report_count + ' reports nearby</strong><br>' +
-      'Mostly ' + label(h.top_category) + '<br>' +
-      new Date(h.first_at).toLocaleDateString() + ' – ' + new Date(h.last_at).toLocaleDateString()
-    ).addTo(hotspotLayer);
+    }).on('click', () => showHotspotDetail(h)).addTo(hotspotLayer);
   });
 
   if (!map.hasLayer(hotspotLayer)) hotspotLayer.addTo(map);

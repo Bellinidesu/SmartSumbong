@@ -3,8 +3,8 @@
 # Written ahead of real hosting (6 Sep 2026), not for the local `php -S`
 # dev server (which ignores .htaccess entirely — this only matters once
 # a real Apache host points its document root at this project folder,
-# the same layout config.php and transparency.php's own relative paths
-# already assume; see that discussion for why).
+# the same layout config.php's own relative paths already assume; see
+# that discussion for why).
 #
 # Confirmed working under the Docker/Apache setup used for the Sep 29-30
 # defense deploy (php:8.3-apache, mod_rewrite + AllowOverride All enabled
@@ -15,9 +15,12 @@
 # .env file sitting right here (real Supabase keys) would otherwise be
 # directly downloadable at https://yourdomain/.env, and things like
 # supabase/, mobile/, and this README have no business being served over
-# HTTP at all. Only admin/ (behind its own login), public/ (the
-# transparency page), and the root landing page are meant to answer a
-# request.
+# HTTP at all. Only admin/ (behind its own login) and the root landing
+# page are meant to answer a request.
+#
+# public/ (the no-login transparency dashboard) was removed 15 Sep 2026
+# (Rose: "we dont need it") -- deliberately dropped from the allowlist
+# below along with it, rather than left reachable with nothing behind it.
 
 # Block every dotfile outright — .env, .git, .env.example, etc.
 <FilesMatch "^\.">
@@ -32,8 +35,7 @@ RewriteEngine On
 # is an empty string here.)
 RewriteRule ^$ index.php [L]
 
-# Block everything except the three things this project actually serves.
+# Block everything except the two things this project actually serves.
 RewriteCond %{REQUEST_URI} !^/admin/
-RewriteCond %{REQUEST_URI} !^/public/
 RewriteCond %{REQUEST_URI} !^/index\.php$
 RewriteRule ^ - [F]
