@@ -90,6 +90,13 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   // foreground service (flutter_foreground_task or equivalent), which
   // this pass deliberately did not add unverified — see the deploy
   // notes for why.
+  //
+  // Cadence tightened 15 Sep 2026 (10 minutes -> 30 seconds) for live
+  // admin-side tanod tracking (0059): update_my_location() now also
+  // appends to tanod_locations for the admin map's live layer and
+  // pathing heatmap, so the interval this fires at is the resolution of
+  // both. Still on-duty-only and still foreground-only — same envelope
+  // as before, just finer-grained inside it.
   Timer? _locationTimer;
 
   // Live updates (8 Sep 2026 — mirrors resident's home_screen.dart /
@@ -154,7 +161,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   void _syncLocationTimer() {
     if (_status == DutyState.onDuty) {
       _locationTimer ??= Timer.periodic(
-        const Duration(minutes: 10),
+        const Duration(seconds: 30),
         (_) => _pushLocation(),
       );
     } else {

@@ -64,6 +64,21 @@ layout_head('Spatial Distribution', 'spatial.php');
 
       <label class="toggle"><input type="checkbox" id="f-heat"> Heatmap</label>
       <label class="toggle"><input type="checkbox" id="f-hotspots"> Hotspots</label>
+
+      <label class="toggle"><input type="checkbox" id="f-tanods"> Tanods</label>
+
+      <label class="toggle"><input type="checkbox" id="f-tanod-paths"> Tanod Paths</label>
+      <label class="visually-hidden" for="f-tanod-from">Tanod path range start</label>
+      <input type="date" id="f-tanod-from" disabled
+             value="<?= e((new DateTime('-7 days', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
+      <label class="visually-hidden" for="f-tanod-to">Tanod path range end</label>
+      <input type="date" id="f-tanod-to" disabled
+             value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
+      <label class="visually-hidden" for="f-tanod-who">Filter path to one tanod</label>
+      <select id="f-tanod-who" disabled>
+        <option value="">All tanods</option>
+      </select>
+
       <label class="toggle"><input type="checkbox" id="f-fog" checked> Dim outside 183</label>
     </div>
   </header>
@@ -124,6 +139,22 @@ layout_head('Spatial Distribution', 'spatial.php');
         <p class="map-side-head">Top hotspots</p>
         <p class="map-side-note" id="hotspot-status">Turn on Hotspots to see recurring problem areas.</p>
         <ol class="pin-list" id="hotspot-list"></ol>
+      </aside>
+
+      <button class="incident-badge" id="tanod-toggle" aria-expanded="false"
+              aria-controls="tanod-side" title="Tanod positions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.2"/>
+          <path d="M5 21c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/>
+        </svg>
+        <span class="incident-count" id="tanod-count">0</span>
+      </button>
+
+      <aside class="map-side" id="tanod-side" hidden>
+        <p class="map-side-head">Tanod positions</p>
+        <p class="map-side-note" id="tanod-status">Turn on Tanods to see live positions.</p>
+        <ol class="pin-list" id="tanod-list"></ol>
       </aside>
     </div>
   </div>
@@ -658,6 +689,171 @@ hotspotToggleBtn.addEventListener('click', () => {
   open ? hotspotSide.removeAttribute('hidden') : hotspotSide.setAttribute('hidden', '');
   hotspotToggleBtn.setAttribute('aria-expanded', String(open));
 });
+
+// ---- tanods: live position + pathing heatmap (0059) -----------------
+// Two independent things, each behind its own checkbox so an admin who
+// only wants complaints sees neither: (1) tanod_live_positions() — each
+// tanod's current fix (users.last_geom, already used for auto-dispatch
+// since 0005), refreshed on a poll matching the mobile app's own 30-second
+// update cadence, since there is no narrow realtime table worth opening a
+// channel on for this that reports-spatial doesn't already cover; (2)
+// tanod_path_heatmap() over an admin-picked date range — the "pathing
+// heatmap of all tanods", or one tanod at a time via the select below.
+// Neither is grid-suppressed or count-gated the way the now-removed
+// public transparency heat was (0058) — this is admin-only and the point
+// is precise, individual movement, not anonymised aggregate.
+
+const tanodLayer = L.layerGroup();
+let tanodPathHeat = null;
+let tanodRows = [];
+
+function tanodIcon(t) {
+  const fill = t.is_fresh ? '#1FA84E' : '#9aa1ab';
+  return L.divIcon({
+    className: 'tanod-icon',
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    popupAnchor: [0, -12],
+    html: '<svg viewBox="0 0 26 26">' +
+      '<circle cx="13" cy="13" r="11" fill="' + fill + '" stroke="#fff" stroke-width="2.5"/>' +
+      '<circle cx="13" cy="10.5" r="3" fill="#fff"/>' +
+      '<path d="M6.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" fill="#fff"/>' +
+    '</svg>',
+  });
+}
+
+function tanodDetail(t) {
+  const box = document.getElementById('pin-detail');
+  box.innerHTML =
+    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
+    '<p class="detail-id">' + t.full_name + '</p>' +
+    '<p class="detail-cat">' + label(t.duty_status || 'offline') + (t.is_fresh ? '' : ' — stale fix') + '</p>' +
+    '<dl class="detail-dates">' +
+      '<dt>Last update</dt><dd>' + (fmtDate(t.last_location_at) || 'Never') + '</dd>' +
+    '</dl>';
+  box.removeAttribute('hidden');
+  box.querySelector('.detail-x').addEventListener('click',
+    () => box.setAttribute('hidden', ''));
+}
+
+async function loadTanodPositions() {
+  const status = document.getElementById('tanod-status');
+  const badge  = document.getElementById('tanod-toggle');
+  const count  = document.getElementById('tanod-count');
+  const list   = document.getElementById('tanod-list');
+  const select = document.getElementById('f-tanod-who');
+
+  if (!document.getElementById('f-tanods').checked) {
+    tanodLayer.clearLayers();
+    if (map.hasLayer(tanodLayer)) map.removeLayer(tanodLayer);
+    return;
+  }
+
+  const { data, error } = await sb.rpc('tanod_live_positions');
+  if (error) { status.textContent = 'Could not load tanod positions: ' + error.message; return; }
+
+  tanodRows = data || [];
+  tanodLayer.clearLayers();
+
+  tanodRows.forEach(t => {
+    if (t.lat == null || t.lng == null) return;
+    L.marker([t.lat, t.lng], { icon: tanodIcon(t) })
+      .on('click', () => tanodDetail(t))
+      .addTo(tanodLayer);
+  });
+  if (!map.hasLayer(tanodLayer)) tanodLayer.addTo(map);
+
+  const live = tanodRows.filter(t => t.is_fresh);
+  count.textContent = live.length;
+  badge.classList.toggle('is-live', live.length > 0);
+  status.textContent = tanodRows.length
+    ? live.length + ' of ' + tanodRows.length + ' tanod' + (tanodRows.length === 1 ? '' : 's') + ' reporting live.'
+    : 'No tanod has ever reported a position yet.';
+
+  list.innerHTML = '';
+  tanodRows.forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'pin-item';
+    li.innerHTML =
+      '<span class="pin-dot" style="background:' + (t.is_fresh ? '#1FA84E' : '#9aa1ab') + '"></span>' +
+      '<span class="pin-body">' + t.full_name +
+      '<small>' + label(t.duty_status || 'offline') + (t.is_fresh ? '' : ' — stale') + '</small></span>';
+    if (t.lat != null && t.lng != null) {
+      li.addEventListener('click', () => map.panTo([t.lat, t.lng]));
+    }
+    list.appendChild(li);
+  });
+  if (!tanodRows.length) {
+    list.innerHTML = '<li class="pin-empty">No tanod has ever reported a position yet.</li>';
+  }
+
+  // Keep "narrow to one tanod" in sync without clobbering whatever the
+  // admin currently has picked, so an open path-heatmap selection survives
+  // a routine 30-second refresh.
+  const current = select.value;
+  select.innerHTML = '<option value="">All tanods</option>' +
+    tanodRows.map(t => '<option value="' + t.tanod_id + '">' + t.full_name + '</option>').join('');
+  select.value = tanodRows.some(t => t.tanod_id === current) ? current : '';
+}
+
+async function loadTanodPaths() {
+  const enabled = document.getElementById('f-tanod-paths').checked;
+  if (tanodPathHeat) { map.removeLayer(tanodPathHeat); tanodPathHeat = null; }
+  if (!enabled) return;
+
+  const from = document.getElementById('f-tanod-from').value;
+  const to   = document.getElementById('f-tanod-to').value;
+  if (!from || !to) return;
+
+  const who = document.getElementById('f-tanod-who').value || null;
+  // Bare dates from the picker, read as Asia/Manila midnight. The "to"
+  // date is inclusive on screen but tanod_path_heatmap()'s p_to is an
+  // exclusive upper bound, so it is pushed one day forward here.
+  const fromIso = new Date(from + 'T00:00:00+08:00').toISOString();
+  const toIso   = new Date(new Date(to + 'T00:00:00+08:00').getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await sb.rpc('tanod_path_heatmap',
+    { p_from: fromIso, p_to: toIso, p_tanod: who });
+  if (error) {
+    document.getElementById('tanod-status').textContent = 'Could not load tanod paths: ' + error.message;
+    return;
+  }
+
+  const points = (data || []).map(p => [p.lat, p.lng, 0.6]);
+  if (points.length) {
+    // A distinct blue-to-pink gradient, so a path trail never reads as
+    // more complaint-heat when both layers happen to be on at once.
+    tanodPathHeat = L.heatLayer(points, {
+      radius: 18, blur: 14, maxZoom: 18,
+      gradient: { 0.3: '#1d4ed8', 0.6: '#7c3aed', 1: '#db2777' },
+    }).addTo(map);
+  }
+}
+
+document.getElementById('f-tanods').addEventListener('change', loadTanodPositions);
+document.getElementById('f-tanod-paths').addEventListener('change', e => {
+  const on = e.target.checked;
+  document.getElementById('f-tanod-from').disabled = !on;
+  document.getElementById('f-tanod-to').disabled = !on;
+  document.getElementById('f-tanod-who').disabled = !on;
+  loadTanodPaths();
+});
+['f-tanod-from', 'f-tanod-to', 'f-tanod-who'].forEach(id =>
+  document.getElementById(id).addEventListener('change', loadTanodPaths));
+
+const tanodToggleBtn = document.getElementById('tanod-toggle');
+const tanodSide      = document.getElementById('tanod-side');
+tanodToggleBtn.addEventListener('click', () => {
+  const open = tanodSide.hasAttribute('hidden');
+  open ? tanodSide.removeAttribute('hidden') : tanodSide.setAttribute('hidden', '');
+  tanodToggleBtn.setAttribute('aria-expanded', String(open));
+});
+
+// New pings land every 30 seconds per on-duty tanod (0059's mobile-side
+// change) — re-poll on that cadence while the layer is on. loadTanodPositions()
+// itself no-ops instantly whenever the checkbox is off, so this timer costs
+// nothing while the feature is unused.
+setInterval(loadTanodPositions, 30000);
 
 loadBoundary().then(load);
 </script>
