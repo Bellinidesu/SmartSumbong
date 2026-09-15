@@ -268,17 +268,18 @@ const map = L.map('map', {
   zoomControl: false
 }).setView(RESIDENTIAL_CENTRE, DEFAULT_ZOOM);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
-// CARTO Voyager — the same OpenStreetMap data as before, styled closer to
-// the clean, colour-coded look of Google Maps (tinted roads/water/parks)
-// than the busier default OSM raster. Free public basemap CDN, no API key
-// and no billing account, same ₱0 footing this project has held to
-// everywhere else — Google Maps itself needs a billing-enabled Cloud
-// project even on its free tier, which is the actual reason this is a
-// re-skin rather than a provider switch (Ace, 15 Sep 2026).
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  maxZoom: 19, detectRetina: true,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
-             + '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+// Reverted 15 Sep 2026 — the CARTO Voyager re-skin tried here lasted about
+// an hour: CARTO now requires an API key for these basemap tiles (a very
+// recent change, not something visible when this was first written — it
+// broke a wide swath of unrelated open-source projects the same way the
+// same week, not just this one). An API key means an account and the same
+// billing-account requirement this re-skin was specifically trying to
+// avoid, so back to the standard OpenStreetMap raster tiles this project
+// ran on before, and has actually proven out in production. No more
+// silent-CDN-policy-change risk than any other free tile host, but this
+// one has years of being exactly what it says it is behind it.
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
 // Below the threshold every pin stands alone; above it they would sit on

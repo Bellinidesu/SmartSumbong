@@ -804,12 +804,11 @@ layout_head('Case Review', 'cases.php');
       dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
       zoomControl: false, keyboard: false, touchZoom: false, boxZoom: false
     });
-    // Same CARTO Voyager basemap as Spatial Distribution (spatial.php) —
-    // Google-Maps-like styling, still free OSM data, no API key.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19, detectRetina: true,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
-                 + '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+    // Reverted 15 Sep 2026 — CARTO now gates these tiles behind an API key
+    // (see spatial.php for the full story). Back to standard OSM raster.
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
     L.marker([lat, lng]).addTo(map);
   }
