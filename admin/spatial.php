@@ -268,8 +268,17 @@ const map = L.map('map', {
   zoomControl: false
 }).setView(RESIDENTIAL_CENTRE, DEFAULT_ZOOM);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+// CARTO Voyager — the same OpenStreetMap data as before, styled closer to
+// the clean, colour-coded look of Google Maps (tinted roads/water/parks)
+// than the busier default OSM raster. Free public basemap CDN, no API key
+// and no billing account, same ₱0 footing this project has held to
+// everywhere else — Google Maps itself needs a billing-enabled Cloud
+// project even on its free tier, which is the actual reason this is a
+// re-skin rather than a provider switch (Ace, 15 Sep 2026).
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19, detectRetina: true,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
+             + '&copy; <a href="https://carto.com/attributions">CARTO</a>'
 }).addTo(map);
 
 // Below the threshold every pin stands alone; above it they would sit on
