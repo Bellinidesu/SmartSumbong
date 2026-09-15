@@ -66,3 +66,26 @@ function e(?string $s): string
 {
     return htmlspecialchars($s ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+/**
+ * Cache-buster for our own static assets (15 Sep 2026). app.css and
+ * fonts.css were linked with no version string at all, so a browser that
+ * had ever cached them kept serving that exact copy indefinitely --
+ * Render sends no Cache-Control header on static files, so there was
+ * nothing forcing a revalidation. Every CSS fix since (the 0054 avatar
+ * sizing rules, the dash-mid alignment fix) was silently invisible to any
+ * admin whose browser had a pre-existing cached copy, even after a hard
+ * deploy -- confirmed live on residents.php, where a stale cached app.css
+ * missing .avatar--sm entirely let a resident's photo render at full
+ * native resolution and blow out the whole table.
+ *
+ * filemtime() of the actual file on disk means the version string changes
+ * exactly when the file changes and never otherwise, so this needs no
+ * manual bump on every edit.
+ */
+function asset_version(string $cssFile): string
+{
+    $path  = __DIR__ . '/../assets/css/' . $cssFile;
+    $mtime = @filemtime($path);
+    return $mtime !== false ? (string) $mtime : '1';
+}

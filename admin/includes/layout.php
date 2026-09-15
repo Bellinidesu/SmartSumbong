@@ -53,8 +53,8 @@ function layout_head(string $title, string $active = ''): void
 <link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
 <meta name="theme-color" content="#0B2B6B">
 <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
-<link href="assets/css/fonts.css" rel="stylesheet">
-<link href="assets/css/app.css" rel="stylesheet">
+<link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
+<link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
 </head>
 <body>
 <div class="shell">

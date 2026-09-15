@@ -53,8 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Forgot password — Smart Sumbong</title>
-<link href="assets/css/fonts.css" rel="stylesheet">
-<link href="assets/css/app.css" rel="stylesheet">
+<link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
+<link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
 </head>
 <body class="login-body">
 
