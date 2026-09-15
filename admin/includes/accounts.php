@@ -117,8 +117,17 @@ function render_account_screen(string $role): void
                         $level = 'error';
                 }
             } catch (SupabaseError $ex) {
+                // Same fix as login.php: GoTrue's own wrong-password error
+                // says "Invalid login credentials", but admin_reset_password()
+                // has its own, unrelated exception for an account with no
+                // auth.users row at all -- "has no credential to reset" --
+                // and the old broad `str_contains(..., 'credential')` check
+                // caught that one too, so a reset against a seeded test
+                // account (no real login) always came back "That password
+                // is not right," even typed correctly. Narrowed to the
+                // actual GoTrue phrase so the real reason surfaces instead.
                 $msg   = safe_error($ex);
-                $flash = str_contains(strtolower($msg), 'credential')
+                $flash = str_contains(strtolower($msg), 'invalid login')
                     ? 'That password is not right. Nothing was changed.'
                     : $msg;
                 $level = 'error';

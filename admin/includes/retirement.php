@@ -133,8 +133,12 @@ function render_retirement_queue(): void
                         $level = 'error';
                 }
             } catch (SupabaseError $ex) {
+                // Narrowed to GoTrue's actual "Invalid login credentials"
+                // phrase (same fix as login.php and accounts.php) so a
+                // differently-caused failure in this action isn't
+                // relabeled as a wrong admin password.
                 $msg   = safe_error($ex);
-                $flash = str_contains(strtolower($msg), 'credential')
+                $flash = str_contains(strtolower($msg), 'invalid login')
                     ? 'That password is not right. Nothing was changed.'
                     : $msg;
                 $level = 'error';

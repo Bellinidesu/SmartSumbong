@@ -88,10 +88,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $level = 'error';
             }
         } catch (SupabaseError $ex) {
-            // GoTrue answers a wrong password with a generic grant error;
-            // say what actually went wrong instead.
+            // GoTrue answers a wrong password with "Invalid login
+            // credentials" specifically -- matched on that exact phrase
+            // (not just "credential") so an unrelated failure elsewhere in
+            // this action doesn't get relabeled as a wrong current password.
             $msg = safe_error($ex);
-            $flash = str_contains(strtolower($msg), 'credential')
+            $flash = str_contains(strtolower($msg), 'invalid login')
                 ? 'That current password is not right.'
                 : $msg;
             $level = 'error';
