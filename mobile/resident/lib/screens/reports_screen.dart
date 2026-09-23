@@ -219,18 +219,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<ReportSummary>? _reports;
   String? _error;
 
-  // Hero card (29 Aug 2026 — aesthetics pass, resident's own reference
-  // mockup). The first ongoing report in the CURRENTLY VISIBLE (i.e.
-  // filtered) list renders as an expanded card with its status_logs
-  // timeline embedded right there — a resident checking on the one
-  // complaint they actually care about shouldn't have to tap in just to
-  // see whether anything moved. Every other card stays the plain
-  // summary it always was. Basing this on _visible rather than
-  // _reports means it needs no special-casing per filter: under
-  // "Resolved", _visible never contains an isOngoing report, so no
-  // hero shows there, automatically, correctly.
-  String? _heroTimelineFor;
-  List<Map<String, dynamic>> _heroTimeline = const [];
+  // The 29 Aug "hero" card (an expanded status_logs timeline on the first
+  // ongoing report) came from the reference mockup the barangay
+  // supervisor later set aside for Rose's frames (see
+  // report_view_screen.dart's ROUND 16 header). Removed 23 Sep 2026 with
+  // Ace's go-ahead when this list moved to Figma REPORTS (2869:156):
+  // the latest update stays one tap away in View Report's note bubble.
 
   /// report_id -> the tanod's own resolution note, for every finished
   /// report in the CURRENT list. Added 29 Aug 2026 to close the gap the
@@ -241,11 +235,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   /// status_logs.remark, already resident-readable, no schema/RLS
   /// change), but this screen's list cards kept showing the resident's
   /// own original description even after resolution, because they never
-  /// fetched a timeline at all -- only the hero card does, via
-  /// _syncHeroTimeline().
+  /// fetched a timeline at all.
   ///
-  /// Deliberately ONE query for the whole visible list rather than the
-  /// hero's per-report pattern: a resident's Completed filter can hold
+  /// Deliberately ONE query for the whole visible list rather than a
+  /// per-report pattern: a resident's Completed filter can hold
   /// dozens of cards, and firing one status_logs query per card would be
   /// the N+1 this comment exists to avoid. See _loadResolutionNotes().
   Map<String, String> _resolutionNotes = const {};
@@ -342,7 +335,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       setState(() => _reports = [
             for (final r in rows) ReportSummary.fromRow(r),
           ]);
-      await Future.wait([_syncHeroTimeline(), _loadResolutionNotes()]);
+      await _loadResolutionNotes();
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = context.s.reportsLoadError);
@@ -437,13 +430,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return all.where((r) => wires.contains(r.status.wire)).toList();
   }
 
-  ReportSummary? get _hero {
-    for (final r in _visible) {
-      if (r.status.isOngoing) return r;
-    }
-    return null;
-  }
-
   Map<ReportFilter, int> get _filterCounts {
     final all = _reports ?? const <ReportSummary>[];
     return {
@@ -456,62 +442,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   void _setFilter(ReportFilter f) {
     setState(() => _filter = f);
-    _syncHeroTimeline();
-  }
-
-  /// Keeps _heroTimeline matched to whichever report _hero currently
-  /// points at. Always re-fetches when a hero exists, even if it's the
-  /// SAME report as last time — that's the one case that matters most:
-  /// a live reload just landed because this exact report's status
-  /// changed, and the whole point is showing that change without the
-  /// resident tapping in. The id check only decides whether to blank
-  /// the card first, so a hero swap (filter change, or the previous
-  /// hero finishing) never flashes the wrong report's timeline while
-  /// the new fetch is still in flight.
-  Future<void> _syncHeroTimeline() async {
-    final hero = _hero;
-    if (hero == null) {
-      if (_heroTimelineFor != null) {
-        setState(() {
-          _heroTimelineFor = null;
-          _heroTimeline = const [];
-        });
-      }
-      return;
-    }
-    if (hero.id != _heroTimelineFor) {
-      setState(() {
-        _heroTimelineFor = hero.id;
-        _heroTimeline = const [];
-      });
-    }
-    try {
-      // `ascending: true` is not the default here -- postgrest-dart's own
-      // default is DESCENDING (newest first); left unstated, this
-      // rendered the mini-timeline's rows newest-to-oldest, upside down
-      // from what _MiniTimelineRow's own top-to-bottom rail assumes.
-      // Caught 30 Aug 2026 alongside the same bug in
-      // report_view_screen.dart's full timeline (see that file's
-      // parallel comment for the screenshot that surfaced it) -- no
-      // byline fetch added here to match, though: _MiniTimelineRow never
-      // renders `remark` at all (status + date only, by design -- see
-      // its own header on why this compact view stays text-light), so
-      // there's no text here for a byline to prefix.
-      final logs = await Supabase.instance.client
-          .from('status_logs')
-          .select('old_status, new_status, remark, created_at')
-          .eq('report_id', hero.id)
-          .order('created_at', ascending: true);
-      // The hero could have changed again while this was in flight
-      // (another live reload, or the resident switching filters) --
-      // never let a slow response overwrite a newer one.
-      if (!mounted || _hero?.id != hero.id) return;
-      setState(() => _heroTimeline = List<Map<String, dynamic>>.from(logs));
-    } catch (_) {
-      // The card still shows fine without it -- title, status,
-      // description and meta all come from the report row already in
-      // hand, same as before this existed.
-    }
   }
 
   // ---------- actions ----------------------------------------
@@ -727,6 +657,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final t = Theme.of(context).textTheme;
     final s = context.s;
 
+    // Figma REPORTS (2869:156): content 46 in; the heading 47 from the
+    // top of the screen, the filter box 3 under it, the first card 25
+    // under the box, cards 13 apart.
     return Scaffold(
       bottomNavigationBar: const ResidentNavBar(current: ResidentTab.reports),
       body: SafeArea(
@@ -736,16 +669,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 24),
+              SizedBox(
+                  height: (47 - MediaQuery.paddingOf(context).top)
+                      .clamp(8.0, 47.0)),
               Text(s.reportsViewTitle,
-                  style: t.labelLarge?.copyWith(fontSize: 18)),
-              const SizedBox(height: 10),
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    height: 28.08 / 18,
+                    color: context.colors.navy,
+                  )),
+              const SizedBox(height: 3),
               _FilterDropdown(
                 value: _filter,
                 counts: _filterCounts,
                 onChanged: _setFilter,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 25),
 
               Expanded(
                 child: RefreshIndicator(
@@ -803,11 +744,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       separatorBuilder: (_, __) => const SizedBox(height: 13),
       itemBuilder: (_, i) {
         final r = visible[i];
-        final isHero = _hero?.id == r.id;
         return _ReportCard(
           report: r,
-          isHero: isHero,
-          timeline: isHero ? _heroTimeline : const [],
           resolutionNote: _resolutionNotes[r.id],
           resolutionAuthor: _resolutionAuthors[r.id],
           onView: () => Navigator.of(context)
@@ -853,22 +791,62 @@ class _FilterDropdown extends StatelessWidget {
   final Map<ReportFilter, int> counts;
   final ValueChanged<ReportFilter> onChanged;
 
+  // Figma's "Reports" dropdown: a 47-tall #FBFBFB box, 1px navy, radius
+  // 20, 15 padding, Inter 14/400, a navy chevron, y5 / blur 5 shadow at
+  // 30%. The open list keeps the same box colour and radius.
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<ReportFilter>(
-      initialValue: value,
-      isExpanded: true,
-      items: [
-        for (final f in ReportFilter.values)
-          DropdownMenuItem(
-            value: f,
-            child: Text(
-                '${context.s.reportFilterLabel(f.name)} (${counts[f] ?? 0})'),
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide(color: context.colors.navy),
+    );
+    final itemStyle = TextStyle(
+      fontFamily: 'Inter',
+      fontWeight: FontWeight.w400,
+      fontSize: 14,
+      color: context.colors.navy,
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4D121212),
+            blurRadius: 3.5,
+            offset: Offset(0, 5),
           ),
-      ],
-      onChanged: (f) {
-        if (f != null) onChanged(f);
-      },
+        ],
+      ),
+      child: DropdownButtonFormField<ReportFilter>(
+        initialValue: value,
+        isExpanded: true,
+        style: itemStyle,
+        dropdownColor: context.colors.field,
+        borderRadius: BorderRadius.circular(20),
+        icon: Icon(Icons.keyboard_arrow_down_rounded,
+            color: context.colors.navy, size: 20),
+        decoration: InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: context.colors.field,
+          contentPadding: const EdgeInsets.fromLTRB(15, 15, 12, 15),
+          border: border,
+          enabledBorder: border,
+          focusedBorder: border,
+        ),
+        items: [
+          for (final f in ReportFilter.values)
+            DropdownMenuItem(
+              value: f,
+              child: Text(
+                  '${context.s.reportFilterLabel(f.name)} (${counts[f] ?? 0})',
+                  style: itemStyle),
+            ),
+        ],
+        onChanged: (f) {
+          if (f != null) onChanged(f);
+        },
+      ),
     );
   }
 }
@@ -877,8 +855,6 @@ class _ReportCard extends StatelessWidget {
   const _ReportCard({
     required this.report,
     required this.onView,
-    this.isHero = false,
-    this.timeline = const [],
     this.resolutionNote,
     this.resolutionAuthor,
     this.onCancel,
@@ -888,16 +864,6 @@ class _ReportCard extends StatelessWidget {
 
   final ReportSummary report;
   final VoidCallback onView;
-
-  /// The one ongoing report ReportsScreen picked out of the currently
-  /// visible list — see its own header comment. Everything below just
-  /// renders whatever it's handed; picking the hero is the parent's job.
-  final bool isHero;
-
-  /// This report's status_logs rows, oldest first — same shape
-  /// report_view_screen.dart's timeline reads. Only ever non-empty when
-  /// isHero is true; a non-hero card ignores it entirely.
-  final List<Map<String, dynamic>> timeline;
 
   /// The tanod's own resolution note, when this report is finished and
   /// one exists — ReportsScreen._loadResolutionNotes() batch-fetches
@@ -918,201 +884,135 @@ class _ReportCard extends StatelessWidget {
   final VoidCallback? onReopen;
   final VoidCallback? onAppeal;
 
-  static const _orange = Color(0xFFFF9800);
+  // Figma REPORTS card: fixed navy and #F3F3F3 text, like View Report's
+  // own card (not theme-adaptive; see report_view_screen.dart's ROUND 16
+  // header). Only "# <id> - Cancelled" goes red, as drawn.
+  static const _navy = Color(0xFF00308F);
+  static const _onNavy = Color(0xFFF3F3F3);
+  static const _cancelRed = Color(0xFFFF4949);
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final cancelled = report.status == ReportStatus.cancelled;
     return InkWell(
       onTap: onView,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         width: double.infinity,
-        clipBehavior: Clip.antiAlias,
-        // Light card, not navy -- transferred over from
-        // report_view_screen.dart's own switch (30 Aug 2026), so the list
-        // and the detail screen read as the same design rather than one
-        // navy and one light. `field` is this app's existing "lighter
-        // than the page" surface token; navy on it reads as dark accent
-        // text, same role it always had, just no longer the fill.
-        //
-        // 1:1 pass (29 Aug 2026): radius, padding, shadow and the
-        // section split below now match the mockup's .report-detail-card
-        // exactly, the same restructuring report_view_screen.dart's own
-        // card just got -- only the font-family and the established
-        // colour roles stay put.
+        // 323 wide in the frame, radius 20, 1px #F3F3F3 edge, y5 / blur 5
+        // shadow at 30%; padding 15 top, 20 left, 10 right and bottom.
+        padding: const EdgeInsets.fromLTRB(20, 15, 10, 10),
         decoration: BoxDecoration(
-          color: context.colors.field,
-          // The hero still gets an orange edge -- the app's one accent
-          // colour, not a third status colour -- so it reads as "this is
-          // the one being tracked" without inventing a new palette entry.
-          border: Border.all(
-            color: isHero ? _orange : Colors.transparent,
-            width: isHero ? 1.5 : 1,
-          ),
-          borderRadius: BorderRadius.circular(10),
+          color: _navy,
+          border: Border.all(color: _onNavy),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: const [
-            BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 1)),
-            BoxShadow(color: Color(0x0F000000), blurRadius: 2, offset: Offset(0, 1)),
+            BoxShadow(
+              color: Color(0x4D121212),
+              blurRadius: 3.5,
+              offset: Offset(0, 5),
+            ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // rdc-top: header row + body, separated from the date band
-            // below by `divider`, the literal mapping for the mockup's
-            // var(--border).
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: context.colors.divider),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      style: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        height: 20 / 18,
+                        color: _onNavy,
+                      ),
                       children: [
-                        // ID · category, small and muted — the reference
-                        // mockup's card puts this directly above the title,
-                        // not folded into it the way this card used to. The
-                        // pill sitting beside this whole column (not just the
-                        // title) is what keeps it lined up with this top line
-                        // rather than floating centred on the card.
-                        Text(
-                          '${report.trackingId} · ${report.category.label}',
-                          style: TextStyle(fontSize: 11, color: context.colors.muted),
+                        const TextSpan(text: '('),
+                        TextSpan(
+                          text: '# ${report.trackingId} - '
+                              '${s.reportStatusLabel(report.status.wire)}',
+                          style: cancelled
+                              ? const TextStyle(color: _cancelRed)
+                              : null,
                         ),
-                        const SizedBox(height: 2),
-                        if (isHero) ...[
-                          Text(
-                            s.reportsTrackingLabel,
-                            style: const TextStyle(
-                              fontFamily: 'Urbanist',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 10,
-                              letterSpacing: .5,
-                              color: _orange,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                        Text(
-                          report.subject,
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            height: 1.1,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        // A resolution note gets a bold byline ("TANOD
-                        // <NAME>: " / "SYSTEM: ") ahead of the text it
-                        // belongs to -- added 29 Aug 2026 so this reads
-                        // as someone's own account of what they did,
-                        // not an anonymous status line. The plain
-                        // description never gets one; it's the
-                        // resident's own words, no byline needed.
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              if (resolutionNote != null &&
-                                  resolutionAuthor != null)
-                                TextSpan(
-                                  text: '$resolutionAuthor: ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: context.colors.navy,
-                                  ),
-                                ),
-                              TextSpan(
-                                text: resolutionNote ??
-                                    s.reportsCardDescription(
-                                        report.description),
-                              ),
-                            ],
-                          ),
-                          maxLines: isHero ? 4 : 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 12, height: 1.4, color: context.colors.muted),
-                        ),
+                        TextSpan(text: ') ${report.subject}'),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _StatusPill(status: report.status),
-                      const SizedBox(height: 4),
-                      _CardMenu(
-                        onView: onView,
-                        onCancel: onCancel,
-                        onReopen: onReopen,
-                        onAppeal: onAppeal,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 6),
+                _CardMenu(
+                  onView: onView,
+                  onCancel: onCancel,
+                  onReopen: onReopen,
+                  onAppeal: onAppeal,
+                ),
+              ],
             ),
-
-            // rdc-bottom: a full-bleed tinted strip, not a nested rounded
-            // chip -- the mockup runs this the full width of the card.
-            // 1:1 pass (29 Aug 2026): the 🕐 emoji glyph is gone, replaced
-            // by a proper Icons widget (this app's own established icon
-            // pack -- Material Icons, already used everywhere else in
-            // this file and report_view_screen.dart, not a new
-            // dependency), and the mockup's "📍 <place>" line is back,
-            // fed by a best-effort reverse-geocode lookup rather than a
-            // stored address column -- see location_lookup.dart's header
-            // for why. The pin itself is still on the map in the full
-            // report view either way.
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              color: context.colors.bg,
-              child: Row(
-                children: [
-                  if (report.latitude != null && report.longitude != null)
-                    _LocationLabel(
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    s.reportsSubmittedOn(_formatDate(s, report.createdAt)),
+                    style: const TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      height: 18.72 / 12,
+                      color: _onNavy,
+                    ),
+                  ),
+                ),
+                // Kept from the pre-Figma card (a real, user-requested
+                // upgrade): the street name beside the date, as View
+                // Report already shows it.
+                if (report.latitude != null && report.longitude != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: _LocationLabel(
                       latitude: report.latitude!,
                       longitude: report.longitude!,
+                      color: _onNavy,
                     ),
-                  Icon(Icons.access_time_rounded,
-                      size: 12, color: context.colors.muted),
-                  const SizedBox(width: 4),
-                  Text(
-                    _formatDate(s, report.createdAt),
-                    style: TextStyle(fontSize: 11, color: context.colors.muted),
                   ),
-                ],
-              ),
+              ],
             ),
-
-            if (isHero)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-                child: _MiniTimeline(
-                  entries: timeline,
-                  submittedAt: report.createdAt,
-                  // Hero is, by _hero's own definition, always an
-                  // isOngoing report -- so there's always a next
-                  // bucket to name here, same computation
-                  // report_view_screen.dart's card does.
-                  upcomingWire:
-                      report.status == ReportStatus.pendingReview ||
-                              report.status == ReportStatus.validated
-                          ? 'assigned'
-                          : 'resolved',
+            const SizedBox(height: 12),
+            // The frame's quoted body. A finished report shows the
+            // tanod's resolution note with its byline instead, as it has
+            // since 29 Aug; otherwise the resident's own words.
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (resolutionNote != null && resolutionAuthor != null)
+                      TextSpan(
+                        text: '$resolutionAuthor: ',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    TextSpan(
+                      text: resolutionNote ??
+                          s.reportsCardDescription(report.description),
+                    ),
+                  ],
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                  height: 15 / 12,
+                  color: _onNavy,
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -1133,9 +1033,16 @@ class _ReportCard extends StatelessWidget {
 /// so the date beside it never ends up with a stray double space when
 /// there's nothing to show.
 class _LocationLabel extends StatefulWidget {
-  const _LocationLabel({required this.latitude, required this.longitude});
+  const _LocationLabel({
+    required this.latitude,
+    required this.longitude,
+    this.color,
+  });
   final double latitude;
   final double longitude;
+
+  /// Defaults to the theme's muted grey.
+  final Color? color;
 
   @override
   State<_LocationLabel> createState() => _LocationLabelState();
@@ -1160,307 +1067,26 @@ class _LocationLabelState extends State<_LocationLabel> {
       builder: (context, snap) {
         final name = snap.data;
         if (name == null || name.isEmpty) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.location_on_outlined,
-                  size: 12, color: context.colors.muted),
-              const SizedBox(width: 4),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 110),
-                child: Text(
-                  name,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: context.colors.muted),
-                ),
+        final colour = widget.color ?? context.colors.muted;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_on_outlined, size: 12, color: colour),
+            const SizedBox(width: 3),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 110),
+              child: Text(
+                name,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: colour),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
   }
 }
-
-/// The rounded corner badge the reference mockup put status in, rather
-/// than this screen's old inline coloured text. Own tint logic, not
-/// ReportStatus.labelColour -- that extension returns this app's bg
-/// colour, tuned for text sitting on the navy card this used to be; on
-/// this now-light card that would read as invisible near-white text.
-///
-/// COLOUR PER STATUS (29 Aug 2026) -- same change, same reasoning, as
-/// report_view_screen.dart's own copy of this widget: the mockup's
-/// .status-pill carries a different colour per status (orange/pending,
-/// blue/progress, green/resolved), not one accent reused everywhere.
-/// Matched to this app's palette -- orange (existing accent) for
-/// pending, navy (primary ink) for in-progress, a new green
-/// (context.colors has no success token; #16A34A, the mockup's own
-/// --success) for completed, `hint` (the theme's existing red, not a
-/// one-off literal) for cancelled, and `muted` for rejected -- a real
-/// distinct colour rejected never had before, even though this
-/// screen's own labelColour doc already says cancelled "reads
-/// differently from a rejection". `switch` on the exact enum member so
-/// `archived` (Completed, but not `isFinished`) isn't missed by a
-/// narrower check.
-///
-/// Still local to this widget, not folded into ReportStatus.labelColour
-/// -- see report_view_screen.dart's copy of this same note for why
-/// (map_screen.dart's pin colouring depends on that extension's current
-/// two-colour contract).
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
-  final ReportStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final tint = switch (status) {
-      ReportStatus.cancelled => context.colors.hint,
-      ReportStatus.rejected => context.colors.muted,
-      ReportStatus.resolved ||
-      ReportStatus.closed ||
-      ReportStatus.archived =>
-        const Color(0xFF16A34A),
-      ReportStatus.pendingReview || ReportStatus.validated =>
-        const Color(0xFFFF9800),
-      _ => context.colors.navy, // assigned / inProgress / offlineInvestigation
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        context.s.reportStatusLabel(status.wire),
-        style: TextStyle(
-          fontFamily: 'Urbanist',
-          fontWeight: FontWeight.w700,
-          fontSize: 10,
-          color: tint,
-        ),
-      ),
-    );
-  }
-}
-
-/// The dot-and-line timeline embedded in the hero card — the same
-/// story report_view_screen.dart's own _Timeline tells, sized to match
-/// it exactly rather than a separate condensed variant (the mockup
-/// doesn't depict a compact version, so as of the 1:1 pass this one no
-/// longer invents its own smaller dots/text), now including that same
-/// screen's two synthetic rows: a "Report submitted" first node built
-/// from the report's own createdAt (never a logged status_logs
-/// transition on its own) and a greyed "not yet reached" last node
-/// naming the next status bucket, since _hero is by definition always
-/// an isOngoing report. Deliberately a separate small copy rather than
-/// a shared widget: see _ActionDialog's own comment further down in
-/// this file for why this app duplicates rather than shares
-/// screen-specific widgets.
-class _MiniTimeline extends StatelessWidget {
-  const _MiniTimeline({
-    required this.entries,
-    required this.submittedAt,
-    required this.upcomingWire,
-  });
-
-  final List<Map<String, dynamic>> entries;
-  final DateTime submittedAt;
-  final String upcomingWire;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _MiniTimelineRow.submitted(when: submittedAt, hasMore: true),
-        for (var i = 0; i < entries.length; i++)
-          _MiniTimelineRow.entry(
-            entry: entries[i],
-            hasMore: true,
-            // The upcoming row always follows a hero's entries (a hero
-            // is by definition isOngoing), so only the true last real
-            // entry is "current" -- earlier ones are already-settled
-            // past steps even though hasMore is true for all of them.
-            isCurrent: i == entries.length - 1,
-          ),
-        _MiniTimelineRow.upcoming(wire: upcomingWire),
-      ],
-    );
-  }
-}
-
-class _MiniTimelineRow extends StatelessWidget {
-  const _MiniTimelineRow.entry({
-    required Map<String, dynamic> entry,
-    required this.hasMore,
-    required this.isCurrent,
-  })  : _kind = _RowKind.entry,
-        _entry = entry,
-        _when = null,
-        _wire = null;
-
-  const _MiniTimelineRow.submitted({required DateTime when, required this.hasMore})
-      : _kind = _RowKind.submitted,
-        _entry = null,
-        _when = when,
-        _wire = null,
-        isCurrent = false;
-
-  const _MiniTimelineRow.upcoming({required String wire})
-      : _kind = _RowKind.upcoming,
-        _entry = null,
-        _when = null,
-        _wire = wire,
-        hasMore = false,
-        isCurrent = false;
-
-  final _RowKind _kind;
-  final Map<String, dynamic>? _entry;
-  final DateTime? _when;
-  final String? _wire;
-
-  /// Whether a connecting line runs down to another row beneath this
-  /// one -- true for "submitted" and for every real entry (the upcoming
-  /// row, when present, always follows), false only for "upcoming"
-  /// itself.
-  final bool hasMore;
-
-  /// The orange ring -- explicitly passed by _MiniTimeline rather than
-  /// derived from hasMore, since every real entry here has hasMore true
-  /// (the upcoming row always follows a hero, which is always
-  /// isOngoing) yet only the true last real entry should ring.
-  final bool isCurrent;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = context.s;
-    final isUpcoming = _kind == _RowKind.upcoming;
-    final isSubmitted = _kind == _RowKind.submitted;
-    final status = isUpcoming || isSubmitted
-        ? null
-        : ReportStatus.parse(_entry!['new_status'] as String?);
-    final when = isSubmitted
-        ? _when
-        : isUpcoming
-            ? null
-            : DateTime.tryParse(_entry!['created_at'] as String? ?? '');
-
-    // Mockup nuance from the raw markup, not just the CSS rules: only
-    // the line below a fully-`done` dot gets the accent colour -- the
-    // line below the `active`/current dot stays neutral, since what
-    // follows is unknown/future. Submitted is always done; only a real
-    // entry can be current.
-    final lineColor =
-        !isUpcoming && isCurrent ? context.colors.divider : context.colors.navy;
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 24,
-            child: Column(
-              children: [
-                Container(
-                  width: 14,
-                  height: 14,
-                  margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                    // The reference distinguishes done (green) from the
-                    // current step (blue, ringed) from what hasn't
-                    // happened yet. Reinterpreted with this app's own
-                    // navy/orange accents: submitted + past entries sit
-                    // in plain navy (settled, already true), the current
-                    // step gets the app's one accent colour and a soft
-                    // ring, and the synthetic upcoming row is a hollow
-                    // outline -- nothing has happened there yet.
-                    color: isUpcoming
-                        ? context.colors.field
-                        : (isCurrent ? const Color(0xFFFF9800) : context.colors.navy),
-                    shape: BoxShape.circle,
-                    border: isUpcoming
-                        ? Border.all(color: context.colors.divider, width: 2.5)
-                        : null,
-                    boxShadow: isCurrent
-                        ? const [
-                            BoxShadow(
-                              color: Color(0x55FF9800),
-                              blurRadius: 0,
-                              spreadRadius: 3,
-                            ),
-                          ]
-                        : null,
-                  ),
-                ),
-                if (hasMore)
-                  Expanded(
-                    child: VerticalDivider(
-                      color: lineColor,
-                      thickness: 2,
-                      width: 10,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: hasMore ? 20 : 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isSubmitted
-                        ? s.reportViewSubmittedStep
-                        : isUpcoming
-                            ? s.reportStatusLabel(_wire!)
-                            : s.reportStatusLabel(status!.wire),
-                    style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: isUpcoming ? context.colors.muted : context.colors.navy,
-                    ),
-                  ),
-                  if (when != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatWhen(s, when),
-                      style: TextStyle(fontSize: 11, color: context.colors.muted),
-                    ),
-                  ] else if (isUpcoming) ...[
-                    const SizedBox(height: 2),
-                    Text(s.reportViewUpcomingStep,
-                        style: TextStyle(fontSize: 11, color: context.colors.muted)),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Same format report_view_screen.dart's own private _formatWhen uses --
-/// duplicated rather than shared since each .dart file is its own
-/// library and privates are file-scoped (see _ActionDialog's comment
-/// further down for the app's general stance on this). The mockup's
-/// .tl-sub always shows a full date + time, not the abbreviated
-/// month/day this row used before the 1:1 pass.
-String _formatWhen(Strings s, DateTime utc) {
-  final d = utc.toLocal();
-  final h24 = d.hour;
-  final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
-  final ampm = h24 < 12 ? 'AM' : 'PM';
-  final mm = d.minute.toString().padLeft(2, '0');
-  return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} • $h12:$mm $ampm';
-}
-
-enum _RowKind { submitted, entry, upcoming }
 
 /// The three-dot menu. Actions the backend would refuse are absent
 /// rather than present and failing — a menu that offers Cancel on a
@@ -1478,12 +1104,55 @@ class _CardMenu extends StatelessWidget {
   final VoidCallback? onReopen;
   final VoidCallback? onAppeal;
 
+  static const _orange = Color(0xFFFF9800);
+  static const _ink = Color(0xFFF3F3F3);
+
+  // Figma: three 4x4 orange dots (2 apart) at the card's top right, and
+  // an 83-wide orange pop-over (radius 10) of 12px rows — icon, label —
+  // split by 1px #F3F3F3 lines. View and Reopen are 700, Cancel 500, as
+  // drawn. Appeal (10 Sep, in no frame) takes Reopen's style.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final rows = <({String value, String label, Widget icon, bool bold})>[
+      (
+        value: 'view',
+        label: s.reportsMenuView,
+        icon: Image.asset('assets/images/menu-view.png', width: 13, height: 8),
+        bold: true,
+      ),
+      if (onCancel != null)
+        (
+          value: 'cancel',
+          label: s.reportsMenuCancel,
+          icon: Image.asset('assets/images/menu-cancel.png',
+              width: 10, height: 10),
+          bold: false,
+        ),
+      if (onReopen != null)
+        (
+          value: 'reopen',
+          label: s.reportsMenuReopen,
+          icon: Image.asset('assets/images/menu-reopen.png',
+              width: 13, height: 13),
+          bold: true,
+        ),
+      if (onAppeal != null)
+        (
+          value: 'appeal',
+          label: s.reportsMenuAppeal,
+          icon: const Icon(Icons.gavel_outlined, size: 12, color: _ink),
+          bold: true,
+        ),
+    ];
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_horiz, color: context.colors.bg, size: 20),
-      color: const Color(0xFFFF9800),
+      tooltip: '',
+      padding: EdgeInsets.zero,
+      color: _orange,
+      elevation: 2,
+      menuPadding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 83, maxWidth: 160),
+      offset: const Offset(-20, 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       onSelected: (v) {
         switch (v) {
@@ -1498,64 +1167,71 @@ class _CardMenu extends StatelessWidget {
         }
       },
       itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'view',
-          height: 36,
-          child: Row(children: [
-            Icon(Icons.visibility_outlined, size: 16, color: context.colors.bg),
-            const SizedBox(width: 8),
-            Text(s.reportsMenuView,
-                style: TextStyle(
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0)
+            const PopupMenuDivider(height: 1, thickness: 1, color: _ink),
+          PopupMenuItem<String>(
+            value: rows[i].value,
+            height: 26,
+            padding: const EdgeInsets.symmetric(horizontal: 9),
+            child: Row(
+              children: [
+                SizedBox(width: 13, child: Center(child: rows[i].icon)),
+                const SizedBox(width: 8),
+                Text(
+                  rows[i].label,
+                  style: TextStyle(
                     fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
+                    fontWeight: rows[i].bold ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 12,
-                    color: context.colors.bg)),
-          ]),
-        ),
-        if (onCancel != null)
-          PopupMenuItem(
-            value: 'cancel',
-            height: 36,
-            child: Row(children: [
-              Icon(Icons.cancel_outlined, size: 16, color: context.colors.bg),
-              const SizedBox(width: 8),
-              Text(s.reportsMenuCancel,
-                  style: TextStyle(fontSize: 12, color: context.colors.bg)),
-            ]),
+                    color: _ink,
+                  ),
+                ),
+              ],
+            ),
           ),
-        if (onReopen != null)
-          PopupMenuItem(
-            value: 'reopen',
-            height: 36,
-            child: Row(children: [
-              Icon(Icons.refresh, size: 16, color: context.colors.bg),
-              const SizedBox(width: 8),
-              Text(s.reportsMenuReopen,
-                  style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                      color: context.colors.bg)),
-            ]),
-          ),
-        if (onAppeal != null)
-          PopupMenuItem(
-            value: 'appeal',
-            height: 36,
-            child: Row(children: [
-              Icon(Icons.gavel_outlined, size: 16, color: context.colors.bg),
-              const SizedBox(width: 8),
-              Text(s.reportsMenuAppeal,
-                  style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                      color: context.colors.bg)),
-            ]),
-          ),
+        ],
       ],
+      // The dots are drawn at the frame's size inside a finger-sized
+      // target.
+      child: const SizedBox(
+        width: 32,
+        height: 24,
+        child: Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _Dot(),
+                SizedBox(width: 2),
+                _Dot(),
+                SizedBox(width: 2),
+                _Dot(),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+        width: 4,
+        height: 4,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: _CardMenu._orange,
+            shape: BoxShape.circle,
+          ),
+        ),
+      );
 }
 
 /// The navy pill dialog from REPORTS - CONFIRM CANCEL and
