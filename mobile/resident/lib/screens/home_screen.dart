@@ -541,22 +541,27 @@ class _ActionCard extends StatelessWidget {
                 InkWell(
                   onTap: a.onTap,
                   borderRadius: BorderRadius.circular(20),
+                  // No `alignment` on the Container: that makes it fill the
+                  // width the Wrap offers. Center(widthFactor: 1) centres the
+                  // label while the pill keeps its own (minimum) width.
                   child: Container(
                     height: 36,
                     constraints: BoxConstraints(minWidth: a.width),
                     padding: const EdgeInsets.symmetric(horizontal: 10),
-                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: context.colors.bg,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      a.label,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        color: context.colors.navy,
+                    child: Center(
+                      widthFactor: 1,
+                      child: Text(
+                        a.label,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: context.colors.navy,
+                        ),
                       ),
                     ),
                   ),

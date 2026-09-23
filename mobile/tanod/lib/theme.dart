@@ -213,6 +213,32 @@ extension AppThemeContext on BuildContext {
   bool get isDark => _resolvedBrightness == Brightness.dark;
 }
 
+/// Figma sets letter spacing to 0 on all but 8 of its ~1,630 text layers.
+/// Material 3's defaults, which fill in every style the theme above does
+/// not override, add 0.1–0.5 of tracking, and every Text inherits it
+/// through DefaultTextStyle, so type came out visibly looser than the
+/// design. This zeroes it once for every style instead of per widget.
+TextTheme _figmaTracking(TextTheme t) {
+  TextStyle? z(TextStyle? s) => s?.copyWith(letterSpacing: 0);
+  return t.copyWith(
+    displayLarge: z(t.displayLarge),
+    displayMedium: z(t.displayMedium),
+    displaySmall: z(t.displaySmall),
+    headlineLarge: z(t.headlineLarge),
+    headlineMedium: z(t.headlineMedium),
+    headlineSmall: z(t.headlineSmall),
+    titleLarge: z(t.titleLarge),
+    titleMedium: z(t.titleMedium),
+    titleSmall: z(t.titleSmall),
+    bodyLarge: z(t.bodyLarge),
+    bodyMedium: z(t.bodyMedium),
+    bodySmall: z(t.bodySmall),
+    labelLarge: z(t.labelLarge),
+    labelMedium: z(t.labelMedium),
+    labelSmall: z(t.labelSmall),
+  );
+}
+
 ThemeData buildTanodTheme(Brightness brightness) {
   final c = AppColors.resolve(brightness);
 
@@ -234,7 +260,7 @@ ThemeData buildTanodTheme(Brightness brightness) {
         borderSide: BorderSide(color: color ?? c.navy, width: width),
       );
 
-  return ThemeData(
+  final theme = ThemeData(
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
@@ -316,5 +342,9 @@ ThemeData buildTanodTheme(Brightness brightness) {
       shape: const RoundedRectangleBorder(),
       visualDensity: VisualDensity.compact,
     ),
+  );
+  return theme.copyWith(
+    textTheme: _figmaTracking(theme.textTheme),
+    primaryTextTheme: _figmaTracking(theme.primaryTextTheme),
   );
 }
