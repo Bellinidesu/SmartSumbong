@@ -987,8 +987,12 @@ class _ReportCard extends StatelessWidget {
   /// since that field is meant to be read through `context.colors`
   /// (which is exactly what this card must NOT do -- see this class's
   /// own header).
+  // Figma VIEW REPORTS (2436:752 etc.): the same card as the Reports
+  // list — radius 20, 1px #F3F3F3 edge, y5 / blur 5 shadow at 30%,
+  // padding 15/20/10/10, #F3F3F3 text; only "# ID - Cancelled" in red.
   static const _cardNavy = Color(0xFF00308F);
-  static const _onNavy = Colors.white;
+  static const _onNavy = Color(0xFFF3F3F3);
+  static const _cancelRed = Color(0xFFFF4949);
 
   @override
   Widget build(BuildContext context) {
@@ -996,14 +1000,27 @@ class _ReportCard extends StatelessWidget {
     const onNavy = _onNavy;
     final onNavyMuted = _onNavy.withValues(alpha: 0.72);
     final isCancelled = status == ReportStatus.cancelled;
+    const body = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w500,
+      fontSize: 12,
+      color: onNavy,
+    );
 
     return Container(
       width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(20, 15, 10, 10),
+      decoration: BoxDecoration(
         color: _cardNavy,
-        borderRadius: BorderRadius.all(Radius.circular(16)),
+        border: Border.all(color: _onNavy),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4D121212),
+            blurRadius: 3.5,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1017,17 +1034,20 @@ class _ReportCard extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      height: 1.25,
+                      fontSize: 18,
+                      height: 20 / 18,
+                      color: onNavy,
                     ),
                     children: [
+                      const TextSpan(text: '('),
                       TextSpan(
-                        text: '(# $trackingId - '
-                            '${s.reportStatusLabel(status.wire)}) ',
-                        style: TextStyle(
-                            color: isCancelled ? context.colors.hint : onNavy),
+                        text: '# $trackingId - '
+                            '${s.reportStatusLabel(status.wire)}',
+                        style: isCancelled
+                            ? const TextStyle(color: _cancelRed)
+                            : null,
                       ),
-                      TextSpan(text: subject, style: TextStyle(color: onNavy)),
+                      TextSpan(text: ') $subject'),
                     ],
                   ),
                 ),
@@ -1051,11 +1071,10 @@ class _ReportCard extends StatelessWidget {
             ),
           ],
           if (createdAt != null) ...[
-            const SizedBox(height: 4),
             Row(
               children: [
                 Text(s.reportsSubmittedOn(_formatDate(s, createdAt!)),
-                    style: TextStyle(fontSize: 11, color: onNavyMuted)),
+                    style: body.copyWith(height: 18.72 / 12)),
                 if (latitude != null && longitude != null)
                   _LocationLabel(
                     latitude: latitude!,
@@ -1065,21 +1084,30 @@ class _ReportCard extends StatelessWidget {
               ],
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           // Always the resident's own words -- see this class's own
           // header for why this no longer swaps to the resolution note.
-          Text(
-            s.reportsCardDescription(description),
-            style: TextStyle(fontSize: 12, height: 1.4, color: onNavyMuted),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: Text(
+              s.reportsCardDescription(description),
+              style: body.copyWith(height: 15 / 12),
+            ),
           ),
 
           if (latitude != null && longitude != null) ...[
-            const SizedBox(height: 14),
-            _MiniMap(point: LatLng(latitude!, longitude!)),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: _MiniMap(point: LatLng(latitude!, longitude!)),
+            ),
           ],
           if (photos.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            _MediaCarousel(photos: photos, onViewPhoto: onViewPhoto),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: _MediaCarousel(photos: photos, onViewPhoto: onViewPhoto),
+            ),
           ],
         ],
       ),
@@ -1101,28 +1129,66 @@ class _CardMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    // Figma's three 4x4 orange dots and orange pop-over (radius 10, 12px
+    // rows, the frame's own cancel icon) — the same as the Reports list.
     return PopupMenuButton<String>(
-      // Fixed white, not context.colors.bg -- this icon sits directly on
-      // _ReportCard's own fixed navy fill, which (like that card) is no
-      // longer theme-adaptive. See _ReportCard's own header for why.
-      icon: const Icon(Icons.more_horiz, color: Colors.white, size: 20),
+      tooltip: '',
+      padding: EdgeInsets.zero,
       color: const Color(0xFFFF9800),
+      elevation: 2,
+      menuPadding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 74, maxWidth: 160),
+      offset: const Offset(-20, 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       onSelected: (_) => onCancel(),
       itemBuilder: (_) => [
         PopupMenuItem(
           value: 'cancel',
-          height: 36,
+          height: 26,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Row(children: [
-            Icon(Icons.cancel_outlined, size: 16, color: context.colors.bg),
+            Image.asset('assets/images/menu-cancel.png', width: 10, height: 10),
             const SizedBox(width: 8),
             Text(s.reportsMenuCancel,
-                style: TextStyle(fontSize: 12, color: context.colors.bg)),
+                style: const TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: Color(0xFFF3F3F3))),
           ]),
         ),
       ],
+      child: const SizedBox(
+        width: 32,
+        height: 24,
+        child: Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              _Dot(), SizedBox(width: 2), _Dot(), SizedBox(width: 2), _Dot(),
+            ]),
+          ),
+        ),
+      ),
     );
   }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+        width: 4,
+        height: 4,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFFF9800),
+            shape: BoxShape.circle,
+          ),
+        ),
+      );
 }
 
 /// The mockup's "📍 <place>" footer meta item, resolved from the
@@ -1211,8 +1277,10 @@ class _MiniMap extends StatelessWidget {
         // seeing it live on the emulator next to the evidence photos
         // below, which read as cramped at the old size.
         height: 240,
-        decoration: BoxDecoration(
-          border: Border.all(color: context.colors.navy.withValues(alpha: 0.12)),
+        // The frame's 1px #F3F3F3 edge; the height stays the 240 asked
+        // for on 29 Aug rather than the frame's 189.
+        foregroundDecoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFF3F3F3)),
           borderRadius: BorderRadius.circular(25),
         ),
         child: FlutterMap(
@@ -1445,11 +1513,11 @@ class _StatusNoteBubbleState extends State<_StatusNoteBubble> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          // Figma's bubble: #FBFBFB, 1px navy, radius 20.
           decoration: BoxDecoration(
             color: context.colors.field,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-                color: context.colors.navy.withValues(alpha: 0.25)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: context.colors.navy),
           ),
           child: IntrinsicHeight(
             child: Row(
@@ -1494,8 +1562,10 @@ class _StatusNoteBubbleState extends State<_StatusNoteBubble> {
                               ],
                             ]),
                             style: TextStyle(
+                                fontFamily: 'Urbanist',
+                                fontWeight: FontWeight.w600,
                                 fontSize: 12,
-                                height: 1.4,
+                                height: 15 / 12,
                                 color: context.colors.navy),
                           ),
                         ),
