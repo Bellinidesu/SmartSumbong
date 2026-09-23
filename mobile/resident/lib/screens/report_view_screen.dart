@@ -478,6 +478,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   Future<void> _cancel(Map<String, dynamic> r) async {
     final s = context.s;
     final confirmed = await showDialog<bool>(
+      barrierColor: context.colors.bg.withValues(alpha: 0.7),
       context: context,
       builder: (_) => _ActionDialog(
         title: s.reportsCancelConfirmTitle,
@@ -495,6 +496,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .rpc('cancel_report', params: {'p_report': widget.reportId});
       if (!mounted) return;
       await showDialog<void>(
+        barrierColor: context.colors.bg.withValues(alpha: 0.7),
         context: context,
         barrierDismissible: false,
         builder: (_) => _ActionDialog(
@@ -1677,16 +1679,29 @@ class _ActionDialog extends StatelessWidget {
 
   static const _orange = Color(0xFFFF9800);
 
+  // Figma REPORTS - CONFIRM CANCEL / REPORT CANCELLED (2864:332/461):
+  // a 300x200 navy card, radius 50, 2px #252525 edge; the title orange
+  // at 24/700, the body 16/500, and 106x40 pills 13 apart with the
+  // frame's shadow. A lone button is drawn as the frame's navy Back pill.
   @override
   Widget build(BuildContext context) {
+    final single = secondaryLabel == null;
     return Dialog(
-      backgroundColor: context.colors.navy,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 44),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        width: 300,
+        constraints: const BoxConstraints(minHeight: 200),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+        decoration: BoxDecoration(
+          color: context.colors.navy,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: const Color(0xFF252525), width: 2),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               title,
@@ -1694,35 +1709,39 @@ class _ActionDialog extends StatelessWidget {
               style: const TextStyle(
                 fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
-                fontSize: 18,
+                fontSize: 24,
+                height: 21 / 24,
                 color: _orange,
               ),
             ),
             if (body != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 22),
               Text(
                 body!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
-                  height: 1.35,
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  height: 15 / 16,
                   color: context.colors.bg,
                 ),
               ),
             ],
-            const SizedBox(height: 16),
+            SizedBox(height: body != null ? 23 : 28),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (secondaryLabel != null) ...[
+                if (!single) ...[
                   _DialogPill(
                     label: secondaryLabel!,
                     onTap: onSecondary!,
                     filled: false,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 13),
                 ],
-                _DialogPill(label: primaryLabel, onTap: onPrimary, filled: true),
+                _DialogPill(
+                    label: primaryLabel, onTap: onPrimary, filled: !single),
               ],
             ),
           ],
@@ -1748,41 +1767,54 @@ class _DialogPill extends StatelessWidget {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(50),
     );
-    const size = Size(96, 38);
+    const size = Size(106, 40);
+    const text = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
 
-    return filled
-        ? FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              backgroundColor: context.colors.bg,
-              foregroundColor: context.colors.navy,
-              minimumSize: size,
-              padding: EdgeInsets.zero,
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(50),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4D121212),
+            blurRadius: 3.5,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: filled
+          ? FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: context.colors.bg,
+                foregroundColor: context.colors.navy,
+                fixedSize: size,
+                minimumSize: size,
+                elevation: 0,
+                padding: EdgeInsets.zero,
+                shape: shape,
+                textStyle: text,
               ),
-            ),
-            child: Text(label),
-          )
-        : OutlinedButton(
-            onPressed: onTap,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.bg,
-              side: BorderSide(color: context.colors.bg),
-              minimumSize: size,
-              padding: EdgeInsets.zero,
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+              child: Text(label),
+            )
+          : OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.bg,
+                backgroundColor: context.colors.navy,
+                side: BorderSide(color: context.colors.bg),
+                fixedSize: size,
+                minimumSize: size,
+                padding: EdgeInsets.zero,
+                shape: shape,
+                textStyle: text,
               ),
+              child: Text(label),
             ),
-            child: Text(label),
-          );
+    );
   }
 }
 
