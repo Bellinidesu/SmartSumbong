@@ -1134,7 +1134,6 @@ class _CardMenu extends StatelessWidget {
     // Figma's three 4x4 orange dots and orange pop-over (radius 10, 12px
     // rows, the frame's own cancel icon) — the same as the Reports list.
     return PopupMenuButton<String>(
-      tooltip: '',
       padding: EdgeInsets.zero,
       color: const Color(0xFFFF9800),
       elevation: 2,

@@ -1164,7 +1164,6 @@ class _CardMenu extends StatelessWidget {
         ),
     ];
     return PopupMenuButton<String>(
-      tooltip: '',
       padding: EdgeInsets.zero,
       color: _orange,
       elevation: 2,
