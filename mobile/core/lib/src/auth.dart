@@ -6,6 +6,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'id_ocr.dart' show IdOcrResult;
+import 'push_notifications.dart' show PushNotifications;
 
 /// Mirrors `public.id_document_type` in migration 0019. The wire values
 /// must match the enum labels exactly — the signup trigger casts the
@@ -501,7 +502,17 @@ class AuthService {
   /// calls the server, then rethrows if that call fails. With no signal
   /// every Log Out button therefore spun forever on a device that was
   /// already signed out. The server-side refresh token simply lapses.
+  ///
+  /// The push token is unregistered first, while the session still
+  /// exists: unregister_device_token() (0035) deletes by auth.uid() and
+  /// refuses an anonymous caller, and each app's signedOut listener only
+  /// runs after gotrue has already dropped the session — so that call
+  /// always failed, and the next account signed in on the same phone
+  /// kept receiving the previous one's notifications. Bounded, so no
+  /// signal cannot hold up signing out.
   Future<void> signOut() async {
+    await PushNotifications.unregisterToken()
+        .timeout(const Duration(seconds: 4), onTimeout: () {});
     try {
       await _client.auth.signOut();
     } on AuthException {
