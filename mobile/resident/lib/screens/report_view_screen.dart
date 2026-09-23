@@ -516,6 +516,15 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               : s.reportsErrorGeneric),
           backgroundColor: context.colors.navy,
         ));
+    } catch (_) {
+      // No connection — same as reports_screen.dart's _cancel.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(s.reportsErrorGeneric),
+          backgroundColor: context.colors.navy,
+        ));
     }
   }
 

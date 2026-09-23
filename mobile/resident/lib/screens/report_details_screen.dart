@@ -535,6 +535,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   }
 
   Future<void> _submit() async {
+    // The button only disables on the next rebuild; a second tap landing
+    // before it would otherwise file the same complaint twice.
+    if (_busy) return;
     FocusScope.of(context).unfocus();
     if (!_validate()) return;
 
@@ -594,12 +597,19 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         arguments: row is Map ? row['tracking_id'] : null,
       );
     } on MediaUploadException catch (e) {
+      // A back gesture mid-upload disposes this screen; the error still
+      // arrives afterwards.
+      if (!mounted) return;
       setState(() => _banner = e.message);
     } on PostgrestException catch (e) {
+      if (!mounted) return;
       setState(() => _banner = _translate(e.message));
     } catch (e) {
-      setState(
-          () => _banner = context.s.reportDetailsSubmitFailedWithError('$e'));
+      if (!mounted) return;
+      // Not the exception text: with no signal that was a raw
+      // "ClientException with SocketException: Failed host lookup ..."
+      // line, project URL included, on the resident's screen.
+      setState(() => _banner = context.s.reportDetailsSubmitFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -70,6 +70,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _dropdownOpen = false;
   bool _agreed = false;
   bool _busy = false;
+  // Covers the whole of _submit, including the OCR wait and both dialogs
+  // before _busy is set, so a second tap on Sign Up cannot start a
+  // second submission in that gap.
+  bool _submitting = false;
   String? _banner;
 
   /// Local previews. Kept so a failed signup does not make the applicant
@@ -295,6 +299,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // ---------- submit -----------------------------------------
 
   Future<void> _submit() async {
+    if (_submitting) return;
+    _submitting = true;
+    try {
+      await _submitOnce();
+    } finally {
+      _submitting = false;
+    }
+  }
+
+  Future<void> _submitOnce() async {
     FocusScope.of(context).unfocus();
     if (!_validate()) return;
 
@@ -303,7 +317,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // never awaited twice. Advisory only either way -- see
     // AuthService.submitIdOcrResult's own doc comment for why a failure
     // resolving this never blocks the signup itself.
+    //
+    // This can take up to 8 seconds, so the button shows its spinner
+    // meanwhile instead of looking like the tap did nothing.
+    setState(() => _busy = true);
     final ocrPreCheck = await _resolveOcrPreCheck();
+    if (!mounted) return;
+    setState(() => _busy = false);
     if (ocrPreCheck != null && _hasPhotoConcern(ocrPreCheck)) {
       final proceed = await _confirmOcrConcern(ocrPreCheck);
       if (proceed != true) {
@@ -318,7 +338,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     final confirmed = await _confirmReview();
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     setState(() {
       _busy = true;
@@ -373,13 +393,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/verification-pending');
     } on MediaUploadException catch (e) {
+      if (!mounted) return;
       setState(() => _banner = e.message);
     } on RegistrationException catch (e) {
+      if (!mounted) return;
       setState(() {
         _banner = e.message;
         if (e.field != null) _errors[e.field!] = e.message;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _banner = context.s.registerSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _busy = false);

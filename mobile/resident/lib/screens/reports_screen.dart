@@ -553,6 +553,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } on PostgrestException catch (e) {
       if (!mounted) return;
       _toast(_friendly(e.message));
+    } catch (_) {
+      // No connection: without this the tap just did nothing, and the
+      // reason typed into the sheet was gone with no word why.
+      if (!mounted) return;
+      _toast(context.s.reportsErrorGeneric);
     }
   }
 
@@ -610,6 +615,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } on PostgrestException catch (e) {
       if (!mounted) return;
       _toast(_friendly(e.message));
+    } catch (_) {
+      // No connection: without this the tap just did nothing, and the
+      // reason typed into the sheet was gone with no word why.
+      if (!mounted) return;
+      _toast(context.s.reportsErrorGeneric);
     }
   }
 
@@ -672,6 +682,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     } on PostgrestException catch (e) {
       if (!mounted) return;
       _toast(_friendly(e.message));
+    } catch (_) {
+      // No connection: without this the tap just did nothing, and the
+      // reason typed into the sheet was gone with no word why.
+      if (!mounted) return;
+      _toast(context.s.reportsErrorGeneric);
     }
   }
 
