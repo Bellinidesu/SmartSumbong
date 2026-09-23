@@ -220,7 +220,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return Scaffold(
@@ -248,90 +247,138 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onRefresh: _load,
               color: context.colors.navy,
               child: ListView(
-            padding: const EdgeInsets.fromLTRB(26, 12, 26, 24),
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _NotificationBell(
-                    unread: _unread,
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/notifications'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              Center(
-                child: FractionallySizedBox(
-                  widthFactor: 0.68,
-                  child: Image.asset(
-                    'assets/images/logo-wordmark.png',
-                     // The wordmark carries the brand; a screen reader
-                     // should hear the name, not "image".
-                    semanticLabel: 'SmartSumbong',
-                  ),
+                // Figma HOME - RESIDENT (2117:72), a 412-wide frame: content
+                // at x=30, and the bell's top edge 33 from the top of the
+                // screen — measured from the screen, so the status bar the
+                // SafeArea already clears is taken off that 33.
+                padding: EdgeInsets.fromLTRB(
+                  30,
+                  (33 - MediaQuery.paddingOf(context).top).clamp(8.0, 33.0),
+                  30,
+                  24,
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                _loading
-                    ? s.homeWelcomeGeneric
-                    : (_firstName == null
-                        ? s.homeWelcomeGeneric
-                        : s.homeWelcomeNamed(_firstName!)),
-                style: t.headlineLarge?.copyWith(fontSize: 22),
-              ),
-              Text(
-                s.homeSubtitle,
-                style: t.titleMedium?.copyWith(fontSize: 13),
-              ),
-              const SizedBox(height: 18),
-
-              _ActionCard(
-                title: s.homeEmergencyTitle,
-                body: s.homeEmergencyBody,
-                actions: [
-                  _CardAction(
-                    label: s.homeEmergencyLabel,
-                    onTap: () =>
-                        Navigator.of(context).pushReplacementNamed('/emergency'),
+                children: [
+                  // The logo box (308x236 at x=47, y=55) overlaps the bell
+                  // row, and the greeting starts 236 below the bell's top
+                  // edge (y=269), inside the logo box's transparent margin.
+                  SizedBox(
+                    height: 236,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned(
+                          left: 17,
+                          top: 22,
+                          width: 308,
+                          height: 236,
+                          child: Image.asset(
+                            'assets/images/home-wordmark.png',
+                            fit: BoxFit.fill,
+                            // The wordmark carries the brand; a screen
+                            // reader should hear the name, not "image".
+                            semanticLabel: 'SmartSumbong',
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: -2,
+                          child: _NotificationBell(
+                            unread: _unread,
+                            onTap: () => Navigator.of(context)
+                                .pushNamed('/notifications'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
 
-              _ActionCard(
-                title: s.homeReportTitle,
-                body: s.homeReportBody,
-                actions: [
-                  _CardAction(
-                    label: s.homeReportIssue,
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/submit-report'),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 13),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _loading
+                              ? s.homeWelcomeGeneric
+                              : (_firstName == null
+                                  ? s.homeWelcomeGeneric
+                                  : s.homeWelcomeNamed(_firstName!)),
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 28,
+                            // Subtitle starts 34 below the greeting's top.
+                            height: 34 / 28,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                        Text(
+                          s.homeSubtitle,
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            height: 21.84 / 14,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  _CardAction(
-                    label: s.homeViewReports,
-                    onTap: () =>
-                        Navigator.of(context).pushReplacementNamed('/reports'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+                  const SizedBox(height: 33),
 
-              _ActionCard(
-                title: s.homeMapTitle,
-                body: s.homeMapBody,
-                actions: [
-                  _CardAction(
-                    label: s.homeViewMap,
-                    onTap: () =>
-                        Navigator.of(context).pushReplacementNamed('/map'),
+                  // Gaps and the first card's 16 bottom padding are the
+                  // frame's own per-card values, kept as drawn.
+                  _ActionCard(
+                    title: s.homeEmergencyTitle,
+                    body: s.homeEmergencyBody,
+                    gap: 15,
+                    bottomPadding: 16,
+                    actions: [
+                      _CardAction(
+                        label: s.homeEmergencyLabel,
+                        width: 172,
+                        onTap: () => Navigator.of(context)
+                            .pushReplacementNamed('/emergency'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                  const SizedBox(height: 11),
+
+                  _ActionCard(
+                    title: s.homeReportTitle,
+                    body: s.homeReportBody,
+                    gap: 17,
+                    actions: [
+                      _CardAction(
+                        label: s.homeReportIssue,
+                        width: 140,
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/submit-report'),
+                      ),
+                      _CardAction(
+                        label: s.homeViewReports,
+                        width: 140,
+                        onTap: () => Navigator.of(context)
+                            .pushReplacementNamed('/reports'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 11),
+
+                  _ActionCard(
+                    title: s.homeMapTitle,
+                    body: s.homeMapBody,
+                    gap: 12,
+                    actions: [
+                      _CardAction(
+                        label: s.homeViewMap,
+                        width: 120,
+                        onTap: () =>
+                            Navigator.of(context).pushReplacementNamed('/map'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -350,13 +397,9 @@ class _NotificationBell extends StatelessWidget {
   final int unread;
   final VoidCallback onTap;
 
-  // A greyed-out/desaturated navy, per a reference the user sent (a
-  // muted icon-in-circle treatment, Messenger's Android notification
-  // row) — the resident icon's own colour toned down rather than the
-  // flat navy used everywhere else, so the bell reads as a quieter,
-  // secondary control next to the page's actual content.
-  static const _mutedNavy = Color(0xFF39445A);
-
+  // Figma NOTIF BUTTON: a 39x38 navy pill (radius 19) with the design's
+  // own bell glyph (25x25 at 7,6), exported from the frame rather than a
+  // Material look-alike. Tinted from the theme so dark mode still reads.
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -368,15 +411,18 @@ class _NotificationBell extends StatelessWidget {
           Container(
             width: 39,
             height: 38,
-            decoration: const BoxDecoration(
-              color: _mutedNavy,
-              shape: BoxShape.circle,
+            padding: const EdgeInsets.only(left: 7, top: 6),
+            alignment: Alignment.topLeft,
+            decoration: BoxDecoration(
+              color: context.colors.navy,
+              borderRadius: BorderRadius.circular(19),
             ),
-            // Orange rather than white, matching the reference's
-            // darker-icon-on-muted-circle look with this app's own
-            // accent colour instead of white.
-            child: const Icon(Icons.notifications_none_rounded,
-                color: Color(0xFFFF9800), size: 22),
+            child: Image.asset(
+              'assets/images/icon-bell.png',
+              width: 25,
+              height: 25,
+              color: context.colors.bg,
+            ),
           ),
           if (unread > 0)
             Positioned(
@@ -408,8 +454,16 @@ class _NotificationBell extends StatelessWidget {
 }
 
 class _CardAction {
-  const _CardAction({required this.label, required this.onTap});
+  const _CardAction({
+    required this.label,
+    required this.width,
+    required this.onTap,
+  });
   final String label;
+
+  /// The button's width in the frame. A minimum, not a fixed size, so a
+  /// longer Tagalog label grows the pill instead of being clipped.
+  final double width;
   final VoidCallback onTap;
 }
 
@@ -418,17 +472,26 @@ class _ActionCard extends StatelessWidget {
     required this.title,
     required this.body,
     required this.actions,
+    this.gap = 17,
+    this.bottomPadding = 20,
   });
 
   final String title;
   final String body;
   final List<_CardAction> actions;
 
+  /// Space between the text and the buttons; differs per card in the frame.
+  final double gap;
+  final double bottomPadding;
+
   @override
   Widget build(BuildContext context) {
+    // Figma card: 352 wide, radius 25, 20 padding, 1px #F3F3F3 stroke,
+    // drop shadow y5 / blur 5 / #121212 at 30%. Figma's blur 5 is sigma
+    // 2.5, which Flutter's blurRadius expresses as 3.5.
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 15, 18, 16),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPadding),
       decoration: BoxDecoration(
         color: context.colors.navy,
         border: Border.all(color: context.colors.bg),
@@ -436,7 +499,7 @@ class _ActionCard extends StatelessWidget {
         boxShadow: const [
           BoxShadow(
             color: Color(0x4D121212),
-            blurRadius: 2.5,
+            blurRadius: 3.5,
             offset: Offset(0, 5),
           ),
         ],
@@ -453,23 +516,25 @@ class _ActionCard extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
-              fontSize: 15,
-              height: 1.15,
+              fontSize: 18,
+              // The body starts 26 below the title's top.
+              height: 26 / 18,
               color: context.colors.bg,
             ),
           ),
-          const SizedBox(height: 5),
           Text(
             body,
             style: TextStyle(
-              fontSize: 11,
-              height: 1.3,
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              height: 15 / 12,
               color: context.colors.bg,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: gap),
           Wrap(
-            spacing: 10,
+            spacing: 16,
             runSpacing: 8,
             children: [
               for (final a in actions)
@@ -477,8 +542,9 @@ class _ActionCard extends StatelessWidget {
                   onTap: a.onTap,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    height: 32,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    height: 36,
+                    constraints: BoxConstraints(minWidth: a.width),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: context.colors.bg,
@@ -489,7 +555,7 @@ class _ActionCard extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'Urbanist',
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 16,
                         color: context.colors.navy,
                       ),
                     ),
