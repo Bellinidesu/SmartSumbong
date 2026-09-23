@@ -248,9 +248,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // Figma SETTINGS (2212:186): the title 28/800 50 from the top of the
+  // screen, the 111 avatar 24 under it at 44 in, the name 20/700 18 to
+  // its right over the 100x25 Edit Profile pill, then the rows from 277 on
+  // a 66 pitch — icon at 54, label at 123, chevron 58 from the right.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return Scaffold(
@@ -259,108 +262,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(30, 24, 30, 24),
+          padding: EdgeInsets.only(
+              top: (50 - MediaQuery.paddingOf(context).top).clamp(8.0, 50.0),
+              bottom: 24),
           children: [
             Center(
-              child: Text(s.settingsTitle,
-                  style: t.headlineLarge?.copyWith(fontSize: 28)),
+              child: Text(
+                s.settingsTitle,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                  height: 43.68 / 28,
+                  color: context.colors.navy,
+                ),
+              ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
-            Row(
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: context.colors.navy,
-                    shape: BoxShape.circle,
-                    // Same pattern as Edit Profile's avatar circle: a saved
-                    // avatar_url paints as the circle's own background image,
-                    // and only an unset avatar falls back to the initials
-                    // text below. Previously this row never even read
-                    // avatar_url, so a resident who set a photo on Edit
-                    // Profile still saw blank initials the moment they came
-                    // back here.
-                    image: _avatarUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(_avatarUrl!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+            Padding(
+              padding: const EdgeInsets.only(left: 44, right: 30),
+              child: Row(
+                children: [
+                  Container(
+                    width: 111,
+                    height: 111,
+                    decoration: BoxDecoration(
+                      color: context.colors.navy,
+                      shape: BoxShape.circle,
+                      // Same pattern as Edit Profile's avatar circle: a saved
+                      // avatar_url paints as the circle's own background image,
+                      // and only an unset avatar falls back to the initials
+                      // text below. Previously this row never even read
+                      // avatar_url, so a resident who set a photo on Edit
+                      // Profile still saw blank initials the moment they came
+                      // back here.
+                      image: _avatarUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(_avatarUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: _avatarUrl != null
+                        ? null
+                        : Text(
+                            _initials(_name),
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 36,
+                              color: context.colors.bg,
+                            ),
+                          ),
                   ),
-                  alignment: Alignment.center,
-                  child: _avatarUrl != null
-                      ? null
-                      : Text(
-                          _initials(_name),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _name ?? '\u2014',
                           style: TextStyle(
                             fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
-                            fontSize: 24,
-                            color: context.colors.bg,
+                            fontSize: 20,
+                            height: 1.4,
+                            letterSpacing: -0.5,
+                            color: context.colors.navy,
                           ),
                         ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _name ?? '\u2014',
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          color: context.colors.navy,
-                        ),
-                      ),
-                      if (_mobile != null)
-                        Text(
-                          _mask(_mobile!),
-                          style: TextStyle(
-                              fontSize: 12, color: context.colors.muted),
-                        ),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: () => Navigator.of(context)
-                            .pushNamed('/edit-profile')
-                            .then((_) => _load()),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFF9800),
-                            borderRadius: BorderRadius.circular(6),
+                        if (_mobile != null)
+                          Text(
+                            _mask(_mobile!),
+                            style: TextStyle(
+                                fontSize: 12, color: context.colors.muted),
                           ),
-                          child: Text(
-                            s.settingsEditProfile,
-                            style: const TextStyle(
-                              fontFamily: 'Urbanist',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                              color: Colors.white,
-                            ),
-                          ),
+                        const SizedBox(height: 6),
+                        _EditProfilePill(
+                          label: s.settingsEditProfile,
+                          onTap: () => Navigator.of(context)
+                              .pushNamed('/edit-profile')
+                              .then((_) => _load()),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
 
             _SettingsRow(
-              icon: Icons.person_outline,
+              asset: 'assets/images/settings-personal.png',
               label: s.settingsPersonalInfo,
               onTap: () => Navigator.of(context)
                   .pushNamed('/edit-profile')
                   .then((_) => _load()),
             ),
             _SettingsRow(
-              icon: Icons.language,
+              asset: 'assets/images/settings-languages.png',
               label: s.settingsLanguages,
               onTap: () => Navigator.of(context).pushNamed('/languages'),
             ),
@@ -388,7 +390,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
             ),
             _SettingsRow(
-              icon: Icons.facebook,
+              asset: 'assets/images/settings-facebook.png',
               label: s.settingsFacebook,
               onTap: () async {
                 final uri = Uri.parse(_facebookUrl);
@@ -410,7 +412,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: _deletingAccount ? null : _deleteAccount,
             ),
             _SettingsRow(
-              icon: Icons.logout,
+              asset: 'assets/images/settings-logout.png',
               label: s.settingsLogOut,
               showChevron: false,
               onTap: _busy ? null : _logOut,
@@ -469,17 +471,15 @@ class _SettingsToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+    return Container(
+      constraints: const BoxConstraints(minHeight: _rowPitch),
+      padding: const EdgeInsets.only(left: 54, right: 44),
       child: Row(
         children: [
-          Icon(icon, color: context.colors.navy, size: 22),
-          const SizedBox(width: 18),
+          _RowIcon(icon: icon, colour: context.colors.navy),
+          const SizedBox(width: _labelGap),
           Expanded(
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 14, color: context.colors.navy),
-            ),
+            child: Text(label, style: _rowLabel(context.colors.navy)),
           ),
           if (busy)
             SizedBox(
@@ -500,9 +500,92 @@ class _SettingsToggleRow extends StatelessWidget {
   }
 }
 
+/// The frame's rows sit 40 apart at 26 tall; each row's tap target is the
+/// whole 66 pitch.
+const double _rowPitch = 66;
+
+/// Label at 123 with the 28-wide icon box at 54.
+const double _labelGap = 41;
+
+TextStyle _rowLabel(Color colour) => TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w600,
+      fontSize: 16,
+      height: 1.15,
+      color: colour,
+    );
+
+/// A Figma icon where the frame drew one, otherwise the Material icon in
+/// the same 28x26 box.
+class _RowIcon extends StatelessWidget {
+  const _RowIcon({this.icon, this.asset, required this.colour});
+
+  final IconData? icon;
+  final String? asset;
+  final Color colour;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 28,
+        height: 26,
+        child: Center(
+          child: asset != null
+              ? Image.asset(asset!, scale: 4, color: colour)
+              : Icon(icon, color: colour, size: 24),
+        ),
+      );
+}
+
+/// The frame's 100x25 orange pill: 1px #F3F3F3 edge, 14/700 label and the
+/// y5 / blur 5 shadow at 30%. Grows for the longer Filipino label.
+class _EditProfilePill extends StatelessWidget {
+  const _EditProfilePill({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 100),
+          height: 25,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF9800),
+            borderRadius: BorderRadius.circular(50),
+            border: Border.all(color: context.colors.bg),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x4D121212),
+                blurRadius: 3.5,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          // widthFactor keeps the pill hugging its label instead of
+          // stretching to the column's width.
+          child: Center(
+            widthFactor: 1,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                height: 1,
+                color: context.colors.bg,
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
 class _SettingsRow extends StatelessWidget {
   const _SettingsRow({
-    required this.icon,
+    this.icon,
+    this.asset,
     required this.label,
     required this.onTap,
     this.showChevron = true,
@@ -510,7 +593,8 @@ class _SettingsRow extends StatelessWidget {
     this.busy = false,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? asset;
   final String label;
   final VoidCallback? onTap;
   final bool showChevron;
@@ -522,18 +606,14 @@ class _SettingsRow extends StatelessWidget {
     final tint = color ?? context.colors.navy;
     return InkWell(
       onTap: busy ? null : onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _rowPitch),
+        padding: const EdgeInsets.only(left: 54, right: 58),
         child: Row(
           children: [
-            Icon(icon, color: tint, size: 22),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 14, color: tint),
-              ),
-            ),
+            _RowIcon(icon: icon, asset: asset, colour: tint),
+            const SizedBox(width: _labelGap),
+            Expanded(child: Text(label, style: _rowLabel(tint))),
             if (busy)
               SizedBox(
                 width: 18,
@@ -541,7 +621,8 @@ class _SettingsRow extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2, color: tint),
               )
             else if (showChevron)
-              Icon(Icons.chevron_right, color: tint, size: 20),
+              Image.asset('assets/images/settings-chevron.png',
+                  scale: 4, color: tint),
           ],
         ),
       ),
