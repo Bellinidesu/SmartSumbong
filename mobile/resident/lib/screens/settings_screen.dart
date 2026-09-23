@@ -552,37 +552,43 @@ class _EditProfilePill extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
+  // Its own button node, so a screen reader reaches it apart from the
+  // name and number beside it.
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 100),
-          height: 25,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF9800),
-            borderRadius: BorderRadius.circular(50),
-            border: Border.all(color: context.colors.bg),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x4D121212),
-                blurRadius: 3.5,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          // widthFactor keeps the pill hugging its label instead of
-          // stretching to the column's width.
-          child: Center(
-            widthFactor: 1,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                height: 1,
-                color: context.colors.bg,
+  Widget build(BuildContext context) => Semantics(
+        container: true,
+        button: true,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 100),
+            height: 25,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF9800),
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(color: context.colors.bg),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x4D121212),
+                  blurRadius: 3.5,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            // widthFactor keeps the pill hugging its label instead of
+            // stretching to the column's width.
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  height: 1,
+                  color: context.colors.bg,
+                ),
               ),
             ),
           ),
