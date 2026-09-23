@@ -236,6 +236,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
+        barrierColor: context.colors.bg.withValues(alpha: 0.7),
         builder: (_) => _ProfileDialog(
           title: s.editProfileChangesSavedTitle,
           primaryLabel: s.editProfileContinue,
@@ -340,9 +341,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  // Figma EDIT PROFILE: the title 28/800 50 from the top of the screen
+  // (no app bar — BACK and the system back do the same guarded pop), the
+  // 139 avatar 20 under it with its 25 camera badge, the fields at 35 in
+  // on a 20 gap in the frame's order, and BACK / SAVE 150x45 pills 44
+  // under the last one.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return PopScope(
@@ -351,6 +356,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (didPop) return;
         final leave = await showDialog<bool>(
           context: context,
+          barrierColor: context.colors.bg.withValues(alpha: 0.7),
           builder: (_) => _ProfileDialog(
             title: s.editProfileUnsavedTitle,
             body: s.editProfileUnsavedBody,
@@ -363,25 +369,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (leave == true && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: context.colors.bg,
-          surfaceTintColor: context.colors.bg,
-          elevation: 0,
-          foregroundColor: context.colors.navy,
-        ),
         body: SafeArea(
-          top: false,
           child: _loading
               ? Center(
                   child: CircularProgressIndicator(color: context.colors.navy))
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 0, 30, 32),
+                  padding: EdgeInsets.fromLTRB(
+                      35,
+                      (50 - MediaQuery.paddingOf(context).top)
+                          .clamp(8.0, 50.0),
+                      35,
+                      32),
                   children: [
                     Center(
-                      child: Text(s.editProfileTitle,
-                          style: t.headlineLarge?.copyWith(fontSize: 28)),
+                      child: Text(
+                        s.editProfileTitle,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 28,
+                          height: 43.68 / 28,
+                          color: context.colors.navy,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     Center(
                       child: GestureDetector(
@@ -390,8 +402,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           clipBehavior: Clip.none,
                           children: [
                             Container(
-                              width: 96,
-                              height: 96,
+                              width: 139,
+                              height: 139,
                               decoration: BoxDecoration(
                                 color: context.colors.navy,
                                 shape: BoxShape.circle,
@@ -418,7 +430,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       style: TextStyle(
                                         fontFamily: 'Urbanist',
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 32,
+                                        fontSize: 44,
                                         color: context.colors.bg,
                                       ),
                                     ),
@@ -426,28 +438,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             // A small camera badge is the only hint that the
                             // circle above is tappable — nothing else on this
                             // screen suggests avatar upload lives here.
+                            // The frame's 25 #FBFBFB badge, 14/10 in from
+                            // the circle's bottom-right.
                             Positioned(
-                              right: -2,
-                              bottom: -2,
+                              right: 14,
+                              bottom: 10,
                               child: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: context.colors.bg,
+                                width: 25,
+                                height: 25,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFBFBFB),
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: context.colors.navy, width: 1.5),
                                 ),
                                 alignment: Alignment.center,
-                                child: Icon(Icons.camera_alt_outlined,
-                                    size: 15, color: context.colors.navy),
+                                child: Image.asset(
+                                    'assets/images/icon-camera.png',
+                                    scale: 4,
+                                    color: context.colors.navy),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 21),
 
                     if (_banner != null) ...[
                       Container(
@@ -471,7 +485,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       onTap: () =>
                           _requestChange('full_name', s.editProfileNameWord),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
 
                     _EditableField(
                       label: s.editProfileEmailLabel,
@@ -482,7 +496,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       enabled: !_saving,
                       keyboardType: TextInputType.emailAddress,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
+
+                    _LockedField(
+                      label: s.editProfilePhoneLabel,
+                      value: _mobile ?? '',
+                      note: s.editProfilePhoneNote,
+                      onTap: () => _requestChange(
+                          'mobile_number', s.editProfilePhoneWord),
+                    ),
+                    const SizedBox(height: 20),
+
+                    _LockedField(
+                      label: s.editProfilePasswordLabel,
+                      value: '\u2022' * 10,
+                      note: s.editProfilePasswordChange,
+                      onTap: _changePassword,
+                    ),
+                    const SizedBox(height: 20),
 
                     _EditableField(
                       label: s.editProfileAddressLabel,
@@ -492,28 +523,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       enabled: !_saving,
                       keyboardType: TextInputType.streetAddress,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 44),
 
-                    _LockedField(
-                      label: s.editProfilePhoneLabel,
-                      value: _mobile ?? '',
-                      note: s.editProfilePhoneNote,
-                      onTap: () => _requestChange(
-                          'mobile_number', s.editProfilePhoneWord),
-                    ),
-                    const SizedBox(height: 18),
-
-                    _LockedField(
-                      label: s.editProfilePasswordLabel,
-                      value: '\u2022' * 10,
-                      note: s.editProfilePasswordChange,
-                      onTap: _changePassword,
-                    ),
-                    const SizedBox(height: 32),
 
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Expanded(
+                        _PageShadow(
                           child: OutlinedButton(
                             onPressed: _saving
                                 ? null
@@ -521,19 +537,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: context.colors.navy,
                               backgroundColor: context.colors.field,
-                              minimumSize: const Size.fromHeight(45),
+                              fixedSize: const Size(150, 45),
+                              minimumSize: const Size(150, 45),
+                              padding: EdgeInsets.zero,
                               side: BorderSide(color: context.colors.navy),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(50),
+                              ),
+                              textStyle: const TextStyle(
+                                fontFamily: 'Urbanist',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
                               ),
                             ),
                             child: Text(s.editProfileBack),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
+                        const SizedBox(width: 20),
+                        _PageShadow(
                           child: FilledButton(
                             onPressed: (_saving || !_dirty) ? null : _save,
+                            style: FilledButton.styleFrom(
+                              fixedSize: const Size(150, 45),
+                              minimumSize: const Size(150, 45),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                              side: BorderSide(color: context.colors.bg),
+                            ),
                             child: _saving
                                 ? SizedBox(
                                     width: 20,
@@ -564,6 +594,44 @@ abstract class _SettingsInitials {
   }
 }
 
+/// The frame's field label (16/700) and value (14/500).
+TextStyle _fieldLabel(BuildContext context) => TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+      height: 14 / 16,
+      color: context.colors.navy,
+    );
+
+TextStyle _fieldValue(Color colour) => TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+      color: colour,
+    );
+
+/// The y5 / blur 5 shadow at 30% the frame puts under BACK and SAVE.
+class _PageShadow extends StatelessWidget {
+  const _PageShadow({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x4D121212),
+              blurRadius: 3.5,
+              offset: Offset(0, 5),
+            ),
+          ],
+        ),
+        child: child,
+      );
+}
+
 class _EditableField extends StatelessWidget {
   const _EditableField({
     required this.label,
@@ -589,17 +657,11 @@ class _EditableField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 12, bottom: 6),
+          padding: const EdgeInsets.only(bottom: 11),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(label,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: context.colors.navy,
-                  )),
+              Text(label, style: _fieldLabel(context)),
               if (note != null) ...[
                 const SizedBox(width: 8),
                 Text(note!,
@@ -612,8 +674,14 @@ class _EditableField extends StatelessWidget {
           controller: controller,
           enabled: enabled,
           keyboardType: keyboardType,
-          style: TextStyle(fontSize: 14, color: context.colors.navy),
-          decoration: InputDecoration(hintText: hint),
+          style: _fieldValue(context.colors.navy),
+          // 44 tall with the value 15 in, as the frame's fields.
+          decoration: InputDecoration(
+            hintText: hint,
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+          ),
         ),
         if (error != null)
           Padding(
@@ -648,21 +716,15 @@ class _LockedField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 12, bottom: 6),
-          child: Text(label,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: context.colors.navy,
-              )),
+          padding: const EdgeInsets.only(bottom: 11),
+          child: Text(label, style: _fieldLabel(context)),
         ),
         InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(50),
           child: Container(
             height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 15),
             decoration: BoxDecoration(
               color: context.colors.bg,
               border: Border.all(color: context.colors.muted),
@@ -673,7 +735,7 @@ class _LockedField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     value,
-                    style: TextStyle(fontSize: 14, color: context.colors.muted),
+                    style: _fieldValue(context.colors.muted),
                   ),
                 ),
                 Text(note,
@@ -855,14 +917,26 @@ class _ProfileDialog extends StatelessWidget {
 
   static const _orange = Color(0xFFFF9800);
 
+  // Figma EDIT PROFILE - BACK / - SAVE: a 300-wide navy card, radius 50,
+  // 2px #252525 edge; the title orange at 24/700, the body 16/500, and
+  // 106x40 pills 13 apart with the frame's shadow. Without a body the
+  // gaps open to 32, as in "Changes Saved.".
   @override
   Widget build(BuildContext context) {
+    final hasBody = body != null;
     return Dialog(
-      backgroundColor: context.colors.navy,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 44),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        width: 300,
+        padding: EdgeInsets.fromLTRB(
+            20, hasBody ? 30 : 40, 20, hasBody ? 29 : 25),
+        decoration: BoxDecoration(
+          color: context.colors.navy,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: const Color(0xFF252525), width: 2),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -872,23 +946,26 @@ class _ProfileDialog extends StatelessWidget {
               style: const TextStyle(
                 fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
-                fontSize: 18,
+                fontSize: 24,
+                height: 21 / 24,
                 color: _orange,
               ),
             ),
-            if (body != null) ...[
-              const SizedBox(height: 8),
+            if (hasBody) ...[
+              const SizedBox(height: 23),
               Text(
                 body!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
-                  height: 1.35,
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  height: 15 / 16,
                   color: context.colors.bg,
                 ),
               ),
             ],
-            const SizedBox(height: 16),
+            SizedBox(height: hasBody ? 23 : 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -898,7 +975,7 @@ class _ProfileDialog extends StatelessWidget {
                     onTap: onSecondary!,
                     filled: false,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 13),
                 ],
                 _Pill(label: primaryLabel, onTap: onPrimary, filled: true),
               ],
@@ -926,40 +1003,43 @@ class _Pill extends StatelessWidget {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(50),
     );
-    const size = Size(96, 38);
+    const size = Size(106, 40);
+    const text = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
 
-    return filled
-        ? FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              backgroundColor: context.colors.bg,
-              foregroundColor: context.colors.navy,
-              minimumSize: size,
-              padding: EdgeInsets.zero,
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+    return _PageShadow(
+      child: filled
+          ? FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: context.colors.bg,
+                foregroundColor: context.colors.navy,
+                fixedSize: size,
+                minimumSize: size,
+                elevation: 0,
+                padding: EdgeInsets.zero,
+                shape: shape,
+                textStyle: text,
               ),
-            ),
-            child: Text(label),
-          )
-        : OutlinedButton(
-            onPressed: onTap,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.bg,
-              side: BorderSide(color: context.colors.bg),
-              minimumSize: size,
-              padding: EdgeInsets.zero,
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+              child: Text(label),
+            )
+          : OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.bg,
+                backgroundColor: context.colors.navy,
+                side: BorderSide(color: context.colors.bg),
+                fixedSize: size,
+                minimumSize: size,
+                padding: EdgeInsets.zero,
+                shape: shape,
+                textStyle: text,
               ),
+              child: Text(label),
             ),
-            child: Text(label),
-          );
+    );
   }
 }
