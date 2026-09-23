@@ -48,9 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (mb_strlen($name) < 2) {
                         throw new SupabaseError('Please enter your full name.');
                     }
-                    if (!preg_match('/^09\d{9}$/', $mobile)) {
+                    // Stored as +639XXXXXXXXX (0021), which is what the field
+                    // is prefilled with — the old 09-only pattern rejected
+                    // that prefilled value, so Save failed even when only
+                    // the name was changed. Either form is accepted and
+                    // saved in the stored form.
+                    if (!preg_match('/^(?:09|\+639)(\d{9})$/', $mobile, $mm)) {
                         throw new SupabaseError('Mobile number must be 11 digits starting 09.');
                     }
+                    $mobile = '+639' . $mm[1];
 
                     $db->update('users', ['id' => 'eq.' . $admin['id']], [
                         'full_name'     => $name,
@@ -180,7 +186,7 @@ layout_head('Edit Profile', 'profile.php');
         <div class="control-field">
           <label class="field-label" for="mobile_number">Mobile number</label>
           <input type="tel" id="mobile_number" name="mobile_number" required
-                 pattern="09[0-9]{9}" value="<?= e($me['mobile_number']) ?>">
+                 pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>">
           <p class="field-hint">Eleven digits, starting 09.</p>
         </div>
 

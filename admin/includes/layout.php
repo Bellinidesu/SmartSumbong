@@ -195,6 +195,40 @@ function layout_foot(): void
   </main>
 </div>
 <?php idle_timeout(); ?>
+<script>
+// One submit per form. A double-click on Accept or Dispatch (or holding
+// the A shortcut on case.php) sent two POSTs: the first did the work and
+// the second came back with the database's "already reviewed"-style
+// error, so the admin landed on a red flash for an action that actually
+// succeeded. Buttons are disabled on the next tick, not inside this
+// handler, because a disabled submitter is dropped from the form data
+// and the server would never see which action was clicked.
+(function () {
+  document.addEventListener('submit', function (ev) {
+    var form = ev.target;
+    if (ev.defaultPrevented || String(form.method).toLowerCase() !== 'post') return;
+    if (form.dataset.submitting) { ev.preventDefault(); return; }
+    form.dataset.submitting = '1';
+    setTimeout(function () {
+      form.querySelectorAll('button[type="submit"], button:not([type])').forEach(function (b) {
+        if (!b.disabled) { b.disabled = true; b.dataset.guarded = '1'; }
+      });
+    }, 0);
+  });
+  // Coming back with the browser's Back button can restore the page
+  // exactly as it was left, disabled buttons included.
+  window.addEventListener('pageshow', function (ev) {
+    if (!ev.persisted) return;
+    document.querySelectorAll('form[data-submitting]').forEach(function (form) {
+      delete form.dataset.submitting;
+      form.querySelectorAll('button[data-guarded]').forEach(function (b) {
+        b.disabled = false;
+        delete b.dataset.guarded;
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>
 <?php

@@ -842,10 +842,17 @@ layout_head('Case Review', 'cases.php');
       // just shown/hidden with the rest of the interactive controls.
       var zoomCtl = null;
 
+      // iPhone Safari has no element fullscreen; hide the button there
+      // rather than leave one that does nothing when tapped.
+      if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+        expandBtn.hidden = true;
+      }
+
       expandBtn.addEventListener('click', function () {
         if (!document.fullscreenElement) {
-          (preview.requestFullscreen || preview.webkitRequestFullscreen || function () {}).call(preview)
-            .catch(function () {});
+          // The prefixed call returns nothing rather than a promise.
+          var p = (preview.requestFullscreen || preview.webkitRequestFullscreen || function () {}).call(preview);
+          if (p && p.catch) { p.catch(function () {}); }
         } else {
           (document.exitFullscreen || document.webkitExitFullscreen || function () {}).call(document);
         }

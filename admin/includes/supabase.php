@@ -145,6 +145,13 @@ final class Supabase
         return $this->request('PUT', '/auth/v1/user', $fields);
     }
 
+    /** GoTrue's own record of the signed-in user (profile.php's "Last signed in"). */
+    public function authUser(): array
+    {
+        $user = $this->request('GET', '/auth/v1/user');
+        return is_array($user) ? $user : [];
+    }
+
     public function signOut(): void
     {
         try {

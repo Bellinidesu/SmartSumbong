@@ -230,6 +230,16 @@ const COLOUR = {
 };
 const label = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+// Every string below that reaches innerHTML passes through this. subject
+// is typed by the resident who filed the complaint and full_name by the
+// tanod who registered, and this page holds the admin's session token —
+// a subject like <img src=x onerror=...> must render as text, not run.
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
 // Shape carries the same information as colour. Around one man in twelve
 // cannot reliably separate this orange from this green, and a map read
 // only by hue is a map they cannot use.
@@ -381,8 +391,8 @@ function draw() {
     li.className = 'pin-item';
     li.innerHTML =
       '<span class="pin-dot" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
-      '<span class="pin-body"><a href="case.php?id=' + r.id + '">' + r.tracking_id + '</a>' +
-      '<small>' + label(r.category) + '</small></span>';
+      '<span class="pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
+      '<small>' + esc(label(r.category)) + '</small></span>';
     li.addEventListener('mouseenter', () => map.panTo([r.latitude, r.longitude]));
     list.appendChild(li);
   });
@@ -409,6 +419,7 @@ async function load() {
   draw();
 }
 
+let connLost = false;
 sb.channel('reports-spatial')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, payload => {
     const row = payload.new || payload.old;
@@ -422,7 +433,12 @@ sb.channel('reports-spatial')
           text  = document.getElementById('conn-text');
     if (status === 'SUBSCRIBED') {
       strip.setAttribute('hidden', '');
+      // Changes made while the socket was down were never delivered, so
+      // hiding the strip alone would present a map that is missing them
+      // as current. Reload the rows once the channel is back.
+      if (connLost) { connLost = false; load(); }
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      connLost = true;
       text.textContent = 'Connection lost — this map is not updating. Reconnecting…';
       strip.removeAttribute('hidden');
     }
@@ -445,16 +461,16 @@ function showDetail(r) {
   const deadline  = fmtDate(r.due_at);
   box.innerHTML =
     '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
-    '<p class="detail-id">' + r.tracking_id + '</p>' +
-    '<p class="detail-cat">' + label(r.category) + '</p>' +
-    '<p class="detail-sub">' + (r.subject || '') + '</p>' +
+    '<p class="detail-id">' + esc(r.tracking_id) + '</p>' +
+    '<p class="detail-cat">' + esc(label(r.category)) + '</p>' +
+    '<p class="detail-sub">' + esc(r.subject) + '</p>' +
     '<p class="detail-status"><span class="pin-dot" style="background:' +
-      (COLOUR[r.status] || '#9aa1ab') + '"></span>' + label(r.status) + '</p>' +
+      (COLOUR[r.status] || '#9aa1ab') + '"></span>' + esc(label(r.status)) + '</p>' +
     '<dl class="detail-dates">' +
       '<dt>Submitted</dt><dd>' + submitted + '</dd>' +
       '<dt>Deadline</dt><dd>' + (deadline || 'No deadline set') + '</dd>' +
     '</dl>' +
-    '<a class="detail-open" href="case.php?id=' + r.id + '">Open this case</a>';
+    '<a class="detail-open" href="case.php?id=' + encodeURIComponent(r.id) + '">Open this case</a>';
   box.removeAttribute('hidden');
   box.querySelector('.detail-x').addEventListener('click',
     () => box.setAttribute('hidden', ''));
@@ -475,10 +491,16 @@ document.getElementById('fit-btn').addEventListener('click', () => {
 // nudge once the browser has actually finished resizing the element.
 const expandBtn = document.getElementById('expand-btn');
 const mapShell  = document.querySelector('.map-shell');
+// iPhone Safari has no element fullscreen at all; a button that does
+// nothing when tapped reads as broken, so it is not offered there.
+if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+  expandBtn.hidden = true;
+}
 expandBtn.addEventListener('click', () => {
   if (!document.fullscreenElement) {
-    (mapShell.requestFullscreen || mapShell.webkitRequestFullscreen || function(){}).call(mapShell)
-      .catch(() => {});
+    // The prefixed call returns nothing rather than a promise.
+    const p = (mapShell.requestFullscreen || mapShell.webkitRequestFullscreen || function(){}).call(mapShell);
+    if (p && p.catch) p.catch(() => {});
   } else {
     (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
   }
@@ -609,7 +631,7 @@ function showHotspotDetail(h) {
   box.innerHTML =
     '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
     '<p class="detail-id">Hotspot &mdash; ' + h.report_count + ' report' + (h.report_count === 1 ? '' : 's') + '</p>' +
-    '<p class="detail-cat">Mostly ' + label(h.top_category) + '</p>' +
+    '<p class="detail-cat">Mostly ' + esc(label(h.top_category)) + '</p>' +
     '<dl class="detail-dates">' +
       '<dt>Submitted</dt><dd>' + submittedRange + '</dd>' +
       '<dt>Deadline</dt><dd>' + deadlineText + '</dd>' +
@@ -620,8 +642,8 @@ function showHotspotDetail(h) {
         members.slice(0, 8).map(r =>
           '<li class="pin-item">' +
             '<span class="pin-dot" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
-            '<span class="pin-body"><a href="case.php?id=' + r.id + '">' + r.tracking_id + '</a>' +
-            '<small>' + label(r.category) + '</small></span>' +
+            '<span class="pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
+            '<small>' + esc(label(r.category)) + '</small></span>' +
           '</li>').join('') +
         '</ol>'
       : '');
@@ -675,7 +697,7 @@ async function loadHotspots() {
     li.innerHTML =
       '<span class="pin-dot" style="background:' + hotspotColour(h.report_count) + '"></span>' +
       '<span class="pin-body">#' + (i + 1) + ' — ' + h.report_count + ' reports' +
-      '<small>' + label(h.top_category) + '</small></span>';
+      '<small>' + esc(label(h.top_category)) + '</small></span>';
     li.addEventListener('click', () => map.setView([h.centroid_lat, h.centroid_lng], 18));
     list.appendChild(li);
   });
@@ -736,8 +758,8 @@ function tanodDetail(t) {
   const box = document.getElementById('pin-detail');
   box.innerHTML =
     '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
-    '<p class="detail-id">' + t.full_name + '</p>' +
-    '<p class="detail-cat">' + label(t.duty_status || 'offline') + (t.is_fresh ? '' : ' — stale fix') + '</p>' +
+    '<p class="detail-id">' + esc(t.full_name) + '</p>' +
+    '<p class="detail-cat">' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : ' — stale fix') + '</p>' +
     '<dl class="detail-dates">' +
       '<dt>Last update</dt><dd>' + (fmtDate(t.last_location_at) || 'Never') + '</dd>' +
     '</dl>';
@@ -786,8 +808,8 @@ async function loadTanodPositions() {
     li.className = 'pin-item';
     li.innerHTML =
       '<span class="pin-dot" style="background:' + (t.is_fresh ? '#1FA84E' : '#9aa1ab') + '"></span>' +
-      '<span class="pin-body">' + t.full_name +
-      '<small>' + label(t.duty_status || 'offline') + (t.is_fresh ? '' : ' — stale') + '</small></span>';
+      '<span class="pin-body">' + esc(t.full_name) +
+      '<small>' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : ' — stale') + '</small></span>';
     if (t.lat != null && t.lng != null) {
       li.addEventListener('click', () => map.panTo([t.lat, t.lng]));
     }
@@ -802,7 +824,7 @@ async function loadTanodPositions() {
   // a routine 30-second refresh.
   const current = select.value;
   select.innerHTML = '<option value="">All tanods</option>' +
-    tanodRows.map(t => '<option value="' + t.tanod_id + '">' + t.full_name + '</option>').join('');
+    tanodRows.map(t => '<option value="' + esc(t.tanod_id) + '">' + esc(t.full_name) + '</option>').join('');
   select.value = tanodRows.some(t => t.tanod_id === current) ? current : '';
 }
 

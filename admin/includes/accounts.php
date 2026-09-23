@@ -479,9 +479,13 @@ function render_account_screen(string $role): void
         }
         var dupes = duplicateFlags(accounts);
 
+        // Counted over the filtered list, the same as the PHP render above
+        // does — counting all accounts made the "awaiting review" note and
+        // the overdue banner appear 20 seconds after loading a Verified-only
+        // or searched view, with nothing having changed.
         document.getElementById('accounts-count').textContent = filtered.length;
-        var pending = accounts.filter(function (a) { return a.verification_status === 'pending'; }).length;
-        var overdue = accounts.filter(function (a) { return a.is_overdue; }).length;
+        var pending = filtered.filter(function (a) { return a.verification_status === 'pending'; }).length;
+        var overdue = filtered.filter(function (a) { return a.is_overdue; }).length;
 
         var pendingWrap = document.getElementById('pending-wrap');
         pendingWrap.hidden = pending === 0;
@@ -1114,9 +1118,26 @@ function render_account_detail(
         var open  = panel.hasAttribute('hidden');
         if (open) { panel.removeAttribute('hidden'); } else { panel.setAttribute('hidden', ''); }
         btn.setAttribute('aria-expanded', String(open));
-        if (open) { panel.querySelector('textarea').focus(); }
+        if (open) {
+          var field = panel.querySelector('textarea, input');
+          if (field) { field.focus(); }
+        }
       });
     });
+
+    // Enter in the reset panel's password field would otherwise submit
+    // this whole form through its first submit button — Request ID
+    // Re-check or Suspend, not Issue temporary password.
+    (function () {
+      var pw = document.getElementById('reset-password');
+      if (!pw) return;
+      pw.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter') return;
+        ev.preventDefault();
+        var btn = pw.form.querySelector('button[value="reset_password"]');
+        if (pw.form.requestSubmit) { pw.form.requestSubmit(btn); } else { btn.click(); }
+      });
+    })();
     </script>
 
     <script src="assets/vendor/supabase/supabase.js"></script>
@@ -1155,15 +1176,21 @@ function render_account_detail(
           a.suspended_reason || '', a.id_type || ''
         ]);
       }
+      // Must serialise byte-for-byte like fingerprint() above: flags
+      // sorted the same way, and no \/ or \uXXXX escaping, which
+      // JSON.stringify never produces. Otherwise any reason containing a
+      // slash or an accented letter, or two OCR flags out of order, raised
+      // the "has changed" banner 20 seconds after every page load.
+      <?php $fpFlags = array_values($p['ocr_flags'] ?? []); sort($fpFlags, SORT_STRING); ?>
       const INITIAL_FINGERPRINT = <?= json_encode(json_encode([
           $p['verification_status'] ?? null, (bool) ($p['is_suspended'] ?? false),
           $p['rejection_reason'] ?? '', (bool) ($p['holding_incident'] ?? false),
           $p['duty_status'] ?? '', $p['ocr_detected_type'] ?? '',
-          array_values($p['ocr_flags'] ?? []), $p['ocr_extracted_name'] ?? '',
+          $fpFlags, $p['ocr_extracted_name'] ?? '',
           $p['ocr_extracted_number'] ?? '',
           $p['ocr_processed_at'] ?? '', $p['ocr_rescan_requested_at'] ?? '',
           $p['suspended_reason'] ?? '', $p['id_type'] ?? '',
-      ])) ?>;
+      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>;
 
       function poll() {
         sb.rpc('account_directory', { p_role: ROLE }).then(function (res) {

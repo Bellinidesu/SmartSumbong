@@ -406,8 +406,8 @@ function print_head(string $period, string $categoryLabel = 'All Categories'): v
 <head>
 <meta charset="utf-8">
 <title>Report Summary — <?= e($period) ?></title>
-<link href="assets/css/fonts.css" rel="stylesheet">
-<link href="assets/css/app.css" rel="stylesheet">
+<link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
+<link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
 </head>
 <body class="doc-body">
 <div class="doc">

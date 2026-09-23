@@ -502,13 +502,18 @@ function render_retirement_queue(): void
         if (r.status !== 'pending') {
           return '<span class="case-none">Decided</span>';
         }
-        var name = escapeHtml(r.full_name);
+        // Escaped for the JS string first, then for the HTML attribute —
+        // the other order let the browser decode &#39; back into a bare
+        // quote inside confirm('...'), so a name like D'Souza broke the
+        // handler and the request was approved with no confirmation.
+        var name = escapeHtml(String(r.full_name == null ? '' : r.full_name)
+          .replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
         return (
           '<form method="post" class="quick-verify-form" style="display:inline">' +
             '<input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '">' +
             '<input type="hidden" name="id" value="' + escapeHtml(r.id) + '">' +
             '<button class="btn-accept" type="submit" name="action" value="approve" ' +
-              'onclick="return confirm(\'Approve retirement for ' + name.replace(/'/g, "\\'") +
+              'onclick="return confirm(\'Approve retirement for ' + name +
               '? This account will no longer be able to sign in.\')">' +
               'Approve' +
             '</button>' +

@@ -2140,3 +2140,25 @@ a.btn-accept { text-decoration: none; }
   font: inherit;
   cursor: pointer;
 }
+
+/* ---- phone width ----
+   The 210px sidebar never gave way, so on a ~390px phone every page was
+   squeezed into the ~180px left beside it. Below 700px it becomes a
+   single scrolling row of nav buttons above the page instead. */
+@media (max-width: 700px) {
+  .shell { flex-direction: column; }
+  .sidebar {
+    width: auto;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar .brand { flex: none; width: 96px; margin: 0 6px 0 0; }
+  .nav-item { flex: none; margin-bottom: 0; white-space: nowrap; padding: 8px 11px; }
+  .nav-spacer { display: none; }
+}

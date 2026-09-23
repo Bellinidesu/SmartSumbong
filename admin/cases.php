@@ -112,8 +112,11 @@ try {
                        . "created_at.lt.{$end->format(DateTimeInterface::ATOM)})";
     }
     if ($search !== '') {
-        // Match either the tracking id or the subject line.
-        $needle = str_replace(',', ' ', $search);
+        // Match either the tracking id or the subject line. Commas,
+        // parentheses, quotes, backslashes and * are PostgREST's own
+        // or=() syntax; left in, a search like "poste (ilaw)" failed to
+        // parse and the whole list came back as a reference-code error.
+        $needle = preg_replace('/[,()"\\\\*]/', ' ', $search);
         $query['or'] = "(tracking_id.ilike.*{$needle}*,subject.ilike.*{$needle}*)";
     }
     $reports = $db->select('reports', $query);
@@ -451,7 +454,7 @@ layout_head('Case Reports', 'cases.php');
     if (CATEGORY) q = q.eq('category', CATEGORY);
     if (MONTH_FROM) q = q.gte('created_at', MONTH_FROM).lt('created_at', MONTH_TO);
     if (SEARCH) {
-      const needle = SEARCH.replace(/,/g, ' ');
+      const needle = SEARCH.replace(/[,()"\\*]/g, ' ');   // mirrors the PHP above
       q = q.or('tracking_id.ilike.*' + needle + '*,subject.ilike.*' + needle + '*');
     }
     const { data, error } = await q;
@@ -479,6 +482,7 @@ layout_head('Case Reports', 'cases.php');
   const kickReports = debounced(loadReports, { id: null });
   const kickNotifs  = debounced(loadNotifications, { id: null });
 
+  let wasDown = false;
   sb.channel('cases-list')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, kickReports)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications',
@@ -488,7 +492,10 @@ layout_head('Case Reports', 'cases.php');
             text  = document.getElementById('live-badge-text');
       if (status === 'SUBSCRIBED') {
         badge.classList.remove('is-down'); text.textContent = 'Live';
+        // Nothing is replayed for the time the socket was down.
+        if (wasDown) { wasDown = false; kickReports(); kickNotifs(); }
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        wasDown = true;
         badge.classList.add('is-down'); text.textContent = 'Reconnecting…';
       }
     });

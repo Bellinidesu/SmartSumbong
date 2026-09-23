@@ -270,6 +270,10 @@ layout_head('Dashboard', 'dashboard.php');
   Chart.defaults.color = token('--ink-soft');
   Chart.defaults.plugins.legend.display = false;
 
+  // The month on screen, so a donut click opens the complaints it counted
+  // rather than every month's.
+  var MONTH = <?= json_encode($month->format('Y-m')) ?>;
+
   function title(s) {
     return s.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
@@ -352,7 +356,8 @@ layout_head('Dashboard', 'dashboard.php');
         onClick: function (_, hit) {
           if (!hit.length) return;
           var to = ['resolved', '', '', 'in_progress', 'rejected'][hit[0].index];
-          location.href = to ? 'cases.php?status=' + to : 'cases.php?view=attention';
+          location.href = (to ? 'cases.php?status=' + to : 'cases.php?view=attention')
+                        + '&month=' + MONTH;
         },
         onHover: function (ev, hit) { ev.native.target.style.cursor = hit.length ? 'pointer' : 'default'; }
       }
@@ -374,9 +379,13 @@ layout_head('Dashboard', 'dashboard.php');
       options: {
         responsive: true, maintainAspectRatio: false, resizeDelay: 120,
         animation: { duration: 300 }, cutout: '68%',
+        // category=, not q= — q searches tracking IDs and subjects, so
+        // "street_obstruction" matched nothing and every segment opened
+        // an empty list.
         onClick: function (_, hit) {
           if (!hit.length || !categories[hit[0].index]) return;
-          location.href = 'cases.php?q=' + encodeURIComponent(categories[hit[0].index].category);
+          location.href = 'cases.php?category=' + encodeURIComponent(categories[hit[0].index].category)
+                        + '&month=' + MONTH;
         },
         onHover: function (ev, hit) { ev.native.target.style.cursor = hit.length ? 'pointer' : 'default'; }
       }
@@ -583,6 +592,7 @@ layout_head('Dashboard', 'dashboard.php');
     }, 400);
   }
 
+  var wasDown = false;
   sb.channel('dashboard-metrics')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, scheduleRefresh)
     .subscribe(function (chStatus) {
@@ -591,7 +601,10 @@ layout_head('Dashboard', 'dashboard.php');
       if (!badge) return;
       if (chStatus === 'SUBSCRIBED') {
         badge.classList.remove('is-down'); text.textContent = 'Live';
+        // Nothing is replayed for the time the socket was down.
+        if (wasDown) { wasDown = false; scheduleRefresh(); }
       } else if (chStatus === 'CHANNEL_ERROR' || chStatus === 'TIMED_OUT' || chStatus === 'CLOSED') {
+        wasDown = true;
         badge.classList.add('is-down'); text.textContent = 'Reconnecting…';
       }
     });
