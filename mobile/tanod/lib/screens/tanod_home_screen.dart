@@ -240,6 +240,13 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
         _loading = false;
       });
 
+      // A push tapped while the app was fully closed. The tanod app has
+      // no single-ticket route, so it lands on Notifications, the same
+      // place a tap on a running app goes (main.dart).
+      if (PushNotifications.takePendingReport() != null && mounted) {
+        unawaited(Navigator.of(context).pushNamed('/notifications'));
+      }
+
       if (_status == DutyState.onDuty) await _pushLocation();
       _syncLocationTimer();
     } on PostgrestException catch (e) {

@@ -141,6 +141,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       _subscribeLive(uid);
 
+      // A push tapped while the app was fully closed (see
+      // PushNotifications.takePendingReport). Opened here rather than at
+      // launch because this is where the account has just been confirmed
+      // verified and not suspended.
+      final pendingReport = PushNotifications.takePendingReport();
+      if (pendingReport != null && mounted) {
+        unawaited(Navigator.of(context)
+            .pushNamed('/report', arguments: pendingReport));
+      }
+
       // Migration 0050: an admin asked for this account's already-
       // uploaded ID photo to be re-scanned (it predates on-device OCR,
       // or its first read flagged something worth a second look).

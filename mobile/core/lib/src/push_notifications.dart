@@ -52,6 +52,23 @@ class PushNotifications {
 
   static bool _initialized = false;
 
+  /// A report the app was launched from, while it was fully closed.
+  ///
+  /// That tap is known during [init], which runs before runApp — there is
+  /// no navigator yet, so calling onOpenReport then did nothing and the
+  /// app just opened on its launch screen. It is held here instead and
+  /// claimed by each app's Home screen via [takePendingReport], which is
+  /// also the first point the account is known to be signed in,
+  /// verified and past the biometric gate.
+  static String? _pendingReportId;
+
+  /// Returns the pending report id once, then clears it.
+  static String? takePendingReport() {
+    final id = _pendingReportId;
+    _pendingReportId = null;
+    return id;
+  }
+
   /// Call once, after Firebase.initializeApp(). [onOpenReport] is how each
   /// app decides what "open this notification" means — the resident app
   /// has a `/report` route that takes a report id; the tanod app does
@@ -147,10 +164,20 @@ class PushNotifications {
     });
 
     // Tapped from a fully killed state — the app's very first frame.
+    // Two ways in: an FCM tray notification (background/killed), or one
+    // of our own foreground notifications above, tapped after the app
+    // was closed. Neither can navigate yet; see [_pendingReportId].
     final initial = await FirebaseMessaging.instance.getInitialMessage();
     final initialReport = initial?.data['report_id'] as String?;
     if (initialReport != null && initialReport.isNotEmpty) {
-      onOpenReport(initialReport);
+      _pendingReportId = initialReport;
+    }
+    final launch = await _local.getNotificationAppLaunchDetails();
+    final launchReport = (launch?.didNotificationLaunchApp ?? false)
+        ? launch?.notificationResponse?.payload
+        : null;
+    if (launchReport != null && launchReport.isNotEmpty) {
+      _pendingReportId ??= launchReport;
     }
 
     // Keep the backend's copy current across token rotations (FCM
