@@ -266,17 +266,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
+                        // 5 left of centre, as in the frame (x=47 in 412,
+                        // where centred would be 52) — measured from the
+                        // centre so it stays balanced on other widths.
+                        // `contain` so a very narrow phone scales it down
+                        // rather than squashing it.
                         Positioned(
-                          left: 17,
+                          left: 0,
+                          right: 0,
                           top: 22,
-                          width: 308,
                           height: 236,
-                          child: Image.asset(
-                            'assets/images/home-wordmark.png',
-                            fit: BoxFit.fill,
-                            // The wordmark carries the brand; a screen
-                            // reader should hear the name, not "image".
-                            semanticLabel: 'SmartSumbong',
+                          child: Center(
+                            child: Transform.translate(
+                              offset: const Offset(-5, 0),
+                              child: SizedBox(
+                                width: 308,
+                                height: 236,
+                                child: Image.asset(
+                                  'assets/images/home-wordmark.png',
+                                  fit: BoxFit.contain,
+                                  // The wordmark carries the brand; a screen
+                                  // reader should hear the name, not "image".
+                                  semanticLabel: 'SmartSumbong',
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         Positioned(
