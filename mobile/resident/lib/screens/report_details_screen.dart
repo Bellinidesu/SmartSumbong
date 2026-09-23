@@ -982,9 +982,10 @@ class _LocationStatus extends StatelessWidget {
     }
 
     if (denied) {
-      // The frame's centred 150x33 orange pill (1px #F3F3F3 edge) right
-      // under the map; it still retries location. The note, which the
-      // frame does not show, follows it.
+      // Figma SUBMIT REPORT - LOCATION CAN'T BE ENABLED: a centred
+      // 222x33 red pill (1px #F3F3F3 edge) right under the map. Tapping
+      // it still retries, for a resident who has since turned location
+      // on. The note, which the frame does not show, follows it.
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -994,9 +995,9 @@ class _LocationStatus extends StatelessWidget {
               child: FilledButton(
                 onPressed: onRetry,
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF9800),
+                  backgroundColor: const Color(0xFFFF4949),
                   foregroundColor: context.colors.bg,
-                  minimumSize: const Size(150, 33),
+                  minimumSize: const Size(222, 33),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   elevation: 0,
                   side: BorderSide(color: context.colors.bg),
@@ -1009,7 +1010,7 @@ class _LocationStatus extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                child: Text(context.s.reportDetailsEnableLocation),
+                child: Text(context.s.reportDetailsLocationCannotBeEnabled),
               ),
             ),
           ),

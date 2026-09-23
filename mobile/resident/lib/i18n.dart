@@ -320,6 +320,7 @@ class Strings {
       'mediation, at settlement. Kung malubha ang kaso, ito ay iaakyat sa '
       'tamang awtoridad.');
   String get reportCategoryBack => _t('Back', 'Bumalik');
+  String get reportCategoryContinue => _t('Continue', 'Magpatuloy');
   String get reportCategoryOthersHeading => _t(
       'If the issue was not mentioned above:',
       'Kung hindi nabanggit sa itaas ang isyu:');
@@ -425,6 +426,8 @@ class Strings {
       'Naka-off ang lokasyon, kaya ang sentro ng barangay ang '
       'ipinapakita sa mapa. I-drag ang mapa para ilagay ang pin kung '
       'saan ang isyu.');
+  String get reportDetailsLocationCannotBeEnabled =>
+      _t('Location cannot be enabled', 'Hindi ma-enable ang lokasyon');
   String get reportDetailsEnableLocation =>
       _t('Enable Location', 'I-enable ang Lokasyon');
   String reportDetailsAccuracyNote(int metres) => _t(
@@ -1177,7 +1180,9 @@ class Strings {
       'mahusay na serbisyo.');
   String get reportSubmittedBackHome =>
       _t('Back to Home', 'Bumalik sa Home');
-  String get reportSubmittedCopied => _t('Copied', 'Nakopya');
+  String get reportSubmittedTicketCopied =>
+      _t('Ticket copied', 'Nakopya ang ticket');
+  String get reportSubmittedCopiedBack => _t('Back', 'Bumalik');
   String get reportSubmittedReferenceNumber =>
       _t('Reference Number', 'Reference Number');
   String get reportSubmittedCopyTooltip =>

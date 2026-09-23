@@ -8,8 +8,28 @@ import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
 
-class ReportCategoryScreen extends StatelessWidget {
+class ReportCategoryScreen extends StatefulWidget {
   const ReportCategoryScreen({super.key});
+
+  @override
+  State<ReportCategoryScreen> createState() => _ReportCategoryScreenState();
+}
+
+/// "Others" has no issue of its own, so it is keyed apart from the
+/// category it files under.
+const _othersKey = 'others';
+
+String _keyOf(CategoryChoice c) => '${c.category.name}|${c.issue}';
+
+class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
+  // Tapping a pill picks it; Continue (per the frame) advances with it.
+  CategoryChoice? _choice;
+  String? _choiceKey;
+
+  void _pick(String key, CategoryChoice choice) => setState(() {
+        _choiceKey = key;
+        _choice = choice;
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -74,51 +94,89 @@ class ReportCategoryScreen extends StatelessWidget {
             const SizedBox(height: 18),
 
             for (final c in ComplaintCategory.values) ...[
-              _CategoryCard(category: c),
+              _CategoryCard(
+                category: c,
+                selectedKey: _choiceKey,
+                onPick: _pick,
+              ),
               const SizedBox(height: 20),
             ],
 
-            _OthersCard(),
+            _OthersCard(
+              selected: _choiceKey == _othersKey,
+              onPick: _pick,
+            ),
             const SizedBox(height: 32),
 
-            // The frame pairs Back with a Continue; this screen has none
-            // because tapping an issue already advances (see
-            // _CategoryCard), so Back sits centred where the pair was.
-            Center(
-              child: SizedBox(
-                width: 150,
-                height: 45,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(50),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x4D121212),
-                        blurRadius: 3.5,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.colors.navy,
-                      backgroundColor: context.colors.field,
-                      padding: EdgeInsets.zero,
-                      side: BorderSide(color: context.colors.navy),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      textStyle: const TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
+            // The frame's Back / Continue pair, 150x45 each and 20 apart.
+            // Continue waits for an issue to be picked.
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 150,
+                  height: 45,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(50),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x4D121212),
+                          blurRadius: 3.5,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
                     ),
-                    child: Text(s.reportCategoryBack),
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: context.colors.navy,
+                        backgroundColor: context.colors.field,
+                        padding: EdgeInsets.zero,
+                        side: BorderSide(color: context.colors.navy),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      child: Text(s.reportCategoryBack),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 20),
+                SizedBox(
+                  width: 150,
+                  height: 45,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(50),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x4D121212),
+                          blurRadius: 3.5,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: FilledButton(
+                      onPressed: _choice == null
+                          ? null
+                          : () => _choose(context, _choice!),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(150, 45),
+                        padding: EdgeInsets.zero,
+                        elevation: 0,
+                        side: BorderSide(color: context.colors.bg),
+                      ),
+                      child: Text(s.reportCategoryContinue),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -154,12 +212,17 @@ TextStyle _cardHeading(BuildContext context) => TextStyle(
 ///
 /// The design lays the pills out at fixed positions; a Wrap is used here
 /// so they reflow on a narrower handset instead of clipping. Tapping a
-/// pill selects and advances — there is no separate Continue, because
-/// choosing the issue *is* the choice.
+/// pill picks it; Continue advances.
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.category});
+  const _CategoryCard({
+    required this.category,
+    required this.selectedKey,
+    required this.onPick,
+  });
 
   final ComplaintCategory category;
+  final String? selectedKey;
+  final void Function(String key, CategoryChoice choice) onPick;
 
   @override
   Widget build(BuildContext context) {
@@ -177,13 +240,16 @@ class _CategoryCard extends StatelessWidget {
             runSpacing: 10,
             children: [
               for (final issue in category.issues)
-                _IssuePill(
-                  label: issue,
-                  onTap: () => _choose(
-                    context,
-                    CategoryChoice(category: category, issue: issue),
-                  ),
-                ),
+                Builder(builder: (context) {
+                  final choice =
+                      CategoryChoice(category: category, issue: issue);
+                  final key = _keyOf(choice);
+                  return _IssuePill(
+                    label: issue,
+                    selected: selectedKey == key,
+                    onTap: () => onPick(key, choice),
+                  );
+                }),
             ],
           ),
         ],
@@ -193,6 +259,11 @@ class _CategoryCard extends StatelessWidget {
 }
 
 class _OthersCard extends StatelessWidget {
+  const _OthersCard({required this.selected, required this.onPick});
+
+  final bool selected;
+  final void Function(String key, CategoryChoice choice) onPick;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -209,8 +280,9 @@ class _OthersCard extends StatelessWidget {
           const SizedBox(height: 5),
           _IssuePill(
             label: context.s.reportCategoryOthers,
-            onTap: () => _choose(
-              context,
+            selected: selected,
+            onTap: () => onPick(
+              _othersKey,
               // No enum value for "Others". Peace, Order & Nuisance is
               // the closest general bucket and an admin can recategorise
               // — but this is a gap between the design and the schema,
@@ -229,34 +301,46 @@ class _OthersCard extends StatelessWidget {
 
 /// The frame's pill: 30 tall, radius 20, #FBFBFB, 12/500 navy text,
 /// as wide as its label. No `alignment` on the Container — that made
-/// every pill fill the card's width.
+/// every pill fill the card's width. The frame draws no picked state;
+/// the picked pill takes the design's orange accent.
 class _IssuePill extends StatelessWidget {
-  const _IssuePill({required this.label, required this.onTap});
+  const _IssuePill({
+    required this.label,
+    required this.onTap,
+    this.selected = false,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final bool selected;
+
+  static const _orange = Color(0xFFFF9800);
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: context.colors.field,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Center(
-          widthFactor: 1,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w500,
-              fontSize: 12,
-              color: context.colors.navy,
+    return Semantics(
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: selected ? _orange : context.colors.field,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Center(
+            widthFactor: 1,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 12,
+                color: selected ? context.colors.bg : context.colors.navy,
+              ),
             ),
           ),
         ),

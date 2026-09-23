@@ -1,6 +1,6 @@
 // SmartSumbong — Report submitted.
 //
-// Figma node 2547:84, with the copied state from 2853:174.
+// Figma node 2547:84, with REPORTED - TICKET COPIED as the popup.
 //
 // The tracking ID is the only thing a resident has if they walk into the
 // barangay hall to ask about their complaint, so it is the whole point
@@ -22,19 +22,16 @@ class ReportSubmittedScreen extends StatefulWidget {
 }
 
 class _ReportSubmittedScreenState extends State<ReportSubmittedScreen> {
-  bool _copied = false;
-
   Future<void> _copy() async {
     final id = widget.trackingId;
     if (id == null) return;
     await Clipboard.setData(ClipboardData(text: id));
     if (!mounted) return;
-    setState(() => _copied = true);
-    // Back to the copy affordance after a moment, so the screen does not
-    // stay stuck in a state that is no longer news.
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _copied = false);
-    });
+    await showDialog<void>(
+      context: context,
+      barrierColor: context.colors.bg.withValues(alpha: 0.7),
+      builder: (_) => const _CopiedDialog(),
+    );
   }
 
   @override
@@ -90,11 +87,7 @@ class _ReportSubmittedScreenState extends State<ReportSubmittedScreen> {
 
               if (id != null)
                 Center(
-                  child: _TicketCard(
-                    trackingId: id,
-                    copied: _copied,
-                    onCopy: _copy,
-                  ),
+                  child: _TicketCard(trackingId: id, onCopy: _copy),
                 ),
 
               const SizedBox(height: 45),
@@ -141,14 +134,9 @@ class _ReportSubmittedScreenState extends State<ReportSubmittedScreen> {
 /// (16/700) and its label (12/500, 17 lower) start 45 into the body; the
 /// frame's own 18px copy glyph sits 224 in.
 class _TicketCard extends StatelessWidget {
-  const _TicketCard({
-    required this.trackingId,
-    required this.copied,
-    required this.onCopy,
-  });
+  const _TicketCard({required this.trackingId, required this.onCopy});
 
   final String trackingId;
-  final bool copied;
   final VoidCallback onCopy;
 
   @override
@@ -182,9 +170,7 @@ class _TicketCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    copied
-                        ? context.s.reportSubmittedCopied
-                        : context.s.reportSubmittedReferenceNumber,
+                    context.s.reportSubmittedReferenceNumber,
                     style: TextStyle(
                       fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w500,
@@ -207,12 +193,10 @@ class _TicketCard extends StatelessWidget {
                 onPressed: onCopy,
                 padding: EdgeInsets.zero,
                 tooltip: context.s.reportSubmittedCopyTooltip,
-                icon: copied
-                    ? Icon(Icons.check, color: context.colors.bg, size: 18)
-                    : CustomPaint(
-                        size: const Size(18, 18),
-                        painter: _CopyGlyphPainter(context.colors.bg),
-                      ),
+                icon: CustomPaint(
+                  size: const Size(18, 18),
+                  painter: _CopyGlyphPainter(context.colors.bg),
+                ),
               ),
             ),
           ],
@@ -286,4 +270,88 @@ class _CopyGlyphPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CopyGlyphPainter old) => old.colour != colour;
+}
+
+/// Figma REPORTED - TICKET COPIED: a 300x144 navy card, radius 50, 2px
+/// #252525 edge and the y5 / blur 5 shadow, holding a light 239x40
+/// "Ticket copied" pill over a navy 239x40 Back, 13 apart.
+class _CopiedDialog extends StatelessWidget {
+  const _CopiedDialog();
+
+  static const _shadow = [
+    BoxShadow(
+      color: Color(0x4D121212),
+      blurRadius: 3.5,
+      offset: Offset(0, 5),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    const text = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        width: 300,
+        padding: const EdgeInsets.fromLTRB(28, 22, 28, 25),
+        decoration: BoxDecoration(
+          color: context.colors.navy,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: const Color(0xFF252525), width: 2),
+          boxShadow: _shadow,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: Container(
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: context.colors.bg,
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: _shadow,
+                ),
+                child: Text(
+                  s.reportSubmittedTicketCopied,
+                  style: text.copyWith(color: context.colors.navy),
+                ),
+              ),
+            ),
+            const SizedBox(height: 13),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(50),
+                boxShadow: _shadow,
+              ),
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: context.colors.bg,
+                  backgroundColor: context.colors.navy,
+                  side: BorderSide(color: context.colors.bg),
+                  minimumSize: const Size.fromHeight(40),
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  textStyle: text,
+                ),
+                child: Text(s.reportSubmittedCopiedBack),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
