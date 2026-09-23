@@ -172,10 +172,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  // Figma NOTIFICATION / NO NOTIFICATION (2260:1781, 2452:386): the
+  // title 28/800 50 from the top of the screen, the list 43 under it at
+  // 43 margins, and Back as the frames' 150x45 pill — at the bottom under
+  // a list, directly under the message when there is nothing to show.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
+    final empty = _items != null && _items!.isEmpty && _error == null;
 
     return Scaffold(
       body: SafeArea(
@@ -185,20 +189,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(30, 24, 30, 8),
+                padding: EdgeInsets.fromLTRB(
+                    43,
+                    (50 - MediaQuery.paddingOf(context).top).clamp(8.0, 50.0),
+                    43,
+                    0),
                 child: Center(
                   child: Text(s.notificationsTitle,
-                      style: t.headlineLarge?.copyWith(fontSize: 28)),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w800,
+                        fontSize: 28,
+                        height: 43.68 / 28,
+                        color: context.colors.navy,
+                      )),
                 ),
               ),
               Expanded(child: _body(s)),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(43, 0, 43, 16),
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(s.notificationsBack),
+              if (!empty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 20),
+                  child: _BackPill(label: s.notificationsBack),
                 ),
-              ),
             ],
           ),
         ),
@@ -221,14 +233,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (_items!.isEmpty) {
-      // Figma NO NOTIFICATION (2452:386), copy verbatim.
+      // Figma NO NOTIFICATION (2452:386), copy verbatim: the frame's own
+      // 50x50 icon 236 below the title, 20/700 and 16/500 on 20, then
+      // Back 106 under the text.
       return ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 73),
         children: [
-          const SizedBox(height: 100),
-          Icon(Icons.mark_chat_unread_outlined,
-              size: 56, color: context.colors.navy.withValues(alpha: 0.6)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 236),
+          Center(
+            child: Image.asset('assets/images/empty-notifications.png',
+                width: 52, height: 52, color: context.colors.navy),
+          ),
+          const SizedBox(height: 9),
           Text(
             s.notificationsEmptyTitle,
             textAlign: TextAlign.center,
@@ -236,25 +252,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 20,
+              height: 1.2,
               color: context.colors.navy,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             s.notificationsEmptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, height: 1.35, color: context.colors.muted),
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              height: 20 / 16,
+              color: context.colors.navy,
+            ),
           ),
+          const SizedBox(height: 106),
+          _BackPill(label: s.notificationsBack),
         ],
       );
     }
 
+    // Rows 23 above and below a 1px navy rule, as in the frame.
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(30, 8, 30, 16),
+      padding: const EdgeInsets.fromLTRB(43, 43, 43, 16),
       itemCount: _items!.length,
       separatorBuilder: (context, __) => Padding(
-        padding: EdgeInsets.symmetric(vertical: 10),
-        child: Divider(height: 1, color: context.colors.navy),
+        padding: const EdgeInsets.symmetric(vertical: 23),
+        child: Divider(height: 1, thickness: 1, color: context.colors.navy),
       ),
       itemBuilder: (_, i) => _NotificationRow(item: _items![i]),
     );
@@ -273,29 +299,44 @@ class _NotificationRow extends StatelessWidget {
     final emphasise = !item.isRead;
     final color = item.isUrgent ? const Color(0xFFFF4949) : context.colors.navy;
 
+    // The frame's row: a 2px bar 14 in (drawn only when unread, but its
+    // space always kept so every message starts 33 in), 16px text at 700
+    // unread / 500 read on a 15 line, and the time at 12/500.
     final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (emphasise) ...[
-          Container(width: 2, height: 34, color: color),
-          const SizedBox(width: 10),
-        ],
+        const SizedBox(width: 14),
+        Container(
+          width: 2,
+          height: 31,
+          color: emphasise ? color : Colors.transparent,
+        ),
+        const SizedBox(width: 14),
         Expanded(
           child: Text(
             item.message,
             style: TextStyle(
-              fontFamily: emphasise ? 'Urbanist' : null,
-              fontWeight: emphasise ? FontWeight.w700 : FontWeight.w400,
-              fontSize: 13,
-              height: 1.35,
+              fontFamily: 'Urbanist',
+              fontWeight: emphasise ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 16,
+              height: 15 / 16,
               color: color,
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        Text(
-          _ago(context.s, item.createdAt),
-          style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.75)),
+        const SizedBox(width: 6),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            _ago(context.s, item.createdAt),
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              height: 15 / 12,
+              color: color,
+            ),
+          ),
         ),
       ],
     );
@@ -318,4 +359,39 @@ class _NotificationRow extends StatelessWidget {
     final l = utc.toLocal();
     return '${s.monthAbbr(l.month)} ${l.day}';
   }
+}
+
+/// The frames' Back: a 150x45 navy pill with a 1px #F3F3F3 edge and the
+/// y5 / blur 5 shadow at 30%.
+class _BackPill extends StatelessWidget {
+  const _BackPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x4D121212),
+                blurRadius: 3.5,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(
+              fixedSize: const Size(150, 45),
+              minimumSize: const Size(150, 45),
+              padding: EdgeInsets.zero,
+              elevation: 0,
+              side: BorderSide(color: context.colors.bg),
+            ),
+            child: Text(label),
+          ),
+        ),
+      );
 }
