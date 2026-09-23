@@ -79,7 +79,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // _dirty is read in build (SAVE's enabled state, PopScope.canPop), so
+    // typing has to rebuild the page — without this SAVE stayed disabled
+    // after editing email or address and BACK skipped the unsaved guard.
+    _email.addListener(_onEdited);
+    _address.addListener(_onEdited);
     _load();
+  }
+
+  void _onEdited() {
+    if (mounted) setState(() {});
   }
 
   @override
