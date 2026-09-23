@@ -1,31 +1,41 @@
 // SmartSumbong — resident bottom navigation.
 //
-// Figma node 2715:590. Shared by Home, Emergency, Reports, Map and
-// Settings, so it lives on its own rather than being copied into five
-// screens that would then drift apart.
+// Figma "Footer" (2715:590, the same group on every resident frame).
+// Shared by Home, Emergency, Reports, Map and Settings, so it lives on its
+// own rather than being copied into five screens that would then drift
+// apart.
 //
-// Uses Material icons rather than the design's exported SVGs. The
-// shapes are conventional — house, warning triangle, document, pin,
-// person — and shipping five SVG assets to match a stroke weight is not
-// worth the maintenance. Worth mentioning to Rose so it is a decision
-// rather than a discrepancy she notices later.
+// 1:1 with the frame (23 Sep 2026): the design's own five icons, exported
+// from Figma and tinted from the theme so dark mode still reads, instead
+// of the Material look-alikes this used before; 14px labels, 700 for the
+// active tab and 500 otherwise, all #F3F3F3; a 50x2 line 6 from the top
+// marks the active tab. Positions come from the frame: tabs spread edge
+// to edge with 37 padding, and each icon and label keeps its own offset
+// from the bar's top edge.
 
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
 enum ResidentTab {
-  home('/home', Icons.home_rounded, 'Home'),
-  emergency('/emergency', Icons.warning_amber_rounded, 'Emergency'),
-  reports('/reports', Icons.description_outlined, 'Reports'),
-  map('/map', Icons.place_outlined, 'Map'),
-  settings('/settings', Icons.person_outline_rounded, 'Settings');
+  // route, label, icon asset, icon size, icon top and label top (both
+  // measured from the bar's top edge in the frame).
+  home('/home', 'Home', 'nav-home', 24, 24, 19, 43),
+  emergency('/emergency', 'Emergency', 'nav-emergency', 26, 26, 17, 43),
+  reports('/reports', 'Reports', 'nav-reports', 21, 20, 19, 44),
+  map('/map', 'Map', 'nav-map', 22, 19, 17, 44),
+  settings('/settings', 'Settings', 'nav-settings', 16, 23, 16, 45);
 
-  const ResidentTab(this.route, this.icon, this.label);
+  const ResidentTab(this.route, this.label, this.asset, this.iconWidth,
+      this.iconHeight, this.iconTop, this.labelTop);
 
   final String route;
-  final IconData icon;
   final String label;
+  final String asset;
+  final double iconWidth;
+  final double iconHeight;
+  final double iconTop;
+  final double labelTop;
 }
 
 class ResidentNavBar extends StatelessWidget {
@@ -33,12 +43,16 @@ class ResidentNavBar extends StatelessWidget {
 
   final ResidentTab current;
 
+  /// The frame's 37 side padding, less each tab's [_NavItem.tapSlop], so
+  /// the tabs' visible content still starts and ends 37 from the edges.
+  static const _sidePadding = 37.0 - _NavItem.tapSlop;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: context.colors.navy,
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
         ),
@@ -46,23 +60,28 @@ class ResidentNavBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 76,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              for (final tab in ResidentTab.values)
-                _NavItem(
-                  tab: tab,
-                  active: tab == current,
-                  onTap: () {
-                    if (tab == current) return;
-                    // Replace rather than push: the tabs are peers, and
-                    // stacking them would build a back stack five deep
-                    // from tapping around.
-                    Navigator.of(context).pushReplacementNamed(tab.route);
-                  },
-                ),
-            ],
+          // 917 (frame bottom) - 840 (bar top).
+          height: 77,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _sidePadding),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final tab in ResidentTab.values)
+                  _NavItem(
+                    tab: tab,
+                    active: tab == current,
+                    onTap: () {
+                      if (tab == current) return;
+                      // Replace rather than push: the tabs are peers, and
+                      // stacking them would build a back stack five deep
+                      // from tapping around.
+                      Navigator.of(context).pushReplacementNamed(tab.route);
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -81,32 +100,53 @@ class _NavItem extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
 
+  /// Extra tappable width on each side of a tab. The drawn tabs are as
+  /// narrow as the frame's (Home is 35 wide); this keeps the touch target
+  /// finger-sized without moving anything that is drawn.
+  static const tapSlop = 12.0;
+
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+    final colour = context.colors.bg;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: tapSlop),
+        child: SizedBox(
+          height: 77,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                tab.icon,
-                size: 26,
-                color: context.colors.bg.withValues(alpha: active ? 1 : 0.75),
+              const SizedBox(height: 6),
+              // Takes no width, so the 50-wide marker cannot widen a
+              // 35-wide tab and shift the others.
+              SizedBox(
+                width: 0,
+                height: 2,
+                child: OverflowBox(
+                  minWidth: 50,
+                  maxWidth: 50,
+                  child: active ? ColoredBox(color: colour) : null,
+                ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: tab.iconTop - 8),
+              Image.asset(
+                'assets/images/${tab.asset}.png',
+                width: tab.iconWidth,
+                height: tab.iconHeight,
+                color: colour,
+              ),
+              SizedBox(height: tab.labelTop - tab.iconTop - tab.iconHeight),
               Text(
                 tab.label,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Urbanist',
-                  fontSize: 11,
+                  fontSize: 14,
+                  height: 20 / 14,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: context.colors.bg.withValues(alpha: active ? 1 : 0.75),
+                  color: colour,
                 ),
               ),
             ],
