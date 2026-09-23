@@ -98,6 +98,10 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   // both. Still on-duty-only and still foreground-only — same envelope
   // as before, just finer-grained inside it.
   Timer? _locationTimer;
+  // One fix at a time. Indoors a fix can take the full 15-second timeout,
+  // and the 30-second tick plus every live reload's own push used to
+  // start a second GPS request and RPC on top of one still running.
+  bool _pushingLocation = false;
 
   // Live updates (8 Sep 2026 — mirrors resident's home_screen.dart /
   // reports_screen.dart). Home shows Incoming Dispatch and Alert
@@ -162,7 +166,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
     if (_status == DutyState.onDuty) {
       _locationTimer ??= Timer.periodic(
         const Duration(seconds: 30),
-        (_) => _pushLocation(),
+        (_) => _pushLocation(quiet: true),
       );
     } else {
       _locationTimer?.cancel();
@@ -308,9 +312,14 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   /// distance and location_is_fresh() discards a stale fix, so a tanod
   /// with no position sits in the queue invisible to it. Said out loud
   /// rather than swallowed.
-  Future<void> _pushLocation() async {
-    if (!mounted) return;
-    setState(() => _locationNote = context.s.homeLocationSharing);
+  ///
+  /// [quiet] is for the 30-second timer: it skips the interim "Sharing
+  /// your location…" line, which otherwise replaced "Location shared"
+  /// for a moment every 30 seconds and made the card flicker.
+  Future<void> _pushLocation({bool quiet = false}) async {
+    if (!mounted || _pushingLocation) return;
+    _pushingLocation = true;
+    if (!quiet) setState(() => _locationNote = context.s.homeLocationSharing);
 
     try {
       var perm = await Geolocator.checkPermission();
@@ -352,6 +361,8 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       if (mounted) {
         setState(() => _locationNote = context.s.homeLocationShareFailed);
       }
+    } finally {
+      _pushingLocation = false;
     }
   }
 

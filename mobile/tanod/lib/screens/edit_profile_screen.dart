@@ -254,8 +254,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ? context.s.editProfileEmailTaken
             : context.s.editProfileSaveFailed;
       });
+    } on MediaUploadException catch (e) {
+      // Only PostgrestException used to be caught: a failed avatar
+      // upload escaped as an unhandled error, with no message and the
+      // spinner left turning on the avatar.
+      if (!mounted) return;
+      setState(() => _banner = e.message);
+    } catch (_) {
+      // No connection on the update itself — same silent failure.
+      if (!mounted) return;
+      setState(() => _banner = context.s.editProfileSaveFailed);
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _uploadingAvatar = false;
+        });
+      }
     }
   }
 

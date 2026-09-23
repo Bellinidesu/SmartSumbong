@@ -125,7 +125,6 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   // filing an update from the field has neither the time nor the
   // data budget to shoot more than one short clip.
   File? _video;
-  final _picker = ImagePicker();
 
   @override
   void initState() {
@@ -195,7 +194,11 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
   // ---------- actions -------------------------------------------
 
+  // Each action returns early while one is running: the buttons only
+  // disable on the next rebuild, and a second tap inside that frame
+  // would otherwise call the RPC — or upload every photo — twice.
   Future<void> _accept() async {
+    if (_busy) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -227,6 +230,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   }
 
   Future<void> _reroute() async {
+    if (_busy) return;
     if (_reason.text.trim().isEmpty) {
       setState(() => _error = context.s.dispatchRerouteReasonRequired);
       return;
@@ -255,6 +259,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   }
 
   Future<void> _submitUpdate() async {
+    if (_busy) return;
     if (_update.text.trim().isEmpty) {
       setState(() => _error = context.s.dispatchUpdateDescribeRequired);
       return;
@@ -383,10 +388,21 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     );
     if (!granted || !mounted) return;
     try {
-      final x = await _picker.pickImage(source: source, imageQuality: 90);
-      if (x == null || !mounted) return;
+      // Through MediaUploader.pick, not ImagePicker directly: that is
+      // where EXIF is stripped (media_upload.dart's header). A camera shot
+      // taken here used to go up to Cloudinary with its GPS fix, capture
+      // time and device MakerNote intact, on a public URL the filing
+      // resident can open (0024).
+      final uploader = MediaUploader(
+        cloudName: _cloudName,
+        uploadPreset: _uploadPreset,
+        videoUploadPreset:
+            _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
+      );
+      final f = await uploader.pick(source: source);
+      if (f == null || !mounted) return;
       setState(() {
-        _photos.add(File(x.path));
+        _photos.add(f);
         _error = null;
       });
     } catch (_) {

@@ -90,8 +90,12 @@ Future<void> main() async {
       onOpenReport: (_) => navigatorKey.currentState?.pushNamed('/notifications'),
     );
 
+    // Not awaited: it is a getToken() plus an RPC with no timeout, and
+    // awaiting it held the splash screen for that whole round trip on
+    // every cold start — seconds on a weak signal. It is best-effort
+    // and catches its own errors, so nothing after this depends on it.
     if (Supabase.instance.client.auth.currentUser != null) {
-      await PushNotifications.registerToken();
+      unawaited(PushNotifications.registerToken());
     }
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final event = data.event;
