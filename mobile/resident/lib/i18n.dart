@@ -435,10 +435,11 @@ class Strings {
   String get reportDetailsPinPlacedNote => _t(
       'Pin placed by hand. Drag the map to adjust.',
       'Manwal na inilagay ang pin. I-drag ang mapa para ayusin.');
+  // Figma 2547:103's own copy for the manual-address section.
   String get reportDetailsManualAddressLabel => _t(
-      'Or manually input your address', 'O manu-manong ilagay ang iyong address');
-  String get reportDetailsManualAddressHint => _t(
-      'e.g. 123 Sampaguita St., Purok 3', 'hal. 123 Sampaguita St., Purok 3');
+      'Manually Input your Address', 'Manu-manong Ilagay ang Iyong Address');
+  String get reportDetailsManualAddressHint =>
+      _t('Enter your address here', 'Ilagay ang iyong address dito');
   String get reportDetailsDescribeHint => _t(
       'Describe the issue in detail.', 'Ilarawan nang detalyado ang isyu.');
   String reportDetailsCounter(int length, int max) => '$length/$max';

@@ -697,7 +697,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                         _accuracyMetres = null;
                       }),
                     ),
-                    const SizedBox(height: 10),
+                    // The frame's pill sits 4 under the map.
+                    const SizedBox(height: 4),
                     _LocationStatus(
                       locating: _locating,
                       denied: _locationDenied,
@@ -705,7 +706,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                       onRetry: _locate,
                     ),
                     if (_locationDenied && !_locating) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 20),
                       _ManualAddressField(
                         controller: _addressSearch,
                         busy: _geocoding,
@@ -981,33 +982,41 @@ class _LocationStatus extends StatelessWidget {
     }
 
     if (denied) {
+      // The frame's centred 150x33 orange pill (1px #F3F3F3 edge) right
+      // under the map; it still retries location. The note, which the
+      // frame does not show, follows it.
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Center(
+            child: SizedBox(
+              height: 33,
+              child: FilledButton(
+                onPressed: onRetry,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF9800),
+                  foregroundColor: context.colors.bg,
+                  minimumSize: const Size(150, 33),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  elevation: 0,
+                  side: BorderSide(color: context.colors.bg),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  textStyle: const TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                child: Text(context.s.reportDetailsEnableLocation),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Text(
             context.s.reportDetailsLocationOffNote,
             style: TextStyle(fontSize: 12, color: context.colors.hint, height: 1.3),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 33,
-            child: FilledButton(
-              onPressed: onRetry,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFFF9800),
-                foregroundColor: context.colors.bg,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                textStyle: const TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              child: Text(context.s.reportDetailsEnableLocation),
-            ),
           ),
         ],
       );
@@ -1054,31 +1063,56 @@ class _ManualAddressField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Figma 2547:103 "manual input": a 14/700 section label and a
+        // 322x34 pill field (#FBFBFB, 1px navy, 20 in, 12/400 hint).
+        // The search icon stays: it is how the typed address is looked up.
         Text(context.s.reportDetailsManualAddressLabel,
-            style: TextStyle(fontSize: 12, color: context.colors.muted)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          enabled: enabled && !busy,
-          textInputAction: TextInputAction.search,
-          onSubmitted: (_) => onSearch(),
-          style: TextStyle(fontSize: 13, color: context.colors.navy),
-          decoration: InputDecoration(
-            hintText: context.s.reportDetailsManualAddressHint,
-            suffixIcon: busy
-                ? Padding(
-                    padding: EdgeInsets.all(13),
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: context.colors.navy),
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              height: 19 / 14,
+              color: context.colors.navy,
+            )),
+        SizedBox(
+          height: 34,
+          child: TextField(
+            controller: controller,
+            enabled: enabled && !busy,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => onSearch(),
+            textAlignVertical: TextAlignVertical.center,
+            style: TextStyle(fontSize: 12, color: context.colors.navy),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              hintText: context.s.reportDetailsManualAddressHint,
+              hintStyle: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+                fontStyle: FontStyle.normal,
+                color: context.colors.navy,
+              ),
+              suffixIconConstraints:
+                  const BoxConstraints(minWidth: 40, minHeight: 34),
+              suffixIcon: busy
+                  ? Padding(
+                      padding: const EdgeInsets.all(9),
+                      child: SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: context.colors.navy),
+                      ),
+                    )
+                  : IconButton(
+                      padding: EdgeInsets.zero,
+                      iconSize: 18,
+                      icon: Icon(Icons.search, color: context.colors.navy),
+                      onPressed: enabled ? onSearch : null,
                     ),
-                  )
-                : IconButton(
-                    icon: Icon(Icons.search, color: context.colors.navy),
-                    onPressed: enabled ? onSearch : null,
-                  ),
+            ),
           ),
         ),
         if (error != null)
