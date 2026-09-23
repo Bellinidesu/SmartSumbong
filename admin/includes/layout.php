@@ -291,8 +291,9 @@ function coord_label(float $lat, float $lng): string
  */
 function timeline_title(array $log): string
 {
-    $old = $log['old_status'] ?? null;
-    $new = $log['new_status'] ?? '';
+    $old    = $log['old_status'] ?? null;
+    $new    = $log['new_status'] ?? '';
+    $remark = (string) ($log['remark'] ?? '');
 
     // A null old_status used to mean "this is the first entry", and the
     // filing log is indeed written that way. But the SLA and dispatch
@@ -307,8 +308,51 @@ function timeline_title(array $log): string
     if ($old === null && empty($log['is_system'])) {
         return 'Complaint Filed';
     }
+
+    // Rose's feedback (Sep 2026): name what actually happened, in plain
+    // terms, rather than the generic fallback below — her own example was
+    // "Resolution Deadline Missed" for exactly the SLA-breach row. These
+    // are the recurring system annotations (old_status often equals
+    // new_status for these, which is what used to collapse them all into
+    // "Case updated"); the remark itself still renders underneath for the
+    // full detail, so the title only needs to name the kind of event, not
+    // repeat it.
+    if (str_starts_with($remark, 'SLA breach')) {
+        return 'Resolution Deadline Missed';
+    }
+    if (str_starts_with($remark, 'Resident appealed the rejection')) {
+        return 'Appeal Requested';
+    }
+    if (str_starts_with($remark, 'Appeal granted')) {
+        return 'Appeal Granted';
+    }
+    if (str_starts_with($remark, 'Rerouted:')) {
+        return 'Dispatch Rerouted';
+    }
+    if (str_starts_with($remark, 'Reopened:')) {
+        return 'Complaint Reopened';
+    }
+    if (str_starts_with($remark, 'Outside Barangay 183')) {
+        return 'Referred Outside Barangay';
+    }
+    if (str_starts_with($remark, 'No tanod')) {
+        return 'No Tanod Available';
+    }
+    if (str_starts_with($remark, 'Auto-dispatched')) {
+        return 'Auto-Dispatched';
+    }
+    if (str_starts_with($remark, 'Re-dispatching')) {
+        return 'Re-Dispatch Attempted';
+    }
+    if (str_starts_with($remark, 'Automatic dispatch gave up')) {
+        return 'Automatic Dispatch Exhausted';
+    }
+    if (str_starts_with($remark, 'Resolution target set to')) {
+        return 'Resolution Target Set';
+    }
+
     if ($old === null || $old === $new) {
-        return 'Case updated';
+        return 'Case Update';
     }
     return match ($new) {
         'validated'  => 'Complaint Accepted',

@@ -33,6 +33,19 @@ const CATEGORIES = [
     'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
 ];
 
+// Rose's feedback (Sep 2026): stick to four buckets an admin actually
+// scans for — Under Review, In Progress, Rejected, Resolved/Completed —
+// rather than the raw 8-value enum. Same grouping spatial.php's map
+// filter already adopted (15 Sep 2026); this just brings the list view
+// to the same simplification, the full breakdown stays one click away
+// on each case's own detail page.
+const STATUS_GROUPS = [
+    'under_review' => ['pending_review', 'validated'],
+    'in_progress'  => ['assigned', 'in_progress', 'offline_investigation'],
+    'resolved'     => ['resolved', 'closed', 'archived'],
+    'rejected'     => ['rejected'],
+];
+
 $search   = trim((string) ($_GET['q'] ?? ''));
 $filter   = (string) ($_GET['status'] ?? '');
 $category = (string) ($_GET['category'] ?? '');
@@ -41,6 +54,7 @@ $view     = (string) ($_GET['view'] ?? '');
 
 if (!in_array($category, CATEGORIES, true)) { $category = ''; }
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
+if (!isset(STATUS_GROUPS[$filter])) { $filter = ''; }
 
 // Clicking a column heading sorts by it; clicking the same one again
 // reverses. PostgREST cannot order by an embedded resident name, so that
@@ -85,7 +99,7 @@ try {
         'limit'      => '100',
     ];
     if ($filter !== '') {
-        $query['status'] = 'eq.' . $filter;
+        $query['status'] = 'in.(' . implode(',', STATUS_GROUPS[$filter]) . ')';
     }
     if ($category !== '') {
         $query['category'] = 'eq.' . $category;
@@ -211,11 +225,13 @@ layout_head('Case Reports', 'cases.php');
         <select name="status" onchange="this.form.submit()">
           <option value="">Filter Option</option>
           <?php foreach ([
-              'pending_review', 'validated', 'assigned', 'in_progress',
-              'offline_investigation', 'resolved', 'closed', 'rejected',
-          ] as $s): ?>
+              'under_review' => 'Under Review',
+              'in_progress'  => 'In Progress',
+              'resolved'     => 'Resolved/Completed',
+              'rejected'     => 'Rejected',
+          ] as $s => $lbl): ?>
             <option value="<?= e($s) ?>" <?= $filter === $s ? 'selected' : '' ?>>
-              <?= e(status_label($s)) ?>
+              <?= e($lbl) ?>
             </option>
           <?php endforeach; ?>
         </select>
@@ -314,6 +330,9 @@ layout_head('Case Reports', 'cases.php');
   const SORT_COL   = <?= json_encode($SORTABLE[$sortCol]) ?>;
   const SORT_ASC   = <?= json_encode($sortDir === 'asc') ?>;
   const STATUS     = <?= json_encode($filter) ?>;
+  // Mirrors the STATUS_GROUPS constant in this same file exactly, so a
+  // live refresh applies the same grouped filter a reload would.
+  const STATUS_GROUPS = <?= json_encode(STATUS_GROUPS) ?>;
   const CATEGORY   = <?= json_encode($category) ?>;
   const MONTH_FROM = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->format(DateTimeInterface::ATOM) : null) ?>;
   const MONTH_TO   = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->modify('first day of next month')->format(DateTimeInterface::ATOM) : null) ?>;
@@ -428,7 +447,7 @@ layout_head('Case Reports', 'cases.php');
       .is('deleted_at', null)
       .order(SORT_COL, { ascending: SORT_ASC })
       .limit(100);
-    if (STATUS) q = q.eq('status', STATUS);
+    if (STATUS) q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
     if (CATEGORY) q = q.eq('category', CATEGORY);
     if (MONTH_FROM) q = q.gte('created_at', MONTH_FROM).lt('created_at', MONTH_TO);
     if (SEARCH) {

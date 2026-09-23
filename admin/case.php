@@ -635,8 +635,20 @@ layout_head('Case Review', 'cases.php');
     <?php endif; ?>
 
     <!-- ---------- map preview ---------- -->
-    <div class="map-preview">
+    <!-- Martin's note / Rose's feedback: the preview had no way to get
+         bigger — it is deliberately a non-interactive thumbnail (see the
+         JS below), so "expanding" here means the Fullscreen API, same
+         mechanism spatial.php's own expand button already uses, not
+         panning or zooming this small a widget. -->
+    <div class="map-preview" id="case-map-preview">
       <div id="case-map"></div>
+      <button class="map-btn map-btn--preview" id="case-map-expand" type="button"
+              title="Expand map to full screen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+        </svg>
+      </button>
       <span class="map-label"><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
     </div>
   </aside>
@@ -793,8 +805,10 @@ layout_head('Case Review', 'cases.php');
     });
   }
 
-  // A preview, not a tool: no dragging, no zoom, no scroll hijack. The
-  // full interactive map is Spatial Distribution.
+  // A preview, not a tool: no dragging, no zoom, no scroll hijack while
+  // small. The full interactive map is Spatial Distribution; expanding
+  // this one to full screen (below) briefly turns those back on, since a
+  // fixed, uninteractive view stops making sense once it fills the screen.
   var el = document.getElementById('case-map');
   if (el && window.L) {
     var lat = <?= json_encode((float) $report['latitude']) ?>,
@@ -811,6 +825,49 @@ layout_head('Case Review', 'cases.php');
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
     L.marker([lat, lng]).addTo(map);
+
+    // ---- expand to full screen ----
+    // Same Fullscreen API pattern as spatial.php's own expand button: the
+    // target has to be the wrapping .map-preview, not #map itself, or the
+    // expand button and coordinate label would be left behind outside the
+    // fullscreen element.
+    var expandBtn = document.getElementById('case-map-expand');
+    var preview    = document.getElementById('case-map-preview');
+    if (expandBtn && preview) {
+      var interactive = ['dragging', 'scrollWheelZoom', 'doubleClickZoom',
+                          'keyboard', 'touchZoom', 'boxZoom'];
+      // zoomControl was left off entirely at creation (zoomControl: false
+      // above) since the small preview has no use for it — a single
+      // instance is made the first time it is actually needed, then
+      // just shown/hidden with the rest of the interactive controls.
+      var zoomCtl = null;
+
+      expandBtn.addEventListener('click', function () {
+        if (!document.fullscreenElement) {
+          (preview.requestFullscreen || preview.webkitRequestFullscreen || function () {}).call(preview)
+            .catch(function () {});
+        } else {
+          (document.exitFullscreen || document.webkitExitFullscreen || function () {}).call(document);
+        }
+      });
+      document.addEventListener('fullscreenchange', function () {
+        var active = document.fullscreenElement === preview;
+        preview.classList.toggle('is-fullscreen', active);
+        expandBtn.title = active ? 'Exit full screen' : 'Expand map to full screen';
+        // Only worth interacting with once it actually fills the screen —
+        // small again, it goes right back to a fixed thumbnail.
+        interactive.forEach(function (opt) {
+          active ? map[opt].enable() : map[opt].disable();
+        });
+        if (active) {
+          if (!zoomCtl) { zoomCtl = L.control.zoom({ position: 'bottomright' }); }
+          zoomCtl.addTo(map);
+        } else if (zoomCtl) {
+          map.removeControl(zoomCtl);
+        }
+        setTimeout(function () { map.invalidateSize(); }, 120);
+      });
+    }
   }
 })();
 </script>

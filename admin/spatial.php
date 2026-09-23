@@ -54,7 +54,7 @@ layout_head('Spatial Distribution', 'spatial.php');
         <option value="">All statuses</option>
         <option value="under_review">Under Review</option>
         <option value="in_progress">In Progress</option>
-        <option value="resolved">Resolved</option>
+        <option value="resolved">Resolved/Completed</option>
         <option value="rejected">Rejected</option>
       </select>
 
