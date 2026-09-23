@@ -16,6 +16,7 @@
 // where it is aggregated and behind a login.
 
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -266,9 +267,12 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  // Figma MAP / MAP - SEE REPORTS: the title 28/800 50 from the top of
+  // the screen, the 352-wide map 14 under it, the card 25 under the map
+  // and 47 above the nav bar. The frame's map is a static picture; the
+  // live tiles stand in for it and take whatever height is left.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
     final pins = _pins ?? const <_Pin>[];
 
@@ -278,10 +282,24 @@ class _MapScreenState extends State<MapScreen> {
         bottom: false,
         child: Column(
           children: [
-            const SizedBox(height: 16),
-            Text(s.mapTitle,
-                style: t.headlineLarge?.copyWith(fontSize: 28)),
-            const SizedBox(height: 16),
+            SizedBox(
+                height: (50 - MediaQuery.paddingOf(context).top)
+                    .clamp(8.0, 50.0)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 43),
+              child: Text(
+                s.mapTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                  height: 43.68 / 28,
+                  color: context.colors.navy,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
 
             Expanded(
               child: Padding(
@@ -358,16 +376,23 @@ class _MapScreenState extends State<MapScreen> {
                                       width: 40,
                                       height: 40,
                                       alignment: Alignment.topCenter,
+                                      // The frame's 22x23 tilted pin, its
+                                      // tip on the report, inside the
+                                      // same 40x40 tap target as before.
                                       child: GestureDetector(
                                         onTap: () => _openPin(p),
-                                        child: Icon(
-                                          Icons.location_on,
-                                          size: 38,
-                                          color: p.status.labelColour(
-                                                      context) ==
-                                                  context.colors.bg
-                                              ? context.colors.navy
-                                              : const Color(0xFFFF4949),
+                                        child: CustomPaint(
+                                          painter: _PinPainter(
+                                            radius: 9.9,
+                                            ring: 2.8,
+                                            stroke: 2.2,
+                                            colour: p.status.labelColour(
+                                                        context) ==
+                                                    context.colors.bg
+                                                ? context.colors.navy
+                                                : const Color(0xFFFF4949),
+                                            fill: const Color(0xFFFBFBFB),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -384,13 +409,24 @@ class _MapScreenState extends State<MapScreen> {
                                 color: Colors.white),
                           ),
 
-                        // The drag affordance from the design, bottom
-                        // left of the map frame.
+                        // The drag affordance from the design, 25x25
+                        // at 11/13 from the frame's bottom-left corner,
+                        // with its y1 / blur 1 shadow.
                         const Positioned(
-                          left: 12,
-                          bottom: 12,
-                          child: Icon(Icons.open_with,
-                              color: Color(0xFFFF9800), size: 26),
+                          left: 11,
+                          bottom: 13,
+                          child: Icon(
+                            Icons.open_with,
+                            color: Color(0xFFFF9800),
+                            size: 25,
+                            shadows: [
+                              Shadow(
+                                color: Color(0xCC121212),
+                                blurRadius: 1,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -399,25 +435,32 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 25),
             Padding(
-              padding: const EdgeInsets.fromLTRB(30, 0, 30, 16),
+              padding: const EdgeInsets.fromLTRB(30, 0, 30, 47),
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   _MapCard(showing: _showReports, onToggle: _toggle),
 
                   // The orange pin straddling the card's top-left corner
-                  // in the design. Decorative only — the card's left
-                  // padding is already cut to make room for it.
+                  // in the design (its 68x73 group at -16/-23).
+                  // Decorative only — the title is indented to clear it.
                   const Positioned(
-                    left: -12,
-                    top: -22,
+                    left: -16,
+                    top: -23,
+                    width: 68,
+                    height: 73,
                     child: IgnorePointer(
-                      child: Icon(
-                        Icons.location_on_outlined,
-                        size: 44,
-                        color: Color(0xFFFF9800),
+                      child: CustomPaint(
+                        painter: _PinPainter(
+                          radius: 25.5,
+                          ring: 9.4,
+                          stroke: 2.5,
+                          colour: Color(0xFFFF9800),
+                          fill: Color(0xFFFBFBFB),
+                          tip: Offset(41.7, 64),
+                        ),
                       ),
                     ),
                   ),
@@ -451,53 +494,69 @@ class _MapCard extends StatelessWidget {
     final s = context.s;
     final String body = showing ? s.mapCardBodyShowing : s.mapCardBodyHidden;
 
+    // The frame's 352x131 card: the title at 52/17 across the width, the
+    // body at 36 stopping at the pill (9 short of it in SEE REPORTS), and
+    // the 60x45 orange pill 20 in from the right, centred on the card.
     return Container(
-      padding: const EdgeInsets.fromLTRB(34, 15, 18, 15),
+      constraints: const BoxConstraints(minHeight: 131),
       decoration: BoxDecoration(
         color: context.colors.field,
         border: Border.all(color: context.colors.navy, width: 2),
         borderRadius: BorderRadius.circular(25),
       ),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.centerRight,
         children: [
-          Expanded(
+          Padding(
+            padding: EdgeInsets.fromLTRB(34, 15, showing ? 87 : 78, 15),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  showing ? s.mapReportsSpotted : s.mapWantToSeeReports,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                    color: context.colors.navy,
+                Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Text(
+                    showing ? s.mapReportsSpotted : s.mapWantToSeeReports,
+                    style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                      height: 31.2 / 20,
+                      color: context.colors.navy,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
                 Text(
                   body,
                   style: TextStyle(
-                      fontSize: 14, height: 1.25, color: context.colors.navy),
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    height: 21.84 / 14,
+                    color: context.colors.navy,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(22),
-            child: Container(
-              width: 60,
-              height: 45,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF9800),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Icon(
-                showing ? Icons.visibility : Icons.visibility_off,
-                color: Colors.white,
-                size: 24,
+          Padding(
+            padding: const EdgeInsets.only(right: 18),
+            child: InkWell(
+              onTap: onToggle,
+              borderRadius: BorderRadius.circular(50),
+              child: Container(
+                width: 60,
+                height: 45,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF9800),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: showing
+                    ? Image.asset('assets/images/eye-open.png',
+                        width: 32, height: 20, color: context.colors.bg)
+                    : Image.asset('assets/images/eye-closed.png',
+                        width: 30, height: 11, color: context.colors.bg),
               ),
             ),
           ),
@@ -505,4 +564,61 @@ class _MapCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The design's map pin: a teardrop outline tilted ~17° so its tip points
+/// down and to the right, with a ring at its centre. [tip] is where the
+/// point lands in the paint box; by default the bottom centre, which is
+/// where a [Marker] with topCenter alignment puts the location.
+class _PinPainter extends CustomPainter {
+  const _PinPainter({
+    required this.radius,
+    required this.ring,
+    required this.stroke,
+    required this.colour,
+    required this.fill,
+    this.tip,
+  });
+
+  final double radius;
+  final double ring;
+  final double stroke;
+  final Color colour;
+  final Color fill;
+  final Offset? tip;
+
+  static const _tilt = 16.9 * math.pi / 180;
+  static const _reach = 1.27;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final end = tip ?? Offset(size.width / 2, size.height - stroke);
+    final dir = Offset(math.sin(_tilt), math.cos(_tilt));
+    final centre = end - dir * (radius * _reach);
+
+    // Tangents from the tip meet the circle this far either side of it.
+    final spread = math.acos(1 / _reach);
+    final towardsTip = math.atan2(dir.dy, dir.dx);
+    final path = Path()
+      ..moveTo(end.dx, end.dy)
+      ..lineTo(centre.dx + radius * math.cos(towardsTip + spread),
+          centre.dy + radius * math.sin(towardsTip + spread))
+      ..arcTo(Rect.fromCircle(center: centre, radius: radius),
+          towardsTip + spread, 2 * math.pi - 2 * spread, false)
+      ..close();
+
+    final line = Paint()
+      ..color = colour
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeJoin = StrokeJoin.round;
+    canvas
+      ..drawPath(path, Paint()..color = fill)
+      ..drawPath(path, line)
+      ..drawCircle(centre, ring, line);
+  }
+
+  @override
+  bool shouldRepaint(_PinPainter old) =>
+      old.colour != colour || old.fill != fill || old.tip != tip;
 }
