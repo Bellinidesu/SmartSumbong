@@ -578,6 +578,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           .select('remark, created_at')
           .eq('report_id', r.id)
           .eq('new_status', 'rejected')
+          // Before 0062 the SLA sweep kept logging "SLA breach" rows on
+          // rejected reports, newer than the rejection itself; those are
+          // not the denial.
+          .or('remark.is.null,remark.not.like."SLA breach*"')
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
