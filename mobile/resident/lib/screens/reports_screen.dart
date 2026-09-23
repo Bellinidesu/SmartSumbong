@@ -516,10 +516,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
 
     if (!mounted) return;
+    // A full page on the app background, as Figma draws it — the sheet
+    // used to be transparent over the list, which the navy cards behind
+    // it made unreadable.
     final result = await showModalBottomSheet<_ReopenResult>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      backgroundColor: context.colors.bg,
+      shape: const RoundedRectangleBorder(),
+      constraints: const BoxConstraints.expand(),
       builder: (_) => _ReopenSheet(
         report: r,
         closingRemark: closingRemark,
@@ -582,10 +588,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
 
     if (!mounted) return;
+    // A full page on the app background, as Figma draws it — the sheet
+    // used to be transparent over the list, which the navy cards behind
+    // it made unreadable.
     final result = await showModalBottomSheet<_AppealResult>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      backgroundColor: context.colors.bg,
+      shape: const RoundedRectangleBorder(),
+      constraints: const BoxConstraints.expand(),
       builder: (_) => _AppealSheet(
         report: r,
         denialRemark: denialRemark,
@@ -1619,23 +1631,60 @@ class _ReopenSheetState extends State<_ReopenSheet> {
     final r = widget.report;
     final s = context.s;
     final inset = MediaQuery.of(context).viewInsets.bottom;
+    final navy = context.colors.navy;
+    final label = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 14,
+      height: 21.84 / 14,
+      color: navy,
+    );
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide(color: navy),
+    );
+    final inter = TextStyle(
+      fontFamily: 'Inter',
+      fontWeight: FontWeight.w400,
+      fontSize: 14,
+      color: navy,
+    );
+    // The first "Label: " of a note is bold in the frame.
+    TextSpan boldLead(String text) {
+      final i = text.indexOf(':');
+      if (i < 0) return TextSpan(text: text);
+      return TextSpan(children: [
+        TextSpan(
+            text: text.substring(0, i + 1),
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        TextSpan(text: text.substring(i + 1)),
+      ]);
+    }
 
+    // Figma REPORTS - REOPEN (2780:3594): a full page on #F3F3F3 — the
+    // navy header card holding the ticket and the outcome being asked
+    // about, the red note, the reason dropdown, the concern box, the
+    // optional photo, the acknowledgement and the Back/Submit pair.
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + inset),
+      padding: EdgeInsets.fromLTRB(41, 0, 41, 24 + inset),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
 
-            // The navy header card carrying the ticket being reopened.
+            // Navy card, radius 20: the header at 28/800 on 30, then the
+            // closing remarks and date inside it at 12/500 on 15. The
+            // remarks only show when there is something to show: an
+            // older report from before remarks were consistently logged
+            // may have neither.
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              padding: const EdgeInsets.fromLTRB(20, 10, 18, 16),
               decoration: BoxDecoration(
-                color: context.colors.navy,
-                borderRadius: BorderRadius.circular(25),
+                color: navy,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1645,133 +1694,133 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                         s.reportStatusLabel(r.status.wire), r.subject),
                     style: TextStyle(
                       fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      height: 30 / 28,
                       color: context.colors.bg,
                     ),
                   ),
+                  if (widget.closingRemark != null || r.closedAt != null) ...[
+                    const SizedBox(height: 4),
+                    Text.rich(
+                      TextSpan(children: [
+                        if (widget.closingRemark != null) ...[
+                          TextSpan(
+                            text: '${s.reportsOriginalClosingRemarks}: ',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          TextSpan(text: widget.closingRemark!),
+                        ],
+                        if (r.closedAt != null) ...[
+                          if (widget.closingRemark != null)
+                            const TextSpan(text: '\n'),
+                          boldLead(s.reportsDateClosed(_formatDate(s, r.closedAt!))),
+                        ],
+                      ]),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                        height: 15 / 12,
+                        color: context.colors.bg,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: 14),
 
-            // Figma 2780:3594 — the outcome being asked about, so the
-            // resident can see it before disputing it. Only shown when
-            // there is something to show: an older closed report from
-            // before status_logs remarks were consistently recorded may
-            // have neither.
-            if (r.closedAt != null || widget.closingRemark != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: context.colors.field,
-                    border: Border.all(color: context.colors.navy),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (widget.closingRemark != null) ...[
-                        Text(
-                          s.reportsOriginalClosingRemarks,
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.closingRemark!,
-                          style: TextStyle(
-                              fontSize: 12, height: 1.35, color: context.colors.navy),
-                        ),
-                      ],
-                      if (r.closedAt != null) ...[
-                        if (widget.closingRemark != null)
-                          const SizedBox(height: 8),
-                        Text(
-                          s.reportsDateClosed(_formatDate(s, r.closedAt!)),
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
-            // Reopening does not happen here — the barangay decides,
-            // because it restarts the SLA clock. Saying so up front is
-            // the difference between a wait and a broken button.
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: context.colors.field,
-                border: Border.all(color: context.colors.navy),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                s.reportsReopenNote,
-                style: TextStyle(fontSize: 12, height: 1.35,
-                    color: context.colors.navy),
+            // Reopening does not happen here — the barangay decides, because it restarts the SLA clock. Saying so up front is the difference between a wait and a broken button.
+            Text.rich(
+              boldLead(s.reportsReopenNote),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                height: 15 / 12,
+                color: Color(0xFFFF4949),
               ),
             ),
             const SizedBox(height: 16),
 
-            Text(s.reportsReasonOfReopen,
-                style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: context.colors.navy)),
-            const SizedBox(height: 6),
+            Text(s.reportsReasonOfReopen, style: label),
+            const SizedBox(height: 4),
             DropdownButtonFormField<String>(
               initialValue: _reason,
               isExpanded: true,
-              hint: Text(s.reportsSelectAReason),
+              style: inter,
+              dropdownColor: context.colors.field,
+              borderRadius: BorderRadius.circular(20),
+              icon: Icon(Icons.keyboard_arrow_down_rounded,
+                  color: navy, size: 20),
+              hint: Text(s.reportsSelectAReason, style: inter),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: context.colors.field,
+                contentPadding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                border: fieldBorder,
+                enabledBorder: fieldBorder,
+                focusedBorder: fieldBorder,
+              ),
               items: [
                 for (final v in _reopenReasons)
                   DropdownMenuItem(
-                      value: v, child: Text(s.reportsReopenReasonLabel(v))),
+                      value: v,
+                      child: Text(s.reportsReopenReasonLabel(v), style: inter)),
               ],
               onChanged: (v) => setState(() {
                 _reason = v;
                 _error = null;
               }),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 30),
 
+            // The frame's 128-tall box, radius 25, 12/400 hint.
             TextField(
               controller: _concern,
-              maxLines: 4,
+              minLines: 6,
+              maxLines: 6,
               maxLength: 500,
               textCapitalization: TextCapitalization.sentences,
+              style: TextStyle(fontSize: 12, height: 18.72 / 12, color: navy),
               decoration: InputDecoration(
                 hintText: s.reportsConcernHint,
+                hintStyle: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12,
+                  fontStyle: FontStyle.normal,
+                  color: navy,
+                ),
+                contentPadding: const EdgeInsets.fromLTRB(17, 11, 17, 11),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: navy),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: navy),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: navy, width: 2),
+                ),
+                counterStyle: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w300,
+                  fontSize: 10,
+                  color: navy,
+                ),
               ),
               onChanged: (_) => setState(() => _error = null),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
 
-            Text(s.reportsOptional,
-                style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: context.colors.navy)),
-            const SizedBox(height: 6),
+            Text(s.reportsOptional, style: label),
             _ReopenPhotoTile(
               photo: _photo,
               enabled: !_busy,
@@ -1784,34 +1833,62 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               Text(_banner!,
                   style: TextStyle(color: context.colors.hint, fontSize: 12)),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 23),
 
-            // Figma 2780:3594's checkbox, same wording pattern as the
-            // Submit Report acknowledgement (report_details_screen.dart)
-            // rather than the Sign Up agreement — this is about the
-            // reopen request being accurate, not about a Terms page.
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // The frame's 12x12 box with the text 15 in; a 24x24 area
+            // takes the tap so the small box is not harder to hit.
+            Stack(
+              clipBehavior: Clip.none,
               children: [
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: Checkbox(
-                    value: _acknowledged,
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() {
-                              _acknowledged = v ?? false;
-                              _error = null;
-                            }),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.only(left: 15),
                   child: Text(
                     s.reportsAckReopen,
                     style: TextStyle(
-                        fontSize: 12, color: context.colors.navy, height: 1.3),
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                      height: 18.72 / 12,
+                      color: navy,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: -6,
+                  top: 0,
+                  width: 24,
+                  height: 24,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _busy
+                        ? null
+                        : () => setState(() {
+                              _acknowledged = !_acknowledged;
+                              _error = null;
+                            }),
+                    child: Center(
+                      child: SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: IgnorePointer(
+                          child: FittedBox(
+                            child: Checkbox(
+                              value: _acknowledged,
+                              onChanged: _busy
+                                  ? null
+                                  : (v) => setState(() {
+                                        _acknowledged = v ?? false;
+                                        _error = null;
+                                      }),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              side: BorderSide(color: navy, width: 1.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1822,21 +1899,46 @@ class _ReopenSheetState extends State<_ReopenSheet> {
               Text(_error!,
                   style: TextStyle(color: context.colors.hint, fontSize: 12)),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
 
+            // The frame's 150x45 pills, 20 apart.
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
+                _SheetPill(
+                  shadow: 0.30,
                   child: OutlinedButton(
                     onPressed:
                         _busy ? null : () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: navy,
+                      backgroundColor: context.colors.field,
+                      fixedSize: const Size(150, 45),
+                      padding: EdgeInsets.zero,
+                      side: BorderSide(color: navy),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50)),
+                      textStyle: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
                     child: Text(s.reportsDialogBack),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
+                const SizedBox(width: 20),
+                _SheetPill(
+                  shadow: 0.50,
                   child: FilledButton(
                     onPressed: _busy ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      fixedSize: const Size(150, 45),
+                      minimumSize: const Size(150, 45),
+                      padding: EdgeInsets.zero,
+                      elevation: 0,
+                      side: BorderSide(color: context.colors.bg),
+                    ),
                     child: _busy
                         ? SizedBox(
                             width: 20,
@@ -1908,37 +2010,53 @@ class _ReopenPhotoTile extends StatelessWidget {
         ),
       );
     }
-    return InkWell(
-      onTap: enabled ? onAdd : null,
-      borderRadius: BorderRadius.circular(25),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: context.colors.field,
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: CustomPaint(
-          painter: _ReopenDashedBorder(color: context.colors.navy),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_box_outlined, color: context.colors.navy, size: 22),
-              const SizedBox(height: 6),
-              Text(context.s.reportsAttachMedia,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    color: context.colors.navy,
-                  )),
-              Text(context.s.reportsMaxPhotoSize,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontStyle: FontStyle.italic,
-                    color: context.colors.navy,
-                  )),
-            ],
+    // The frame's 174x128 tile (same as the report form's): the frame's
+    // own 20x20 icon 8 left of the two lines, centred.
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: enabled ? onAdd : null,
+        borderRadius: BorderRadius.circular(25),
+        child: Container(
+          width: 174,
+          height: 128,
+          decoration: BoxDecoration(
+            color: context.colors.field,
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: CustomPaint(
+            painter: _ReopenDashedBorder(color: context.colors.navy),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/images/icon-attach.png',
+                    width: 20, height: 20, color: context.colors.navy),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(context.s.reportsAttachMedia,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          height: 14 / 12,
+                          color: context.colors.navy,
+                        )),
+                    Text(context.s.reportsMaxPhotoSize,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w400,
+                          fontSize: 10,
+                          height: 1,
+                          fontStyle: FontStyle.italic,
+                          color: context.colors.navy,
+                        )),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2170,24 +2288,60 @@ class _AppealSheetState extends State<_AppealSheet> {
     final r = widget.report;
     final s = context.s;
     final inset = MediaQuery.of(context).viewInsets.bottom;
+    final navy = context.colors.navy;
+    final label = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 14,
+      height: 21.84 / 14,
+      color: navy,
+    );
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide(color: navy),
+    );
+    final inter = TextStyle(
+      fontFamily: 'Inter',
+      fontWeight: FontWeight.w400,
+      fontSize: 14,
+      color: navy,
+    );
+    // The first "Label: " of a note is bold in the frame.
+    TextSpan boldLead(String text) {
+      final i = text.indexOf(':');
+      if (i < 0) return TextSpan(text: text);
+      return TextSpan(children: [
+        TextSpan(
+            text: text.substring(0, i + 1),
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        TextSpan(text: text.substring(i + 1)),
+      ]);
+    }
 
+    // Figma REPORTS - REOPEN (2780:3594): a full page on #F3F3F3 — the
+    // navy header card holding the ticket and the outcome being asked
+    // about, the red note, the reason dropdown, the concern box, the
+    // optional photo, the acknowledgement and the Back/Submit pair.
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + inset),
+      padding: EdgeInsets.fromLTRB(41, 0, 41, 24 + inset),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
 
-            // The navy header card carrying the ticket being appealed —
-            // same shape as _ReopenSheet's own header card.
+            // Navy card, radius 20: the header at 28/800 on 30, then the
+            // closing remarks and date inside it at 12/500 on 15. The
+            // remarks only show when there is something to show: an
+            // older report from before remarks were consistently logged
+            // may have neither.
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              padding: const EdgeInsets.fromLTRB(20, 10, 18, 16),
               decoration: BoxDecoration(
-                color: context.colors.navy,
-                borderRadius: BorderRadius.circular(25),
+                color: navy,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2197,129 +2351,133 @@ class _AppealSheetState extends State<_AppealSheet> {
                         s.reportStatusLabel(r.status.wire), r.subject),
                     style: TextStyle(
                       fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      height: 30 / 28,
                       color: context.colors.bg,
                     ),
                   ),
+                  if (widget.denialRemark != null || widget.deniedAt != null) ...[
+                    const SizedBox(height: 4),
+                    Text.rich(
+                      TextSpan(children: [
+                        if (widget.denialRemark != null) ...[
+                          TextSpan(
+                            text: '${s.reportsOriginalDenialReason}: ',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          TextSpan(text: widget.denialRemark!),
+                        ],
+                        if (widget.deniedAt != null) ...[
+                          if (widget.denialRemark != null)
+                            const TextSpan(text: '\n'),
+                          boldLead(s.reportsDateDenied(_formatDate(s, widget.deniedAt!))),
+                        ],
+                      ]),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                        height: 15 / 12,
+                        color: context.colors.bg,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: 14),
 
-            // The denial being disputed, so the resident can see it
-            // before appealing it — mirrors _ReopenSheet's closing-
-            // remark box for the rejected path.
-            if (widget.deniedAt != null || widget.denialRemark != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: context.colors.field,
-                    border: Border.all(color: context.colors.navy),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (widget.denialRemark != null) ...[
-                        Text(
-                          s.reportsOriginalDenialReason,
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.denialRemark!,
-                          style: TextStyle(
-                              fontSize: 12, height: 1.35, color: context.colors.navy),
-                        ),
-                      ],
-                      if (widget.deniedAt != null) ...[
-                        if (widget.denialRemark != null)
-                          const SizedBox(height: 8),
-                        Text(
-                          s.reportsDateDenied(_formatDate(s, widget.deniedAt!)),
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
             // Appealing does not happen here — the barangay decides.
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: context.colors.field,
-                border: Border.all(color: context.colors.navy),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                s.reportsAppealNote,
-                style: TextStyle(fontSize: 12, height: 1.35,
-                    color: context.colors.navy),
+            Text.rich(
+              boldLead(s.reportsAppealNote),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                height: 15 / 12,
+                color: Color(0xFFFF4949),
               ),
             ),
             const SizedBox(height: 16),
 
-            Text(s.reportsReasonOfAppeal,
-                style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: context.colors.navy)),
-            const SizedBox(height: 6),
+            Text(s.reportsReasonOfAppeal, style: label),
+            const SizedBox(height: 4),
             DropdownButtonFormField<String>(
               initialValue: _reason,
               isExpanded: true,
-              hint: Text(s.reportsSelectAReason),
+              style: inter,
+              dropdownColor: context.colors.field,
+              borderRadius: BorderRadius.circular(20),
+              icon: Icon(Icons.keyboard_arrow_down_rounded,
+                  color: navy, size: 20),
+              hint: Text(s.reportsSelectAReason, style: inter),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: context.colors.field,
+                contentPadding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                border: fieldBorder,
+                enabledBorder: fieldBorder,
+                focusedBorder: fieldBorder,
+              ),
               items: [
                 for (final v in _appealReasons)
                   DropdownMenuItem(
-                      value: v, child: Text(s.reportsAppealReasonLabel(v))),
+                      value: v,
+                      child: Text(s.reportsAppealReasonLabel(v), style: inter)),
               ],
               onChanged: (v) => setState(() {
                 _reason = v;
                 _error = null;
               }),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 30),
 
+            // The frame's 128-tall box, radius 25, 12/400 hint.
             TextField(
               controller: _concern,
-              maxLines: 4,
+              minLines: 6,
+              maxLines: 6,
               maxLength: 500,
               textCapitalization: TextCapitalization.sentences,
+              style: TextStyle(fontSize: 12, height: 18.72 / 12, color: navy),
               decoration: InputDecoration(
                 hintText: s.reportsConcernHint,
+                hintStyle: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12,
+                  fontStyle: FontStyle.normal,
+                  color: navy,
+                ),
+                contentPadding: const EdgeInsets.fromLTRB(17, 11, 17, 11),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: navy),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: navy),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: navy, width: 2),
+                ),
+                counterStyle: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w300,
+                  fontSize: 10,
+                  color: navy,
+                ),
               ),
               onChanged: (_) => setState(() => _error = null),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
 
-            Text(s.reportsOptional,
-                style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: context.colors.navy)),
-            const SizedBox(height: 6),
+            Text(s.reportsOptional, style: label),
             _ReopenPhotoTile(
               photo: _photo,
               enabled: !_busy,
@@ -2332,30 +2490,62 @@ class _AppealSheetState extends State<_AppealSheet> {
               Text(_banner!,
                   style: TextStyle(color: context.colors.hint, fontSize: 12)),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 23),
 
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // The frame's 12x12 box with the text 15 in; a 24x24 area
+            // takes the tap so the small box is not harder to hit.
+            Stack(
+              clipBehavior: Clip.none,
               children: [
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: Checkbox(
-                    value: _acknowledged,
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() {
-                              _acknowledged = v ?? false;
-                              _error = null;
-                            }),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.only(left: 15),
                   child: Text(
                     s.reportsAckAppeal,
                     style: TextStyle(
-                        fontSize: 12, color: context.colors.navy, height: 1.3),
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                      height: 18.72 / 12,
+                      color: navy,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: -6,
+                  top: 0,
+                  width: 24,
+                  height: 24,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _busy
+                        ? null
+                        : () => setState(() {
+                              _acknowledged = !_acknowledged;
+                              _error = null;
+                            }),
+                    child: Center(
+                      child: SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: IgnorePointer(
+                          child: FittedBox(
+                            child: Checkbox(
+                              value: _acknowledged,
+                              onChanged: _busy
+                                  ? null
+                                  : (v) => setState(() {
+                                        _acknowledged = v ?? false;
+                                        _error = null;
+                                      }),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              side: BorderSide(color: navy, width: 1.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -2366,21 +2556,46 @@ class _AppealSheetState extends State<_AppealSheet> {
               Text(_error!,
                   style: TextStyle(color: context.colors.hint, fontSize: 12)),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
 
+            // The frame's 150x45 pills, 20 apart.
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
+                _SheetPill(
+                  shadow: 0.30,
                   child: OutlinedButton(
                     onPressed:
                         _busy ? null : () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: navy,
+                      backgroundColor: context.colors.field,
+                      fixedSize: const Size(150, 45),
+                      padding: EdgeInsets.zero,
+                      side: BorderSide(color: navy),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50)),
+                      textStyle: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
                     child: Text(s.reportsDialogBack),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
+                const SizedBox(width: 20),
+                _SheetPill(
+                  shadow: 0.50,
                   child: FilledButton(
                     onPressed: _busy ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      fixedSize: const Size(150, 45),
+                      minimumSize: const Size(150, 45),
+                      padding: EdgeInsets.zero,
+                      elevation: 0,
+                      side: BorderSide(color: context.colors.bg),
+                    ),
                     child: _busy
                         ? SizedBox(
                             width: 20,
@@ -2403,4 +2618,27 @@ class _AppealSheetState extends State<_AppealSheet> {
     final d = utc.toLocal();
     return '${s.monthAbbr(d.month)} ${d.day}, ${d.year}';
   }
+}
+
+/// The frame's y5 / blur 5 drop shadow under a 45-tall pill button.
+class _SheetPill extends StatelessWidget {
+  const _SheetPill({required this.shadow, required this.child});
+
+  final double shadow;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF121212).withValues(alpha: shadow),
+              blurRadius: 3.5,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: child,
+      );
 }

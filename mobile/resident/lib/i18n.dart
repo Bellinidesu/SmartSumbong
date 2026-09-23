@@ -623,8 +623,8 @@ class Strings {
       'Pakikumpirma na tama ang impormasyon sa itaas.');
   String reportsReopenHeader(
           String trackingId, String statusLabel, String subject) =>
-      _t('Reopen:\n($trackingId - $statusLabel) $subject',
-          'Buksan Muli:\n($trackingId - $statusLabel) $subject');
+      _t('Reopen:\n(# $trackingId - $statusLabel) $subject',
+          'Buksan Muli:\n(# $trackingId - $statusLabel) $subject');
   String get reportsOriginalClosingRemarks => _t(
       'Original Closing Remarks', 'Orihinal na Puna sa Pagsasara');
   String reportsDateClosed(String date) =>
@@ -705,8 +705,8 @@ class Strings {
       'ebidensya sa apela na ito.');
   String reportsAppealHeader(
           String trackingId, String statusLabel, String subject) =>
-      _t('Appeal:\n($trackingId - $statusLabel) $subject',
-          'Umapela:\n($trackingId - $statusLabel) $subject');
+      _t('Appeal:\n(# $trackingId - $statusLabel) $subject',
+          'Umapela:\n(# $trackingId - $statusLabel) $subject');
   String get reportsOriginalDenialReason => _t(
       'Original Denial Reason', 'Orihinal na Dahilan ng Pagtanggi');
   String reportsDateDenied(String date) =>
