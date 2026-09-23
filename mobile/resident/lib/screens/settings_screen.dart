@@ -139,64 +139,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _logOut() async {
     final s = context.s;
+    // Figma LOG OUT (2260:2478): a 300x200 navy card, radius 50, 2px
+    // #252525 edge, the title orange at 24/700, the question 16/500, and
+    // 106x40 Cancel / Log Out pills 13 apart; the page fades to 30%.
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierColor: context.colors.bg.withValues(alpha: 0.7),
       builder: (context) => Dialog(
-        backgroundColor: context.colors.navy,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          width: 300,
+          constraints: const BoxConstraints(minHeight: 200),
+          padding: const EdgeInsets.fromLTRB(20, 30, 20, 29),
+          decoration: BoxDecoration(
+            color: context.colors.navy,
+            borderRadius: BorderRadius.circular(50),
+            border: Border.all(color: const Color(0xFF252525), width: 2),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 s.settingsLogOut,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                  // Figma (LOG OUT, 2260:2478): the dialog title is the
-                  // same orange as the Edit Profile badge, not white.
+                  fontSize: 24,
+                  height: 21 / 24,
                   color: Color(0xFFFF9800),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 31),
               Text(
                 s.settingsLogOutConfirmBody,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: context.colors.bg),
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  height: 15 / 16,
+                  color: context.colors.bg,
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 31),
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: context.colors.bg,
-                        side: BorderSide(color: context.colors.bg),
-                        minimumSize: const Size.fromHeight(42),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(s.settingsCancel),
-                    ),
+                  _DialogPill(
+                    label: s.settingsCancel,
+                    filled: false,
+                    onTap: () => Navigator.of(context).pop(false),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: context.colors.field,
-                        foregroundColor: context.colors.navy,
-                        minimumSize: const Size.fromHeight(42),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(s.settingsLogOut),
-                    ),
+                  const SizedBox(width: 13),
+                  _DialogPill(
+                    label: s.settingsLogOut,
+                    filled: true,
+                    onTap: () => Navigator.of(context).pop(true),
                   ),
                 ],
               ),
@@ -333,11 +335,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: context.colors.navy,
                           ),
                         ),
+                        // The number line as LOG OUT's backdrop draws it.
                         if (_mobile != null)
                           Text(
                             _mask(_mobile!),
                             style: TextStyle(
-                                fontSize: 12, color: context.colors.muted),
+                              fontFamily: 'Urbanist',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              height: 21.84 / 14,
+                              color: context.colors.navy,
+                            ),
                           ),
                         const SizedBox(height: 6),
                         _EditProfilePill(
@@ -580,6 +588,75 @@ class _EditProfilePill extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// The Log Out dialog's 106x40 pills with the frame's y5 / blur 5 shadow:
+/// Cancel outlined on navy, Log Out filled light.
+class _DialogPill extends StatelessWidget {
+  const _DialogPill({
+    required this.label,
+    required this.onTap,
+    required this.filled,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(50),
+    );
+    const size = Size(106, 40);
+    const text = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(50),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4D121212),
+            blurRadius: 3.5,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: filled
+          ? FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: context.colors.bg,
+                foregroundColor: context.colors.navy,
+                fixedSize: size,
+                minimumSize: size,
+                elevation: 0,
+                padding: EdgeInsets.zero,
+                shape: shape,
+                textStyle: text,
+              ),
+              child: Text(label),
+            )
+          : OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.bg,
+                backgroundColor: context.colors.navy,
+                side: BorderSide(color: context.colors.bg),
+                fixedSize: size,
+                minimumSize: size,
+                padding: EdgeInsets.zero,
+                shape: shape,
+                textStyle: text,
+              ),
+              child: Text(label),
+            ),
+    );
+  }
 }
 
 class _SettingsRow extends StatelessWidget {
