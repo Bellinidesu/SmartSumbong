@@ -89,6 +89,36 @@ if (!$isPrint) {
 $error = null;
 $reports = $dispatches = $logs = $attendance = [];
 
+/**
+ * Every row in the period, a page at a time. The single select with
+ * limit=500 (300 for the timeline) used to be the whole story: a busy
+ * quarter printed a signed report with the tiles, averages and ledger
+ * quietly computed from the first 500 complaints only. Pages until a
+ * short one comes back; the hard ceiling only guards against a runaway
+ * range, and when it is reached the page says so ($truncated) rather
+ * than presenting a partial count as the total. Callers must order by
+ * something unique (…,id) so offset paging cannot skip or repeat rows.
+ */
+const SUMMARY_PAGE = 500;
+const SUMMARY_MAX  = 10000;
+$truncated = [];
+
+function select_all(Supabase $db, string $table, array $query, array &$truncated): array
+{
+    $out = [];
+    for ($offset = 0; $offset < SUMMARY_MAX; $offset += SUMMARY_PAGE) {
+        $query['limit']  = (string) SUMMARY_PAGE;
+        $query['offset'] = (string) $offset;
+        $rows = $db->select($table, $query);
+        array_push($out, ...$rows);
+        if (count($rows) < SUMMARY_PAGE) {
+            return $out;
+        }
+    }
+    $truncated[$table] = true;
+    return $out;
+}
+
 try {
     $reportsQuery = [
         'select'     => 'id,tracking_id,subject,category,status,is_anonymous,created_at,'
@@ -96,8 +126,7 @@ try {
                       . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'and'        => "(created_at.gte.{$fromISO},created_at.lte.{$toISO})",
-        'order'      => 'created_at.asc',
-        'limit'      => '500',
+        'order'      => 'created_at.asc,id.asc',
     ];
     // Category narrows the Resident Report Ledger only — the Tanod
     // Activity Timeline and Report Case Timeline stay period-only, since
@@ -106,31 +135,29 @@ try {
     if ($category !== '') {
         $reportsQuery['category'] = 'eq.' . $category;
     }
-    $reports = $db->select('reports', $reportsQuery);
+    $reports = select_all($db, 'reports', $reportsQuery, $truncated);
 
-    $dispatches = $db->select('dispatches', [
+    $dispatches = select_all($db, 'dispatches', [
         'select'      => 'id,state,assigned_at,accepted_at,resolved_at,field_report_text,'
                        . 'tanod:users!dispatches_tanod_id_fkey(full_name),'
                        . 'report:reports!dispatches_report_id_fkey(tracking_id)',
         'and'         => "(assigned_at.gte.{$fromISO},assigned_at.lte.{$toISO})",
-        'order'       => 'assigned_at.asc',
-        'limit'       => '500',
-    ]);
+        'order'       => 'assigned_at.asc,id.asc',
+    ], $truncated);
 
-    $logs = $db->select('status_logs', [
+    $logs = select_all($db, 'status_logs', [
         'select'     => 'id,old_status,new_status,remark,is_system,created_at,'
                       . 'report:reports!status_logs_report_id_fkey(tracking_id),'
                       . 'by:users!status_logs_changed_by_fkey(full_name)',
         'and'        => "(created_at.gte.{$fromISO},created_at.lte.{$toISO})",
-        'order'      => 'created_at.desc',
-        'limit'      => '300',
-    ]);
+        'order'      => 'created_at.desc,id.desc',
+    ], $truncated);
 
-    $attendance = $db->select('attendance', [
+    $attendance = select_all($db, 'attendance', [
         'select' => 'id,tanod_id,duty_status,shift_date',
         'and'    => "(logged_at.gte.{$fromISO},logged_at.lte.{$toISO})",
-        'limit'  => '1000',
-    ]);
+        'order'  => 'id.asc',
+    ], $truncated);
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -176,6 +203,15 @@ else { print_head($periodLabel, $categoryLabel); }
 
 <?php if ($error): ?>
   <div class="alert-bar" role="alert"><?= e($error) ?></div>
+<?php endif; ?>
+
+<?php if ($truncated): ?>
+  <!-- Printed too: a signed report must not pass off a partial count. -->
+  <div class="alert-bar" role="alert">
+    This period has more than <?= number_format(SUMMARY_MAX) ?> rows in
+    <?= e(implode(', ', array_map(fn($t) => str_replace('_', ' ', $t), array_keys($truncated)))) ?>;
+    only the first <?= number_format(SUMMARY_MAX) ?> are included. Choose a shorter period.
+  </div>
 <?php endif; ?>
 
 <?php if (!$isPrint): ?>

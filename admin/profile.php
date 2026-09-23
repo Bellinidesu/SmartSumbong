@@ -29,6 +29,25 @@ require_once __DIR__ . '/includes/layout.php';
 $admin = require_admin();
 $db    = db();
 
+/**
+ * True when this admin signs in with the phone-derived address (0021),
+ * i.e. they were promoted from a resident or tanod account. For them
+ * mobile_number is not contact detail: the mobile apps derive the login
+ * from it, and auth.users.email is not updated when it changes, so
+ * editing it here locked them out of the app. That is the exact failure
+ * 0026 closes for everyone else; admins bypass that trigger, so this
+ * page has to hold the line itself. Null when it could not be checked.
+ */
+function signs_in_by_phone(Supabase $db): ?bool
+{
+    try {
+        $email = (string) ($db->authUser()['email'] ?? '');
+    } catch (Throwable) {
+        return null;
+    }
+    return $email === '' ? null : str_ends_with(strtolower($email), '@auth.smartsumbong.local');
+}
+
 session_start_once();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -58,10 +77,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     $mobile = '+639' . $mm[1];
 
-                    $db->update('users', ['id' => 'eq.' . $admin['id']], [
-                        'full_name'     => $name,
-                        'mobile_number' => $mobile,
-                    ]);
+                    $current = $db->select('users', [
+                        'select' => 'mobile_number',
+                        'id'     => 'eq.' . $admin['id'],
+                        'limit'  => '1',
+                    ])[0]['mobile_number'] ?? null;
+
+                    $patch = ['full_name' => $name];
+                    if ($mobile !== $current) {
+                        $byPhone = signs_in_by_phone($db);
+                        if ($byPhone === null) {
+                            throw new SupabaseError('Your sign-in details could not be checked, so the '
+                                . 'mobile number was not changed. Please try again.');
+                        }
+                        if ($byPhone) {
+                            throw new SupabaseError('Your mobile number is how you sign in to the Smart '
+                                . 'Sumbong app, so it cannot be changed here. Nothing was changed.');
+                        }
+                        $patch['mobile_number'] = $mobile;
+                    }
+
+                    $db->update('users', ['id' => 'eq.' . $admin['id']], $patch);
 
                     $_SESSION[SESSION_KEY]['full_name'] = $name;
                     $flash = 'Profile updated.';
@@ -135,6 +171,8 @@ try {
     $lastSeen = db()->authUser()['last_sign_in_at'] ?? null;
 } catch (Throwable) {
 }
+// Locked unless positively known to be safe to change.
+$mobileLocked = signs_in_by_phone($db) !== false;
 
 $editing = isset($_GET['edit']);
 
@@ -185,9 +223,19 @@ layout_head('Edit Profile', 'profile.php');
 
         <div class="control-field">
           <label class="field-label" for="mobile_number">Mobile number</label>
-          <input type="tel" id="mobile_number" name="mobile_number" required
-                 pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>">
-          <p class="field-hint">Eleven digits, starting 09.</p>
+          <?php if ($mobileLocked): ?>
+            <!-- Sent unchanged, so the server still sees the same number. -->
+            <input type="tel" id="mobile_number" name="mobile_number" readonly
+                   value="<?= e($me['mobile_number']) ?>">
+            <p class="field-hint">
+              This is how you sign in to the Smart Sumbong app, so it cannot
+              be changed here.
+            </p>
+          <?php else: ?>
+            <input type="tel" id="mobile_number" name="mobile_number" required
+                   pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>">
+            <p class="field-hint">Eleven digits, starting 09.</p>
+          <?php endif; ?>
         </div>
 
         <div class="control-field">
