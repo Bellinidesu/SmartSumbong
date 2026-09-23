@@ -637,7 +637,6 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return Scaffold(
@@ -647,21 +646,37 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           child: Column(
             children: [
               Expanded(
+                // Figma SUBMIT REPORT - 1 (2277:3268): content 42 in,
+                // title 50 from the top of the screen, sections 20 apart,
+                // each field directly under its label, and Back/Submit at
+                // the end of the scrolling page rather than pinned.
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(42, 32, 42, 16),
+                  padding: const EdgeInsets.fromLTRB(42, 26, 42, 50),
                   children: [
                     Text(
                       widget.choice.title,
                       textAlign: TextAlign.center,
-                      style: t.headlineLarge?.copyWith(fontSize: 26),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w800,
+                        fontSize: 28,
+                        // Subtitle starts 34 below the title's top.
+                        height: 34 / 28,
+                        color: context.colors.navy,
+                      ),
                     ),
-                    const SizedBox(height: 6),
                     Text(
                       s.reportDetailsCompleteBelow,
                       textAlign: TextAlign.center,
-                      style: t.titleMedium?.copyWith(fontSize: 15),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        height: 24.96 / 16,
+                        color: context.colors.navy,
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12),
 
                     if (_banner != null) ...[
                       _Banner(_banner!),
@@ -669,7 +684,6 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     ],
 
                     _StepLabel(1, s.reportDetailsStep1),
-                    const SizedBox(height: 12),
                     _MapCard(
                       controller: _map,
                       pin: _pin,
@@ -700,19 +714,17 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                         onSearch: _searchAddress,
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     _StepLabel(2, s.reportDetailsStep2),
-                    const SizedBox(height: 12),
                     _DescriptionBox(
                       controller: _description,
                       error: _errors['description'],
                       enabled: !_busy,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     _StepLabel(3, s.reportDetailsStep3),
-                    const SizedBox(height: 12),
                     _PhotoStrip(
                       photos: _photos,
                       max: _maxPhotos,
@@ -727,7 +739,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                       onAdd: _addVideo,
                       onRemove: _removeVideo,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     Text(
                       s.reportDetailsAnonymousQuestion,
@@ -735,14 +747,15 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                         fontFamily: 'Urbanist',
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        height: 1.25,
+                        // Two lines in 32, the frame's text box.
+                        height: 15 / 14,
                         color: context.colors.navy,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Row(
                       children: [
-                        Switch(
+                        _SmallSwitch(
                           value: _anonymous,
                           onChanged: _busy
                               ? null
@@ -750,10 +763,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                                   setState(() => _anonymous = v);
                                   _scheduleDraftSave();
                                 },
-                          activeThumbColor: context.colors.bg,
-                          activeTrackColor: context.colors.navy,
                         ),
-                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _anonymous
@@ -776,49 +786,60 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                         _errors.remove('ack');
                       }),
                     ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
+                    const SizedBox(height: 20),
 
-              Padding(
-                padding: const EdgeInsets.fromLTRB(42, 0, 42, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed:
-                            _busy ? null : () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: context.colors.navy,
-                          backgroundColor: context.colors.field,
-                          minimumSize: const Size.fromHeight(45),
-                          side: BorderSide(color: context.colors.navy),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          textStyle: const TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                    // The frame's pair: 150x45 pills, 20 apart, centred.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _PillShadow(
+                          opacity: 0.30,
+                          child: OutlinedButton(
+                            onPressed: _busy
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: context.colors.navy,
+                              backgroundColor: context.colors.field,
+                              fixedSize: const Size(150, 45),
+                              padding: EdgeInsets.zero,
+                              side: BorderSide(color: context.colors.navy),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              textStyle: const TextStyle(
+                                fontFamily: 'Urbanist',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                            child: Text(s.reportDetailsBack),
                           ),
                         ),
-                        child: Text(s.reportDetailsBack),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: _busy ? null : _submit,
-                        child: _busy
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: context.colors.bg),
-                              )
-                            : Text(s.reportDetailsSubmit),
-                      ),
+                        const SizedBox(width: 20),
+                        _PillShadow(
+                          opacity: 0.50,
+                          child: FilledButton(
+                            onPressed: _busy ? null : _submit,
+                            style: FilledButton.styleFrom(
+                              fixedSize: const Size(150, 45),
+                              minimumSize: const Size(150, 45),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                              side: BorderSide(color: context.colors.bg),
+                            ),
+                            child: _busy
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: context.colors.bg),
+                                  )
+                                : Text(s.reportDetailsSubmit),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1208,24 +1229,37 @@ class _PhotoStrip extends StatelessWidget {
               ),
               child: CustomPaint(
                 painter: _DashedBorder(color: context.colors.navy),
-                child: Column(
+                // The frame's tile: its own 20x20 icon, 8 left of the
+                // two lines, the pair centred in the 174x128 tile.
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add_box_outlined, color: context.colors.navy, size: 22),
-                    const SizedBox(height: 6),
-                    Text(context.s.reportDetailsAttachMedia,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                          color: context.colors.navy,
-                        )),
-                    Text(context.s.reportDetailsMaxPhotoSize,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontStyle: FontStyle.italic,
-                          color: context.colors.navy,
-                        )),
+                    Image.asset('assets/images/icon-attach.png',
+                        width: 20, height: 20, color: context.colors.navy),
+                    const SizedBox(width: 8),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.s.reportDetailsAttachMedia,
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              height: 14 / 12,
+                              color: context.colors.navy,
+                            )),
+                        Text(context.s.reportDetailsMaxPhotoSize,
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontWeight: FontWeight.w400,
+                              fontSize: 10,
+                              height: 1,
+                              fontStyle: FontStyle.italic,
+                              color: context.colors.navy,
+                            )),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -1371,38 +1405,140 @@ class _Acknowledgement extends StatelessWidget {
   final String? error;
   final bool enabled;
 
+  // Figma "confirm?": a 12x12 square box, 5 below the text's top, text
+  // 15 in at 12/400 on an 18.72 line. The box is drawn at that size but
+  // tapped through a 24x24 area around it, so it is not harder to hit
+  // than before.
   @override
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Stack(
+            clipBehavior: Clip.none,
             children: [
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: Checkbox(
-                  value: value,
-                  onChanged: enabled ? onChanged : null,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
+              Padding(
+                padding: const EdgeInsets.only(left: 15),
                 child: Text(
                   context.s.reportDetailsAcknowledgement,
                   style: TextStyle(
-                      fontSize: 12, color: context.colors.navy, height: 1.3),
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                    height: 18.72 / 12,
+                    color: context.colors.navy,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: -6,
+                top: -1,
+                width: 24,
+                height: 24,
+                // The 24x24 area takes the tap; the scaled Checkbox only
+                // draws (IgnorePointer keeps its semantics for screen
+                // readers).
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: enabled ? () => onChanged(!value) : null,
+                  child: Center(
+                    child: SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: IgnorePointer(
+                        child: FittedBox(
+                          child: Checkbox(
+                            value: value,
+                            onChanged: enabled ? onChanged : null,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            side: BorderSide(
+                                color: context.colors.navy, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           if (error != null)
             Padding(
-              padding: const EdgeInsets.only(left: 34, top: 4),
+              padding: const EdgeInsets.only(left: 15, top: 4),
               child: Text(error!,
                   style: TextStyle(color: context.colors.hint, fontSize: 11)),
             ),
         ],
+      );
+}
+
+/// Figma's anonymous toggle: 30x18, drawn as a Material Switch scaled to
+/// that size. The tap is taken by a 48x34 area around it (the scaled
+/// Switch alone would only answer a 30x18 touch); the Switch itself just
+/// draws, with its semantics kept for screen readers.
+class _SmallSwitch extends StatelessWidget {
+  const _SmallSwitch({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onChanged == null ? null : () => onChanged!(!value),
+      child: SizedBox(
+        width: 48,
+        height: 34,
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 30,
+            height: 18,
+            child: IgnorePointer(
+              child: FittedBox(
+                // Navy track and light knob in both states, as drawn: on
+                // and off differ by which side the knob sits.
+                child: Switch(
+                  value: value,
+                  onChanged: onChanged,
+                  activeThumbColor: context.colors.bg,
+                  activeTrackColor: context.colors.navy,
+                  inactiveThumbColor: context.colors.bg,
+                  inactiveTrackColor: context.colors.navy,
+                  trackOutlineColor:
+                      const WidgetStatePropertyAll(Colors.transparent),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The frame's y5 / blur 5 drop shadow under a 45-tall pill button.
+class _PillShadow extends StatelessWidget {
+  const _PillShadow({required this.opacity, required this.child});
+
+  final double opacity;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF121212).withValues(alpha: opacity),
+              blurRadius: 3.5,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: child,
       );
 }
 
