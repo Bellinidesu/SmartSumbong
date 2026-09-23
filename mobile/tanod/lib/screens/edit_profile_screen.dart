@@ -418,7 +418,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   : Text(
                                       _SettingsInitials.of(_name),
                                       style: TextStyle(
-                                        fontFamily: 'Poppins',
+                                        fontFamily: 'Urbanist',
                                         fontWeight: FontWeight.w700,
                                         fontSize: 32,
                                         color: context.colors.bg,
@@ -596,7 +596,7 @@ class _EditableField extends StatelessWidget {
             children: [
               Text(label,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     color: context.colors.navy,
@@ -652,7 +652,7 @@ class _LockedField extends StatelessWidget {
           padding: const EdgeInsets.only(left: 12, bottom: 6),
           child: Text(label,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
                 color: context.colors.navy,
@@ -877,7 +877,7 @@ class _ProfileDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 18,
                 color: context.colors.navy,
@@ -945,7 +945,7 @@ class _Pill extends StatelessWidget {
               padding: EdgeInsets.zero,
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -961,7 +961,7 @@ class _Pill extends StatelessWidget {
               padding: EdgeInsets.zero,
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),

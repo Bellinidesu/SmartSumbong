@@ -233,7 +233,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             s.notificationsEmptyTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 20,
               color: context.colors.navy,
@@ -284,7 +284,7 @@ class _NotificationRow extends StatelessWidget {
           child: Text(
             item.message,
             style: TextStyle(
-              fontFamily: emphasise ? 'Poppins' : null,
+              fontFamily: emphasise ? 'Urbanist' : null,
               fontWeight: emphasise ? FontWeight.w700 : FontWeight.w400,
               fontSize: 13,
               height: 1.35,

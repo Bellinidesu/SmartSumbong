@@ -512,7 +512,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             '${context.s.dispatchOrderHeaderLabel}\n${widget.ticket.trackingId}',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w800,
               fontSize: 19,
               height: 1.2,
@@ -788,7 +788,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             Text(
               context.s.dispatchAdminDirectivesTitle,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
                 color: context.colors.navy,
@@ -824,7 +824,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           context.s.dispatchRerouteConfirmTitle,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Urbanist',
             fontWeight: FontWeight.w800,
             fontSize: 17,
             height: 1.25,
@@ -844,7 +844,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           child: Text(
             context.s.dispatchRerouteReasonLabel,
             style: const TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 11.5,
               color: _red,
@@ -913,7 +913,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 widget.ticket.trackingId, widget.ticket.subject),
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w800,
               fontSize: 19,
               height: 1.25,
@@ -1006,7 +1006,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         Text(
           context.s.reportsSubmitUpdate,
           style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Urbanist',
             fontWeight: FontWeight.w800,
             fontSize: 20,
             color: context.colors.navy,
@@ -1019,7 +1019,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           child: Text(
             context.s.dispatchProvideReportLabel,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 11.5,
               color: context.colors.navy,
@@ -1054,7 +1054,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           child: Text(
             context.s.dispatchPhotoEvidenceLabel,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 11.5,
               color: context.colors.navy,
@@ -1129,7 +1129,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                             children: [
                               Text(context.s.dispatchAttachMedia,
                                   style: TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Urbanist',
                                     fontWeight: FontWeight.w700,
                                     fontSize: 10,
                                     color: context.colors.navy,
@@ -1204,7 +1204,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                             children: [
                               Text(context.s.dispatchAttachVideo,
                                   style: TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Urbanist',
                                     fontWeight: FontWeight.w700,
                                     fontSize: 10,
                                     color: context.colors.navy,
@@ -1257,7 +1257,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             context.s.dispatchSubmittedTitle(widget.ticket.trackingId),
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w800,
               fontSize: 19,
               height: 1.3,
@@ -1403,7 +1403,7 @@ class _Pill extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
               ),
@@ -1419,7 +1419,7 @@ class _Pill extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
               ),

@@ -393,7 +393,7 @@ class _GroupCard extends StatelessWidget {
               group.name,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
                 color: context.colors.bg,
@@ -477,7 +477,7 @@ class _NumberRow extends StatelessWidget {
                   Text(
                     number.label!,
                     style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                       color: context.colors.navy,
@@ -486,7 +486,7 @@ class _NumberRow extends StatelessWidget {
                 Text(
                   number.number,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     color: context.colors.navy,
@@ -566,7 +566,7 @@ class _LinkRow extends StatelessWidget {
               child: Text(
                 group.name,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                   color: context.colors.bg,
@@ -626,7 +626,7 @@ class _ConfirmSheet extends StatelessWidget {
         message,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Urbanist',
           fontWeight: FontWeight.w700,
           fontSize: 14,
           color: context.colors.navy,

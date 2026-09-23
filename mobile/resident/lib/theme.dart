@@ -222,12 +222,12 @@ ThemeData buildResidentTheme(Brightness brightness) {
     brightness: brightness,
     colorScheme: scheme,
     scaffoldBackgroundColor: c.bg,
-    fontFamily: 'Roboto',
+    fontFamily: 'Urbanist',
 
     textTheme: TextTheme(
       // "Sign Up as Resident"
       headlineLarge: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Urbanist',
         fontWeight: FontWeight.w700,
         fontSize: 30,
         height: 1.15,
@@ -235,14 +235,14 @@ ThemeData buildResidentTheme(Brightness brightness) {
       ),
       // "Create your Account"
       titleMedium: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Urbanist',
         fontWeight: FontWeight.w500,
         fontSize: 16,
         color: c.navy,
       ),
       // Field labels
       labelLarge: TextStyle(
-        fontFamily: 'Poppins',
+        fontFamily: 'Urbanist',
         fontWeight: FontWeight.w700,
         fontSize: 16,
         color: c.navy,
@@ -284,7 +284,7 @@ ThemeData buildResidentTheme(Brightness brightness) {
           borderRadius: BorderRadius.circular(Tokens.pill),
         ),
         textStyle: const TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Urbanist',
           fontWeight: FontWeight.w700,
           fontSize: 16,
         ),

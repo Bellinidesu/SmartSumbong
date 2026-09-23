@@ -127,7 +127,7 @@ class _TicketCard extends StatelessWidget {
                     Text(
                       trackingId,
                       style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Urbanist',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                         color: context.colors.bg,

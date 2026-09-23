@@ -143,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 s.settingsLogOut,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w700,
                   fontSize: 22,
                   color: dialogContext.colors.bg,
@@ -236,7 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Text(
                     _initials(_name),
                     style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
                       color: context.colors.bg,
@@ -251,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         _name ?? '\u2014',
                         style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                           color: context.colors.navy,
@@ -280,7 +280,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Text(
                             s.settingsEditProfile,
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Urbanist',
                               fontWeight: FontWeight.w700,
                               fontSize: 11,
                               color: Colors.white,

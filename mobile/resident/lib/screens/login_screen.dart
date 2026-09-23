@@ -309,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(50),
                           ),
                           textStyle: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
@@ -428,7 +428,7 @@ class _OnNavyField extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w600,
               fontSize: 16,
               color: context.colors.bg,

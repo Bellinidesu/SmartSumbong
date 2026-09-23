@@ -152,7 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 s.settingsLogOut,
                 style: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w700,
                   fontSize: 22,
                   // Figma (LOG OUT, 2260:2478): the dialog title is the
@@ -295,7 +295,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : Text(
                           _initials(_name),
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 24,
                             color: context.colors.bg,
@@ -310,7 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         _name ?? '\u2014',
                         style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                           color: context.colors.navy,
@@ -337,7 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Text(
                             s.settingsEditProfile,
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Urbanist',
                               fontWeight: FontWeight.w700,
                               fontSize: 11,
                               color: Colors.white,
@@ -597,7 +597,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               s.deleteAccountConfirmTitle,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 20,
                 color: red,

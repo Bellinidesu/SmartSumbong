@@ -451,7 +451,7 @@ class _ActionCard extends StatelessWidget {
             // against the near-white card colour dark mode gives
             // context.colors.navy.
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 15,
               height: 1.15,
@@ -487,7 +487,7 @@ class _ActionCard extends StatelessWidget {
                     child: Text(
                       a.label,
                       style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Urbanist',
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                         color: context.colors.navy,

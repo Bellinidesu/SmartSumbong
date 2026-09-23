@@ -712,7 +712,7 @@ class _SubmittedStepRow extends StatelessWidget {
           Text(
             s.reportViewSubmittedStep,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.navy,
@@ -778,7 +778,7 @@ class _TimelineRow extends StatelessWidget {
           Text(
             s.reportStatusLabel(status.wire),
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.navy,
@@ -839,7 +839,7 @@ class _UpcomingStepRow extends StatelessWidget {
           Text(
             s.reportStatusLabel(wire),
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.muted,
@@ -893,7 +893,7 @@ class _TimelineToggle extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
                 color: context.colors.navy,
@@ -1015,7 +1015,7 @@ class _ReportCard extends StatelessWidget {
                 child: Text.rich(
                   TextSpan(
                     style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       height: 1.25,
@@ -1535,7 +1535,7 @@ class _StatusNoteBubbleState extends State<_StatusNoteBubble> {
                     children: [
                       Text(s.reportViewViewPhoto,
                           style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                             color: Colors.white,
@@ -1622,7 +1622,7 @@ class _ActionDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 18,
                 color: _orange,
@@ -1690,7 +1690,7 @@ class _DialogPill extends StatelessWidget {
               padding: EdgeInsets.zero,
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -1706,7 +1706,7 @@ class _DialogPill extends StatelessWidget {
               padding: EdgeInsets.zero,
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -1797,7 +1797,7 @@ class _FeedbackCard extends StatelessWidget {
           given == null ? s.reportViewHowDidWeDo : s.reportViewYourFeedback,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Urbanist',
             fontWeight: FontWeight.w700,
             fontSize: 14,
             color: context.colors.navy,
@@ -1939,7 +1939,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
           Text(
             s.reportViewHowDidWeDo,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 20,
               color: context.colors.navy,

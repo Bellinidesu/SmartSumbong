@@ -203,7 +203,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             s.reportsEmptyTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 15,
               color: context.colors.navy,
@@ -337,7 +337,7 @@ class _AssignedCard extends StatelessWidget {
                         Text(
                           '${row.trackingId} - ${row.subject}',
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 12.5,
                             color: context.colors.navy,
@@ -421,7 +421,7 @@ class _AssignedCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           textStyle: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w600,
                             fontSize: 11,
                           ),

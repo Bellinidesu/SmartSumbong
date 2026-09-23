@@ -115,7 +115,7 @@ class _NavItem extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontSize: 11,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   color: context.colors.bg.withValues(alpha: active ? 1 : 0.75),

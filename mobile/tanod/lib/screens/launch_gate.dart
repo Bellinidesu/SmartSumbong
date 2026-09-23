@@ -222,7 +222,7 @@ class _LaunchGateState extends State<LaunchGate> {
               const Text(
                 'SmartSumbong',
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w800,
                   fontSize: 30,
                   color: _fixedBg,
@@ -232,7 +232,7 @@ class _LaunchGateState extends State<LaunchGate> {
               const Text(
                 'Tanod',
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w700,
                   fontSize: 20,
                   color: Tokens.orange,

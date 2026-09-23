@@ -669,7 +669,7 @@ class _DispatchRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     textStyle: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w600,
                       fontSize: 11,
                     ),
@@ -869,7 +869,7 @@ class _Tab extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Urbanist',
             fontSize: 12,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
             color: colour.withValues(alpha: active ? 1 : 0.55),
@@ -935,7 +935,7 @@ class _ActivityRowState extends State<_ActivityRow> {
                       Text(
                         entry.who,
                         style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                           color: colour,
@@ -1092,7 +1092,7 @@ class _Card extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                   color: context.colors.navy,

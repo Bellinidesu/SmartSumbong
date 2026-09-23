@@ -242,7 +242,7 @@ class _MapScreenState extends State<MapScreen> {
               '(${p.trackingId} - ${context.s.reportStatusLabel(p.status.wire)}) '
               '${p.subject}',
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
                 height: 1.2,
@@ -467,7 +467,7 @@ class _MapCard extends StatelessWidget {
                 Text(
                   showing ? s.mapReportsSpotted : s.mapWantToSeeReports,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 20,
                     color: context.colors.navy,

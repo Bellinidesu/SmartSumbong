@@ -80,7 +80,7 @@ class ReportCategoryScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(50),
                         ),
                         textStyle: const TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                         ),
@@ -132,7 +132,7 @@ class _CategoryCard extends StatelessWidget {
           Text(
             category.label,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 14,
               color: context.colors.bg,
@@ -183,7 +183,7 @@ class _OthersCard extends StatelessWidget {
           Text(
             context.s.reportCategoryOthersHeading,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 14,
               color: context.colors.bg,

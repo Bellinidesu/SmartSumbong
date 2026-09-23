@@ -56,7 +56,7 @@ class RolePickerScreen extends StatelessWidget {
                   Text(
                     s.roleTitle,
                     style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
                       color: context.colors.navy,

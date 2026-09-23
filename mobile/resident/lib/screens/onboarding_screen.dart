@@ -224,7 +224,7 @@ class _PageView extends StatelessWidget {
             page.title(s),
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 22,
               height: 1.2,
@@ -304,7 +304,7 @@ class _PillButton extends StatelessWidget {
                   borderRadius: BorderRadius.circular(Tokens.pill),
                 ),
                 textStyle: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -323,7 +323,7 @@ class _PillButton extends StatelessWidget {
                   borderRadius: BorderRadius.circular(Tokens.pill),
                 ),
                 textStyle: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),

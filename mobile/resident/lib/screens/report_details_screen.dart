@@ -732,7 +732,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     Text(
                       s.reportDetailsAnonymousQuestion,
                       style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Urbanist',
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                         height: 1.25,
@@ -798,7 +798,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                             borderRadius: BorderRadius.circular(50),
                           ),
                           textStyle: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
@@ -842,7 +842,7 @@ class _StepLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         context.s.reportDetailsStepLabel(number, text),
         style: TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Urbanist',
           fontWeight: FontWeight.w700,
           fontSize: 14,
           color: context.colors.navy,
@@ -980,7 +980,7 @@ class _LocationStatus extends StatelessWidget {
                   borderRadius: BorderRadius.circular(50),
                 ),
                 textStyle: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Urbanist',
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -1215,7 +1215,7 @@ class _PhotoStrip extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(context.s.reportDetailsAttachMedia,
                         style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                           color: context.colors.navy,
@@ -1298,7 +1298,7 @@ class _VideoAttach extends StatelessWidget {
               const SizedBox(height: 6),
               Text(context.s.reportDetailsAttachVideoOptional,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                     color: context.colors.navy,

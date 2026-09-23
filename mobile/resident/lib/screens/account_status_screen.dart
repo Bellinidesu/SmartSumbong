@@ -149,7 +149,7 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                         Text(
                           s.accountStatusReasonGiven,
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                             color: context.colors.navy,

@@ -62,7 +62,7 @@ class TermsPrivacyScreen extends StatelessWidget {
                       Text(
                         heading,
                         style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           color: c.navy,

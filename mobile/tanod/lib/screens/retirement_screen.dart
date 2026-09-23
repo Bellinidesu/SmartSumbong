@@ -232,7 +232,7 @@ class _RetirementScreenState extends State<RetirementScreen> {
             Text(
               s.retirementIntroTitle,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
                 color: c.navy,
@@ -284,7 +284,7 @@ class _InfoCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     color: c.navy,

@@ -301,7 +301,7 @@ class _LaunchGateState extends State<LaunchGate> {
                               'Sumbong na may resibo,\naksyong garantisado!',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Urbanist',
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,
                                 height: 1.15,
@@ -323,7 +323,7 @@ class _LaunchGateState extends State<LaunchGate> {
                         Text(
                           s.launchGateSigningIn,
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
                             color: context.colors.navy,

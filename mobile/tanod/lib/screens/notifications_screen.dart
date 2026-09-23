@@ -203,7 +203,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             s.notificationsEmptyTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 18,
               color: context.colors.navy,

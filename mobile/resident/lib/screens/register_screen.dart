@@ -1058,7 +1058,7 @@ class _ReviewRow extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
                 color: context.colors.muted,
@@ -1087,7 +1087,7 @@ class _ReviewPhoto extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
               fontSize: 11,
               color: context.colors.muted,

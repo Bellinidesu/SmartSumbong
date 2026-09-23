@@ -211,7 +211,7 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) => RichText(
         text: TextSpan(
           style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Urbanist',
             fontWeight: FontWeight.w700,
             fontSize: 14,
             color: context.colors.navy,

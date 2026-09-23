@@ -991,7 +991,7 @@ class _ReportCard extends StatelessWidget {
                           Text(
                             s.reportsTrackingLabel,
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Urbanist',
                               fontWeight: FontWeight.w700,
                               fontSize: 10,
                               letterSpacing: .5,
@@ -1003,7 +1003,7 @@ class _ReportCard extends StatelessWidget {
                         Text(
                           report.subject,
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
                             height: 1.1,
@@ -1235,7 +1235,7 @@ class _StatusPill extends StatelessWidget {
       child: Text(
         context.s.reportStatusLabel(status.wire),
         style: TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Urbanist',
           fontWeight: FontWeight.w700,
           fontSize: 10,
           color: tint,
@@ -1418,7 +1418,7 @@ class _MiniTimelineRow extends StatelessWidget {
                             ? s.reportStatusLabel(_wire!)
                             : s.reportStatusLabel(status!.wire),
                     style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                       color: isUpcoming ? context.colors.muted : context.colors.navy,
@@ -1506,7 +1506,7 @@ class _CardMenu extends StatelessWidget {
             const SizedBox(width: 8),
             Text(s.reportsMenuView,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                     color: context.colors.bg)),
@@ -1532,7 +1532,7 @@ class _CardMenu extends StatelessWidget {
               const SizedBox(width: 8),
               Text(s.reportsMenuReopen,
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                       color: context.colors.bg)),
@@ -1547,7 +1547,7 @@ class _CardMenu extends StatelessWidget {
               const SizedBox(width: 8),
               Text(s.reportsMenuAppeal,
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                       color: context.colors.bg)),
@@ -1598,7 +1598,7 @@ class _ActionDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
                 fontSize: 18,
                 color: _orange,
@@ -1666,7 +1666,7 @@ class _DialogPill extends StatelessWidget {
               padding: EdgeInsets.zero,
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -1682,7 +1682,7 @@ class _DialogPill extends StatelessWidget {
               padding: EdgeInsets.zero,
               shape: shape,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -1968,7 +1968,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                     s.reportsReopenHeader(r.trackingId,
                         s.reportStatusLabel(r.status.wire), r.subject),
                     style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                       height: 1.25,
@@ -2003,7 +2003,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                         Text(
                           s.reportsOriginalClosingRemarks,
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                             color: context.colors.navy,
@@ -2022,7 +2022,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
                         Text(
                           s.reportsDateClosed(_formatDate(s, r.closedAt!)),
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                             color: context.colors.navy,
@@ -2055,7 +2055,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
 
             Text(s.reportsReasonOfReopen,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     color: context.colors.navy)),
@@ -2091,7 +2091,7 @@ class _ReopenSheetState extends State<_ReopenSheet> {
 
             Text(s.reportsOptional,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     color: context.colors.navy)),
@@ -2251,7 +2251,7 @@ class _ReopenPhotoTile extends StatelessWidget {
               const SizedBox(height: 6),
               Text(context.s.reportsAttachMedia,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                     color: context.colors.navy,
@@ -2520,7 +2520,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                     s.reportsAppealHeader(r.trackingId,
                         s.reportStatusLabel(r.status.wire), r.subject),
                     style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                       height: 1.25,
@@ -2553,7 +2553,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                         Text(
                           s.reportsOriginalDenialReason,
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                             color: context.colors.navy,
@@ -2572,7 +2572,7 @@ class _AppealSheetState extends State<_AppealSheet> {
                         Text(
                           s.reportsDateDenied(_formatDate(s, widget.deniedAt!)),
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Urbanist',
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                             color: context.colors.navy,
@@ -2603,7 +2603,7 @@ class _AppealSheetState extends State<_AppealSheet> {
 
             Text(s.reportsReasonOfAppeal,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     color: context.colors.navy)),
@@ -2639,7 +2639,7 @@ class _AppealSheetState extends State<_AppealSheet> {
 
             Text(s.reportsOptional,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Urbanist',
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     color: context.colors.navy)),
