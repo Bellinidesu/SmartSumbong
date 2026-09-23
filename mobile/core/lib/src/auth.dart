@@ -317,6 +317,14 @@ class AuthService {
       // mistypes a few times and then gets it right is not still
       // carrying a near-miss count into their next session.
       await _clearFailure(mobile);
+    } on AuthRetryableFetchException {
+      // gotrue's wrapper for "the request never got an answer" (no
+      // signal, DNS failure, a 5xx). It is an AuthException, so without
+      // this it reached the catch-all below and the login screen showed
+      // "Could not sign you in. (ClientException with SocketException:
+      // Failed host lookup: '<project>.supabase.co' ...)". Rethrown as-is,
+      // it lands in each login screen's own offline message instead.
+      rethrow;
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
 
@@ -479,12 +487,29 @@ class AuthService {
     try {
       await _client.auth.signInWithPassword(email: email, password: password);
       return true;
+    } on AuthRetryableFetchException {
+      // Offline is not a wrong password. Both callers already catch this
+      // and say the check could not be made; returning false told a
+      // tanod with no signal that their password was wrong.
+      rethrow;
     } on AuthException {
       return false;
     }
   }
 
-  Future<void> signOut() => _client.auth.signOut();
+  /// gotrue removes the local session and fires signedOut *before* it
+  /// calls the server, then rethrows if that call fails. With no signal
+  /// every Log Out button therefore spun forever on a device that was
+  /// already signed out. The server-side refresh token simply lapses.
+  Future<void> signOut() async {
+    try {
+      await _client.auth.signOut();
+    } on AuthException {
+      // Local sign-out already happened; see above.
+    } catch (_) {
+      // Same, for a failure gotrue did not wrap.
+    }
+  }
 
   /// One row, four columns, for the Verification Pending screen.
   ///
