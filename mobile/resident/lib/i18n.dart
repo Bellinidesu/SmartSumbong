@@ -247,6 +247,14 @@ class Strings {
 
   // ---------- settings ----------
   String get settingsTitle => _t('Settings', 'Mga Setting');
+
+  // Bottom navigation tabs (resident_nav_bar.dart). Were hard-coded
+  // English, so they stayed English in Tagalog mode.
+  String get navHome => _t('Home', 'Tahanan');
+  String get navEmergency => _t('Emergency', 'Emergency');
+  String get navReports => _t('Reports', 'Mga Ulat');
+  String get navMap => _t('Map', 'Mapa');
+  String get navSettings => _t('Settings', 'Mga Setting');
   String get settingsPersonalInfo =>
       _t('Personal Information', 'Personal na Impormasyon');
   String get settingsEditProfile => _t('Edit Profile', 'I-edit ang Profile');
