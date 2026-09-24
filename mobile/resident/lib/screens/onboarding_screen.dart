@@ -25,36 +25,61 @@ class _Page {
   const _Page({
     required this.title,
     required this.body,
-    this.image,
+    required this.image,
+    required this.artLeft,
+    required this.artTop,
+    required this.artSize,
     this.wordmark = false,
   });
 
   final String Function(Strings s) title;
   final String Function(Strings s) body;
-  final String? image;
+  final String image;
 
-  /// The first page leads with the logo rather than an illustration.
+  /// Where the frame puts the (square) art, in 412x917 frame units.
+  final double artLeft;
+  final double artTop;
+  final double artSize;
+
+  /// The first page leads with the logo rather than an illustration, and
+  /// its two-line title sits higher (518 rather than 546).
   final bool wordmark;
 }
 
 const _pages = <_Page>[
+  // Art boxes from the frames. Page 1's 403x337 FILL rectangle at y=192
+  // shows the square logo art 403 wide, centred, so its square starts 33
+  // higher.
   _Page(
     wordmark: true,
+    image: 'assets/images/onboarding-logo.png',
+    artLeft: 5,
+    artTop: 159,
+    artSize: 403,
     title: _title1,
     body: _body1,
   ),
   _Page(
     image: 'assets/images/OB2.png',
+    artLeft: 10,
+    artTop: 164,
+    artSize: 391,
     title: _title2,
     body: _body2,
   ),
   _Page(
     image: 'assets/images/OB3.png',
+    artLeft: 39,
+    artTop: 191,
+    artSize: 347,
     title: _title3,
     body: _body3,
   ),
   _Page(
     image: 'assets/images/OB4.png',
+    artLeft: 7,
+    artTop: 158,
+    artSize: 397,
     title: _title4,
     body: _body4,
   ),
@@ -115,9 +140,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  // Figma ONBOARDING -1 to - 4, laid out in the frames' 412x917
+  // coordinates scaled to the screen: art at each frame's own box, the
+  // 30/800 title at 546 (518 for the two-line welcome), the 16/500 body
+  // under it, the 13px dots grouped with the text as in the frames (so
+  // they land at 663 in English and move down, not into the copy, when a
+  // translation runs longer), and 114x44 Skip / Next at 769, 46 in from
+  // each side. Skip is absent on the first page, as in its frame.
   @override
   Widget build(BuildContext context) {
     final last = _index == _pages.length - 1;
+    final size = MediaQuery.sizeOf(context);
+    final g = _Grid(size);
 
     return Scaffold(
       body: Stack(
@@ -135,45 +169,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
 
-          SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: PageView.builder(
-                    controller: _controller,
-                    itemCount: _pages.length,
-                    onPageChanged: (i) => setState(() => _index = i),
-                    itemBuilder: (_, i) => _PageView(page: _pages[i]),
-                  ),
-                ),
+          PageView.builder(
+            controller: _controller,
+            itemCount: _pages.length,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (_, i) => _PageView(
+              page: _pages[i],
+              grid: g,
+              index: i,
+              count: _pages.length,
+            ),
+          ),
 
-                _Dots(count: _pages.length, active: _index),
-                const SizedBox(height: 28),
-
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(36, 0, 36, 32),
-                  child: Row(
-                    mainAxisAlignment: _index == 0
-                        ? MainAxisAlignment.end
-                        : MainAxisAlignment.spaceBetween,
-                    children: [
-                      // The first page has no Skip in the design: there
-                      // is nothing yet to skip past.
-                      if (_index > 0)
-                        _PillButton(
-                          label: context.s.onboardSkip,
-                          filled: false,
-                          onTap: _finish,
-                        ),
-                      _PillButton(
-                        label: last ? context.s.onboardStart : context.s.onboardNext,
-                        filled: true,
-                        onTap: _next,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          // The first page has no Skip in the design: there is nothing
+          // yet to skip past.
+          if (_index > 0)
+            Positioned(
+              left: g.x(46),
+              top: g.y(769),
+              child: _PillButton(
+                label: context.s.onboardSkip,
+                filled: false,
+                onTap: _finish,
+              ),
+            ),
+          Positioned(
+            right: g.x(46),
+            top: g.y(769),
+            child: _PillButton(
+              label: last ? context.s.onboardStart : context.s.onboardNext,
+              filled: true,
+              onTap: _next,
             ),
           ),
         ],
@@ -182,73 +208,106 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
+/// Maps the frames' 412x917 coordinates onto this screen.
+class _Grid {
+  const _Grid(this.size);
+
+  final Size size;
+
+  double x(double v) => v * size.width / 412;
+  double y(double v) => v * size.height / 917;
+
+  /// Square art keeps its shape: the smaller of the two scales.
+  double side(double v) =>
+      v * (size.width / 412 < size.height / 917
+          ? size.width / 412
+          : size.height / 917);
+}
+
 class _PageView extends StatelessWidget {
-  const _PageView({required this.page});
+  const _PageView({
+    required this.page,
+    required this.grid,
+    required this.index,
+    required this.count,
+  });
 
   final _Page page;
+  final _Grid grid;
+  final int index;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 36),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 5,
-            child: Center(
-              child: page.wordmark
-                  ? FractionallySizedBox(
-                      widthFactor: 0.78,
-                      child: Image.asset(
-                        'assets/images/logo-wordmark.png',
-                        semanticLabel: 'SmartSumbong',
-                        filterQuality: FilterQuality.medium,
-                      ),
-                    )
-                  : Image.asset(
-                      page.image!,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium,
-                      // The illustrations carry no information the copy
-                      // below does not already state, so a screen reader
-                      // should skip straight to the heading.
-                      excludeFromSemantics: true,
-                    ),
-            ),
-          ),
-          const SizedBox(height: 8),
+    final g = grid;
+    final art = g.side(page.artSize);
 
-          Text(
-            page.title(s),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 22,
-              height: 1.2,
-              color: context.colors.navy,
-            ),
+    return Stack(
+      children: [
+        Positioned(
+          // Centred on the frame's box, so a narrower scale stays centred.
+          left: g.x(page.artLeft + page.artSize / 2) - art / 2,
+          top: g.y(page.artTop + page.artSize / 2) - art / 2,
+          width: art,
+          height: art,
+          child: page.wordmark
+              ? Image.asset(
+                  page.image,
+                  semanticLabel: 'SmartSumbong',
+                  filterQuality: FilterQuality.medium,
+                )
+              : Image.asset(
+                  page.image,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  // The illustrations carry no information the copy
+                  // below does not already state, so a screen reader
+                  // should skip straight to the heading.
+                  excludeFromSemantics: true,
+                ),
+        ),
+        Positioned(
+          left: g.x(45),
+          right: g.x(45),
+          top: g.y(page.wordmark ? 518 : 546),
+          child: Column(
+            children: [
+              Text(
+                page.title(s),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 30,
+                  height: page.wordmark ? 1.0 : 38 / 30,
+                  color: context.colors.navy,
+                ),
+              ),
+              SizedBox(height: page.wordmark ? 6 : 5),
+              Text(
+                page.body(s),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  height: 20 / 16,
+                  color: context.colors.navy,
+                ),
+              ),
+              SizedBox(height: page.wordmark ? 20 : 32),
+              _Dots(count: count, active: index),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            page.body(s),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.4,
-              color: context.colors.navy,
-            ),
-          ),
-
-          const Spacer(flex: 2),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
+/// The frame's dots: 13 across, 13 apart, navy up to the current page and
+/// #BFBFBF after it.
 class _Dots extends StatelessWidget {
   const _Dots({required this.count, required this.active});
 
@@ -263,12 +322,14 @@ class _Dots extends StatelessWidget {
         for (var i = 0; i < count; i++)
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: 8,
-            height: 8,
+            margin: const EdgeInsets.symmetric(horizontal: 6.5),
+            width: 13,
+            height: 13,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: i <= active ? context.colors.navy : context.colors.divider,
+              color: i <= active
+                  ? context.colors.navy
+                  : const Color(0xFFBFBFBF),
             ),
           ),
       ],
@@ -276,6 +337,8 @@ class _Dots extends StatelessWidget {
   }
 }
 
+/// The frames' 114x44 pills: Next navy with a 1px #F3F3F3 edge, Skip
+/// #FBFBFB with a navy edge, both 16/700 with the y5 / blur 5 shadow.
 class _PillButton extends StatelessWidget {
   const _PillButton({
     required this.label,
@@ -289,25 +352,40 @@ class _PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 108,
-      height: 38,
+    const size = Size(114, 44);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Tokens.pill),
+    );
+    const text = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Tokens.pill),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4D121212),
+            blurRadius: 3.5,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
       child: filled
           ? FilledButton(
               onPressed: onTap,
               style: FilledButton.styleFrom(
                 backgroundColor: context.colors.navy,
                 foregroundColor: context.colors.bg,
-                minimumSize: const Size(108, 38),
+                fixedSize: size,
+                minimumSize: size,
                 padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Tokens.pill),
-                ),
-                textStyle: const TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+                elevation: 0,
+                side: BorderSide(color: context.colors.bg),
+                shape: shape,
+                textStyle: text,
               ),
               child: Text(label),
             )
@@ -317,16 +395,11 @@ class _PillButton extends StatelessWidget {
                 backgroundColor: context.colors.field,
                 foregroundColor: context.colors.navy,
                 side: BorderSide(color: context.colors.navy),
-                minimumSize: const Size(108, 38),
+                fixedSize: size,
+                minimumSize: size,
                 padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Tokens.pill),
-                ),
-                textStyle: const TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+                shape: shape,
+                textStyle: text,
               ),
               child: Text(label),
             ),
