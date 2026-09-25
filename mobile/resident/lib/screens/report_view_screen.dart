@@ -228,11 +228,28 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // entry, then older ones, ending on the OLDEST real entry at the
       // very bottom -- exactly backwards. Explicit from here on so this
       // can't silently regress if a future edit reorders the call.
-      final logs = await client
+      // Newest first, then flipped: the API returns at most 1000 rows, and
+      // a report that waited long for a unit collects a dispatch-retry row
+      // every two minutes — oldest-first, those crowded the resolution
+      // itself out of the response. Consecutive identical rows (the same
+      // retry, again) are then shown once.
+      final newestFirst = await client
           .from('status_logs')
           .select('id, old_status, new_status, remark, created_at')
           .eq('report_id', widget.reportId)
-          .order('created_at', ascending: true);
+          .order('created_at', ascending: false)
+          .limit(300);
+      final logs = <Map<String, dynamic>>[];
+      for (final e in newestFirst.reversed) {
+        final prev = logs.isEmpty ? null : logs.last;
+        if (prev != null &&
+            prev['new_status'] == e['new_status'] &&
+            prev['old_status'] == e['old_status'] &&
+            (prev['remark'] ?? '') == (e['remark'] ?? '')) {
+          continue;
+        }
+        logs.add(e);
+      }
 
       if (!mounted) return;
       setState(() {
@@ -360,7 +377,42 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final showsNote = status != ReportStatus.pendingReview &&
         status != ReportStatus.validated &&
         status != ReportStatus.cancelled;
-    final latestEntry = _timeline.isNotEmpty ? _timeline.last : null;
+    // The note is the entry that explains the current status, not simply
+    // the newest row: a completed report's resolution note, a rejected
+    // one's denial. Newer system rows can follow those — dispatch retries
+    // ("No tanod available…"), and before 0062 the SLA sweep — and used to
+    // replace the tanod's note in this box. Same choice as the Reports
+    // list's resolution note.
+    final wanted = switch (status) {
+      ReportStatus.resolved ||
+      ReportStatus.closed ||
+      ReportStatus.archived =>
+        const {'resolved', 'closed', 'archived'},
+      ReportStatus.rejected => const {'rejected'},
+      _ => null,
+    };
+    Map<String, dynamic>? latestEntry =
+        _timeline.isNotEmpty ? _timeline.last : null;
+    if (wanted != null) {
+      // Newest matching entry that says something (a close with no
+      // remark shouldn't hide the tanod's note before it), else the
+      // newest matching one at all.
+      Map<String, dynamic>? bare;
+      latestEntry = null;
+      for (final e in _timeline.reversed) {
+        final remark = ((e['remark'] as String?) ?? '').trim();
+        if (!wanted.contains(e['new_status']) ||
+            remark.startsWith('SLA breach')) {
+          continue;
+        }
+        if (remark.isNotEmpty) {
+          latestEntry = e;
+          break;
+        }
+        bare ??= e;
+      }
+      latestEntry ??= bare;
+    }
 
     final createdAt = DateTime.tryParse(r['created_at'] as String? ?? '');
 
