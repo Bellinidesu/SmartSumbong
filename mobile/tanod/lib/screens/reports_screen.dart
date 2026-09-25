@@ -22,6 +22,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import '../widgets/tanod_nav_bar.dart';
 import 'dispatch_order.dart';
 import 'tickets_screen.dart';
@@ -123,37 +124,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return Scaffold(
       bottomNavigationBar: const TanodNavBar(current: TanodTab.reports),
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.asset(
-                'assets/images/texture.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
-            ),
-          ),
+          const FigmaTexture(),
+          // Figma REPORTS - TANOD: the title 28/800 centred at y=55, a
+          // 311-wide 1px rule at 103, the first card at 121.
           SafeArea(
             bottom: false,
             child: Column(
               children: [
-                const SizedBox(height: 14),
-                Text(s.reportsTitle,
-                    style: t.headlineLarge?.copyWith(fontSize: 20)),
+                SizedBox(height: figmaTop(context, 55)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: FigmaTitle(s.reportsTitle),
+                ),
                 Container(
-                  width: 150,
-                  height: 2,
-                  margin: const EdgeInsets.only(top: 6),
+                  width: 311,
+                  height: 1,
+                  margin: const EdgeInsets.only(top: 4),
                   color: context.colors.navy,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 18),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _load,
@@ -220,9 +215,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
+      padding: const EdgeInsets.fromLTRB(30, 0, 30, 24),
       itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => const SizedBox(height: 11),
       itemBuilder: (_, i) => _AssignedCard(
         row: rows[i],
         open: _openId == rows[i].dispatchId,
@@ -310,128 +305,140 @@ class _AssignedCard extends StatelessWidget {
   final VoidCallback onToggle;
   final Future<void> Function() onUpdated;
 
-  static const _red = Color(0xFFFF4949);
-  static const _green = Color(0xFF1FA84E);
+  static const _green = Color(0xFF058F00);
 
+  // Figma "Group 333/335": 352 wide, #F3F3F3, 1px ink edge, radius 20; the
+  // heading 14/600 at 30 in and 22 down, "Deadline:" in red, the 13x7
+  // chevron 26 from the right. Open, the body is 14/500 at 35 in, then
+  // the three links (22px icons, 14/700) and the 162x30 green pill.
   @override
   Widget build(BuildContext context) {
+    final ink = context.colors.navy;
+    final body = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+      height: 15 / 14,
+      color: ink,
+    );
     return Container(
       decoration: BoxDecoration(
         color: context.colors.bg,
-        border: Border.all(color: context.colors.navy, width: 1.5),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ink),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
             onTap: onToggle,
+            borderRadius: BorderRadius.circular(20),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+              padding: const EdgeInsets.fromLTRB(30, 22, 24, 22),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${row.trackingId} - ${row.subject}',
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12.5,
-                            color: context.colors.navy,
+                    child: Text.rich(
+                      TextSpan(
+                        style: body.copyWith(fontWeight: FontWeight.w600),
+                        children: [
+                          TextSpan(text: '${row.trackingId} - ${row.subject}\n'),
+                          TextSpan(
+                            text: context.s.reportsDeadlineLabel,
+                            style: const TextStyle(color: kFigmaRed),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 10),
-                            children: [
-                              TextSpan(
-                                text: context.s.reportsDeadlineLabel,
-                                style: const TextStyle(
-                                    color: _red,
-                                    fontWeight: FontWeight.w700),
-                              ),
-                              TextSpan(
-                                text: _date(context, row.dueAt),
-                                style: TextStyle(color: context.colors.navy),
-                              ),
-                            ],
+                          TextSpan(
+                            text: _date(context, row.dueAt),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: kFigmaRed,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  Icon(open ? Icons.expand_less : Icons.expand_more,
-                      color: context.colors.navy),
+                  const SizedBox(width: 8),
+                  Icon(
+                    open
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 22,
+                    color: ink,
+                  ),
                 ],
               ),
             ),
           ),
 
-          if (open) ...[
-            Divider(height: 1, color: context.colors.divider),
+          if (open)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              padding: const EdgeInsets.fromLTRB(35, 0, 28, 17),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _Line(
                       label: context.s.reportsUserLabel,
                       value: context.s.reportsFilerAnonymous),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 15),
                   _Line(
                     label: context.s.reportsDescriptionLabel,
                     value: '\u201C${row.description}\u201D',
                   ),
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 14),
                   _LinkRow(
-                    icon: Icons.place_outlined,
+                    icon: Icons.location_on_outlined,
                     label: context.s.reportsViewMap,
                     onTap: () => _open(context, target: DispatchTarget.map),
                   ),
                   _LinkRow(
-                    icon: Icons.image_outlined,
+                    icon: Icons.photo_camera_outlined,
                     label: context.s.reportsViewMedia,
                     onTap: () => _open(context, target: DispatchTarget.media),
                   ),
                   _LinkRow(
-                    icon: Icons.info_outline,
+                    icon: Icons.my_location_rounded,
                     label: context.s.reportsViewInstructions,
                     onTap: () =>
                         _open(context, target: DispatchTarget.instructions),
                   ),
                   const SizedBox(height: 10),
-
                   Align(
                     alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      height: 30,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(50)),
+                        boxShadow: kFigmaShadow,
+                      ),
                       child: FilledButton(
                         onPressed: () => _open(context),
                         style: FilledButton.styleFrom(
                           backgroundColor: _green,
-                          foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 14),
+                          foregroundColor: const Color(0xFFF3F3F3),
+                          minimumSize: const Size(162, 30),
+                          maximumSize: const Size(260, 30),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          elevation: 0,
+                          side: const BorderSide(color: Color(0xFFF3F3F3)),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(50),
                           ),
                           textStyle: const TextStyle(
                             fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(context.s.reportsSubmitUpdate),
+                            Flexible(
+                              child: Text(context.s.reportsSubmitUpdate,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.chevron_right, size: 14),
+                            const Icon(Icons.chevron_right_rounded, size: 18),
                           ],
                         ),
                       ),
@@ -440,7 +447,6 @@ class _AssignedCard extends StatelessWidget {
                 ],
               ),
             ),
-          ],
         ],
       ),
     );
@@ -478,10 +484,15 @@ class _Line extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => RichText(
-        text: TextSpan(
+  Widget build(BuildContext context) => Text.rich(
+        TextSpan(
           style: TextStyle(
-              fontSize: 11, height: 1.4, color: context.colors.navy),
+            fontFamily: 'Urbanist',
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            height: 15 / 14,
+            color: context.colors.navy,
+          ),
           children: [
             TextSpan(
                 text: label,
@@ -492,6 +503,8 @@ class _Line extends StatelessWidget {
       );
 }
 
+/// The frame's link row: a 22px icon, the label 14/700 underlined 32 to
+/// its right; rows 46 apart.
 class _LinkRow extends StatelessWidget {
   const _LinkRow({
     required this.icon,
@@ -505,21 +518,27 @@ class _LinkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ink = context.colors.navy;
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: context.colors.navy),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.5,
-                color: context.colors.navy,
-                decoration: TextDecoration.underline,
-                decorationColor: context.colors.navy,
+            Icon(icon, size: 22, color: ink),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: ink,
+                  decoration: TextDecoration.underline,
+                  decorationColor: ink,
+                ),
               ),
             ),
           ],
