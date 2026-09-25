@@ -63,6 +63,7 @@ import '../models/complaint_category.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
 import '../widgets/resident_nav_bar.dart';
+import 'add_details_screen.dart';
 
 /// Mirrors `public.report_status` in 0001, plus `cancelled` from 0023.
 enum ReportStatus {
@@ -337,10 +338,53 @@ class _ReportsScreenState extends State<ReportsScreen> {
             for (final r in rows) ReportSummary.fromRow(r),
           ]);
       await _loadResolutionNotes();
+      await _loadDetailRequests();
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = context.s.reportsLoadError);
     }
+  }
+
+  /// Open requests for more details (0065), by report id — one query
+  /// for the whole list, like _resolutionNotes. A report with one gets
+  /// "Add details" in its menu.
+  Map<String, ({String id, String message})> _detailRequests = const {};
+
+  Future<void> _loadDetailRequests() async {
+    try {
+      final rows = await Supabase.instance.client
+          .from('detail_requests')
+          .select('id, report_id, message')
+          .isFilter('responded_at', null);
+      if (!mounted) return;
+      setState(() => _detailRequests = {
+            for (final q in rows)
+              q['report_id'] as String: (
+                id: q['id'] as String,
+                message: q['message'] as String? ?? '',
+              ),
+          });
+    } catch (_) {
+      // The list still works; only the menu item is missing.
+    }
+  }
+
+  Future<void> _addDetails(ReportSummary r) async {
+    final q = _detailRequests[r.id];
+    if (q == null) return;
+    final sent = await AddDetailsScreen.open(
+      context,
+      AddDetailsScreen(
+        requestId: q.id,
+        trackingId: r.trackingId,
+        subject: r.subject,
+        statusLabel: context.s.reportStatusLabel(r.status.wire),
+        createdAt: r.createdAt,
+        question: q.message,
+        uploader: widget.uploader,
+      ),
+    );
+    if (sent && mounted) _load();
   }
 
   /// Batch fetch for _resolutionNotes -- one status_logs query covering
@@ -775,6 +819,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
               r.status.canRequestReopen ? () => _requestReopen(r) : null,
           onAppeal:
               r.status.canRequestAppeal ? () => _requestAppeal(r) : null,
+          onAddDetails: _detailRequests.containsKey(r.id)
+              ? () => _addDetails(r)
+              : null,
         );
       },
     );
@@ -879,6 +926,7 @@ class _ReportCard extends StatelessWidget {
     this.onCancel,
     this.onReopen,
     this.onAppeal,
+    this.onAddDetails,
   });
 
   final ReportSummary report;
@@ -902,6 +950,7 @@ class _ReportCard extends StatelessWidget {
   final VoidCallback? onCancel;
   final VoidCallback? onReopen;
   final VoidCallback? onAppeal;
+  final VoidCallback? onAddDetails;
 
   // Figma REPORTS card: fixed navy and #F3F3F3 text, like View Report's
   // own card (not theme-adaptive; see report_view_screen.dart's ROUND 16
@@ -970,6 +1019,7 @@ class _ReportCard extends StatelessWidget {
                   onCancel: onCancel,
                   onReopen: onReopen,
                   onAppeal: onAppeal,
+                  onAddDetails: onAddDetails,
                 ),
               ],
             ),
@@ -1116,12 +1166,16 @@ class _CardMenu extends StatelessWidget {
     this.onCancel,
     this.onReopen,
     this.onAppeal,
+    this.onAddDetails,
   });
 
   final VoidCallback onView;
   final VoidCallback? onCancel;
   final VoidCallback? onReopen;
   final VoidCallback? onAppeal;
+
+  /// Present only while the tanod is waiting on more details (0065).
+  final VoidCallback? onAddDetails;
 
   static const _orange = Color(0xFFFF9800);
   static const _ink = Color(0xFFF3F3F3);
@@ -1163,6 +1217,13 @@ class _CardMenu extends StatelessWidget {
           icon: const Icon(Icons.gavel_outlined, size: 12, color: _ink),
           bold: true,
         ),
+      if (onAddDetails != null)
+        (
+          value: 'details',
+          label: s.reportsMenuAddDetails,
+          icon: const Icon(Icons.add_comment_outlined, size: 12, color: _ink),
+          bold: true,
+        ),
     ];
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
@@ -1182,6 +1243,8 @@ class _CardMenu extends StatelessWidget {
             onReopen?.call();
           case 'appeal':
             onAppeal?.call();
+          case 'details':
+            onAddDetails?.call();
         }
       },
       itemBuilder: (_) => [
@@ -1555,44 +1618,13 @@ class _ReopenSheetState extends State<_ReopenSheet> {
   /// Gallery-only until 9 Sep 2026 — same gap as the other photo pickers
   /// in this app, fixed the same day (see report_details_screen.dart's
   /// _chooseSource for why offering the camera here is safe).
-  Future<ImageSource?> _chooseSource(BuildContext context) {
-    return showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading:
-                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
-              title: Text(context.s.reportsTakePhoto),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading:
-                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
-              title: Text(context.s.reportsChooseFromGallery),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<ImageSource?> _chooseSource(BuildContext context) =>
+      showFigmaSourceSheet(
+        context,
+        takeLabel: context.s.reportsTakePhoto,
+        galleryLabel: context.s.reportsChooseFromGallery,
+      );
+
 
   Future<void> _addPhoto() async {
     final source = await _chooseSource(context);

@@ -696,6 +696,48 @@ class Strings {
   // above it rather than inventing new phrasing for the same shape of
   // action.
   String get reportsMenuAppeal => _t('Appeal', 'Umapela');
+  String get reportsMenuAddDetails => _t('Add details', 'Magdagdag ng detalye');
+
+  // ---------- more details for the tanod (0065) ----------
+  String addDetailsHeader(String head) =>
+      _t('Add details:\n$head', 'Magdagdag ng detalye:\n$head');
+  String addDetailsDateSubmitted(String date) =>
+      _t('Date Submitted: $date', 'Petsa ng Pagsumite: $date');
+  String get addDetailsInstruction => _t(
+      'Please submit additional details or photos for further clarification '
+          'and evidence. We appreciate your help.',
+      'Magpadala ng karagdagang detalye o larawan para mas malinaw at may '
+          'ebidensya. Salamat sa iyong tulong.');
+  String get addDetailsQuestionLabel =>
+      _t('The tanod asked: ', 'Tanong ng tanod: ');
+  String get addDetailsHint => _t('Enter here...', 'Ilagay dito...');
+  String get addDetailsRequired => _t('Please add the details or a photo.',
+      'Maglagay ng detalye o larawan.');
+  String addDetailsSentTitle(String head) => _t(
+      '$head \u2014 your details were sent.',
+      '$head \u2014 naipadala na ang iyong mga detalye.');
+  String get addDetailsSentBody => _t(
+      'Thank you for letting us know. The tanod handling your report will '
+          'look at them.',
+      'Salamat sa pagpapaalam. Titingnan ito ng tanod na humahawak sa '
+          'iyong ulat.');
+  String get addDetailsFailed => _t(
+      'Could not send your details. Check your connection and try again.',
+      'Hindi maipadala ang iyong mga detalye. Suriin ang koneksyon at '
+          'subukan ulit.');
+  String get addDetailsAlreadyAnswered => _t(
+      'This request was already answered.',
+      'Nasagot na ang kahilingang ito.');
+  String get addDetailsNoLongerOpen => _t(
+      'This report is no longer being worked on.',
+      'Hindi na inaasikaso ang ulat na ito.');
+  String get addDetailsPhotoLimit => _t(
+      'This report already has the most photos allowed. Send the details '
+          'as text instead.',
+      'Umabot na sa pinakamaraming larawan ang ulat na ito. Ipadala na lang '
+          'ang detalye bilang teksto.');
+  String get reportViewDetailsNeeded => _t(
+      'The tanod needs more details', 'Kailangan ng tanod ng karagdagang detalye');
   String get reportsErrorOnlyRejectedAppeal => _t(
       'Only a rejected complaint can be appealed.',
       'Isang tinanggihang ulat lamang ang maaaring iapela.');

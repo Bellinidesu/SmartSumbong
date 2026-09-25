@@ -221,8 +221,10 @@ class SmartSumbongApp extends StatelessWidget {
         if (settings.name == '/report') {
           return MaterialPageRoute(
             settings: settings,
-            builder: (_) =>
-                ReportViewScreen(reportId: settings.arguments as String),
+            builder: (_) => ReportViewScreen(
+              reportId: settings.arguments as String,
+              uploader: uploader,
+            ),
           );
         }
         if (settings.name == '/submit-report/details') {

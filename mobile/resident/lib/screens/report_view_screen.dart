@@ -91,12 +91,16 @@ import '../i18n.dart';
 import '../location_lookup.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
+import 'add_details_screen.dart';
 import 'reports_screen.dart' show ReportStatus;
 
 class ReportViewScreen extends StatefulWidget {
-  const ReportViewScreen({super.key, required this.reportId});
+  const ReportViewScreen({super.key, required this.reportId, this.uploader});
 
   final String reportId;
+
+  /// For attaching a photo when answering a request for more details.
+  final MediaUploader? uploader;
 
   @override
   State<ReportViewScreen> createState() => _ReportViewScreenState();
@@ -108,6 +112,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   List<({String url, bool isVideo})> _proof = const [];
   List<Map<String, dynamic>> _timeline = const [];
   Map<String, dynamic>? _feedback;
+
+  /// An open request for more details from the tanod (0065), if any.
+  Map<String, dynamic>? _detailRequest;
   String? _error;
 
   /// Round 17 (30 Aug 2026): the full row-by-row timeline is back, per
@@ -272,6 +279,16 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         _timeline = List<Map<String, dynamic>>.from(logs);
         _feedback = fb;
       });
+      // Separate, so the report still shows if this fails.
+      try {
+        final q = await client
+            .from('detail_requests')
+            .select('id, message')
+            .eq('report_id', widget.reportId)
+            .isFilter('responded_at', null)
+            .maybeSingle();
+        if (mounted) setState(() => _detailRequest = q);
+      } catch (_) {}
       await _loadTimelineAuthors();
     } catch (_) {
       if (!mounted) return;
@@ -420,6 +437,29 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
       children: [
+        // The tanod is waiting on more details (0065): their question
+        // and the way to answer, above everything else.
+        if (_detailRequest != null && widget.uploader != null) ...[
+          _DetailsNeededCard(
+            question: _detailRequest!['message'] as String? ?? '',
+            onAnswer: () async {
+              final sent = await AddDetailsScreen.open(
+                context,
+                AddDetailsScreen(
+                  requestId: _detailRequest!['id'] as String,
+                  trackingId: r['tracking_id'] as String? ?? '',
+                  subject: r['subject'] as String? ?? '',
+                  statusLabel: context.s.reportStatusLabel(status.wire),
+                  createdAt: DateTime.tryParse(r['created_at'] as String? ?? ''),
+                  question: _detailRequest!['message'] as String? ?? '',
+                  uploader: widget.uploader!,
+                ),
+              );
+              if (sent && mounted) _load();
+            },
+          ),
+          const SizedBox(height: 14),
+        ],
         // Round 17 (30 Aug 2026): the top status field is gone. It has
         // no job on this screen -- there is only ever one report here,
         // nothing for a dropdown-styled control to switch between -- and
@@ -2301,6 +2341,60 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The tanod's request for more details (0065), shown at the top of the
+/// report: the design's orange-edged card with the question and a navy
+/// Add details pill.
+class _DetailsNeededCard extends StatelessWidget {
+  const _DetailsNeededCard({required this.question, required this.onAnswer});
+
+  final String question;
+  final VoidCallback onAnswer;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final s = context.s;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      decoration: BoxDecoration(
+        color: kFigmaOrange.withValues(alpha: 0.12),
+        border: Border.all(color: kFigmaOrange, width: 1.5),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            s.reportViewDetailsNeeded,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+              color: c.navy,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '“$question”',
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              height: 1.35,
+              color: c.navy,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FigmaPill(
+            onPressed: onAnswer,
+            child: Text(s.reportsMenuAddDetails),
+          ),
+        ],
       ),
     );
   }
