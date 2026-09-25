@@ -424,7 +424,10 @@ a.row-card:hover { border-color: var(--navy); box-shadow: var(--shadow); }
   height: 100%;
   object-fit: cover;
   object-position: center 40%;
-  opacity: .25;
+  /* 0.18, the frame's own fill opacity, over the frame's own crop of the
+     full-colour photo (branch B); the old file was already washed out,
+     so the crowd barely showed through. */
+  opacity: .18;
   pointer-events: none;
 }
 /* Placement measured off the frame (1440x1024, panel x468 w972):
