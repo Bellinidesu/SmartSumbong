@@ -759,55 +759,67 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // The frame's pair: 150x45 pills, 20 apart, centred.
+                    // The frame's pair: 150x45 pills, 20 apart, centred —
+                    // each shrinking to share the row on a phone narrower
+                    // than the frame (the page's 42 insets leave 308 of a
+                    // 392 screen, not the 320 two 150s need).
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _PillShadow(
-                          opacity: 0.30,
-                          child: OutlinedButton(
-                            onPressed: _busy
-                                ? null
-                                : () => Navigator.of(context).pop(),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: context.colors.navy,
-                              backgroundColor: context.colors.field,
-                              fixedSize: const Size(150, 45),
-                              padding: EdgeInsets.zero,
-                              side: BorderSide(color: context.colors.navy),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: 'Urbanist',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
+                        Flexible(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 150),
+                            child: _PillShadow(
+                              opacity: 0.30,
+                              child: OutlinedButton(
+                                onPressed: _busy
+                                    ? null
+                                    : () => Navigator.of(context).pop(),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: context.colors.navy,
+                                  backgroundColor: context.colors.field,
+                                  minimumSize: const Size.fromHeight(45),
+                                  padding: EdgeInsets.zero,
+                                  side: BorderSide(color: context.colors.navy),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontFamily: 'Urbanist',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                child: Text(s.reportDetailsBack),
                               ),
                             ),
-                            child: Text(s.reportDetailsBack),
                           ),
                         ),
                         const SizedBox(width: 20),
-                        _PillShadow(
-                          opacity: 0.50,
-                          child: FilledButton(
-                            onPressed: _busy ? null : _submit,
-                            style: FilledButton.styleFrom(
-                              fixedSize: const Size(150, 45),
-                              minimumSize: const Size(150, 45),
-                              padding: EdgeInsets.zero,
-                              elevation: 0,
-                              side: BorderSide(color: context.colors.bg),
+                        Flexible(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 150),
+                            child: _PillShadow(
+                              opacity: 0.50,
+                              child: FilledButton(
+                                onPressed: _busy ? null : _submit,
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(45),
+                                  padding: EdgeInsets.zero,
+                                  elevation: 0,
+                                  side: BorderSide(color: context.colors.bg),
+                                ),
+                                child: _busy
+                                    ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: context.colors.bg),
+                                      )
+                                    : Text(s.reportDetailsSubmit),
+                              ),
                             ),
-                            child: _busy
-                                ? SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: context.colors.bg),
-                                  )
-                                : Text(s.reportDetailsSubmit),
                           ),
                         ),
                       ],

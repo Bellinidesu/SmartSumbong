@@ -508,7 +508,10 @@ class _MapCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(34, 15, showing ? 87 : 78, 15),
+            // The title's 31.2 line is kept as 3.6 above and below a 24
+            // line, so the English single line sits where the frame has
+            // it and a longer (Filipino) title doesn't wrap into gaps.
+            padding: EdgeInsets.fromLTRB(34, 19, showing ? 87 : 78, 15),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,11 +524,12 @@ class _MapCard extends StatelessWidget {
                       fontFamily: 'Urbanist',
                       fontWeight: FontWeight.w700,
                       fontSize: 20,
-                      height: 31.2 / 20,
+                      height: 24 / 20,
                       color: context.colors.navy,
                     ),
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   body,
                   style: TextStyle(
