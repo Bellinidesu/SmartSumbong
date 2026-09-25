@@ -337,6 +337,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _subscribeLive(uid);
 
     setState(() => _error = null);
+    // The last copy of the list, at once (branch B); the network refresh
+    // replaces it a moment later.
+    if (_reports == null) {
+      final saved = await JsonCache.read('reports');
+      if (saved is List && mounted && _reports == null) {
+        setState(() => _reports = [
+              for (final r in saved)
+                ReportSummary.fromRow(Map<String, dynamic>.from(r as Map)),
+            ]);
+      }
+    }
     try {
       // reports_resident_read already limits this to the caller's own
       // reports, but filtering here too keeps the query honest about
@@ -349,6 +360,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           .isFilter('deleted_at', null)
           .order('created_at', ascending: false);
 
+      unawaited(JsonCache.write('reports', rows));
       if (!mounted) return;
       setState(() => _reports = [
             for (final r in rows) ReportSummary.fromRow(r),
@@ -357,6 +369,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       await Future.wait([_loadResolutionNotes(), _loadDetailRequests()]);
     } catch (e) {
       if (!mounted) return;
+      // No signal but the saved list is showing: keep it.
+      if (_reports != null) return;
       setState(() => _error = context.s.reportsLoadError);
     }
   }

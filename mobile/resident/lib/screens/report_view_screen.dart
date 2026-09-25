@@ -181,9 +181,76 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     });
   }
 
+  String get _cacheKey => 'report_${widget.reportId}';
+
+  /// Fills the screen from one report's rows — the network's or the
+  /// saved copy's, the same either way.
+  void _apply(
+    Map<String, dynamic> r,
+    List<Map<String, dynamic>> media,
+    List<Map<String, dynamic>> proof,
+    Map<String, dynamic>? fb,
+    List<Map<String, dynamic>> newestFirst,
+  ) {
+    final logs = <Map<String, dynamic>>[];
+    for (final e in newestFirst.reversed) {
+      final prev = logs.isEmpty ? null : logs.last;
+      if (prev != null &&
+          prev['new_status'] == e['new_status'] &&
+          prev['old_status'] == e['old_status'] &&
+          (prev['remark'] ?? '') == (e['remark'] ?? '')) {
+        continue;
+      }
+      logs.add(e);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _report = r;
+      _photos = [
+        for (final m in media)
+          (
+            url: m['media_url'] as String,
+            isVideo: isVideoMime(m['mime_type'] as String?),
+          ),
+      ];
+      _proof = [
+        for (final m in proof)
+          (
+            url: m['media_url'] as String,
+            isVideo: isVideoMime(m['mime_type'] as String?),
+          ),
+      ];
+      _timeline = List<Map<String, dynamic>>.from(logs);
+      _feedback = fb;
+    });
+  }
+
+  /// The last copy of this report, shown at once while the network
+  /// catches up. False if there was none.
+  Future<bool> _showSaved() async {
+    final c = await JsonCache.read(_cacheKey);
+    if (c is! Map || c['report'] == null || !mounted) return false;
+    List<Map<String, dynamic>> rows(Object? v) => [
+          for (final e in (v as List? ?? const []))
+            Map<String, dynamic>.from(e as Map),
+        ];
+    _apply(
+      Map<String, dynamic>.from(c['report'] as Map),
+      rows(c['media']),
+      rows(c['proof']),
+      c['feedback'] == null
+          ? null
+          : Map<String, dynamic>.from(c['feedback'] as Map),
+      rows(c['logs']),
+    );
+    return true;
+  }
+
   Future<void> _load() async {
     final client = Supabase.instance.client;
     setState(() => _error = null);
+    final hadSaved = _report == null && await _showSaved();
 
     try {
       // No `category` column here (30 Aug 2026) -- Rose's six frames
@@ -258,38 +325,17 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       final proof = got[2] as List<Map<String, dynamic>>;
       final fb = got[3] as Map<String, dynamic>?;
       final newestFirst = got[4] as List<Map<String, dynamic>>;
-      final logs = <Map<String, dynamic>>[];
-      for (final e in newestFirst.reversed) {
-        final prev = logs.isEmpty ? null : logs.last;
-        if (prev != null &&
-            prev['new_status'] == e['new_status'] &&
-            prev['old_status'] == e['old_status'] &&
-            (prev['remark'] ?? '') == (e['remark'] ?? '')) {
-          continue;
-        }
-        logs.add(e);
-      }
-
+      // Kept for the next open (and for no signal): the raw rows, as the
+      // API gave them.
+      unawaited(JsonCache.write(_cacheKey, {
+        'report': r,
+        'media': media,
+        'proof': proof,
+        'feedback': fb,
+        'logs': newestFirst,
+      }));
       if (!mounted) return;
-      setState(() {
-        _report = r;
-        _photos = [
-          for (final m in media)
-            (
-              url: m['media_url'] as String,
-              isVideo: isVideoMime(m['mime_type'] as String?),
-            ),
-        ];
-        _proof = [
-          for (final m in proof)
-            (
-              url: m['media_url'] as String,
-              isVideo: isVideoMime(m['mime_type'] as String?),
-            ),
-        ];
-        _timeline = List<Map<String, dynamic>>.from(logs);
-        _feedback = fb;
-      });
+      _apply(r, media, proof, fb, newestFirst);
       // Separate, so the report still shows if this fails; alongside the
       // timeline bylines rather than after them.
       Future<void> detail() async {
@@ -307,6 +353,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       await Future.wait([detail(), _loadTimelineAuthors()]);
     } catch (_) {
       if (!mounted) return;
+      // No signal, but the saved copy is on screen: keep it (the offline
+      // strip says why) rather than replacing it with an error.
+      if (hadSaved || _report != null) return;
       setState(() => _error = context.s.reportViewLoadError);
     }
   }

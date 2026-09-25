@@ -6,6 +6,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'id_ocr.dart' show IdOcrResult;
+import 'json_cache.dart' show JsonCache;
 import 'push_notifications.dart' show PushNotifications;
 
 /// Mirrors `public.id_document_type` in migration 0019. The wire values
@@ -525,6 +526,9 @@ class AuthService {
   Future<void> signOut() async {
     await PushNotifications.unregisterToken()
         .timeout(const Duration(seconds: 4), onTimeout: () {});
+    // The saved screen copies belong to this account; the next person to
+    // sign in on this phone must not see them.
+    await JsonCache.clearAll();
     try {
       await _client.auth.signOut();
     } on AuthException {

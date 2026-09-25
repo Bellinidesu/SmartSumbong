@@ -19,6 +19,8 @@
 // AuthRequiredException means sign out and start again rather than show
 // an error nobody can act on.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -44,6 +46,10 @@ import 'onboarding_screen.dart' show onboardingSeenKey;
 /// constructed on every one of those re-entries, so instance state
 /// cannot carry this across them.
 bool _isColdStart = true;
+
+/// The last account check the phone saw (JsonCache), shared with Home,
+/// which refreshes it on every load.
+const gateCacheKey = 'gate';
 
 class LaunchGate extends StatefulWidget {
   const LaunchGate({super.key, required this.auth});
@@ -113,8 +119,28 @@ class _LaunchGateState extends State<LaunchGate> {
       }
     }
 
+    // The last check this phone saw said "verified, not suspended, no
+    // temporary password" (branch B): straight to Home, no waiting on
+    // the network. Home re-checks all three with its own first request
+    // and sends the resident on if anything changed, so nothing the
+    // round trip below enforced is skipped — it just stops holding the
+    // loading screen on every launch.
+    final last = await JsonCache.read(gateCacheKey);
+    if (last is Map &&
+        last['verified'] == true &&
+        last['suspended'] != true &&
+        last['must_change'] != true) {
+      _go('/home');
+      return;
+    }
+
     try {
       final s = await widget.auth.verificationStatus();
+      unawaited(JsonCache.write(gateCacheKey, {
+        'verified': s.status == VerificationState.verified,
+        'suspended': s.isSuspended,
+        'must_change': s.mustChangePassword,
+      }));
 
       // Suspended accounts keep a valid session but can do nothing. Say
       // so plainly rather than letting them reach a home screen where
@@ -197,6 +223,12 @@ class _LaunchGateState extends State<LaunchGate> {
             'assets/images/loading-bg.png',
             fit: BoxFit.cover,
             alignment: Alignment.center,
+            // The screen's own height in pixels (branch B): the 4x export
+            // is 24 MB in memory at full size and stayed in the image
+            // cache long after this screen.
+            cacheHeight: (MediaQuery.sizeOf(context).height *
+                    MediaQuery.devicePixelRatioOf(context))
+                .round(),
           ),
           if (context.isDark) const ColoredBox(color: Color(0x800D1B33)),
           SafeArea(

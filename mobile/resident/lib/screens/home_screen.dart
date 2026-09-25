@@ -34,6 +34,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../outbox.dart';
+import 'launch_gate.dart' show gateCacheKey;
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 
@@ -111,7 +112,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  static const _homeCacheKey = 'home';
+
+  /// Last launch's greeting and badge, shown at once.
+  Future<void> _showSaved() async {
+    final c = await JsonCache.read(_homeCacheKey);
+    if (c is! Map || !mounted || !_loading) return;
+    setState(() {
+      _firstName = c['first_name'] as String?;
+      _unread = (c['unread'] as num?)?.toInt() ?? 0;
+      _loading = false;
+    });
+  }
+
   Future<void> _load() async {
+    if (_loading) unawaited(_showSaved());
     final client = Supabase.instance.client;
     final uid = client.auth.currentUser?.id;
     if (uid == null) {
@@ -127,6 +142,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         client
             .from('users')
             .select('full_name, verification_status, is_suspended, '
+                'must_change_password, '
                 'id_image_url, id_type, ocr_rescan_requested_at')
             .eq('id', uid)
             .maybeSingle(),
@@ -144,6 +160,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return;
       }
 
+      // The loading screen now sends a resident here on the last check
+      // it saw (branch B), so this is the check: remembered for the next
+      // launch, and acted on if anything changed.
+      unawaited(JsonCache.write(gateCacheKey, {
+        'verified': profile['verification_status'] == 'verified',
+        'suspended': profile['is_suspended'] == true,
+        'must_change': profile['must_change_password'] == true,
+      }));
+
       // Standing can change while the app is open. An admin who suspends
       // an account mid-session should not leave the resident browsing a
       // home screen where every action will fail against RLS.
@@ -153,6 +178,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
       if (profile['verification_status'] != 'verified') {
         _bounce('/verification-pending');
+        return;
+      }
+      // A temporary password from the barangay: nothing else until it is
+      // replaced (was the loading screen's check).
+      if (profile['must_change_password'] == true) {
+        _bounce('/change-password');
         return;
       }
 
@@ -189,9 +220,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _unread = unread;
         _loading = false;
       });
+      unawaited(JsonCache.write(_homeCacheKey,
+          {'first_name': _firstName, 'unread': unread}));
+    } on PostgrestException catch (e) {
+      // The session outlived the account or its token is unusable (was
+      // the loading screen's AuthRequiredException): sign in again.
+      if (e.code == 'PGRST301' || e.message.toLowerCase().contains('jwt')) {
+        await widget.auth.signOut();
+        _bounce('/login');
+        return;
+      }
+      if (mounted) setState(() => _loading = false);
     } catch (_) {
       // Offline. Show the screen anyway — the cards are static and the
-      // buttons still work; only the greeting and badge are missing.
+      // buttons still work; the greeting and badge are the saved ones.
       if (mounted) setState(() => _loading = false);
     }
   }
