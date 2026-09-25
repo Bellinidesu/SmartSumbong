@@ -1116,32 +1116,39 @@ class Strings {
   String get changePasswordTooShort => _t(
       'Your password must be at least 8 characters long.',
       'Dapat hindi bababa sa 8 na karakter ang iyong password.');
-  String get changePasswordMismatch => _t(
-      'The two passwords do not match.', 'Hindi magkatugma ang dalawang password.');
+  String get changePasswordMismatch => _t('Passwords didn’t match. Try again.',
+      'Hindi nagtugma ang mga password. Subukan ulit.');
   String get changePasswordFailed => _t(
       'Could not set your new password. Please check your connection and '
       'try again.',
       'Hindi maitakda ang iyong bagong password. Suriin ang iyong '
       'koneksyon at subukan ulit.');
   String get changePasswordTitle =>
-      _t('Set a new password', 'Magtakda ng Bagong Password');
+      _t('Reset password', 'I-reset ang Password');
   String get changePasswordBody => _t(
       'The barangay gave you a temporary password. Choose your own now '
       'so that only you know it.',
       'Binigyan ka ng barangay ng pansamantalang password. Pumili ng '
       'sarili mong password ngayon para ikaw lang ang nakakaalam nito.');
-  String get changePasswordNewLabel => _t('New password', 'Bagong Password');
-  String get changePasswordNewNote =>
-      _t('(At least 8 characters.)', '(Hindi bababa sa 8 na karakter.)');
+  String get changePasswordNewLabel => _t('New Password', 'Bagong Password');
+  String get changePasswordNewNote => _t(
+      '(Your password must be at least 8 characters long.)',
+      '(Dapat hindi bababa sa 8 na karakter ang iyong password.)');
   String get changePasswordNewHint =>
       _t('Enter your new password', 'Ilagay ang iyong bagong password');
   String get changePasswordConfirmLabel =>
-      _t('Confirm password', 'Kumpirmahin ang Password');
+      _t('Confirm New Password', 'Kumpirmahin ang Bagong Password');
   String get changePasswordConfirmNote =>
-      _t('(Both must match.)', '(Dapat magkatugma ang dalawa.)');
-  String get changePasswordConfirmHint =>
-      _t('Type it again', 'I-type ulit');
-  String get changePasswordSave => _t('Save password', 'I-save ang Password');
+      _t('(Your password should match.)', '(Dapat magkatugma ang password.)');
+  String get changePasswordConfirmHint => _t(
+      'Confirm your new password', 'Kumpirmahin ang iyong bagong password');
+  String get changePasswordSave => _t('Submit', 'Isumite');
+  String get changePasswordDoneTitle =>
+      _t('Password reset successful', 'Matagumpay na na-reset ang password');
+  String get changePasswordDoneBody => _t(
+      'You can now log in with your new password.',
+      'Maaari ka nang mag-log in gamit ang iyong bagong password.');
+  String get changePasswordContinue => _t('Continue', 'Magpatuloy');
   String get changePasswordSignOutInstead =>
       _t('Sign out instead', 'Mag-sign Out na Lang');
 
