@@ -41,6 +41,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 const _cloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
 const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
@@ -353,9 +354,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  // Figma TANOD - EDIT PROFILE: the title 28/800 50 from the top of the
+  // screen (no app bar — Back and the system back do the same guarded
+  // pop), the 139 avatar 20 under it with its 25 camera badge, the fields
+  // at 35 in on a 20 gap in the frame's order, and Back / Save 150x45
+  // pills 44 under the last one.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
+    final s = context.s;
 
     return PopScope(
       canPop: !_dirty,
@@ -363,37 +369,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (didPop) return;
         final leave = await showDialog<bool>(
           context: context,
+          barrierColor: context.colors.bg.withValues(alpha: 0.7),
           builder: (_) => _ProfileDialog(
-            title: context.s.editProfileUnsavedTitle,
-            body: context.s.editProfileUnsavedBody,
-            secondaryLabel: context.s.editProfileCancel,
+            title: s.editProfileUnsavedTitle,
+            body: s.editProfileUnsavedBody,
+            secondaryLabel: s.editProfileCancel,
             onSecondary: () => Navigator.of(context).pop(false),
-            primaryLabel: context.s.editProfileContinue,
+            primaryLabel: s.editProfileContinue,
             onPrimary: () => Navigator.of(context).pop(true),
           ),
         );
         if (leave == true && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: context.colors.bg,
-          surfaceTintColor: context.colors.bg,
-          elevation: 0,
-          foregroundColor: context.colors.navy,
-        ),
         body: SafeArea(
-          top: false,
           child: _loading
               ? Center(
                   child: CircularProgressIndicator(color: context.colors.navy))
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 0, 30, 32),
+                  padding:
+                      EdgeInsets.fromLTRB(35, figmaTop(context, 50), 35, 32),
                   children: [
-                    Center(
-                      child: Text(context.s.editProfileTitle,
-                          style: t.headlineLarge?.copyWith(fontSize: 28)),
-                    ),
-                    const SizedBox(height: 24),
+                    FigmaTitle(s.editProfileTitle),
+                    const SizedBox(height: 20),
 
                     Center(
                       child: GestureDetector(
@@ -402,8 +400,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           clipBehavior: Clip.none,
                           children: [
                             Container(
-                              width: 96,
-                              height: 96,
+                              width: 139,
+                              height: 139,
                               decoration: BoxDecoration(
                                 color: context.colors.navy,
                                 shape: BoxShape.circle,
@@ -430,35 +428,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       style: TextStyle(
                                         fontFamily: 'Urbanist',
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 32,
+                                        fontSize: 44,
                                         color: context.colors.bg,
                                       ),
                                     ),
                             ),
                             // A small camera badge is the only hint that
-                            // the circle above is tappable.
+                            // the circle above is tappable. The frame's 25
+                            // #FBFBFB badge, 14/10 in from the circle's
+                            // bottom-right, on the theme's field colour so
+                            // the glyph stays visible at night.
                             Positioned(
-                              right: -2,
-                              bottom: -2,
+                              right: 14,
+                              bottom: 10,
                               child: Container(
-                                width: 30,
-                                height: 30,
+                                width: 25,
+                                height: 25,
                                 decoration: BoxDecoration(
-                                  color: context.colors.bg,
+                                  color: context.colors.field,
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: context.colors.navy, width: 1.5),
                                 ),
                                 alignment: Alignment.center,
-                                child: Icon(Icons.camera_alt_outlined,
-                                    size: 15, color: context.colors.navy),
+                                child: Image.asset(
+                                    'assets/images/icon-camera.png',
+                                    scale: 4,
+                                    color: context.colors.navy),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 21),
 
                     if (_banner != null) ...[
                       Container(
@@ -476,84 +477,78 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ],
 
                     _LockedField(
-                      label: context.s.editProfileNameLabel,
+                      label: s.editProfileNameLabel,
                       value: _name ?? '',
-                      note: context.s.editProfileNameNote,
-                      onTap: () => _requestChange(
-                          'full_name', context.s.editProfileNameWord),
+                      note: s.editProfileNameNote,
+                      onTap: () =>
+                          _requestChange('full_name', s.editProfileNameWord),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
 
                     _EditableField(
-                      label: context.s.editProfileEmailLabel,
+                      label: s.editProfileEmailLabel,
                       controller: _email,
-                      hint: context.s.editProfileEmailHint,
-                      note: context.s.editProfileOptional,
+                      hint: s.editProfileEmailHint,
+                      note: s.editProfileOptional,
                       error: _emailError,
                       enabled: !_saving,
                       keyboardType: TextInputType.emailAddress,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
+
+                    _LockedField(
+                      label: s.editProfilePhoneLabel,
+                      value: _mobile ?? '',
+                      note: s.editProfilePhoneNote,
+                      onTap: () => _requestChange(
+                          'mobile_number', s.editProfilePhoneWord),
+                    ),
+                    const SizedBox(height: 20),
+
+                    _LockedField(
+                      label: s.editProfilePasswordLabel,
+                      value: '\u2022' * 10,
+                      note: s.editProfilePasswordChange,
+                      onTap: _changePassword,
+                    ),
+                    const SizedBox(height: 20),
 
                     _EditableField(
-                      label: context.s.editProfileAddressLabel,
+                      label: s.editProfileAddressLabel,
                       controller: _address,
-                      hint: context.s.editProfileAddressHint,
-                      note: context.s.editProfileOptional,
+                      hint: s.editProfileAddressHint,
+                      note: s.editProfileOptional,
                       enabled: !_saving,
                       keyboardType: TextInputType.streetAddress,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 44),
 
-                    _LockedField(
-                      label: context.s.editProfilePhoneLabel,
-                      value: _mobile ?? '',
-                      note: context.s.editProfilePhoneNote,
-                      onTap: () => _requestChange(
-                          'mobile_number', context.s.editProfilePhoneWord),
-                    ),
-                    const SizedBox(height: 18),
-
-                    _LockedField(
-                      label: context.s.editProfilePasswordLabel,
-                      value: '\u2022' * 10,
-                      note: context.s.editProfilePasswordChange,
-                      onTap: _changePassword,
-                    ),
-                    const SizedBox(height: 32),
-
-                    Row(
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 20,
+                      runSpacing: 12,
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _saving
-                                ? null
-                                : () => Navigator.of(context).maybePop(),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: context.colors.navy,
-                              backgroundColor: context.colors.field,
-                              minimumSize: const Size.fromHeight(45),
-                              side: BorderSide(color: context.colors.navy),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                            ),
-                            child: Text(context.s.editProfileBack),
-                          ),
+                        FigmaPill(
+                          style: FigmaPillStyle.light,
+                          width: 150,
+                          height: 45,
+                          onPressed: _saving
+                              ? null
+                              : () => Navigator.of(context).maybePop(),
+                          child: Text(s.editProfileBack),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: (_saving || !_dirty) ? null : _save,
-                            child: _saving
-                                ? SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: context.colors.bg),
-                                  )
-                                : Text(context.s.editProfileSave),
-                          ),
+                        FigmaPill(
+                          width: 150,
+                          height: 45,
+                          onPressed: (_saving || !_dirty) ? null : _save,
+                          child: _saving
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: context.colors.bg),
+                                )
+                              : Text(s.editProfileSave),
                         ),
                       ],
                     ),
@@ -574,6 +569,22 @@ abstract class _SettingsInitials {
         .toUpperCase();
   }
 }
+
+/// The frame's field label (16/700) and value (14/500).
+TextStyle _fieldLabel(BuildContext context) => TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+      height: 14 / 16,
+      color: context.colors.navy,
+    );
+
+TextStyle _fieldValue(Color colour) => TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+      color: colour,
+    );
 
 class _EditableField extends StatelessWidget {
   const _EditableField({
@@ -600,17 +611,11 @@ class _EditableField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 12, bottom: 6),
+          padding: const EdgeInsets.only(bottom: 11),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(label,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: context.colors.navy,
-                  )),
+              Text(label, style: _fieldLabel(context)),
               if (note != null) ...[
                 const SizedBox(width: 8),
                 Text(note!,
@@ -623,8 +628,14 @@ class _EditableField extends StatelessWidget {
           controller: controller,
           enabled: enabled,
           keyboardType: keyboardType,
-          style: TextStyle(fontSize: 14, color: context.colors.navy),
-          decoration: InputDecoration(hintText: hint),
+          style: _fieldValue(context.colors.navy),
+          // 44 tall with the value 15 in, as the frame's fields.
+          decoration: InputDecoration(
+            hintText: hint,
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+          ),
         ),
         if (error != null)
           Padding(
@@ -638,8 +649,8 @@ class _EditableField extends StatelessWidget {
 }
 
 /// Shown but not typed into. Tapping opens the request or the password
-/// dialog — a field the resident cannot edit should still be a way to
-/// start changing it, not a dead end.
+/// dialog — a field the tanod cannot edit should still be a way to start
+/// changing it, not a dead end.
 class _LockedField extends StatelessWidget {
   const _LockedField({
     required this.label,
@@ -659,21 +670,15 @@ class _LockedField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 12, bottom: 6),
-          child: Text(label,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: context.colors.navy,
-              )),
+          padding: const EdgeInsets.only(bottom: 11),
+          child: Text(label, style: _fieldLabel(context)),
         ),
         InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(50),
           child: Container(
             height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 15),
             decoration: BoxDecoration(
               color: context.colors.bg,
               border: Border.all(color: context.colors.muted),
@@ -684,7 +689,7 @@ class _LockedField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     value,
-                    style: TextStyle(fontSize: 14, color: context.colors.muted),
+                    style: _fieldValue(context.colors.muted),
                   ),
                 ),
                 Text(note,
@@ -728,40 +733,25 @@ class _RequestDialogState extends State<_RequestDialog> {
     super.dispose();
   }
 
+  // The frames' dialog card, as EDIT PROFILE - BACK.
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: context.colors.bg,
-      title: Text(widget.title, style: const TextStyle(fontSize: 18)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(widget.prompt,
-              style: const TextStyle(fontSize: 13, height: 1.35)),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            keyboardType: widget.keyboardType,
-            inputFormatters: widget.keyboardType == TextInputType.phone
-                ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))]
-                : null,
-            style: const TextStyle(fontSize: 14),
-            decoration: InputDecoration(hintText: widget.hint),
-          ),
-        ],
+    return _ProfileDialog(
+      title: widget.title,
+      body: widget.prompt,
+      content: _CardField(
+        controller: _controller,
+        hint: widget.hint,
+        autofocus: true,
+        keyboardType: widget.keyboardType,
+        inputFormatters: widget.keyboardType == TextInputType.phone
+            ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))]
+            : null,
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.s.editProfileCancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(context.s.editProfileSendRequest),
-        ),
-      ],
+      secondaryLabel: context.s.editProfileCancel,
+      onSecondary: () => Navigator.of(context).pop(),
+      primaryLabel: context.s.editProfileSendRequest,
+      onPrimary: () => Navigator.of(context).pop(_controller.text),
     );
   }
 }
@@ -800,65 +790,100 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: context.colors.bg,
-      title: Text(context.s.editProfileChangePasswordTitle,
-          style: const TextStyle(fontSize: 18)),
+    return _ProfileDialog(
+      title: context.s.editProfileChangePasswordTitle,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
+          _CardField(
             controller: _new,
-            obscureText: true,
+            hint: context.s.editProfileNewPasswordHint,
+            obscure: true,
             autofocus: true,
-            decoration:
-                InputDecoration(hintText: context.s.editProfileNewPasswordHint),
           ),
           const SizedBox(height: 12),
-          TextField(
+          _CardField(
             controller: _confirm,
-            obscureText: true,
-            decoration: InputDecoration(
-                hintText: context.s.editProfileConfirmPasswordHint),
+            hint: context.s.editProfileConfirmPasswordHint,
+            obscure: true,
+            onSubmitted: (_) => _submit(),
           ),
           if (_error != null) ...[
             const SizedBox(height: 10),
             Text(_error!,
+                textAlign: TextAlign.center,
                 style: TextStyle(color: context.colors.hint, fontSize: 12)),
           ],
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.s.editProfileCancel),
-        ),
-        FilledButton(
-            onPressed: _submit, child: Text(context.s.editProfilePasswordChange)),
-      ],
+      secondaryLabel: context.s.editProfileCancel,
+      onSecondary: () => Navigator.of(context).pop(),
+      primaryLabel: context.s.editProfilePasswordChange,
+      onPrimary: _submit,
     );
   }
 }
 
+/// A 44-tall pill field for inside the dialog card: #FBFBFB, a 1px ink
+/// edge, 14/500 text.
+class _CardField extends StatelessWidget {
+  const _CardField({
+    required this.controller,
+    required this.hint,
+    this.obscure = false,
+    this.autofocus = false,
+    this.keyboardType,
+    this.inputFormatters,
+    this.onSubmitted,
+  });
 
-/// The navy modal from EDIT PROFILE - BACK and EDIT PROFILE - SAVE.
+  final TextEditingController controller;
+  final String hint;
+  final bool obscure;
+  final bool autofocus;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+        controller: controller,
+        obscureText: obscure,
+        autofocus: autofocus,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        onSubmitted: onSubmitted,
+        style: _fieldValue(context.colors.navy),
+        decoration: InputDecoration(
+          hintText: hint,
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        ),
+      );
+}
+
+/// The modal from TANOD - EDIT PROFILE - BACK and - SAVE.
 ///
-/// One shape serving both: an orange title, optional body, and one or
-/// two pills. Cancel is drawn as the quieter of the pair even though it
-/// is the safer choice — that is how the frame has it, and the dialog
-/// only appears when the resident has already asked to leave.
+/// The tanod frames invert the resident's dialog: a light card with an
+/// ink edge and ink title, rather than a dark card with an orange one —
+/// kept as drawn, since the tanod app is used outdoors in daylight where
+/// the lighter card reads better. 300 wide, #FBFBFB, a 2px edge, radius
+/// 50; the title 24/700, the body 16/500, and 106x40 pills 13 apart.
 class _ProfileDialog extends StatelessWidget {
   const _ProfileDialog({
     required this.title,
     required this.primaryLabel,
     required this.onPrimary,
     this.body,
+    this.content,
     this.secondaryLabel,
     this.onSecondary,
   });
 
   final String title;
   final String? body;
+  final Widget? content;
   final String primaryLabel;
   final VoidCallback onPrimary;
   final String? secondaryLabel;
@@ -866,67 +891,77 @@ class _ProfileDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The tanod frames invert the resident's dialog: white card with a
-    // navy border and navy title, rather than a navy card with an
-    // orange one. Same shape, same copy, opposite ground — worth
-    // keeping as drawn rather than unifying, because the tanod app is
-    // used outdoors in daylight where the lighter card reads better.
+    final c = context.colors;
     return Dialog(
-      backgroundColor: context.colors.bg,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 44),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(25),
-        side: BorderSide(color: context.colors.navy, width: 2),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-                color: context.colors.navy,
-              ),
-            ),
-            if (body != null) ...[
-              const SizedBox(height: 8),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Container(
+        width: 300,
+        padding: const EdgeInsets.fromLTRB(20, 30, 20, 27),
+        decoration: BoxDecoration(
+          color: c.field,
+          border: Border.all(color: c.navy, width: 2),
+          borderRadius: BorderRadius.circular(50),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Text(
-                body!,
+                title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
-                  height: 1.35,
-                  color: context.colors.navy,
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 24,
+                  height: 1.1,
+                  color: c.navy,
                 ),
               ),
-            ],
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (secondaryLabel != null) ...[
-                  _Pill(
-                    label: secondaryLabel!,
-                    onTap: onSecondary!,
-                    filled: false,
+              if (body != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  body!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    height: 1.2,
+                    color: c.navy,
                   ),
-                  const SizedBox(width: 12),
-                ],
-                _Pill(label: primaryLabel, onTap: onPrimary, filled: true),
+                ),
               ],
-            ),
-          ],
+              if (content != null) ...[
+                const SizedBox(height: 16),
+                content!,
+              ],
+              const SizedBox(height: 23),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 13,
+                runSpacing: 12,
+                children: [
+                  if (secondaryLabel != null)
+                    _Pill(
+                      label: secondaryLabel!,
+                      onTap: onSecondary!,
+                      filled: false,
+                    ),
+                  _Pill(label: primaryLabel, onTap: onPrimary, filled: true),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+/// The dialog's 106x40 pill: ink filled, or #FBFBFB with an ink edge; the
+/// design shadow; 16/700. Widens for a longer (Filipino) label.
 class _Pill extends StatelessWidget {
   const _Pill({
     required this.label,
@@ -940,43 +975,32 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(50),
+    final c = context.colors;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(50)),
+        boxShadow: kFigmaShadow,
+      ),
+      child: FilledButton(
+        onPressed: onTap,
+        style: FilledButton.styleFrom(
+          backgroundColor: filled ? c.navy : c.field,
+          foregroundColor: filled ? c.bg : c.navy,
+          minimumSize: const Size(106, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          elevation: 0,
+          side: filled ? BorderSide.none : BorderSide(color: c.navy),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: 'Urbanist',
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+        child: Text(label),
+      ),
     );
-    const size = Size(96, 38);
-
-    return filled
-        ? FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              backgroundColor: context.colors.navy,
-              foregroundColor: context.colors.bg,
-              minimumSize: size,
-              padding: EdgeInsets.zero,
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            child: Text(label),
-          )
-        : OutlinedButton(
-            onPressed: onTap,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.navy,
-              side: BorderSide(color: context.colors.navy),
-              minimumSize: size,
-              padding: EdgeInsets.zero,
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            child: Text(label),
-          );
   }
 }
