@@ -11,7 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
   geolocator: ^13.0.2
-  flutter_map: ^7.0.2
+  # Maps: MapLibre with OpenFreeMap vector tiles (lib/widgets/brgy_map.dart).
+  maplibre_gl: ^0.27.1
   image_picker: ^1.1.2
   latlong2: ^0.9.1
   shared_preferences: ^2.3.3
@@ -43,6 +44,7 @@ flutter_launcher_icons:
 flutter:
   assets:
     - assets/images/
+    - assets/map/
   # Urbanist stands in for Visby CF, the typeface the Figma file is set
   # in: Visby is a paid font, Urbanist is SIL OFL (assets/fonts/
   # Urbanist-OFL.txt) and the closest free match in both letter shapes

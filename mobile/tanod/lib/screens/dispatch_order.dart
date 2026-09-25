@@ -19,7 +19,6 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 // latlong2 exports its own generic Path<LatLng>, which shadows the one
 // in dart:ui and breaks the dashed border below. The resident map screen
@@ -30,6 +29,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import 'tickets_screen.dart';
 
@@ -726,32 +726,20 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                           TextStyle(fontSize: 12, color: context.colors.muted)),
                 ),
               )
-            : FlutterMap(
-                options: MapOptions(
-                  initialCenter: LatLng(lat, lon),
-                  initialZoom: 17,
-                  interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
-                  ),
+            // MapLibre on OpenFreeMap vector tiles (widgets/brgy_map.dart),
+            // light or ink-dark with the app; the design's tilted pin on
+            // the case. The frame's 1px ink edge, drawn over the map.
+            : Container(
+                foregroundDecoration: BoxDecoration(
+                  border: Border.all(color: context.colors.navy),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'ph.smartsumbong.tanod',
-                  ),
-                  MarkerLayer(markers: [
-                    Marker(
-                      point: LatLng(lat, lon),
-                      width: 38,
-                      height: 38,
-                      // Light tiles in both modes, so the pin keeps the
-                      // day ink rather than following the theme.
-                      child: const Icon(Icons.location_on,
-                          size: 38, color: Color(0xFF14181D)),
-                    ),
-                  ]),
-                ],
+                child: BrgyMap(
+                  initialCenter: LatLng(lat, lon),
+                  pins: [BrgyMapPin(id: 'case', point: LatLng(lat, lon))],
+                  cornerRadius: 20,
+                  cornerColour: context.colors.bg,
+                ),
               ),
       ),
     );
