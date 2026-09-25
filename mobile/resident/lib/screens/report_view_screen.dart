@@ -81,7 +81,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:share_plus/share_plus.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -90,6 +89,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../i18n.dart';
 import '../location_lookup.dart';
 import '../theme.dart';
+import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import 'add_details_screen.dart';
 import 'reports_screen.dart' show ReportStatus;
@@ -1373,30 +1373,27 @@ class _MiniMap extends StatelessWidget {
           border: Border.all(color: const Color(0xFFF3F3F3)),
           borderRadius: BorderRadius.circular(25),
         ),
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: point,
-            initialZoom: 17,
-            interactionOptions:
-                const InteractionOptions(flags: InteractiveFlag.none),
-          ),
+        // A picture of the place, not a map to explore: no gestures,
+        // the pin drawn over the centre with its tip on the report.
+        child: Stack(
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'ph.smartsumbong.resident',
-              maxZoom: 19,
+            BrgyMap(
+              initialCenter: point,
+              interactive: false,
+              cornerRadius: 25,
+              // The report card behind it (see _ReportCard).
+              cornerColour: context.isDark
+                  ? context.colors.field
+                  : const Color(0xFF00308F),
             ),
-            MarkerLayer(markers: [
-              Marker(
-                point: point,
-                width: 36,
-                height: 36,
-                alignment: Alignment.topCenter,
-                // Day navy in both modes: the tiles stay light.
-                child: const Icon(Icons.location_on,
-                    size: 36, color: Color(0xFF00308F)),
+            // Navy on the light map, the pale ink on the night one.
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 36),
+                child: Icon(Icons.location_on,
+                    size: 36, color: context.colors.navy),
               ),
-            ]),
+            ),
           ],
         ),
       ),

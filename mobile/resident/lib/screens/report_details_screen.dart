@@ -4,10 +4,11 @@
 //
 // ON THE MAP.
 //
-// OpenStreetMap tiles through flutter_map: no API key, no billing
-// account, nothing to expire when the person who set it up graduates.
-// That is the same reasoning as everywhere else in this project — it has
-// to work at zero pesos and survive turnover.
+// OpenStreetMap vector tiles from OpenFreeMap, drawn by MapLibre
+// (widgets/brgy_map.dart): no API key, no billing account, nothing to
+// expire when the person who set it up graduates. That is the same
+// reasoning as everywhere else in this project — it has to work at zero
+// pesos and survive turnover.
 //
 // The pin starts at the resident's own position, because the
 // overwhelming case is someone standing in front of the problem. It is
@@ -52,7 +53,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -64,6 +64,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
+import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 
 /// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
@@ -107,7 +108,7 @@ class ReportDetailsScreen extends StatefulWidget {
 }
 
 class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
-  final _map = MapController();
+  final _map = BrgyMapController();
   late final TextEditingController _description;
 
   LatLng _pin = _barangayCentre;
@@ -863,7 +864,7 @@ class _MapCard extends StatelessWidget {
     required this.onMoved,
   });
 
-  final MapController controller;
+  final BrgyMapController controller;
   final LatLng pin;
   final double? accuracyMetres;
   final bool locating;
@@ -875,50 +876,25 @@ class _MapCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(25),
       child: Container(
         height: 218,
-        decoration: BoxDecoration(
+        // In front of the map, which would otherwise cover it.
+        foregroundDecoration: BoxDecoration(
           border: Border.all(color: context.colors.navy),
           borderRadius: BorderRadius.circular(25),
         ),
         child: Stack(
           children: [
-            FlutterMap(
-              mapController: controller,
-              options: MapOptions(
-                initialCenter: pin,
-                initialZoom: 17,
-                // Dragging the map moves the pin: the pin stays centred
-                // and the resident positions the map under it. Easier
-                // one-handed than dragging a small target with a thumb
-                // that covers it.
-                onPositionChanged: (camera, hasGesture) {
-                  if (hasGesture) onMoved(camera.center);
-                },
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
-                ),
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  // OSM's tile policy requires a real identifying agent.
-                  userAgentPackageName: 'ph.smartsumbong.resident',
-                  maxZoom: 19,
-                ),
-                if (accuracyMetres != null)
-                  CircleLayer(
-                    circles: [
-                      CircleMarker(
-                        point: pin,
-                        radius: accuracyMetres!,
-                        useRadiusInMeter: true,
-                        color: context.colors.navy.withValues(alpha: 0.12),
-                        borderColor: context.colors.navy.withValues(alpha: 0.4),
-                        borderStrokeWidth: 1,
-                      ),
-                    ],
-                  ),
-              ],
+            // Dragging the map moves the pin: the pin stays centred and
+            // the resident positions the map under it. Easier one-handed
+            // than dragging a small target with a thumb that covers it.
+            // The accuracy circle is on the ground, around the GPS fix.
+            BrgyMap(
+              controller: controller,
+              initialCenter: pin,
+              onMoved: onMoved,
+              accuracyCentre: accuracyMetres == null ? null : pin,
+              accuracyMetres: accuracyMetres,
+              cornerRadius: 25,
+              cornerColour: context.colors.bg,
             ),
 
             // The pin is drawn over the map rather than as a marker, so
@@ -926,8 +902,9 @@ class _MapCard extends StatelessWidget {
             Center(
               child: Padding(
                 padding: EdgeInsets.only(bottom: 24),
-                // Day navy in both modes: the tiles stay light.
-                child: Icon(Icons.location_on, size: 36, color: Color(0xFF00308F)),
+                // Navy on the light map, the pale ink on the night one.
+                child: Icon(Icons.location_on,
+                    size: 36, color: context.colors.navy),
               ),
             ),
 
