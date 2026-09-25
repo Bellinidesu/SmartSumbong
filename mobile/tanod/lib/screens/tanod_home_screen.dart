@@ -18,6 +18,7 @@ import '../theme.dart';
 import '../widgets/figma_ui.dart';
 import '../widgets/tanod_nav_bar.dart';
 import 'dispatch_order.dart';
+import 'launch_gate.dart' show gateCacheKey;
 import 'tickets_screen.dart';
 
 class TanodHomeScreen extends StatefulWidget {
@@ -95,7 +96,23 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
     });
   }
 
+  /// Last time's name and queue, shown at once (branch B).
+  Future<void> _showSaved() async {
+    final c = await JsonCache.read('home');
+    if (c is! Map || !mounted || !_loading) return;
+    setState(() {
+      _firstName = c['first_name'] as String?;
+      _incoming = [
+        for (final r in (c['open'] as List? ?? const []))
+          Ticket.fromRow(Map<String, dynamic>.from(r as Map)),
+      ];
+      _loading = false;
+    });
+  }
+
   Future<void> _load() async {
+    if (_loading) await _showSaved();
+    final hadSaved = !_loading;
     try {
       final client = Supabase.instance.client;
       final uid = client.auth.currentUser!.id;
@@ -105,7 +122,15 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       // The name and the live queue (what is waiting for a response or
       // already accepted) together: neither needs the other.
       final got = await Future.wait<Object?>([
-        client.from('users').select('full_name').eq('id', uid).single(),
+        // With the account's standing (branch B): the loading screen now
+        // sends a tanod here on the last check it saw, so this is where
+        // the checks it used to hold the launch for are made.
+        client
+            .from('users')
+            .select('full_name, verification_status, is_suspended, '
+                'is_retired, must_change_password')
+            .eq('id', uid)
+            .single(),
         client
             .from('dispatches')
             .select('id, report_id, state, accept_due_at, assigned_at, '
@@ -114,13 +139,43 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
             .eq('tanod_id', uid)
             .inFilter('state', ['assigned', 'accepted'])
             .order('assigned_at', ascending: false),
+        client.rpc('my_role'),
       ], eagerError: true);
       final me = got[0] as Map<String, dynamic>;
       final open = got[1] as List<Map<String, dynamic>>;
+      final role = got[2] as String?;
+
+      // In the loading screen's order: suspended, retired, verification,
+      // temporary password, then "is this a tanod at all".
+      final String? away = me['is_suspended'] == true
+          ? '/account-suspended'
+          : me['is_retired'] == true
+              ? '/account-retired'
+              : me['verification_status'] == 'rejected'
+                  ? '/verification-rejected'
+                  : me['verification_status'] != 'verified'
+                      ? '/verification-pending'
+                      : me['must_change_password'] == true
+                          ? '/change-password'
+                          : role != 'tanod'
+                              ? '/' // the loading screen says "wrong app"
+                              : null;
+      unawaited(JsonCache.write(gateCacheKey, {'ok': away == null}));
+      if (away != null) {
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(away, (_) => false);
+        }
+        return;
+      }
 
       if (!mounted) return;
       final name = (me['full_name'] as String? ?? '').trim();
+      unawaited(JsonCache.write('home', {
+        'first_name': name.isEmpty ? null : name.split(' ').first,
+        'open': open,
+      }));
       setState(() {
+        _error = null;
         _firstName = name.isEmpty ? null : name.split(' ').first;
         _incoming = [
           for (final r in open) Ticket.fromRow(r as Map<String, dynamic>),
@@ -139,6 +194,15 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       // makes sure they are read after sign-in.
       unawaited(DutyController.instance.load());
     } on PostgrestException catch (e) {
+      // The session outlived the account or its token is unusable (was
+      // the loading screen's AuthRequiredException): sign in again.
+      if (e.code == 'PGRST301' || e.message.toLowerCase().contains('jwt')) {
+        await widget.auth.signOut();
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+        }
+        return;
+      }
       // Named rather than swallowed. A malformed select or a policy
       // refusal both land here, and "could not load" tells whoever is
       // testing nothing at all.
@@ -149,6 +213,8 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       });
     } catch (_) {
       if (!mounted) return;
+      // No signal, but the saved queue is on screen: keep it.
+      if (hadSaved) return;
       setState(() {
         _loading = false;
         _error = context.s.homeLoadOffline;

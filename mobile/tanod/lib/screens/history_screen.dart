@@ -81,6 +81,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _load() async {
+    // The last copy, at once (branch B).
+    if (_loading) {
+      final saved = await JsonCache.read('history');
+      if (saved is List && mounted && _loading) {
+        setState(() {
+          _activity = [
+            for (final r in saved)
+              _ActivityEntry.fromRow(Map<String, dynamic>.from(r as Map)),
+          ];
+          _loading = false;
+        });
+      }
+    }
+    final hadSaved = !_loading;
     try {
       final client = Supabase.instance.client;
       final uid = client.auth.currentUser!.id;
@@ -107,6 +121,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           .gte('assigned_at', since)
           .order('assigned_at', ascending: false);
 
+      unawaited(JsonCache.write('history', past));
       if (!mounted) return;
       setState(() {
         _activity = [
@@ -123,6 +138,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       });
     } catch (_) {
       if (!mounted) return;
+      // No signal, but the saved history is showing: keep it.
+      if (hadSaved) return;
       setState(() {
         _loading = false;
         _error = context.s.homeLoadOffline;

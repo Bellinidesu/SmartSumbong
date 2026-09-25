@@ -6,6 +6,8 @@
 // with no explanation. The role lives on public.users and is what every
 // dispatch policy keys off, so it is the honest thing to check.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -42,6 +44,10 @@ const _fixedNavy = Color(0xFF14181D);
 /// them. See the resident app's launch_gate.dart, where the same bug was
 /// found and fixed first.
 bool _isColdStart = true;
+
+/// The last account check the phone saw (JsonCache): {'ok': true} when
+/// it let the tanod through to Home. Home refreshes it on every load.
+const gateCacheKey = 'gate';
 
 class LaunchGate extends StatefulWidget {
   const LaunchGate({super.key, required this.auth});
@@ -101,6 +107,16 @@ class _LaunchGateState extends State<LaunchGate> {
       }
     }
 
+    // The last check this phone saw let this account in (branch B):
+    // straight to Home, no waiting on the network — and Home works
+    // offline on its saved copy. Home re-runs every check below with its
+    // own first requests and sends the tanod on if anything changed.
+    final last = await JsonCache.read(gateCacheKey);
+    if (last is Map && last['ok'] == true) {
+      _go('/home');
+      return;
+    }
+
     try {
       final s = await widget.auth.verificationStatus();
 
@@ -145,6 +161,7 @@ class _LaunchGateState extends State<LaunchGate> {
 
       // '/home', not '/duty'. Duty status moved onto the home screen
       // with HOME - TANOD and the standalone duty screen is gone.
+      unawaited(JsonCache.write(gateCacheKey, {'ok': true}));
       _go('/home');
     } on AuthRequiredException {
       await widget.auth.signOut();
