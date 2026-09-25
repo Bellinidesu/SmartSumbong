@@ -15,37 +15,40 @@ import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class TermsPrivacyScreen extends StatelessWidget {
   const TermsPrivacyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final c = context.colors;
     final s = context.s;
 
+    // No frame of its own; in the frames' language: the title 28/800 at
+    // y=50, 16/700 headings over 14/500 body, the 150x45 Back.
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 16),
+            SizedBox(height: figmaTop(context, 50)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                s.termsPrivacyTitle,
-                textAlign: TextAlign.center,
-                style: t.headlineLarge?.copyWith(fontSize: 22),
-              ),
+              child: FigmaTitle(s.termsPrivacyTitle),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 s.termsPrivacySubtitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: c.muted),
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  color: c.muted,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -64,7 +67,8 @@ class TermsPrivacyScreen extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                          fontSize: 16,
+                          height: 1.25,
                           color: c.navy,
                         ),
                       ),
@@ -72,7 +76,12 @@ class TermsPrivacyScreen extends StatelessWidget {
                       Text(
                         body,
                         style: TextStyle(
-                            fontSize: 13, height: 1.5, color: c.navy),
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          height: 1.45,
+                          color: c.navy,
+                        ),
                       ),
                     ],
                   );
@@ -80,16 +89,8 @@ class TermsPrivacyScreen extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
-              child: FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50)),
-                ),
-                child: Text(s.termsPrivacyBack),
-              ),
+              padding: const EdgeInsets.fromLTRB(32, 8, 32, 20),
+              child: FigmaBackPill(label: s.termsPrivacyBack),
             ),
           ],
         ),

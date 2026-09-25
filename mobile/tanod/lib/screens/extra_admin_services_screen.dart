@@ -22,6 +22,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class ExtraAdminServicesScreen extends StatefulWidget {
   const ExtraAdminServicesScreen({super.key, required this.auth});
@@ -119,22 +120,33 @@ class _ExtraAdminServicesScreenState extends State<ExtraAdminServicesScreen> {
         const Spacer(),
         Icon(Icons.lock_outline, size: 48, color: c.navy),
         const SizedBox(height: 16),
-        Text(
-          s.extraAdminServicesLockedTitle,
-          textAlign: TextAlign.center,
-          style: t.headlineLarge?.copyWith(fontSize: 20),
-        ),
-        const SizedBox(height: 10),
+        // In the frames' language: 24/800 title, 16/500 body, the 16/700
+        // field label, the frames' 44-tall pills.
+        FigmaTitle(s.extraAdminServicesLockedTitle, size: 24),
+        const SizedBox(height: 8),
         Text(
           s.extraAdminServicesLockedBody,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, height: 1.5, color: c.muted),
+          style: TextStyle(
+            fontFamily: 'Urbanist',
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            height: 1.4,
+            color: c.muted,
+          ),
         ),
         const SizedBox(height: 24),
 
-        Text(s.extraAdminServicesPasswordLabel,
-            style: TextStyle(fontSize: 13, color: c.navy)),
-        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 6),
+          child: Text(s.extraAdminServicesPasswordLabel,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: c.navy,
+              )),
+        ),
         TextField(
           controller: _password,
           obscureText: true,
@@ -150,30 +162,21 @@ class _ExtraAdminServicesScreenState extends State<ExtraAdminServicesScreen> {
         ],
         const SizedBox(height: 20),
 
-        FilledButton(
+        FigmaPill(
           onPressed: _checking ? null : _unlock,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(46),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-          ),
           child: _checking
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2, color: c.bg),
                 )
               : Text(s.extraAdminServicesUnlock),
         ),
-        const SizedBox(height: 10),
-        OutlinedButton(
+        const SizedBox(height: 14),
+        FigmaPill(
+          style: FigmaPillStyle.light,
           onPressed: () => Navigator.of(context).pop(),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(46),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-          ),
           child: Text(s.extraAdminServicesBack),
         ),
         const Spacer(flex: 2),
@@ -184,10 +187,8 @@ class _ExtraAdminServicesScreenState extends State<ExtraAdminServicesScreen> {
   Widget _buildMenu(TextTheme t, AppColors c, Strings s) {
     return Column(
       children: [
-        const SizedBox(height: 16),
-        Text(s.extraAdminServicesTitle,
-            textAlign: TextAlign.center,
-            style: t.headlineLarge?.copyWith(fontSize: 22)),
+        SizedBox(height: figmaTop(context, 50)),
+        FigmaTitle(s.extraAdminServicesTitle),
         const SizedBox(height: 28),
 
         InkWell(
@@ -208,12 +209,23 @@ class _ExtraAdminServicesScreenState extends State<ExtraAdminServicesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(s.extraAdminServicesRetirementLabel,
-                          style: TextStyle(fontSize: 14, color: c.navy)),
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: c.navy,
+                          )),
+                      const SizedBox(height: 2),
                       Text(
                         _pendingRetirement
                             ? s.extraAdminServicesRetirementPending
                             : s.extraAdminServicesRetirementSubtitle,
-                        style: TextStyle(fontSize: 11.5, color: c.muted),
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                          color: c.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -224,17 +236,9 @@ class _ExtraAdminServicesScreenState extends State<ExtraAdminServicesScreen> {
           ),
         ),
 
+        const SizedBox(height: 40),
+        FigmaBackPill(label: s.extraAdminServicesBack),
         const Spacer(),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(120, 42),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-          ),
-          child: Text(s.extraAdminServicesBack),
-        ),
-        const SizedBox(height: 16),
       ],
     );
   }

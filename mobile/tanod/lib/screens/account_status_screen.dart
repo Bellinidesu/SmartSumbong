@@ -37,6 +37,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 enum AccountBlock { rejected, suspended, retired }
 
@@ -105,7 +106,6 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return PopScope(
@@ -140,7 +140,13 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                           ? s.accountStatusRejectedTitle
                           : s.accountStatusSuspendedTitle,
                   textAlign: TextAlign.center,
-                  style: t.headlineLarge?.copyWith(fontSize: 24),
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 28,
+                    height: 1.15,
+                    color: context.colors.navy,
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -152,7 +158,12 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                           : s.accountStatusSuspendedBody,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 14, height: 1.5, color: context.colors.navy),
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    height: 1.35,
+                    color: context.colors.navy,
+                  ),
                 ),
 
                 if (_loading) ...[
@@ -249,7 +260,7 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                 const Spacer(flex: 2),
 
                 if (_isRejected && widget.canRegisterAgain)
-                  FilledButton(
+                  FigmaPill(
                     onPressed: () async {
                       // Signed out first: registering again creates a new
                       // account, and the denied session must not survive
@@ -263,9 +274,10 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                     child: Text(s.accountStatusRegisterAgain),
                   ),
                 if (_isRejected && widget.canRegisterAgain)
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
 
-                OutlinedButton(
+                FigmaPill(
+                  style: FigmaPillStyle.light,
                   onPressed: _signOut,
                   child: Text(s.accountStatusSignOut),
                 ),

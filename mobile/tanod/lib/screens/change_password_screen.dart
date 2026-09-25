@@ -19,6 +19,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key, required this.auth});
@@ -96,7 +97,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     // No back button and no gesture out. Signing out is the only other
@@ -107,91 +107,111 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         body: SafeArea(
           child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
+            // Laid out as the resident's RESET PASSWORD frame: the title
+            // 30/800 at y=109 over a 301-wide column.
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-                  Text(s.changePasswordTitle,
-                      textAlign: TextAlign.center,
-                      style: t.headlineLarge?.copyWith(fontSize: 24)),
-                  const SizedBox(height: 10),
-                  Text(
-                    s.changePasswordBody,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 13, height: 1.45, color: context.colors.navy),
-                  ),
-                  const SizedBox(height: 28),
-
-                  _Label(s.changePasswordNewLabel,
-                      note: s.changePasswordNewNote),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _password,
-                    enabled: !_busy,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      hintText: s.changePasswordNewHint,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscure
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          size: 20,
+              padding: EdgeInsets.fromLTRB(
+                  52, figmaTop(context, 109, min: 24), 52, 24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 301),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        s.changePasswordTitle,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 30,
+                          height: 46.8 / 30,
                           color: context.colors.navy,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscure = !_obscure),
                       ),
-                    ),
-                    onChanged: (_) => setState(() => _error = null),
-                  ),
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 4),
+                      Text(
+                        s.changePasswordBody,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          height: 1.35,
+                          color: context.colors.navy,
+                        ),
+                      ),
+                      const SizedBox(height: 21),
 
-                  _Label(s.changePasswordConfirmLabel,
-                      note: s.changePasswordConfirmNote),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _confirm,
-                    enabled: !_busy,
-                    obscureText: _obscure,
-                    onSubmitted: (_) => _busy ? null : _submit(),
-                    decoration: InputDecoration(
-                      hintText: s.changePasswordConfirmHint,
-                    ),
-                    onChanged: (_) => setState(() => _error = null),
-                  ),
+                      _Label(s.changePasswordNewLabel,
+                          note: s.changePasswordNewNote),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _password,
+                        enabled: !_busy,
+                        obscureText: _obscure,
+                        decoration: InputDecoration(
+                          hintText: s.changePasswordNewHint,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscure
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              size: 20,
+                              color: context.colors.navy,
+                            ),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() => _error = null),
+                      ),
+                      const SizedBox(height: 29),
 
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      style: TextStyle(
-                          fontSize: 12, height: 1.35, color: context.colors.hint),
-                    ),
-                  ],
-                  const SizedBox(height: 28),
+                      _Label(s.changePasswordConfirmLabel,
+                          note: s.changePasswordConfirmNote),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _confirm,
+                        enabled: !_busy,
+                        obscureText: _obscure,
+                        onSubmitted: (_) => _busy ? null : _submit(),
+                        decoration: InputDecoration(
+                          hintText: s.changePasswordConfirmHint,
+                        ),
+                        onChanged: (_) => setState(() => _error = null),
+                      ),
 
-                  FilledButton(
-                    onPressed: _busy ? null : _submit,
-                    child: _busy
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: context.colors.bg),
-                          )
-                        : Text(s.changePasswordSave),
-                  ),
-                  const SizedBox(height: 12),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: TextStyle(
+                              fontSize: 12, height: 1.35, color: context.colors.hint),
+                        ),
+                      ],
+                      const SizedBox(height: 34),
 
-                  TextButton(
-                    onPressed: _busy ? null : _signOut,
-                    child: Text(s.changePasswordSignOutInstead),
+                      FigmaPill(
+                        onPressed: _busy ? null : _submit,
+                        child: _busy
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: context.colors.bg),
+                              )
+                            : Text(s.changePasswordSave),
+                      ),
+                      const SizedBox(height: 12),
+
+                      TextButton(
+                        onPressed: _busy ? null : _signOut,
+                        child: Text(s.changePasswordSignOutInstead),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -213,7 +233,7 @@ class _Label extends StatelessWidget {
           style: TextStyle(
             fontFamily: 'Urbanist',
             fontWeight: FontWeight.w700,
-            fontSize: 14,
+            fontSize: 16,
             color: context.colors.navy,
           ),
           children: [

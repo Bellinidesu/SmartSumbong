@@ -24,6 +24,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class RetirementScreen extends StatefulWidget {
   const RetirementScreen({super.key, required this.auth});
@@ -92,8 +93,8 @@ class _RetirementScreenState extends State<RetirementScreen> {
 
   Future<void> _requestConfirm() async {
     final s = context.s;
-    final confirmed = await showDialog<bool>(
-      context: context,
+    final confirmed = await showFigmaDialog<bool>(
+      context,
       builder: (dialogContext) =>
           _ConfirmPasswordDialog(auth: widget.auth, s: s),
     );
@@ -108,17 +109,13 @@ class _RetirementScreenState extends State<RetirementScreen> {
       await Supabase.instance.client.rpc('request_retirement');
       if (!mounted) return;
       setState(() => _submitting = false);
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(s.retirementSuccessTitle),
-          content: Text(s.retirementSuccessBody),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(s.retirementSuccessContinue),
-            ),
-          ],
+      await showFigmaDialog<void>(
+        context,
+        builder: (dialogContext) => FigmaDialog(
+          title: s.retirementSuccessTitle,
+          body: s.retirementSuccessBody,
+          primaryLabel: s.retirementSuccessContinue,
+          onPrimary: () => Navigator.of(dialogContext).pop(),
         ),
       );
       if (mounted) await _load();
@@ -147,10 +144,8 @@ class _RetirementScreenState extends State<RetirementScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 16),
-                    Text(s.retirementTitle,
-                        textAlign: TextAlign.center,
-                        style: t.headlineLarge?.copyWith(fontSize: 22)),
+                    SizedBox(height: figmaTop(context, 50)),
+                    FigmaTitle(s.retirementTitle),
                     const SizedBox(height: 20),
                     Expanded(
                       child: SingleChildScrollView(
@@ -158,34 +153,26 @@ class _RetirementScreenState extends State<RetirementScreen> {
                       ),
                     ),
                     if (_status != _Status.pending) ...[
-                      FilledButton(
+                      const SizedBox(height: 12),
+                      FigmaPill(
                         onPressed: _submitting ? null : _requestConfirm,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(46),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50)),
-                        ),
                         child: _submitting
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                    strokeWidth: 2, color: c.bg),
                               )
                             : Text(s.retirementRequestButton),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 14),
                     ],
-                    OutlinedButton(
+                    FigmaPill(
+                      style: FigmaPillStyle.light,
                       onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(46),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50)),
-                      ),
                       child: Text(s.retirementBack),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                   ],
                 ),
         ),
@@ -363,50 +350,47 @@ class _ConfirmPasswordDialogState extends State<_ConfirmPasswordDialog> {
     Navigator.of(context).pop(true);
   }
 
+  // The frames' dialog card, with the password field inside it.
   @override
   Widget build(BuildContext context) {
     final s = widget.s;
-    return AlertDialog(
-      title: Text(s.retirementConfirmTitle),
+    final c = context.colors;
+    return FigmaDialog(
+      title: s.retirementConfirmTitle,
+      body: s.retirementConfirmBody,
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s.retirementConfirmBody, style: const TextStyle(fontSize: 13)),
-          const SizedBox(height: 14),
-          Text(s.retirementPasswordLabel,
-              style: const TextStyle(fontSize: 12)),
-          const SizedBox(height: 4),
-          TextField(
+          Padding(
+            padding: const EdgeInsets.only(left: 12, bottom: 6),
+            child: Text(s.retirementPasswordLabel,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: c.bg,
+                )),
+          ),
+          FigmaDialogField(
             controller: _password,
-            obscureText: true,
+            hint: s.retirementPasswordHint,
+            obscure: true,
             autofocus: true,
             onSubmitted: (_) => _confirm(),
-            decoration: InputDecoration(hintText: s.retirementPasswordHint),
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(_error!,
-                style: TextStyle(color: context.colors.hint, fontSize: 12)),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: kFigmaOrange, fontSize: 12)),
           ],
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(s.retirementCancel),
-        ),
-        FilledButton(
-          onPressed: _checking ? null : _confirm,
-          child: _checking
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(s.retirementConfirmButton),
-        ),
-      ],
+      secondaryLabel: s.retirementCancel,
+      onSecondary: () => Navigator.of(context).pop(false),
+      primaryLabel: s.retirementConfirmButton,
+      onPrimary: _checking ? null : _confirm,
     );
   }
 }
