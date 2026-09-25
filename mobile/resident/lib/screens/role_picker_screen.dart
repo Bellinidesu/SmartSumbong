@@ -14,56 +14,42 @@ import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class RolePickerScreen extends StatelessWidget {
   const RolePickerScreen({super.key});
 
+  // Figma RESIDENT OR RESPONDER: the logo art in its 403x337 box at 122,
+  // "What’s your role?" 36/800 at 501, and two 160x210 cards 20 apart
+  // at 566 — navy for the resident, orange for the tanod — radius 50
+  // with a 1px light edge and the design shadow, each with its figure
+  // (Kim's art) and a 16/700 underlined label at 161.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.asset(
-                'assets/images/texture.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
-            ),
-          ),
-
+          const FigmaTexture(),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 36),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(top: figmaTop(context, 122), bottom: 24),
               child: Column(
                 children: [
-                  const Spacer(flex: 3),
-
-                  FractionallySizedBox(
-                    widthFactor: 0.78,
-                    child: Image.asset(
-                      'assets/images/logo-wordmark.png',
-                      semanticLabel: 'SmartSumbong',
-                      filterQuality: FilterQuality.medium,
-                    ),
-                  ),
-
-                  const Spacer(flex: 3),
-
+                  const FigmaLogo(visibleHeight: 337),
+                  const SizedBox(height: 42),
                   Text(
                     s.roleTitle,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 36,
+                      height: 56.16 / 36,
                       color: context.colors.navy,
                     ),
                   ),
-                  const SizedBox(height: 22),
-
+                  const SizedBox(height: 9),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -76,13 +62,13 @@ class RolePickerScreen extends StatelessWidget {
                         onTap: () =>
                             Navigator.of(context).pushNamed('/login'),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
                       _RoleCard(
                         label: s.roleTanod,
                         asset: 'assets/images/tanodhd.png',
                         fallback: Icons.local_police,
-                        background: const Color(0xFFFF9800),
-                        foreground: context.colors.navy,
+                        background: kFigmaOrange,
+                        foreground: context.colors.bg,
                         // A tanod registers here and then uses the
                         // separate tanod app. Registration lives in this
                         // app because it is the one a person installs
@@ -101,8 +87,6 @@ class RolePickerScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
-                  const Spacer(flex: 5),
                 ],
               ),
             ),
@@ -132,52 +116,58 @@ class _RoleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Two 160-wide cards and the 20 gap fit a 340 screen; narrower than
+    // that they shrink together rather than overflow.
+    final w = ((MediaQuery.sizeOf(context).width - 40 - 20) / 2)
+        .clamp(120.0, 160.0);
+    final h = w * 210 / 160;
     return Semantics(
       button: true,
       label: label,
-      child: Material(
-        color: background,
-        borderRadius: BorderRadius.circular(22),
-        clipBehavior: Clip.antiAlias,
-        elevation: 3,
-        shadowColor: const Color(0x4D121212),
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox(
-            width: 124,
-            height: 158,
-            // A column, not a stack: the label has to have card colour
-            // behind it. Overlaid on the figure, white-on-white makes
-            // it disappear on the resident card.
+      excludeSemantics: true,
+      child: Container(
+        width: w,
+        height: h,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: kFigmaShadow,
+        ),
+        child: Material(
+          color: background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+            side: BorderSide(color: context.colors.bg),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            // The frame's figure box is 104 tall starting 36 down; the
+            // label sits at 161.
             child: Column(
               children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 12, 10, 0),
-                    child: Image.asset(
+                SizedBox(height: h * 36 / 210),
+                SizedBox(
+                  height: h * 104 / 210,
+                  child: Image.asset(
                       asset,
                       fit: BoxFit.contain,
-                      alignment: Alignment.bottomCenter,
                       excludeFromSemantics: true,
-                      // The source is a 3x export being drawn into a
-                      // 124pt card. Default bilinear sampling softens a
-                      // downscale that large; medium enables mipmaps.
                       filterQuality: FilterQuality.medium,
-                      // Until the figures are exported, a Material icon
-                      // in the right colour keeps the screen usable
-                      // instead of rendering a broken-image box.
                       errorBuilder: (_, __, ___) =>
                           Icon(fallback, size: 74, color: foreground),
                     ),
-                  ),
                 ),
+                const Spacer(),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
+                  padding: EdgeInsets.fromLTRB(6, 0, 6, h * 24 / 210),
                   child: Text(
                     label,
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
                       color: foreground,
                       decoration: TextDecoration.underline,
                       decorationColor: foreground,
