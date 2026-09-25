@@ -567,29 +567,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final t = Theme.of(context).textTheme;
     final s = context.s;
 
+    // Figma SIGN UP as Resident: the page inset 45, "Create your Account"
+    // 16/500 at 56 with the 30/700 title right under it, then each group
+    // 24 apart — 16/700 label 12 in over a 44-tall field — the ID
+    // dropdown, the 11px agreement box with its Inter 12 line, and the
+    // 44-tall Sign Up with its light edge and shadow. The photo tiles are
+    // the app's own step (the frame's Take Photo screens) and keep their
+    // place above the agreement.
     return Scaffold(
       body: SafeArea(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-                Tokens.pagePad, 56, Tokens.pagePad, 40),
+            padding: EdgeInsets.fromLTRB(
+                45,
+                (56 - MediaQuery.paddingOf(context).top).clamp(8.0, 56.0),
+                44,
+                40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(s.registerCreateAccount, style: t.titleMedium),
-                const SizedBox(height: 6),
+                Text(s.registerCreateAccount,
+                    style: t.titleMedium?.copyWith(height: 1.15)),
                 Text(
                   widget.role == AccountRole.tanod
                       ? s.registerSignUpTanod
                       : s.registerSignUpResident,
-                  style: t.headlineLarge,
+                  style: t.headlineLarge?.copyWith(height: 38 / 30),
                 ),
-                const SizedBox(height: Tokens.gap),
+                const SizedBox(height: 24),
 
                 if (_banner != null) ...[
                   _Banner(_banner!),
-                  const SizedBox(height: Tokens.gap),
+                  const SizedBox(height: 24),
                 ],
 
                 _Field(
@@ -668,7 +678,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }),
                   ),
                 if (widget.role != AccountRole.tanod)
-                  const SizedBox(height: Tokens.gap),
+                  const SizedBox(height: 24),
 
                 _PhotoRow(
                   label: widget.role == AccountRole.tanod
@@ -699,7 +709,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onTap: () => _capture(selfie: true),
                   ),
                 ],
-                const SizedBox(height: Tokens.gap),
+                const SizedBox(height: 24),
 
                 _Agreement(
                   value: _agreed,
@@ -710,20 +720,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     _errors.remove('agree');
                   }),
                 ),
-                const SizedBox(height: Tokens.gap),
+                const SizedBox(height: 24),
 
-                FilledButton(
-                  onPressed: _busy ? null : _submit,
-                  child: _busy
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: context.colors.bg,
-                          ),
-                        )
-                      : Text(s.registerSignUp),
+                DecoratedBox(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(50)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x4D121212),
+                        blurRadius: 3.5,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: FilledButton(
+                    onPressed: _busy ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44),
+                      elevation: 0,
+                      side: BorderSide(color: context.colors.bg),
+                    ),
+                    child: _busy
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: context.colors.bg,
+                            ),
+                          )
+                        : Text(s.registerSignUp),
+                  ),
                 ),
                 const SizedBox(height: 24),
 
@@ -795,17 +822,17 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: Tokens.gap),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 12, bottom: 6),
+            padding: const EdgeInsets.only(left: 12),
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.end,
               spacing: 8,
               children: [
-                Text(label, style: t.labelLarge),
+                Text(label, style: t.labelLarge?.copyWith(height: 23 / 16)),
                 if (note != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 3),
@@ -822,9 +849,13 @@ class _Field extends StatelessWidget {
             textCapitalization: textCapitalization,
             inputFormatters: inputFormatters,
             style: t.bodyMedium,
+            // 44 tall, as the frame's fields.
             decoration: InputDecoration(
               hintText: hint,
               errorText: error == null ? null : '',
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
           ),
           if (error != null)
@@ -869,7 +900,7 @@ class _IdTypeDropdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          padding: const EdgeInsets.only(left: 4, bottom: 2),
           child: Wrap(
             crossAxisAlignment: WrapCrossAlignment.end,
             spacing: 8,
@@ -878,7 +909,7 @@ class _IdTypeDropdown extends StatelessWidget {
                 role == AccountRole.tanod
                     ? s.registerAttachBarangayId
                     : s.registerAttachValidId,
-                style: t.labelLarge,
+                style: t.labelLarge?.copyWith(height: 23 / 16),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
@@ -904,12 +935,19 @@ class _IdTypeDropdown extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
+                        // The frame's box text: Inter 14/400.
                         child: Text(
                           value?.label ??
                               (role == AccountRole.tanod
                                   ? s.registerSelectYourDocument
                                   : s.registerSelectAValidId),
-                          style: t.bodyMedium,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,
+                            fontSize: 14,
+                            height: 17 / 14,
+                            color: context.colors.navy,
+                          ),
                         ),
                       ),
                       Icon(
@@ -1130,17 +1168,37 @@ class _Agreement extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: Checkbox(
-                  value: value,
-                  onChanged: enabled ? onChanged : null,
+              // The frame's 11px #FBFBFB box with a 1px navy edge, 20 left
+              // of the text; the tap target is the 20x36 strip around it.
+              Semantics(
+                checked: value,
+                enabled: enabled,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: enabled ? () => onChanged(!value) : null,
+                  child: SizedBox(
+                    width: 20,
+                    height: 36,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: context.colors.field,
+                          border: Border.all(color: context.colors.navy),
+                        ),
+                        alignment: Alignment.center,
+                        child: value
+                            ? Icon(Icons.check,
+                                size: 10, color: context.colors.navy)
+                            : null,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
               // Linked to terms_privacy_screen.dart during the Figma
               // parity pass (27 Aug 2026) -- this TODO used to say "link
               // these once the barangay's Terms and Privacy Notice
@@ -1157,10 +1215,11 @@ class _Agreement extends StatelessWidget {
                   builder: (context) => RichText(
                     text: TextSpan(
                       style: TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
                         color: context.colors.navy,
-                        height: 1.25,
+                        height: 15 / 12,
                       ),
                       children: [
                         TextSpan(text: context.s.registerAgreementPrefix),
@@ -1168,7 +1227,7 @@ class _Agreement extends StatelessWidget {
                           text: context.s.registerAgreementLink,
                           style: const TextStyle(
                             decoration: TextDecoration.underline,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () => Navigator.of(context)
@@ -1183,7 +1242,7 @@ class _Agreement extends StatelessWidget {
           ),
           if (error != null)
             Padding(
-              padding: const EdgeInsets.only(left: 32, top: 4),
+              padding: const EdgeInsets.only(left: 20, top: 4),
               child: Text(error!,
                   style: TextStyle(color: context.colors.hint, fontSize: 11)),
             ),
