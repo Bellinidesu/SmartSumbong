@@ -323,7 +323,7 @@ else { print_head($periodLabel, $categoryLabel); }
 <section class="panel doc-block">
   <h2 class="doc-h">Resident Report Ledger</h2>
   <div class="table-wrap">
-    <table class="case-table doc-table">
+    <table class="case-table doc-table doc-table--orange">
       <thead>
         <tr>
           <th>Complaint ID</th><th>Resident</th><th>Category</th>
@@ -355,7 +355,7 @@ else { print_head($periodLabel, $categoryLabel); }
 <section class="panel doc-block">
   <h2 class="doc-h">Tanod&rsquo;s Activity Timeline</h2>
   <div class="table-wrap">
-    <table class="case-table doc-table">
+    <table class="case-table doc-table doc-table--navy">
       <thead>
         <tr><th>Tanod</th><th>Complaint</th><th>Assigned</th><th>Accepted</th><th>Outcome</th></tr>
       </thead>
@@ -381,7 +381,7 @@ else { print_head($periodLabel, $categoryLabel); }
 <section class="panel doc-block">
   <h2 class="doc-h">Report Case Timeline</h2>
   <div class="table-wrap">
-    <table class="case-table doc-table">
+    <table class="case-table doc-table doc-table--orange">
       <thead>
         <tr><th>When</th><th>Complaint</th><th>Change</th><th>Remark</th><th>By</th></tr>
       </thead>

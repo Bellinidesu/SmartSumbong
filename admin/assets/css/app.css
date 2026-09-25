@@ -2529,3 +2529,28 @@ a.btn-accept { text-decoration: none; }
 :is(.page-residents, .page-personnel) .card--controls .btn-accept { background: #8bc34a; }
 :is(.page-residents, .page-personnel) .card--controls .btn-accept:hover { background: #7cb342; }
 .id-shot img { width: auto; max-width: 100%; max-height: 340px; object-fit: contain; background: #f6f7f9; }
+
+/* ---------- Report Summary (Figma Report Tab 282:1631, branch B) ----------
+   Screen only (the PDF is its own doc-body page): centred tiles in
+   ruled boxes, and compact ruled tables under a coloured header row —
+   orange for the ledger and case timeline, navy for the tanods. */
+.page-summary .tile { border: 1px solid #141b34; border-radius: 4px; box-shadow: none; text-align: center; }
+.page-summary .doc-table { border-spacing: 0; }
+.page-summary .doc-table thead th {
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  border: 0;
+}
+.page-summary .doc-table--orange thead th { background: var(--orange); }
+.page-summary .doc-table--navy thead th { background: var(--navy); }
+.page-summary .doc-table td {
+  padding: 9px 14px;
+  font-size: 12.5px;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+}
+.page-summary .doc-table tbody tr { box-shadow: none; }
+.page-summary .doc-table tbody tr:nth-child(even) td { background: #fafbfc; }
