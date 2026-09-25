@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import '../widgets/tanod_nav_bar.dart';
 
 /// The barangay's page. Worth confirming with them before deployment —
@@ -130,68 +131,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _logOut() async {
     final s = context.s;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: dialogContext.colors.navy,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                s.settingsLogOut,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                  color: dialogContext.colors.bg,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                s.settingsLogOutConfirmBody,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: dialogContext.colors.bg),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: dialogContext.colors.bg,
-                        side: BorderSide(color: dialogContext.colors.bg),
-                        minimumSize: const Size.fromHeight(42),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(s.settingsCancel),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(true),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: dialogContext.colors.field,
-                        foregroundColor: dialogContext.colors.navy,
-                        minimumSize: const Size.fromHeight(42),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                      ),
-                      child: Text(s.settingsLogOut),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+    final confirmed = await showFigmaDialog<bool>(
+      context,
+      builder: (dialogContext) => FigmaDialog(
+        title: s.settingsLogOut,
+        body: s.settingsLogOutConfirmBody,
+        secondaryLabel: s.settingsCancel,
+        onSecondary: () => Navigator.of(dialogContext).pop(false),
+        primaryLabel: s.settingsLogOut,
+        onPrimary: () => Navigator.of(dialogContext).pop(true),
       ),
     );
     if (confirmed != true) return;
@@ -206,104 +154,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
+    // Figma SETTINGS - TANOD: the title 28/800 at y=50; the 111 avatar at
+    // x=44, the name 20/700 and the ink Edit Profile pill beside it; rows
+    // 66 apart with the icon box at 54 and the label at 123.
     return Scaffold(
       bottomNavigationBar:
           const TanodNavBar(current: TanodTab.settings),
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(30, 24, 30, 24),
+          padding: EdgeInsets.only(top: figmaTop(context, 50), bottom: 24),
           children: [
-            Center(
-              child: Text(s.settingsTitle,
-                  style: t.headlineLarge?.copyWith(fontSize: 28)),
+            FigmaTitle(s.settingsTitle),
+            const SizedBox(height: 24),
+
+            Padding(
+              padding: const EdgeInsets.only(left: 44, right: 30),
+              child: Row(
+                children: [
+                  Container(
+                    width: 111,
+                    height: 111,
+                    decoration: BoxDecoration(
+                      color: context.colors.navy,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _initials(_name),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 36,
+                        color: context.colors.bg,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _name ?? '\u2014',
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 20,
+                            height: 1.4,
+                            letterSpacing: -0.5,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                        if (_mobile != null)
+                          Text(
+                            _mask(_mobile!),
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              height: 21.84 / 14,
+                              color: context.colors.navy,
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        _EditProfilePill(
+                          label: s.settingsEditProfile,
+                          onTap: () => Navigator.of(context)
+                              .pushNamed('/edit-profile')
+                              .then((_) => _load()),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 28),
 
-            Row(
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: context.colors.navy,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _initials(_name),
-                    style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
-                      color: context.colors.bg,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _name ?? '\u2014',
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          color: context.colors.navy,
-                        ),
-                      ),
-                      if (_mobile != null)
-                        Text(
-                          _mask(_mobile!),
-                          style: TextStyle(
-                              fontSize: 12, color: context.colors.muted),
-                        ),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: () => Navigator.of(context)
-                            .pushNamed('/edit-profile')
-                            .then((_) => _load()),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            // Same orange as the Edit Profile chip
-                            // elsewhere in the app -- an unthemed accent.
-                            color: const Color(0xFFFF9800),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            s.settingsEditProfile,
-                            style: const TextStyle(
-                              fontFamily: 'Urbanist',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
             _SettingsRow(
-              icon: Icons.person_outline,
+              asset: 'assets/images/settings-personal.png',
               label: s.settingsPersonalInfo,
               onTap: () => Navigator.of(context)
                   .pushNamed('/edit-profile')
                   .then((_) => _load()),
             ),
             _SettingsRow(
-              icon: Icons.language,
+              asset: 'assets/images/settings-languages.png',
               label: s.settingsLanguages,
               onTap: () => Navigator.of(context).pushNamed('/languages'),
             ),
@@ -320,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: _onBiometricToggle,
             ),
             _SettingsRow(
-              icon: Icons.facebook,
+              asset: 'assets/images/settings-facebook.png',
               label: s.settingsFacebook,
               onTap: () async {
                 final uri = Uri.parse(_facebookUrl);
@@ -334,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             _SettingsRow(
-              icon: Icons.description_outlined,
+              icon: Icons.privacy_tip_outlined,
               label: s.settingsTermsPrivacy,
               onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
             ),
@@ -345,7 +284,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.of(context).pushNamed('/extra-admin-services'),
             ),
             _SettingsRow(
-              icon: Icons.logout,
+              asset: 'assets/images/settings-logout.png',
               label: s.settingsLogOut,
               showChevron: false,
               onTap: _busy ? null : _logOut,
@@ -405,17 +344,15 @@ class _SettingsToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+    return Container(
+      constraints: const BoxConstraints(minHeight: _rowPitch),
+      padding: const EdgeInsets.only(left: 54, right: 44),
       child: Row(
         children: [
-          Icon(icon, color: context.colors.navy, size: 22),
-          const SizedBox(width: 18),
+          _RowIcon(icon: icon, colour: context.colors.navy),
+          const SizedBox(width: _labelGap),
           Expanded(
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 14, color: context.colors.navy),
-            ),
+            child: Text(label, style: _rowLabel(context.colors.navy)),
           ),
           if (busy)
             SizedBox(
@@ -425,10 +362,9 @@ class _SettingsToggleRow extends StatelessWidget {
                   strokeWidth: 2, color: context.colors.navy),
             )
           else
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: context.colors.navy,
+            Semantics(
+              label: label,
+              child: FigmaSwitch(value: value, onChanged: onChanged),
             ),
         ],
       ),
@@ -436,37 +372,116 @@ class _SettingsToggleRow extends StatelessWidget {
   }
 }
 
+/// The frame's rows sit 40 apart at 26 tall; each row's tap target is the
+/// whole 66 pitch.
+const double _rowPitch = 66;
+
+/// Label at 123 with the 28-wide icon box at 54.
+const double _labelGap = 41;
+
+TextStyle _rowLabel(Color colour) => TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w600,
+      fontSize: 16,
+      height: 1.15,
+      color: colour,
+    );
+
+/// A Figma icon where the frame drew one, otherwise the Material icon in
+/// the same 28x26 box.
+class _RowIcon extends StatelessWidget {
+  const _RowIcon({this.icon, this.asset, required this.colour});
+
+  final IconData? icon;
+  final String? asset;
+  final Color colour;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 28,
+        height: 26,
+        child: Center(
+          child: asset != null
+              ? Image.asset(asset!, scale: 4, color: colour)
+              : Icon(icon, color: colour, size: 24),
+        ),
+      );
+}
+
+/// The frame's Edit Profile pill: ink, 1px page-colour edge, 14/700 label
+/// and the design shadow; at least 100 wide, growing for the Filipino
+/// label.
+class _EditProfilePill extends StatelessWidget {
+  const _EditProfilePill({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        container: true,
+        button: true,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 100),
+            height: 25,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: context.colors.navy,
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(color: context.colors.bg),
+              boxShadow: kFigmaShadow,
+            ),
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  height: 1,
+                  color: context.colors.bg,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
 class _SettingsRow extends StatelessWidget {
   const _SettingsRow({
-    required this.icon,
+    this.icon,
+    this.asset,
     required this.label,
     required this.onTap,
     this.showChevron = true,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? asset;
   final String label;
   final VoidCallback? onTap;
   final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
+    final tint = context.colors.navy;
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _rowPitch),
+        padding: const EdgeInsets.only(left: 54, right: 58),
         child: Row(
           children: [
-            Icon(icon, color: context.colors.navy, size: 22),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 14, color: context.colors.navy),
-              ),
-            ),
+            _RowIcon(icon: icon, asset: asset, colour: tint),
+            const SizedBox(width: _labelGap),
+            Expanded(child: Text(label, style: _rowLabel(tint))),
             if (showChevron)
-              Icon(Icons.chevron_right, color: context.colors.navy, size: 20),
+              Image.asset('assets/images/settings-chevron.png',
+                  scale: 4, color: tint),
           ],
         ),
       ),

@@ -17,6 +17,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class AppNotification {
   AppNotification({
@@ -50,6 +51,9 @@ class AppNotification {
         'dispatch' => Icons.directions_walk,
         _ => Icons.notifications_none_rounded,
       };
+
+  /// Drawn red, as the resident list draws its warnings.
+  bool get isUrgent => kind == 'escalation' || kind == 'sla_warning';
 }
 
 class NotificationsScreen extends StatefulWidget {
@@ -151,31 +155,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  // Figma TANOD - NOTIFICATION / NO NOTIFICATION: the title 28/800 at
+  // y=50, rows 43 in split by 1px ink rules with 23 either side, and the
+  // 150x45 Back pill.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
+    final s = context.s;
+    final empty = _items != null && _items!.isEmpty && _error == null;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: context.colors.bg,
-        surfaceTintColor: context.colors.bg,
-        elevation: 0,
-        foregroundColor: context.colors.navy,
-        title: Text(context.s.notificationsTitle,
-            style: t.labelLarge?.copyWith(fontSize: 18)),
-      ),
       body: SafeArea(
-        top: false,
         child: RefreshIndicator(
           onRefresh: _load,
           color: context.colors.navy,
-          child: _body(context),
+          child: Column(
+            children: [
+              Padding(
+                padding:
+                    EdgeInsets.fromLTRB(43, figmaTop(context, 50), 43, 0),
+                child: FigmaTitle(s.notificationsTitle),
+              ),
+              Expanded(child: _body(context)),
+              if (!empty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 20),
+                  child: FigmaBackPill(label: s.notificationsBack),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _body(BuildContext context) {
+    final s = context.s;
     if (_error != null) {
       return ListView(children: [
         const SizedBox(height: 80),
@@ -191,97 +205,108 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (_items!.isEmpty) {
-      final s = context.s;
+      // The frame's own 50x50 icon 236 below the title, 20/700 and
+      // 16/500, then Back 106 under the text.
       return ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 50),
         children: [
-          const SizedBox(height: 120),
-          Icon(Icons.notifications_off_outlined,
-              size: 56, color: context.colors.navy.withValues(alpha: 0.35)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 236),
+          Center(
+            child: Image.asset('assets/images/empty-notifications.png',
+                width: 52, height: 52, color: context.colors.navy),
+          ),
+          const SizedBox(height: 9),
           Text(
             s.notificationsEmptyTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
-              fontSize: 18,
+              fontSize: 20,
+              height: 1.2,
               color: context.colors.navy,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             s.notificationsEmptyBody,
             textAlign: TextAlign.center,
-            style:
-                TextStyle(fontSize: 13, height: 1.35, color: context.colors.muted),
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              height: 20 / 16,
+              color: context.colors.navy,
+            ),
           ),
+          const SizedBox(height: 106),
+          Center(child: FigmaBackPill(label: s.notificationsBack)),
         ],
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(30, 16, 30, 32),
+      padding: const EdgeInsets.fromLTRB(43, 43, 43, 16),
       itemCount: _items!.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, i) => _NotificationCard(item: _items![i]),
+      separatorBuilder: (context, _) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 23),
+        child: Divider(height: 1, thickness: 1, color: context.colors.navy),
+      ),
+      itemBuilder: (_, i) => _NotificationRow(item: _items![i]),
     );
   }
 }
 
-class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.item});
+class _NotificationRow extends StatelessWidget {
+  const _NotificationRow({required this.item});
 
   final AppNotification item;
 
+  // The frame's row: a 2px bar 14 in (drawn only while unread — this one
+  // viewing, even though the row has just been marked read — but its
+  // space always kept), 16px text at 700 unread / 500 read, the time at
+  // 12/500.
   @override
   Widget build(BuildContext context) {
-    // Unread stays visually distinct for this one viewing, even though
-    // the row has just been marked read — otherwise opening the screen
-    // erases the very distinction the resident came to see.
-    final unread = !item.isRead;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: unread ? context.colors.navy : context.colors.field,
-        border: Border.all(color: context.colors.navy),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(item.icon,
-              size: 20,
-              color: unread ? context.colors.bg : context.colors.navy),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.message,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: unread ? context.colors.bg : context.colors.navy,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _ago(context, item.createdAt),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: unread
-                        ? context.colors.bg.withValues(alpha: 0.75)
-                        : context.colors.muted,
-                  ),
-                ),
-              ],
+    final emphasise = !item.isRead;
+    final color = item.isUrgent ? kFigmaRed : context.colors.navy;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(width: 14),
+        Container(
+          width: 2,
+          height: 31,
+          color: emphasise ? color : Colors.transparent,
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            item.message,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: emphasise ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 16,
+              height: 15 / 16,
+              color: color,
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 6),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            _ago(context, item.createdAt),
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              height: 15 / 12,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

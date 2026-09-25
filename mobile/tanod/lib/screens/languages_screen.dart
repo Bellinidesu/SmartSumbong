@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class LanguagesScreen extends StatelessWidget {
   const LanguagesScreen({super.key});
@@ -37,107 +38,42 @@ class LanguagesScreen extends StatelessWidget {
       );
   }
 
+  // Figma TANOD - LANGUAGES: the title 28/800 at y=50, the two rows 70
+  // apart from x=70 with the orange radios, the 150x45 Back 54 under them.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final value = AppLocaleScope.of(context);
     final s = context.s;
 
     return Scaffold(
       backgroundColor: context.colors.bg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(43, figmaTop(context, 50), 43, 24),
           child: Column(
             children: [
-              const SizedBox(height: 16),
-              Text(s.languagesTitle,
-                  style: t.headlineLarge?.copyWith(fontSize: 24)),
+              FigmaTitle(s.languagesTitle),
               const SizedBox(height: 28),
-
-              _LanguageRow(
-                label: s.languagesFilipino,
-                selected: value == AppLocale.fil,
-                onTap: () => _choose(context, AppLocale.fil),
-              ),
-              const SizedBox(height: 14),
-              _LanguageRow(
-                label: s.languagesEnglish,
-                selected: value == AppLocale.en,
-                onTap: () => _choose(context, AppLocale.en),
-              ),
-
-              const SizedBox(height: 30),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(120, 42),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                ),
-                child: Text(s.languagesBack),
-              ),
-
-              const Spacer(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LanguageRow extends StatelessWidget {
-  const _LanguageRow({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      inMutuallyExclusiveGroup: true,
-      selected: selected,
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(fontSize: 14, color: context.colors.navy),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 27),
+                child: Column(
+                  children: [
+                    FigmaRadioRow(
+                      label: s.languagesFilipino,
+                      selected: value == AppLocale.fil,
+                      onTap: () => _choose(context, AppLocale.fil),
+                    ),
+                    const SizedBox(height: 20),
+                    FigmaRadioRow(
+                      label: s.languagesEnglish,
+                      selected: value == AppLocale.en,
+                      onTap: () => _choose(context, AppLocale.en),
+                    ),
+                  ],
                 ),
               ),
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Tokens.orange, width: 2),
-                ),
-                child: selected
-                    ? Center(
-                        child: Container(
-                          width: 9,
-                          height: 9,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Tokens.orange,
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
+              const SizedBox(height: 40),
+              FigmaBackPill(label: s.languagesBack),
             ],
           ),
         ),

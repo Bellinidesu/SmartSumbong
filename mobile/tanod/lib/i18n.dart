@@ -139,6 +139,7 @@ class Strings {
   String get languagesFilipino => _t('Filipino / Tagalog', 'Filipino / Tagalog');
   String get languagesEnglish => _t('English', 'Ingles');
   String get languagesBack => _t('Back', 'Bumalik');
+  String get notificationsBack => _t('Back', 'Bumalik');
   String get languagesChangedToFilipino =>
       _t('Language changed to Filipino.', 'Napalitan sa Filipino ang wika.');
   String get languagesChangedToEnglish =>
