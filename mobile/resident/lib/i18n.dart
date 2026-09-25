@@ -1074,7 +1074,7 @@ class Strings {
       'Submitted $date', 'Isinumite noong $date');
   String get verificationCheckStatus =>
       _t('Check my status', 'Tingnan ang Aking Status');
-  String get verificationSignOut => _t('Sign out', 'Mag-sign Out');
+  String get verificationSignOut => _t('Back to Login', 'Bumalik sa Login');
 
   // ---------- account status (rejected / suspended) ----------
   String get accountStatusRejectedTitle => _t(

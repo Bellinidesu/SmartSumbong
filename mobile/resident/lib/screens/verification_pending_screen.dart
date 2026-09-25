@@ -197,102 +197,119 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
     final s = context.s;
     final submitted = _snapshot?.submittedAt;
 
+    // Figma VERIFICATION PENDING - Resident: the 30/800 title centred at
+    // 322, the 16/500 body centred under it, and the navy 301x44 Back to
+    // Login 40 below — the same sign-out-to-login the app always had. The
+    // app's own additions (the review window, Check my status and when it
+    // last checked) follow it, in the same centred style. The body copy
+    // stays the app's: the frame promises an SMS the system cannot send.
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Tokens.pagePad),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Spacer(flex: 2),
-
-              Text(s.verificationAlmostThere, style: t.titleMedium),
-              const SizedBox(height: 6),
-              Text(s.verificationTitle, style: t.headlineLarge),
-              const SizedBox(height: 24),
-
-              Text(
-                s.verificationBody,
-                style: TextStyle(fontSize: 14, color: context.colors.navy, height: 1.5),
+      body: Stack(
+        children: [
+          // The frame's contour texture, same asset and opacity as login.
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.55,
+              child: Image.asset(
+                'assets/images/texture.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
               ),
-              const SizedBox(height: 20),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: context.colors.field,
-                  border: Border.all(color: context.colors.navy),
-                  borderRadius: BorderRadius.circular(Tokens.dropdownRadius),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _windowLine(),
-                      style: TextStyle(
-                          fontSize: 14, color: context.colors.navy, height: 1.4),
-                    ),
-                    if (submitted != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        s.verificationSubmitted(_formatSubmitted(s, submitted)),
-                        style: TextStyle(
-                            fontSize: 12, color: context.colors.muted),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!,
-                    style: TextStyle(color: context.colors.hint, fontSize: 12)),
-              ],
-
-              const Spacer(flex: 3),
-
-              FilledButton(
-                onPressed: _canRefresh
-                    ? () => _refresh(userInitiated: true)
-                    : null,
-                child: _busy
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: context.colors.bg),
-                      )
-                    : Text(s.verificationCheckStatus),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  _lastCheckedLine(),
-                  style: TextStyle(fontSize: 12, color: context.colors.muted),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () async {
-                          await widget.auth.signOut();
-                          if (context.mounted) {
-                            Navigator.of(context)
-                                .pushReplacementNamed('/login');
-                          }
-                        },
-                  child: Text(s.verificationSignOut),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
-        ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                46,
+                (322 - MediaQuery.paddingOf(context).top).clamp(24.0, 322.0),
+                46,
+                24,
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    s.verificationTitle,
+                    textAlign: TextAlign.center,
+                    style: t.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      height: 38 / 30,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    s.verificationBody,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      height: 20 / 16,
+                      color: context.colors.navy,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _windowLine(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 13, color: context.colors.navy, height: 1.4),
+                  ),
+                  if (submitted != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      s.verificationSubmitted(_formatSubmitted(s, submitted)),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: context.colors.muted),
+                    ),
+                  ],
+
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: context.colors.hint, fontSize: 12)),
+                  ],
+
+                  const SizedBox(height: 40),
+                  _Pill(
+                    filled: true,
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            await widget.auth.signOut();
+                            if (context.mounted) {
+                              Navigator.of(context)
+                                  .pushReplacementNamed('/login');
+                            }
+                          },
+                    child: Text(s.verificationSignOut),
+                  ),
+                  const SizedBox(height: 16),
+                  _Pill(
+                    filled: false,
+                    onPressed: _canRefresh
+                        ? () => _refresh(userInitiated: true)
+                        : null,
+                    child: _busy
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: context.colors.navy),
+                          )
+                        : Text(s.verificationCheckStatus),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _lastCheckedLine(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: context.colors.muted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -304,5 +321,81 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
     final ampm = h24 < 12 ? 'AM' : 'PM';
     final mm = d.minute.toString().padLeft(2, '0');
     return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
+  }
+}
+
+/// The frame's 301x44 pill (narrower only if the screen is) with the
+/// y5 / blur 5 shadow: navy with a 1px light edge when [filled],
+/// otherwise the light outlined secondary.
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.filled,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final bool filled;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    const size = Size.fromHeight(44);
+    final shape =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(50));
+    const text = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+    );
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 301),
+      child: SizedBox(
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(50)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x4D121212),
+                blurRadius: 3.5,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: filled
+              ? FilledButton(
+                  onPressed: onPressed,
+                  style: FilledButton.styleFrom(
+                    minimumSize: size,
+                    elevation: 0,
+                    // Still readable while a status check is running.
+                    disabledBackgroundColor:
+                        context.colors.navy.withValues(alpha: 0.6),
+                    disabledForegroundColor:
+                        context.colors.bg.withValues(alpha: 0.85),
+                    padding: EdgeInsets.zero,
+                    side: BorderSide(color: context.colors.bg),
+                    shape: shape,
+                    textStyle: text,
+                  ),
+                  child: child,
+                )
+              : OutlinedButton(
+                  onPressed: onPressed,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.colors.navy,
+                    backgroundColor: context.colors.field,
+                    minimumSize: size,
+                    padding: EdgeInsets.zero,
+                    side: BorderSide(color: context.colors.navy),
+                    shape: shape,
+                    textStyle: text,
+                  ),
+                  child: child,
+                ),
+        ),
+      ),
+    );
   }
 }
