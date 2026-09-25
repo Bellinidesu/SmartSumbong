@@ -2226,8 +2226,8 @@ a.btn-accept { text-decoration: none; }
 
 
 /* ---------- Personnel and Residents (Figma TanodLists, Resident Lists; branch B) ---------- */
-:is(.page-personnel, .page-residents) .panel-bar { border-radius: 10px; }
-:is(.page-personnel, .page-residents) .table-wrap { border: 0; padding: 12px 0 0; }
+:is(.page-personnel, .page-residents, .page-cases) .panel-bar { border-radius: 10px; }
+:is(.page-personnel, .page-residents, .page-cases) .table-wrap { border: 0; padding: 12px 0 0; }
 .attendance-card {
   margin-top: 16px;
   padding: 10px 14px 12px;
@@ -2273,21 +2273,21 @@ a.btn-accept { text-decoration: none; }
 .attendance-cell--break   .attendance-dot { background: #ff9800; }
 .attendance-cell--offline .attendance-dot { background: #ff383c; }
 .attendance-cell strong { font-size: 15px; font-weight: 700; color: var(--ink); }
-:is(.page-personnel, .page-residents) .case-table thead th {
+:is(.page-personnel, .page-residents, .page-cases) .case-table thead th {
   padding: 14px 18px;
   background: #fff;
   border-block: 1px solid #141b34;
 }
-:is(.page-personnel, .page-residents) .case-table thead th:first-child { border-left: 1px solid #141b34; border-radius: 6px 0 0 6px; }
-:is(.page-personnel, .page-residents) .case-table thead th:last-child  { border-right: 1px solid #141b34; border-radius: 0 6px 6px 0; }
-:is(.page-personnel, .page-residents) .case-table td { border-color: #141b34; }
-:is(.page-personnel, .page-residents) .case-table tbody tr { box-shadow: none; }
+:is(.page-personnel, .page-residents, .page-cases) .case-table thead th:first-child { border-left: 1px solid #141b34; border-radius: 6px 0 0 6px; }
+:is(.page-personnel, .page-residents, .page-cases) .case-table thead th:last-child  { border-right: 1px solid #141b34; border-radius: 0 6px 6px 0; }
+:is(.page-personnel, .page-residents, .page-cases) .case-table td { border-color: #141b34; }
+:is(.page-personnel, .page-residents, .page-cases) .case-table tbody tr { box-shadow: none; }
 /* A flex <td> stops being a table cell and stops short of its row's
    height, which the row borders above make visible. */
 .case-table td.cell-person { display: table-cell; white-space: nowrap; }
 .case-table td.cell-person > .avatar { display: inline-flex; vertical-align: middle; margin-right: 10px; }
 .case-table td.cell-person > span:last-child { vertical-align: middle; }
-:is(.page-personnel, .page-residents) .case-table th { white-space: nowrap; }
+:is(.page-personnel, .page-residents, .page-cases) .case-table th { white-space: nowrap; }
 
 /* ---------- Edit Profile (Figma 12:6775, 12:6938, 12:7185, 12:7497; branch B) ---------- */
 .profile-card {
@@ -2423,3 +2423,8 @@ a.btn-accept { text-decoration: none; }
 .page-spatial .panel--map { height: calc(100dvh - 86px); margin-bottom: 0; }
 .page-spatial .maplibregl-ctrl-group { border-radius: 8px; box-shadow: var(--shadow); }
 .page-spatial .maplibregl-ctrl-attrib { font-size: 11px; }
+
+/* ---------- Case Reports (Figma Case Reports List 2:2230, branch B) ---------- */
+.page-cases .notif-list { border: 0; padding: 10px 6px 0 0; }
+.page-cases .notif { border-color: #8a8f99; border-radius: 4px; box-shadow: none; padding: 10px 14px; }
+.page-cases .notif-msg { font-weight: 600; }
