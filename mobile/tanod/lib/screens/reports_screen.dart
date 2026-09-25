@@ -341,16 +341,22 @@ class _AssignedCard extends StatelessWidget {
                   Expanded(
                     child: Text.rich(
                       TextSpan(
-                        style: body.copyWith(fontWeight: FontWeight.w600),
+                        // Visby's 14/600 draws heavier than Urbanist's;
+                        // 15/700 matches the frame's weight on screen.
+                        style: body.copyWith(
+                            fontWeight: FontWeight.w700, fontSize: 15),
                         children: [
                           TextSpan(text: '${row.trackingId} - ${row.subject}\n'),
                           TextSpan(
                             text: context.s.reportsDeadlineLabel,
-                            style: const TextStyle(color: kFigmaRed),
+                            style: const TextStyle(
+                                fontSize: 11, height: 1.4, color: kFigmaRed),
                           ),
                           TextSpan(
                             text: _date(context, row.dueAt),
                             style: const TextStyle(
+                              fontSize: 11,
+                              height: 1.4,
                               fontWeight: FontWeight.w500,
                               color: kFigmaRed,
                             ),
