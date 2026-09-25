@@ -152,6 +152,24 @@ function render_account_screen(string $role): void
         $error = safe_error($ex);
     }
 
+    // Figma TanodLists (branch B): "Latest Complaint Handled" — the
+    // complaint of each tanod's most recent dispatch. Newest first, so
+    // the first row seen per tanod is theirs.
+    $latestCase = [];
+    if ($isTanod && !$error) {
+        try {
+            foreach ($db->select('dispatches', [
+                'select' => 'tanod_id,report:reports!dispatches_report_id_fkey(tracking_id)',
+                'order'  => 'assigned_at.desc',
+                'limit'  => '1000',
+            ]) as $d) {
+                $latestCase[$d['tanod_id']] ??= $d['report']['tracking_id'] ?? null;
+            }
+        } catch (SupabaseError) {
+            // The column reads "None" rather than failing the list.
+        }
+    }
+
     // A complaint system is worth gaming: one person, several accounts,
     // several "independent" complaints about a neighbour. Nothing here
     // blocks anything — it puts the collision in front of the admin who
@@ -188,6 +206,7 @@ function render_account_screen(string $role): void
     }
 
     // ---------- list ----------
+    $allAccounts = $accounts;
     $search = trim((string) ($_GET['q'] ?? ''));
     if ($search !== '') {
         $needle   = mb_strtolower($search);
@@ -208,6 +227,7 @@ function render_account_screen(string $role): void
 
     $pending = count(array_filter($accounts, fn($a) => $a['verification_status'] === 'pending'));
     $overdue = count(array_filter($accounts, fn($a) => !empty($a['is_overdue'])));
+    $attendance = $isTanod ? tanod_attendance_counts($allAccounts) : [];
 
     layout_head($title, $navFile);
     ?>
@@ -255,12 +275,30 @@ function render_account_screen(string $role): void
         </form>
       </header>
 
+      <?php if ($isTanod): ?>
+        <!-- Figma TanodLists (branch B). Counted over every active tanod
+             (verified, not suspended or retired), whatever the search or
+             filter — it answers "who is out there right now". -->
+        <div class="attendance-card" aria-label="Today's shift attendance summary">
+          <h3 class="attendance-title">Today’s Shift Attendance Summary</h3>
+          <ul class="attendance-grid" id="attendance-grid">
+            <?php foreach (TANOD_DUTY_STATES as $state => $label): ?>
+              <li class="attendance-cell attendance-cell--<?= e($state) ?>">
+                <span class="attendance-label"><span class="attendance-dot" aria-hidden="true"></span><?= e($label) ?></span>
+                <strong data-state="<?= e($state) ?>"><?= (int) ($attendance[$state] ?? 0) ?></strong>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+
       <div class="table-wrap">
         <table class="case-table">
           <thead>
             <tr>
               <th scope="col"><?= e($noun) ?> Name</th>
               <th scope="col">Phone Number</th>
+              <?php if ($isTanod): ?><th scope="col">Latest Complaint Handled</th><?php endif; ?>
               <th scope="col">Email</th>
               <th scope="col">Status</th>
               <th scope="col"><span class="visually-hidden">Action</span></th>
@@ -269,7 +307,7 @@ function render_account_screen(string $role): void
           <tbody id="accounts-tbody">
             <?php if (!$accounts): ?>
               <tr class="row-empty">
-                <td colspan="5"><?= $search !== ''
+                <td colspan="<?= $isTanod ? 6 : 5 ?>"><?= $search !== ''
                     ? 'No account matches that search.'
                     : 'No ' . e(strtolower($noun)) . ' accounts have registered yet.' ?></td>
               </tr>
@@ -279,6 +317,9 @@ function render_account_screen(string $role): void
               <tr>
                 <td class="cell-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e($a['full_name']) ?></span></td>
                 <td class="mono"><?= e($a['mobile_number']) ?></td>
+                <?php if ($isTanod): ?>
+                  <td class="mono"><?= !empty($latestCase[$a['id']]) ? e($latestCase[$a['id']]) : '<span class="muted">None</span>' ?></td>
+                <?php endif; ?>
                 <td><?= e($a['email']) ?></td>
                 <td><?= account_status_pills($a) ?><?php
                     if (!empty($dupes[$a['id']])): ?>
@@ -348,6 +389,10 @@ function render_account_screen(string $role): void
       // same way the PHP-rendered ones already carry it as a hidden
       // input.
       const CSRF = <?= json_encode(csrf_token()) ?>;
+      const IS_TANOD = <?= json_encode($isTanod) ?>;
+      // tanod id -> tracking id of their latest dispatch; refreshed with
+      // the list on every poll.
+      let LATEST = <?= json_encode((object) array_filter($latestCase)) ?>;
       const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
@@ -465,6 +510,20 @@ function render_account_screen(string $role): void
         return out;
       }
 
+      // Mirrors tanod_attendance_counts() in this same file exactly.
+      function renderAttendance(accounts) {
+        var grid = document.getElementById('attendance-grid');
+        if (!grid) return;
+        var counts = { on_duty: 0, lunch: 0, break: 0, offline: 0 };
+        accounts.forEach(function (a) {
+          if (a.verification_status !== 'verified' || a.is_suspended || a.is_retired) return;
+          counts[counts.hasOwnProperty(a.duty_status) ? a.duty_status : 'offline']++;
+        });
+        grid.querySelectorAll('[data-state]').forEach(function (el) {
+          el.textContent = counts[el.dataset.state] || 0;
+        });
+      }
+
       function renderAccounts(accounts) {
         var filtered = accounts;
         if (SEARCH) {
@@ -497,9 +556,11 @@ function render_account_screen(string $role): void
           overdue + ' registration' + (overdue === 1 ? '' : 's') + ' '
           + (overdue === 1 ? 'has' : 'have') + ' passed the two-hour verification window.';
 
+        renderAttendance(accounts);
+
         var tbody = document.getElementById('accounts-tbody');
         if (!filtered.length) {
-          tbody.innerHTML = '<tr class="row-empty"><td colspan="5">' +
+          tbody.innerHTML = '<tr class="row-empty"><td colspan="' + (IS_TANOD ? 6 : 5) + '">' +
             (SEARCH ? 'No account matches that search.'
                     : 'No ' + escapeHtml(<?= json_encode(strtolower($noun)) ?>) + ' accounts have registered yet.') +
             '</td></tr>';
@@ -537,6 +598,8 @@ function render_account_screen(string $role): void
           return '<tr>' +
             '<td class="cell-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(a.full_name) + '</span></td>' +
             '<td class="mono">' + escapeHtml(a.mobile_number) + '</td>' +
+            (IS_TANOD ? '<td class="mono">' + (LATEST[a.id] ? escapeHtml(LATEST[a.id])
+                                                            : '<span class="muted">None</span>') + '</td>' : '') +
             '<td>' + escapeHtml(a.email) + '</td>' +
             '<td>' + statusPillsHtml(a) + extra + '</td>' +
             '<td class="cell-action"><a class="btn-review" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
@@ -561,7 +624,21 @@ function render_account_screen(string $role): void
       function scheduleRefresh() {
         clearTimeout(timer);
         timer = setTimeout(function () {
-          sb.rpc('account_directory', { p_role: ROLE }).then(function (res) {
+          var latest = IS_TANOD
+            ? sb.from('dispatches')
+                .select('tanod_id,report:reports!dispatches_report_id_fkey(tracking_id)')
+                .order('assigned_at', { ascending: false }).limit(1000)
+                .then(function (r) {
+                  if (r.error || !r.data) return;
+                  var m = {};
+                  r.data.forEach(function (d) {
+                    if (!(d.tanod_id in m) && d.report) m[d.tanod_id] = d.report.tracking_id;
+                  });
+                  LATEST = m;
+                })
+            : Promise.resolve();
+          Promise.all([sb.rpc('account_directory', { p_role: ROLE }), latest]).then(function (out) {
+            var res = out[0];
             if (res.error || !res.data) return;
             renderAccounts(res.data);
           });
@@ -722,6 +799,35 @@ function account_initials(string $name): string
 }
 
 /** Status, suspension and the two-hour clock, as pills. */
+/** duty_state (0001), in the Figma summary's order. */
+const TANOD_DUTY_STATES = [
+    'on_duty' => 'On Duty',
+    'lunch'   => 'Lunch',
+    'break'   => 'Break',
+    'offline' => 'Offline',
+];
+
+/**
+ * Personnel's shift attendance summary: active tanods (verified, not
+ * suspended, not retired) by duty status; no status yet counts as
+ * offline. renderAttendance() in the list's script mirrors this.
+ *
+ * @return array<string,int>
+ */
+function tanod_attendance_counts(array $accounts): array
+{
+    $out = array_fill_keys(array_keys(TANOD_DUTY_STATES), 0);
+    foreach ($accounts as $a) {
+        if (($a['verification_status'] ?? '') !== 'verified'
+            || !empty($a['is_suspended']) || !empty($a['is_retired'])) {
+            continue;
+        }
+        $s = (string) ($a['duty_status'] ?? '');
+        $out[isset($out[$s]) ? $s : 'offline']++;
+    }
+    return $out;
+}
+
 function account_status_pills(array $a): string
 {
     $out = [];

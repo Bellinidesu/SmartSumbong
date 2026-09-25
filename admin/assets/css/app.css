@@ -2224,3 +2224,67 @@ a.btn-accept { text-decoration: none; }
 }
 .btn-pdf--outline:hover { background: #f5f6fa; }
 
+
+/* ---------- Personnel and Residents (Figma TanodLists, Resident Lists; branch B) ---------- */
+:is(.page-personnel, .page-residents) .panel-bar { border-radius: 10px; }
+:is(.page-personnel, .page-residents) .table-wrap { border: 0; padding: 12px 0 0; }
+.attendance-card {
+  margin-top: 16px;
+  padding: 10px 14px 12px;
+  background: #fff;
+  border: 1px solid #141b34;
+  border-radius: 4px;
+}
+.attendance-title {
+  margin: 0 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.attendance-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+.attendance-cell + .attendance-cell { border-left: 1px solid var(--rule); }
+.attendance-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.attendance-dot { width: 7px; height: 7px; border-radius: 50%; background: #9ca3af; }
+.attendance-cell--on_duty .attendance-dot { background: #34c759; }
+.attendance-cell--lunch   .attendance-dot { background: #e08a1e; }
+.attendance-cell--break   .attendance-dot { background: #ff9800; }
+.attendance-cell--offline .attendance-dot { background: #ff383c; }
+.attendance-cell strong { font-size: 15px; font-weight: 700; color: var(--ink); }
+:is(.page-personnel, .page-residents) .case-table thead th {
+  padding: 14px 18px;
+  background: #fff;
+  border-block: 1px solid #141b34;
+}
+:is(.page-personnel, .page-residents) .case-table thead th:first-child { border-left: 1px solid #141b34; border-radius: 6px 0 0 6px; }
+:is(.page-personnel, .page-residents) .case-table thead th:last-child  { border-right: 1px solid #141b34; border-radius: 0 6px 6px 0; }
+:is(.page-personnel, .page-residents) .case-table td { border-color: #141b34; }
+:is(.page-personnel, .page-residents) .case-table tbody tr { box-shadow: none; }
+/* A flex <td> stops being a table cell and stops short of its row's
+   height, which the row borders above make visible. */
+.case-table td.cell-person { display: table-cell; white-space: nowrap; }
+.case-table td.cell-person > .avatar { display: inline-flex; vertical-align: middle; margin-right: 10px; }
+.case-table td.cell-person > span:last-child { vertical-align: middle; }
+:is(.page-personnel, .page-residents) .case-table th { white-space: nowrap; }
