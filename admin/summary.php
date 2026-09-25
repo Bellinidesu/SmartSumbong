@@ -90,32 +90,52 @@ $error = null;
 $reports = $dispatches = $logs = $attendance = [];
 
 /**
- * Every row in the period, a page at a time. The single select with
- * limit=500 (300 for the timeline) used to be the whole story: a busy
- * quarter printed a signed report with the tiles, averages and ledger
- * quietly computed from the first 500 complaints only. Pages until a
- * short one comes back; the hard ceiling only guards against a runaway
- * range, and when it is reached the page says so ($truncated) rather
- * than presenting a partial count as the total. Callers must order by
- * something unique (…,id) so offset paging cannot skip or repeat rows.
+ * Every row in the period. A single select with limit=500 (300 for the
+ * timeline) used to be the whole story: a busy quarter printed a signed
+ * report computed from the first 500 complaints only. So every page is
+ * fetched; the hard ceiling only guards against a runaway range, and when
+ * it is reached the page says so ($truncated) rather than presenting a
+ * partial count as the total. Queries order by something unique (…,id)
+ * so offset paging cannot skip or repeat rows.
+ *
+ * Fetched in two parallel rounds (branch B) — the four tables' row
+ * counts, then every page of every table at once — instead of one page
+ * after another: with the database in Mumbai, ~25 back-to-back round
+ * trips made this page take about nine seconds.
  */
-const SUMMARY_PAGE = 500;
-const SUMMARY_MAX  = 10000;
+const SUMMARY_PAGE = 1000;
+const SUMMARY_MAX  = 25000;
 $truncated = [];
 
-function select_all(Supabase $db, string $table, array $query, array &$truncated): array
+/**
+ * @param array<string, array{0:string, 1:array<string,string>}> $tables
+ * @return array<string, list<array>>
+ */
+function select_all_many(Supabase $db, array $tables, array &$truncated): array
 {
-    $out = [];
-    for ($offset = 0; $offset < SUMMARY_MAX; $offset += SUMMARY_PAGE) {
-        $query['limit']  = (string) SUMMARY_PAGE;
-        $query['offset'] = (string) $offset;
-        $rows = $db->select($table, $query);
-        array_push($out, ...$rows);
-        if (count($rows) < SUMMARY_PAGE) {
-            return $out;
+    $counts = $db->selectMany($tables, true);
+    $pages = [];
+    foreach ($tables as $key => [$table, $query]) {
+        $n = min((int) ($counts[$key] ?? 0), SUMMARY_MAX);
+        if ((int) ($counts[$key] ?? 0) > SUMMARY_MAX) { $truncated[$table] = true; }
+        // At least one page, so an empty count still asks (and a count
+        // that failed to parse cannot hide rows).
+        for ($offset = 0; $offset < max($n, 1); $offset += SUMMARY_PAGE) {
+            $q = $query;
+            $q['limit']  = (string) SUMMARY_PAGE;
+            $q['offset'] = (string) $offset;
+            $pages["{$key}#{$offset}"] = [$table, $q];
         }
     }
-    $truncated[$table] = true;
+    $got = $db->selectMany($pages);
+    $out = [];
+    foreach ($tables as $key => $_) {
+        $rows = [];
+        foreach ($pages as $pk => $_p) {
+            if (str_starts_with($pk, "{$key}#")) { array_push($rows, ...($got[$pk] ?? [])); }
+        }
+        $out[$key] = array_slice($rows, 0, SUMMARY_MAX);
+    }
     return $out;
 }
 
@@ -135,29 +155,49 @@ try {
     if ($category !== '') {
         $reportsQuery['category'] = 'eq.' . $category;
     }
-    $reports = select_all($db, 'reports', $reportsQuery, $truncated);
 
-    $dispatches = select_all($db, 'dispatches', [
-        'select'      => 'id,state,assigned_at,accepted_at,resolved_at,field_report_text,'
-                       . 'tanod:users!dispatches_tanod_id_fkey(full_name),'
-                       . 'report:reports!dispatches_report_id_fkey(tracking_id)',
-        'and'         => "(assigned_at.gte.{$fromISO},assigned_at.lte.{$toISO})",
-        'order'       => 'assigned_at.asc,id.asc',
+    $all = select_all_many($db, [
+        'reports'    => ['reports', $reportsQuery],
+        'dispatches' => ['dispatches', [
+            'select'      => 'id,state,assigned_at,accepted_at,resolved_at,field_report_text,'
+                           . 'tanod:users!dispatches_tanod_id_fkey(full_name),'
+                           . 'report:reports!dispatches_report_id_fkey(tracking_id)',
+            'and'         => "(assigned_at.gte.{$fromISO},assigned_at.lte.{$toISO})",
+            'order'       => 'assigned_at.asc,id.asc',
+        ]],
+        'logs'       => ['status_logs', [
+            'select'     => 'id,old_status,new_status,remark,is_system,created_at,'
+                          . 'report:reports!status_logs_report_id_fkey(tracking_id),'
+                          . 'by:users!status_logs_changed_by_fkey(full_name)',
+            'and'        => "(created_at.gte.{$fromISO},created_at.lte.{$toISO})",
+            'order'      => 'created_at.desc,id.desc',
+        ]],
+        'attendance' => ['attendance', [
+            'select' => 'id,tanod_id,duty_status,shift_date',
+            'and'    => "(logged_at.gte.{$fromISO},logged_at.lte.{$toISO})",
+            'order'  => 'id.asc',
+        ]],
     ], $truncated);
+    $reports    = $all['reports'];
+    $dispatches = $all['dispatches'];
+    $attendance = $all['attendance'];
 
-    $logs = select_all($db, 'status_logs', [
-        'select'     => 'id,old_status,new_status,remark,is_system,created_at,'
-                      . 'report:reports!status_logs_report_id_fkey(tracking_id),'
-                      . 'by:users!status_logs_changed_by_fkey(full_name)',
-        'and'        => "(created_at.gte.{$fromISO},created_at.lte.{$toISO})",
-        'order'      => 'created_at.desc,id.desc',
-    ], $truncated);
-
-    $attendance = select_all($db, 'attendance', [
-        'select' => 'id,tanod_id,duty_status,shift_date',
-        'and'    => "(logged_at.gte.{$fromISO},logged_at.lte.{$toISO})",
-        'order'  => 'id.asc',
-    ], $truncated);
+    // The same entry repeated on one complaint (the dispatch retries that
+    // 0064 stopped writing, still in older periods) is shown once with
+    // its count, as the resident app's timeline does — thousands of
+    // identical rows were the bulk of this table and of the page's weight.
+    $logs = [];
+    $lastByReport = [];
+    foreach ($all['logs'] as $l) {
+        $rid = $l['report']['tracking_id'] ?? '';
+        $sig = ($l['old_status'] ?? '') . '|' . ($l['new_status'] ?? '') . '|' . ($l['remark'] ?? '');
+        if (isset($lastByReport[$rid]) && $lastByReport[$rid]['sig'] === $sig) {
+            $logs[$lastByReport[$rid]['i']]['repeat'] = ($logs[$lastByReport[$rid]['i']]['repeat'] ?? 1) + 1;
+            continue;
+        }
+        $logs[] = $l;
+        $lastByReport[$rid] = ['sig' => $sig, 'i' => array_key_last($logs)];
+    }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -354,7 +394,7 @@ else { print_head($periodLabel, $categoryLabel); }
             <td><?= e(long_datetime($l['created_at'])) ?></td>
             <td class="mono"><?= e($l['report']['tracking_id'] ?? '—') ?></td>
             <td><?= e(timeline_title($l)) ?></td>
-            <td><?= e($l['remark'] ?? '') ?></td>
+            <td><?= e($l['remark'] ?? '') ?><?php if (($l['repeat'] ?? 1) > 1): ?> <span class="muted">× <?= (int) $l['repeat'] ?></span><?php endif; ?></td>
             <td><?= !empty($l['is_system']) ? 'System' : e($l['by']['full_name'] ?? 'Barangay staff') ?></td>
           </tr>
         <?php endforeach; ?>

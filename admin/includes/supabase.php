@@ -173,6 +173,82 @@ final class Supabase
         return $this->request('GET', "/rest/v1/{$table}{$qs}");
     }
 
+    /**
+     * Several selects at once (branch B), over curl_multi: the portal's
+     * database is a round trip away in Mumbai, and a page that made its
+     * requests one after another spent most of its load time waiting on
+     * each in turn. Keys are kept; each value is that select's rows.
+     * With $count, each value is instead the exact row count (only the
+     * Content-Range header is transferred). Throws on the first failure.
+     *
+     * @param array<string, array{0:string, 1:array<string,string>}> $selects
+     * @return array<string, mixed>
+     */
+    public function selectMany(array $selects, bool $count = false, int $concurrency = 8): array
+    {
+        $headers = [
+            'apikey: ' . supabase_key(),
+            'Accept: application/json',
+            'Authorization: Bearer ' . ($this->accessToken ?? supabase_key()),
+        ];
+        if ($count) {
+            $headers[] = 'Prefer: count=exact';
+            $headers[] = 'Range: 0-0';
+        }
+        $mh = curl_multi_init();
+        $queue = $selects;
+        $running = [];   // (int) handle id => [key, handle]
+        $out = [];
+
+        $start = function () use (&$queue, &$running, $mh, $headers, $count): void {
+            $key = array_key_first($queue);
+            [$table, $query] = $queue[$key];
+            unset($queue[$key]);
+            if ($count) { $query['select'] = 'id'; }
+            $qs = $query ? '?' . http_build_query($query) : '';
+            $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HEADER         => $count,
+                CURLOPT_HTTPHEADER     => $headers,
+                CURLOPT_TIMEOUT        => 20,
+                CURLOPT_CONNECTTIMEOUT => 8,
+            ]);
+            curl_multi_add_handle($mh, $ch);
+            $running[spl_object_id($ch)] = [$key, $ch];
+        };
+
+        while ($queue && count($running) < $concurrency) { $start(); }
+        do {
+            curl_multi_exec($mh, $active);
+            curl_multi_select($mh, 0.2);
+            while ($info = curl_multi_info_read($mh)) {
+                $ch = $info['handle'];
+                [$key] = $running[spl_object_id($ch)];
+                unset($running[spl_object_id($ch)]);
+                $raw = curl_multi_getcontent($ch);
+                $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $err = curl_error($ch);
+                curl_multi_remove_handle($mh, $ch);
+                if ($raw === null || $raw === '' && $status === 0) {
+                    throw new SupabaseError('Could not reach the database: ' . $err);
+                }
+                if ($count) {
+                    $out[$key] = preg_match('#Content-Range:\s*[\d*-]+/(\d+)#i', (string) $raw, $m)
+                        ? (int) $m[1] : 0;
+                } else {
+                    $data = json_decode((string) $raw, true);
+                    if ($status >= 400) {
+                        throw new SupabaseError((string) ($data['message'] ?? "Request failed ({$status})"), $status);
+                    }
+                    $out[$key] = is_array($data) ? $data : [];
+                }
+                if ($queue) { $start(); }
+            }
+        } while ($running);
+        return $out;
+    }
+
     /** Row count without transferring the rows. */
     public function count(string $table, array $query = []): int
     {
