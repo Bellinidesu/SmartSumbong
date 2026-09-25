@@ -32,6 +32,8 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
+import 'app_dialog.dart';
+
 enum AppPermission { camera, photos }
 
 extension on AppPermission {
@@ -48,6 +50,11 @@ extension on AppPermission {
 /// offers a way to Settings instead of failing silently.
 class PermissionGate {
   const PermissionGate._();
+
+  /// The dialog wording, in the app's current language. Each app sets
+  /// this once (the resident app from its Strings); left unset, the
+  /// English below is used.
+  static PermissionLabels Function(BuildContext context)? labels;
 
   /// True only if the permission ends up granted (or, on iOS,
   /// [ph.PermissionStatus.limited] — partial photo-library access,
@@ -66,21 +73,16 @@ class PermissionGate {
     if (current.isGranted || current.isLimited) return true;
     if (!context.mounted) return false;
 
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: Text(rationale),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Not now'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Continue'),
-          ),
-        ],
+    final l = labels?.call(context) ?? const PermissionLabels();
+    final proceed = await showAppDialog<bool>(
+      context,
+      builder: (dialogContext) => AppDialog(
+        title: title,
+        body: rationale,
+        secondaryLabel: l.notNow,
+        onSecondary: () => Navigator.of(dialogContext).pop(false),
+        primaryLabel: l.proceed,
+        onPrimary: () => Navigator.of(dialogContext).pop(true),
       ),
     );
     if (proceed != true || !context.mounted) return false;
@@ -93,24 +95,15 @@ class PermissionGate {
     // denied forever with no way back except Settings, so this is the
     // one case worth a second dialog rather than just failing quietly.
     if (result.isPermanentlyDenied && context.mounted) {
-      final openSettings = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Permission turned off'),
-          content: Text(
-            '$title is turned off for SmartSumbong. Open Settings to '
-            'allow it, then try again.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Open Settings'),
-            ),
-          ],
+      final openSettings = await showAppDialog<bool>(
+        context,
+        builder: (dialogContext) => AppDialog(
+          title: l.turnedOffTitle,
+          body: l.turnedOffBody(title),
+          secondaryLabel: l.cancel,
+          onSecondary: () => Navigator.of(dialogContext).pop(false),
+          primaryLabel: l.openSettings,
+          onPrimary: () => Navigator.of(dialogContext).pop(true),
         ),
       );
       if (openSettings == true) await ph.openAppSettings();
@@ -118,4 +111,31 @@ class PermissionGate {
 
     return false;
   }
+}
+
+/// The words [PermissionGate] needs of its own, so each app can supply
+/// them in its language. Defaults are the English the gate always used.
+class PermissionLabels {
+  const PermissionLabels({
+    this.notNow = 'Not now',
+    this.proceed = 'Continue',
+    this.turnedOffTitle = 'Permission turned off',
+    this.turnedOffBodyFor,
+    this.cancel = 'Cancel',
+    this.openSettings = 'Open Settings',
+  });
+
+  final String notNow;
+  final String proceed;
+  final String turnedOffTitle;
+
+  /// Builds the "turned off" body around the permission's own title.
+  final String Function(String what)? turnedOffBodyFor;
+  final String cancel;
+  final String openSettings;
+
+  String turnedOffBody(String what) =>
+      turnedOffBodyFor?.call(what) ??
+      '$what is turned off for SmartSumbong. Open Settings to allow it, '
+          'then try again.';
 }

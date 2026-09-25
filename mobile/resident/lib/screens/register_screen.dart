@@ -42,6 +42,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
@@ -257,44 +258,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// is a system-style action list (two equal choices, one of them a
   /// cancel-by-dismissing), not a confirm/deny decision, so it does not
   /// borrow that pattern.
-  Future<ImageSource?> _chooseSource(BuildContext context) {
-    return showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_camera_outlined, color: context.colors.navy),
-              title: Text(context.s.registerTakePhoto),
-              onTap: () =>
-                  Navigator.of(sheetContext).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_library_outlined, color: context.colors.navy),
-              title: Text(context.s.registerChooseFromGallery),
-              onTap: () =>
-                  Navigator.of(sheetContext).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<ImageSource?> _chooseSource(BuildContext context) =>
+      showFigmaSourceSheet(
+        context,
+        takeLabel: context.s.registerTakePhoto,
+        galleryLabel: context.s.registerChooseFromGallery,
+      );
+
 
   // ---------- submit -----------------------------------------
 

@@ -27,6 +27,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import '../widgets/resident_nav_bar.dart';
 import 'reports_screen.dart' show ReportStatus;
 
@@ -234,7 +235,7 @@ class _MapScreenState extends State<MapScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        padding: const EdgeInsets.fromLTRB(40, 24, 40, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,16 +251,13 @@ class _MapScreenState extends State<MapScreen> {
                 color: context.colors.navy,
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushNamed('/report', arguments: p.id);
-                },
-                child: Text(context.s.mapViewReport),
-              ),
+            const SizedBox(height: 18),
+            FigmaPill(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed('/report', arguments: p.id);
+              },
+              child: Text(context.s.mapViewReport),
             ),
           ],
         ),

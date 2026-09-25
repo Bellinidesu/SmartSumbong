@@ -1,6 +1,7 @@
 export 'src/media_upload.dart';
 export 'src/auth.dart';
 export 'src/permissions.dart';
+export 'src/app_dialog.dart';
 export 'src/media_viewer.dart';
 export 'src/secure_session_storage.dart';
 export 'src/connectivity_banner.dart';

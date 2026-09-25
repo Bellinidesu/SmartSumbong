@@ -1194,6 +1194,22 @@ class Strings {
   String get lockGateFallback =>
       _t('Use password instead', 'Gamitin na lang ang password');
 
+  // ---------- shared prompts (core) ----------
+  String get permissionNotNow => _t('Not now', 'Hindi muna');
+  String get permissionContinue => _t('Continue', 'Magpatuloy');
+  String get permissionTurnedOffTitle =>
+      _t('Permission turned off', 'Naka-off ang pahintulot');
+  String permissionTurnedOffBody(String what) => _t(
+      '$what is turned off for SmartSumbong. Open Settings to allow it, '
+          'then try again.',
+      'Naka-off ang $what para sa SmartSumbong. Buksan ang Settings para '
+          'payagan ito, saka subukan ulit.');
+  String get permissionCancel => _t('Cancel', 'Kanselahin');
+  String get permissionOpenSettings =>
+      _t('Open Settings', 'Buksan ang Settings');
+  String get offlineBanner =>
+      _t('No internet connection', 'Walang koneksyon sa internet');
+
   // ---------- report submitted ----------
   String get reportSubmittedTitle =>
       _t('Report submitted', 'Naisumite ang Ulat');

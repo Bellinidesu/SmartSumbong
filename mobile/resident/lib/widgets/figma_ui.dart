@@ -12,6 +12,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../theme.dart';
 
@@ -566,4 +567,63 @@ class FigmaDialogField extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Camera or gallery, asked the design's way: a sheet with a radius-25
+/// top holding the navy Take Photo pill over the light Choose from
+/// Gallery pill, each with its icon, 301 wide.
+Future<ImageSource?> showFigmaSourceSheet(
+  BuildContext context, {
+  required String takeLabel,
+  required String galleryLabel,
+}) {
+  final c = context.colors;
+  Widget pill(BuildContext sheet, IconData icon, String label,
+          ImageSource source, FigmaPillStyle style) =>
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 301),
+        child: FigmaPill(
+          style: style,
+          onPressed: () => Navigator.of(sheet).pop(source),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 10),
+              Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+        ),
+      );
+  return showModalBottomSheet<ImageSource>(
+    context: context,
+    backgroundColor: c.bg,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+    ),
+    builder: (sheet) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(40, 10, 40, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: c.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 22),
+            pill(sheet, Icons.photo_camera_outlined, takeLabel,
+                ImageSource.camera, FigmaPillStyle.navy),
+            const SizedBox(height: 14),
+            pill(sheet, Icons.photo_library_outlined, galleryLabel,
+                ImageSource.gallery, FigmaPillStyle.light),
+          ],
+        ),
+      ),
+    ),
+  );
 }

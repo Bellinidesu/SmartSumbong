@@ -72,6 +72,19 @@ Future<void> main() async {
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
+    // The shared permission prompts speak the resident's language too.
+    PermissionGate.labels = (context) {
+      final s = context.s;
+      return PermissionLabels(
+        notNow: s.permissionNotNow,
+        proceed: s.permissionContinue,
+        turnedOffTitle: s.permissionTurnedOffTitle,
+        turnedOffBodyFor: s.permissionTurnedOffBody,
+        cancel: s.permissionCancel,
+        openSettings: s.permissionOpenSettings,
+      );
+    };
+
     final missing = {
       'SUPABASE_URL': _supabaseUrl,
       'SUPABASE_ANON_KEY': _supabaseAnonKey,
@@ -185,7 +198,10 @@ class SmartSumbongApp extends StatelessWidget {
             // content the lock was covering.
             onFallback: () => navigatorKey.currentState
                 ?.pushNamedAndRemoveUntil('/login', (_) => false),
-            child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+            child: ConnectivityBanner(
+              message: context.s.offlineBanner,
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
       // Every launch goes through the gate, which decides where the
       // person actually belongs: no session, pending, verified,

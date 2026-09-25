@@ -64,6 +64,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 /// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
 /// 2988704. Used only when the resident's own position is unavailable.
@@ -274,44 +275,13 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   /// strips EXIF and re-encodes regardless of source (see
   /// media_upload.dart's EXIF header), so a camera shot is exactly as
   /// safe — including for the anonymous option — as a gallery pick.
-  Future<ImageSource?> _chooseSource(BuildContext context) {
-    return showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading:
-                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
-              title: Text(context.s.reportDetailsTakePhoto),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading:
-                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
-              title: Text(context.s.reportDetailsChooseFromGallery),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<ImageSource?> _chooseSource(BuildContext context) =>
+      showFigmaSourceSheet(
+        context,
+        takeLabel: context.s.reportDetailsTakePhoto,
+        galleryLabel: context.s.reportDetailsChooseFromGallery,
+      );
+
 
   Future<void> _addPhoto() async {
     if (_photos.length >= _maxPhotos) {

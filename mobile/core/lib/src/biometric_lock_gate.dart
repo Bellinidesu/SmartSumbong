@@ -167,48 +167,105 @@ class _LockScreen extends StatelessWidget {
   final VoidCallback onUnlock;
   final VoidCallback? onFallback;
 
+  // No frame of its own: the app's primary (navy for the resident) with
+  // the design's type — 30/800 title, 16/500 body — and its 301x44 light
+  // pill with the y5 / blur 5 shadow, so the lock reads as the same app
+  // rather than a system screen.
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final ink = scheme.onPrimary;
     return Material(
-      color: const Color(0xFF14181D),
+      color: scheme.primary,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.symmetric(horizontal: 46, vertical: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.fingerprint, size: 64, color: Colors.white70),
-              const SizedBox(height: 16),
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  color: ink.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.fingerprint, size: 56, color: ink),
+              ),
+              const SizedBox(height: 24),
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                  color: ink,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 body,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.white70),
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  height: 1.25,
+                  color: ink.withValues(alpha: 0.9),
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
               if (checking)
-                const CircularProgressIndicator(color: Colors.white)
+                CircularProgressIndicator(color: ink)
               else ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: onUnlock,
-                    child: Text(unlockLabel),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 301),
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(50)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x4D121212),
+                          blurRadius: 3.5,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: FilledButton(
+                      onPressed: onUnlock,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: ink,
+                        foregroundColor: scheme.primary,
+                        minimumSize: const Size.fromHeight(44),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      child: Text(unlockLabel),
+                    ),
                   ),
                 ),
                 if (onFallback != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   TextButton(
                     onPressed: onFallback,
-                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                    style: TextButton.styleFrom(
+                      foregroundColor: ink,
+                      textStyle: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                     child: Text(fallbackLabel),
                   ),
                 ],

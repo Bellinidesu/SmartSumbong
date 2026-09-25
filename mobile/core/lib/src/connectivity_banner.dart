@@ -14,8 +14,15 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 class ConnectivityBanner extends StatefulWidget {
-  const ConnectivityBanner({super.key, required this.child});
+  const ConnectivityBanner({
+    super.key,
+    required this.child,
+    this.message = 'No internet connection',
+  });
   final Widget child;
+
+  /// The strip's text, in the app's language.
+  final String message;
 
   @override
   State<ConnectivityBanner> createState() => _ConnectivityBannerState();
@@ -50,18 +57,27 @@ class _ConnectivityBannerState extends State<ConnectivityBanner> {
       children: [
         if (_offline)
           Material(
-            color: const Color(0xFFB3261E),
+            // The design's warning red (the location-off pill).
+            color: const Color(0xFFFF4949),
             child: SafeArea(
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.wifi_off_rounded, size: 14, color: Colors.white),
-                    SizedBox(width: 6),
-                    Text('No internet connection',
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
+                  children: [
+                    const Icon(Icons.wifi_off_rounded,
+                        size: 14, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.message,
+                      style: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
