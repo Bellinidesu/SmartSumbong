@@ -972,7 +972,8 @@ class _ReportCard extends StatelessWidget {
         // shadow at 30%; padding 15 top, 20 left, 10 right and bottom.
         padding: const EdgeInsets.fromLTRB(20, 15, 10, 10),
         decoration: BoxDecoration(
-          color: _navy,
+          // Dark mode: the page's raised surface, not the day navy.
+          color: context.isDark ? context.colors.field : _navy,
           border: Border.all(color: _onNavy),
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [

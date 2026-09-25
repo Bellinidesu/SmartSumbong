@@ -387,7 +387,9 @@ class _MapScreenState extends State<MapScreen> {
                                             colour: p.status.labelColour(
                                                         context) ==
                                                     context.colors.bg
-                                                ? context.colors.navy
+                                                // Day navy in both modes:
+                                                // the tiles stay light.
+                                                ? const Color(0xFF00308F)
                                                 : const Color(0xFFFF4949),
                                             fill: const Color(0xFFFBFBFB),
                                           ),

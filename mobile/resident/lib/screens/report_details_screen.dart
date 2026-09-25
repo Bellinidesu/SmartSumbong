@@ -926,7 +926,8 @@ class _MapCard extends StatelessWidget {
             Center(
               child: Padding(
                 padding: EdgeInsets.only(bottom: 24),
-                child: Icon(Icons.location_on, size: 36, color: context.colors.navy),
+                // Day navy in both modes: the tiles stay light.
+                child: Icon(Icons.location_on, size: 36, color: Color(0xFF00308F)),
               ),
             ),
 

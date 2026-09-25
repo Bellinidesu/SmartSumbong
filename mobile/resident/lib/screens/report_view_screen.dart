@@ -1101,7 +1101,8 @@ class _ReportCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 15, 10, 10),
       decoration: BoxDecoration(
-        color: _cardNavy,
+        // Dark mode: the page's raised surface, not the day navy.
+        color: context.isDark ? context.colors.field : _cardNavy,
         border: Border.all(color: _onNavy),
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
@@ -1391,8 +1392,9 @@ class _MiniMap extends StatelessWidget {
                 width: 36,
                 height: 36,
                 alignment: Alignment.topCenter,
-                child: Icon(Icons.location_on,
-                    size: 36, color: context.colors.navy),
+                // Day navy in both modes: the tiles stay light.
+                child: const Icon(Icons.location_on,
+                    size: 36, color: Color(0xFF00308F)),
               ),
             ]),
           ],
