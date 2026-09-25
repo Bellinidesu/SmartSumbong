@@ -1,21 +1,31 @@
-/* Self-hosted Poppins and Roboto.
-   Previously loaded from fonts.googleapis.com, which meant the portal
-   leaked a request to a third party on every page view and lost its
-   typography entirely without internet. 132 KB, served from the same
-   origin as everything else. */
+/* Self-hosted Urbanist and Inter (branch B).
+   Urbanist is the free stand-in for the design's Visby CF, as in the
+   mobile apps; Inter is the design's own secondary face (search fields,
+   small labels). Latin subsets, WOFF — about 230 KB for every weight the
+   portal uses, served from the same origin as everything else, so the
+   portal keeps its type without internet. SIL OFL (see *-OFL.txt). */
 
-@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 400;
-  font-display: swap; src: url('../vendor/fonts/poppins-latin-400-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 500;
-  font-display: swap; src: url('../vendor/fonts/poppins-latin-500-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600;
-  font-display: swap; src: url('../vendor/fonts/poppins-latin-600-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700;
-  font-display: swap; src: url('../vendor/fonts/poppins-latin-700-normal.woff2') format('woff2'); }
-
-@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 400;
-  font-display: swap; src: url('../vendor/fonts/roboto-latin-400-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 500;
-  font-display: swap; src: url('../vendor/fonts/roboto-latin-500-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 700;
-  font-display: swap; src: url('../vendor/fonts/roboto-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 400;
+  font-display: swap; src: url('../vendor/fonts/urbanist-regular.woff') format('woff'); }
+@font-face { font-family: 'Urbanist'; font-style: italic; font-weight: 400;
+  font-display: swap; src: url('../vendor/fonts/urbanist-italic.woff') format('woff'); }
+@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 500;
+  font-display: swap; src: url('../vendor/fonts/urbanist-medium.woff') format('woff'); }
+@font-face { font-family: 'Urbanist'; font-style: italic; font-weight: 500;
+  font-display: swap; src: url('../vendor/fonts/urbanist-mediumitalic.woff') format('woff'); }
+@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 600;
+  font-display: swap; src: url('../vendor/fonts/urbanist-semibold.woff') format('woff'); }
+@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 700;
+  font-display: swap; src: url('../vendor/fonts/urbanist-bold.woff') format('woff'); }
+@font-face { font-family: 'Urbanist'; font-style: italic; font-weight: 700;
+  font-display: swap; src: url('../vendor/fonts/urbanist-bolditalic.woff') format('woff'); }
+@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 800;
+  font-display: swap; src: url('../vendor/fonts/urbanist-extrabold.woff') format('woff'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400;
+  font-display: swap; src: url('../vendor/fonts/inter-regular.woff') format('woff'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500;
+  font-display: swap; src: url('../vendor/fonts/inter-medium.woff') format('woff'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600;
+  font-display: swap; src: url('../vendor/fonts/inter-semibold.woff') format('woff'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700;
+  font-display: swap; src: url('../vendor/fonts/inter-bold.woff') format('woff'); }

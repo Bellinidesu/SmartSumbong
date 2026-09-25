@@ -56,7 +56,7 @@ function layout_head(string $title, string $active = ''): void
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
 </head>
-<body>
+<body class="page-<?= e(basename($active, '.php')) ?>">
 <div class="shell">
   <nav class="sidebar">
     <a class="brand" href="dashboard.php">

@@ -30,15 +30,16 @@
   --r-pill:      999px;
   --shadow:      0 1px 3px rgba(16, 24, 40, .08);
 
-  --sidebar-w:   210px;
+  /* The frame's 279 at 1440, narrowing on smaller screens. */
+  --sidebar-w:   clamp(224px, 19.4vw, 279px);
 
-  /* Typography. The Figma specifies Visby CF for headings, which is a
-     commercial face we cannot ship. Poppins is the closest freely
-     licensed geometric sans (OFL); Roboto for body is what the Figma
-     already uses for form labels and is Apache 2.0. Swap --font-display
-     here if the barangay licenses Visby CF. */
-  --font-display: 'Poppins', 'Visby CF', system-ui, sans-serif;
-  --font-body:    'Roboto', system-ui, sans-serif;
+  /* Type: Urbanist (the free stand-in for the design's Visby CF, the
+     same choice the mobile apps made) for everything; Inter where the
+     design itself sets Inter (search fields, small labels). Swap
+     --font-display/--font-body here if the barangay licenses Visby CF. */
+  --font-display: 'Urbanist', 'Visby CF', system-ui, sans-serif;
+  --font-body:    'Urbanist', system-ui, sans-serif;
+  --font-ui:      'Inter', system-ui, sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6, .display { font-family: var(--font-display); }
@@ -47,7 +48,7 @@ h1, h2, h3, h4, h5, h6, .display { font-family: var(--font-display); }
 
 body {
   margin: 0;
-  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
   color: var(--ink);
   background: var(--canvas);
   font-size: 14px;
@@ -63,18 +64,20 @@ a { text-decoration: none; color: inherit; }
   width: var(--sidebar-w);
   flex: none;
   background: var(--navy);
-  padding: 18px 12px 24px;
+  padding: 10px 16px 24px;
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar .brand {
   display: block;
-  margin: 4px auto 26px;
-  max-width: 140px;
+  /* The exported art carries clear space above and below the wordmark. */
+  margin: -8px auto -10px;
+  max-width: 180px;
 }
 .sidebar .brand img { width: 100%; height: auto; display: block; }
 
@@ -93,20 +96,25 @@ a { text-decoration: none; color: inherit; }
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 13px;
-  margin-bottom: 9px;
+  gap: 16px;
+  min-height: 52px;
+  padding: 8px 16px;
+  margin-bottom: 14px;
   background: #fff;
-  border-radius: var(--r-input);
-  color: var(--ink);
+  border-radius: 9px;
+  color: #141b34;
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 16px;
+  line-height: 1.25;
   transition: background .15s ease, color .15s ease;
 }
-.nav-item svg { width: 17px; height: 17px; flex: none; }
+/* Figma SIDEBAR: 240x52 white pills 14 apart, radius 9, a 24 icon 16
+   from the label, 16/500 #141B34; the active one orange with the same
+   dark label. */
+.nav-item svg { width: 24px; height: 24px; flex: none; }
 .nav-item:hover { background: #f1f3f9; }
-.nav-item.active { background: var(--orange); color: #fff; }
-.nav-item.active svg { stroke: #fff; }
+.nav-item.active { background: var(--orange); color: #141b34; }
+.nav-item.active:hover { background: #f59100; }
 
 .nav-spacer { flex: 1; }
 
@@ -2162,3 +2170,57 @@ a.btn-accept { text-decoration: none; }
   .nav-item { flex: none; margin-bottom: 0; white-space: nowrap; padding: 8px 11px; }
   .nav-spacer { display: none; }
 }
+
+/* =========================================================
+   Figma DASHBOARD (branch B): the line charts sit on the page with no
+   box; the stat tiles are 16-radius cards with the big red figure
+   (40/700, #FF383C); the two donut cards are 24-radius with a y4/blur4
+   shadow; titles 18/700 #11263C.
+   ========================================================= */
+.page-dashboard .chart-card {
+  border: 0;
+  box-shadow: none;
+  padding: 6px 2px;
+  background: transparent;
+}
+.page-dashboard .chart-title { font-size: 18px; color: #11263c; }
+.page-dashboard .dash-mid {
+  grid-template-columns: minmax(150px, 170px) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 26px;
+}
+.page-dashboard .donut-card {
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, .25);
+  padding: 24px;
+}
+.page-dashboard .tile {
+  background: #fdfdfd;
+  border: 1px solid #e6ecf1;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .15), 0 1px 2px rgba(0, 0, 0, .3);
+  padding: 12px 18px 12px 22px;
+}
+.page-dashboard .tile-label { font-size: 14px; font-weight: 400; color: #201e1e; }
+.page-dashboard .tile-value {
+  font-size: 40px;
+  line-height: 1.5;
+  margin: 0;
+  color: #ff383c;
+}
+.page-dashboard .tile-foot { font-size: 13px; color: #000; }
+.page-dashboard .donut-centre strong { font-size: 44px; font-weight: 500; }
+.page-dashboard .donut-centre span { font-size: 15px; }
+
+/* The Figma's white Download PDF: 1px border, radius 10. */
+.btn-pdf--outline {
+  background: #fff;
+  color: #141b34;
+  border: 1px solid rgba(0, 0, 0, .26);
+  border-radius: 10px;
+  padding: 11px 26px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.btn-pdf--outline:hover { background: #f5f6fa; }
+

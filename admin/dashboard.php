@@ -141,6 +141,12 @@ layout_head('Dashboard', 'dashboard.php');
       </span>
     <?php endif; ?>
   </p>
+  <!-- Figma DASHBOARD's Download PDF: the Report Summary's own printable
+       report, for the month on screen. -->
+  <a class="btn-pdf btn-pdf--outline" target="_blank" rel="noopener"
+     href="summary.php?print=1&amp;from=<?= e($month->format('Y-m-01')) ?>&amp;to=<?= e($month->format('Y-m-t')) ?>&amp;category=">
+    Download PDF
+  </a>
 </div>
 
 <!-- ---------- reports received ---------- -->
@@ -266,7 +272,7 @@ layout_head('Dashboard', 'dashboard.php');
   var css = getComputedStyle(document.documentElement);
   function token(name) { return css.getPropertyValue(name).trim(); }
 
-  Chart.defaults.font.family = "'Roboto', system-ui, sans-serif";
+  Chart.defaults.font.family = "'Urbanist', system-ui, sans-serif";
   Chart.defaults.color = token('--ink-soft');
   Chart.defaults.plugins.legend.display = false;
 
@@ -351,7 +357,7 @@ layout_head('Dashboard', 'dashboard.php');
       },
       options: {
         responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '68%',
+        animation: { duration: 300 }, cutout: '78%', // the frame's thin ring
         // A chart that shows a problem should also be the way to reach it.
         onClick: function (_, hit) {
           if (!hit.length) return;
@@ -378,7 +384,7 @@ layout_head('Dashboard', 'dashboard.php');
       },
       options: {
         responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '68%',
+        animation: { duration: 300 }, cutout: '78%', // the frame's thin ring
         // category=, not q= — q searches tracking IDs and subjects, so
         // "street_obstruction" matched nothing and every segment opened
         // an empty list.
