@@ -444,7 +444,9 @@ class _MapScreenState extends State<MapScreen> {
                   // The orange pin straddling the card's top-left corner
                   // in the design (its 68x73 group at -16/-23).
                   // Decorative only — the title is indented to clear it.
-                  const Positioned(
+                  // Filled with the card's own `field` (the frame's
+                  // #FBFBFB) so it isn't a white blob in dark mode.
+                  Positioned(
                     left: -16,
                     top: -23,
                     width: 68,
@@ -455,9 +457,9 @@ class _MapScreenState extends State<MapScreen> {
                           radius: 25.5,
                           ring: 9.4,
                           stroke: 2.5,
-                          colour: Color(0xFFFF9800),
-                          fill: Color(0xFFFBFBFB),
-                          tip: Offset(41.7, 64),
+                          colour: const Color(0xFFFF9800),
+                          fill: context.colors.field,
+                          tip: const Offset(41.7, 64),
                         ),
                       ),
                     ),

@@ -425,8 +425,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               child: Container(
                                 width: 25,
                                 height: 25,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFBFBFB),
+                                // The frame's #FBFBFB is the light
+                                // theme's `field`; following the theme
+                                // keeps the navy glyph visible in dark
+                                // mode, where navy turns light.
+                                decoration: BoxDecoration(
+                                  color: context.colors.field,
                                   shape: BoxShape.circle,
                                 ),
                                 alignment: Alignment.center,
