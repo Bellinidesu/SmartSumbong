@@ -59,76 +59,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $level = 'error';
     } else {
         try {
-            switch ($_POST['action'] ?? '') {
-                case 'details':
-                    $name   = trim((string) ($_POST['full_name'] ?? ''));
-                    $mobile = trim((string) ($_POST['mobile_number'] ?? ''));
-
-                    if (mb_strlen($name) < 2) {
-                        throw new SupabaseError('Please enter your full name.');
-                    }
-                    // Stored as +639XXXXXXXXX (0021), which is what the field
-                    // is prefilled with — the old 09-only pattern rejected
-                    // that prefilled value, so Save failed even when only
-                    // the name was changed. Either form is accepted and
-                    // saved in the stored form.
-                    if (!preg_match('/^(?:09|\+639)(\d{9})$/', $mobile, $mm)) {
-                        throw new SupabaseError('Mobile number must be 11 digits starting 09.');
-                    }
-                    $mobile = '+639' . $mm[1];
-
-                    $current = $db->select('users', [
-                        'select' => 'mobile_number',
-                        'id'     => 'eq.' . $admin['id'],
-                        'limit'  => '1',
-                    ])[0]['mobile_number'] ?? null;
-
-                    $patch = ['full_name' => $name];
-                    if ($mobile !== $current) {
-                        $byPhone = signs_in_by_phone($db);
-                        if ($byPhone === null) {
-                            throw new SupabaseError('Your sign-in details could not be checked, so the '
-                                . 'mobile number was not changed. Please try again.');
-                        }
-                        if ($byPhone) {
-                            throw new SupabaseError('Your mobile number is how you sign in to the Smart '
-                                . 'Sumbong app, so it cannot be changed here. Nothing was changed.');
-                        }
-                        $patch['mobile_number'] = $mobile;
-                    }
-
-                    $db->update('users', ['id' => 'eq.' . $admin['id']], $patch);
-
-                    $_SESSION[SESSION_KEY]['full_name'] = $name;
-                    $flash = 'Profile updated.';
-                    break;
-
-                case 'password':
-                    $current = (string) ($_POST['current_password'] ?? '');
-                    $new     = (string) ($_POST['new_password'] ?? '');
-                    $confirm = (string) ($_POST['confirm_password'] ?? '');
-
-                    if (mb_strlen($new) < 8) {
-                        throw new SupabaseError('The new password must be at least 8 characters.');
-                    }
-                    if ($new !== $confirm) {
-                        throw new SupabaseError('The two new passwords do not match.');
-                    }
-                    if ($new === $current) {
-                        throw new SupabaseError('The new password is the same as the current one.');
-                    }
-
-                    // Proves the person at the keyboard is the account holder.
-                    Supabase::signIn($admin['email'], $current);
-
-                    $db->updateAuthUser(['password' => $new]);
-                    $flash = 'Password changed. It applies the next time you sign in.';
-                    break;
-
-                default:
-                    $flash = 'Unknown action.';
-                    $level = 'error';
+            // Figma "Editing profile" (12:6938) is one form with one Save:
+            // details and, when any password box is filled, the password.
+            // The older single-purpose actions still work the same way.
+            $action = (string) ($_POST['action'] ?? '');
+            if (!in_array($action, ['profile', 'details', 'password'], true)) {
+                throw new SupabaseError('Unknown action.');
             }
+            $current = (string) ($_POST['current_password'] ?? '');
+            $new     = (string) ($_POST['new_password'] ?? '');
+            $confirm = (string) ($_POST['confirm_password'] ?? '');
+            $doDetails  = $action !== 'password';
+            $doPassword = $action === 'password'
+                || ($action === 'profile' && ($current !== '' || $new !== '' || $confirm !== ''));
+
+            // Everything is checked before anything is written, so a wrong
+            // current password or a bad mobile number changes nothing.
+            $patch = null;
+            if ($doDetails) {
+                $name   = trim((string) ($_POST['full_name'] ?? ''));
+                $mobile = trim((string) ($_POST['mobile_number'] ?? ''));
+
+                if (mb_strlen($name) < 2) {
+                    throw new SupabaseError('Please enter your full name.');
+                }
+                // Stored as +639XXXXXXXXX (0021), which is what the field
+                // is prefilled with — the old 09-only pattern rejected
+                // that prefilled value, so Save failed even when only
+                // the name was changed. Either form is accepted and
+                // saved in the stored form.
+                if (!preg_match('/^(?:09|\+639)(\d{9})$/', $mobile, $mm)) {
+                    throw new SupabaseError('Mobile number must be 11 digits starting 09.');
+                }
+                $mobile = '+639' . $mm[1];
+
+                $stored = $db->select('users', [
+                    'select' => 'mobile_number',
+                    'id'     => 'eq.' . $admin['id'],
+                    'limit'  => '1',
+                ])[0]['mobile_number'] ?? null;
+
+                $patch = ['full_name' => $name];
+                if ($mobile !== $stored) {
+                    $byPhone = signs_in_by_phone($db);
+                    if ($byPhone === null) {
+                        throw new SupabaseError('Your sign-in details could not be checked, so the '
+                            . 'mobile number was not changed. Please try again.');
+                    }
+                    if ($byPhone) {
+                        throw new SupabaseError('Your mobile number is how you sign in to the Smart '
+                            . 'Sumbong app, so it cannot be changed here. Nothing was changed.');
+                    }
+                    $patch['mobile_number'] = $mobile;
+                }
+            }
+
+            if ($doPassword) {
+                if (mb_strlen($new) < 8) {
+                    throw new SupabaseError('The new password must be at least 8 characters.');
+                }
+                if ($new !== $confirm) {
+                    throw new SupabaseError('The two new passwords do not match.');
+                }
+                if ($new === $current) {
+                    throw new SupabaseError('The new password is the same as the current one.');
+                }
+                // Proves the person at the keyboard is the account holder.
+                Supabase::signIn($admin['email'], $current);
+            }
+
+            if ($patch !== null) {
+                $db->update('users', ['id' => 'eq.' . $admin['id']], $patch);
+                $_SESSION[SESSION_KEY]['full_name'] = $patch['full_name'];
+            }
+            if ($doPassword) {
+                $db->updateAuthUser(['password' => $new]);
+            }
+
+            $flash = match (true) {
+                $doDetails && $doPassword => 'Profile updated. The new password applies the next time you sign in.',
+                $doPassword               => 'Password changed. It applies the next time you sign in.',
+                default                   => 'Profile updated.',
+            };
         } catch (SupabaseError $ex) {
             // GoTrue answers a wrong password with "Invalid login
             // credentials" specifically -- matched on that exact phrase
@@ -155,7 +167,7 @@ $me    = null;
 
 try {
     $rows = $db->select('users', [
-        'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at',
+        'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url',
         'id'     => 'eq.' . $admin['id'],
         'limit'  => '1',
     ]);
@@ -188,41 +200,48 @@ layout_head('Edit Profile', 'profile.php');
   <?php layout_foot(); exit; ?>
 <?php endif; ?>
 
-<div class="case-grid">
-  <section class="card card--complaint">
-    <h1 class="case-heading">Profile</h1>
-    <div class="case-flags">
-      <span class="pill pill--assigned"><?= e(status_label($me['role'])) ?></span>
-      <span class="pill pill--resolved"><?= e(status_label($me['verification_status'])) ?></span>
-    </div>
+<?php
+$parts    = preg_split('/\s+/', trim((string) $me['full_name'])) ?: [];
+$initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
+?>
+<!-- Figma "Edit profile" (12:6775) and "Editing profile" (12:6938),
+     branch B: the fields on the left, who is signed in on the right. -->
+<section class="profile-card">
+  <div class="profile-main">
+    <h1 class="profile-title">Profile</h1>
 
     <?php if (!$editing): ?>
-      <div class="case-block">
-        <h3 class="case-sub">Account Details</h3>
-        <dl class="detail-list">
-          <dt>Full name</dt><dd><?= e($me['full_name']) ?></dd>
-          <dt>Email address</dt><dd><?= e($me['email']) ?></dd>
-          <dt>Mobile number</dt><dd class="mono"><?= e($me['mobile_number']) ?></dd>
-          <dt>Account created</dt><dd><?= e(long_datetime($me['created_at'])) ?></dd>
-          <?php if ($lastSeen): ?>
-            <dt>Last signed in</dt><dd><?= e(long_datetime($lastSeen)) ?></dd>
-          <?php endif; ?>
-        </dl>
+      <div class="profile-field">
+        <label for="pf_name">Full Name</label>
+        <input id="pf_name" type="text" value="<?= e($me['full_name']) ?>" readonly>
+      </div>
+      <div class="profile-field">
+        <label for="pf_mobile">Mobile Number</label>
+        <input id="pf_mobile" type="text" value="<?= e($me['mobile_number']) ?>" readonly>
+      </div>
+      <div class="profile-field">
+        <label for="pf_email">Email</label>
+        <input id="pf_email" type="text" value="<?= e($me['email']) ?>" readonly>
+      </div>
+      <div class="profile-field">
+        <label for="pf_pw">Password</label>
+        <input id="pf_pw" type="password" value="************" readonly aria-describedby="pf_pw_hint">
+        <p class="field-hint" id="pf_pw_hint">Change it with Edit Profile.</p>
       </div>
 
     <?php else: ?>
-      <form method="post" class="case-block">
+      <form method="post" id="profile-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <h3 class="case-sub">Account Details</h3>
+        <input type="hidden" name="action" value="profile">
 
-        <div class="control-field">
-          <label class="field-label" for="full_name">Full name</label>
+        <div class="profile-field">
+          <label for="full_name">Full Name</label>
           <input type="text" id="full_name" name="full_name" required maxlength="120"
                  value="<?= e($me['full_name']) ?>">
         </div>
 
-        <div class="control-field">
-          <label class="field-label" for="mobile_number">Mobile number</label>
+        <div class="profile-field">
+          <label for="mobile_number">Mobile Number</label>
           <?php if ($mobileLocked): ?>
             <!-- Sent unchanged, so the server still sees the same number. -->
             <input type="tel" id="mobile_number" name="mobile_number" readonly
@@ -238,58 +257,130 @@ layout_head('Edit Profile', 'profile.php');
           <?php endif; ?>
         </div>
 
-        <div class="control-field">
-          <label class="field-label" for="email_ro">Email address</label>
+        <div class="profile-field">
+          <label for="email_ro">Email</label>
           <input type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled>
-          <p class="field-hint">
-            This is your sign-in identity and cannot be changed here.
-          </p>
+          <p class="field-hint">This is your sign-in identity and cannot be changed here.</p>
         </div>
 
-        <div class="confirm-actions" style="justify-content:flex-start">
-          <button class="btn-accept" type="submit" name="action" value="details">Save changes</button>
-          <a class="btn-deny" href="profile.php">Cancel</a>
+        <p class="profile-note">To change your password, fill in all three boxes below. Leave them empty to keep it.</p>
+
+        <div class="profile-field">
+          <label for="current_password">Current Password</label>
+          <input type="password" id="current_password" name="current_password" autocomplete="current-password">
+        </div>
+
+        <div class="profile-field">
+          <label for="new_password">New Password</label>
+          <input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password">
+          <!-- Guidance, not a gate. The rule is eight characters; the meter
+               just tells you whether you have done better than that. -->
+          <div class="pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
+          <p class="field-hint" id="pw-note">At least 8 characters.</p>
+        </div>
+
+        <div class="profile-field">
+          <label for="confirm_password">Repeat New Password</label>
+          <input type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password">
+        </div>
+
+        <div class="profile-actions">
+          <button type="button" class="profile-btn" id="profile-cancel">Cancel</button>
+          <button type="submit" class="profile-btn profile-btn--save">Save</button>
         </div>
       </form>
+
+      <!-- Figma 12:7185 and 12:7497. -->
+      <dialog class="profile-confirm" id="confirm-cancel">
+        <p class="profile-confirm-title">Are you Sure?</p>
+        <p class="profile-confirm-text">Your changes will not be saved.</p>
+        <div class="profile-confirm-actions">
+          <button type="button" class="profile-btn" data-close>Cancel</button>
+          <a class="profile-btn profile-btn--save" href="profile.php">OK !</a>
+        </div>
+      </dialog>
+      <dialog class="profile-confirm" id="confirm-save">
+        <p class="profile-confirm-title">Save Changes ?</p>
+        <div class="profile-confirm-actions">
+          <button type="button" class="profile-btn" data-close>Cancel</button>
+          <button type="button" class="profile-btn profile-btn--save" id="confirm-save-ok">OK !</button>
+        </div>
+      </dialog>
     <?php endif; ?>
-  </section>
+  </div>
 
-  <aside class="card card--controls">
-    <h3 class="case-sub">Admin Controls</h3>
-
+  <aside class="profile-side">
+    <?php if (!empty($me['avatar_url'])): ?>
+      <img class="profile-avatar" src="<?= e($me['avatar_url']) ?>" alt="">
+    <?php else: ?>
+      <span class="profile-avatar profile-avatar--initials" aria-hidden="true"><?= e($initials) ?></span>
+    <?php endif; ?>
+    <p class="profile-name"><?= e($me['full_name']) ?></p>
+    <p class="profile-email"><?= e($me['email']) ?></p>
+    <div class="profile-pills">
+      <span class="pill pill--assigned"><?= e(status_label($me['role'])) ?></span>
+      <span class="pill pill--resolved"><?= e(status_label($me['verification_status'])) ?></span>
+    </div>
     <?php if (!$editing): ?>
-      <a class="btn-accept" href="profile.php?edit=1" style="text-decoration:none">Edit Profile</a>
+      <a class="profile-edit" href="profile.php?edit=1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M4 12h7M4 17h5"/><path d="m14 19 1-3 5-5 2 2-5 5-3 1z"/></svg>
+        Edit Profile
+      </a>
     <?php endif; ?>
-
-    <form method="post" class="control-stack" style="margin-top:16px">
-      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-      <p class="control-note">Change your password. You will stay signed in on this device.</p>
-
-      <div class="control-field">
-        <label class="field-label" for="current_password">Current password</label>
-        <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
-      </div>
-
-      <div class="control-field">
-        <label class="field-label" for="new_password">New password</label>
-        <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
-        <!-- Guidance, not a gate. The rule is eight characters; the meter
-             just tells you whether you have done better than that. -->
-        <div class="pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
-        <p class="field-hint" id="pw-note">At least 8 characters.</p>
-      </div>
-
-      <div class="control-field">
-        <label class="field-label" for="confirm_password">Repeat new password</label>
-        <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
-      </div>
-
-      <button class="btn-deny-confirm" type="submit" name="action" value="password">Change password</button>
-    </form>
+    <dl class="profile-meta">
+      <dt>Account created</dt><dd><?= e(long_datetime($me['created_at'])) ?></dd>
+      <?php if ($lastSeen): ?>
+        <dt>Last signed in</dt><dd><?= e(long_datetime($lastSeen)) ?></dd>
+      <?php endif; ?>
+    </dl>
   </aside>
-</div>
+</section>
 
 <script>
+(function () {
+  var form = document.getElementById('profile-form');
+  if (!form) return;
+
+  // Save asks first (Figma 12:7497); the browser's own checks run before
+  // the question, so the dialog never confirms a form that cannot send.
+  var ask = document.getElementById('confirm-save'), sure = false;
+  form.addEventListener('submit', function (e) {
+    if (sure) return;
+    e.preventDefault();
+    if (!form.reportValidity()) return;
+    ask.showModal();
+  });
+  document.getElementById('confirm-save-ok').addEventListener('click', function () {
+    sure = true;
+    ask.close();
+    form.requestSubmit();
+  });
+
+  // Cancel asks only when something was changed (Figma 12:7185).
+  var start = new FormData(form), cancel = document.getElementById('confirm-cancel');
+  document.getElementById('profile-cancel').addEventListener('click', function () {
+    var changed = false;
+    new FormData(form).forEach(function (v, k) { if (start.get(k) !== v) changed = true; });
+    if (changed) cancel.showModal(); else location.href = 'profile.php';
+  });
+  document.querySelectorAll('.profile-confirm [data-close]').forEach(function (b) {
+    b.addEventListener('click', function () { b.closest('dialog').close(); });
+  });
+
+  // A password change needs all three boxes: any one filled makes the
+  // other two required, so the browser says which is missing.
+  var pwBoxes = ['current_password', 'new_password', 'confirm_password'].map(function (id) {
+    return document.getElementById(id);
+  });
+  pwBoxes.forEach(function (box) {
+    box.addEventListener('input', function () {
+      var any = pwBoxes.some(function (b) { return b.value !== ''; });
+      pwBoxes.forEach(function (b) { b.required = any; });
+    });
+  });
+})();
+
 (function () {
   var pw = document.getElementById('new_password'),
       bar = document.getElementById('pw-bar'),
