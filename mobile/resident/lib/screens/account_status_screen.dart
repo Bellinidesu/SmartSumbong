@@ -24,6 +24,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 enum AccountBlock { rejected, suspended }
 
@@ -81,132 +82,163 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
 
   bool get _isRejected => widget.block == AccountBlock.rejected;
 
+  // No frame of its own: set like its sibling VERIFICATION PENDING —
+  // over the contour texture, the 30/800 title and 16/500 body centred,
+  // the barangay's reason in a radius-25 card, and the design's 301x44
+  // pills (navy Register again, light Sign out).
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
+    final c = context.colors;
 
     return PopScope(
       canPop: false,
       child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Spacer(flex: 2),
-
-                Icon(
-                  _isRejected
-                      ? Icons.cancel_outlined
-                      : Icons.pause_circle_outline,
-                  size: 56,
-                  color: const Color(0xFFFF4949),
-                ),
-                const SizedBox(height: 16),
-
-                Text(
-                  _isRejected
-                      ? s.accountStatusRejectedTitle
-                      : s.accountStatusSuspendedTitle,
-                  textAlign: TextAlign.center,
-                  style: t.headlineLarge?.copyWith(fontSize: 24),
-                ),
-                const SizedBox(height: 12),
-
-                Text(
-                  _isRejected
-                      ? s.accountStatusRejectedBody
-                      : s.accountStatusSuspendedBody,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 14, height: 1.5, color: context.colors.navy),
-                ),
-
-                if (_loading) ...[
-                  const SizedBox(height: 20),
-                  const Center(
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                ] else if (_reason != null) ...[
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: context.colors.field,
-                      border: Border.all(color: context.colors.navy),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+        body: Stack(
+          children: [
+            const FigmaTexture(),
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                    46, figmaTop(context, 240, min: 32), 46, 24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Icon(
+                          _isRejected
+                              ? Icons.cancel_outlined
+                              : Icons.pause_circle_outline,
+                          size: 56,
+                          color: kFigmaRed,
+                        ),
+                        const SizedBox(height: 14),
                         Text(
-                          s.accountStatusReasonGiven,
+                          _isRejected
+                              ? s.accountStatusRejectedTitle
+                              : s.accountStatusSuspendedTitle,
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: context.colors.navy,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 30,
+                            height: 1.1,
+                            color: c.navy,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
                         Text(
-                          _reason!,
+                          _isRejected
+                              ? s.accountStatusRejectedBody
+                              : s.accountStatusSuspendedBody,
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 13,
-                              height: 1.45,
-                              color: context.colors.navy),
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            height: 20 / 16,
+                            color: c.navy,
+                          ),
+                        ),
+
+                        if (_loading) ...[
+                          const SizedBox(height: 20),
+                          Center(
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: c.navy),
+                            ),
+                          ),
+                        ] else if (_reason != null) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                            decoration: BoxDecoration(
+                              color: c.field,
+                              border: Border.all(color: c.navy),
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  s.accountStatusReasonGiven,
+                                  style: TextStyle(
+                                    fontFamily: 'Urbanist',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: c.navy,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _reason!,
+                                  style: TextStyle(
+                                    fontFamily: 'Urbanist',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    height: 1.4,
+                                    color: c.navy,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 16),
+                        Text(
+                          _isRejected
+                              ? (widget.canRegisterAgain
+                                  ? s.accountStatusRejectedCanRegister
+                                  : s.accountStatusRejectedCannotRegister)
+                              : s.accountStatusSuspendedNote,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                            height: 1.4,
+                            color: c.muted,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+
+                        if (_isRejected && widget.canRegisterAgain) ...[
+                          FigmaPill(
+                            onPressed: () async {
+                              // Signed out first: registering again
+                              // creates a new account, and the denied
+                              // session must not survive into it.
+                              await widget.auth.signOut();
+                              if (context.mounted) {
+                                Navigator.of(context).pushNamedAndRemoveUntil(
+                                    '/register', (_) => false);
+                              }
+                            },
+                            child: Text(s.accountStatusRegisterAgain),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        FigmaPill(
+                          style: _isRejected && widget.canRegisterAgain
+                              ? FigmaPillStyle.light
+                              : FigmaPillStyle.navy,
+                          onPressed: _signOut,
+                          child: Text(s.accountStatusSignOut),
                         ),
                       ],
                     ),
                   ),
-                ],
-
-                const SizedBox(height: 20),
-                Text(
-                  _isRejected
-                      ? (widget.canRegisterAgain
-                          ? s.accountStatusRejectedCanRegister
-                          : s.accountStatusRejectedCannotRegister)
-                      : s.accountStatusSuspendedNote,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 12.5, height: 1.5, color: context.colors.muted),
                 ),
-
-                const Spacer(flex: 2),
-
-                if (_isRejected && widget.canRegisterAgain)
-                  FilledButton(
-                    onPressed: () async {
-                      // Signed out first: registering again creates a new
-                      // account, and the denied session must not survive
-                      // into it.
-                      await widget.auth.signOut();
-                      if (context.mounted) {
-                        Navigator.of(context)
-                            .pushNamedAndRemoveUntil('/register', (_) => false);
-                      }
-                    },
-                    child: Text(s.accountStatusRegisterAgain),
-                  ),
-                if (_isRejected && widget.canRegisterAgain)
-                  const SizedBox(height: 10),
-
-                OutlinedButton(
-                  onPressed: _signOut,
-                  child: Text(s.accountStatusSignOut),
-                ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
