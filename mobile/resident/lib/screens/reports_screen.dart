@@ -996,8 +996,10 @@ class _ReportCard extends StatelessWidget {
                       style: const TextStyle(
                         fontFamily: 'Urbanist',
                         fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        height: 20 / 18,
+                        // 18 in the frame; a step down so the ID, status
+                        // and subject don't crowd the card on a phone.
+                        fontSize: 16,
+                        height: 1.2,
                         color: _onNavy,
                       ),
                       children: [
@@ -1024,35 +1026,35 @@ class _ReportCard extends StatelessWidget {
                 ),
               ],
             ),
-            Row(
+            const SizedBox(height: 4),
+            // The street goes under the date when both don't fit, rather
+            // than squeezing the date onto two lines.
+            Wrap(
+              spacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Flexible(
-                  child: Text(
-                    s.reportsSubmittedOn(_formatDate(s, report.createdAt)),
-                    style: const TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                      height: 18.72 / 12,
-                      color: _onNavy,
-                    ),
+                Text(
+                  s.reportsSubmittedOn(_formatDate(s, report.createdAt)),
+                  style: const TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    height: 18.72 / 12,
+                    color: _onNavy,
                   ),
                 ),
                 // Kept from the pre-Figma card (a real, user-requested
                 // upgrade): the street name beside the date, as View
                 // Report already shows it.
                 if (report.latitude != null && report.longitude != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: _LocationLabel(
-                      latitude: report.latitude!,
-                      longitude: report.longitude!,
-                      color: _onNavy,
-                    ),
+                  _LocationLabel(
+                    latitude: report.latitude!,
+                    longitude: report.longitude!,
+                    color: _onNavy,
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             // The frame's quoted body. A finished report shows the
             // tanod's resolution note with its byline instead, as it has
             // since 29 Aug; otherwise the resident's own words.
