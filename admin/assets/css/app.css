@@ -2517,3 +2517,15 @@ a.btn-accept { text-decoration: none; }
 .access-back { display: inline-flex; align-items: center; justify-content: center; margin-top: 26px; text-decoration: none; }
 /* "Send reset link" wrapped onto two lines inside the sign-in button's width. */
 .login-btn { min-width: 119px; padding-inline: 18px; white-space: nowrap; width: fit-content; }
+
+/* ---------- Account review (Figma Resident/Responder Verification
+   2:3969, 12:5531, 12:4397; branch B) ----------
+   Same orange-edged cards as the case review, but white, as the
+   account frames draw them; Verify in the frames' green; a portrait ID
+   photo kept to a reviewable height (click still opens it full size). */
+:is(.page-residents, .page-personnel) .case-grid .card--complaint { background: #fff; }
+:is(.page-residents, .page-personnel) .case-grid .card--complaint .case-block { border-top-color: var(--rule); }
+:is(.page-residents, .page-personnel) .case-top .chip-tab { background: #fff; }
+:is(.page-residents, .page-personnel) .card--controls .btn-accept { background: #8bc34a; }
+:is(.page-residents, .page-personnel) .card--controls .btn-accept:hover { background: #7cb342; }
+.id-shot img { width: auto; max-width: 100%; max-height: 340px; object-fit: contain; background: #f6f7f9; }
