@@ -317,6 +317,24 @@ ThemeData buildResidentTheme(Brightness brightness) {
       ),
     ),
 
+    // Every snackbar (the draft-restored note, save/copy confirmations,
+    // errors) in the design's language rather than Material's grey: a
+    // floating navy pill, radius 25, light Urbanist text, orange action.
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: c.navy,
+      contentTextStyle: TextStyle(
+        fontFamily: 'Urbanist',
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+        color: c.bg,
+      ),
+      actionTextColor: const Color(0xFFFF9800),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      insetPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      elevation: 3,
+    ),
+
     checkboxTheme: CheckboxThemeData(
       side: BorderSide(color: c.navy),
       fillColor: WidgetStateProperty.resolveWith(

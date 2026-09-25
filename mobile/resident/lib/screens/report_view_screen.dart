@@ -1868,46 +1868,105 @@ class _DialogPill extends StatelessWidget {
 /// Figma 2613:709 — full-screen photo with pinch to zoom. A video page
 /// embeds the shared player instead of an InteractiveViewer, since
 /// pinch-to-zoom on a playing video is not a thing anyone wants.
-class _PhotoViewer extends StatelessWidget {
+/// Full-screen photo/video viewer. No frame of its own: black, as any
+/// photo viewer is, with the design's round light close button and a
+/// "2 / 3" count when there is more than one.
+class _PhotoViewer extends StatefulWidget {
   const _PhotoViewer({required this.items, required this.initial});
 
   final List<({String url, bool isVideo})> items;
   final int initial;
 
   @override
+  State<_PhotoViewer> createState() => _PhotoViewerState();
+}
+
+class _PhotoViewerState extends State<_PhotoViewer> {
+  late final PageController _pages =
+      PageController(initialPage: widget.initial);
+  late int _index = widget.initial;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final items = widget.items;
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: PageView.builder(
-        controller: PageController(initialPage: initial),
-        itemCount: items.length,
-        itemBuilder: (_, i) {
-          final item = items[i];
-          if (item.isVideo) {
-            return InlineVideoPlayer(url: item.url);
-          }
-          return InteractiveViewer(
-            minScale: 1,
-            maxScale: 4,
-            child: Center(
-              child: CachedNetworkImage(
-                imageUrl: item.url,
-                fit: BoxFit.contain,
-                placeholder: (_, __) => const Center(
-                    child: CircularProgressIndicator(color: Colors.white)),
-                errorWidget: (_, __, ___) => Center(
-                  child: Text(context.s.reportViewCouldNotLoadPhoto,
-                      style: const TextStyle(color: Colors.white)),
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pages,
+            itemCount: items.length,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (_, i) {
+              final item = items[i];
+              if (item.isVideo) {
+                return SafeArea(child: InlineVideoPlayer(url: item.url));
+              }
+              return InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Center(
+                  child: CachedNetworkImage(
+                    imageUrl: item.url,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(color: Colors.white)),
+                    errorWidget: (context, url, error) => Center(
+                      child: Text(context.s.reportViewCouldNotLoadPhoto,
+                          style: const TextStyle(color: Colors.white)),
+                    ),
+                  ),
                 ),
+              );
+            },
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  Material(
+                    color: const Color(0xFFF3F3F3),
+                    shape: const CircleBorder(),
+                    elevation: 2,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close,
+                          color: Color(0xFF00308F), size: 22),
+                      tooltip: MaterialLocalizations.of(context)
+                          .closeButtonTooltip,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (items.length > 1)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: Text(
+                        '${_index + 1} / ${items.length}',
+                        style: const TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
