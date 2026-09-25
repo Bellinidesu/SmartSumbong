@@ -24,6 +24,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'i18n.dart';
 import 'screens/edit_profile_screen.dart';
+import 'screens/history_screen.dart';
 import 'screens/languages_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/tanod_home_screen.dart';
@@ -173,6 +174,7 @@ class SmartSumbongTanodApp extends StatelessWidget {
               // HOME - TANOD, so the launch gate lands here instead.
               '/home': (_) => TanodHomeScreen(auth: auth),
               '/reports': (_) => const ReportsScreen(),
+              '/history': (_) => const HistoryScreen(),
               '/notifications': (_) => const NotificationsScreen(),
               '/settings': (_) => SettingsScreen(auth: auth),
               '/edit-profile': (_) => EditProfileScreen(auth: auth),

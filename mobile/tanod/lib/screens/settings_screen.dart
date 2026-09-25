@@ -12,6 +12,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../duty.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
@@ -145,6 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirmed != true) return;
 
     setState(() => _busy = true);
+    DutyController.instance.reset();
     await widget.auth.signOut();
     if (!mounted) return;
     // Clear the stack: a back gesture after signing out should not
