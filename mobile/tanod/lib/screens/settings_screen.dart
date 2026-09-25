@@ -34,6 +34,9 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _name;
   String? _mobile;
+
+  /// The profile photo set on Edit Profile, if any.
+  String? _avatarUrl;
   String? _version;
   bool _busy = false;
 
@@ -117,12 +120,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final row = await client
           .from('users')
-          .select('full_name, mobile_number')
+          .select('full_name, mobile_number, avatar_url')
           .eq('id', uid)
           .maybeSingle();
       if (!mounted || row == null) return;
       setState(() {
         _name = row['full_name'] as String?;
+        _avatarUrl = row['avatar_url'] as String?;
         _mobile = row['mobile_number'] as String?;
       });
     } catch (_) {
@@ -179,20 +183,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     width: 111,
                     height: 111,
+                    // The photo from Edit Profile fills the circle; only
+                    // an account without one shows its initials.
                     decoration: BoxDecoration(
                       color: context.colors.navy,
                       shape: BoxShape.circle,
+                      image: _avatarUrl == null
+                          ? null
+                          : DecorationImage(
+                              image: NetworkImage(
+                                  cloudinarySized(_avatarUrl!, width: 420)),
+                              fit: BoxFit.cover,
+                            ),
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      _initials(_name),
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 36,
-                        color: context.colors.bg,
-                      ),
-                    ),
+                    child: _avatarUrl != null
+                        ? null
+                        : Text(
+                            _initials(_name),
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 36,
+                              color: context.colors.bg,
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 18),
                   Expanded(
