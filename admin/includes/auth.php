@@ -114,6 +114,12 @@ function require_admin(): array
             $admin['expires_at']    = time() + (int) ($fresh['expires_in'] ?? 3600);
             $_SESSION[SESSION_KEY]  = $admin;
         } catch (SupabaseError) {
+            // The refresh token is dead too (the portal was left overnight).
+            // Forget the login entirely: leaving it in the session made
+            // login.php see "signed in" and bounce back here, which bounced
+            // to login.php again — ERR_TOO_MANY_REDIRECTS until the cookie
+            // was cleared by hand.
+            unset($_SESSION[SESSION_KEY]);
             $admin = null;
         }
     }
