@@ -1392,6 +1392,8 @@ class Strings {
   String emergencyCallPrompt(String number) =>
       _t('Call $number', 'Tawagan ang $number');
   String get emergencyCancel => _t('Cancel', 'Kanselahin');
+  String get emergencySlideToCall =>
+      _t('Slide to Call', 'I-slide para Tumawag');
   String get emergencyCopyNumberTooltip =>
       _t('Copy number', 'Kopyahin ang numero');
   String emergencyDiallerFailed(String number) => _t(
