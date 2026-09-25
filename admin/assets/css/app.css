@@ -2415,3 +2415,11 @@ a.btn-accept { text-decoration: none; }
   .profile-card { grid-template-columns: 1fr; padding: 28px 20px; gap: 24px; }
   .profile-side { order: -1; padding-top: 0; }
 }
+
+/* ---------- Spatial Distribution (branch B) ---------- */
+/* Exactly the window: main's own padding (26 top, 60 bottom) and the
+   panel's margin used to push the page 52px past it, so the whole page
+   scrolled under the map. */
+.page-spatial .panel--map { height: calc(100dvh - 86px); margin-bottom: 0; }
+.page-spatial .maplibregl-ctrl-group { border-radius: 8px; box-shadow: var(--shadow); }
+.page-spatial .maplibregl-ctrl-attrib { font-size: 11px; }

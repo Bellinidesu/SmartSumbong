@@ -742,8 +742,8 @@ layout_head('Case Review', 'cases.php');
   <?php endif; ?>
 </div>
 
-<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-<script src="assets/vendor/leaflet/leaflet.js"></script>
+<link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
+<script src="assets/vendor/maplibre/maplibre-gl.js"></script>
 <script>
 (function () {
   // ---- copy the tracking id ----
@@ -810,21 +810,30 @@ layout_head('Case Review', 'cases.php');
   // this one to full screen (below) briefly turns those back on, since a
   // fixed, uninteractive view stops making sense once it fills the screen.
   var el = document.getElementById('case-map');
-  if (el && window.L) {
+  if (el && window.maplibregl) {
     var lat = <?= json_encode((float) $report['latitude']) ?>,
         lng = <?= json_encode((float) $report['longitude']) ?>;
-    var map = L.map(el, {
-      center: [lat, lng], zoom: 17,
-      dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
-      zoomControl: false, keyboard: false, touchZoom: false, boxZoom: false
+    // Branch B: the same MapLibre + OpenFreeMap style as Spatial
+    // Distribution and the apps (see spatial.php). Zoom 16 here is
+    // Leaflet's 17 — MapLibre's scale sits one lower.
+    var map = new maplibregl.Map({
+      container: el,
+      style: 'assets/map/style-light.json',
+      center: [lng, lat], zoom: 16, maxZoom: 18,
+      interactive: true, dragRotate: false, pitchWithRotate: false,
+      attributionControl: { compact: true }
     });
-    // Reverted 15 Sep 2026 — CARTO now gates these tiles behind an API key
-    // (see spatial.php for the full story). Back to standard OSM raster.
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-    L.marker([lat, lng]).addTo(map);
+    map.touchZoomRotate.disableRotation();
+    map.keyboard.disableRotation();
+    new maplibregl.Marker({ color: '#00308f' }).setLngLat([lng, lat]).addTo(map);
+    // Folded to its (i) button: opened, it covers the coordinates label.
+    map.on('load', function () {
+      var attrib = el.querySelector('.maplibregl-ctrl-attrib');
+      if (attrib) { attrib.classList.remove('maplibregl-compact-show'); attrib.removeAttribute('open'); }
+    });
+    var interactive = ['dragPan', 'scrollZoom', 'doubleClickZoom',
+                       'keyboard', 'touchZoomRotate', 'boxZoom'];
+    interactive.forEach(function (h) { map[h].disable(); });
 
     // ---- expand to full screen ----
     // Same Fullscreen API pattern as spatial.php's own expand button: the
@@ -834,8 +843,6 @@ layout_head('Case Review', 'cases.php');
     var expandBtn = document.getElementById('case-map-expand');
     var preview    = document.getElementById('case-map-preview');
     if (expandBtn && preview) {
-      var interactive = ['dragging', 'scrollWheelZoom', 'doubleClickZoom',
-                          'keyboard', 'touchZoom', 'boxZoom'];
       // zoomControl was left off entirely at creation (zoomControl: false
       // above) since the small preview has no use for it — a single
       // instance is made the first time it is actually needed, then
@@ -866,13 +873,16 @@ layout_head('Case Review', 'cases.php');
         interactive.forEach(function (opt) {
           active ? map[opt].enable() : map[opt].disable();
         });
+        // enable() turns rotation back on with the zoom; the map stays north-up.
+        map.touchZoomRotate.disableRotation();
+        map.keyboard.disableRotation();
         if (active) {
-          if (!zoomCtl) { zoomCtl = L.control.zoom({ position: 'bottomright' }); }
-          zoomCtl.addTo(map);
+          if (!zoomCtl) { zoomCtl = new maplibregl.NavigationControl({ showCompass: false }); }
+          map.addControl(zoomCtl, 'bottom-right');
         } else if (zoomCtl) {
           map.removeControl(zoomCtl);
         }
-        setTimeout(function () { map.invalidateSize(); }, 120);
+        setTimeout(function () { map.resize(); }, 120);
       });
     }
   }
