@@ -35,31 +35,24 @@ import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class TermsPrivacyScreen extends StatelessWidget {
   const TermsPrivacyScreen({super.key});
 
+  // No frame of its own: set like the translated pages — the title
+  // 28/800 at 50 (no app bar; the pill at the foot and the system back
+  // both return), 16/700 headings over 14/500 text, and the 150x45 Back.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: context.colors.bg,
-        surfaceTintColor: context.colors.bg,
-        elevation: 0,
-        foregroundColor: context.colors.navy,
-      ),
       body: SafeArea(
-        top: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(30, 0, 30, 40),
+          padding: EdgeInsets.fromLTRB(30, figmaTop(context, 50), 30, 32),
           children: [
-            Center(
-              child: Text(s.termsPrivacyTitle,
-                  style: t.headlineLarge?.copyWith(fontSize: 26)),
-            ),
+            FigmaTitle(s.termsPrivacyTitle),
             const SizedBox(height: 16),
             const _DraftBanner(),
             const SizedBox(height: 24),
@@ -95,7 +88,8 @@ class TermsPrivacyScreen extends StatelessWidget {
               title: s.termsPrivacySection8Title,
               body: s.termsPrivacySection8Body,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            Center(child: FigmaBackPill(label: s.termsPrivacyBack)),
           ],
         ),
       ),
@@ -109,15 +103,21 @@ class _DraftBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFF9800).withValues(alpha: 0.12),
-        border: Border.all(color: const Color(0xFFFF9800)),
-        borderRadius: BorderRadius.circular(12),
+        color: kFigmaOrange.withValues(alpha: 0.12),
+        border: Border.all(color: kFigmaOrange),
+        borderRadius: BorderRadius.circular(25),
       ),
       child: Text(
         context.s.termsPrivacyDraftBanner,
-        style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.navy),
+        style: TextStyle(
+          fontFamily: 'Urbanist',
+          fontWeight: FontWeight.w500,
+          fontSize: 13,
+          height: 1.4,
+          color: context.colors.navy,
+        ),
       ),
     );
   }
@@ -141,14 +141,21 @@ class _Section extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Urbanist',
               fontWeight: FontWeight.w700,
-              fontSize: 14,
+              fontSize: 16,
+              height: 1.25,
               color: context.colors.navy,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             body,
-            style: TextStyle(fontSize: 13, height: 1.45, color: context.colors.navy),
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              height: 20 / 14,
+              color: context.colors.navy,
+            ),
           ),
         ],
       ),

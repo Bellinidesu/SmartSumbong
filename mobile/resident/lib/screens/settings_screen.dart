@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import '../widgets/resident_nav_bar.dart';
 
 /// The barangay's page. Worth confirming with them before deployment —
@@ -497,10 +498,9 @@ class _SettingsToggleRow extends StatelessWidget {
                   strokeWidth: 2, color: context.colors.navy),
             )
           else
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: context.colors.navy,
+            Semantics(
+              label: label,
+              child: FigmaSwitch(value: value, onChanged: onChanged),
             ),
         ],
       ),

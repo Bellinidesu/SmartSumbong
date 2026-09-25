@@ -1221,6 +1221,7 @@ class Strings {
   // translation too.
   String get termsPrivacyTitle =>
       _t('Terms & Privacy Notice', 'Mga Tuntunin at Paalala sa Privacy');
+  String get termsPrivacyBack => _t('Back', 'Bumalik');
   String get termsPrivacyDraftBanner => _t(
       'This is a draft prepared from how the app actually handles your '
       'data, for Barangay 183 to review, correct, and formally adopt. '

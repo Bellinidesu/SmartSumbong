@@ -345,3 +345,151 @@ class FigmaTexture extends StatelessWidget {
         ),
       );
 }
+
+/// The LANGUAGES frame's picker row: the label 16/600 navy, the 20px
+/// orange radio (1.5 stroke, 11 dot) at the right; 15 above and below so
+/// each row is a 50-tall target on the frame's 70 pitch (20 between).
+class FigmaRadioRow extends StatelessWidget {
+  const FigmaRadioRow({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: context.colors.navy,
+                  ),
+                ),
+              ),
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: kFigmaOrange, width: 1.5),
+                ),
+                child: selected
+                    ? Center(
+                        child: Container(
+                          width: 11,
+                          height: 11,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: kFigmaOrange,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The report form's anonymous toggle, at any size: a navy track with a
+/// light knob. The frame draws only the "on" look; off here keeps the
+/// knob left and lightens the track so the two states can't be confused.
+/// The tap target is at least 48x40 whatever the drawn size.
+class FigmaSwitch extends StatelessWidget {
+  const FigmaSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.width = 40,
+    this.height = 24,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final enabled = onChanged != null;
+    return Semantics(
+      toggled: value,
+      enabled: enabled,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? () => onChanged!(!value) : null,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 40),
+          child: Center(
+            child: Opacity(
+              opacity: enabled ? 1 : 0.5,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: width,
+                height: height,
+                padding: EdgeInsets.all(height * 0.12),
+                decoration: BoxDecoration(
+                  color: value ? c.navy : c.navy.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(height),
+                ),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 160),
+                  curve: Curves.easeOut,
+                  alignment:
+                      value ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    width: height * 0.76,
+                    height: height * 0.76,
+                    decoration: BoxDecoration(
+                      color: c.bg,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The frames' 150x45 navy Back pill (NOTIFICATION, LANGUAGES).
+class FigmaBackPill extends StatelessWidget {
+  const FigmaBackPill({super.key, required this.label, this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => FigmaPill(
+        width: 150,
+        height: 45,
+        onPressed: onPressed ?? () => Navigator.of(context).maybePop(),
+        child: Text(label),
+      );
+}

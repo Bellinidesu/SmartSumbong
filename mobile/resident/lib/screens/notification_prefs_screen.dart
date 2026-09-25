@@ -17,6 +17,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class NotificationPrefsScreen extends StatefulWidget {
   const NotificationPrefsScreen({super.key});
@@ -111,29 +112,38 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
         _ => kind,
       };
 
+  // No frame of its own: laid out as the translated settings pickers
+  // (LANGUAGES) — the title 28/800 at 50, the 16/600 rows with the
+  // design's switch on a 66 pitch, and the 150x45 Back pill.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final c = context.colors;
     final s = context.s;
 
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(30, figmaTop(context, 50), 30, 24),
           child: Column(
             children: [
-              const SizedBox(height: 16),
-              Text(s.notifPrefsTitle,
-                  style: t.headlineLarge?.copyWith(fontSize: 24)),
-              const SizedBox(height: 6),
-              Text(
-                s.notifPrefsSubtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12.5, color: c.muted),
+              FigmaTitle(s.notifPrefsTitle),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 13),
+                child: Text(
+                  s.notifPrefsSubtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    height: 18 / 14,
+                    color: c.navy,
+                  ),
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
 
               if (_loading)
                 Padding(
@@ -148,29 +158,28 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
                       style: TextStyle(color: c.hint)),
                 )
               else
-                ..._mutableKinds.map((kind) => _PrefRow(
-                      label: _label(s, kind),
-                      // A row shows ON when the push is allowed — "muted"
-                      // is the stored/negative concept, but a resident
-                      // reads a switch as "this is turned on," so the
-                      // toggle itself speaks in the positive.
-                      value: !_muted.contains(kind),
-                      busy: _busy.contains(kind),
-                      onChanged: (allow) => _toggle(kind, !allow),
-                    )),
-
-              const SizedBox(height: 30),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(120, 42),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 16, 0),
+                  child: Column(
+                    children: [
+                      for (final kind in _mutableKinds)
+                        _PrefRow(
+                          label: _label(s, kind),
+                          // A row shows ON when the push is allowed —
+                          // "muted" is the stored/negative concept, but a
+                          // resident reads a switch as "this is turned
+                          // on," so the toggle itself speaks in the
+                          // positive.
+                          value: !_muted.contains(kind),
+                          busy: _busy.contains(kind),
+                          onChanged: (allow) => _toggle(kind, !allow),
+                        ),
+                    ],
                   ),
                 ),
-                child: Text(s.notifPrefsBack),
-              ),
-              const Spacer(),
+
+              const SizedBox(height: 32),
+              FigmaBackPill(label: s.notifPrefsBack),
             ],
           ),
         ),
@@ -195,24 +204,38 @@ class _PrefRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 66),
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: TextStyle(fontSize: 14, color: c.navy)),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: c.navy,
+              ),
+            ),
           ),
+          const SizedBox(width: 12),
           if (busy)
             SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: c.navy),
+              width: 48,
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child:
+                      CircularProgressIndicator(strokeWidth: 2, color: c.navy),
+                ),
+              ),
             )
           else
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: c.navy,
+            Semantics(
+              label: label,
+              child: FigmaSwitch(value: value, onChanged: onChanged),
             ),
         ],
       ),
