@@ -23,6 +23,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import '../widgets/tanod_nav_bar.dart';
 import 'dispatch_order.dart';
 import 'tickets_screen.dart';
@@ -381,64 +382,94 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
 
     return Scaffold(
       bottomNavigationBar: const TanodNavBar(current: TanodTab.home),
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.asset(
-                'assets/images/texture.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
-            ),
-          ),
+          const FigmaTexture(),
           SafeArea(
             bottom: false,
             child: RefreshIndicator(
               onRefresh: _load,
               color: context.colors.navy,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(26, 12, 26, 24),
+                // Figma HOME - TANOD: the bell's top at y=33, cards 352
+                // wide at x=30.
+                padding: EdgeInsets.fromLTRB(30, figmaTop(context, 33), 30, 24),
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _NotificationBell(
-                        onTap: () =>
-                            Navigator.of(context).pushNamed('/notifications'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  Center(
-                    child: FractionallySizedBox(
-                      widthFactor: 0.68,
-                      child: Image.asset(
-                        'assets/images/logo-wordmark.png',
-                        semanticLabel: 'SmartSumbong',
-                        filterQuality: FilterQuality.medium,
-                      ),
+                  // The logo box (308x236 at x=47, y=55) overlaps the bell
+                  // row, and the greeting starts 236 below the bell's top
+                  // edge (y=269), inside the logo box's transparent margin
+                  // — the same arrangement as the resident Home.
+                  SizedBox(
+                    height: 236,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 22,
+                          height: 236,
+                          child: Center(
+                            child: Transform.translate(
+                              offset: const Offset(-5, 0),
+                              child: SizedBox(
+                                width: 308,
+                                height: 236,
+                                child: Image.asset(
+                                  'assets/images/home-wordmark.png',
+                                  fit: BoxFit.contain,
+                                  semanticLabel: 'SmartSumbong',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: -2,
+                          child: _NotificationBell(
+                            onTap: () => Navigator.of(context)
+                                .pushNamed('/notifications'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  Text(
-                    _loading || _firstName == null
-                        ? s.homeWelcome
-                        : s.homeWelcomeName(_firstName!),
-                    style: t.headlineLarge?.copyWith(fontSize: 22),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 13),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _loading || _firstName == null
+                              ? s.homeWelcome
+                              : s.homeWelcomeName(_firstName!),
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 28,
+                            height: 34 / 28,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                        Text(
+                          s.homeHowAreYou,
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                            height: 21.84 / 14,
+                            color: context.colors.navy,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(s.homeHowAreYou,
-                      style: t.bodyMedium?.copyWith(fontSize: 12)),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
                   _StatusCard(
                     picked: _picked,
@@ -454,7 +485,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                         style: TextStyle(
                             fontSize: 12, color: context.colors.hint)),
                   ],
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
                   // HOME - TANOD shows Incoming Dispatch; the
                   // RESPONDED and MISSED frames show Alert History
@@ -469,7 +500,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                       tickets: _incoming,
                       onOpen: _open,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                   ],
 
                   _ActivityHistoryCard(loading: _loading, entries: _activity),
@@ -505,45 +536,74 @@ class _StatusCard extends StatelessWidget {
     final s = context.s;
     return _Card(
       title: s.homeStatusQuestion,
+      // The frame's status card: a 16/700 title with no rule under it.
+      titleSize: 16,
+      rule: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<DutyState>(
-                  initialValue: picked,
-                  isExpanded: true,
-                  hint: Text(s.homeSelectStatus),
-                  items: [
-                    for (final d in DutyState.values)
-                      DropdownMenuItem(
-                          value: d, child: Text(s.dutyStateLabel(d.wire))),
-                  ],
-                  onChanged: saving ? null : onPick,
+                child: SizedBox(
+                  height: 37,
+                  child: DropdownButtonFormField<DutyState>(
+                    initialValue: picked,
+                    isExpanded: true,
+                    isDense: true,
+                    icon: Icon(Icons.keyboard_arrow_down_rounded,
+                        size: 20, color: context.colors.navy),
+                    dropdownColor: context.colors.field,
+                    borderRadius: BorderRadius.circular(20),
+                    style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: context.colors.navy,
+                    ),
+                    hint: Text(
+                      s.homeSelectStatus,
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: context.colors.navy,
+                      ),
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: context.colors.field,
+                      isDense: true,
+                      contentPadding:
+                          const EdgeInsets.fromLTRB(20, 9, 10, 9),
+                      border: _statusEdge(context),
+                      enabledBorder: _statusEdge(context),
+                      focusedBorder: _statusEdge(context),
+                      disabledBorder: _statusEdge(context),
+                    ),
+                    items: [
+                      for (final d in DutyState.values)
+                        DropdownMenuItem(
+                            value: d, child: Text(s.dutyStateLabel(d.wire))),
+                    ],
+                    onChanged: saving ? null : onPick,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
-              SizedBox(
-                width: 92,
-                height: 42,
-                child: FilledButton(
-                  onPressed: saving || picked == null ? null : onSubmit,
-                  style: FilledButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                  child: saving
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: context.colors.bg),
-                        )
-                      : Text(s.homeSubmit),
-                ),
+              FigmaPill(
+                width: 112,
+                height: 37,
+                onPressed: saving || picked == null ? null : onSubmit,
+                child: saving
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: context.colors.bg),
+                      )
+                    : Text(s.homeSubmit,
+                        style: const TextStyle(fontSize: 14)),
               ),
             ],
           ),
@@ -557,6 +617,12 @@ class _StatusCard extends StatelessWidget {
       ),
     );
   }
+
+  static OutlineInputBorder _statusEdge(BuildContext context) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(color: context.colors.navy),
+      );
 }
 
 // ---------- incoming dispatch ----------------------------------
@@ -601,8 +667,8 @@ class _IncomingCard extends StatelessWidget {
                       shrinkWrap: true,
                       padding: const EdgeInsets.only(right: 10),
                       itemCount: tickets.length,
-                      separatorBuilder: (_, __) =>
-                          Divider(height: 16, color: context.colors.divider),
+                      // The frame's rows sit 95 apart with no rule.
+                      separatorBuilder: (_, __) => const SizedBox(height: 16),
                       itemBuilder: (_, i) => _DispatchRow(
                         ticket: tickets[i],
                         onOpen: () => onOpen(tickets[i]),
@@ -620,81 +686,86 @@ class _DispatchRow extends StatelessWidget {
   final Ticket ticket;
   final VoidCallback onOpen;
 
+  // Figma "Group 301": the 20x25 clipboard at 18 in, the line 14/600 with
+  // the complaint in red, the date and time 10/500, and under them the
+  // 128x30 green View Details pill.
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 2),
-          child: Icon(Icons.assignment_outlined,
-              size: 26, color: Color(0xFF14181D)),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
+    final ink = context.colors.navy;
+    return Padding(
+      padding: const EdgeInsets.only(left: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                      fontSize: 12, height: 1.35, color: context.colors.navy),
+              Padding(
+                padding: const EdgeInsets.only(top: 5),
+                child: Icon(Icons.assignment, size: 25, color: ink),
+              ),
+              const SizedBox(width: 22),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextSpan(text: context.s.homeAssignedTo),
-                    TextSpan(
-                      text: ticket.trackingId,
-                      style: const TextStyle(
-                        color: Color(0xFFFF4949),
-                        fontWeight: FontWeight.w700,
+                    Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          height: 15 / 14,
+                          color: ink,
+                        ),
+                        children: [
+                          TextSpan(text: context.s.homeAssignedTo),
+                          TextSpan(
+                            text: ticket.trackingId,
+                            style: const TextStyle(color: kFigmaRed),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _date(context, ticket.assignedAt),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 10,
+                        height: 15.6 / 10,
+                        color: ink,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                _date(context, ticket.assignedAt),
-                style: TextStyle(fontSize: 10, color: context.colors.muted),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 28,
-                child: FilledButton(
-                  onPressed: onOpen,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF1FA84E),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(context.s.homeViewDetails),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.chevron_right, size: 14),
-                    ],
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  _time(ticket.assignedAt),
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                    color: ink,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Text(
-            _time(ticket.assignedAt),
-            style: TextStyle(fontSize: 10, color: context.colors.muted),
+          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(left: 21),
+            child: _GreenPill(
+              label: context.s.homeViewDetails,
+              onPressed: onOpen,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -807,24 +878,25 @@ class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
                 colour: context.colors.navy,
                 onTap: () => setState(() => _filter = null),
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 5),
               _Tab(
                 label: s.homeTabResponded,
                 active: _filter == ActivityKind.responded,
-                colour: const Color(0xFF1FA84E),
+                colour: _green,
                 onTap: () =>
                     setState(() => _filter = ActivityKind.responded),
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 5),
               _Tab(
                 label: s.homeTabMissed,
                 active: _filter == ActivityKind.missed,
-                colour: const Color(0xFFFF4949),
+                colour: kFigmaRed,
                 onTap: () => setState(() => _filter = ActivityKind.missed),
               ),
             ],
           ),
-          Divider(height: 16, color: context.colors.divider),
+          Divider(height: 1, thickness: 1, color: _rule(context)),
+          const SizedBox(height: 10),
 
           if (widget.loading)
             const Padding(
@@ -860,22 +932,36 @@ class _Tab extends StatelessWidget {
   final Color colour;
   final VoidCallback onTap;
 
+  // Figma: 14/600 in the tab's colour, centred in a third of the card;
+  // the active one underlined by a 2px ink rule its own width.
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontSize: 12,
-            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            color: colour.withValues(alpha: active ? 1 : 0.55),
-            decoration: active ? TextDecoration.underline : null,
-            decorationColor: colour,
-          ),
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  height: 21.84 / 14,
+                  color: colour,
+                ),
+              ),
+            ),
+            Container(
+              height: 2,
+              color: active ? context.colors.navy : Colors.transparent,
+            ),
+          ],
         ),
       ),
     );
@@ -902,8 +988,7 @@ class _ActivityRowState extends State<_ActivityRow> {
   Widget build(BuildContext context) {
     final entry = widget.entry;
     final responded = entry.kind == ActivityKind.responded;
-    final colour =
-        responded ? const Color(0xFF1FA84E) : const Color(0xFFFF4949);
+    final colour = responded ? _green : kFigmaRed;
     final expandable =
         responded && (entry.reportText.isNotEmpty || entry.media.isNotEmpty);
 
@@ -922,12 +1007,17 @@ class _ActivityRowState extends State<_ActivityRow> {
                 // against expired. Nobody phoned anyone, and an icon
                 // that says otherwise is a small lie repeated on every
                 // row.
-                Icon(
-                  responded ? Icons.check_circle : Icons.cancel_outlined,
-                  size: 20,
-                  color: colour,
+                Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Icon(
+                    responded
+                        ? Icons.check_circle_outline
+                        : Icons.cancel_outlined,
+                    size: 19,
+                    color: colour,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 24),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -937,21 +1027,32 @@ class _ActivityRowState extends State<_ActivityRow> {
                         style: TextStyle(
                           fontFamily: 'Urbanist',
                           fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: colour,
+                          fontSize: 14,
+                          height: 21.84 / 14,
+                          color: context.colors.navy,
                         ),
                       ),
                       Text(
                         _DispatchRow._date(context, entry.at),
                         style: TextStyle(
-                            fontSize: 10, color: context.colors.muted),
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
+                          height: 1.2,
+                          color: context.colors.navy,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Text(
                   _DispatchRow._time(entry.at),
-                  style: TextStyle(fontSize: 10, color: context.colors.muted),
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                    color: context.colors.navy,
+                  ),
                 ),
                 if (expandable) ...[
                   const SizedBox(width: 4),
@@ -964,7 +1065,7 @@ class _ActivityRowState extends State<_ActivityRow> {
 
           if (_open && expandable)
             Padding(
-              padding: const EdgeInsets.only(left: 30, top: 4, right: 4),
+              padding: const EdgeInsets.only(left: 59, top: 4, right: 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1066,52 +1167,73 @@ class _ActivityThumb extends StatelessWidget {
 
 // ---------- shared bits ----------------------------------------
 
+/// The frame's green (#058F00): View Details, Responded.
+const _green = Color(0xFF058F00);
+
+/// The frame's rule under a card title: #6C6C6C at 50%.
+Color _rule(BuildContext context) =>
+    const Color(0xFF6C6C6C).withValues(alpha: 0.5);
+
+/// Figma "Frame 934/935": 352 wide, #FBFBFB, 1px ink edge, radius 25, the
+/// design shadow; the title 18/700 at 20 in and 13 down, then a rule.
 class _Card extends StatelessWidget {
-  const _Card({required this.title, required this.child, this.trailing});
+  const _Card({
+    required this.title,
+    required this.child,
+    this.trailing,
+    this.titleSize = 18,
+    this.rule = true,
+  });
 
   final String title;
   final String? trailing;
   final Widget child;
+  final double titleSize;
+  final bool rule;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      padding: const EdgeInsets.fromLTRB(20, 13, 20, 18),
       decoration: BoxDecoration(
-        color: context.colors.bg,
+        color: context.colors.field,
         border: Border.all(color: context.colors.navy),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: kFigmaShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: context.colors.navy,
-                ),
+          Text.rich(
+            TextSpan(
+              text: title,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w700,
+                fontSize: titleSize,
+                height: 1.5,
+                color: context.colors.navy,
               ),
-              if (trailing != null) ...[
-                const SizedBox(width: 6),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 1),
-                  child: Text(
-                    trailing!,
+              children: [
+                if (trailing != null)
+                  TextSpan(
+                    text: '  $trailing',
                     style: const TextStyle(
-                        fontSize: 10, color: Color(0xFFFF4949)),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11,
+                      color: kFigmaRed,
+                    ),
                   ),
-                ),
               ],
-            ],
+            ),
           ),
-          Divider(height: 14, color: context.colors.divider),
+          if (rule) ...[
+            const SizedBox(height: 8),
+            Divider(height: 1, thickness: 1, color: _rule(context)),
+            const SizedBox(height: 8),
+          ] else
+            const SizedBox(height: 4),
           child,
         ],
       ),
@@ -1119,6 +1241,55 @@ class _Card extends StatelessWidget {
   }
 }
 
+/// The frame's 128x30 green pill: #058F00, 1px #F3F3F3 edge, the design
+/// shadow, 14/700 label and a chevron.
+class _GreenPill extends StatelessWidget {
+  const _GreenPill({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(50)),
+        boxShadow: kFigmaShadow,
+      ),
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: _green,
+          foregroundColor: const Color(0xFFF3F3F3),
+          minimumSize: const Size(128, 30),
+          maximumSize: const Size(220, 30),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          elevation: 0,
+          side: const BorderSide(color: Color(0xFFF3F3F3)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: 'Urbanist',
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The frame's bell: a 39x38 ink circle with the design's own bell glyph
+/// (25x25 at 7,6), tinted from the theme so dark mode still reads.
 class _NotificationBell extends StatelessWidget {
   const _NotificationBell({required this.onTap});
 
@@ -1126,18 +1297,28 @@ class _NotificationBell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(19),
-      child: Container(
-        width: 39,
-        height: 38,
-        decoration: BoxDecoration(
-          color: context.colors.navy,
-          shape: BoxShape.circle,
+    return Semantics(
+      button: true,
+      label: context.s.notificationsTitle,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(19),
+        child: Container(
+          width: 39,
+          height: 38,
+          padding: const EdgeInsets.only(left: 7, top: 6),
+          alignment: Alignment.topLeft,
+          decoration: BoxDecoration(
+            color: context.colors.navy,
+            borderRadius: BorderRadius.circular(19),
+          ),
+          child: Image.asset(
+            'assets/images/icon-bell.png',
+            width: 25,
+            height: 25,
+            color: context.colors.bg,
+          ),
         ),
-        child: Icon(Icons.notifications_none_rounded,
-            color: context.colors.bg, size: 22),
       ),
     );
   }

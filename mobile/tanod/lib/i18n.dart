@@ -509,6 +509,11 @@ class Strings {
       'Could not share your location. Submit On Duty again to retry.',
       'Hindi naibahagi ang lokasyon. I-submit ulit ang On Duty para '
       'subukan muli.');
+  // ---------- bottom navigation ----------
+  String get navHome => _t('Home', 'Tahanan');
+  String get navReports => _t('Reports', 'Mga Ulat');
+  String get navSettings => _t('Settings', 'Mga Setting');
+
   String get homeWelcome => _t('Welcome!', 'Welcome!');
   String homeWelcomeName(String name) =>
       _t('Welcome, $name!', 'Welcome, $name!');
