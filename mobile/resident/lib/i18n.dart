@@ -532,6 +532,17 @@ class Strings {
   String get reportsConfirm => _t('Confirm', 'Kumpirmahin');
   String get reportsCancelledTitle =>
       _t('Report has been cancelled.', 'Nakansela na ang ulat.');
+  String reportsReopenSentTitle(String head) => _t(
+      '$head — your reopen request was sent.',
+      '$head — naipadala na ang iyong kahilingang buksan muli.');
+  String reportsAppealSentTitle(String head) => _t(
+      '$head — your appeal was sent.',
+      '$head — naipadala na ang iyong apela.');
+  String get reportsRequestSentBody => _t(
+      'Thank you for letting us know. The barangay will review your '
+          'request and let you know what they decide.',
+      'Salamat sa pagpapaalam. Susuriin ng barangay ang iyong kahilingan '
+          'at ipapaalam sa iyo ang kanilang desisyon.');
   String get reportsRequestSent => _t(
       'Your request has been sent to the barangay.',
       'Naipadala na ang iyong kahilingan sa barangay.');

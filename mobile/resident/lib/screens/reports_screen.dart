@@ -17,12 +17,12 @@
 // request through request_reopen(). The success copy is the one visible
 // difference, and it is honest — the barangay decides.
 //
-// One thing that is NOT built to match Figma 2780:3806/2923:258: a
-// full-screen "Ticket Reopened" confirmation. Showing that would be a
-// lie — request_reopen() only files a request; the report's status does
-// not change until an admin calls the admin-only reopen_report(). The
-// toast ("Your request has been sent to the barangay") says what is
-// actually true and stays that way on purpose.
+// The "Ticket Reopened" confirmation (Figma TICKET REOPENED) is built as
+// the frame lays it out, but says what is true: request_reopen() only
+// files a request, and the report's status does not change until an
+// admin calls the admin-only reopen_report(). So the page reads "your
+// reopen request was sent", not "was reopened" (_RequestSentPage). The
+// same page confirms an appeal.
 //
 // The reason screen (2780:3594) picked up three things it was missing
 // during the Figma parity pass (27 Aug 2026): the Original Closing
@@ -61,6 +61,7 @@ import '../i18n.dart';
 import '../location_lookup.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import '../widgets/resident_nav_bar.dart';
 
 /// Mirrors `public.report_status` in 0001, plus `cancelled` from 0023.
@@ -548,8 +549,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (!mounted) return;
       // Honest about what happened: the request is with the barangay,
       // the report has not changed state.
-      _toast(context.s.reportsRequestSent);
       _load();
+      await _RequestSentPage.show(context, r, appeal: false);
     } on PostgrestException catch (e) {
       if (!mounted) return;
       _toast(_friendly(e.message));
@@ -625,8 +626,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (!mounted) return;
       // Same honesty as _requestReopen — the request is with the
       // barangay, the report has not changed state.
-      _toast(context.s.reportsRequestSent);
       _load();
+      await _RequestSentPage.show(context, r, appeal: true);
     } on PostgrestException catch (e) {
       if (!mounted) return;
       _toast(_friendly(e.message));
@@ -2676,4 +2677,77 @@ class _SheetPill extends StatelessWidget {
         ),
         child: child,
       );
+}
+
+/// Figma TICKET REOPENED: the 30/800 title centred at 331 — the report's
+/// "(# id - status) subject" and what happened — the 16/500 thanks under
+/// it, and the 301x44 navy Back to Home 45 below. Worded as a request
+/// sent, since that is all request_reopen()/request_appeal() do.
+class _RequestSentPage extends StatelessWidget {
+  const _RequestSentPage({required this.report, required this.appeal});
+
+  final ReportSummary report;
+  final bool appeal;
+
+  static Future<void> show(
+    BuildContext context,
+    ReportSummary report, {
+    required bool appeal,
+  }) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => _RequestSentPage(report: report, appeal: appeal),
+      ));
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final head = '(# ${report.trackingId} - '
+        '${s.reportStatusLabel(report.status.wire)}) ${report.subject}';
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding:
+              EdgeInsets.fromLTRB(43, figmaTop(context, 331, min: 40), 43, 24),
+          child: Column(
+            children: [
+              Text(
+                appeal
+                    ? s.reportsAppealSentTitle(head)
+                    : s.reportsReopenSentTitle(head),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 30,
+                  height: 1.0,
+                  color: context.colors.navy,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                s.reportsRequestSentBody,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  height: 20 / 16,
+                  color: context.colors.navy,
+                ),
+              ),
+              const SizedBox(height: 48),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 301),
+                child: FigmaPill(
+                  onPressed: () => Navigator.of(context)
+                      .pushNamedAndRemoveUntil('/home', (_) => false),
+                  child: Text(s.reportSubmittedBackHome),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
