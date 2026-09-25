@@ -192,6 +192,25 @@ class Strings {
       'password, at hihilingin sa iyo ng app na pumili ng sarili mong '
       'password kapag nag-log in ka.');
   String get loginDialogOk => _t('OK', 'OK');
+  String get loginErrorNotActivated => _t(
+      'This account is not activated. Please contact the barangay.',
+      'Hindi pa aktibo ang account na ito. Makipag-ugnayan sa barangay.');
+  String get loginErrorSuspended => _t(
+      'This account has been suspended. Please contact the barangay.',
+      'Sinuspinde ang account na ito. Makipag-ugnayan sa barangay.');
+  String get loginErrorRateLimited => _t(
+      'Too many attempts. Please wait a few minutes and try again.',
+      'Masyadong maraming pagsubok. Maghintay ng ilang minuto at subukan ulit.');
+  String get loginErrorBadCredentials => _t(
+      'That mobile number and password do not match an account. '
+          'Double-check both and try again. If you haven’t signed up yet, '
+          'use Sign Up below. If you’ve forgotten your password, visit the '
+          'barangay hall with a valid ID to reset it.',
+      'Hindi tugma sa isang account ang numero at password na iyan. '
+          'Suriin ang dalawa at subukan ulit. Kung hindi ka pa nakapag-sign '
+          'up, gamitin ang Mag-sign Up sa ibaba. Kung nakalimutan mo ang '
+          'password, pumunta sa barangay hall dala ang valid ID para i-reset '
+          'ito.');
   String loginLockedMessage(int minutes) {
     final unit = _t(
       minutes == 1 ? 'minute' : 'minutes',

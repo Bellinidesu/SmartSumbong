@@ -107,9 +107,18 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() =>
           _error = context.s.loginLockedMessage(e.minutesRemaining));
     } on RegistrationException catch (e) {
+      // Core words its sign-in failures in English; the known ones are
+      // shown in the resident's language instead.
+      final message = switch (e.code) {
+        'not_activated' => s.loginErrorNotActivated,
+        'suspended' => s.loginErrorSuspended,
+        'rate_limited' => s.loginErrorRateLimited,
+        'bad_credentials' => s.loginErrorBadCredentials,
+        _ => e.message,
+      };
       setState(() {
-        _error = e.message;
-        if (e.field != null) _fieldErrors[e.field!] = e.message;
+        _error = message;
+        if (e.field != null) _fieldErrors[e.field!] = message;
       });
     } catch (_) {
       if (!mounted) return;

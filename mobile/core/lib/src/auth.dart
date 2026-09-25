@@ -142,9 +142,15 @@ class RegistrationException implements Exception {
     this.field,
     this.goToLogin = false,
     this.isRetryable = false,
+    this.code,
   });
 
   final String message;
+
+  /// A stable name for the failure (sign-in: 'not_activated',
+  /// 'suspended', 'rate_limited', 'bad_credentials'), so an app can show
+  /// [message] in its own language. Null where only [message] exists.
+  final String? code;
 
   /// Which form field to highlight, when the failure points at one.
   final String? field;
@@ -336,17 +342,20 @@ class AuthService {
       if (m.contains('not confirmed') || m.contains('email_not_confirmed')) {
         throw RegistrationException(
           'This account is not activated. Please contact the barangay.',
+          code: 'not_activated',
         );
       }
       if (m.contains('banned') || m.contains('suspended')) {
         throw RegistrationException(
           'This account has been suspended. Please contact the barangay.',
+          code: 'suspended',
         );
       }
       if (m.contains('rate limit') || m.contains('too many')) {
         throw RegistrationException(
           'Too many attempts. Please wait a few minutes and try again.',
           isRetryable: true,
+          code: 'rate_limited',
         );
       }
 
@@ -366,6 +375,7 @@ class AuthService {
           'Double-check both and try again. If you haven’t signed up '
           'yet, use Sign Up below. If you’ve forgotten your password, '
           'visit the barangay hall with a valid ID to reset it.',
+          code: 'bad_credentials',
         );
       }
 
