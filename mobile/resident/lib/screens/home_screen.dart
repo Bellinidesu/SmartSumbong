@@ -33,6 +33,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
+import '../outbox.dart';
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 
@@ -103,7 +104,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _load();
+    if (state == AppLifecycleState.resumed) {
+      _load();
+      // Anything filed while offline goes out now.
+      Outbox.instance.flush();
+    }
   }
 
   Future<void> _load() async {

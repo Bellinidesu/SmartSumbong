@@ -62,6 +62,7 @@ import '../location_lookup.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
+import '../outbox.dart';
 import '../widgets/resident_nav_bar.dart';
 import 'add_details_screen.dart';
 
@@ -271,11 +272,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void initState() {
     super.initState();
+    Outbox.instance.addListener(_onOutbox);
     _load();
   }
 
   @override
   void dispose() {
+    Outbox.instance.removeListener(_onOutbox);
     _liveDebounce?.cancel();
     if (_liveChannel != null) {
       Supabase.instance.client.removeChannel(_liveChannel!);
@@ -306,6 +309,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _liveDebounce = Timer(const Duration(milliseconds: 400), () {
       if (mounted) _load();
     });
+  }
+
+  // Reports queued with no signal (lib/outbox.dart). When one goes
+  // through, it becomes a real report here, so the list reloads.
+  int _queued = Outbox.instance.items.length;
+
+  void _onOutbox() {
+    final n = Outbox.instance.items.length;
+    final sentOne = n < _queued;
+    _queued = n;
+    if (!mounted) return;
+    setState(() {});
+    if (sentOne) _load();
   }
 
   Future<void> _load() async {
@@ -751,6 +767,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
               const SizedBox(height: 25),
 
+              // Waiting to send: at most a couple on screen, the rest a
+              // scroll away inside the same box.
+              if (Outbox.instance.items.isNotEmpty) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        for (final q in Outbox.instance.items) ...[
+                          _QueuedCard(item: q),
+                          const SizedBox(height: 13),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _load,
@@ -829,6 +863,129 @@ class _ReportsScreenState extends State<ReportsScreen> {
 }
 
 // ---------- pieces -------------------------------------------
+
+/// A report kept on the phone until there is signal (lib/outbox.dart):
+/// the report card's shape, outlined rather than filled, so it reads as
+/// "not filed yet"; Send now and Discard under it.
+class _QueuedCard extends StatelessWidget {
+  const _QueuedCard({required this.item});
+
+  final OutboxItem item;
+
+  Future<void> _discard(BuildContext context) async {
+    final s = context.s;
+    final yes = await showFigmaDialog<bool>(
+      context,
+      builder: (d) => FigmaDialog(
+        title: s.outboxDiscardTitle,
+        body: s.outboxDiscardBody,
+        secondaryLabel: s.settingsCancel,
+        onSecondary: () => Navigator.of(d).pop(false),
+        primaryLabel: s.outboxDiscard,
+        onPrimary: () => Navigator.of(d).pop(true),
+        destructive: true,
+      ),
+    );
+    if (yes == true) await Outbox.instance.discard(item.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final c = context.colors;
+    final refused = item.error != null;
+    final accent = refused ? kFigmaRed : kFigmaOrange;
+    Widget pill(String label, VoidCallback onTap, {bool filled = false}) =>
+        SizedBox(
+          height: 30,
+          child: FilledButton(
+            onPressed: onTap,
+            style: FilledButton.styleFrom(
+              backgroundColor: filled ? c.navy : c.field,
+              foregroundColor: filled ? c.bg : c.navy,
+              minimumSize: const Size(0, 30),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              elevation: 0,
+              side: BorderSide(color: c.navy),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(50),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            child: Text(label),
+          ),
+        );
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: c.field,
+        border: Border.all(color: accent, width: 1.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(refused ? Icons.error_outline : Icons.cloud_upload_outlined,
+                  size: 16, color: accent),
+              const SizedBox(width: 6),
+              Text(
+                s.outboxWaitingTitle,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            item.subject,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              height: 1.2,
+              color: c.navy,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            refused ? s.outboxRefused(item.error!) : s.outboxWaitingBody,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              height: 1.3,
+              color: refused ? kFigmaRed : c.muted,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              pill(s.outboxSendNow,
+                  () => refused
+                      ? Outbox.instance.retry(item.id)
+                      : Outbox.instance.flush(),
+                  filled: true),
+              pill(s.outboxDiscard, () => _discard(context)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// The dropdown filter Figma specifies, restored (30 Aug 2026) after a
 /// brief chip-row detour during the reference-mockup aesthetics pass --

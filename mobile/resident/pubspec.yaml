@@ -44,6 +44,11 @@ dependencies:
    path: ../core
   exif: ^3.3.0
   maplibre_gl: ^0.27.1
+  # The report outbox (lib/outbox.dart); already in core, named here
+  # because the app imports them itself.
+  connectivity_plus: ^7.3.1
+  path_provider: ^2.1.4
+  uuid: ^4.5.1
   # local_auth (Face ID / fingerprint unlock) is not listed here: it
   # arrives through smartsumbong_core, same as flutter_secure_storage
   # and supabase_flutter already do, because nothing in this app imports

@@ -63,6 +63,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../models/complaint_category.dart';
+import '../outbox.dart';
 import '../theme.dart';
 import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
@@ -505,6 +506,41 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     return _errors.isEmpty;
   }
 
+  /// This submission's id for file_report()'s p_client_ref (0066): the
+  /// same for every retry from this form, so no retry can file twice.
+  final _clientRef = Outbox.newRef();
+
+  /// No signal: keep the report on the phone (lib/outbox.dart), to be
+  /// sent by itself when the connection returns, and go home.
+  Future<void> _queue() async {
+    await Outbox.instance.enqueue(
+      id: _clientRef,
+      category: widget.choice.category.wire,
+      subject: widget.choice.subject,
+      description: _description.text.trim(),
+      latitude: _pin.latitude,
+      longitude: _pin.longitude,
+      anonymous: _anonymous,
+      photos: _photos,
+      video: _video,
+      uploaded: [
+        if (_uploaded.length == _photos.length)
+          for (final m in _uploaded) m.toJson(),
+      ],
+      uploadedVideo: _uploadedVideo?.toJson(),
+    );
+    unawaited(_clearDraft());
+    if (!mounted) return;
+    final s = context.s;
+    Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+    Outbox.messengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(s.outboxQueued),
+        duration: const Duration(seconds: 6),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     // The button only disables on the next rebuild; a second tap landing
     // before it would otherwise file the same complaint twice.
@@ -516,6 +552,16 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       _busy = true;
       _banner = null;
     });
+
+    // Plainly offline: straight to the outbox, no failed upload first.
+    if (!await Outbox.isOnline()) {
+      try {
+        await _queue();
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
 
     try {
       // Upload first, same ordering as registration: file_report() writes
@@ -555,6 +601,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           'p_longitude': _pin.longitude,
           'p_is_anonymous': _anonymous,
           'p_media': media,
+          'p_client_ref': _clientRef,
         },
       );
 
@@ -571,12 +618,16 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       // A back gesture mid-upload disposes this screen; the error still
       // arrives afterwards.
       if (!mounted) return;
+      // The connection dropped mid-upload: keep what uploaded, queue the
+      // rest rather than asking the resident to start over.
+      if (e.isRetryable) return _queue();
       setState(() => _banner = e.message);
     } on PostgrestException catch (e) {
       if (!mounted) return;
       setState(() => _banner = _translate(e.message));
     } catch (e) {
       if (!mounted) return;
+      if (Outbox.isNetworkError(e)) return _queue();
       // Not the exception text: with no signal that was a raw
       // "ClientException with SocketException: Failed host lookup ..."
       // line, project URL included, on the resident's screen.
