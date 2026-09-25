@@ -34,6 +34,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import '../widgets/resident_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -48,6 +49,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _firstName;
   int _unread = 0;
+
+  /// The newest report still being worked on (branch B), or null.
+  Map<String, dynamic>? _activeCase;
   bool _loading = true;
 
   RealtimeChannel? _liveChannel;
@@ -172,10 +176,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           .eq('user_id', uid)
           .eq('is_read', false);
 
+      // The newest report not yet finished: Under Review or In Progress.
+      // Separate, so Home still loads if this fails. Kept fresh by the
+      // same notifications channel — every status change writes one.
+      Map<String, dynamic>? active;
+      try {
+        active = await client
+            .from('reports')
+            .select('id, tracking_id, subject, status, created_at')
+            .eq('resident_id', uid)
+            .isFilter('deleted_at', null)
+            .inFilter('status', [
+              'pending_review',
+              'validated',
+              'assigned',
+              'in_progress',
+              'offline_investigation',
+            ])
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
         _firstName = _firstNameOf(profile['full_name'] as String?);
         _unread = unread;
+        _activeCase = active;
         _loading = false;
       });
     } catch (_) {
@@ -341,6 +368,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 33),
 
+                  if (_activeCase != null) ...[
+                    _ActiveCaseCard(row: _activeCase!),
+                    const SizedBox(height: 11),
+                  ],
+
                   // Gaps and the first card's 16 bottom padding are the
                   // frame's own per-card values, kept as drawn.
                   _ActionCard(
@@ -404,6 +436,122 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 }
 
 // ---------- pieces -------------------------------------------
+
+/// The resident's case in progress (branch B), in the Reports card's
+/// look: navy (the dark surface at night), radius 20, a 1px #F3F3F3 edge
+/// and the design shadow; a small label, "(# ID - Status) Subject" 16/700,
+/// the date, and a light View case pill. The whole card opens it.
+class _ActiveCaseCard extends StatelessWidget {
+  const _ActiveCaseCard({required this.row});
+
+  final Map<String, dynamic> row;
+
+  static const _onNavy = Color(0xFFF3F3F3);
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final id = row['id'] as String;
+    final created = DateTime.tryParse(row['created_at'] as String? ?? '');
+    final date = created == null
+        ? ''
+        : '${s.monthFull(created.toLocal().month)} ${created.toLocal().day}, '
+            '${created.toLocal().year}';
+    void open() => Navigator.of(context).pushNamed('/report', arguments: id);
+    return InkWell(
+      onTap: open,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 14, 14, 14),
+        decoration: BoxDecoration(
+          color: context.isDark
+              ? context.colors.field
+              : const Color(0xFF00308F),
+          border: Border.all(color: _onNavy),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: kFigmaShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: kFigmaOrange,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  s.homeActiveCaseLabel,
+                  style: const TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: kFigmaOrange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '(# ${row['tracking_id'] ?? ''} - '
+              '${s.reportStatusLabel(row['status'] as String? ?? '')}) '
+              '${row['subject'] ?? ''}',
+              style: const TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                height: 1.2,
+                color: _onNavy,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    s.reportsSubmittedOn(date),
+                    style: const TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      color: _onNavy,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 30,
+                  child: FilledButton(
+                    onPressed: open,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _onNavy,
+                      foregroundColor: const Color(0xFF00308F),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      textStyle: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    child: Text(s.homeActiveCaseView),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _NotificationBell extends StatelessWidget {
   const _NotificationBell({required this.unread, required this.onTap});

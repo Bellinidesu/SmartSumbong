@@ -274,6 +274,12 @@ class Strings {
   String get navReports => _t('Reports', 'Mga Ulat');
   String get navMap => _t('Map', 'Mapa');
   String get navSettings => _t('Settings', 'Mga Setting');
+  String get navReport => _t('Report', 'Mag-ulat');
+
+  // ---------- Home: the active case (branch B) ----------
+  String get homeActiveCaseLabel =>
+      _t('Your active case', 'Ang iyong aktibong kaso');
+  String get homeActiveCaseView => _t('View case', 'Tingnan');
   String get settingsPersonalInfo =>
       _t('Personal Information', 'Personal na Impormasyon');
   String get settingsEditProfile => _t('Edit Profile', 'I-edit ang Profile');
@@ -1692,11 +1698,14 @@ class Strings {
       'naisumite kang mga ulat, mananatili ang mga ulat mismo sa '
       'talaan ng barangay — wala lang mga personal na detalye. Hindi '
       'na ito maaaring bawiin.');
-  String get deleteAccountTypeToConfirm => _t(
-      'Type DELETE below to confirm.', 'I-type ang DELETE sa ibaba para kumpirmahin.');
-  String get deleteAccountTypeMismatch => _t(
-      'Please type DELETE exactly to confirm.',
-      'Pakitype nang eksakto ang DELETE para kumpirmahin.');
+  String get deleteAccountPasswordPrompt => _t(
+      'Enter your password to confirm.',
+      'Ilagay ang iyong password para kumpirmahin.');
+  String get deleteAccountWrongPassword =>
+      _t('That password is not right.', 'Mali ang password.');
+  String get deleteAccountCheckFailed => _t(
+      'Could not check your password. Check your connection and try again.',
+      'Hindi ma-check ang password. Suriin ang koneksyon at subukan ulit.');
   String get deleteAccountConfirmButton =>
       _t('Delete my account', 'Burahin ang aking account');
   String get deleteAccountFailed => _t(

@@ -231,7 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = context.s;
     final confirmed = await showFigmaDialog<bool>(
       context,
-      builder: (_) => _DeleteAccountDialog(s: s),
+      builder: (_) => _DeleteAccountDialog(s: s, auth: widget.auth),
     );
     if (confirmed != true || !mounted) return;
 
@@ -718,36 +718,70 @@ class _SettingsRow extends StatelessWidget {
 /// without — see _deleteAccount's own comment for why an irreversible
 /// action gets more friction here than anywhere else in this app.
 class _DeleteAccountDialog extends StatefulWidget {
-  const _DeleteAccountDialog({required this.s});
+  const _DeleteAccountDialog({required this.s, required this.auth});
 
   final Strings s;
+  final AuthService auth;
 
   @override
   State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
 }
 
 class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
-  final _controller = TextEditingController();
-  bool _match = false;
+  final _password = TextEditingController();
+  bool _checking = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      final ok = _controller.text.trim() == 'DELETE';
-      if (ok != _match) setState(() => _match = ok);
+    _password.addListener(() {
+      if (_error != null) setState(() => _error = null);
+      setState(() {});
     });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _password.dispose();
     super.dispose();
+  }
+
+  /// The second gate is the account's own password (branch B), not a
+  /// typed DELETE: an irreversible action should prove the person holding
+  /// the phone is the account holder, not just that the app is unlocked.
+  /// verifyPassword re-checks it without ending the session; offline is
+  /// said as offline, not as a wrong password.
+  Future<void> _confirm() async {
+    if (_checking || _password.text.isEmpty) return;
+    setState(() {
+      _checking = true;
+      _error = null;
+    });
+    bool ok;
+    try {
+      ok = await widget.auth.verifyPassword(_password.text);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _checking = false;
+        _error = widget.s.deleteAccountCheckFailed;
+      });
+      return;
+    }
+    if (!mounted) return;
+    if (!ok) {
+      setState(() {
+        _checking = false;
+        _error = widget.s.deleteAccountWrongPassword;
+      });
+      return;
+    }
+    Navigator.of(context).pop(true);
   }
 
   // The design's dialog card (as LOG OUT), with the title in the
   // design's red and a red confirm pill, since this one can't be undone.
-  // The typed DELETE stays the second gate.
   @override
   Widget build(BuildContext context) {
     final s = widget.s;
@@ -757,12 +791,12 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       titleColor: kFigmaRed,
       body: s.deleteAccountConfirmBody,
       content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 12, bottom: 4),
             child: Text(
-              s.deleteAccountTypeToConfirm,
+              s.deleteAccountPasswordPrompt,
               style: TextStyle(
                 fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w600,
@@ -771,34 +805,28 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               ),
             ),
           ),
-          TextField(
-            controller: _controller,
-            autocorrect: false,
-            textCapitalization: TextCapitalization.characters,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-              color: c.navy,
-            ),
-            decoration: InputDecoration(
-              isDense: true,
-              filled: true,
-              fillColor: c.field,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(50),
-                borderSide: BorderSide.none,
-              ),
-            ),
+          FigmaDialogField(
+            controller: _password,
+            hint: s.loginPasswordHint,
+            obscure: true,
+            autofocus: true,
+            onSubmitted: (_) => _confirm(),
           ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: kFigmaOrange, fontSize: 12),
+            ),
+          ],
         ],
       ),
       secondaryLabel: s.settingsCancel,
       onSecondary: () => Navigator.of(context).pop(false),
       primaryLabel: s.deleteAccountConfirmButton,
-      onPrimary: _match ? () => Navigator.of(context).pop(true) : null,
+      onPrimary:
+          _checking || _password.text.isEmpty ? null : () => _confirm(),
       destructive: true,
     );
   }
