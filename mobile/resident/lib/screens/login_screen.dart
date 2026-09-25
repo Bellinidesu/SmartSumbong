@@ -27,6 +27,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 /// Whether this handset should keep the session across app launches.
 /// Read by the launch gate, written here. Absent means remember, which
@@ -389,21 +390,13 @@ class _LoginScreenState extends State<LoginScreen> {
     // 0021 removed, and it would tell the admin nothing they will not
     // learn when the person walks in.
     final s = context.s;
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.bg,
-        title: Text(s.loginForgotDialogTitle),
-        content: Text(
-          s.loginForgotDialogBody,
-          style: const TextStyle(height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(s.loginDialogOk),
-          ),
-        ],
+    showFigmaDialog<void>(
+      context,
+      builder: (context) => FigmaDialog(
+        title: s.loginForgotDialogTitle,
+        body: s.loginForgotDialogBody,
+        primaryLabel: s.loginDialogOk,
+        onPrimary: () => Navigator.of(context).pop(),
       ),
     );
   }

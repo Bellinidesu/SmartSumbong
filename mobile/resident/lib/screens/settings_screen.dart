@@ -229,8 +229,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // admin ban/delete calls need).
   Future<void> _deleteAccount() async {
     final s = context.s;
-    final confirmed = await showDialog<bool>(
-      context: context,
+    final confirmed = await showFigmaDialog<bool>(
+      context,
       builder: (_) => _DeleteAccountDialog(s: s),
     );
     if (confirmed != true || !mounted) return;
@@ -745,95 +745,61 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     super.dispose();
   }
 
+  // The design's dialog card (as LOG OUT), with the title in the
+  // design's red and a red confirm pill, since this one can't be undone.
+  // The typed DELETE stays the second gate.
   @override
   Widget build(BuildContext context) {
     final s = widget.s;
-    const red = Color(0xFFDC2626);
-    return Dialog(
-      backgroundColor: context.colors.navy,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              s.deleteAccountConfirmTitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-                color: red,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              s.deleteAccountConfirmBody,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: context.colors.bg),
-            ),
-            const SizedBox(height: 16),
-            Text(
+    final c = context.colors;
+    return FigmaDialog(
+      title: s.deleteAccountConfirmTitle,
+      titleColor: kFigmaRed,
+      body: s.deleteAccountConfirmBody,
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 12, bottom: 4),
+            child: Text(
               s.deleteAccountTypeToConfirm,
-              style: TextStyle(fontSize: 12, color: context.colors.bg),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _controller,
-              autocorrect: false,
-              style: TextStyle(color: context.colors.bg),
-              decoration: InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: context.colors.field,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: c.bg,
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.colors.bg,
-                      side: BorderSide(color: context.colors.bg),
-                      minimumSize: const Size.fromHeight(42),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                    ),
-                    child: Text(s.settingsCancel),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed:
-                        _match ? () => Navigator.of(context).pop(true) : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: red,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: red.withValues(alpha: 0.35),
-                      minimumSize: const Size.fromHeight(42),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                    ),
-                    child: Text(s.deleteAccountConfirmButton),
-                  ),
-                ),
-              ],
+          ),
+          TextField(
+            controller: _controller,
+            autocorrect: false,
+            textCapitalization: TextCapitalization.characters,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              color: c.navy,
             ),
-          ],
-        ),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: c.field,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(50),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ],
       ),
+      secondaryLabel: s.settingsCancel,
+      onSecondary: () => Navigator.of(context).pop(false),
+      primaryLabel: s.deleteAccountConfirmButton,
+      onPrimary: _match ? () => Navigator.of(context).pop(true) : null,
+      destructive: true,
     );
   }
 }

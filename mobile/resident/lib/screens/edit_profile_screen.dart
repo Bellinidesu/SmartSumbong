@@ -44,6 +44,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key, required this.auth, required this.uploader});
@@ -284,8 +285,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _requestChange(String field, String label) async {
     final s = context.s;
-    final value = await showDialog<String>(
-      context: context,
+    final value = await showFigmaDialog<String>(
+      context,
       builder: (_) => _RequestDialog(
         title: s.editProfileChangeFieldTitle(label),
         prompt: field == 'mobile_number'
@@ -328,8 +329,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _changePassword() async {
-    final pair = await showDialog<String>(
-      context: context,
+    final pair = await showFigmaDialog<String>(
+      context,
       builder: (_) => const _PasswordDialog(),
     );
     if (pair == null) return;
@@ -788,40 +789,25 @@ class _RequestDialogState extends State<_RequestDialog> {
     super.dispose();
   }
 
+  // The design's dialog card, as EDIT PROFILE - BACK.
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: context.colors.bg,
-      title: Text(widget.title, style: const TextStyle(fontSize: 18)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(widget.prompt,
-              style: const TextStyle(fontSize: 13, height: 1.35)),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            keyboardType: widget.keyboardType,
-            inputFormatters: widget.keyboardType == TextInputType.phone
-                ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))]
-                : null,
-            style: const TextStyle(fontSize: 14),
-            decoration: InputDecoration(hintText: widget.hint),
-          ),
-        ],
+    return FigmaDialog(
+      title: widget.title,
+      body: widget.prompt,
+      content: FigmaDialogField(
+        controller: _controller,
+        hint: widget.hint,
+        autofocus: true,
+        keyboardType: widget.keyboardType,
+        inputFormatters: widget.keyboardType == TextInputType.phone
+            ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))]
+            : null,
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.s.editProfileCancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(context.s.editProfileSendRequest),
-        ),
-      ],
+      secondaryLabel: context.s.editProfileCancel,
+      onSecondary: () => Navigator.of(context).pop(),
+      primaryLabel: context.s.editProfileSendRequest,
+      onPrimary: () => Navigator.of(context).pop(_controller.text),
     );
   }
 }
@@ -858,44 +844,41 @@ class _PasswordDialogState extends State<_PasswordDialog> {
     Navigator.of(context).pop(_new.text);
   }
 
+  // The design's dialog card, as EDIT PROFILE - BACK.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    return AlertDialog(
-      backgroundColor: context.colors.bg,
-      title: Text(s.editProfileChangePasswordTitle,
-          style: const TextStyle(fontSize: 18)),
+    return FigmaDialog(
+      title: s.editProfileChangePasswordTitle,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
+          FigmaDialogField(
             controller: _new,
-            obscureText: true,
+            hint: s.editProfileNewPasswordHint,
+            obscure: true,
             autofocus: true,
-            decoration: InputDecoration(hintText: s.editProfileNewPasswordHint),
           ),
-          const SizedBox(height: 12),
-          TextField(
+          const SizedBox(height: 10),
+          FigmaDialogField(
             controller: _confirm,
-            obscureText: true,
-            decoration:
-                InputDecoration(hintText: s.editProfileConfirmPasswordHint),
+            hint: s.editProfileConfirmPasswordHint,
+            obscure: true,
+            onSubmitted: (_) => _submit(),
           ),
           if (_error != null) ...[
             const SizedBox(height: 10),
             Text(_error!,
-                style: TextStyle(color: context.colors.hint, fontSize: 12)),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Color(0xFFFFC107), fontSize: 12, height: 1.3)),
           ],
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(s.editProfileCancel),
-        ),
-        FilledButton(
-            onPressed: _submit, child: Text(s.editProfilePasswordChange)),
-      ],
+      secondaryLabel: s.editProfileCancel,
+      onSecondary: () => Navigator.of(context).pop(),
+      primaryLabel: s.editProfilePasswordChange,
+      onPrimary: _submit,
     );
   }
 }

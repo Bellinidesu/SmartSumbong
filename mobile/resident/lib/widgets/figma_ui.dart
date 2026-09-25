@@ -11,6 +11,7 @@
 // #252525 edge, 24/700 orange title, 16/500 body, 106x40 pills.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme.dart';
 
@@ -25,6 +26,9 @@ const kFigmaShadow = [
 
 /// The design's accent orange.
 const kFigmaOrange = Color(0xFFFF9800);
+
+/// The design's warning red (the location-off pill, form notes).
+const kFigmaRed = Color(0xFFFF4949);
 
 /// A page title as the frames set it: 28/800 navy, centred.
 class FigmaTitle extends StatelessWidget {
@@ -144,12 +148,16 @@ class FigmaDialog extends StatelessWidget {
     required this.onPrimary,
     this.secondaryLabel,
     this.onSecondary,
+    this.destructive = false,
   });
 
   final String title;
   final String? body;
   final Widget? content;
   final Color titleColor;
+
+  /// Draws the primary pill red — for an action that can't be undone.
+  final bool destructive;
   final String primaryLabel;
   final VoidCallback? onPrimary;
   final String? secondaryLabel;
@@ -205,21 +213,25 @@ class FigmaDialog extends StatelessWidget {
                 content!,
               ],
               SizedBox(height: body != null || content != null ? 23 : 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              // Side by side, 13 apart, as the frames have them; a pair
+              // too long for one line (a Filipino label, "Delete my
+              // account") stacks instead of overflowing.
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 13,
+                runSpacing: 12,
                 children: [
-                  if (secondaryLabel != null) ...[
+                  if (secondaryLabel != null)
                     FigmaDialogPill(
                       label: secondaryLabel!,
                       onPressed: onSecondary,
                       filled: false,
                     ),
-                    const SizedBox(width: 13),
-                  ],
                   FigmaDialogPill(
                     label: primaryLabel,
                     onPressed: onPrimary,
                     filled: true,
+                    destructive: destructive,
                   ),
                 ],
               ),
@@ -239,15 +251,19 @@ class FigmaDialogPill extends StatelessWidget {
     required this.label,
     required this.onPressed,
     required this.filled,
+    this.destructive = false,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final bool filled;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final bg = destructive ? kFigmaRed : (filled ? c.bg : c.navy);
+    final fg = destructive ? Colors.white : (filled ? c.navy : c.bg);
     return DecoratedBox(
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.all(Radius.circular(50)),
@@ -256,12 +272,10 @@ class FigmaDialogPill extends StatelessWidget {
       child: FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: filled ? c.bg : c.navy,
-          foregroundColor: filled ? c.navy : c.bg,
-          disabledBackgroundColor:
-              (filled ? c.bg : c.navy).withValues(alpha: 0.5),
-          disabledForegroundColor:
-              (filled ? c.navy : c.bg).withValues(alpha: 0.6),
+          backgroundColor: bg,
+          foregroundColor: fg,
+          disabledBackgroundColor: bg.withValues(alpha: 0.5),
+          disabledForegroundColor: fg.withValues(alpha: 0.6),
           minimumSize: const Size(106, 40),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           elevation: 0,
@@ -492,4 +506,64 @@ class FigmaBackPill extends StatelessWidget {
         onPressed: onPressed ?? () => Navigator.of(context).maybePop(),
         child: Text(label),
       );
+}
+
+/// A text field for inside a [FigmaDialog]'s navy card: the design's
+/// light pill field (radius 50), navy text, 44 tall.
+class FigmaDialogField extends StatelessWidget {
+  const FigmaDialogField({
+    super.key,
+    required this.controller,
+    required this.hint,
+    this.obscure = false,
+    this.autofocus = false,
+    this.keyboardType,
+    this.inputFormatters,
+    this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final bool obscure;
+  final bool autofocus;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      autofocus: autofocus,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      onSubmitted: onSubmitted,
+      style: TextStyle(
+        fontFamily: 'Urbanist',
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+        color: c.navy,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          fontFamily: 'Urbanist',
+          fontStyle: FontStyle.italic,
+          fontSize: 13,
+          color: c.navy.withValues(alpha: 0.7),
+        ),
+        isDense: true,
+        filled: true,
+        fillColor: c.field,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(50),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
 }
