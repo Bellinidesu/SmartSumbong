@@ -274,12 +274,7 @@ class Strings {
   String get navReports => _t('Reports', 'Mga Ulat');
   String get navMap => _t('Map', 'Mapa');
   String get navSettings => _t('Settings', 'Mga Setting');
-  String get navReport => _t('Report', 'Mag-ulat');
 
-  // ---------- Home: the active case (branch B) ----------
-  String get homeActiveCaseLabel =>
-      _t('Your active case', 'Ang iyong aktibong kaso');
-  String get homeActiveCaseView => _t('View case', 'Tingnan');
   String get settingsPersonalInfo =>
       _t('Personal Information', 'Personal na Impormasyon');
   String get settingsEditProfile => _t('Edit Profile', 'I-edit ang Profile');

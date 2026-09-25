@@ -1,15 +1,17 @@
-// SmartSumbong — resident bottom navigation (branch B).
+// SmartSumbong — resident bottom navigation.
 //
-// Home at the far left, Emergency, the Report button in the middle,
-// Reports, Settings at the far right. The Report button starts a new
-// report (/submit-report) rather than switching tabs — filing is what
-// the app is for, so it sits where the thumb rests. Map left the bar to
-// make room; it is still one tap away on Home's "View map" card, and the
-// Map screen shows the bar with no tab marked.
+// Figma "Footer" (2715:590, the same group on every resident frame).
+// Shared by Home, Emergency, Reports, Map and Settings, so it lives on its
+// own rather than being copied into five screens that would then drift
+// apart.
 //
-// The bar keeps the Figma footer's look: the design's own icons tinted
-// from the theme, 14px labels, 700 for the active tab and 500 otherwise,
-// and a 50x2 line 6 from the top over the active tab.
+// 1:1 with the frame (23 Sep 2026): the design's own five icons, exported
+// from Figma and tinted from the theme so dark mode still reads, instead
+// of the Material look-alikes this used before; 14px labels, 700 for the
+// active tab and 500 otherwise, all #F3F3F3; a 50x2 line 6 from the top
+// marks the active tab. Positions come from the frame: tabs spread edge
+// to edge with 37 padding, and each icon and label keeps its own offset
+// from the bar's top edge.
 
 import 'package:flutter/material.dart';
 
@@ -22,8 +24,6 @@ enum ResidentTab {
   home('/home', 'nav-home', 24, 24, 19, 43),
   emergency('/emergency', 'nav-emergency', 26, 26, 17, 43),
   reports('/reports', 'nav-reports', 21, 20, 19, 44),
-
-  /// Off the bar on branch B; kept so the Map screen can say where it is.
   map('/map', 'nav-map', 22, 19, 17, 44),
   settings('/settings', 'nav-settings', 16, 23, 16, 45);
 
@@ -51,24 +51,15 @@ class ResidentNavBar extends StatelessWidget {
 
   final ResidentTab current;
 
+  static const _framePadding = 37.0; // the frame's side padding
+  static const _minPadding = 10.0;
+  static const _minGap = 8.0; // least space kept between two tabs
   static const _fontSize = 14.0;
 
   @override
   Widget build(BuildContext context) {
-    Widget tab(ResidentTab t) => Expanded(
-          child: _NavItem(
-            tab: t,
-            active: t == current,
-            onTap: () {
-              if (t == current) return;
-              // Replace rather than push: the tabs are peers, and
-              // stacking them would build a back stack from tapping
-              // around.
-              Navigator.of(context).pushReplacementNamed(t.route);
-            },
-          ),
-        );
-
+    final s = context.s;
+    final scaler = MediaQuery.textScalerOf(context);
     return Container(
       decoration: BoxDecoration(
         color: context.colors.navy,
@@ -82,18 +73,106 @@ class ResidentNavBar extends StatelessWidget {
         child: SizedBox(
           // 917 (frame bottom) - 840 (bar top).
           height: 77,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                tab(ResidentTab.home),
-                tab(ResidentTab.emergency),
-                const Expanded(child: _ReportButton()),
-                tab(ResidentTab.reports),
-                tab(ResidentTab.settings),
-              ],
-            ),
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final tabs = ResidentTab.values;
+              final w = box.maxWidth;
+
+              // Each tab is as wide as its icon or its label, whichever is
+              // wider, measured with the phone's own text scaling.
+              double labelWidth(ResidentTab t) => (TextPainter(
+                    text: TextSpan(
+                      text: t.label(s),
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontSize: _fontSize,
+                        fontWeight: t == current
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    textDirection: TextDirection.ltr,
+                    textScaler: scaler,
+                    maxLines: 1,
+                  )..layout())
+                      .width;
+              final widths = [
+                for (final t in tabs)
+                  labelWidth(t) > t.iconWidth ? labelWidth(t) : t.iconWidth,
+              ];
+              final total = widths.fold<double>(0, (a, b) => a + b);
+              const gaps = _minGap * 4;
+
+              // As drawn in the frame when it fits. Narrower phones, long
+              // Tagalog labels or a large system font size: give up side
+              // padding first, then shrink the tabs, rather than overflow.
+              var pad = _framePadding;
+              var scale = 1.0;
+              if (w - 2 * pad - total < gaps) {
+                pad = ((w - total - gaps) / 2).clamp(_minPadding, _framePadding);
+                if (w - 2 * pad - total < gaps) {
+                  scale = (w - 2 * pad - gaps) / total;
+                }
+              }
+              final gap = (w - 2 * pad - total * scale) / (tabs.length - 1);
+
+              final lefts = <double>[];
+              var x = pad;
+              for (final tw in widths) {
+                lefts.add(x);
+                x += tw * scale + gap;
+              }
+              final centres = [
+                for (var i = 0; i < tabs.length; i++)
+                  lefts[i] + widths[i] * scale / 2,
+              ];
+
+              return Stack(
+                children: [
+                  for (var i = 0; i < tabs.length; i++)
+                    Positioned(
+                      left: lefts[i],
+                      top: 0,
+                      width: widths[i] * scale,
+                      height: 77,
+                      child: _NavItem(
+                        tab: tabs[i],
+                        active: tabs[i] == current,
+                        scale: scale,
+                      ),
+                    ),
+                  // Tap areas run between the midpoints of neighbouring
+                  // tabs and the full height of the bar, so every tab is
+                  // easy to hit without moving anything that is drawn.
+                  for (var i = 0; i < tabs.length; i++)
+                    Positioned(
+                      left: i == 0 ? 0 : (centres[i - 1] + centres[i]) / 2,
+                      right: i == tabs.length - 1
+                          ? 0
+                          : w - (centres[i] + centres[i + 1]) / 2,
+                      top: 0,
+                      bottom: 0,
+                      child: Semantics(
+                        button: true,
+                        selected: tabs[i] == current,
+                        label: tabs[i].label(s),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            final tab = tabs[i];
+                            if (tab == current) return;
+                            // Replace rather than push: the tabs are peers,
+                            // and stacking them would build a back stack
+                            // five deep from tapping around.
+                            Navigator.of(context)
+                                .pushReplacementNamed(tab.route);
+                          },
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -105,118 +184,58 @@ class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.tab,
     required this.active,
-    required this.onTap,
+    required this.scale,
   });
 
   final ResidentTab tab;
   final bool active;
-  final VoidCallback onTap;
+
+  /// Below 1 only when the bar would otherwise overflow; see above.
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
     final colour = context.colors.bg;
-    return Semantics(
-      button: true,
-      selected: active,
-      label: tab.label(context.s),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: ExcludeSemantics(
-          child: Column(
-            children: [
-              const SizedBox(height: 6),
-              // Takes no width, so the 50-wide marker cannot widen a tab.
-              SizedBox(
-                width: 0,
-                height: 2,
-                child: OverflowBox(
-                  minWidth: 50,
-                  maxWidth: 50,
-                  child: active ? ColoredBox(color: colour) : null,
-                ),
-              ),
-              SizedBox(height: tab.iconTop - 8),
-              Image.asset(
-                'assets/images/${tab.asset}.png',
-                width: tab.iconWidth,
-                height: tab.iconHeight,
-                color: colour,
-              ),
-              SizedBox(height: tab.labelTop - tab.iconTop - tab.iconHeight),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  tab.label(context.s),
-                  maxLines: 1,
-                  softWrap: false,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontSize: ResidentNavBar._fontSize,
-                    height: 20 / 14,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    color: colour,
-                  ),
-                ),
-              ),
-            ],
+    return ExcludeSemantics(
+      // The tap area above carries the label for screen readers.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 6),
+          // Takes no width, so the 50-wide marker cannot widen a narrow
+          // tab.
+          SizedBox(
+            width: 0,
+            height: 2,
+            child: OverflowBox(
+              minWidth: 50,
+              maxWidth: 50,
+              child: active ? ColoredBox(color: colour) : null,
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The middle of the bar: a 40 orange circle with a 2px page-colour ring
-/// and a plus, "Report" under it on the other labels' line (43 from the
-/// bar's top). Opens the report form.
-class _ReportButton extends StatelessWidget {
-  const _ReportButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final s = context.s;
-    final c = context.colors;
-    return Semantics(
-      button: true,
-      label: s.navReport,
-      child: InkWell(
-        onTap: () => Navigator.of(context).pushNamed('/submit-report'),
-        borderRadius: BorderRadius.circular(16),
-        child: ExcludeSemantics(
-          child: Column(
-            children: [
-              const SizedBox(height: 2),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF9800),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: c.bg, width: 2),
-                ),
-                child: const Icon(Icons.add_rounded,
-                    size: 26, color: Colors.white),
-              ),
-              const SizedBox(height: 1),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  s.navReport,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontSize: 13,
-                    height: 20 / 14,
-                    fontWeight: FontWeight.w700,
-                    color: c.bg,
-                  ),
-                ),
-              ),
-            ],
+          SizedBox(height: tab.iconTop - 8),
+          Image.asset(
+            'assets/images/${tab.asset}.png',
+            width: tab.iconWidth * scale,
+            height: tab.iconHeight * scale,
+            color: colour,
           ),
-        ),
+          SizedBox(
+              height: tab.labelTop - tab.iconTop - tab.iconHeight * scale),
+          Text(
+            tab.label(context.s),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontSize: ResidentNavBar._fontSize * scale,
+              height: 20 / 14,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: colour,
+            ),
+          ),
+        ],
       ),
     );
   }
