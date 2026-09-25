@@ -221,6 +221,7 @@ class AuthService {
       throw RegistrationException(
         'Enter a mobile number like 09171234567.',
         field: 'mobile_number',
+        code: 'mobile_format',
       );
     }
 
@@ -309,6 +310,7 @@ class AuthService {
       throw RegistrationException(
         'Enter a mobile number like 09171234567.',
         field: 'mobile_number',
+        code: 'mobile_format',
       );
     }
 
@@ -597,6 +599,7 @@ class AuthService {
         'That mobile number is already registered. Try signing in instead.',
         field: 'mobile_number',
         goToLogin: true,
+        code: 'mobile_taken',
       );
     }
     // The auth address is derived from the mobile number, so GoTrue's
@@ -608,6 +611,7 @@ class AuthService {
         'That mobile number is already registered. Try signing in instead.',
         field: 'mobile_number',
         goToLogin: true,
+        code: 'mobile_taken',
       );
     }
     if (m.contains('users_email_key')) {
@@ -615,31 +619,35 @@ class AuthService {
         'That email address is already used by another account. '
         'You can leave it blank.',
         field: 'email',
+        code: 'email_taken',
       );
     }
     if (m.contains('auth identity does not match')) {
       return RegistrationException(
         'Something went wrong with your mobile number. Please try again.',
         field: 'mobile_number',
+        code: 'mobile_mismatch',
       );
     }
     if (m.contains('mobile_number must be in the form')) {
       return RegistrationException(
         'Enter a mobile number like 09171234567.',
         field: 'mobile_number',
+        code: 'mobile_format',
       );
     }
     if (m.contains('contact_email is not a valid')) {
       return RegistrationException(
         'That email address does not look right. You can leave it blank.',
         field: 'email',
+        code: 'email_invalid',
       );
     }
 
     // Raised by handle_new_auth_user().
     if (m.contains('full_name is required')) {
       return RegistrationException('Please enter your full name.',
-          field: 'full_name');
+          field: 'full_name', code: 'name_required');
     }
     // Client already enforces this (register_screen.dart), so reaching
     // here means a caller bypassed the app's own form — still worth a
@@ -648,27 +656,29 @@ class AuthService {
       return RegistrationException(
         'Enter your name as Last Name, First Name (e.g. Dela Cruz, Juan).',
         field: 'full_name',
+        code: 'name_format',
       );
     }
     if (m.contains('mobile_number is required')) {
       return RegistrationException('Please enter your mobile number.',
-          field: 'mobile_number');
+          field: 'mobile_number', code: 'mobile_required');
     }
     if (m.contains('id_type is required') ||
         m.contains('not a recognised document type')) {
       return RegistrationException('Please choose which ID you are attaching.',
-          field: 'id_type');
+          field: 'id_type', code: 'id_type_required');
     }
     if (m.contains('id_image_url is required')) {
       return RegistrationException('Please attach a photo of your ID.',
-          field: 'id_image');
+          field: 'id_image', code: 'id_image_required');
     }
     if (m.contains('selfie_url is required')) {
       return RegistrationException('Please take a photo of yourself.',
-          field: 'selfie');
+          field: 'selfie', code: 'selfie_required');
     }
     if (m.contains('role must be resident or tanod')) {
-      return RegistrationException('That account type is not available.');
+      return RegistrationException('That account type is not available.',
+          code: 'role_unavailable');
     }
 
     // A URL that failed the pin. The applicant cannot fix this and
@@ -677,6 +687,7 @@ class AuthService {
       return RegistrationException(
         'Your photos could not be attached. Please retake them and try again.',
         field: 'id_image',
+        code: 'photos_rejected',
       );
     }
 
@@ -684,11 +695,13 @@ class AuthService {
       return RegistrationException(
         'Your password must be at least 8 characters long.',
         field: 'password',
+        code: 'password_short',
       );
     }
 
     return RegistrationException(
       'Your account could not be created. Please try again.',
+      code: 'create_failed',
     );
   }
 }

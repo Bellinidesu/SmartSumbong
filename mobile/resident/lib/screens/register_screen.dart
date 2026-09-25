@@ -367,9 +367,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _banner = e.message);
     } on RegistrationException catch (e) {
       if (!mounted) return;
+      // Core words its failures in English; the known ones are shown in
+      // the resident's language instead.
+      final s = context.s;
+      final message = switch (e.code) {
+        'mobile_taken' => s.registerMobileTaken,
+        'email_taken' => s.editProfileEmailTaken,
+        'mobile_mismatch' => s.registerMobileMismatch,
+        'mobile_format' || 'mobile_required' => s.registerMobileInvalid,
+        'email_invalid' => s.registerEmailInvalid,
+        'name_required' => s.registerFullNameRequired,
+        'name_format' => s.registerFullNameFormat,
+        'id_type_required' => s.registerIdTypeRequired,
+        'id_image_required' => s.registerIdPhotoRequired,
+        'selfie_required' => s.registerSelfieRequired,
+        'photos_rejected' => s.registerPhotosRejected,
+        'password_short' => s.registerPasswordTooShort,
+        'role_unavailable' || 'create_failed' => s.registerSomethingWentWrong,
+        _ => e.message,
+      };
       setState(() {
-        _banner = e.message;
-        if (e.field != null) _errors[e.field!] = e.message;
+        _banner = message;
+        if (e.field != null) _errors[e.field!] = message;
       });
     } catch (e) {
       if (!mounted) return;

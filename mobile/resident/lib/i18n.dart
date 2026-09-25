@@ -948,6 +948,15 @@ class Strings {
   String get registerTakePhoto => _t('Take Photo', 'Kumuha ng Larawan');
   String get registerChooseFromGallery =>
       _t('Choose from Gallery', 'Pumili mula sa Gallery');
+  String get registerMobileTaken => _t(
+      'That mobile number is already registered. Try signing in instead.',
+      'Nakarehistro na ang numerong iyan. Subukang mag-sign in na lang.');
+  String get registerMobileMismatch => _t(
+      'Something went wrong with your mobile number. Please try again.',
+      'May problema sa iyong mobile number. Subukan ulit.');
+  String get registerPhotosRejected => _t(
+      'Your photos could not be attached. Please retake them and try again.',
+      'Hindi ma-attach ang iyong mga larawan. Kunan ulit at subukan muli.');
   String get registerSomethingWentWrong => _t(
       'Something went wrong. Please try again.',
       'May nangyaring mali. Subukan ulit.');
