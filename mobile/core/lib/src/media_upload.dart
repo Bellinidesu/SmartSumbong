@@ -596,3 +596,25 @@ class MediaUploader {
 
   void dispose() => _client.close();
 }
+
+/// A Cloudinary image URL resized for display (branch B): at most
+/// [width] pixels wide, quality and format picked by Cloudinary for the
+/// device (q_auto, f_auto — WebP/AVIF where it helps). A photo is
+/// uploaded at up to 1920 px, but a card or a thumbnail never needs that;
+/// asking for the size it is shown at cuts the download many times over
+/// on mobile data. Anything that is not a Cloudinary image URL — or
+/// already carries a transformation — comes back unchanged. Full-screen
+/// viewers keep the original so zooming in stays sharp.
+String cloudinarySized(String url, {required int width}) {
+  const marker = '/image/upload/';
+  if (!url.contains('res.cloudinary.com')) return url;
+  final i = url.indexOf(marker);
+  if (i < 0) return url;
+  final rest = url.substring(i + marker.length);
+  // Already transformed (a "c_…," / "w_…" segment before the version).
+  if (RegExp(r'^[a-z]{1,3}_[^/]*/').hasMatch(rest) && !rest.startsWith('v')) {
+    return url;
+  }
+  return '${url.substring(0, i + marker.length)}'
+      'c_limit,w_$width,q_auto,f_auto/$rest';
+}

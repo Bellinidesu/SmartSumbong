@@ -115,12 +115,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     try {
-      final profile = await client
-          .from('users')
-          .select('full_name, verification_status, is_suspended, '
-              'id_image_url, id_type, ocr_rescan_requested_at')
-          .eq('id', uid)
-          .maybeSingle();
+      // The profile and the unread count together (branch B): both need
+      // only the uid. The count is simply dropped if the profile sends
+      // the resident elsewhere.
+      final got = await Future.wait<Object?>([
+        client
+            .from('users')
+            .select('full_name, verification_status, is_suspended, '
+                'id_image_url, id_type, ocr_rescan_requested_at')
+            .eq('id', uid)
+            .maybeSingle(),
+        client
+            .from('notifications')
+            .count(CountOption.exact)
+            .eq('user_id', uid)
+            .eq('is_read', false),
+      ], eagerError: true);
+      final profile = got[0] as Map<String, dynamic>?;
+      final unread = got[1] as int;
 
       if (profile == null) {
         _bounce('/login');
@@ -165,12 +177,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           idTypeWire: profile['id_type'] as String?,
         ));
       }
-
-      final unread = await client
-          .from('notifications')
-          .count(CountOption.exact)
-          .eq('user_id', uid)
-          .eq('is_read', false);
 
       if (!mounted) return;
       setState(() {

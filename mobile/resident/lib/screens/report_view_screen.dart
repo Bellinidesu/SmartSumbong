@@ -189,7 +189,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // No `category` column here (30 Aug 2026) -- Rose's six frames
       // never show it; that meta line was a reference-mockup addition
       // this round undoes. See _ReportCard's own header.
-      final r = await client
+      // All five at once (branch B): they are independent, and on mobile
+      // data each round trip one after another was most of the wait.
+      final reportQ = client
           .from('reports')
           .select('id, tracking_id, subject, description, status, '
               'latitude, longitude, is_anonymous, created_at, '
@@ -197,12 +199,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .eq('id', widget.reportId)
           .maybeSingle();
 
-      if (r == null) {
-        setState(() => _error = context.s.reportViewNotFound);
-        return;
-      }
-
-      final media = await client
+      final mediaQ = client
           .from('report_media')
           .select('media_url, mime_type')
           .eq('report_id', widget.reportId);
@@ -210,7 +207,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // Proof of resolution, readable by the resident since 0024. A
       // resident told their complaint was fixed should be able to see
       // the fix.
-      final proof = await client
+      final proofQ = client
           .from('dispatch_media')
           .select('media_url, mime_type, dispatches!inner(report_id)')
           .eq('dispatches.report_id', widget.reportId);
@@ -218,7 +215,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // Feedback is one row per report at most — the table has a unique
       // constraint on report_id, so this is the resident's single
       // rating or nothing.
-      final fb = await client
+      final fbQ = client
           .from('feedback')
           .select('rating, comment, submitted_at')
           .eq('report_id', widget.reportId)
@@ -241,12 +238,26 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // every two minutes — oldest-first, those crowded the resolution
       // itself out of the response. Consecutive identical rows (the same
       // retry, again) are then shown once.
-      final newestFirst = await client
+      final logsQ = client
           .from('status_logs')
           .select('id, old_status, new_status, remark, created_at')
           .eq('report_id', widget.reportId)
           .order('created_at', ascending: false)
           .limit(300);
+
+      final got = await Future.wait<Object?>(
+        [reportQ, mediaQ, proofQ, fbQ, logsQ],
+        eagerError: true,
+      );
+      final r = got[0] as Map<String, dynamic>?;
+      if (r == null) {
+        if (mounted) setState(() => _error = context.s.reportViewNotFound);
+        return;
+      }
+      final media = got[1] as List<Map<String, dynamic>>;
+      final proof = got[2] as List<Map<String, dynamic>>;
+      final fb = got[3] as Map<String, dynamic>?;
+      final newestFirst = got[4] as List<Map<String, dynamic>>;
       final logs = <Map<String, dynamic>>[];
       for (final e in newestFirst.reversed) {
         final prev = logs.isEmpty ? null : logs.last;
@@ -279,17 +290,21 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         _timeline = List<Map<String, dynamic>>.from(logs);
         _feedback = fb;
       });
-      // Separate, so the report still shows if this fails.
-      try {
-        final q = await client
-            .from('detail_requests')
-            .select('id, message')
-            .eq('report_id', widget.reportId)
-            .isFilter('responded_at', null)
-            .maybeSingle();
-        if (mounted) setState(() => _detailRequest = q);
-      } catch (_) {}
-      await _loadTimelineAuthors();
+      // Separate, so the report still shows if this fails; alongside the
+      // timeline bylines rather than after them.
+      Future<void> detail() async {
+        try {
+          final q = await client
+              .from('detail_requests')
+              .select('id, message')
+              .eq('report_id', widget.reportId)
+              .isFilter('responded_at', null)
+              .maybeSingle();
+          if (mounted) setState(() => _detailRequest = q);
+        } catch (_) {}
+      }
+
+      await Future.wait([detail(), _loadTimelineAuthors()]);
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = context.s.reportViewLoadError);
@@ -1455,7 +1470,8 @@ class _MediaCarouselState extends State<_MediaCarousel> {
                           ),
                         )
                       : CachedNetworkImage(
-                          imageUrl: photo.url,
+                          // Card width, not the 1920 upload.
+                          imageUrl: cloudinarySized(photo.url, width: 1080),
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
@@ -1702,7 +1718,8 @@ class _StatusNoteBubbleState extends State<_StatusNoteBubble> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: CachedNetworkImage(
-                          imageUrl: widget.proofPhotoUrl!,
+                          imageUrl: cloudinarySized(widget.proofPhotoUrl!,
+                              width: 1080),
                           fit: BoxFit.cover,
                           height: 160,
                           width: double.infinity,

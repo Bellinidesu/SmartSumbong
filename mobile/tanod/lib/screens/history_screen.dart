@@ -542,7 +542,8 @@ class _ActivityThumb extends StatelessWidget {
                     size: 24, color: Colors.white70),
               )
             : CachedNetworkImage(
-                imageUrl: item.url,
+                // A 52 thumbnail; the tap opens the original.
+                imageUrl: cloudinarySized(item.url, width: 200),
                 width: 52,
                 height: 52,
                 fit: BoxFit.cover,

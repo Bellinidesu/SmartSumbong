@@ -302,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // back here.
                       image: _avatarUrl != null
                           ? DecorationImage(
-                              image: NetworkImage(_avatarUrl!),
+                              image: NetworkImage(cloudinarySized(_avatarUrl!, width: 420)),
                               fit: BoxFit.cover,
                             )
                           : null,

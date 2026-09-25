@@ -207,28 +207,38 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   Future<void> _load() async {
     try {
       final client = Supabase.instance.client;
-      final report = await client
-          .from('reports')
-          .select('tracking_id, subject, description, created_at, '
-              'latitude, longitude, is_anonymous')
-          .eq('id', widget.ticket.reportId)
-          .single();
-      final media = await client
-          .from('report_media')
-          .select('media_url, mime_type')
-          .eq('report_id', widget.ticket.reportId);
+      // All three at once. The details request is caught on its own, so
+      // the ticket still loads if that one fails.
+      Future<Map<String, dynamic>?> detailQ() async {
+        try {
+          return await client
+              .from('detail_requests')
+              .select('id, message, requested_at, response, responded_at')
+              .eq('report_id', widget.ticket.reportId)
+              .order('requested_at', ascending: false)
+              .limit(1)
+              .maybeSingle();
+        } catch (_) {
+          return null;
+        }
+      }
 
-      // Separate, so the ticket still loads if this fails.
-      Map<String, dynamic>? detail;
-      try {
-        detail = await client
-            .from('detail_requests')
-            .select('id, message, requested_at, response, responded_at')
-            .eq('report_id', widget.ticket.reportId)
-            .order('requested_at', ascending: false)
-            .limit(1)
-            .maybeSingle();
-      } catch (_) {}
+      final got = await Future.wait<Object?>([
+        client
+            .from('reports')
+            .select('tracking_id, subject, description, created_at, '
+                'latitude, longitude, is_anonymous')
+            .eq('id', widget.ticket.reportId)
+            .single(),
+        client
+            .from('report_media')
+            .select('media_url, mime_type')
+            .eq('report_id', widget.ticket.reportId),
+        detailQ(),
+      ], eagerError: true);
+      final report = got[0] as Map<String, dynamic>;
+      final media = got[1] as List<Map<String, dynamic>>;
+      final detail = got[2] as Map<String, dynamic>?;
 
       if (!mounted) return;
       setState(() {
@@ -792,7 +802,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                       ),
                     )
                   : CachedNetworkImage(
-                      imageUrl: item.url,
+                      // The card's width, not the 1920 upload.
+                      imageUrl: cloudinarySized(item.url, width: 900),
                       fit: BoxFit.cover,
                       width: double.infinity,
                       placeholder: (_, __) => Container(

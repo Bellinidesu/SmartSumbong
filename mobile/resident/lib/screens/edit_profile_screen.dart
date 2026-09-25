@@ -393,7 +393,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       )
                                     : (_avatarUrl != null
                                         ? DecorationImage(
-                                            image: NetworkImage(_avatarUrl!),
+                                            image: NetworkImage(cloudinarySized(_avatarUrl!, width: 420)),
                                             fit: BoxFit.cover,
                                           )
                                         : null),

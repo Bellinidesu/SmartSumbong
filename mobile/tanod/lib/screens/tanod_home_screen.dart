@@ -102,21 +102,21 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
 
       _subscribeLive(uid);
 
-      final me = await client
-          .from('users')
-          .select('full_name')
-          .eq('id', uid)
-          .single();
-
-      // Live queue: what is waiting for a response or already accepted.
-      final open = await client
-          .from('dispatches')
-          .select('id, report_id, state, accept_due_at, assigned_at, '
-              'admin_instructions, '
-              'reports(tracking_id, subject, description, due_at)')
-          .eq('tanod_id', uid)
-          .inFilter('state', ['assigned', 'accepted'])
-          .order('assigned_at', ascending: false);
+      // The name and the live queue (what is waiting for a response or
+      // already accepted) together: neither needs the other.
+      final got = await Future.wait<Object?>([
+        client.from('users').select('full_name').eq('id', uid).single(),
+        client
+            .from('dispatches')
+            .select('id, report_id, state, accept_due_at, assigned_at, '
+                'admin_instructions, '
+                'reports(tracking_id, subject, description, due_at)')
+            .eq('tanod_id', uid)
+            .inFilter('state', ['assigned', 'accepted'])
+            .order('assigned_at', ascending: false),
+      ], eagerError: true);
+      final me = got[0] as Map<String, dynamic>;
+      final open = got[1] as List<Map<String, dynamic>>;
 
       if (!mounted) return;
       final name = (me['full_name'] as String? ?? '').trim();

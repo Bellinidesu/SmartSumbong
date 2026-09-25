@@ -337,8 +337,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       setState(() => _reports = [
             for (final r in rows) ReportSummary.fromRow(r),
           ]);
-      await _loadResolutionNotes();
-      await _loadDetailRequests();
+      // The notes and the details requests don't depend on each other.
+      await Future.wait([_loadResolutionNotes(), _loadDetailRequests()]);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = context.s.reportsLoadError);
