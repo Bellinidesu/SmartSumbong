@@ -173,7 +173,7 @@ class Strings {
   String get loginButton => _t('Log In', 'Mag-log In');
   String get loginBackToRoles => _t('Back to Roles', 'Bumalik sa mga Tungkulin');
   String get loginNoAccountPrefix =>
-      _t('Don’t have an account yet? ', 'Wala ka pang account? ');
+      _t('Don’t Have an Account Yet? ', 'Wala ka pang account? ');
   String get loginSignUp => _t('Sign Up', 'Mag-sign Up');
   String get loginPhoneError =>
       _t('Enter a number like 09171234567.', 'Maglagay ng numero tulad ng 09171234567.');
