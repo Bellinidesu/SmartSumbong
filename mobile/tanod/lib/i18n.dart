@@ -650,6 +650,8 @@ class Strings {
   String get dispatchMediaOpenFailed => _t(
       'Could not open the camera or gallery.',
       'Hindi mabuksan ang camera o gallery.');
+  String dispatchTicketNumber(String id) =>
+      _t('Ticket #$id', 'Tiket #$id');
   String get dispatchOrderHeaderLabel =>
       _t('DISPATCH ORDER:', 'DISPATCH ORDER:');
   String dispatchSubmittedOn(String date) =>

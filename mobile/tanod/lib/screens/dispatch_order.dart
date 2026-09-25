@@ -30,6 +30,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import 'tickets_screen.dart';
 
 const _cloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
@@ -41,8 +42,8 @@ const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
 const _videoUploadPresetRaw =
     String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET_VIDEO');
 
-const _red = Color(0xFFFF4949);
-const _green = Color(0xFF1FA84E);
+const _red = kFigmaRed;
+const _green = Color(0xFF058F00);
 
 /// Which body the card is showing.
 enum _Pane {
@@ -78,7 +79,8 @@ Future<bool> showDispatchOrder(
   final changed = await showGeneralDialog<bool>(
     context: context,
     barrierDismissible: false,
-    barrierColor: const Color(0x66FFFFFF),
+    // The frames fade Home to 30% behind the card.
+    barrierColor: context.colors.bg.withValues(alpha: 0.7),
     barrierLabel: context.s.dispatchBarrierLabel,
     pageBuilder: (_, __, ___) => _DispatchOrder(ticket: ticket, target: target),
   );
@@ -385,44 +387,12 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   /// Camera or gallery, per the CAPSTONE G12 feedback that attaching
   /// media forced the camera open with no way to pick an existing shot.
   /// Mirrors the resident app's register_screen.dart `_chooseSource`.
-  Future<ImageSource?> _chooseSource(BuildContext context) {
-    return showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading:
-                  Icon(Icons.photo_camera_outlined, color: context.colors.navy),
-              title: Text(context.s.dispatchTakePhoto),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading:
-                  Icon(Icons.photo_library_outlined, color: context.colors.navy),
-              title: Text(context.s.dispatchChooseFromGallery),
-              onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<ImageSource?> _chooseSource(BuildContext context) =>
+      showFigmaSourceSheet(
+        context,
+        takeLabel: context.s.dispatchTakePhoto,
+        galleryLabel: context.s.dispatchChooseFromGallery,
+      );
 
   Future<void> _addPhoto() async {
     if (_photos.length >= 3) return;
@@ -522,22 +492,20 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+              // Figma "Frame 950": 352 wide at x=30, #F3F3F3, a 2px ink
+              // edge (red on the reroute pane), radius 50, the design
+              // shadow; content 32 in.
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
               child: Container(
+                constraints: const BoxConstraints(maxWidth: 352),
                 decoration: BoxDecoration(
                   color: context.colors.bg,
-                  border: Border.all(color: reroute ? _red : context.colors.navy,
-                      width: 2),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x26000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
+                  border: Border.all(
+                      color: reroute ? _red : context.colors.navy, width: 2),
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: kFigmaShadow,
                 ),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                padding: const EdgeInsets.fromLTRB(30, 36, 30, 28),
                 child: _body(),
               ),
             ),
@@ -560,27 +528,44 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
   // ---------- panes ---------------------------------------------
 
-  Widget _header() => Column(
-        children: [
-          Text(
-            '${context.s.dispatchOrderHeaderLabel}\n${widget.ticket.trackingId}',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w800,
-              fontSize: 19,
-              height: 1.2,
-              color: context.colors.navy,
-            ),
+  // The frame's title: "DISPATCH ORDER:" over "Ticket #…", 28/800 with
+  // tight leading, each line shrinking rather than wrapping when a
+  // tracking ID is long; "Submitted on" 14/500 under it.
+  Widget _header() {
+    final style = TextStyle(
+      fontFamily: 'Urbanist',
+      fontWeight: FontWeight.w800,
+      fontSize: 28,
+      height: 24.5 / 28,
+      color: context.colors.navy,
+    );
+    return Column(
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(context.s.dispatchOrderHeaderLabel, style: style),
+        ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(context.s.dispatchTicketNumber(widget.ticket.trackingId),
+              style: style),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          context.s
+              .dispatchSubmittedOn(_date(_report?['created_at'] as String?)),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Urbanist',
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            height: 15 / 14,
+            color: context.colors.navy,
           ),
-          const SizedBox(height: 2),
-          Text(
-            context.s
-                .dispatchSubmittedOn(_date(_report?['created_at'] as String?)),
-            style: TextStyle(fontSize: 11, color: context.colors.navy),
-          ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 
   /// The map, media and instructions panes are the same card with the
   /// inner box swapped and a single Back.
@@ -590,14 +575,26 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           _header(),
           const SizedBox(height: 14),
           inner,
-          const SizedBox(height: 16),
+          const SizedBox(height: 30),
           _Pill(
             label: context.s.dispatchBack,
-            filled: true,
             colour: context.colors.navy,
             onTap: () => setState(() => _pane = _returnPane),
           ),
         ],
+      );
+
+  /// The frame's inner box: #FBFBFB, 1px ink edge, radius 20; text 27 in.
+  Widget _innerBox({required Widget child, double? height}) => Container(
+        width: double.infinity,
+        height: height,
+        padding: const EdgeInsets.fromLTRB(27, 18, 20, 16),
+        decoration: BoxDecoration(
+          color: context.colors.field,
+          border: Border.all(color: context.colors.navy),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: child,
       );
 
   Widget _orderPane() {
@@ -607,13 +604,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         _header(),
         const SizedBox(height: 14),
 
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: context.colors.navy),
-            borderRadius: BorderRadius.circular(12),
-          ),
+        _innerBox(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -625,20 +616,20 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               _Field(
                   label: context.s.dispatchComplainantLabel,
                   value: context.s.reportsFilerAnonymous),
-              const SizedBox(height: 6),
+              const SizedBox(height: 15),
               _Field(
                 label: context.s.reportsDescriptionLabel,
                 value: '\u201C${widget.ticket.description}\u201D',
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 15),
               _Field(
                 label: context.s.reportsDeadlineLabel,
                 value: _dateOf(widget.ticket.dueAt),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
               _Link(
-                icon: Icons.place_outlined,
+                icon: Icons.location_on_outlined,
                 label: context.s.reportsViewMap,
                 onTap: () => setState(() {
                   _returnPane = _Pane.order;
@@ -646,7 +637,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 }),
               ),
               _Link(
-                icon: Icons.camera_alt_outlined,
+                icon: Icons.photo_camera_outlined,
                 label: context.s.reportsViewMedia,
                 onTap: () => setState(() {
                   _returnPane = _Pane.order;
@@ -654,7 +645,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 }),
               ),
               _Link(
-                icon: Icons.info_outline,
+                icon: Icons.my_location_rounded,
                 label: context.s.reportsViewInstructions,
                 onTap: () => setState(() {
                   _returnPane = _Pane.order;
@@ -673,14 +664,15 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         ],
         const SizedBox(height: 14),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        // The frame's 112x37 Reroute and Accept, 36 apart, Back under them.
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 36,
+          runSpacing: 12,
           children: [
             _Pill(
               label: context.s.dispatchReroute,
-              filled: true,
               colour: _red,
-              width: 108,
               onTap: _busy
                   ? null
                   : () => setState(() {
@@ -688,23 +680,18 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                         _error = null;
                       }),
             ),
-            const SizedBox(width: 16),
             _Pill(
               label: context.s.dispatchAccept,
-              filled: true,
               colour: _green,
-              width: 108,
               busy: _busy,
               onTap: _busy ? null : _accept,
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
         _Pill(
           label: context.s.dispatchBack,
-          filled: true,
           colour: context.colors.navy,
-          width: 108,
           onTap: _close,
         ),
       ],
@@ -716,9 +703,9 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     final lon = (_report?['longitude'] as num?)?.toDouble();
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       child: SizedBox(
-        height: 240,
+        height: 300,
         width: double.infinity,
         child: lat == null || lon == null
             ? Container(
@@ -748,8 +735,10 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                       point: LatLng(lat, lon),
                       width: 38,
                       height: 38,
-                      child: Icon(Icons.location_on,
-                          size: 38, color: context.colors.navy),
+                      // Light tiles in both modes, so the pin keeps the
+                      // day ink rather than following the theme.
+                      child: const Icon(Icons.location_on,
+                          size: 38, color: Color(0xFF14181D)),
                     ),
                   ]),
                 ],
@@ -761,16 +750,17 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   Widget _mediaPane() {
     if (_loading) {
       return const SizedBox(
-        height: 240,
+        height: 300,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     if (_evidence.isEmpty) {
       return Container(
-        height: 240,
+        height: 300,
         decoration: BoxDecoration(
           color: context.colors.field,
-          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.colors.navy),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Center(
           child: Text(context.s.dispatchNoMedia,
@@ -779,12 +769,12 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       );
     }
     return SizedBox(
-      height: 240,
+      height: 300,
       child: PageView(
         children: [
           for (final item in _evidence)
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(20),
               child: item.isVideo
                   ? GestureDetector(
                       onTap: () => Navigator.of(context).push(
@@ -827,49 +817,67 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   Widget _instructionsPane() {
     final text = widget.ticket.instructions?.trim() ?? '';
 
+    // Figma INSTRUCTIONS OPENED: the 287x326 box, "Admin Directives:" and
+    // the steps 14 (700 / 500), the responder note red italic under them.
     return Container(
-      constraints: const BoxConstraints(maxHeight: 240),
+      constraints: const BoxConstraints(maxHeight: 326),
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(27, 18, 20, 16),
       decoration: BoxDecoration(
+        color: context.colors.field,
         border: Border.all(color: context.colors.navy),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.s.dispatchAdminDirectivesTitle,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                color: context.colors.navy,
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(right: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.s.dispatchAdminDirectivesTitle,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  height: 15 / 14,
+                  color: context.colors.navy,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              text.isEmpty ? context.s.dispatchNoDirectives : text,
-              style: TextStyle(
-                  fontSize: 11.5, height: 1.45, color: context.colors.navy),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              context.s.dispatchResponderNote,
-              style: const TextStyle(
-                fontSize: 10.5,
-                height: 1.4,
-                fontStyle: FontStyle.italic,
-                color: _red,
+              const SizedBox(height: 4),
+              Text(
+                text.isEmpty ? context.s.dispatchNoDirectives : text,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  height: 15 / 14,
+                  color: context.colors.navy,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 14),
+              Text(
+                context.s.dispatchResponderNote,
+                style: const TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                  height: 1.25,
+                  fontStyle: FontStyle.italic,
+                  color: _red,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // Figma REROUTED EMERGENCY: the red title 28/800, the body 16/500, the
+  // 266x128 reason box (radius 25, red edge), then the 214x50 Confirm and
+  // Cancel.
   Widget _reroutePane() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -880,73 +888,59 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           style: const TextStyle(
             fontFamily: 'Urbanist',
             fontWeight: FontWeight.w800,
-            fontSize: 17,
-            height: 1.25,
+            fontSize: 28,
+            height: 25 / 28,
             color: _red,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           context.s.dispatchRerouteConfirmBody,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 11, height: 1.35, color: _red),
-        ),
-        const SizedBox(height: 14),
-
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            context.s.dispatchRerouteReasonLabel,
-            style: const TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 11.5,
-              color: _red,
-            ),
+          style: const TextStyle(
+            fontFamily: 'Urbanist',
+            fontWeight: FontWeight.w500,
+            fontSize: 16,
+            height: 15 / 16,
+            color: _red,
           ),
         ),
-        const SizedBox(height: 6),
-        _Box(
+        const SizedBox(height: 30),
+        _InputBox(
+          label: context.s.dispatchRerouteReasonLabel,
           colour: _red,
-          child: TextField(
-            controller: _reason,
-            maxLines: 4,
-            maxLength: 200,
-            enabled: !_busy,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: context.s.dispatchInputHint,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              filled: false,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-            onChanged: (_) => setState(() => _error = null),
-          ),
+          controller: _reason,
+          hint: context.s.dispatchInputHint,
+          maxLength: 200,
+          enabled: !_busy,
+          onChanged: (_) => setState(() => _error = null),
         ),
-
         if (_error != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(_error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: _red)),
+              style: const TextStyle(fontSize: 12, color: _red)),
         ],
-        const SizedBox(height: 14),
-
+        const SizedBox(height: 30),
         _Pill(
           label: context.s.dispatchConfirm,
-          filled: true,
           colour: _red,
+          width: 214,
+          height: 50,
+          radius: 20,
+          fontSize: 16,
           busy: _busy,
           onTap: _busy ? null : _reroute,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 15),
         _Pill(
           label: context.s.dispatchCancel,
-          filled: false,
           colour: _red,
+          filled: false,
+          width: 214,
+          height: 50,
+          radius: 20,
+          fontSize: 16,
           onTap: _busy
               ? null
               : () => setState(() {
@@ -958,37 +952,57 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     );
   }
 
-  Widget _acceptedPane() => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 20),
-          Text(
-            context.s.dispatchAcceptedTitle(
-                widget.ticket.trackingId, widget.ticket.subject),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w800,
-              fontSize: 19,
-              height: 1.25,
-              color: context.colors.navy,
+  // Figma COMPLAINT ACCEPTED: the message 28/800 and 16/500 centred in the
+  // 556-tall card, the 180x50 Back under it.
+  Widget _acceptedPane() => _message(
+        title: context.s.dispatchAcceptedTitle(
+            widget.ticket.trackingId, widget.ticket.subject),
+        body: context.s.dispatchAcceptedBody,
+      );
+
+  Widget _message({required String title, String? body}) => ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 480),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 60),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w800,
+                fontSize: 28,
+                height: 24.5 / 28,
+                color: context.colors.navy,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.s.dispatchAcceptedBody,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11.5, height: 1.4, color: context.colors.navy),
-          ),
-          const SizedBox(height: 28),
-          _Pill(
-            label: context.s.dispatchBack,
-            filled: true,
-            colour: context.colors.navy,
-            onTap: _close,
-          ),
-          const SizedBox(height: 12),
-        ],
+            if (body != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  height: 15 / 16,
+                  color: context.colors.navy,
+                ),
+              ),
+            ],
+            const SizedBox(height: 60),
+            _Pill(
+              label: context.s.dispatchBack,
+              colour: context.colors.navy,
+              width: 180,
+              height: 50,
+              fontSize: 16,
+              onTap: _close,
+            ),
+          ],
+        ),
       );
 
   Widget _updatePane() {
@@ -996,40 +1010,34 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _header(),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
         // What Kim's QA note (26 Aug 2026) was missing: an
         // already-accepted ticket used to open straight into this form
         // with no reminder of what the report even was. Same summary
         // box the order pane shows, same _report/_evidence this pane
         // already loads — just never displayed here before.
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: context.colors.navy),
-            borderRadius: BorderRadius.circular(12),
-          ),
+        _innerBox(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _Field(
                   label: context.s.dispatchComplainantLabel,
                   value: context.s.reportsFilerAnonymous),
-              const SizedBox(height: 6),
+              const SizedBox(height: 15),
               _Field(
                 label: context.s.reportsDescriptionLabel,
                 value: '“${widget.ticket.description}”',
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 15),
               _Field(
                 label: context.s.reportsDeadlineLabel,
                 value: _dateOf(widget.ticket.dueAt),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
               _Link(
-                icon: Icons.place_outlined,
+                icon: Icons.location_on_outlined,
                 label: context.s.reportsViewMap,
                 onTap: () => setState(() {
                   _returnPane = _Pane.update;
@@ -1037,7 +1045,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 }),
               ),
               _Link(
-                icon: Icons.camera_alt_outlined,
+                icon: Icons.photo_camera_outlined,
                 label: context.s.reportsViewMedia,
                 onTap: () => setState(() {
                   _returnPane = _Pane.update;
@@ -1045,7 +1053,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 }),
               ),
               _Link(
-                icon: Icons.info_outline,
+                icon: Icons.my_location_rounded,
                 label: context.s.reportsViewInstructions,
                 onTap: () => setState(() {
                   _returnPane = _Pane.update;
@@ -1056,14 +1064,14 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               // question waiting or the reply here.
               if (_detailRequest != null &&
                   _detailRequest!['responded_at'] == null) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 _Field(
                   label: context.s.dispatchDetailsWaiting,
                   value: _detailRequest!['message'] as String? ?? '',
                 ),
               ] else ...[
                 if (_detailRequest != null) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   _Field(
                     label: context.s.dispatchDetailsReply,
                     value: ((_detailRequest!['response'] as String?) ?? '')
@@ -1082,67 +1090,50 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 28),
 
+        // Figma SUBMIT PHOTO EVIDENCE: the title 28/800, the 266x128
+        // report box (radius 25), the photo label 14/700, and 146x107
+        // attach tiles.
         Text(
           context.s.reportsSubmitUpdate,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'Urbanist',
             fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontSize: 28,
+            height: 25 / 28,
             color: context.colors.navy,
           ),
         ),
-        const SizedBox(height: 14),
-
+        const SizedBox(height: 26),
+        _InputBox(
+          label: context.s.dispatchProvideReportLabel,
+          colour: context.colors.navy,
+          controller: _update,
+          hint: context.s.dispatchInputHint,
+          maxLength: 300,
+          enabled: !_busy,
+          onChanged: (_) => setState(() => _error = null),
+        ),
+        const SizedBox(height: 28),
         Align(
           alignment: Alignment.centerLeft,
-          child: Text(
-            context.s.dispatchProvideReportLabel,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 11.5,
-              color: context.colors.navy,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text(
+              context.s.dispatchPhotoEvidenceLabel,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                height: 15 / 14,
+                color: context.colors.navy,
+              ),
             ),
           ),
         ),
         const SizedBox(height: 6),
-        _Box(
-          colour: context.colors.navy,
-          child: TextField(
-            controller: _update,
-            maxLines: 4,
-            maxLength: 300,
-            enabled: !_busy,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: context.s.dispatchInputHint,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              filled: false,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-            onChanged: (_) => setState(() => _error = null),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            context.s.dispatchPhotoEvidenceLabel,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 11.5,
-              color: context.colors.navy,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
 
         Align(
           alignment: Alignment.centerLeft,
@@ -1155,9 +1146,9 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                   clipBehavior: Clip.none,
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(25),
                       child: Image.file(_photos[i],
-                          width: 72, height: 62, fit: BoxFit.cover),
+                          width: 107, height: 107, fit: BoxFit.cover),
                     ),
                     Positioned(
                       top: -6,
@@ -1183,122 +1174,58 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               // neighbour has nothing to photograph, and requiring one
               // would only teach them to photograph something else.
               if (_photos.length < 3)
-                InkWell(
+                _AttachTile(
+                  icon: Icons.add,
+                  label: context.s.dispatchAttachMedia,
+                  limit: context.s.dispatchMaxPhotoSize,
                   onTap: _busy ? null : _addPhoto,
-                  child: CustomPaint(
-                    painter: _DashedBorder(colour: context.colors.navy),
-                    child: SizedBox(
-                      width: 118,
-                      height: 62,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: context.colors.navy,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Icon(Icons.add,
-                                size: 14, color: context.colors.bg),
-                          ),
-                          const SizedBox(width: 6),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(context.s.dispatchAttachMedia,
-                                  style: TextStyle(
-                                    fontFamily: 'Urbanist',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 10,
-                                    color: context.colors.navy,
-                                  )),
-                              Text(context.s.dispatchMaxPhotoSize,
-                                  style: TextStyle(
-                                      fontSize: 8, color: context.colors.navy)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
 
               // Same single-clip reasoning as the resident report screen's
               // _VideoAttach: one optional video, not a strip of them.
               if (_video != null)
                 Container(
-                  width: 118,
-                  height: 62,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  width: 138,
+                  height: 107,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: context.colors.navy.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(10),
+                    color: context.colors.field,
+                    border: Border.all(color: context.colors.navy),
+                    borderRadius: BorderRadius.circular(25),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.videocam, color: context.colors.navy, size: 18),
+                      Icon(Icons.videocam, color: context.colors.navy, size: 20),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
                           child: Text(context.s.dispatchVideoAttached,
-                              style:
-                                  TextStyle(fontSize: 9, color: context.colors.navy)),
+                              style: TextStyle(
+                                fontFamily: 'Urbanist',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                                color: context.colors.navy,
+                              )),
                         ),
                       ),
                       InkWell(
                         onTap: _removeVideo,
-                        child: Icon(Icons.close,
-                            size: 14, color: context.colors.navy),
+                        customBorder: const CircleBorder(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(Icons.close,
+                              size: 16, color: context.colors.navy),
+                        ),
                       ),
                     ],
                   ),
                 )
               else
-                InkWell(
+                _AttachTile(
+                  icon: Icons.videocam,
+                  label: context.s.dispatchAttachVideo,
+                  limit: context.s.dispatchMaxVideoSize,
                   onTap: _busy ? null : _addVideo,
-                  child: CustomPaint(
-                    painter: _DashedBorder(colour: context.colors.navy),
-                    child: SizedBox(
-                      width: 118,
-                      height: 62,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: context.colors.navy,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Icon(Icons.videocam,
-                                size: 14, color: context.colors.bg),
-                          ),
-                          const SizedBox(width: 6),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(context.s.dispatchAttachVideo,
-                                  style: TextStyle(
-                                    fontFamily: 'Urbanist',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 10,
-                                    color: context.colors.navy,
-                                  )),
-                              Text(context.s.dispatchMaxVideoSize,
-                                  style: TextStyle(
-                                      fontSize: 8, color: context.colors.navy)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
             ],
           ),
@@ -1308,53 +1235,38 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           const SizedBox(height: 8),
           Text(_error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: _red)),
+              style: const TextStyle(fontSize: 12, color: _red)),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 36),
 
+        // The frame's 180x50 Submit; Back (kept, so a tanod can leave
+        // without submitting) as its light twin under it.
         _Pill(
           label: context.s.dispatchSubmit,
-          filled: true,
           colour: context.colors.navy,
+          width: 180,
+          height: 50,
+          fontSize: 16,
           busy: _busy,
           onTap: _busy ? null : _submitUpdate,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         _Pill(
           label: context.s.dispatchBack,
-          filled: false,
           colour: context.colors.navy,
+          filled: false,
+          width: 180,
+          height: 50,
+          fontSize: 16,
           onTap: _busy ? null : _close,
         ),
       ],
     );
   }
 
-  Widget _submittedPane() => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 20),
-          Text(
-            context.s.dispatchSubmittedTitle(widget.ticket.trackingId),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w800,
-              fontSize: 19,
-              height: 1.3,
-              color: context.colors.navy,
-            ),
-          ),
-          const SizedBox(height: 28),
-          _Pill(
-            label: context.s.dispatchBack,
-            filled: true,
-            colour: context.colors.navy,
-            onTap: _close,
-          ),
-          const SizedBox(height: 12),
-        ],
-      );
+  // Figma REPORT SUBMITTED: the same message layout, no body.
+  Widget _submittedPane() =>
+      _message(title: context.s.dispatchSubmittedTitle(widget.ticket.trackingId));
 
   // ---------- dates ---------------------------------------------
 
@@ -1375,11 +1287,17 @@ class _Field extends StatelessWidget {
   final String label;
   final String value;
 
+  // The frame's 14/500 body, the label 700, 15 leading.
   @override
-  Widget build(BuildContext context) => RichText(
-        text: TextSpan(
+  Widget build(BuildContext context) => Text.rich(
+        TextSpan(
           style: TextStyle(
-              fontSize: 11, height: 1.4, color: context.colors.navy),
+            fontFamily: 'Urbanist',
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            height: 15 / 14,
+            color: context.colors.navy,
+          ),
           children: [
             TextSpan(
                 text: label,
@@ -1390,6 +1308,8 @@ class _Field extends StatelessWidget {
       );
 }
 
+/// The frame's link row: a 22px icon, the label 14/700 underlined; rows
+/// 46 apart.
 class _Link extends StatelessWidget {
   const _Link({
     required this.icon,
@@ -1402,115 +1322,279 @@ class _Link extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          child: Row(
-            children: [
-              Icon(icon, size: 15, color: context.colors.navy),
-              const SizedBox(width: 8),
-              Text(
+  Widget build(BuildContext context) {
+    final ink = context.colors.navy;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: ink),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.navy,
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: ink,
                   decoration: TextDecoration.underline,
-                  decorationColor: context.colors.navy,
+                  decorationColor: ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The frames' labelled input box: the label 14/700, a 128-tall #FBFBFB
+/// box with a 1px edge and radius 25, the hint 12/400, the count 10/300
+/// at the bottom right. [colour] is ink, or red on the reroute pane.
+class _InputBox extends StatelessWidget {
+  const _InputBox({
+    required this.label,
+    required this.colour,
+    required this.controller,
+    required this.hint,
+    required this.maxLength,
+    required this.enabled,
+    required this.onChanged,
+    this.autofocus = false,
+  });
+
+  final bool autofocus;
+  final String label;
+  final Color colour;
+  final TextEditingController controller;
+  final String hint;
+  final int maxLength;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                height: 21.84 / 14,
+                color: colour,
+              ),
+            ),
+          ),
+        Container(
+          height: 128,
+          padding: const EdgeInsets.fromLTRB(17, 10, 11, 4),
+          decoration: BoxDecoration(
+            color: context.colors.field,
+            border: Border.all(color: colour),
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: TextField(
+            controller: controller,
+            autofocus: autofocus,
+            maxLines: null,
+            expands: true,
+            maxLength: maxLength,
+            enabled: enabled,
+            textAlignVertical: TextAlignVertical.top,
+            textCapitalization: TextCapitalization.sentences,
+            cursorColor: colour,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+              height: 1.35,
+              color: context.colors.navy,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+                color: colour,
+              ),
+              counterStyle: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w300,
+                fontSize: 10,
+                height: 1,
+                color: colour,
+              ),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              filled: false,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The frames' pill: [colour] filled with a 1px #F3F3F3 edge and the
+/// design shadow, 14/700 (112x37) by default; [filled] false draws the
+/// light twin — #FBFBFB with a [colour] edge and label.
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.label,
+    required this.colour,
+    required this.onTap,
+    this.filled = true,
+    this.width = 112,
+    this.height = 37,
+    this.radius = 50,
+    this.fontSize = 14,
+    this.busy = false,
+  });
+
+  final String label;
+  final Color colour;
+  final VoidCallback? onTap;
+  final bool filled;
+  final double width;
+  final double height;
+  final double radius;
+  final double fontSize;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    // On the app's own ink (pale at night) the label takes the page
+    // colour; on red or green it stays the frame's #F3F3F3.
+    final onFill = colour == c.navy ? c.bg : const Color(0xFFF3F3F3);
+    final bg = filled ? colour : c.field;
+    final fg = filled ? onFill : colour;
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: width, minHeight: height),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          boxShadow: kFigmaShadow,
+        ),
+        child: FilledButton(
+          onPressed: onTap,
+          style: FilledButton.styleFrom(
+            backgroundColor: bg,
+            foregroundColor: fg,
+            disabledBackgroundColor: bg.withValues(alpha: 0.55),
+            disabledForegroundColor: fg.withValues(alpha: 0.8),
+            minimumSize: Size(width, height),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            elevation: 0,
+            side: BorderSide(color: filled ? const Color(0xFFF3F3F3) : colour),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(radius),
+            ),
+            textStyle: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w700,
+              fontSize: fontSize,
+            ),
+          ),
+          child: busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: fg),
+                )
+              : Text(label, textAlign: TextAlign.center),
+        ),
+      ),
+    );
+  }
+}
+
+/// The frame's 146x107 attach tile: dashed edge, radius 25, the small
+/// filled square with its icon, the label 12/700 and the limit 10/400.
+class _AttachTile extends StatelessWidget {
+  const _AttachTile({
+    required this.icon,
+    required this.label,
+    required this.limit,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String limit;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = context.colors.navy;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(25),
+      child: CustomPaint(
+        painter: _DashedBorder(colour: ink),
+        child: SizedBox(
+          // 146 in the frame; 138 so two sit side by side in the card.
+          width: 138,
+          height: 107,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: ink,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Icon(icon, size: 16, color: context.colors.bg),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          height: 1.3,
+                          color: ink,
+                        )),
+                    Text(limit,
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w400,
+                          fontStyle: FontStyle.italic,
+                          fontSize: 10,
+                          color: ink,
+                        )),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-      );
-}
-
-class _Box extends StatelessWidget {
-  const _Box({required this.colour, required this.child});
-
-  final Color colour;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-        decoration: BoxDecoration(
-          border: Border.all(color: colour),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: child,
-      );
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.filled,
-    required this.colour,
-    required this.onTap,
-    this.width,
-    this.busy = false,
-  });
-
-  final String label;
-  final bool filled;
-  final Color colour;
-  final VoidCallback? onTap;
-  final double? width;
-  final bool busy;
-
-  @override
-  Widget build(BuildContext context) {
-    final shape =
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(50));
-    final child = busy
-        ? SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(
-                strokeWidth: 2, color: filled ? context.colors.bg : colour),
-          )
-        : Text(label);
-
-    final button = filled
-        ? FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              backgroundColor: colour,
-              foregroundColor: context.colors.bg,
-              minimumSize: const Size(0, 40),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-            child: child,
-          )
-        : OutlinedButton(
-            onPressed: onTap,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colour,
-              side: BorderSide(color: colour, width: 1.5),
-              minimumSize: const Size(0, 40),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              shape: shape,
-              textStyle: const TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-            child: child,
-          );
-
-    return width == null
-        ? SizedBox(width: double.infinity, child: button)
-        : SizedBox(width: width, child: button);
+      ),
+    );
   }
 }
 
@@ -1530,7 +1614,7 @@ class _DashedBorder extends CustomPainter {
 
     final rect = RRect.fromRectAndRadius(
       Offset.zero & size,
-      const Radius.circular(10),
+      const Radius.circular(25),
     );
     final path = Path()..addRRect(rect);
 
@@ -1574,12 +1658,13 @@ class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
     final c = context.colors;
     return Dialog(
       backgroundColor: c.bg,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(50),
         side: BorderSide(color: c.navy, width: 2),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+        padding: const EdgeInsets.fromLTRB(28, 34, 28, 26),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1589,31 +1674,27 @@ class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
               style: TextStyle(
                 fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w800,
-                fontSize: 19,
-                height: 1.2,
+                fontSize: 24,
+                height: 1.05,
                 color: c.navy,
               ),
             ),
-            const SizedBox(height: 14),
-            TextField(
+            const SizedBox(height: 18),
+            _InputBox(
+              label: '',
+              colour: c.navy,
               controller: _text,
-              autofocus: true,
-              minLines: 3,
-              maxLines: 5,
+              hint: s.dispatchRequestDetailsHint,
               maxLength: 300,
-              textCapitalization: TextCapitalization.sentences,
+              enabled: true,
+              autofocus: true,
               onChanged: (_) => setState(() {}),
-              style: TextStyle(fontSize: 13, color: c.navy),
-              decoration: InputDecoration(
-                hintText: s.dispatchRequestDetailsHint,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            const SizedBox(height: 20),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 13,
+              runSpacing: 12,
               children: [
                 _Pill(
                   label: s.dispatchRequestDetailsCancel,
@@ -1621,10 +1702,8 @@ class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
                   colour: c.navy,
                   onTap: () => Navigator.of(context).pop(),
                 ),
-                const SizedBox(width: 12),
                 _Pill(
                   label: s.dispatchRequestDetailsSend,
-                  filled: true,
                   colour: c.navy,
                   onTap: _text.text.trim().isEmpty
                       ? null
