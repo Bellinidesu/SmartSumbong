@@ -1185,7 +1185,7 @@ function render_account_detail(
                 Your password &mdash; confirms it is you at the keyboard
               </label>
               <input id="reset-password" type="password" name="password"
-                     autocomplete="current-password">
+                     autocomplete="new-password">
               <button class="btn-deny-confirm" type="submit" name="action"
                       value="reset_password">Issue temporary password</button>
             </div>

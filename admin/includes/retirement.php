@@ -255,7 +255,7 @@ function render_retirement_queue(): void
 
           <div class="control-field">
             <label class="field-label" for="t-reason">Reason for the handover</label>
-            <input type="text" id="t-reason" name="reason" maxlength="200"
+            <input type="text" id="t-reason" name="reason" maxlength="200" autocomplete="off"
                    placeholder="e.g. Turnover following the October 2026 barangay election">
           </div>
 
@@ -280,9 +280,13 @@ function render_retirement_queue(): void
             </div>
           </div>
 
+          <!-- new-password, not current-password: to the browser a text box
+               followed by a password box is a sign-in form, and it filled
+               the admin's saved email into the reason and their password
+               below, one click away from granting access. -->
           <div class="control-field">
             <label class="field-label" for="t-pass">Your password</label>
-            <input type="password" id="t-pass" name="password" required autocomplete="current-password">
+            <input type="password" id="t-pass" name="password" required autocomplete="new-password">
             <p class="field-hint">Confirms it is you making this change.</p>
           </div>
 
@@ -308,7 +312,7 @@ function render_retirement_queue(): void
           </div>
           <div class="control-field">
             <label class="field-label" for="t-pass2">Your password</label>
-            <input type="password" id="t-pass2" name="password" required autocomplete="current-password">
+            <input type="password" id="t-pass2" name="password" required autocomplete="new-password">
           </div>
           <button class="btn-deny-confirm" type="submit" name="action" value="step_down">
             Step down as administrator

@@ -9,6 +9,9 @@
  * captured and verified.
  */
 declare(strict_types=1);
+// config.php carries e(); layout.php alone left the page a 500 the
+// moment it printed its first stylesheet link.
+require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/layout.php';
 ?><!DOCTYPE html>
 <html lang="en">
