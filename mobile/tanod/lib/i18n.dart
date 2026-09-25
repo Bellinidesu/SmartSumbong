@@ -650,6 +650,33 @@ class Strings {
   String dispatchSubmittedOn(String date) =>
       _t('Submitted on: $date', 'Isinumite noong: $date');
   String get dispatchBack => _t('Back', 'Bumalik');
+
+  // ---------- more details from the resident (0065) ----------
+  String get dispatchRequestDetails =>
+      _t('Request more details', 'Humingi ng karagdagang detalye');
+  String get dispatchRequestDetailsTitle => _t(
+      'Ask the resident for more details',
+      'Humingi ng karagdagang detalye sa residente');
+  String get dispatchRequestDetailsHint => _t(
+      'What do you need? e.g. a closer photo of the plate number',
+      'Ano ang kailangan mo? hal. mas malapit na larawan ng plaka');
+  String get dispatchRequestDetailsSend => _t('Send', 'Ipadala');
+  String get dispatchRequestDetailsCancel => _t('Cancel', 'Kanselahin');
+  String get dispatchDetailsSent => _t('Request sent to the resident.',
+      'Naipadala ang kahilingan sa residente.');
+  String get dispatchDetailsWaiting =>
+      _t('Waiting for the resident: ', 'Hinihintay ang residente: ');
+  String get dispatchDetailsReply =>
+      _t('Resident’s reply: ', 'Sagot ng residente: ');
+  String get dispatchDetailsMediaOnly => _t(
+      'sent a photo/video — see View Attached Media.',
+      'nagpadala ng larawan/video — tingnan ang naka-attach na media.');
+  String get dispatchDetailsAlreadyOpen => _t(
+      'You already asked — wait for the resident’s reply first.',
+      'Nakahingi ka na — hintayin muna ang sagot ng residente.');
+  String get dispatchDetailsFailed => _t(
+      'Could not send the request. Check your connection and try again.',
+      'Hindi maipadala ang kahilingan. Suriin ang koneksyon at subukan ulit.');
   String get dispatchReroute => _t('Reroute', 'I-reroute');
   String get dispatchAccept => _t('Accept', 'Tanggapin');
   String get dispatchConfirm => _t('Confirm', 'Kumpirmahin');

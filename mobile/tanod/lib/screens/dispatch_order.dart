@@ -111,6 +111,10 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
   Map<String, dynamic>? _report;
   List<({String url, bool isVideo})> _evidence = const [];
+
+  /// The latest request for more details on this report (0065), if any:
+  /// open while `responded_at` is null.
+  Map<String, dynamic>? _detailRequest;
   bool _loading = true;
   bool _busy = false;
   bool _changed = false;
@@ -161,6 +165,43 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     super.dispose();
   }
 
+  /// Asks the resident for more details (0065's
+  /// request_additional_details). The resident is notified and answers
+  /// from their app; the reply shows in the summary box.
+  Future<void> _requestDetails() async {
+    if (_busy) return;
+    final s = context.s;
+    final message = await showDialog<String>(
+      context: context,
+      builder: (_) => const _DetailsRequestDialog(),
+    );
+    if (message == null || message.trim().isEmpty || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await Supabase.instance.client.rpc('request_additional_details',
+          params: {'p_report': widget.ticket.reportId, 'p_message': message});
+      if (!mounted) return;
+      _changed = true;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(s.dispatchDetailsSent)));
+      await _load();
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e.message.contains('already a request')
+            ? s.dispatchDetailsAlreadyOpen
+            : s.dispatchDetailsFailed),
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(s.dispatchDetailsFailed)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _load() async {
     try {
       final client = Supabase.instance.client;
@@ -175,9 +216,22 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           .select('media_url, mime_type')
           .eq('report_id', widget.ticket.reportId);
 
+      // Separate, so the ticket still loads if this fails.
+      Map<String, dynamic>? detail;
+      try {
+        detail = await client
+            .from('detail_requests')
+            .select('id, message, requested_at, response, responded_at')
+            .eq('report_id', widget.ticket.reportId)
+            .order('requested_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
         _report = report;
+        _detailRequest = detail;
         _evidence = [
           for (final m in media)
             (
@@ -998,6 +1052,33 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                   _pane = _Pane.instructions;
                 }),
               ),
+              // More details from the resident (0065): ask, then see the
+              // question waiting or the reply here.
+              if (_detailRequest != null &&
+                  _detailRequest!['responded_at'] == null) ...[
+                const SizedBox(height: 6),
+                _Field(
+                  label: context.s.dispatchDetailsWaiting,
+                  value: _detailRequest!['message'] as String? ?? '',
+                ),
+              ] else ...[
+                if (_detailRequest != null) ...[
+                  const SizedBox(height: 6),
+                  _Field(
+                    label: context.s.dispatchDetailsReply,
+                    value: ((_detailRequest!['response'] as String?) ?? '')
+                            .trim()
+                            .isNotEmpty
+                        ? _detailRequest!['response'] as String
+                        : context.s.dispatchDetailsMediaOnly,
+                  ),
+                ],
+                _Link(
+                  icon: Icons.help_outline,
+                  label: context.s.dispatchRequestDetails,
+                  onTap: _requestDetails,
+                ),
+              ],
             ],
           ),
         ),
@@ -1467,4 +1548,93 @@ class _DashedBorder extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DashedBorder old) => old.colour != colour;
+}
+
+/// The question box for asking the resident for more details: one field
+/// (300 characters, the table's limit), Cancel and Send.
+class _DetailsRequestDialog extends StatefulWidget {
+  const _DetailsRequestDialog();
+
+  @override
+  State<_DetailsRequestDialog> createState() => _DetailsRequestDialogState();
+}
+
+class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
+  final _text = TextEditingController();
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final c = context.colors;
+    return Dialog(
+      backgroundColor: c.bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
+        side: BorderSide(color: c.navy, width: 2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              s.dispatchRequestDetailsTitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w800,
+                fontSize: 19,
+                height: 1.2,
+                color: c.navy,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _text,
+              autofocus: true,
+              minLines: 3,
+              maxLines: 5,
+              maxLength: 300,
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(fontSize: 13, color: c.navy),
+              decoration: InputDecoration(
+                hintText: s.dispatchRequestDetailsHint,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _Pill(
+                  label: s.dispatchRequestDetailsCancel,
+                  filled: false,
+                  colour: c.navy,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 12),
+                _Pill(
+                  label: s.dispatchRequestDetailsSend,
+                  filled: true,
+                  colour: c.navy,
+                  onTap: _text.text.trim().isEmpty
+                      ? null
+                      : () => Navigator.of(context).pop(_text.text.trim()),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
