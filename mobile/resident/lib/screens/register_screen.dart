@@ -681,6 +681,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
 
                 _PhotoRow(
+                  showLabel: widget.role == AccountRole.tanod,
                   label: widget.role == AccountRole.tanod
                       ? s.registerAttachBarangayId
                       : s.registerPhotoOfYourId,
@@ -698,8 +699,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Figma's tanod signup has no selfie step — see _validate
                 // and 0036 for why that is safe to drop for this role.
                 if (widget.role != AccountRole.tanod) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _PhotoRow(
+                    showLabel: true,
                     label: s.registerPhotoOfYourself,
                     caption: s.registerSelfieCaption,
                     file: _selfieFile,
@@ -993,6 +995,11 @@ class _IdTypeDropdown extends StatelessWidget {
   }
 }
 
+/// Figma SIGN UP as Resident - Take Photo 2: the 174x62 #FBFBFB tile with
+/// a dashed navy edge (5 on, 2 off), radius 25, holding the attach icon
+/// and "Attach Media / (Max: 10 MB)". Once taken, the photo fills the
+/// tile. The frame leaves the space to its right empty; the step's state
+/// (choose a type first / uploaded / tap to retake) goes there.
 class _PhotoRow extends StatelessWidget {
   const _PhotoRow({
     required this.label,
@@ -1000,6 +1007,7 @@ class _PhotoRow extends StatelessWidget {
     required this.file,
     required this.uploaded,
     required this.onTap,
+    this.showLabel = true,
     this.error,
     this.enabled = true,
   });
@@ -1009,6 +1017,9 @@ class _PhotoRow extends StatelessWidget {
   final File? file;
   final bool uploaded;
   final VoidCallback onTap;
+
+  /// Off for the resident's ID, which sits under the dropdown's label.
+  final bool showLabel;
   final String? error;
   final bool enabled;
 
@@ -1016,59 +1027,105 @@ class _PhotoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final s = context.s;
+    final edge = error == null ? context.colors.navy : context.colors.hint;
+    final status = file == null
+        ? caption
+        : (uploaded ? s.registerUploaded : s.registerTapToRetake);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(Tokens.dropdownRadius),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: context.colors.field,
-              border:
-                  Border.all(color: error == null ? context.colors.navy : context.colors.hint),
-              borderRadius: BorderRadius.circular(Tokens.dropdownRadius),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: context.colors.bg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: context.colors.divider),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: file == null
-                      ? Icon(Icons.photo_camera_outlined,
-                          color: enabled ? context.colors.navy : context.colors.muted)
-                      : Image.file(file!, fit: BoxFit.cover),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(label,
-                          style: t.labelLarge?.copyWith(fontSize: 14)),
-                      const SizedBox(height: 2),
-                      Text(
-                        file == null
-                            ? caption
-                            : (uploaded ? s.registerUploaded : s.registerTapToRetake),
-                        style: TextStyle(
-                            fontSize: 12, color: context.colors.muted),
-                      ),
-                    ],
-                  ),
-                ),
-                if (file != null)
-                  Icon(Icons.check_circle, color: context.colors.navy, size: 20),
-              ],
-            ),
+        if (showLabel)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 2),
+            child: Text(label, style: t.labelLarge?.copyWith(height: 23 / 16)),
           ),
+        Row(
+          children: [
+            Semantics(
+              button: true,
+              enabled: enabled,
+              label: label,
+              value: status,
+              excludeSemantics: true,
+              child: Opacity(
+                opacity: enabled || file != null ? 1 : 0.5,
+                child: InkWell(
+                  onTap: enabled ? onTap : null,
+                  borderRadius: BorderRadius.circular(25),
+                  child: Container(
+                    width: 174,
+                    height: 62,
+                    decoration: BoxDecoration(
+                      color: context.colors.field,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: CustomPaint(
+                      foregroundPainter: _DashedBorder(color: edge),
+                      child: file == null
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset('assets/images/icon-attach.png',
+                                    width: 20,
+                                    height: 20,
+                                    color: context.colors.navy),
+                                const SizedBox(width: 10),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(s.reportDetailsAttachMedia,
+                                        style: TextStyle(
+                                          fontFamily: 'Urbanist',
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                          height: 14 / 12,
+                                          color: context.colors.navy,
+                                        )),
+                                    Text(s.reportDetailsMaxPhotoSize,
+                                        style: TextStyle(
+                                          fontFamily: 'Urbanist',
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 10,
+                                          height: 1,
+                                          fontStyle: FontStyle.italic,
+                                          color: context.colors.navy,
+                                        )),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(25),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.file(file!, fit: BoxFit.cover),
+                                  if (uploaded)
+                                    Positioned(
+                                      right: 10,
+                                      top: 8,
+                                      child: Icon(Icons.check_circle,
+                                          color: context.colors.navy,
+                                          size: 20),
+                                    ),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                status,
+                style: TextStyle(fontSize: 12, color: context.colors.muted),
+              ),
+            ),
+          ],
         ),
         if (error != null)
           Padding(
@@ -1079,6 +1136,41 @@ class _PhotoRow extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The frame's dashed edge: 1px, 5 on / 2 off, following the radius-25
+/// outline.
+class _DashedBorder extends CustomPainter {
+  const _DashedBorder({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        (Offset.zero & size).deflate(0.5),
+        const Radius.circular(25),
+      ));
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(d, (d + 5).clamp(0, metric.length)),
+          paint,
+        );
+        d += 5 + 2;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorder oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _ReviewRow extends StatelessWidget {
