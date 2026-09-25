@@ -90,6 +90,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../i18n.dart';
 import '../location_lookup.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import 'reports_screen.dart' show ReportStatus;
 
 class ReportViewScreen extends StatefulWidget {
@@ -583,13 +584,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   }
 
   Future<void> _openFeedback() async {
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
+    final saved = await showFigmaDialog<bool>(
+      context,
       builder: (_) => _FeedbackSheet(reportId: widget.reportId),
     );
     if (saved == true) await _load();
@@ -1965,12 +1961,9 @@ class _FeedbackCard extends StatelessWidget {
             style: TextStyle(fontSize: 12, height: 1.4, color: context.colors.muted),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: onRate,
-              child: Text(s.reportViewGiveFeedback),
-            ),
+          FigmaPill(
+            onPressed: onRate,
+            child: Text(s.reportViewGiveFeedback),
           ),
         ] else ...[
           _Stars(rating: (given['rating'] as num?)?.toInt() ?? 0),
@@ -2078,89 +2071,177 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
     }
   }
 
+  // Figma EMERGENCY - FEEDBACK's popup: a 352-wide #F3F3F3 card with a
+  // 2px navy edge, radius 50; the 28/800 title, five 38px orange stars 10
+  // apart, "Please provide your feedback" 14/700 over a 128-tall #FBFBFB
+  // box (radius 25) with its 0/300 count, and the 180x50 navy Submit.
   @override
   Widget build(BuildContext context) {
-    final inset = MediaQuery.of(context).viewInsets.bottom;
     final s = context.s;
+    final c = context.colors;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + inset),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            s.reportViewHowDidWeDo,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 20,
-              color: context.colors.navy,
-            ),
-          ),
-          const SizedBox(height: 16),
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Container(
+        width: 352,
+        decoration: BoxDecoration(
+          color: c.bg,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: c.navy, width: 2),
+          boxShadow: kFigmaShadow,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(34, 52, 34, 44),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                s.reportViewFeedbackTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Urbanist',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                  height: 25 / 28,
+                  color: c.navy,
+                ),
+              ),
+              const SizedBox(height: 28),
 
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var i = 1; i <= 5; i++)
-                  IconButton(
-                    onPressed: _saving
-                        ? null
-                        : () => setState(() {
-                              _rating = i;
-                              _error = null;
-                            }),
-                    iconSize: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    constraints: const BoxConstraints(),
-                    icon: Icon(
-                      i <= _rating
-                          ? Icons.star_rounded
-                          : Icons.star_outline_rounded,
-                      color: const Color(0xFFFF9800),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 1; i <= 5; i++)
+                    Semantics(
+                      button: true,
+                      selected: i <= _rating,
+                      label: s.reportViewRateStars(i),
+                      excludeSemantics: true,
+                      child: InkResponse(
+                        onTap: _saving
+                            ? null
+                            : () => setState(() {
+                                  _rating = i;
+                                  _error = null;
+                                }),
+                        radius: 26,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: Icon(
+                            i <= _rating
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            size: 44,
+                            color: kFigmaOrange,
+                          ),
+                        ),
+                      ),
                     ),
-                    tooltip: '$i',
+                ],
+              ),
+              const SizedBox(height: 22),
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 2),
+                  child: Text(
+                    s.reportViewProvideFeedback,
+                    style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      height: 22 / 14,
+                      color: c.navy,
+                    ),
                   ),
+                ),
+              ),
+              // The count sits inside the box's corner, as the frame has it.
+              Stack(
+                children: [
+                  TextField(
+                    controller: _comment,
+                    enabled: !_saving,
+                    minLines: 5,
+                    maxLines: 5,
+                    maxLength: 300,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: c.navy,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: s.reportViewCommentHint,
+                      hintStyle: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 12,
+                        color: c.navy,
+                      ),
+                      counterText: '',
+                      contentPadding: const EdgeInsets.fromLTRB(17, 12, 17, 22),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide(color: c.navy),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide(color: c.navy),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide(color: c.navy, width: 2),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 16,
+                    bottom: 8,
+                    child: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _comment,
+                      builder: (context, v, _) => Text(
+                        '${v.text.characters.length}/300',
+                        style: TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w300,
+                          fontSize: 10,
+                          color: c.navy,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (_error != null) ...[
+                const SizedBox(height: 6),
+                Text(_error!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: c.hint, fontSize: 12)),
               ],
-            ),
-          ),
-          const SizedBox(height: 18),
+              const SizedBox(height: 30),
 
-          TextField(
-            controller: _comment,
-            enabled: !_saving,
-            maxLines: 4,
-            maxLength: 500,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: s.reportViewCommentHint,
-            ),
+              FigmaPill(
+                width: 180,
+                height: 50,
+                onPressed: _saving ? null : _submit,
+                child: _saving
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: c.bg),
+                      )
+                    : Text(s.reportViewSendFeedback),
+              ),
+            ],
           ),
-
-          if (_error != null) ...[
-            const SizedBox(height: 4),
-            Text(_error!,
-                style: TextStyle(color: context.colors.hint, fontSize: 12)),
-          ],
-          const SizedBox(height: 12),
-
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _saving ? null : _submit,
-              child: _saving
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: context.colors.bg),
-                    )
-                  : Text(s.reportViewSendFeedback),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

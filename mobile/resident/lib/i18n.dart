@@ -833,8 +833,15 @@ class Strings {
   String get reportViewCommentHint => _t(
       'Anything you want to add? (optional)',
       'May gusto ka bang idagdag? (opsyonal)');
+  String get reportViewFeedbackTitle => _t(
+      'Tell us about the complaint report response you received',
+      'Ikuwento sa amin ang naging tugon sa iyong ulat');
+  String get reportViewProvideFeedback =>
+      _t('Please provide your feedback', 'Ibigay ang iyong puna');
+  String reportViewRateStars(int n) => _t(
+      'Rate $n out of 5', 'Bigyan ng $n sa 5');
   String get reportViewSendFeedback =>
-      _t('Send feedback', 'Ipadala ang Puna');
+      _t('Submit', 'Isumite');
 
   // ---------- notifications ----------
   String get notificationsLoadError => _t(
