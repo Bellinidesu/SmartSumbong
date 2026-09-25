@@ -703,12 +703,30 @@ layout_head('Case Review', 'cases.php');
       </p>
     <?php endif; ?>
 
+    <?php
+    // The same entry repeated back to back (the SLA-breach retries 0063
+    // capped, still on older complaints) is shown once with its count and
+    // when it last happened, as Report Summary and the resident app's
+    // timeline do. The trail itself is untouched; only its display folds.
+    $timeline = [];
+    foreach ($logs as $l) {
+        $sig = implode('|', [$l['old_status'] ?? '', $l['new_status'] ?? '', $l['remark'] ?? '',
+                             !empty($l['is_system']) ? 'sys' : ($l['by']['full_name'] ?? '')]);
+        $prev = array_key_last($timeline);
+        if ($prev !== null && $timeline[$prev]['sig'] === $sig) {
+            $timeline[$prev]['repeat']++;
+            $timeline[$prev]['last_at'] = $l['created_at'];
+            continue;
+        }
+        $timeline[] = $l + ['sig' => $sig, 'repeat' => 1, 'last_at' => null];
+    }
+    ?>
     <ol class="timeline">
-      <?php foreach ($logs as $l): ?>
+      <?php foreach ($timeline as $l): ?>
         <li class="tl-item">
           <span class="tl-dot" aria-hidden="true"></span>
-          <p class="tl-title"><?= e(timeline_title($l)) ?></p>
-          <p class="tl-when"><?= e(long_datetime($l['created_at'])) ?></p>
+          <p class="tl-title"><?= e(timeline_title($l)) ?><?php if ($l['repeat'] > 1): ?> <span class="tl-repeat">&times; <?= (int) $l['repeat'] ?></span><?php endif; ?></p>
+          <p class="tl-when"><?= e(long_datetime($l['created_at'])) ?><?php if ($l['repeat'] > 1): ?> &ndash; last <?= e(long_datetime($l['last_at'])) ?><?php endif; ?></p>
           <?php if (!empty($l['remark'])): ?>
             <p class="tl-remark"><?= e($l['remark']) ?></p>
           <?php endif; ?>
