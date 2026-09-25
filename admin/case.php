@@ -133,86 +133,63 @@ $policy = null;
 $feedback = null;
 $proof = [];
 
+// Two parallel rounds (branch B) in place of about nine requests one
+// after another: everything keyed on the complaint id at once, then what
+// needs the first round's answers (its category, its dispatches, whether
+// it is still to be judged or assigned). With the database in Mumbai
+// every sequential round trip was a visible part of opening a case.
+$trail = [];
+$abuseHistory = [];
 try {
-    $rows = $db->select('reports', [
-        'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
-                  . 'latitude,longitude,due_at,escalated_at,escalation_level,reopened_count,'
-                  . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
-                  . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
-        'id'         => 'eq.' . $id,
-        'deleted_at' => 'is.null',
-        'limit'      => '1',
-    ]);
-    $report = $rows[0] ?? null;
-
-    if ($report) {
-        $media = $db->select('report_media', [
+    $first = $db->selectMany([
+        'report' => ['reports', [
+            'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
+                      . 'latitude,longitude,due_at,escalated_at,escalation_level,reopened_count,'
+                      . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
+                      . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
+            'id'         => 'eq.' . $id,
+            'deleted_at' => 'is.null',
+            'limit'      => '1',
+        ]],
+        'media' => ['report_media', [
             'select'    => 'id,media_url,mime_type,bytes,uploaded_at',
             'report_id' => 'eq.' . $id,
             'order'     => 'uploaded_at.asc',
-        ]);
-
-        $logs = $db->select('status_logs', [
+        ]],
+        'logs' => ['status_logs', [
             'select'    => 'id,old_status,new_status,remark,is_system,created_at,'
                          . 'by:users!status_logs_changed_by_fkey(full_name,role)',
             'report_id' => 'eq.' . $id,
             'order'     => 'created_at.asc',
-        ]);
-
-        $dispatches = $db->select('dispatches', [
+        ]],
+        'dispatches' => ['dispatches', [
             'select'    => 'id,state,assigned_at,accept_due_at,accepted_at,admin_instructions,'
                          . 'rerouted_at,reroute_reason,field_report_text,resolved_at,'
                          . 'tanod:users!dispatches_tanod_id_fkey(id,full_name,mobile_number)',
             'report_id' => 'eq.' . $id,
             'order'     => 'assigned_at.desc',
-        ]);
-
-        // Field proof. dispatch_media is keyed to the dispatch rather
-        // than the report, so it needs the ids from above — and it is
-        // fetched at all because until now the admin had no way to see
-        // it. 0024 gave the filing resident a look at these photos
-        // months before the barangay could. (Pulled in from the
-        // Codespaces copy, 5 Sep 2026 — see the tracking doc.)
-        $liveIds = array_values(array_filter(array_map(
-            fn($d) => $d['id'] ?? null,
-            $dispatches
-        )));
-        if ($liveIds) {
-            $proofRows = $db->select('dispatch_media', [
-                'select'      => 'dispatch_id,media_url,bytes,uploaded_at',
-                'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
-                'order'       => 'uploaded_at.asc',
-            ]);
-            foreach ($proofRows as $r) {
-                $proof[$r['dispatch_id']][] = $r;
-            }
-        }
-
-        // Tamper check on this complaint's trail. Cheap (a handful of
-        // hashes) and it makes the guarantee visible rather than a claim
-        // in a document nobody reads.
-        try {
-            $trail = $db->rpc('verify_report_trail', ['p_report' => $id]);
-        } catch (SupabaseError) {
-            $trail = [];
-        }
-
-        $sla = $db->select('sla_policies', [
-            'select'   => 'resolution_hours,accept_minutes,auto_dispatch_on_file',
-            'category' => 'eq.' . $report['category'],
-            'limit'    => '1',
-        ]);
-        $policy = $sla[0] ?? null;
-
+        ]],
         // Resident's post-resolution rating, if any. feedback_read (0003)
         // already lets an admin see any resident's row, so this is a
-        // plain select, not a new RPC — same pattern as $media, $logs.
-        $fb = $db->select('feedback', [
+        // plain select, not a new RPC — same pattern as media and logs.
+        'feedback' => ['feedback', [
             'select'    => 'rating,comment,submitted_at',
             'report_id' => 'eq.' . $id,
             'limit'     => '1',
-        ]);
-        $feedback = $fb[0] ?? null;
+        ]],
+        // Tamper check on this complaint's trail. Cheap (a handful of
+        // hashes) and it makes the guarantee visible rather than a claim
+        // in a document nobody reads. Optional: a failure shows no badge.
+        'trail' => ['rpc/verify_report_trail', ['p_report' => $id], true],
+    ]);
+    $report = $first['report'][0] ?? null;
+
+    if ($report) {
+        $media      = $first['media'];
+        $logs       = $first['logs'];
+        $dispatches = $first['dispatches'];
+        $feedback   = $first['feedback'][0] ?? null;
+        $trail      = $first['trail'] instanceof SupabaseError ? [] : (array) $first['trail'];
     }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
@@ -250,31 +227,68 @@ if ($status === 'rejected' && $logs) {
     }
 }
 
-// Context for the Deny panel: has this resident been flagged abusive
-// before, and how many times. Fetched only while it can actually matter
-// — once a decision is already made the count cannot change what
-// happened here. resident_abuse_reports() returns full rows because
-// accounts.php's profile panel needs them too; this screen only needs
-// count($abuseHistory).
-$abuseHistory = [];
-if ($canJudge && $report && !empty($report['resident']['id'])) {
-    try {
-        $abuseHistory = $db->rpc('resident_abuse_reports', [
-            'p_user' => $report['resident']['id'],
-        ]);
-    } catch (SupabaseError) {
-        // Not worth blocking the review over; the panel just shows no
-        // history note instead of failing the page.
-    }
-}
 $canAssign = in_array($status, ['validated', 'in_progress', 'offline_investigation'], true)
              && $active === null;
 
-// Fetched last because it depends on knowing there is nobody on the case
-// already. One round trip saved on every screen that will not show it.
-if ($canAssign && !$error) {
+if ($report && !$error) {
+    $second = [
+        'sla' => ['sla_policies', [
+            'select'   => 'resolution_hours,accept_minutes,auto_dispatch_on_file',
+            'category' => 'eq.' . $report['category'],
+            'limit'    => '1',
+        ]],
+    ];
+
+    // Field proof. dispatch_media is keyed to the dispatch rather
+    // than the report, so it needs the ids from above — and it is
+    // fetched at all because until now the admin had no way to see
+    // it. 0024 gave the filing resident a look at these photos
+    // months before the barangay could. (Pulled in from the
+    // Codespaces copy, 5 Sep 2026 — see the tracking doc.)
+    $liveIds = array_values(array_filter(array_map(
+        fn($d) => $d['id'] ?? null,
+        $dispatches
+    )));
+    if ($liveIds) {
+        $second['proof'] = ['dispatch_media', [
+            'select'      => 'dispatch_id,media_url,bytes,uploaded_at',
+            'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
+            'order'       => 'uploaded_at.asc',
+        ]];
+    }
+
+    // Context for the Deny panel: has this resident been flagged abusive
+    // before, and how many times. Fetched only while it can actually matter
+    // — once a decision is already made the count cannot change what
+    // happened here. resident_abuse_reports() returns full rows because
+    // accounts.php's profile panel needs them too; this screen only needs
+    // count($abuseHistory). Optional: not worth blocking the review over.
+    if ($canJudge && !empty($report['resident']['id'])) {
+        $second['abuse'] = ['rpc/resident_abuse_reports', ['p_user' => $report['resident']['id']], true];
+    }
+
+    // Only when nobody is on the case already. One round trip saved on
+    // every screen that will not show it.
+    if ($canAssign) {
+        $second['roster'] = ['rpc/tanod_roster', ['p_report' => $id], true];
+    }
+
     try {
-        $roster = $db->rpc('tanod_roster', ['p_report' => $id]);
+        $got = $db->selectMany($second);
+        $policy = $got['sla'][0] ?? null;
+        foreach ($got['proof'] ?? [] as $r) {
+            $proof[$r['dispatch_id']][] = $r;
+        }
+        if (isset($got['abuse']) && !$got['abuse'] instanceof SupabaseError) {
+            $abuseHistory = (array) $got['abuse'];
+        }
+        if (isset($got['roster'])) {
+            if ($got['roster'] instanceof SupabaseError) {
+                $error = safe_error($got['roster']);
+            } else {
+                $roster = (array) $got['roster'];
+            }
+        }
     } catch (SupabaseError $ex) {
         $error = safe_error($ex);
     }

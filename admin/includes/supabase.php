@@ -179,9 +179,12 @@ final class Supabase
      * requests one after another spent most of its load time waiting on
      * each in turn. Keys are kept; each value is that select's rows.
      * With $count, each value is instead the exact row count (only the
-     * Content-Range header is transferred). Throws on the first failure.
+     * Content-Range header is transferred). Throws on the first failure,
+     * except for an entry marked optional (a third element, true), whose
+     * value is then the SupabaseError instead. A table named 'rpc/fn'
+     * calls that function, its query array being the arguments.
      *
-     * @param array<string, array{0:string, 1:array<string,string>}> $selects
+     * @param array<string, array{0:string, 1:array<string,mixed>, 2?:bool}> $selects
      * @return array<string, mixed>
      */
     public function selectMany(array $selects, bool $count = false, int $concurrency = 8): array
@@ -197,6 +200,7 @@ final class Supabase
         }
         $mh = curl_multi_init();
         $queue = $selects;
+        $optional = array_map(fn($s) => !empty($s[2]), $selects);
         $running = [];   // (int) handle id => [key, handle]
         $out = [];
 
@@ -204,16 +208,20 @@ final class Supabase
             $key = array_key_first($queue);
             [$table, $query] = $queue[$key];
             unset($queue[$key]);
+            $isRpc = str_starts_with($table, 'rpc/');
             if ($count) { $query['select'] = 'id'; }
-            $qs = $query ? '?' . http_build_query($query) : '';
+            $qs = ($query && !$isRpc) ? '?' . http_build_query($query) : '';
             $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HEADER         => $count,
-                CURLOPT_HTTPHEADER     => $headers,
+                CURLOPT_HTTPHEADER     => $isRpc ? [...$headers, 'Content-Type: application/json'] : $headers,
                 CURLOPT_TIMEOUT        => 20,
                 CURLOPT_CONNECTTIMEOUT => 8,
             ]);
+            if ($isRpc) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($query ?: new stdClass()));
+            }
             curl_multi_add_handle($mh, $ch);
             $running[spl_object_id($ch)] = [$key, $ch];
         };
@@ -230,18 +238,24 @@ final class Supabase
                 $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $err = curl_error($ch);
                 curl_multi_remove_handle($mh, $ch);
-                if ($raw === null || $raw === '' && $status === 0) {
-                    throw new SupabaseError('Could not reach the database: ' . $err);
-                }
-                if ($count) {
-                    $out[$key] = preg_match('#Content-Range:\s*[\d*-]+/(\d+)#i', (string) $raw, $m)
-                        ? (int) $m[1] : 0;
-                } else {
-                    $data = json_decode((string) $raw, true);
-                    if ($status >= 400) {
-                        throw new SupabaseError((string) ($data['message'] ?? "Request failed ({$status})"), $status);
+                try {
+                    if ($raw === null || $raw === '' && $status === 0) {
+                        throw new SupabaseError('Could not reach the database: ' . $err);
                     }
-                    $out[$key] = is_array($data) ? $data : [];
+                    if ($count) {
+                        $out[$key] = preg_match('#Content-Range:\s*[\d*-]+/(\d+)#i', (string) $raw, $m)
+                            ? (int) $m[1] : 0;
+                    } else {
+                        $data = json_decode((string) $raw, true);
+                        if ($status >= 400) {
+                            throw new SupabaseError((string) ($data['message'] ?? "Request failed ({$status})"), $status);
+                        }
+                        // A function may return a bare scalar; a table never does.
+                        $out[$key] = (is_array($data) || str_starts_with($selects[$key][0], 'rpc/')) ? $data : [];
+                    }
+                } catch (SupabaseError $ex) {
+                    if (!$optional[$key]) { throw $ex; }
+                    $out[$key] = $ex;
                 }
                 if ($queue) { $start(); }
             }
