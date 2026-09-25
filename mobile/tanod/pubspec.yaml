@@ -38,7 +38,9 @@ flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/icon/foreground.png"
-  adaptive_icon_background: "#FF9800"
+  # The app's own ink background (branch B), as the resident icon sits on
+  # its navy; Kim's tanod figure in front.
+  adaptive_icon_background: "#14181D"
   adaptive_icon_foreground: "assets/icon/foreground.png"
   
 flutter:
