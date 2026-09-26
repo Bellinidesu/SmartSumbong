@@ -696,6 +696,21 @@ class Strings {
   String get dispatchSubmit => _t('Submit', 'I-submit');
   String get dispatchComplainantLabel =>
       _t('Complainant: ', 'Nagreklamo: ');
+  // ---------- directions (branch B) ----------
+  String get dispatchGetDirections => _t('Get directions', 'Kunin ang direksyon');
+  String get dispatchOpenMaps => _t('Open in Maps', 'Buksan sa Maps');
+  String get dispatchFindingYou => _t('Finding you…', 'Hinahanap ka…');
+  String get dispatchLocationNeeded => _t(
+      'Turn on location to see the route.',
+      'I-on ang lokasyon para makita ang ruta.');
+  String get dispatchRouteFailed => _t(
+      'Could not get a route right now. Open in Maps instead.',
+      'Hindi makuha ang ruta ngayon. Buksan na lang sa Maps.');
+  String dispatchRouteSummary(String distance, int minutes) => _t(
+      'Walking: $distance · about $minutes min',
+      'Lakad: $distance · mga $minutes minuto');
+  String get dispatchRouteSource =>
+      _t('Route: OpenStreetMap (FOSSGIS)', 'Ruta: OpenStreetMap (FOSSGIS)');
   String get dispatchNoLocation => _t(
       'No location on this report', 'Walang lokasyon sa report na ito');
   String get dispatchNoMedia => _t(

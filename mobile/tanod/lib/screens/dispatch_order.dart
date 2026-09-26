@@ -16,15 +16,19 @@
 // submit_field_report(), never by UPDATE.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 // latlong2 exports its own generic Path<LatLng>, which shadows the one
 // in dart:ui and breaks the dashed border below. The resident map screen
 // hides it the same way.
 import 'package:latlong2/latlong.dart' hide Path;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -115,6 +119,17 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   _Pane _returnPane = _Pane.order;
 
   Map<String, dynamic>? _report;
+
+  // Directions (branch B): the tanod's spot when asked, the walking route
+  // from it, and what went wrong if it could not be had.
+  final _mapCtl = BrgyMapController();
+  LatLng? _me;
+  double? _meAccuracy;
+  List<LatLng> _route = const [];
+  double? _routeMetres;
+  double? _routeSeconds;
+  bool _routing = false;
+  String? _routeNote;
   List<({String url, bool isVideo})> _evidence = const [];
 
   /// The latest request for more details on this report (0065), if any:
@@ -535,7 +550,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
   Widget _body() => switch (_pane) {
         _Pane.order => _orderPane(),
-        _Pane.map => _framed(_mapPane()),
+        _Pane.map => _framed(Column(children: [_mapPane(), _directions()])),
         _Pane.media => _framed(_mediaPane()),
         _Pane.instructions => _framed(_instructionsPane()),
         _Pane.rerouteConfirm => _reroutePane(),
@@ -766,14 +781,154 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: BrgyMap(
+                  controller: _mapCtl,
                   initialCenter: LatLng(lat, lon),
                   pins: [BrgyMapPin(id: 'case', point: LatLng(lat, lon))],
+                  route: _route,
+                  accuracyCentre: _me,
+                  accuracyMetres:
+                      _me == null ? null : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
                   cornerRadius: 20,
                   cornerColour: context.colors.bg,
                 ),
               ),
       ),
     );
+  }
+
+  /// Under the map: the walking route on request, and a hand-off to the
+  /// phone's own maps app for turn-by-turn directions.
+  Widget _directions() {
+    final lat = (_report?['latitude'] as num?)?.toDouble();
+    final lon = (_report?['longitude'] as num?)?.toDouble();
+    if (lat == null || lon == null) return const SizedBox.shrink();
+    final s = context.s;
+    final navy = context.colors.navy;
+    final small = TextStyle(fontFamily: 'Urbanist', fontSize: 12.5, color: navy);
+    final metres = _routeMetres, seconds = _routeSeconds;
+    return Column(
+      children: [
+        const SizedBox(height: 10),
+        if (metres != null && seconds != null)
+          Text(
+            s.dispatchRouteSummary(
+                metres < 950
+                    ? '${(metres / 10).round() * 10} m'
+                    : '${(metres / 1000).toStringAsFixed(1)} km',
+                (seconds / 60).ceil().clamp(1, 999)),
+            style: small.copyWith(fontWeight: FontWeight.w700, fontSize: 14),
+          )
+        else if (_routing)
+          Text(s.dispatchFindingYou, style: small)
+        else if (_routeNote != null)
+          Text(_routeNote!, style: small, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _Pill(
+              label: s.dispatchGetDirections,
+              width: 150,
+              fontSize: 13,
+              colour: const Color(0xFFFF9800),
+              onTap: _routing ? null : () => _getRoute(LatLng(lat, lon)),
+            ),
+            const SizedBox(width: 10),
+            _Pill(
+              label: s.dispatchOpenMaps,
+              width: 150,
+              fontSize: 13,
+              colour: navy,
+              onTap: () => _openMaps(lat, lon),
+            ),
+          ],
+        ),
+        if (_route.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(s.dispatchRouteSource,
+              style: small.copyWith(fontSize: 10.5, color: context.colors.muted)),
+        ],
+      ],
+    );
+  }
+
+  /// One location fix (a key moment: it also refreshes the tanod's
+  /// position for dispatch), then the walking route from OpenStreetMap's
+  /// free FOSSGIS router. Nothing runs until the tanod asks.
+  Future<void> _getRoute(LatLng to) async {
+    final s = context.s;
+    setState(() {
+      _routing = true;
+      _routeNote = null;
+    });
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever ||
+          !await Geolocator.isLocationServiceEnabled()) {
+        if (mounted) setState(() => _routeNote = s.dispatchLocationNeeded);
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      ).timeout(const Duration(seconds: 15));
+      unawaited(DutyController.instance.keyMoment());
+      final me = LatLng(pos.latitude, pos.longitude);
+      if (mounted) {
+        setState(() {
+          _me = me;
+          _meAccuracy = pos.accuracy;
+        });
+      }
+
+      final uri = Uri.parse(
+          'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'
+          '${me.longitude},${me.latitude};${to.longitude},${to.latitude}'
+          '?overview=full&geometries=geojson');
+      final res = await http.get(uri, headers: {
+        'User-Agent':
+            'SmartSumbong/1.0 (Barangay 183 tanod app; dispatch directions)',
+      }).timeout(const Duration(seconds: 12));
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final routes = body['routes'] as List?;
+      if (res.statusCode != 200 || routes == null || routes.isEmpty) {
+        throw const FormatException('no route');
+      }
+      final r = routes.first as Map<String, dynamic>;
+      final coords = ((r['geometry'] as Map)['coordinates'] as List)
+          .map((c) =>
+              LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _route = coords;
+        _routeMetres = (r['distance'] as num?)?.toDouble();
+        _routeSeconds = (r['duration'] as num?)?.toDouble();
+      });
+      _mapCtl.fit([...coords, to, me], padding: 40);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _route = const [];
+          _routeMetres = null;
+          _routeSeconds = null;
+          _routeNote = s.dispatchRouteFailed;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _routing = false);
+    }
+  }
+
+  /// Turn-by-turn in the phone's maps app (Google Maps where installed).
+  Future<void> _openMaps(double lat, double lon) async {
+    final uri = Uri.parse('https://www.google.com/maps/dir/?api=1'
+        '&destination=$lat,$lon&travelmode=walking');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Widget _mediaPane() {

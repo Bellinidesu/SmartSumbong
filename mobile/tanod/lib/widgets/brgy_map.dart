@@ -140,6 +140,7 @@ class BrgyMap extends StatefulWidget {
     this.onMoved,
     this.accuracyCentre,
     this.accuracyMetres,
+    this.route = const [],
     this.attributionBottom = 8,
     this.cornerRadius = 0,
     this.cornerColour,
@@ -170,6 +171,9 @@ class BrgyMap extends StatefulWidget {
   /// A GPS fix's accuracy, drawn as a circle on the ground.
   final ll.LatLng? accuracyCentre;
   final double? accuracyMetres;
+
+  /// A route to draw (branch B: the walking route to a dispatch).
+  final List<ll.LatLng> route;
 
   /// Keeps the attribution button clear of anything drawn over the
   /// map's bottom edge.
@@ -217,6 +221,7 @@ class _BrgyMapState extends State<BrgyMap> {
     if (old.hazards != widget.hazards) {
       unawaited(_map?.setLayerVisibility('hazard-fill', widget.hazards));
     }
+    if (!listEquals(old.route, widget.route)) unawaited(_setRoute());
     if (old.accuracyCentre != widget.accuracyCentre ||
         old.accuracyMetres != widget.accuracyMetres) {
       unawaited(_setAccuracy());
@@ -275,6 +280,24 @@ class _BrgyMapState extends State<BrgyMap> {
         ),
       );
       await _setAccuracy();
+
+      // The walking route to a dispatch, under the pins.
+      await map.addGeoJsonSource('route', _empty);
+      await map.addLineLayer(
+        'route',
+        'route-casing',
+        const ml.LineLayerProperties(
+            lineColor: '#FFFFFF', lineWidth: 7, lineJoin: 'round', lineCap: 'round'),
+        enableInteraction: false,
+      );
+      await map.addLineLayer(
+        'route',
+        'route-line',
+        const ml.LineLayerProperties(
+            lineColor: '#FF9800', lineWidth: 4, lineJoin: 'round', lineCap: 'round'),
+        enableInteraction: false,
+      );
+      await _setRoute();
 
       // Navy on #FBFBFB on the light map; the pale ink on the dark field
       // on the navy night map, where navy would disappear.
@@ -468,6 +491,30 @@ class _BrgyMapState extends State<BrgyMap> {
           },
       ],
     });
+  }
+
+  Future<void> _setRoute() async {
+    final map = _map;
+    if (map == null || !_styleReady) return;
+    final r = widget.route;
+    await map.setGeoJsonSource(
+      'route',
+      r.length < 2
+          ? _empty
+          : {
+              'type': 'FeatureCollection',
+              'features': [
+                {
+                  'type': 'Feature',
+                  'properties': <String, dynamic>{},
+                  'geometry': {
+                    'type': 'LineString',
+                    'coordinates': [for (final p in r) [p.longitude, p.latitude]],
+                  },
+                },
+              ],
+            },
+    );
   }
 
   Future<void> _setAccuracy() async {
