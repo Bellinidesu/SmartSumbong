@@ -152,3 +152,69 @@
     });
   };
 })();
+
+// Purok / zone boundaries (branch B). OpenStreetMap has none inside
+// Barangay 183, so they come from the barangay itself: drop a GeoJSON
+// file at assets/map/zones.geojson — one polygon per zone, its name in
+// properties.name (drawn in geojson.io, or traced from a sketch map).
+// Until that file exists nothing is drawn and zoneAt() answers null.
+(function () {
+  var data = null;
+  function zones() {
+    return data || (data = fetch('assets/map/zones.geojson')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; }));
+  }
+  window.zonesAvailable = function () { return zones().then(function (z) { return !!(z && z.features && z.features.length); }); };
+
+  window.mapZones = function (map, opts) {
+    opts = opts || {};
+    zones().then(function (fc) {
+      if (!fc || !fc.features || !fc.features.length) return;
+      function add() {
+        if (map.getSource('zones')) return;
+        map.addSource('zones', { type: 'geojson', data: fc });
+        var before = opts.before && map.getLayer(opts.before) ? opts.before : undefined;
+        var vis = opts.hidden ? 'none' : 'visible';
+        map.addLayer({ id: 'zones-line', type: 'line', source: 'zones', layout: { visibility: vis },
+          paint: { 'line-color': '#00308f', 'line-width': 2, 'line-dasharray': [3, 2], 'line-opacity': .8 } }, before);
+        map.addLayer({ id: 'zones-label', type: 'symbol', source: 'zones',
+          layout: { visibility: vis, 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'],
+                    'text-size': 13, 'symbol-placement': 'point' },
+          paint: { 'text-color': '#00308f', 'text-halo-color': 'rgba(255,255,255,.9)', 'text-halo-width': 1.5 } }, before);
+      }
+      try { add(); } catch (e) { map.once('load', add); }
+    });
+    return {
+      show: function (on) {
+        ['zones-line', 'zones-label'].forEach(function (id) {
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+        });
+      },
+    };
+  };
+
+  function inRing(ring, x, y) {
+    var c = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  }
+  window.zoneAt = function (lng, lat) {
+    return zones().then(function (fc) {
+      if (!fc || !fc.features) return null;
+      for (var i = 0; i < fc.features.length; i++) {
+        var g = fc.features[i].geometry, polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+        for (var k = 0; k < polys.length; k++) {
+          var p = polys[k];
+          if (inRing(p[0], lng, lat) && !p.slice(1).some(function (h) { return inRing(h, lng, lat); })) {
+            return fc.features[i].properties.name || null;
+          }
+        }
+      }
+      return null;
+    });
+  };
+})();

@@ -2702,3 +2702,4 @@ a.btn-accept { text-decoration: none; }
 .hazard-legend-src { margin: 0; font-size: 10.5px; color: var(--ink-soft); }
 .case-hazard { color: var(--dk-amber-ink, #a35c00); font-weight: 600; margin-top: -8px; }
 .case-hazard.is-high { color: var(--dk-red-ink, #a01818); }
+.case-zone { margin-top: -8px; }

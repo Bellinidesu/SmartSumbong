@@ -366,6 +366,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <!-- Filled in by the map script: the Project NOAH hazard levels at
          this spot, only when there is one. -->
     <p class="case-filed case-hazard" id="case-hazard" hidden></p>
+    <p class="case-filed case-zone" id="case-zone" hidden></p>
 
     <?php if (!empty($report['due_at'])
               && !in_array($status, ['resolved','closed','archived','rejected'], true)): ?>
@@ -870,6 +871,13 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     map.keyboard.disableRotation();
     mapFollowTheme(map);
     mapLandmarks(map);
+    mapZones(map);
+    zoneAt(lng, lat).then(function (z) {
+      if (!z) return;
+      var el = document.getElementById('case-zone');
+      el.textContent = T('Zone: ', 'Purok: ') + z;
+      el.hidden = false;
+    });
     hazardAt(lng, lat).then(function (h) {
       var names = [T('none', 'wala'), T('low', 'mababa'), T('medium', 'katamtaman'), T('high', 'mataas')];
       var bits = [];

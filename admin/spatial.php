@@ -66,6 +66,8 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
       <label class="toggle"><input type="checkbox" id="f-landmarks" checked> <?= e(t('Landmarks', 'Mga palatandaan')) ?></label>
       <label class="toggle"><input type="checkbox" id="f-hazard"> <?= e(t('Flood hazard', 'Panganib ng baha')) ?></label>
+      <!-- Shown only once the barangay's zone file exists (map-theme.js). -->
+      <label class="toggle" id="f-zones-wrap" hidden><input type="checkbox" id="f-zones" checked> <?= e(t('Zones', 'Mga purok')) ?></label>
 
       <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
@@ -356,12 +358,17 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
   // Hazards lowest of our layers, under the heat; landmarks under the
   // hotspots and pins, over the heat.
   hazards = mapHazards(map, { before: 'heat', hidden: !document.getElementById('f-hazard').checked });
+  zonesLayer = mapZones(map, { before: 'heat' });
+  zonesAvailable().then(ok => { document.getElementById('f-zones-wrap').hidden = !ok; });
   landmarks = mapLandmarks(map, { before: 'hotspots',
                                   hidden: !document.getElementById('f-landmarks').checked });
 
   resolve();
 }));
-let landmarks = null, hazards = null;
+let landmarks = null, hazards = null, zonesLayer = null;
+document.getElementById('f-zones').addEventListener('change', e => {
+  if (zonesLayer) zonesLayer.show(e.target.checked);
+});
 document.getElementById('f-hazard').addEventListener('change', e => {
   if (hazards) hazards.show(e.target.checked);
   document.getElementById('hazard-legend').hidden = !e.target.checked;
