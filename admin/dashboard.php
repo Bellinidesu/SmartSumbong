@@ -277,6 +277,24 @@ layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
   Chart.defaults.color = token('--ink-soft');
   Chart.defaults.plugins.legend.display = false;
 
+  // The portal is scaled with CSS zoom to fit bigger screens (branch B).
+  // The browser reports the pointer in zoomed pixels while a chart reasons
+  // in its own, so hovers and segment clicks landed in the wrong place;
+  // this puts every pointer event back into the chart's own coordinates.
+  Chart.register({
+    id: 'screenFitPointer',
+    beforeEvent: function (chart, args) {
+      var ev = args.event, n = ev && ev.native;
+      if (!n || n.clientX == null) return;
+      var r = chart.canvas.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      ev.x = (n.clientX - r.left) * chart.width / r.width;
+      ev.y = (n.clientY - r.top) * chart.height / r.height;
+      // Worked out before plugins run, from the unconverted position.
+      args.inChartArea = chart.isPointInArea(ev);
+    }
+  });
+
   // The month on screen, so a donut click opens the complaints it counted
   // rather than every month's.
   var MONTH = <?= json_encode($month->format('Y-m')) ?>;

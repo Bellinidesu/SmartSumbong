@@ -33,7 +33,7 @@
   --shadow:      0 1px 3px rgba(16, 24, 40, .08);
 
   /* The frame's 279 at 1440, narrowing on smaller screens. */
-  --sidebar-w:   clamp(224px, 19.4vw, 279px);
+  --sidebar-w:   clamp(224px, calc(19.4vw / var(--z, 1)), 279px);
 
   /* Type: Urbanist (the free stand-in for the design's Visby CF, the
      same choice the mobile apps made) for everything; Inter where the
@@ -60,7 +60,7 @@ a { text-decoration: none; color: inherit; }
 
 /* ---------- shell ---------- */
 
-.shell { display: flex; min-height: 100vh; }
+.shell { display: flex; min-height: calc(100vh / var(--z, 1)); }
 
 .sidebar {
   width: var(--sidebar-w);
@@ -71,7 +71,7 @@ a { text-decoration: none; color: inherit; }
   flex-direction: column;
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: calc(100vh / var(--z, 1));
   overflow-y: auto;
 }
 
@@ -266,7 +266,7 @@ a.row-card:hover { border-color: var(--dk-navy-ink, var(--navy)); box-shadow: va
 
 /* ---------- login ---------- */
 
-.login-page { display: flex; min-height: 100vh; }
+.login-page { display: flex; min-height: calc(100vh / var(--z, 1)); }
 
 .login-left {
   width: 468px; flex: none;
@@ -384,7 +384,7 @@ a.row-card:hover { border-color: var(--dk-navy-ink, var(--navy)); box-shadow: va
 .login-split {
   display: grid;
   grid-template-columns: clamp(320px, 24%, 468px) 1fr;
-  min-height: 100vh;
+  min-height: calc(100vh / var(--z, 1));
 }
 
 .login-rail {
@@ -414,7 +414,7 @@ a.row-card:hover { border-color: var(--dk-navy-ink, var(--navy)); box-shadow: va
   position: relative;
   overflow: hidden;
   background: var(--orange);
-  min-height: 100vh;
+  min-height: calc(100vh / var(--z, 1));
 }
 /* Verbatim to the frame: image 10 sits on top of the orange rectangle at
    reduced opacity. No blend mode and no scrim — both were mine, and
@@ -1419,7 +1419,7 @@ a.row-card:hover { border-color: var(--dk-navy-ink, var(--navy)); box-shadow: va
 .panel--map {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - var(--main-pad, 32px) * 2);
+  height: calc(calc(100dvh / var(--z, 1)) - var(--main-pad, 32px) * 2);
   min-height: 520px;
 }
 .panel--map .map-shell { flex: 1 1 auto; min-height: 0; }
@@ -1466,7 +1466,7 @@ a.row-card:hover { border-color: var(--dk-navy-ink, var(--navy)); box-shadow: va
 
 .map-side {
   width: 290px;
-  max-height: 46vh;
+  max-height: calc(46vh / var(--z, 1));
   overflow: hidden;
   z-index: 600;
   background: var(--dk-glass, rgba(255, 255, 255, .95));
@@ -1622,8 +1622,8 @@ a.btn-accept { text-decoration: none; }
   inset: 50% auto auto 50%;
   transform: translate(-50%, -50%);
   z-index: 900;
-  width: min(560px, 92vw);
-  max-height: 88vh;
+  width: min(560px, calc(92vw / var(--z, 1)));
+  max-height: calc(88vh / var(--z, 1));
   overflow-y: auto;
   border: 1px solid var(--rule);
   border-radius: var(--r-card);
@@ -1719,7 +1719,7 @@ a.btn-accept { text-decoration: none; }
   border-radius: var(--r-card);
   box-shadow: 0 20px 60px rgba(16, 24, 40, .3);
   padding: 30px 34px;
-  width: min(430px, 90vw);
+  width: min(430px, calc(90vw / var(--z, 1)));
   text-align: center;
 }
 .idle-box h2 { font-family: var(--font-display); font-size: 21px; margin: 0 0 8px; }
@@ -1808,7 +1808,7 @@ a.btn-accept { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .live-badge .live-dot { animation: none; } }
 
 /* ---- long tables keep their headings ---- */
-.table-wrap { max-height: calc(100dvh - 260px); overflow: auto; }
+.table-wrap { max-height: calc(calc(100dvh / var(--z, 1)) - 260px); overflow: auto; }
 .case-table thead th {
   position: sticky;
   top: 0;
@@ -2300,7 +2300,7 @@ a.btn-accept { text-decoration: none; }
   grid-template-columns: minmax(0, 580px) minmax(220px, 1fr);
   gap: 48px;
   padding: 40px 56px 56px;
-  min-height: calc(100dvh - 120px);
+  min-height: calc(calc(100dvh / var(--z, 1)) - 120px);
   background: var(--dk-surface, #fff);
   border-radius: 24px;
   box-shadow: 0 8px 30px rgba(16, 24, 40, .06);
@@ -2425,7 +2425,7 @@ a.btn-accept { text-decoration: none; }
 /* Exactly the window: main's own padding (26 top, 60 bottom) and the
    panel's margin used to push the page 52px past it, so the whole page
    scrolled under the map. */
-.page-spatial .panel--map { height: calc(100dvh - 86px); margin-bottom: 0; }
+.page-spatial .panel--map { height: calc(calc(100dvh / var(--z, 1)) - 86px); margin-bottom: 0; }
 .page-spatial .maplibregl-ctrl-group { border-radius: 8px; box-shadow: var(--shadow); }
 .page-spatial .maplibregl-ctrl-attrib { font-size: 11px; }
 
@@ -2665,3 +2665,16 @@ a.btn-accept { text-decoration: none; }
 :root[data-theme="dark"] .panel-bar .toggle { color: #141b34; }
 :root[data-theme="dark"] .case-grid .tl-dot { background: #a9c1ff; border-color: var(--card); box-shadow: 0 0 0 1.5px #a9c1ff; }
 :root[data-theme="dark"] .case-grid .tl-dot--now { background: var(--orange); box-shadow: 0 0 0 1.5px var(--orange); }
+
+/* ---------- Screen fit (branch B) ----------
+   The portal is scaled to the screen from includes/i18n.php (html zoom =
+   --z); every viewport unit above is divided by --z so a full-height
+   panel stays exactly the window's height. On a window short enough that
+   the sidebar would not fit (data-short), its spacing tightens a little. */
+:root[data-short] .sidebar .nav-item { margin-bottom: 8px; }
+:root[data-short] .sidebar .brand { max-width: 150px; }
+:root[data-short] .prefs--sidebar { gap: 6px; margin-bottom: 8px; }
+:root[data-tight] .sidebar .nav-item { min-height: 42px; margin-bottom: 6px; padding-block: 4px; }
+:root[data-tight] .sidebar .brand { max-width: 112px; }
+:root[data-tight] .pref-theme { min-height: 34px; }
+:root[data-tight] .pref-lang button { min-height: 26px; }
