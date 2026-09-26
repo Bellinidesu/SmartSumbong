@@ -64,6 +64,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 
       <label class="toggle"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
       <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
+      <label class="toggle"><input type="checkbox" id="f-landmarks" checked> <?= e(t('Landmarks', 'Mga palatandaan')) ?></label>
 
       <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
@@ -334,8 +335,16 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
   });
   map.on('click', 'hotspots', e => { const h = hotspots[e.features[0].properties.i]; if (h) showHotspotDetail(h); });
 
+  // Under the hotspots and pins, over the heat.
+  landmarks = mapLandmarks(map, { before: 'hotspots',
+                                  hidden: !document.getElementById('f-landmarks').checked });
+
   resolve();
 }));
+let landmarks = null;
+document.getElementById('f-landmarks').addEventListener('change', e => {
+  if (landmarks) landmarks.show(e.target.checked);
+});
 
 // Below the threshold every pin stands alone; above it they would sit on
 // top of each other on a barangay-sized map, so they gather into counted

@@ -245,6 +245,7 @@ class _BrgyMapState extends State<BrgyMap> {
     final dpr = MediaQuery.devicePixelRatioOf(context);
     try {
       if (widget.boundary) await _addBoundary(map, dark);
+      await _addLandmarks(map, dark);
 
       await map.addGeoJsonSource('accuracy', _empty);
       await map.addFillLayer(
@@ -299,6 +300,56 @@ class _BrgyMapState extends State<BrgyMap> {
   }
 
   static const _empty = {'type': 'FeatureCollection', 'features': []};
+
+  /// The barangay hall, schools, chapels, police posts, clinics, parks,
+  /// malls — reference points to steer by (branch B). The same curated
+  /// OpenStreetMap file and colours as the admin portal's maps
+  /// (assets/map/landmarks.geojson). Dots always; names from zoom 15.5.
+  /// Under the pins, and never tappable, so a tap always means a pin.
+  Future<void> _addLandmarks(ml.MapLibreMapController map, bool dark) async {
+    try {
+      final data = jsonDecode(
+          await rootBundle.loadString('assets/map/landmarks.geojson'));
+      await map.addGeoJsonSource('landmarks', data as Map<String, dynamic>);
+      await map.addCircleLayer(
+        'landmarks',
+        'landmarks-dot',
+        const ml.CircleLayerProperties(
+          circleRadius: ['interpolate', ['linear'], ['zoom'], 14, 3.5, 18, 7],
+          circleColor: [
+            'match', ['get', 'group'],
+            'hall', '#FF9800', 'school', '#7C3AED', 'worship', '#0891B2',
+            'safety', '#DC2626', 'health', '#16A34A', 'park', '#65A30D',
+            'shop', '#DB2777', 'transport', '#475569', 'military', '#57534E',
+            'government', '#1D4ED8', '#64748B',
+          ],
+          circleStrokeColor: '#FFFFFF',
+          circleStrokeWidth: 1.5,
+        ),
+        enableInteraction: false,
+      );
+      await map.addSymbolLayer(
+        'landmarks',
+        'landmarks-label',
+        ml.SymbolLayerProperties(
+          textField: ['get', 'name'],
+          textFont: const ['Noto Sans Bold'],
+          textSize: const ['interpolate', ['linear'], ['zoom'], 15.5, 10.5, 18, 13],
+          textOffset: const [0, 0.9],
+          textAnchor: 'top',
+          textMaxWidth: 9,
+          textOptional: true,
+          textColor: dark ? '#EAF0FF' : '#1F2937',
+          textHaloColor: dark ? 'rgba(13,27,51,0.9)' : 'rgba(255,255,255,0.95)',
+          textHaloWidth: 1.4,
+        ),
+        minzoom: 15.5,
+        enableInteraction: false,
+      );
+    } catch (e) {
+      debugPrint('BrgyMap landmarks: $e');
+    }
+  }
 
   Future<void> _addBoundary(ml.MapLibreMapController map, bool dark) async {
     final rings = await (_rings ??= _loadRings());

@@ -866,6 +866,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     map.touchZoomRotate.disableRotation();
     map.keyboard.disableRotation();
     mapFollowTheme(map);
+    mapLandmarks(map);
     // Navy on the light map, pale blue on the dark one.
     new maplibregl.Marker({ color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#a9c1ff' : '#00308f' })
       .setLngLat([lng, lat]).addTo(map);
