@@ -5,10 +5,9 @@
 // Sits between onboarding and login, and is where "Back to Roles" on the
 // login screen returns to.
 //
-// The tanod card is drawn but inert in this build. Residents and tanods
-// are separate clients, and the tanod app does not exist yet — see the
-// note on the tap handler for why it says so out loud rather than
-// silently ignoring the press.
+// One app for both roles (branch C): either card leads to the same
+// login; the account's own role decides where it lands afterwards. The
+// tanod card only changes where "Sign up" goes — tanod registration.
 
 import 'package:flutter/material.dart';
 
@@ -69,12 +68,9 @@ class RolePickerScreen extends StatelessWidget {
                         fallback: Icons.local_police,
                         background: kFigmaOrange,
                         foreground: context.colors.bg,
-                        // A tanod registers here and then uses the
-                        // separate tanod app. Registration lives in this
-                        // app because it is the one a person installs
-                        // first, and because the signup path — trigger,
-                        // verification queue, admin approval — is the
-                        // same one either role goes through.
+                        // Registration and sign-in both live here now; the
+                        // signup path — trigger, verification queue,
+                        // admin approval — is the same for either role.
                         //
                         // The admin checks the Barangay ID against the
                         // barangay's own roster. That is the whole
@@ -83,7 +79,7 @@ class RolePickerScreen extends StatelessWidget {
                         // a tanod without a person who knows the roster
                         // saying so.
                         onTap: () => Navigator.of(context)
-                            .pushNamed('/register-tanod'),
+                            .pushNamed('/login', arguments: 'tanod'),
                       ),
                     ],
                   ),

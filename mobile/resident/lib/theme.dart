@@ -37,6 +37,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 abstract final class Tokens {
   /// Fields and the primary button are 44 high and fully rounded.
+  /// The tanod accent (branch C, one app): orange carries the primary
+  /// action on the tanod screens. Identical in both modes.
+  static const orange = Color(0xFFFF9800);
+
+  /// The barangay navy for anything that has to match the seals or the
+  /// wordmark rather than the app chrome — on the tanod screens, whose
+  /// chrome is ink. Identical in both modes.
+  static const brandNavy = Color(0xFF00308F);
+
   static const fieldHeight = 44.0;
   static const pill = 50.0;
 
@@ -110,8 +119,64 @@ class AppColors {
     muted: Color(0xFFA8B3C7),
   );
 
-  static AppColors resolve(Brightness brightness) =>
-      brightness == Brightness.dark ? dark : light;
+  /// The tanod screens' ink (branch C, one app — Ace kept the tanod app's
+  /// black ink rather than the Figma navy, 25 Sep 2026). `navy` still
+  /// names the role, not the hue: ink by day, pale at night.
+  static const inkLight = AppColors._(
+    navy: Color(0xFF14181D),
+    bg: Color(0xFFF3F3F3),
+    field: Color(0xFFFBFBFB),
+    hint: Color(0xFFE53935),
+    divider: Color(0xFFC8C8C8),
+    muted: Color(0xFF787878),
+  );
+
+  static const inkDark = AppColors._(
+    navy: Color(0xFFF3F3F3),
+    bg: Color(0xFF14181D),
+    field: Color(0xFF1E242B),
+    hint: Color(0xFFE53935),
+    divider: Color(0xFF34383E),
+    muted: Color(0xFFA8A8A8),
+  );
+
+  /// The palette for [brightness] and the signed-in role.
+  static AppColors resolve(Brightness brightness, [AppRole? role]) {
+    final tanod = (role ?? AppRoleController.instance.value) == AppRole.tanod;
+    final dark_ = brightness == Brightness.dark;
+    if (tanod) return dark_ ? inkDark : inkLight;
+    return dark_ ? dark : light;
+  }
+}
+
+/// Who is signed in (branch C: one app for residents and tanods). The
+/// resident screens draw in barangay navy, the tanod screens in ink —
+/// each role still looks like its own app. Saved, so a tanod's cold
+/// start opens in ink before the network has said anything; the launch
+/// gate corrects it from the account's actual role.
+enum AppRole { resident, tanod }
+
+const appRoleKey = 'appRole';
+
+class AppRoleController extends ValueNotifier<AppRole> {
+  AppRoleController._() : super(AppRole.resident);
+
+  static final instance = AppRoleController._();
+
+  Future<void> load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      value = prefs.getString(appRoleKey) == 'tanod' ? AppRole.tanod : AppRole.resident;
+    } catch (_) {}
+  }
+
+  Future<void> set(AppRole role) async {
+    value = role;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(appRoleKey, role.name);
+    } catch (_) {}
+  }
 }
 
 /// Matches `languageKey` in i18n.dart's shape exactly — loaded once at
@@ -223,7 +288,7 @@ TextTheme _figmaTracking(TextTheme t) {
 }
 
 ThemeData buildResidentTheme(Brightness brightness) {
-  final c = AppColors.resolve(brightness);
+  final c = AppColors.resolve(brightness, AppRole.resident);
 
   final scheme = ColorScheme(
     brightness: brightness,
@@ -333,6 +398,119 @@ ThemeData buildResidentTheme(Brightness brightness) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       insetPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       elevation: 3,
+    ),
+
+    checkboxTheme: CheckboxThemeData(
+      side: BorderSide(color: c.navy),
+      fillColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? c.navy : c.field,
+      ),
+      shape: const RoundedRectangleBorder(),
+      visualDensity: VisualDensity.compact,
+    ),
+  );
+  return theme.copyWith(
+    textTheme: _figmaTracking(theme.textTheme),
+    primaryTextTheme: _figmaTracking(theme.primaryTextTheme),
+  );
+}
+
+/// The tanod screens' theme (branch C): the tanod app's own, moved here
+/// when the two apps became one — ink chrome, orange for the primary
+/// action. main.dart picks it while a tanod is signed in.
+ThemeData buildTanodTheme(Brightness brightness) {
+  final c = AppColors.resolve(brightness, AppRole.tanod);
+
+  final scheme = ColorScheme(
+    brightness: brightness,
+    primary: c.navy,
+    onPrimary: c.bg,
+    secondary: c.navy,
+    onSecondary: c.bg,
+    surface: c.bg,
+    onSurface: c.navy,
+    error: c.hint,
+    onError: c.bg,
+  );
+
+  OutlineInputBorder border([Color? color, double width = 1]) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(Tokens.pill),
+        borderSide: BorderSide(color: color ?? c.navy, width: width),
+      );
+
+  final theme = ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: c.bg,
+    fontFamily: 'Urbanist',
+
+    textTheme: TextTheme(
+      // "Sign Up as Resident"
+      headlineLarge: TextStyle(
+        fontFamily: 'Urbanist',
+        fontWeight: FontWeight.w700,
+        fontSize: 30,
+        height: 1.15,
+        color: c.navy,
+      ),
+      // "Create your Account"
+      titleMedium: TextStyle(
+        fontFamily: 'Urbanist',
+        fontWeight: FontWeight.w500,
+        fontSize: 16,
+        color: c.navy,
+      ),
+      // Field labels
+      labelLarge: TextStyle(
+        fontFamily: 'Urbanist',
+        fontWeight: FontWeight.w700,
+        fontSize: 16,
+        color: c.navy,
+      ),
+      // Field text and placeholders
+      bodyMedium: TextStyle(fontSize: 14, color: c.navy),
+      // The red parenthetical hints
+      bodySmall: TextStyle(fontSize: 9, color: c.hint),
+    ),
+
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: c.field,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      hintStyle: TextStyle(
+        fontSize: 13,
+        fontStyle: FontStyle.italic,
+        color: c.navy,
+      ),
+      border: border(),
+      enabledBorder: border(),
+      focusedBorder: border(c.navy, 2),
+      errorBorder: border(c.hint),
+      focusedErrorBorder: border(c.hint, 2),
+      // Errors are rendered under the field by the screen, not by the
+      // decorator, so that they sit where the design puts its hints.
+      errorStyle: const TextStyle(height: 0, fontSize: 0),
+    ),
+
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: c.navy,
+        foregroundColor: c.bg,
+        minimumSize: const Size.fromHeight(Tokens.fieldHeight),
+        elevation: 3,
+        shadowColor: const Color(0x4D121212),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Tokens.pill),
+        ),
+        textStyle: const TextStyle(
+          fontFamily: 'Urbanist',
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
+        ),
+      ),
     ),
 
     checkboxTheme: CheckboxThemeData(

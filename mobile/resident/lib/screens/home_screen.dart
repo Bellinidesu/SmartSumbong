@@ -141,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final got = await Future.wait<Object?>([
         client
             .from('users')
-            .select('full_name, verification_status, is_suspended, '
+            .select('full_name, role, verification_status, is_suspended, '
                 'must_change_password, '
                 'id_image_url, id_type, ocr_rescan_requested_at')
             .eq('id', uid)
@@ -167,7 +167,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         'verified': profile['verification_status'] == 'verified',
         'suspended': profile['is_suspended'] == true,
         'must_change': profile['must_change_password'] == true,
+        'role': profile['role'],
       }));
+
+      // One app for both roles (branch C): a tanod belongs on the tanod
+      // home; the loading screen sends them there.
+      if (profile['role'] == 'tanod') {
+        _bounce('/');
+        return;
+      }
 
       // Standing can change while the app is open. An admin who suspends
       // an account mid-session should not leave the resident browsing a

@@ -1,8 +1,10 @@
 // SmartSumbong — the barangay map, on MapLibre (branch B).
 //
-// Every map in the resident app goes through this widget: the Barangay
-// 183 map, the pin picker on the report form, and the small map on View
-// Report.
+// Every map in the app goes through this widget: the Barangay 183 map,
+// the pin picker on the report form, the small map on View Report, and
+// (branch C, one app) the tanod dispatch map with its walking route. At
+// night a tanod gets the ink map (style-dark-ink.json), a resident the
+// navy one (style-dark.json), matching each role's own colours.
 //
 // WHY MAPLIBRE. The maps used to be flutter_map drawing raster tiles from
 // tile.openstreetmap.org. That server is a donated service whose usage
@@ -139,6 +141,7 @@ class BrgyMap extends StatefulWidget {
     this.onMoved,
     this.accuracyCentre,
     this.accuracyMetres,
+    this.route = const [],
     this.attributionBottom = 8,
     this.cornerRadius = 0,
     this.cornerColour,
@@ -170,6 +173,9 @@ class BrgyMap extends StatefulWidget {
   final ll.LatLng? accuracyCentre;
   final double? accuracyMetres;
 
+  /// A route to draw (branch B: the walking route to a dispatch).
+  final List<ll.LatLng> route;
+
   /// Keeps the attribution button clear of anything drawn over the
   /// map's bottom edge.
   final double attributionBottom;
@@ -194,7 +200,7 @@ class _BrgyMapState extends State<BrgyMap> {
   bool? _styleDark;
 
   Future<String> _loadStyle(bool dark) => _styles[dark] ??=
-      rootBundle.loadString('assets/map/style-${dark ? 'dark' : 'light'}.json');
+      rootBundle.loadString('assets/map/style-${!dark ? 'light' : AppRoleController.instance.value == AppRole.tanod ? 'dark-ink' : 'dark'}.json');
 
   @override
   void didChangeDependencies() {
@@ -216,6 +222,7 @@ class _BrgyMapState extends State<BrgyMap> {
     if (old.hazards != widget.hazards) {
       unawaited(_map?.setLayerVisibility('hazard-fill', widget.hazards));
     }
+    if (!listEquals(old.route, widget.route)) unawaited(_setRoute());
     if (old.accuracyCentre != widget.accuracyCentre ||
         old.accuracyMetres != widget.accuracyMetres) {
       unawaited(_setAccuracy());
@@ -274,6 +281,24 @@ class _BrgyMapState extends State<BrgyMap> {
         ),
       );
       await _setAccuracy();
+
+      // The walking route to a dispatch, under the pins.
+      await map.addGeoJsonSource('route', _empty);
+      await map.addLineLayer(
+        'route',
+        'route-casing',
+        const ml.LineLayerProperties(
+            lineColor: '#FFFFFF', lineWidth: 7, lineJoin: 'round', lineCap: 'round'),
+        enableInteraction: false,
+      );
+      await map.addLineLayer(
+        'route',
+        'route-line',
+        const ml.LineLayerProperties(
+            lineColor: '#FF9800', lineWidth: 4, lineJoin: 'round', lineCap: 'round'),
+        enableInteraction: false,
+      );
+      await _setRoute();
 
       // Navy on #FBFBFB on the light map; the pale ink on the dark field
       // on the navy night map, where navy would disappear.
@@ -467,6 +492,30 @@ class _BrgyMapState extends State<BrgyMap> {
           },
       ],
     });
+  }
+
+  Future<void> _setRoute() async {
+    final map = _map;
+    if (map == null || !_styleReady) return;
+    final r = widget.route;
+    await map.setGeoJsonSource(
+      'route',
+      r.length < 2
+          ? _empty
+          : {
+              'type': 'FeatureCollection',
+              'features': [
+                {
+                  'type': 'Feature',
+                  'properties': <String, dynamic>{},
+                  'geometry': {
+                    'type': 'LineString',
+                    'coordinates': [for (final p in r) [p.longitude, p.latitude]],
+                  },
+                },
+              ],
+            },
+    );
   }
 
   Future<void> _setAccuracy() async {

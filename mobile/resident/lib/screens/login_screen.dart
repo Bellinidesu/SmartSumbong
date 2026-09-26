@@ -336,8 +336,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: TextButton(
                               onPressed: _busy
                                   ? null
+                                  // From the responder card: tanod signup.
                                   : () => Navigator.of(context)
-                                      .pushReplacementNamed('/register'),
+                                      .pushReplacementNamed(
+                                          ModalRoute.of(context)?.settings.arguments == 'tanod'
+                                              ? '/register-tanod'
+                                              : '/register'),
                               // 40 tall so the line sits 18 under Back to
                               // Roles, as in the frame.
                               style: TextButton.styleFrom(

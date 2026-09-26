@@ -69,9 +69,11 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/icon/foreground.png"
+  # One app for both roles (branch C): the SmartSumbong logo on the
+  # barangay navy, rather than the resident figure.
+  image_path: "assets/icon/icon-logo.png"
   adaptive_icon_background: "#00308F"
-  adaptive_icon_foreground: "assets/icon/foreground.png"
+  adaptive_icon_foreground: "assets/icon/foreground-logo.png"
     
 
 # For information on the generic Dart part of this file, see the

@@ -24,6 +24,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
@@ -125,21 +126,38 @@ class _LaunchGateState extends State<LaunchGate> {
     // and sends the resident on if anything changed, so nothing the
     // round trip below enforced is skipped — it just stops holding the
     // loading screen on every launch.
+    // One app for both roles (branch C): the saved check carries the
+    // role too, so a tanod lands on the tanod home in ink.
     final last = await JsonCache.read(gateCacheKey);
     if (last is Map &&
         last['verified'] == true &&
         last['suspended'] != true &&
-        last['must_change'] != true) {
-      _go('/home');
+        last['retired'] != true &&
+        last['must_change'] != true &&
+        last['role'] is String) {
+      final tanod = last['role'] == 'tanod';
+      await AppRoleController.instance.set(tanod ? AppRole.tanod : AppRole.resident);
+      _go(tanod ? '/t/home' : '/home');
       return;
     }
 
     try {
-      final s = await widget.auth.verificationStatus();
+      // The role alongside the account check, not after it: one round
+      // trip's wait, not two.
+      final got = await Future.wait<Object?>([
+        widget.auth.verificationStatus(),
+        Supabase.instance.client.rpc('my_role'),
+      ]);
+      final s = got[0] as VerificationSnapshot;
+      final role = got[1] as String?;
+      final tanod = role == 'tanod';
+      await AppRoleController.instance.set(tanod ? AppRole.tanod : AppRole.resident);
       unawaited(JsonCache.write(gateCacheKey, {
         'verified': s.status == VerificationState.verified,
         'suspended': s.isSuspended,
+        'retired': s.isRetired,
         'must_change': s.mustChangePassword,
+        'role': role,
       }));
 
       // Suspended accounts keep a valid session but can do nothing. Say
@@ -147,6 +165,12 @@ class _LaunchGateState extends State<LaunchGate> {
       // every action fails against RLS with no explanation.
       if (s.isSuspended) {
         _go('/account-suspended');
+        return;
+      }
+
+      // A retired tanod (0052): final, like a suspension.
+      if (s.isRetired) {
+        _go('/account-retired');
         return;
       }
 
@@ -159,7 +183,7 @@ class _LaunchGateState extends State<LaunchGate> {
       }
 
       _go(switch (s.status) {
-        VerificationState.verified => '/home',
+        VerificationState.verified => tanod ? '/t/home' : '/home',
         VerificationState.rejected => '/verification-rejected',
         VerificationState.pending => '/verification-pending',
       });
@@ -214,13 +238,16 @@ class _LaunchGateState extends State<LaunchGate> {
   Widget build(BuildContext context) {
     final s = context.s;
     const onBlue = Color(0xFFF3F3F3);
+    // A tanod's phone opens on the tanod loading screen (branch C, one
+    // app): the same layout in ink, as the tanod app had it.
+    final tanod = AppRoleController.instance.value == AppRole.tanod;
     return Scaffold(
-      backgroundColor: AppColors.light.navy,
+      backgroundColor: tanod ? AppColors.inkLight.navy : AppColors.light.navy,
       body: Stack(
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/loading-bg.png',
+            tanod ? 'assets/images/loading-bg-ink.png' : 'assets/images/loading-bg.png',
             fit: BoxFit.cover,
             alignment: Alignment.center,
             // The screen's own height in pixels (branch B): the 4x export
@@ -284,6 +311,19 @@ class _LaunchGateState extends State<LaunchGate> {
                             semanticLabel: 'SmartSumbong',
                           ),
                         ),
+                        if (tanod) ...[
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Tanod',
+                            style: TextStyle(
+                              fontFamily: 'Urbanist',
+                              fontWeight: FontWeight.w800,
+                              fontStyle: FontStyle.italic,
+                              fontSize: 28,
+                              color: Tokens.orange,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 18),
                         const Text(
                           'Sumbong na may resibo,\naksyong garantisado!',

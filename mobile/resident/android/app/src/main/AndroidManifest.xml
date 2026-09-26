@@ -24,7 +24,7 @@
          device's enrolled biometrics through BiometricPrompt. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
-        android:label="SmartSumbong Resident"
+        android:label="SmartSumbong"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

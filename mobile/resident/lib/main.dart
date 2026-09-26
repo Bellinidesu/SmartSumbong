@@ -49,6 +49,16 @@ import 'screens/settings_screen.dart';
 import 'screens/terms_privacy_screen.dart';
 import 'screens/theme_screen.dart';
 import 'screens/verification_pending_screen.dart';
+import 'tanod/duty.dart';
+import 'tanod/screens/extra_admin_services_screen.dart';
+import 'tanod/screens/history_screen.dart';
+import 'tanod/screens/retirement_screen.dart';
+import 'tanod/screens/tanod_account_status_screen.dart';
+import 'tanod/screens/tanod_edit_profile_screen.dart';
+import 'tanod/screens/tanod_home_screen.dart';
+import 'tanod/screens/tanod_notifications_screen.dart';
+import 'tanod/screens/tanod_reports_screen.dart';
+import 'tanod/screens/tanod_settings_screen.dart';
 import 'theme.dart';
 
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -111,9 +121,13 @@ Future<void> main() async {
       ),
     );
 
+    // One app for both roles (branch C): a resident's tap opens the
+    // complaint; a tanod's opens their notifications, as the tanod app
+    // did (a dispatch opens from a ticket, not a route with an id).
     await PushNotifications.init(
-      onOpenReport: (reportId) =>
-          navigatorKey.currentState?.pushNamed('/report', arguments: reportId),
+      onOpenReport: (reportId) => AppRoleController.instance.value == AppRole.tanod
+          ? navigatorKey.currentState?.pushNamed('/t/notifications')
+          : navigatorKey.currentState?.pushNamed('/report', arguments: reportId),
     );
 
     // A session already exists on cold start whenever persistSession
@@ -134,6 +148,10 @@ Future<void> main() async {
         PushNotifications.registerToken();
       } else if (event == AuthChangeEvent.signedOut) {
         PushNotifications.unregisterToken();
+        // Signed out: duty stops, and the app goes back to the resident
+        // colours until the next account says otherwise.
+        DutyController.instance.reset();
+        unawaited(AppRoleController.instance.set(AppRole.resident));
       }
     });
 
@@ -145,6 +163,9 @@ Future<void> main() async {
     // first frame, so a resident who picked Dark does not see a flash
     // of Light on every cold start.
     final themeController = await ThemeController.load();
+    // And the role, so a tanod's cold start is in ink from the first
+    // frame; the launch gate corrects it from the account itself.
+    await AppRoleController.instance.load();
     runApp(SmartSumbongApp(locale: locale, themeController: themeController));
   }, (error, stack) {
     CrashReporting.recordError(error, stack);
@@ -179,15 +200,19 @@ class SmartSumbongApp extends StatelessWidget {
       // context *below* AppThemeScope to depend on it and rebuild its
       // `theme`/`darkTheme` when the mode changes — the context this
       // build() method already has is above the scope it just created.
-      child: Builder(builder: (context) {
+      child: ValueListenableBuilder<AppRole>(
+          valueListenable: AppRoleController.instance,
+          builder: (context, role, _) {
         final mode = AppThemeScope.of(context);
+        final tanod = role == AppRole.tanod;
         return AppLocaleScope(
           controller: locale,
           child: MaterialApp(
           title: 'SmartSumbong',
           debugShowCheckedModeBanner: false,
-          theme: buildResidentTheme(Brightness.light),
-          darkTheme: buildResidentTheme(Brightness.dark),
+          // Residents in barangay navy, tanods in ink (branch C).
+          theme: tanod ? buildTanodTheme(Brightness.light) : buildResidentTheme(Brightness.light),
+          darkTheme: tanod ? buildTanodTheme(Brightness.dark) : buildResidentTheme(Brightness.dark),
           themeMode: mode,
           navigatorKey: navigatorKey,
           scaffoldMessengerKey: Outbox.messengerKey,
@@ -281,6 +306,21 @@ class SmartSumbongApp extends StatelessWidget {
         '/change-password': (_) => ChangePasswordScreen(auth: auth),
         '/onboarding': (_) => const OnboardingScreen(),
         '/roles': (_) => const RolePickerScreen(),
+
+        // The tanod side (branch C: the tanod app folded into this one).
+        // Shared screens — login, languages, appearance, terms, change
+        // password, verification — are the ones above; these are the
+        // tanod's own, under /t/.
+        '/t/home': (_) => TanodHomeScreen(auth: auth),
+        '/t/reports': (_) => const TanodReportsScreen(),
+        '/t/history': (_) => const HistoryScreen(),
+        '/t/notifications': (_) => const TanodNotificationsScreen(),
+        '/t/settings': (_) => TanodSettingsScreen(auth: auth),
+        '/t/edit-profile': (_) => TanodEditProfileScreen(auth: auth),
+        '/t/extra-admin-services': (_) => ExtraAdminServicesScreen(auth: auth),
+        '/t/retirement': (_) => RetirementScreen(auth: auth),
+        '/account-retired': (_) => TanodAccountStatusScreen(
+            auth: auth, block: TanodAccountBlock.retired, canRegisterAgain: false),
       },
           ),
         );
