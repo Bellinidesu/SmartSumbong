@@ -19,7 +19,6 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 // latlong2 exports its own generic Path<LatLng>, which shadows the one
 // in dart:ui and breaks the dashed border below. The resident map screen
@@ -30,6 +29,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import 'tickets_screen.dart';
 
@@ -207,28 +207,38 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   Future<void> _load() async {
     try {
       final client = Supabase.instance.client;
-      final report = await client
-          .from('reports')
-          .select('tracking_id, subject, description, created_at, '
-              'latitude, longitude, is_anonymous')
-          .eq('id', widget.ticket.reportId)
-          .single();
-      final media = await client
-          .from('report_media')
-          .select('media_url, mime_type')
-          .eq('report_id', widget.ticket.reportId);
+      // All three at once. The details request is caught on its own, so
+      // the ticket still loads if that one fails.
+      Future<Map<String, dynamic>?> detailQ() async {
+        try {
+          return await client
+              .from('detail_requests')
+              .select('id, message, requested_at, response, responded_at')
+              .eq('report_id', widget.ticket.reportId)
+              .order('requested_at', ascending: false)
+              .limit(1)
+              .maybeSingle();
+        } catch (_) {
+          return null;
+        }
+      }
 
-      // Separate, so the ticket still loads if this fails.
-      Map<String, dynamic>? detail;
-      try {
-        detail = await client
-            .from('detail_requests')
-            .select('id, message, requested_at, response, responded_at')
-            .eq('report_id', widget.ticket.reportId)
-            .order('requested_at', ascending: false)
-            .limit(1)
-            .maybeSingle();
-      } catch (_) {}
+      final got = await Future.wait<Object?>([
+        client
+            .from('reports')
+            .select('tracking_id, subject, description, created_at, '
+                'latitude, longitude, is_anonymous')
+            .eq('id', widget.ticket.reportId)
+            .single(),
+        client
+            .from('report_media')
+            .select('media_url, mime_type')
+            .eq('report_id', widget.ticket.reportId),
+        detailQ(),
+      ], eagerError: true);
+      final report = got[0] as Map<String, dynamic>;
+      final media = got[1] as List<Map<String, dynamic>>;
+      final detail = got[2] as Map<String, dynamic>?;
 
       if (!mounted) return;
       setState(() {
@@ -716,32 +726,20 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                           TextStyle(fontSize: 12, color: context.colors.muted)),
                 ),
               )
-            : FlutterMap(
-                options: MapOptions(
-                  initialCenter: LatLng(lat, lon),
-                  initialZoom: 17,
-                  interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
-                  ),
+            // MapLibre on OpenFreeMap vector tiles (widgets/brgy_map.dart),
+            // light or ink-dark with the app; the design's tilted pin on
+            // the case. The frame's 1px ink edge, drawn over the map.
+            : Container(
+                foregroundDecoration: BoxDecoration(
+                  border: Border.all(color: context.colors.navy),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'ph.smartsumbong.tanod',
-                  ),
-                  MarkerLayer(markers: [
-                    Marker(
-                      point: LatLng(lat, lon),
-                      width: 38,
-                      height: 38,
-                      // Light tiles in both modes, so the pin keeps the
-                      // day ink rather than following the theme.
-                      child: const Icon(Icons.location_on,
-                          size: 38, color: Color(0xFF14181D)),
-                    ),
-                  ]),
-                ],
+                child: BrgyMap(
+                  initialCenter: LatLng(lat, lon),
+                  pins: [BrgyMapPin(id: 'case', point: LatLng(lat, lon))],
+                  cornerRadius: 20,
+                  cornerColour: context.colors.bg,
+                ),
               ),
       ),
     );
@@ -792,7 +790,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                       ),
                     )
                   : CachedNetworkImage(
-                      imageUrl: item.url,
+                      // The card's width, not the 1920 upload.
+                      imageUrl: cloudinarySized(item.url, width: 900),
                       fit: BoxFit.cover,
                       width: double.infinity,
                       placeholder: (_, __) => Container(

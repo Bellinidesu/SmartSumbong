@@ -2,6 +2,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- On-duty location sharing keeps running with the phone locked
+         (lib/duty.dart): geolocator's own location service runs in the
+         foreground, with an ongoing notification. Android 14 wants the
+         typed permission as well as the general one. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <!-- Android 13+ (API 33) requires this explicit runtime grant before
          ANY notification shows, including FCM push and local ones. -->

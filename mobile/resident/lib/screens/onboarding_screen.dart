@@ -251,15 +251,22 @@ class _PageView extends StatelessWidget {
           top: g.y(page.artTop + page.artSize / 2) - art / 2,
           width: art,
           height: art,
+          // Decoded at the size drawn (branch B): the art is 2048 px
+          // square, about 17 MB in memory at full size, for a box a third
+          // of that on screen.
           child: page.wordmark
               ? Image.asset(
                   page.image,
                   semanticLabel: 'SmartSumbong',
                   filterQuality: FilterQuality.medium,
+                  cacheWidth:
+                      (art * MediaQuery.devicePixelRatioOf(context)).round(),
                 )
               : Image.asset(
                   page.image,
                   fit: BoxFit.contain,
+                  cacheWidth:
+                      (art * MediaQuery.devicePixelRatioOf(context)).round(),
                   filterQuality: FilterQuality.medium,
                   // The illustrations carry no information the copy
                   // below does not already state, so a screen reader

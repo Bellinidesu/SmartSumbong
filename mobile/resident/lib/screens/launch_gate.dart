@@ -19,12 +19,15 @@
 // AuthRequiredException means sign out and start again rather than show
 // an error nobody can act on.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import 'login_screen.dart' show rememberMeKey;
 import 'onboarding_screen.dart' show onboardingSeenKey;
 
@@ -43,6 +46,10 @@ import 'onboarding_screen.dart' show onboardingSeenKey;
 /// constructed on every one of those re-entries, so instance state
 /// cannot carry this across them.
 bool _isColdStart = true;
+
+/// The last account check the phone saw (JsonCache), shared with Home,
+/// which refreshes it on every load.
+const gateCacheKey = 'gate';
 
 class LaunchGate extends StatefulWidget {
   const LaunchGate({super.key, required this.auth});
@@ -112,8 +119,28 @@ class _LaunchGateState extends State<LaunchGate> {
       }
     }
 
+    // The last check this phone saw said "verified, not suspended, no
+    // temporary password" (branch B): straight to Home, no waiting on
+    // the network. Home re-checks all three with its own first request
+    // and sends the resident on if anything changed, so nothing the
+    // round trip below enforced is skipped — it just stops holding the
+    // loading screen on every launch.
+    final last = await JsonCache.read(gateCacheKey);
+    if (last is Map &&
+        last['verified'] == true &&
+        last['suspended'] != true &&
+        last['must_change'] != true) {
+      _go('/home');
+      return;
+    }
+
     try {
       final s = await widget.auth.verificationStatus();
+      unawaited(JsonCache.write(gateCacheKey, {
+        'verified': s.status == VerificationState.verified,
+        'suspended': s.isSuspended,
+        'must_change': s.mustChangePassword,
+      }));
 
       // Suspended accounts keep a valid session but can do nothing. Say
       // so plainly rather than letting them reach a home screen where
@@ -178,252 +205,162 @@ class _LaunchGateState extends State<LaunchGate> {
     Navigator.of(context).pushReplacementNamed(route);
   }
 
+  // Figma LOADING SCREEN (2074:265): the barangay blue, its angular
+  // gradient and contours (loading-bg.png, exported flattened) edge to
+  // edge — the frame's other layers are hidden, so the seals, wordmark
+  // and progress sit on that one surface rather than on a split band and
+  // card. At night the same artwork, dimmed toward the dark palette.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    const onBlue = Color(0xFFF3F3F3);
     return Scaffold(
-      // Only ever visible as a small triangle at the product card's two
-      // rounded top corners below -- BoxDecoration's rounded corners
-      // don't paint all the way into their own bounding box's corner,
-      // so whatever sits behind peeks through right there. Deliberately
-      // fixed rather than context.colors.navy: the hero band above it
-      // (loading-bg.png + _SealWash) is itself fixed regardless of
-      // theme, so this sliver has to match that fixed blue artwork, not
-      // flip to dark mode's near-white "navy" and stick out against it.
       backgroundColor: AppColors.light.navy,
-      body: Column(
+      body: Stack(
+        fit: StackFit.expand,
         children: [
-          // The official half. Three seals on the barangay blue: this is
-          // the first thing a resident sees, and for someone deciding
-          // whether to hand a government ID to an app on their phone,
-          // the seals are the credential. The wordmark below is the
-          // product; these are the authority behind it.
-          Expanded(
-            flex: 5,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Light: the composite from the design, gradient, blur
-                // and contours already flattened, exported at 4x so it
-                // stays sharp on a 1220px handset. Dark: there is no
-                // dark version of that artwork to export, so this is a
-                // plain in-code gradient in the same family as the rest
-                // of the dark palette rather than a second image asset
-                // -- worth a look on a real device, same caveat as the
-                // dark palette itself.
-                if (context.isDark)
-                  const DecoratedBox(
+          Image.asset(
+            'assets/images/loading-bg.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            // The screen's own height in pixels (branch B): the 4x export
+            // is 24 MB in memory at full size and stayed in the image
+            // cache long after this screen.
+            cacheHeight: (MediaQuery.sizeOf(context).height *
+                    MediaQuery.devicePixelRatioOf(context))
+                .round(),
+          ),
+          if (context.isDark) const ColoredBox(color: Color(0x800D1B33)),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 32, 32, 40),
+              child: Column(
+                children: [
+                  // The official credential first: the three seals, on a
+                  // light plate so the navy line work in their captions
+                  // ("Bagong Pilipinas", "Bagong Villamor") stays legible
+                  // on the blue.
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF24406E),
-                          Color(0xFF152C52),
-                          Color(0xFF0D1B33),
-                        ],
-                        stops: [0.0, 0.55, 1.0],
-                      ),
+                      color: const Color(0xF2FBFBFB),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: kFigmaShadow,
                     ),
-                  )
-                else
-                  Image.asset(
-                    'assets/images/loading-bg.png',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                  ),
-                Positioned.fill(child: _SealWash(dark: context.isDark)),
-                SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Image.asset('assets/images/bagong-pilipinas.png',
-                            height: 64,
+                            height: 56,
                             filterQuality: FilterQuality.medium,
                             semanticLabel: 'Bagong Pilipinas'),
-                        const SizedBox(width: 18),
-                        // Largest of the three: this is the barangay
-                        // whose system it is, and its seal already
-                        // carries "Barangay 183 Zone 20 Villamor, Pasay
-                        // City" around the rim, so no caption is needed
-                        // underneath.
+                        const SizedBox(width: 16),
+                        // Largest of the three: this is the barangay whose
+                        // system it is; its rim already names it.
                         Image.asset('assets/images/brgy-183-seal.png',
-                            height: 88,
+                            height: 76,
                             filterQuality: FilterQuality.medium,
                             semanticLabel: 'Barangay 183 Zone 20 Villamor, '
                                 'Pasay City'),
-                        const SizedBox(width: 18),
+                        const SizedBox(width: 16),
                         Image.asset('assets/images/bagong-villamor.png',
-                            height: 64,
+                            height: 56,
                             filterQuality: FilterQuality.medium,
                             semanticLabel: 'Bagong Villamor'),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
 
-          // The product half, on the page background, with the rounded
-          // shoulder from the design.
-          Expanded(
-            flex: 6,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: context.colors.bg,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            FractionallySizedBox(
-                              widthFactor: 0.72,
-                              child: Image.asset(
-                                'assets/images/logo-wordmark.png',
-                                semanticLabel: 'SmartSumbong',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Sumbong na may resibo,\naksyong garantisado!',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Urbanist',
-                                fontWeight: FontWeight.w800,
-                                fontSize: 18,
-                                height: 1.15,
-                                color: context.colors.navy,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      if (_error == null) ...[
-                        SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: context.colors.navy),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          s.launchGateSigningIn,
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                            color: context.colors.navy,
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FractionallySizedBox(
+                          widthFactor: 0.78,
+                          child: Image.asset(
+                            'assets/images/logo-wordmark.png',
+                            semanticLabel: 'SmartSumbong',
                           ),
                         ),
-                      ] else ...[
-                        Text(
-                          _error!,
+                        const SizedBox(height: 18),
+                        const Text(
+                          'Sumbong na may resibo,\naksyong garantisado!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 13, height: 1.4, color: context.colors.navy),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: () {
-                              setState(() => _error = null);
-                              _decide();
-                            },
-                            child: Text(s.launchGateTryAgain),
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                            height: 1.15,
+                            color: onBlue,
+                            shadows: [
+                              Shadow(
+                                color: Color(0x66000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
+
+                  if (_error == null) ...[
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 3, color: onBlue),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      s.launchGateSigningIn,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: onBlue,
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontFamily: 'Urbanist',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          height: 1.4,
+                          color: onBlue),
+                    ),
+                    const SizedBox(height: 16),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 301),
+                      child: FilledButton(
+                        onPressed: () {
+                          setState(() => _error = null);
+                          _decide();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: onBlue,
+                          foregroundColor: AppColors.light.navy,
+                          minimumSize: const Size.fromHeight(44),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                        ),
+                        child: Text(s.launchGateTryAgain),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-
-/// Lightens the band the seals sit in, and deepens the band below it.
-///
-/// All three seals carry some navy line work (most visibly the "Bagong
-/// Pilipinas"/"Bagong Villamor" wordmarks under two of them) that reads
-/// poorly unmodified against a navy-family background, light or dark.
-/// Rather than framing each one, this lifts the top of the background so
-/// that line work has something to sit against, then falls away to a
-/// deepened tone that gives the card's shoulder below an edge to land
-/// on.
-///
-/// Two colour sets, not one reactive set of colours: composited against
-/// its own background (loading-bg.png in light, the in-code gradient
-/// above in dark) rather than swapped in isolation, so each needed its
-/// own tuning pass rather than being derivable from the other. Checked
-/// against the actual seal artwork composited on the dark gradient's
-/// tones (the seal graphics themselves read fine on dark navy even
-/// unlifted; it's specifically those two wordmark captions that need
-/// the lift) but, same as the rest of dark mode, not checked on a real
-/// handset yet.
-///
-/// The stops are the whole design. [_washTop]/[_washTopDark] have to go
-/// far enough that navy reads cleanly — a pale blue looks considered
-/// and is still hard to read, which is worse than not trying. Tune on
-/// the handset, in daylight, not on a monitor.
-class _SealWash extends StatelessWidget {
-  const _SealWash({required this.dark});
-
-  final bool dark;
-
-  /// Near-white behind the seals, light mode.
-  static const _washTop = Color(0xF2FFFFFF);
-
-  /// A translucent pale blue-lavender lift, dark mode -- enough to give
-  /// the wordmark captions something to sit against without the stark
-  /// white-out a light-mode wash would be against a dark background.
-  static const _washTopDark = Color(0xB3B9C8EA);
-
-  /// Where the lift has fully released back to the artwork, both modes.
-  static const _washClear = 0.46;
-
-  /// A deepening toward the shoulder of the card below, light mode.
-  static const _washBottom = Color(0x33001A4D);
-
-  /// Same idea, dark mode -- the in-code gradient above is already
-  /// close to the card's own colour by its bottom edge, so this only
-  /// needs to nudge the seam rather than do the heavy lifting light
-  /// mode's version does.
-  static const _washBottomDark = Color(0x59000814);
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            dark ? _washTopDark : _washTop,
-            const Color(0x00FFFFFF),
-            dark ? _washBottomDark : _washBottom,
-          ],
-          stops: const [0.0, _washClear, 1.0],
-        ),
       ),
     );
   }

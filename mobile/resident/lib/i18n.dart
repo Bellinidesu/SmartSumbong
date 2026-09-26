@@ -274,6 +274,33 @@ class Strings {
   String get navReports => _t('Reports', 'Mga Ulat');
   String get navMap => _t('Map', 'Mapa');
   String get navSettings => _t('Settings', 'Mga Setting');
+
+  // ---------- report outbox (branch B) ----------
+  String get outboxQueued => _t(
+      'No signal — your report is saved on your phone and will be sent '
+          'automatically once you are back online.',
+      'Walang signal — naka-save ang iyong ulat sa phone at kusang '
+          'maipapadala pagbalik ng koneksyon.');
+  String outboxSent(String? trackingId) => trackingId == null
+      ? _t('Your saved report was sent.', 'Naipadala na ang naka-save mong ulat.')
+      : _t('Your saved report was sent: # $trackingId',
+          'Naipadala na ang naka-save mong ulat: # $trackingId');
+  String get outboxWaitingTitle =>
+      _t('Waiting to send', 'Naghihintay maipadala');
+  String get outboxWaitingBody => _t(
+      'Saved on your phone. It will be sent automatically when you are '
+          'back online.',
+      'Naka-save sa iyong phone. Kusang maipapadala pagbalik ng koneksyon.');
+  String outboxRefused(String reason) => _t(
+      'Could not be filed: $reason', 'Hindi maipadala: $reason');
+  String get outboxSendNow => _t('Send now', 'Ipadala na');
+  String get outboxDiscard => _t('Discard', 'Itapon');
+  String get outboxDiscardTitle =>
+      _t('Discard this report?', 'Itapon ang ulat na ito?');
+  String get outboxDiscardBody => _t(
+      'It has not been sent yet. Discarding deletes it from your phone.',
+      'Hindi pa ito naipapadala. Mabubura ito sa iyong phone.');
+
   String get settingsPersonalInfo =>
       _t('Personal Information', 'Personal na Impormasyon');
   String get settingsEditProfile => _t('Edit Profile', 'I-edit ang Profile');
@@ -1692,11 +1719,14 @@ class Strings {
       'naisumite kang mga ulat, mananatili ang mga ulat mismo sa '
       'talaan ng barangay — wala lang mga personal na detalye. Hindi '
       'na ito maaaring bawiin.');
-  String get deleteAccountTypeToConfirm => _t(
-      'Type DELETE below to confirm.', 'I-type ang DELETE sa ibaba para kumpirmahin.');
-  String get deleteAccountTypeMismatch => _t(
-      'Please type DELETE exactly to confirm.',
-      'Pakitype nang eksakto ang DELETE para kumpirmahin.');
+  String get deleteAccountPasswordPrompt => _t(
+      'Enter your password to confirm.',
+      'Ilagay ang iyong password para kumpirmahin.');
+  String get deleteAccountWrongPassword =>
+      _t('That password is not right.', 'Mali ang password.');
+  String get deleteAccountCheckFailed => _t(
+      'Could not check your password. Check your connection and try again.',
+      'Hindi ma-check ang password. Suriin ang koneksyon at subukan ulit.');
   String get deleteAccountConfirmButton =>
       _t('Delete my account', 'Burahin ang aking account');
   String get deleteAccountFailed => _t(

@@ -10,14 +10,16 @@ if (current_admin()) {
 
 $error  = null;
 $notice = match (true) {
-    isset($_GET['expired']) => 'Your session ended. Please sign in again.',
-    isset($_GET['reset'])   => 'Your password has been changed. Sign in with your new password.',
+    isset($_GET['expired']) => t('Your session ended. Please sign in again.',
+                                 'Natapos na ang iyong session. Mag-sign in muli.'),
+    isset($_GET['reset'])   => t('Your password has been changed. Sign in with your new password.',
+                                 'Napalitan na ang iyong password. Mag-sign in gamit ang bagong password.'),
     default                 => null,
 };
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check($_POST['csrf'] ?? null)) {
-        $error = 'That form expired. Please try again.';
+        $error = t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.');
     } else {
         try {
             attempt_login(trim($_POST['email'] ?? ''), $_POST['password'] ?? '');
@@ -27,17 +29,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // GoTrue phrases a wrong password as invalid credentials; say
             // it the way the person at the desk would understand it.
             $error = str_contains(strtolower($ex->getMessage()), 'invalid login')
-                ? 'That email and password do not match an account.'
+                ? t('That email and password do not match an account.',
+                    'Walang account na tugma sa email at password na iyan.')
                 : safe_error($ex);
         }
     }
 }
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= html_lang() ?>">
 <head>
 <meta charset="utf-8">
+<?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in — Smart Sumbong</title>
+<title><?= e(t('Sign in', 'Mag-sign in')) ?> — Smart Sumbong</title>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
 </head>
@@ -64,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!-- Right panel: orange field with the barangay photo washed behind it.
        Accepts either extension — whichever the team exported. -->
   <section class="login-panel">
+    <?= prefs_switches('prefs--login') ?>
     <?php
     $bg = null;
     foreach (['villamor-street.jpg', 'villamor-street.png'] as $candidate) {
@@ -81,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <div class="login-card">
-      <h1 class="login-title">Account Login</h1>
+      <h1 class="login-title"><?= e(t('Account Login', 'Pag-login sa Account')) ?></h1>
 
       <?php if ($notice): ?><p class="login-note"><?= e($notice) ?></p><?php endif; ?>
       <?php if ($error): ?><p class="login-error" role="alert"><?= e($error) ?></p><?php endif; ?>
@@ -90,37 +95,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <label class="field">
-          <span class="visually-hidden">Email address</span>
+          <span class="visually-hidden"><?= e(t('Email address', 'Email address')) ?></span>
           <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
-          <input type="email" name="email" placeholder="Email address" autocomplete="username"
+          <input type="email" name="email" placeholder="<?= e(t('Email address', 'Email address')) ?>" autocomplete="username"
                  value="<?= e($_POST['email'] ?? '') ?>" required autofocus>
         </label>
 
         <label class="field">
-          <span class="visually-hidden">Password</span>
+          <span class="visually-hidden"><?= e(t('Password', 'Password')) ?></span>
           <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
           </svg>
-          <input type="password" name="password" placeholder="Password"
+          <input type="password" name="password" placeholder="<?= e(t('Password', 'Password')) ?>"
                  autocomplete="current-password" required>
         </label>
 
         <div class="login-meta">
-          <label class="remember"><input type="checkbox" name="remember" value="1"> Remember me</label>
-          <a class="forgot" href="forgot-password.php">Forgot password?</a>
+          <label class="remember"><input type="checkbox" name="remember" value="1"> <?= e(t('Remember me', 'Tandaan ako')) ?></label>
+          <a class="forgot" href="forgot-password.php"><?= e(t('Forgot password?', 'Nakalimutan ang password?')) ?></a>
         </div>
 
-        <p class="caps-warn" id="caps" hidden role="status">Caps Lock is on.</p>
+        <p class="caps-warn" id="caps" hidden role="status"><?= e(t('Caps Lock is on.', 'Naka-on ang Caps Lock.')) ?></p>
 
-        <button class="login-btn" type="submit">Login</button>
+        <button class="login-btn" type="submit"><?= e(t('Login', 'Mag-login')) ?></button>
       </form>
 
       <p class="login-signup">
-        No account? <a href="request-access.php">Request access here</a>
+        <?= e(t('No account?', 'Walang account?')) ?> <a href="request-access.php"><?= e(t('Request access here', 'Humiling ng access dito')) ?></a>
       </p>
     </div>
 </section>

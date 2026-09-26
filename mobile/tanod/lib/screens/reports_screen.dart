@@ -18,6 +18,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
@@ -90,6 +91,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _load() async {
+    // The last copy, at once (branch B).
+    if (_rows == null) {
+      final saved = await JsonCache.read('assigned');
+      if (saved is List && mounted && _rows == null) {
+        setState(() => _rows = [
+              for (final r in saved)
+                _Assigned.fromRow(Map<String, dynamic>.from(r as Map)),
+            ]);
+      }
+    }
     try {
       final client = Supabase.instance.client;
       final uid = client.auth.currentUser!.id;
@@ -106,6 +117,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           .eq('state', 'accepted')
           .order('assigned_at', ascending: false);
 
+      unawaited(JsonCache.write('assigned', rows));
       if (!mounted) return;
       setState(() {
         _rows = [
@@ -118,6 +130,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       setState(() => _error = context.s.reportsLoadError(e.message));
     } catch (_) {
       if (!mounted) return;
+      // No signal, but the saved list is showing: keep it.
+      if (_rows != null) return;
       setState(() => _error = context.s.reportsLoadOffline);
     }
   }

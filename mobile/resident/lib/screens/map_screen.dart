@@ -15,46 +15,17 @@
 // A barangay-wide heatmap is the admin's Spatial Distribution screen,
 // where it is aggregated and behind a login.
 
-import 'dart:convert';
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' hide Path;
+import 'package:latlong2/latlong.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import '../widgets/resident_nav_bar.dart';
 import 'reports_screen.dart' show ReportStatus;
-
-/// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
-/// 2988704. The same constant as the submit screen; if the barangay
-/// boundary is ever corrected, both move together.
-// The relation covers the whole barangay, most of which is the airport
-// apron and Villamor Air Base — land with no residents and no
-// complaints. Centring on the relation's centroid puts a resident over
-// the runway. These are the values the admin portal's Spatial
-// Distribution uses, kept identical so the two maps frame the same
-// place; if the barangay revises one, revise both.
-const _residentialCentre = LatLng(14.526905, 121.015543);
-const _spanLat = 0.0110;
-const _spanLng = 0.0115;
-
-/// Google's 17z at this centre, which frames 1st Street through 31st.
-const _defaultZoom = 17.0;
-
-/// A ring large enough to cover the visible world. The fog is this
-/// polygon with the barangay punched out of it.
-const _world = <LatLng>[
-  LatLng(-89.9, -179.9),
-  LatLng(-89.9, 179.9),
-  LatLng(89.9, 179.9),
-  LatLng(89.9, -179.9),
-];
 
 class _Pin {
   const _Pin({
@@ -82,74 +53,13 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final _map = MapController();
+  // The barangay's centre, bounds, boundary outline and fog now live in
+  // widgets/brgy_map.dart, shared with the other maps.
+  final _map = BrgyMapController();
 
   bool _showReports = false;
   List<_Pin>? _pins;
   bool _loading = false;
-  List<List<LatLng>> _rings = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBoundary();
-  }
-
-  /// OSM returns the relation's ways unordered and unclosed, so they are
-  /// joined end-to-end into rings. Same algorithm as the admin portal's
-  /// Spatial Distribution, reading the same file.
-  ///
-  /// Bundled rather than fetched: the outline does not change between
-  /// releases, and a resident on the edge of signal should still see
-  /// which side of the boundary they are on.
-  Future<void> _loadBoundary() async {
-    try {
-      final raw = await rootBundle.loadString('assets/geo/brgy183.json');
-      final elements = (jsonDecode(raw) as Map)['elements'] as List;
-      final rel = elements.firstWhere((e) => e['type'] == 'relation');
-
-      final pool = <List<LatLng>>[];
-      for (final m in (rel['members'] as List)) {
-        if (m['type'] != 'way' || m['geometry'] == null) continue;
-        pool.add([
-          for (final p in (m['geometry'] as List))
-            LatLng((p['lat'] as num).toDouble(), (p['lon'] as num).toDouble()),
-        ]);
-      }
-
-      bool near(LatLng a, LatLng b) =>
-          (a.latitude - b.latitude).abs() < 1e-7 &&
-          (a.longitude - b.longitude).abs() < 1e-7;
-
-      final rings = <List<LatLng>>[];
-      while (pool.isNotEmpty) {
-        var ring = pool.removeAt(0);
-        var joined = true;
-        while (joined) {
-          joined = false;
-          for (var i = 0; i < pool.length; i++) {
-            final w = pool[i];
-            if (near(ring.last, w.first)) {
-              ring = [...ring, ...w.skip(1)];
-            } else if (near(ring.last, w.last)) {
-              ring = [...ring, ...w.reversed.skip(1)];
-            } else {
-              continue;
-            }
-            pool.removeAt(i);
-            joined = true;
-            break;
-          }
-        }
-        if (ring.length > 3) rings.add(ring);
-      }
-
-      if (!mounted || rings.isEmpty) return;
-      setState(() => _rings = rings);
-    } catch (_) {
-      // The map is still useful without the outline.
-    }
-  }
 
   Future<void> _toggle() async {
     if (_showReports) {
@@ -207,25 +117,13 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _fitTo(List<_Pin> pins) {
-    if (pins.length == 1) {
-      _map.move(pins.first.point, 17);
-      return;
-    }
-    final lats = pins.map((p) => p.point.latitude);
-    final lngs = pins.map((p) => p.point.longitude);
-    _map.fitCamera(
-      CameraFit.bounds(
-        bounds: LatLngBounds(
-          LatLng(lats.reduce((a, b) => a < b ? a : b),
-              lngs.reduce((a, b) => a < b ? a : b)),
-          LatLng(lats.reduce((a, b) => a > b ? a : b),
-              lngs.reduce((a, b) => a > b ? a : b)),
-        ),
-        padding: const EdgeInsets.all(48),
-      ),
-    );
-  }
+  // Only the pins the map can pan to: one filed from outside the
+  // barangay would drag the frame off the grid, and the camera cannot
+  // follow it there anyway.
+  void _fitTo(List<_Pin> pins) => _map.fit([
+        for (final p in pins)
+          if (withinBrgyBounds(p.point)) p.point,
+      ]);
 
   void _openPin(_Pin p) {
     showModalBottomSheet<void>(
@@ -305,100 +203,40 @@ class _MapScreenState extends State<MapScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(25),
                   child: Container(
-                    decoration: BoxDecoration(
+                    // In front of the map, which would otherwise cover it.
+                    foregroundDecoration: BoxDecoration(
                       border: Border.all(color: context.colors.navy),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Stack(
                       children: [
-                        FlutterMap(
-                          mapController: _map,
-                          options: MapOptions(
-                            initialCenter: _residentialCentre,
-                            initialZoom: _defaultZoom,
-                            // Pinned to the residential grid: the only
-                            // area that can be panned to, and it cannot
-                            // be zoomed out far enough to lose it.
-                            cameraConstraint: CameraConstraint.contain(
-                              bounds: LatLngBounds(
-                                const LatLng(14.526905 - _spanLat,
-                                    121.015543 - _spanLng),
-                                const LatLng(14.526905 + _spanLat,
-                                    121.015543 + _spanLng),
-                              ),
-                            ),
-                            interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.pinchZoom |
-                                  InteractiveFlag.drag |
-                                  InteractiveFlag.doubleTapZoom,
-                            ),
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'ph.smartsumbong.resident',
-                              maxZoom: 19,
-                            ),
-                            // Everything outside 183 is dimmed rather
-                            // than hidden, so a resident can still see
-                            // the bordering streets and orient
-                            // themselves. Permanent here: the admin
-                            // portal has a toggle because an admin
-                            // sometimes needs the surrounding city, but
-                            // a resident filing a complaint only needs
-                            // to know where the boundary is.
-                            if (_rings.isNotEmpty)
-                              PolygonLayer(
-                                polygons: [
-                                  Polygon(
-                                    points: _world,
-                                    holePointsList: _rings,
-                                    color: const Color(0x8C0D1117),
-                                  ),
-                                  for (final ring in _rings)
-                                    Polygon(
-                                      points: ring,
-                                      borderColor: const Color(0xE614181D),
-                                      borderStrokeWidth: 2,
-                                    ),
-                                ],
-                              ),
-
+                        // Pinned to the residential grid, the outside of
+                        // 183 dimmed rather than hidden so a resident can
+                        // still see the bordering streets. The pins are
+                        // the design's tilted pin, red where the status
+                        // label is.
+                        BrgyMap(
+                          controller: _map,
+                          boundary: true,
+                          restrictToBarangay: true,
+                          attributionBottom: 12,
+                          cornerRadius: 25,
+                          cornerColour: context.colors.bg,
+                          pins: [
                             if (_showReports)
-                              MarkerLayer(
-                                markers: [
-                                  for (final p in pins)
-                                    Marker(
-                                      point: p.point,
-                                      width: 40,
-                                      height: 40,
-                                      alignment: Alignment.topCenter,
-                                      // The frame's 22x23 tilted pin, its
-                                      // tip on the report, inside the
-                                      // same 40x40 tap target as before.
-                                      child: GestureDetector(
-                                        onTap: () => _openPin(p),
-                                        child: CustomPaint(
-                                          painter: _PinPainter(
-                                            radius: 9.9,
-                                            ring: 2.8,
-                                            stroke: 2.2,
-                                            colour: p.status.labelColour(
-                                                        context) ==
-                                                    context.colors.bg
-                                                // Day navy in both modes:
-                                                // the tiles stay light.
-                                                ? const Color(0xFF00308F)
-                                                : const Color(0xFFFF4949),
-                                            fill: const Color(0xFFFBFBFB),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                              for (final p in pins)
+                                BrgyMapPin(
+                                  id: p.id,
+                                  point: p.point,
+                                  alert: p.status.labelColour(context) !=
+                                      context.colors.bg,
+                                ),
                           ],
+                          onPinTap: (id) {
+                            for (final p in pins) {
+                              if (p.id == id) return _openPin(p);
+                            }
+                          },
                         ),
 
                         if (_loading)
@@ -455,7 +293,7 @@ class _MapScreenState extends State<MapScreen> {
                     height: 73,
                     child: IgnorePointer(
                       child: CustomPaint(
-                        painter: _PinPainter(
+                        painter: FigmaPinPainter(
                           radius: 25.5,
                           ring: 9.4,
                           stroke: 2.5,
@@ -570,61 +408,4 @@ class _MapCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The design's map pin: a teardrop outline tilted ~17° so its tip points
-/// down and to the right, with a ring at its centre. [tip] is where the
-/// point lands in the paint box; by default the bottom centre, which is
-/// where a [Marker] with topCenter alignment puts the location.
-class _PinPainter extends CustomPainter {
-  const _PinPainter({
-    required this.radius,
-    required this.ring,
-    required this.stroke,
-    required this.colour,
-    required this.fill,
-    this.tip,
-  });
-
-  final double radius;
-  final double ring;
-  final double stroke;
-  final Color colour;
-  final Color fill;
-  final Offset? tip;
-
-  static const _tilt = 16.9 * math.pi / 180;
-  static const _reach = 1.27;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final end = tip ?? Offset(size.width / 2, size.height - stroke);
-    final dir = Offset(math.sin(_tilt), math.cos(_tilt));
-    final centre = end - dir * (radius * _reach);
-
-    // Tangents from the tip meet the circle this far either side of it.
-    final spread = math.acos(1 / _reach);
-    final towardsTip = math.atan2(dir.dy, dir.dx);
-    final path = Path()
-      ..moveTo(end.dx, end.dy)
-      ..lineTo(centre.dx + radius * math.cos(towardsTip + spread),
-          centre.dy + radius * math.sin(towardsTip + spread))
-      ..arcTo(Rect.fromCircle(center: centre, radius: radius),
-          towardsTip + spread, 2 * math.pi - 2 * spread, false)
-      ..close();
-
-    final line = Paint()
-      ..color = colour
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeJoin = StrokeJoin.round;
-    canvas
-      ..drawPath(path, Paint()..color = fill)
-      ..drawPath(path, line)
-      ..drawCircle(centre, ring, line);
-  }
-
-  @override
-  bool shouldRepaint(_PinPainter old) =>
-      old.colour != colour || old.fill != fill || old.tip != tip;
 }

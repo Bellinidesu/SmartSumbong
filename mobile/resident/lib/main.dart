@@ -25,6 +25,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'i18n.dart';
 import 'models/complaint_category.dart';
+import 'outbox.dart';
 import 'screens/account_status_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/edit_profile_screen.dart';
@@ -168,6 +169,9 @@ class SmartSumbongApp extends StatelessWidget {
       videoUploadPreset:
           _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
     );
+    // Reports filed with no signal go out from here once it returns.
+    Outbox.sentMessage = (id) => Strings(locale.value).outboxSent(id);
+    Outbox.instance.attach(uploader);
 
     return AppThemeScope(
       controller: themeController,
@@ -186,6 +190,7 @@ class SmartSumbongApp extends StatelessWidget {
           darkTheme: buildResidentTheme(Brightness.dark),
           themeMode: mode,
           navigatorKey: navigatorKey,
+          scaffoldMessengerKey: Outbox.messengerKey,
           builder: (context, child) => BiometricLockGate(
             reason: context.s.launchGateBiometricReason,
             title: context.s.lockGateTitle,

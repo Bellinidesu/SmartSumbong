@@ -19,6 +19,11 @@ RUN apt-get update \
     && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
 
+# The image ships no php.ini, and PHP's built-in default prints errors
+# into the page — a fatal on request-access.php showed visitors the
+# server's file paths. The image's own production ini logs them instead.
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
 WORKDIR /var/www/html
 
 COPY admin/ ./admin/

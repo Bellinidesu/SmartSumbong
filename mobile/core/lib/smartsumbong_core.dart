@@ -1,4 +1,5 @@
 export 'src/media_upload.dart';
+export 'src/json_cache.dart';
 export 'src/auth.dart';
 export 'src/permissions.dart';
 export 'src/app_dialog.dart';

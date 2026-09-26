@@ -34,52 +34,52 @@ $categories = [
     'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
 ];
 
-layout_head('Spatial Distribution', 'spatial.php');
+layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 ?>
 
 <section class="panel panel--map">
   <header class="panel-bar">
-    <h2 class="panel-title">Barangay 183 Map</h2>
+    <h2 class="panel-title"><?= e(t('Barangay 183 Map', 'Mapa ng Barangay 183')) ?></h2>
     <div class="map-toolbar">
-      <label class="visually-hidden" for="f-category">Filter by complaint type</label>
+      <label class="visually-hidden" for="f-category"><?= e(t('Filter by complaint type', 'Salain ayon sa uri ng sumbong')) ?></label>
       <select id="f-category">
-        <option value="">All complaint types</option>
+        <option value=""><?= e(t('All complaint types', 'Lahat ng uri ng sumbong')) ?></option>
         <?php foreach ($categories as $c): ?>
           <option value="<?= e($c) ?>"><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select>
 
-      <label class="visually-hidden" for="f-status">Filter by status</label>
+      <label class="visually-hidden" for="f-status"><?= e(t('Filter by status', 'Salain ayon sa katayuan')) ?></label>
       <select id="f-status">
-        <option value="">All statuses</option>
-        <option value="under_review">Under Review</option>
-        <option value="in_progress">In Progress</option>
-        <option value="resolved">Resolved/Completed</option>
-        <option value="rejected">Rejected</option>
+        <option value=""><?= e(t('All statuses', 'Lahat ng katayuan')) ?></option>
+        <option value="under_review"><?= e(t('Under Review', 'Nirerepaso')) ?></option>
+        <option value="in_progress"><?= e(t('In Progress', 'Isinasagawa')) ?></option>
+        <option value="resolved"><?= e(t('Resolved/Completed', 'Nalutas/Nakumpleto')) ?></option>
+        <option value="rejected"><?= e(t('Rejected', 'Tinanggihan')) ?></option>
       </select>
 
-      <label class="visually-hidden" for="f-period">Hotspot analysis month</label>
+      <label class="visually-hidden" for="f-period"><?= e(t('Hotspot analysis month', 'Buwan ng pagsusuri ng hotspot')) ?></label>
       <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>">
-      <label class="toggle"><input type="checkbox" id="f-period-all"> All time</label>
+      <label class="toggle"><input type="checkbox" id="f-period-all"> <?= e(t('All time', 'Lahat ng panahon')) ?></label>
 
-      <label class="toggle"><input type="checkbox" id="f-heat"> Heatmap</label>
-      <label class="toggle"><input type="checkbox" id="f-hotspots"> Hotspots</label>
+      <label class="toggle"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
+      <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
 
-      <label class="toggle"><input type="checkbox" id="f-tanods"> Tanods</label>
+      <label class="toggle"><input type="checkbox" id="f-tanods"> <?= e(t('Tanods', 'Mga Tanod')) ?></label>
 
-      <label class="toggle"><input type="checkbox" id="f-tanod-paths"> Tanod Paths</label>
-      <label class="visually-hidden" for="f-tanod-from">Tanod path range start</label>
+      <label class="toggle"><input type="checkbox" id="f-tanod-paths"> <?= e(t('Tanod Paths', 'Dinaanan ng Tanod')) ?></label>
+      <label class="visually-hidden" for="f-tanod-from"><?= e(t('Tanod path range start', 'Simula ng dinaanan')) ?></label>
       <input type="date" id="f-tanod-from" disabled
              value="<?= e((new DateTime('-7 days', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
-      <label class="visually-hidden" for="f-tanod-to">Tanod path range end</label>
+      <label class="visually-hidden" for="f-tanod-to"><?= e(t('Tanod path range end', 'Wakas ng dinaanan')) ?></label>
       <input type="date" id="f-tanod-to" disabled
              value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
-      <label class="visually-hidden" for="f-tanod-who">Filter path to one tanod</label>
+      <label class="visually-hidden" for="f-tanod-who"><?= e(t('Filter path to one tanod', 'Isang tanod lamang')) ?></label>
       <select id="f-tanod-who" disabled>
-        <option value="">All tanods</option>
+        <option value=""><?= e(t('All tanods', 'Lahat ng tanod')) ?></option>
       </select>
 
-      <label class="toggle"><input type="checkbox" id="f-fog" checked> Dim outside 183</label>
+      <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
   </header>
 
@@ -92,18 +92,18 @@ layout_head('Spatial Distribution', 'spatial.php');
     <aside class="pin-detail" id="pin-detail" hidden></aside>
 
     <div class="conn-strip" id="conn" hidden role="status">
-      <span class="conn-dot"></span><span id="conn-text">Reconnecting&hellip;</span>
+      <span class="conn-dot"></span><span id="conn-text"><?= e(t('Reconnecting…', 'Kumokonekta muli…')) ?></span>
     </div>
 
     <div class="map-dock">
-      <button class="map-btn" id="fit-btn" type="button" title="Frame every complaint">
+      <button class="map-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>
         </svg>
       </button>
 
-      <button class="map-btn" id="expand-btn" type="button" title="Expand map to full screen">
+      <button class="map-btn" id="expand-btn" type="button" title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
@@ -111,7 +111,7 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <button class="incident-badge" id="incident-toggle" aria-expanded="false"
-              aria-controls="map-side" title="Live incidents">
+              aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21"/>
@@ -121,13 +121,13 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <aside class="map-side" id="map-side" hidden>
-        <p class="map-side-head">Live incidents</p>
-        <p class="map-side-note" id="map-status">Connecting&hellip;</p>
+        <p class="map-side-head"><?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?></p>
+        <p class="map-side-note" id="map-status"><?= e(t('Connecting…', 'Kumokonekta…')) ?></p>
         <ol class="pin-list" id="pin-list"></ol>
       </aside>
 
       <button class="incident-badge" id="hotspot-toggle" aria-expanded="false"
-              aria-controls="hotspot-side" title="Hotspot clusters">
+              aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 2c-1.5 3-4.5 5.5-4.5 9.5a4.5 4.5 0 0 0 9 0c0-1.5-.6-2.5-1.3-3.4.1 1.6-.7 2.4-1.4 2.4.6-2.4-.4-4.6-1.8-8.5Z"/>
@@ -136,13 +136,13 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <aside class="map-side" id="hotspot-side" hidden>
-        <p class="map-side-head">Top hotspots</p>
-        <p class="map-side-note" id="hotspot-status">Turn on Hotspots to see recurring problem areas.</p>
+        <p class="map-side-head"><?= e(t('Top hotspots', 'Nangungunang hotspot')) ?></p>
+        <p class="map-side-note" id="hotspot-status"><?= e(t('Turn on Hotspots to see recurring problem areas.', 'I-on ang Mga Hotspot para makita ang mga lugar na paulit-ulit ang problema.')) ?></p>
         <ol class="pin-list" id="hotspot-list"></ol>
       </aside>
 
       <button class="incident-badge" id="tanod-toggle" aria-expanded="false"
-              aria-controls="tanod-side" title="Tanod positions">
+              aria-controls="tanod-side" title="<?= e(t('Tanod positions', 'Kinaroroonan ng mga tanod')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="8" r="3.2"/>
@@ -152,20 +152,17 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <aside class="map-side" id="tanod-side" hidden>
-        <p class="map-side-head">Tanod positions</p>
-        <p class="map-side-note" id="tanod-status">Turn on Tanods to see live positions.</p>
+        <p class="map-side-head"><?= e(t('Tanod positions', 'Kinaroroonan ng mga tanod')) ?></p>
+        <p class="map-side-note" id="tanod-status"><?= e(t('Turn on Tanods to see live positions.', 'I-on ang Mga Tanod para makita ang kanilang kinaroroonan.')) ?></p>
         <ol class="pin-list" id="tanod-list"></ol>
       </aside>
     </div>
   </div>
 </section>
 
-<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-<script src="assets/vendor/leaflet/leaflet.js"></script>
-<script src="assets/vendor/leaflet/leaflet-heat.js"></script>
-<link rel="stylesheet" href="assets/vendor/leaflet/MarkerCluster.css">
-<link rel="stylesheet" href="assets/vendor/leaflet/MarkerCluster.Default.css">
-<script src="assets/vendor/leaflet/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
+<script src="assets/vendor/maplibre/maplibre-gl.js"></script>
+<script src="assets/js/map-theme.js"></script>
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
 // Self-hosted rather than imported from esm.sh. This script runs with the
@@ -186,8 +183,6 @@ const sb = createClient(
 );
 sb.realtime.setAuth(TOKEN);
 
-const BRGY = [14.51646, 121.01621];
-
 // The boundary relation covers the whole barangay, most of which is the
 // airport apron and Villamor Air Base — land with no residents and no
 // complaints. The admin needs the residential grid, so the map is pinned
@@ -200,18 +195,23 @@ const BRGY = [14.51646, 121.01621];
 // tighten onto the streets. Latitude and longitude use separate values
 // because a degree of longitude is shorter than a degree of latitude at
 // this latitude, and equal numbers would give a box taller than it looks.
-const RESIDENTIAL_CENTRE = [14.526905, 121.015543];
+// [lng, lat] from here on: MapLibre's order, not Leaflet's.
+const RESIDENTIAL_CENTRE = [121.015543, 14.526905];
 const SPAN_LAT = 0.0110;
 const SPAN_LNG = 0.0115;
 
 // Google's 17z at this centre, which frames 1st Street through 31st.
-// Leaflet and Google use the same zoom scale, so the number carries over.
-const DEFAULT_ZOOM = 17;
+// MapLibre's zoom scale is one below Leaflet's and Google's (512-pixel
+// tiles), so the same framing is 16 here — and the old 16–19 range is
+// 15–18.
+const DEFAULT_ZOOM = 16;
 
-const AREA = L.latLngBounds(
-  [RESIDENTIAL_CENTRE[0] - SPAN_LAT, RESIDENTIAL_CENTRE[1] - SPAN_LNG],
-  [RESIDENTIAL_CENTRE[0] + SPAN_LAT, RESIDENTIAL_CENTRE[1] + SPAN_LNG]
-);
+// A little slack past the box so edge pins are reachable.
+const PAD = 0.12;
+const AREA = [
+  [RESIDENTIAL_CENTRE[0] - SPAN_LNG * (1 + PAD), RESIDENTIAL_CENTRE[1] - SPAN_LAT * (1 + PAD)],
+  [RESIDENTIAL_CENTRE[0] + SPAN_LNG * (1 + PAD), RESIDENTIAL_CENTRE[1] + SPAN_LAT * (1 + PAD)],
+];
 // Collapsed from the raw 8-value enum to the four buckets an admin
 // actually scans for on a map (Rose's feedback, 15 Sep 2026) — the full
 // breakdown is still one click away on Case Reports.
@@ -228,7 +228,10 @@ const COLOUR = {
   resolved: '#22c55e', closed: '#22c55e', archived: '#22c55e',
   rejected: '#9aa1ab',
 };
-const label = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+// Statuses in the portal's language; categories stay as they are, in
+// English, as the apps show them.
+const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
+const label = s => STATUS_LABEL[s] || s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // Every string below that reaches innerHTML passes through this. subject
 // is typed by the resident who filed the complaint and full_name by the
@@ -249,67 +252,186 @@ const SHAPE = {
   resolved: 'diamond', closed: 'diamond', archived: 'diamond',
   rejected: 'cross',
 };
+const pinName = status => 'pin-' + (SHAPE[status] || 'circle') + '-' + (COLOUR[status] || '#9aa1ab').slice(1);
 
-function pinFor(status) {
-  const fill  = COLOUR[status] || '#9aa1ab';
-  const shape = SHAPE[status]  || 'circle';
+function pinSvg(shape, fill) {
   const body = {
     circle:  '<circle cx="11" cy="11" r="8"/>',
     square:  '<rect x="3.5" y="3.5" width="15" height="15" rx="2.5"/>',
     diamond: '<path d="M11 2.5 19.5 11 11 19.5 2.5 11Z"/>',
     cross:   '<path d="M6 6l10 10M16 6L6 16" stroke-width="3.6" stroke-linecap="round" fill="none"/>',
   }[shape];
+  // The cross is drawn in its colour, with a white edge under it.
+  const under = shape === 'cross'
+    ? '<path d="M6 6l10 10M16 6L6 16" stroke="#fff" stroke-width="6.4" stroke-linecap="round" fill="none"/>' : '';
+  const top = shape === 'cross' ? body.replace('stroke-width', 'stroke="' + fill + '" stroke-width') : body;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 22 22" fill="' + fill +
+         '" stroke="#fff" stroke-width="2">' + under + top + '</svg>';
+}
 
-  return L.divIcon({
-    className: 'pin-icon',
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -10],
-    html: '<svg viewBox="0 0 22 22" fill="' + fill + '" stroke="#fff" stroke-width="2">'
-        + body + '</svg>',
+function tanodSvg(fresh) {
+  const fill = fresh ? '#1FA84E' : '#9aa1ab';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 26 26">' +
+    '<circle cx="13" cy="13" r="11" fill="' + fill + '" stroke="#fff" stroke-width="2.5"/>' +
+    '<circle cx="13" cy="10.5" r="3" fill="#fff"/>' +
+    '<path d="M6.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" fill="#fff"/>' +
+  '</svg>';
+}
+
+function addSvgImage(name, svg) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => { if (!map.hasImage(name)) map.addImage(name, img, { pixelRatio: 2 }); resolve(); };
+    img.onerror = resolve;
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   });
 }
 
-const map = L.map('map', {
-  maxBounds: AREA.pad(0.12),   // a little slack so edge pins are reachable
-  maxBoundsViscosity: 0.9,     // resists dragging past it rather than snapping
-  minZoom: 16,
-  maxZoom: 19,
-  zoomControl: false
-}).setView(RESIDENTIAL_CENTRE, DEFAULT_ZOOM);
-L.control.zoom({ position: 'bottomright' }).addTo(map);
-// Reverted 15 Sep 2026 — the CARTO Voyager re-skin tried here lasted about
-// an hour: CARTO now requires an API key for these basemap tiles (a very
-// recent change, not something visible when this was first written — it
-// broke a wide swath of unrelated open-source projects the same way the
-// same week, not just this one). An API key means an account and the same
-// billing-account requirement this re-skin was specifically trying to
-// avoid, so back to the standard OpenStreetMap raster tiles this project
-// ran on before, and has actually proven out in production. No more
-// silent-CDN-policy-change risk than any other free tile host, but this
-// one has years of being exactly what it says it is behind it.
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+// Branch B: MapLibre over OpenFreeMap vector tiles, in the same
+// recoloured Positron the resident and tanod apps draw (their
+// assets/map/style-light.json) — no API key and no billing account,
+// which is what sent the CARTO attempt of 15 Sep 2026 back to plain OSM
+// raster tiles.
+const map = new maplibregl.Map({
+  container: 'map',
+  style: window.mapStyleUrl(),
+  center: RESIDENTIAL_CENTRE,
+  zoom: DEFAULT_ZOOM,
+  minZoom: 15,
+  maxZoom: 18,
+  maxBounds: AREA,
+  dragRotate: false,
+  pitchWithRotate: false,
+  attributionControl: false,
+});
+// Bottom-left, so the zoom buttons sit where Leaflet's did, under the dock.
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+map.touchZoomRotate.disableRotation();
+map.keyboard.disableRotation();
+mapFollowTheme(map);
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+const EMPTY = { type: 'FeatureCollection', features: [] };
+const point = (lng, lat, props) => ({ type: 'Feature', properties: props || {},
+                                      geometry: { type: 'Point', coordinates: [lng, lat] } });
+
+// Everything waits on the style; data that arrives first is drawn then.
+const mapReady = new Promise(resolve => map.on('load', async () => {
+  const shapes = [['circle', '#f59e0b'], ['square', '#2563eb'], ['diamond', '#22c55e'],
+                  ['cross', '#9aa1ab'], ['circle', '#9aa1ab']];
+  await Promise.all([
+    ...shapes.map(([s, c]) => addSvgImage('pin-' + s + '-' + c.slice(1), pinSvg(s, c))),
+    addSvgImage('tanod-fresh', tanodSvg(true)),
+    addSvgImage('tanod-stale', tanodSvg(false)),
+  ]);
+
+  // Bottom to top: fog, outline, complaint heat, tanod path heat,
+  // hotspots, complaints, tanods.
+  map.addSource('fog', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'fog', type: 'fill', source: 'fog',
+                 paint: { 'fill-color': '#0d1117', 'fill-opacity': .55 } });
+  map.addLayer({ id: 'outline', type: 'line', source: 'fog', filter: ['==', ['get', 'role'], 'outline'],
+                 paint: { 'line-color': '#14181d', 'line-width': 2, 'line-opacity': .9 } });
+  map.setFilter('fog', ['==', ['get', 'role'], 'fog']);
+
+  // Leaflet.heat's own default ramp (blue, lime, red), so the heat reads
+  // the way it always has.
+  map.addSource('heat', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'heat', type: 'heatmap', source: 'heat', layout: { visibility: 'none' },
+    // Leaflet.heat scaled each view to its own peak; MapLibre's density
+    // is absolute, so a barangay's worth of points needs more intensity
+    // and a radius that grows with the zoom to read the same way.
+    paint: {
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 15, 22, 18, 60],
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 15, 2, 18, 4],
+      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(0,0,255,0)', 0.2, 'rgba(0,0,255,.6)', 0.4, 'blue', 0.65, 'lime', 1, 'red'],
+      'heatmap-opacity': .8,
+    } });
+
+  // A distinct blue-to-pink ramp, so a path trail never reads as more
+  // complaint heat when both layers happen to be on at once.
+  map.addSource('tanod-paths', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'tanod-paths', type: 'heatmap', source: 'tanod-paths', layout: { visibility: 'none' },
+    paint: {
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 15, 14, 18, 40],
+      'heatmap-weight': 0.6,
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 15, 1.5, 18, 3],
+      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(29,78,216,0)', 0.3, '#1d4ed8', 0.6, '#7c3aed', 1, '#db2777'],
+      'heatmap-opacity': .85,
+    } });
+
+  map.addSource('hotspots', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'hotspots', type: 'circle', source: 'hotspots', layout: { visibility: 'none' },
+    paint: {
+      'circle-radius': ['get', 'radius'],
+      'circle-color': ['get', 'colour'],
+      'circle-opacity': .55,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-width': 2,
+    } });
+
+  map.addSource('tanods', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'tanods', type: 'symbol', source: 'tanods', layout: {
+    visibility: 'none',
+    'icon-image': ['case', ['get', 'fresh'], 'tanod-fresh', 'tanod-stale'],
+    'icon-allow-overlap': true, 'icon-ignore-placement': true,
+  } });
+
+  setPinsSource(false);
+
+  ['pins', 'clusters', 'hotspots', 'tanods'].forEach(id => {
+    map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
+  });
+  map.on('click', 'pins', e => { const r = byId.get(e.features[0].properties.id); if (r) showDetail(r); });
+  map.on('click', 'clusters', async e => {
+    const f = e.features[0];
+    const zoom = await map.getSource('reports').getClusterExpansionZoom(f.properties.cluster_id);
+    map.easeTo({ center: f.geometry.coordinates, zoom });
+  });
+  map.on('click', 'hotspots', e => { const h = hotspots[e.features[0].properties.i]; if (h) showHotspotDetail(h); });
+  map.on('click', 'tanods', e => { const t = tanodRows[e.features[0].properties.i]; if (t) tanodDetail(t); });
+
+  resolve();
+}));
 
 // Below the threshold every pin stands alone; above it they would sit on
 // top of each other on a barangay-sized map, so they gather into counted
-// clusters that split as you zoom.
+// clusters that split as you zoom. A GeoJSON source is clustered or not
+// from creation, so it is rebuilt when the count crosses the line.
 const CLUSTER_FROM = 25;
-const plainPins   = L.layerGroup();
-const clusterPins = L.markerClusterGroup({
-  showCoverageOnHover: false,
-  maxClusterRadius: 46,
-  spiderfyOnMaxZoom: true,
-});
-let pins = plainPins.addTo(map);
-let heat = null, fog = null, rings = [];
-let all = [];
+let clustered = null;
+function setPinsSource(want) {
+  if (clustered === want) return;
+  ['pins', 'cluster-count', 'clusters'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+  if (map.getSource('reports')) map.removeSource('reports');
+  clustered = want;
+  map.addSource('reports', { type: 'geojson', data: EMPTY,
+                             cluster: want, clusterRadius: 46, clusterMaxZoom: 17 });
+  map.addLayer({ id: 'clusters', type: 'circle', source: 'reports', filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': ['step', ['get', 'point_count'], '#ffb74d', 10, '#ff9800', 50, '#e65100'],
+      'circle-radius': ['step', ['get', 'point_count'], 16, 10, 20, 50, 25],
+      'circle-stroke-color': 'rgba(255,255,255,.85)',
+      'circle-stroke-width': 4,
+    } }, 'tanods');
+  map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'reports', filter: ['has', 'point_count'],
+    layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13 },
+    paint: { 'text-color': '#14181d' } }, 'tanods');
+  map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: ['!', ['has', 'point_count']],
+    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true } },
+    'tanods');
+}
+
+let all = [], rings = [];
+const byId = new Map();
 
 // ---- boundary: OSM returns the relation's ways unordered ----------
 function stitch(ways) {
   const out = [];
-  const pool = ways.map(w => w.map(p => [p.lat, p.lon]));
+  const pool = ways.map(w => w.map(p => [p.lon, p.lat]));
   while (pool.length) {
     let ring = pool.shift();
     let joined = true;
@@ -327,22 +449,29 @@ function stitch(ways) {
   return out;
 }
 
+// Signed area (shoelace): MapLibre takes a ring wound the same way as
+// the outer one for a new polygon, not a hole, so each barangay ring is
+// wound against the world ring before it is cut out of it.
+const area = r => r.reduce((s, p, i) => { const q = r[(i + 1) % r.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0);
+const closed = r => (r[0][0] === r[r.length-1][0] && r[0][1] === r[r.length-1][1]) ? r : r.concat([r[0]]);
+
 async function loadBoundary() {
   try {
     const res = await fetch('brgy183.json');
     if (!res.ok) return;
     const rel = (await res.json()).elements.find(e => e.type === 'relation');
-    rings = stitch(rel.members.filter(m => m.type === 'way' && m.geometry).map(m => m.geometry));
+    rings = stitch(rel.members.filter(m => m.type === 'way' && m.geometry).map(m => m.geometry)).map(closed);
     if (!rings.length) return;
 
-    const outline = L.polygon(rings, {
-      color: '#14181d', weight: 2, opacity: .9, fill: false, interactive: false
-    }).addTo(map);
-
-    const WORLD = [[-89.9,-179.9],[-89.9,179.9],[89.9,179.9],[89.9,-179.9]];
-    fog = L.polygon([WORLD, ...rings], {
-      stroke: false, fillColor: '#0d1117', fillOpacity: .55, interactive: false
-    }).addTo(map);
+    const WORLD = [[-179.9, -85], [179.9, -85], [179.9, 85], [-179.9, 85], [-179.9, -85]];
+    const worldSign = Math.sign(area(WORLD));
+    const holes = rings.map(r => Math.sign(area(r)) === worldSign ? r.slice().reverse() : r);
+    await mapReady;
+    map.getSource('fog').setData({ type: 'FeatureCollection', features: [
+      { type: 'Feature', properties: { role: 'fog' }, geometry: { type: 'Polygon', coordinates: [WORLD, ...holes] } },
+      { type: 'Feature', properties: { role: 'outline' }, geometry: { type: 'MultiLineString', coordinates: rings } },
+    ] });
+    map.setLayoutProperty('fog', 'visibility', document.getElementById('f-fog').checked ? 'visible' : 'none');
 
     // The outline is drawn, but the view stays on the residential area.
     // Fitting the whole relation would zoom out to include the runway.
@@ -360,25 +489,20 @@ function visible() {
   });
 }
 
-function draw() {
+async function draw() {
   const rows = visible();
+  byId.clear();
+  all.forEach(r => byId.set(r.id, r));
 
-  const want = rows.length >= CLUSTER_FROM ? clusterPins : plainPins;
-  if (want !== pins) { map.removeLayer(pins); pins = want.addTo(map); }
-  plainPins.clearLayers();
-  clusterPins.clearLayers();
+  await mapReady;
+  setPinsSource(rows.length >= CLUSTER_FROM);
+  map.getSource('reports').setData({ type: 'FeatureCollection',
+    features: rows.map(r => point(r.longitude, r.latitude, { id: r.id, icon: pinName(r.status) })) });
 
-  rows.forEach(r => {
-    L.marker([r.latitude, r.longitude], { icon: pinFor(r.status) })
-      .on('click', () => showDetail(r))
-      .addTo(pins);
-  });
-
-  if (heat) { map.removeLayer(heat); heat = null; }
-  if (document.getElementById('f-heat').checked && rows.length) {
-    heat = L.heatLayer(rows.map(r => [r.latitude, r.longitude, 1]),
-                       { radius: 28, blur: 20, maxZoom: 17 }).addTo(map);
-  }
+  const heatOn = document.getElementById('f-heat').checked && rows.length;
+  map.getSource('heat').setData(heatOn
+    ? { type: 'FeatureCollection', features: rows.map(r => point(r.longitude, r.latitude)) } : EMPTY);
+  map.setLayoutProperty('heat', 'visibility', heatOn ? 'visible' : 'none');
 
   const badge = document.getElementById('incident-toggle');
   document.getElementById('pin-count').textContent = rows.length;
@@ -393,12 +517,12 @@ function draw() {
       '<span class="pin-dot" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
       '<span class="pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
       '<small>' + esc(label(r.category)) + '</small></span>';
-    li.addEventListener('mouseenter', () => map.panTo([r.latitude, r.longitude]));
+    li.addEventListener('mouseenter', () => map.panTo([r.longitude, r.latitude]));
     list.appendChild(li);
   });
 
   if (!rows.length) {
-    list.innerHTML = '<li class="pin-empty">No complaint matches these filters.</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('No complaint matches these filters.', 'Walang sumbong na tugma sa mga salang ito.') + '</li>';
   }
 }
 
@@ -410,12 +534,12 @@ async function load() {
     .order('created_at', { ascending: false });
 
   const note = document.getElementById('map-status');
-  if (error) { note.textContent = 'Could not load complaints: ' + error.message; return; }
+  if (error) { note.textContent = T('Could not load complaints: ', 'Hindi ma-load ang mga sumbong: ') + error.message; return; }
 
   all = data || [];
   note.textContent = all.length
-    ? 'Live — new complaints appear without refreshing.'
-    : 'No complaints have been filed yet.';
+    ? T('Live — new complaints appear without refreshing.', 'Live — lumalabas ang bagong sumbong nang hindi nire-refresh.')
+    : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.');
   draw();
 }
 
@@ -439,7 +563,7 @@ sb.channel('reports-spatial')
       if (connLost) { connLost = false; load(); }
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       connLost = true;
-      text.textContent = 'Connection lost — this map is not updating. Reconnecting…';
+      text.textContent = T('Connection lost — this map is not updating. Reconnecting…', 'Nawala ang koneksyon — hindi nag-a-update ang mapa. Kumokonekta muli…');
       strip.removeAttribute('hidden');
     }
   });
@@ -460,17 +584,17 @@ function showDetail(r) {
   const submitted = fmtDate(r.created_at) || '—';
   const deadline  = fmtDate(r.due_at);
   box.innerHTML =
-    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
     '<p class="detail-id">' + esc(r.tracking_id) + '</p>' +
     '<p class="detail-cat">' + esc(label(r.category)) + '</p>' +
     '<p class="detail-sub">' + esc(r.subject) + '</p>' +
     '<p class="detail-status"><span class="pin-dot" style="background:' +
       (COLOUR[r.status] || '#9aa1ab') + '"></span>' + esc(label(r.status)) + '</p>' +
     '<dl class="detail-dates">' +
-      '<dt>Submitted</dt><dd>' + submitted + '</dd>' +
-      '<dt>Deadline</dt><dd>' + (deadline || 'No deadline set') + '</dd>' +
+      '<dt>' + T('Submitted', 'Isinumite') + '</dt><dd>' + submitted + '</dd>' +
+      '<dt>' + T('Deadline', 'Takdang oras') + '</dt><dd>' + (deadline || T('No deadline set', 'Walang takdang oras')) + '</dd>' +
     '</dl>' +
-    '<a class="detail-open" href="case.php?id=' + encodeURIComponent(r.id) + '">Open this case</a>';
+    '<a class="detail-open" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a>';
   box.removeAttribute('hidden');
   box.querySelector('.detail-x').addEventListener('click',
     () => box.setAttribute('hidden', ''));
@@ -479,16 +603,17 @@ function showDetail(r) {
 // Frame everything currently shown, without losing the residential pin.
 document.getElementById('fit-btn').addEventListener('click', () => {
   const rows = visible();
-  if (!rows.length) { map.setView(RESIDENTIAL_CENTRE, DEFAULT_ZOOM); return; }
-  map.fitBounds(L.latLngBounds(rows.map(r => [r.latitude, r.longitude])),
-                { padding: [60, 60], maxZoom: 18 });
+  if (!rows.length) { map.easeTo({ center: RESIDENTIAL_CENTRE, zoom: DEFAULT_ZOOM }); return; }
+  const b = new maplibregl.LngLatBounds();
+  rows.forEach(r => b.extend([r.longitude, r.latitude]));
+  map.fitBounds(b, { padding: 60, maxZoom: 17 });
 });
 
 // Full-screen the map itself (the Fullscreen API target has to be the
-// .map-shell wrapper, not #map, or Leaflet's own absolutely-positioned
-// dock and detail panel would be left behind outside the fullscreen
-// element). Leaflet caches its container size, so it needs an explicit
-// nudge once the browser has actually finished resizing the element.
+// .map-shell wrapper, not #map, or the dock and detail panel would be
+// left behind outside the fullscreen element). The map caches its
+// container size, so it needs an explicit nudge once the browser has
+// actually finished resizing the element.
 const expandBtn = document.getElementById('expand-btn');
 const mapShell  = document.querySelector('.map-shell');
 // iPhone Safari has no element fullscreen at all; a button that does
@@ -508,8 +633,8 @@ expandBtn.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', () => {
   const active = document.fullscreenElement === mapShell;
   expandBtn.classList.toggle('is-active', active);
-  expandBtn.title = active ? 'Exit full screen' : 'Expand map to full screen';
-  setTimeout(() => map.invalidateSize(), 120);
+  expandBtn.title = active ? T('Exit full screen', 'Lumabas sa full screen') : T('Expand map to full screen', 'I-full screen ang mapa');
+  setTimeout(() => map.resize(), 120);
 });
 
 // Collapsed by default: the map is the screen, the list is a drawer.
@@ -527,18 +652,18 @@ if (new URLSearchParams(location.search).has('bounds')) {
   map.on('moveend', () => {
     const b = map.getBounds(), c = map.getCenter();
     console.log('centre [%s, %s]  span %s / %s  zoom %s',
-      c.lat.toFixed(6), c.lng.toFixed(6),
+      c.lng.toFixed(6), c.lat.toFixed(6),
       ((b.getNorth() - b.getSouth()) / 2).toFixed(4),
-      ((b.getEast()  - b.getWest())  / 2).toFixed(4), map.getZoom());
+      ((b.getEast()  - b.getWest())  / 2).toFixed(4), map.getZoom().toFixed(2));
   });
 }
 
 ['f-category','f-status','f-heat'].forEach(id =>
   document.getElementById(id).addEventListener('change', draw));
 
-document.getElementById('f-fog').addEventListener('change', e => {
-  if (!fog) return;
-  e.target.checked ? fog.addTo(map) : map.removeLayer(fog);
+document.getElementById('f-fog').addEventListener('change', async e => {
+  await mapReady;
+  map.setLayoutProperty('fog', 'visibility', e.target.checked ? 'visible' : 'none');
 });
 
 // ---- hotspots: real spatial clustering, not just a visual blur -------
@@ -548,7 +673,6 @@ document.getElementById('f-fog').addEventListener('change', e => {
 // time window and hands back ranked, counted groups — "8 reports within
 // a block of each other this quarter" instead of a blur an admin has to
 // eyeball themselves.
-const hotspotLayer = L.layerGroup();
 let hotspots = [];
 
 function periodRange() {
@@ -624,20 +748,20 @@ function showHotspotDetail(h) {
   const submittedRange = (h.last_at && h.last_at !== h.first_at)
     ? submitted + ' – ' + (fmtDate(h.last_at) || '—') : submitted;
   const deadlineText = nearestDeadline
-    ? fmtDate(nearestDeadline) + ' (nearest of ' + open.length + ' still open)'
-    : 'No open deadlines in this cluster';
+    ? fmtDate(nearestDeadline) + T(' (nearest of ' + open.length + ' still open)', ' (pinakamalapit sa ' + open.length + ' na bukas pa)')
+    : T('No open deadlines in this cluster', 'Walang bukas na takdang oras sa kumpol na ito');
 
   const box = document.getElementById('pin-detail');
   box.innerHTML =
-    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
-    '<p class="detail-id">Hotspot &mdash; ' + h.report_count + ' report' + (h.report_count === 1 ? '' : 's') + '</p>' +
-    '<p class="detail-cat">Mostly ' + esc(label(h.top_category)) + '</p>' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
+    '<p class="detail-id">Hotspot &mdash; ' + h.report_count + T(h.report_count === 1 ? ' report' : ' reports', ' ulat') + '</p>' +
+    '<p class="detail-cat">' + T('Mostly ', 'Karamihan ay ') + esc(label(h.top_category)) + '</p>' +
     '<dl class="detail-dates">' +
-      '<dt>Submitted</dt><dd>' + submittedRange + '</dd>' +
-      '<dt>Deadline</dt><dd>' + deadlineText + '</dd>' +
+      '<dt>' + T('Submitted', 'Isinumite') + '</dt><dd>' + submittedRange + '</dd>' +
+      '<dt>' + T('Deadline', 'Takdang oras') + '</dt><dd>' + deadlineText + '</dd>' +
     '</dl>' +
     (members.length
-      ? '<p class="detail-sub">Reports in this cluster:</p>' +
+      ? '<p class="detail-sub">' + T('Reports in this cluster:', 'Mga ulat sa kumpol na ito:') + '</p>' +
         '<ol class="pin-list" style="margin:0">' +
         members.slice(0, 8).map(r =>
           '<li class="pin-item">' +
@@ -659,36 +783,34 @@ async function loadHotspots() {
   const list   = document.getElementById('hotspot-list');
 
   if (!document.getElementById('f-hotspots').checked) {
-    hotspotLayer.clearLayers();
-    if (map.hasLayer(hotspotLayer)) map.removeLayer(hotspotLayer);
+    await mapReady;
+    map.getSource('hotspots').setData(EMPTY);
+    map.setLayoutProperty('hotspots', 'visibility', 'none');
     return;
   }
 
   const { from, to } = periodRange();
   const cat = document.getElementById('f-category').value || null;
 
-  status.textContent = 'Analysing…';
+  status.textContent = T('Analysing…', 'Sinusuri…');
   const { data, error } = await sb.rpc('report_hotspots', { p_from: from, p_to: to, p_category: cat });
-  if (error) { status.textContent = 'Could not load hotspots: ' + error.message; return; }
+  if (error) { status.textContent = T('Could not load hotspots: ', 'Hindi ma-load ang mga hotspot: ') + error.message; return; }
 
   hotspots = data || [];
-  hotspotLayer.clearLayers();
-
-  hotspots.forEach(h => {
-    const radius = 10 + Math.min(h.report_count, 20) * 1.4;
-    L.circleMarker([h.centroid_lat, h.centroid_lng], {
-      radius, color: '#fff', weight: 2,
-      fillColor: hotspotColour(h.report_count), fillOpacity: 0.55,
-    }).on('click', () => showHotspotDetail(h)).addTo(hotspotLayer);
-  });
-
-  if (!map.hasLayer(hotspotLayer)) hotspotLayer.addTo(map);
+  await mapReady;
+  map.getSource('hotspots').setData({ type: 'FeatureCollection', features: hotspots.map((h, i) =>
+    point(h.centroid_lng, h.centroid_lat, {
+      i, radius: 10 + Math.min(h.report_count, 20) * 1.4, colour: hotspotColour(h.report_count),
+    })) });
+  map.setLayoutProperty('hotspots', 'visibility', 'visible');
 
   count.textContent = hotspots.length;
   badge.classList.toggle('is-live', hotspots.length > 0);
   status.textContent = hotspots.length
-    ? hotspots.length + ' recurring area' + (hotspots.length === 1 ? '' : 's') + ' found in this period.'
-    : 'No recurring hotspots in this period — complaints are spread out, or too few to cluster.';
+    ? hotspots.length + T(hotspots.length === 1 ? ' recurring area found in this period.' : ' recurring areas found in this period.',
+                          ' lugar na paulit-ulit ang nakita sa panahong ito.')
+    : T('No recurring hotspots in this period — complaints are spread out, or too few to cluster.',
+        'Walang paulit-ulit na hotspot sa panahong ito — kalat ang mga sumbong, o kakaunti para ipangkat.');
 
   list.innerHTML = '';
   hotspots.slice(0, 15).forEach((h, i) => {
@@ -696,13 +818,13 @@ async function loadHotspots() {
     li.className = 'pin-item';
     li.innerHTML =
       '<span class="pin-dot" style="background:' + hotspotColour(h.report_count) + '"></span>' +
-      '<span class="pin-body">#' + (i + 1) + ' — ' + h.report_count + ' reports' +
+      '<span class="pin-body">#' + (i + 1) + ' — ' + h.report_count + T(' reports', ' ulat') +
       '<small>' + esc(label(h.top_category)) + '</small></span>';
-    li.addEventListener('click', () => map.setView([h.centroid_lat, h.centroid_lng], 18));
+    li.addEventListener('click', () => map.easeTo({ center: [h.centroid_lng, h.centroid_lat], zoom: 17 }));
     list.appendChild(li);
   });
   if (!hotspots.length) {
-    list.innerHTML = '<li class="pin-empty">Nothing recurring enough to call a hotspot yet.</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('Nothing recurring enough to call a hotspot yet.', 'Wala pang sapat na paulit-ulit para tawaging hotspot.') + '</li>';
   }
 }
 
@@ -735,33 +857,16 @@ hotspotToggleBtn.addEventListener('click', () => {
 // public transparency heat was (0058) — this is admin-only and the point
 // is precise, individual movement, not anonymised aggregate.
 
-const tanodLayer = L.layerGroup();
-let tanodPathHeat = null;
 let tanodRows = [];
-
-function tanodIcon(t) {
-  const fill = t.is_fresh ? '#1FA84E' : '#9aa1ab';
-  return L.divIcon({
-    className: 'tanod-icon',
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-    popupAnchor: [0, -12],
-    html: '<svg viewBox="0 0 26 26">' +
-      '<circle cx="13" cy="13" r="11" fill="' + fill + '" stroke="#fff" stroke-width="2.5"/>' +
-      '<circle cx="13" cy="10.5" r="3" fill="#fff"/>' +
-      '<path d="M6.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" fill="#fff"/>' +
-    '</svg>',
-  });
-}
 
 function tanodDetail(t) {
   const box = document.getElementById('pin-detail');
   box.innerHTML =
-    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
     '<p class="detail-id">' + esc(t.full_name) + '</p>' +
-    '<p class="detail-cat">' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : ' — stale fix') + '</p>' +
+    '<p class="detail-cat">' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : T(' — stale fix', ' — lumang lokasyon')) + '</p>' +
     '<dl class="detail-dates">' +
-      '<dt>Last update</dt><dd>' + (fmtDate(t.last_location_at) || 'Never') + '</dd>' +
+      '<dt>' + T('Last update', 'Huling update') + '</dt><dd>' + (fmtDate(t.last_location_at) || T('Never', 'Hindi pa')) + '</dd>' +
     '</dl>';
   box.removeAttribute('hidden');
   box.querySelector('.detail-x').addEventListener('click',
@@ -776,31 +881,29 @@ async function loadTanodPositions() {
   const select = document.getElementById('f-tanod-who');
 
   if (!document.getElementById('f-tanods').checked) {
-    tanodLayer.clearLayers();
-    if (map.hasLayer(tanodLayer)) map.removeLayer(tanodLayer);
+    await mapReady;
+    map.getSource('tanods').setData(EMPTY);
+    map.setLayoutProperty('tanods', 'visibility', 'none');
     return;
   }
 
   const { data, error } = await sb.rpc('tanod_live_positions');
-  if (error) { status.textContent = 'Could not load tanod positions: ' + error.message; return; }
+  if (error) { status.textContent = T('Could not load tanod positions: ', 'Hindi ma-load ang kinaroroonan ng mga tanod: ') + error.message; return; }
 
   tanodRows = data || [];
-  tanodLayer.clearLayers();
-
-  tanodRows.forEach(t => {
-    if (t.lat == null || t.lng == null) return;
-    L.marker([t.lat, t.lng], { icon: tanodIcon(t) })
-      .on('click', () => tanodDetail(t))
-      .addTo(tanodLayer);
-  });
-  if (!map.hasLayer(tanodLayer)) tanodLayer.addTo(map);
+  await mapReady;
+  map.getSource('tanods').setData({ type: 'FeatureCollection', features: tanodRows
+    .map((t, i) => (t.lat == null || t.lng == null) ? null : point(t.lng, t.lat, { i, fresh: !!t.is_fresh }))
+    .filter(Boolean) });
+  map.setLayoutProperty('tanods', 'visibility', 'visible');
 
   const live = tanodRows.filter(t => t.is_fresh);
   count.textContent = live.length;
   badge.classList.toggle('is-live', live.length > 0);
   status.textContent = tanodRows.length
-    ? live.length + ' of ' + tanodRows.length + ' tanod' + (tanodRows.length === 1 ? '' : 's') + ' reporting live.'
-    : 'No tanod has ever reported a position yet.';
+    ? T(live.length + ' of ' + tanodRows.length + (tanodRows.length === 1 ? ' tanod' : ' tanods') + ' reporting live.',
+        live.length + ' sa ' + tanodRows.length + ' tanod ang nag-uulat ng lokasyon ngayon.')
+    : T('No tanod has ever reported a position yet.', 'Wala pang tanod na nag-ulat ng lokasyon.');
 
   list.innerHTML = '';
   tanodRows.forEach(t => {
@@ -809,28 +912,30 @@ async function loadTanodPositions() {
     li.innerHTML =
       '<span class="pin-dot" style="background:' + (t.is_fresh ? '#1FA84E' : '#9aa1ab') + '"></span>' +
       '<span class="pin-body">' + esc(t.full_name) +
-      '<small>' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : ' — stale') + '</small></span>';
+      '<small>' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : T(' — stale', ' — luma')) + '</small></span>';
     if (t.lat != null && t.lng != null) {
-      li.addEventListener('click', () => map.panTo([t.lat, t.lng]));
+      li.addEventListener('click', () => map.panTo([t.lng, t.lat]));
     }
     list.appendChild(li);
   });
   if (!tanodRows.length) {
-    list.innerHTML = '<li class="pin-empty">No tanod has ever reported a position yet.</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('No tanod has ever reported a position yet.', 'Wala pang tanod na nag-ulat ng lokasyon.') + '</li>';
   }
 
   // Keep "narrow to one tanod" in sync without clobbering whatever the
   // admin currently has picked, so an open path-heatmap selection survives
   // a routine 30-second refresh.
   const current = select.value;
-  select.innerHTML = '<option value="">All tanods</option>' +
+  select.innerHTML = '<option value="">' + T('All tanods', 'Lahat ng tanod') + '</option>' +
     tanodRows.map(t => '<option value="' + esc(t.tanod_id) + '">' + esc(t.full_name) + '</option>').join('');
   select.value = tanodRows.some(t => t.tanod_id === current) ? current : '';
 }
 
 async function loadTanodPaths() {
   const enabled = document.getElementById('f-tanod-paths').checked;
-  if (tanodPathHeat) { map.removeLayer(tanodPathHeat); tanodPathHeat = null; }
+  await mapReady;
+  map.getSource('tanod-paths').setData(EMPTY);
+  map.setLayoutProperty('tanod-paths', 'visibility', 'none');
   if (!enabled) return;
 
   const from = document.getElementById('f-tanod-from').value;
@@ -847,18 +952,14 @@ async function loadTanodPaths() {
   const { data, error } = await sb.rpc('tanod_path_heatmap',
     { p_from: fromIso, p_to: toIso, p_tanod: who });
   if (error) {
-    document.getElementById('tanod-status').textContent = 'Could not load tanod paths: ' + error.message;
+    document.getElementById('tanod-status').textContent = T('Could not load tanod paths: ', 'Hindi ma-load ang dinaanan ng mga tanod: ') + error.message;
     return;
   }
 
-  const points = (data || []).map(p => [p.lat, p.lng, 0.6]);
+  const points = (data || []).map(p => point(p.lng, p.lat));
   if (points.length) {
-    // A distinct blue-to-pink gradient, so a path trail never reads as
-    // more complaint-heat when both layers happen to be on at once.
-    tanodPathHeat = L.heatLayer(points, {
-      radius: 18, blur: 14, maxZoom: 18,
-      gradient: { 0.3: '#1d4ed8', 0.6: '#7c3aed', 1: '#db2777' },
-    }).addTo(map);
+    map.getSource('tanod-paths').setData({ type: 'FeatureCollection', features: points });
+    map.setLayoutProperty('tanod-paths', 'visibility', 'visible');
   }
 }
 
@@ -887,7 +988,10 @@ tanodToggleBtn.addEventListener('click', () => {
 // nothing while the feature is unused.
 setInterval(loadTanodPositions, 30000);
 
-loadBoundary().then(load);
+// The complaints and the boundary are fetched side by side with the
+// style and tiles; each is drawn as soon as the map can take it.
+loadBoundary();
+load();
 </script>
 
 <?php layout_foot(); ?>

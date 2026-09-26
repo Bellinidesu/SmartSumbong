@@ -99,15 +99,15 @@ $prevTotal = (int) ($pm['total'] ?? 0);
 function delta(int $now, ?int $was, bool $goodWhenDown = false): ?array
 {
     if ($was === null) return null;
-    if ($was === 0 && $now === 0) return ['flat', 'no change', ''];
-    if ($was === 0) return ['up', 'new this month', $goodWhenDown ? 'bad' : 'good'];
+    if ($was === 0 && $now === 0) return ['flat', t('no change', 'walang pagbabago'), ''];
+    if ($was === 0) return ['up', t('new this month', 'bago ngayong buwan'), $goodWhenDown ? 'bad' : 'good'];
 
     $pct = (int) round(($now - $was) / $was * 100);
-    if ($pct === 0) return ['flat', 'level with last month', ''];
+    if ($pct === 0) return ['flat', t('level with last month', 'kapareho ng nakaraang buwan'), ''];
 
     $dir  = $pct > 0 ? 'up' : 'down';
     $tone = ($pct > 0) === $goodWhenDown ? 'bad' : 'good';
-    return [$dir, abs($pct) . '% vs last month', $tone];
+    return [$dir, abs($pct) . t('% vs last month', '% vs nakaraang buwan'), $tone];
 }
 
 function delta_html(?array $d): string
@@ -118,7 +118,7 @@ function delta_html(?array $d): string
     return '<span class="delta delta--' . $tone . '">' . $arrow . ' ' . e($text) . '</span>';
 }
 
-layout_head('Dashboard', 'dashboard.php');
+layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
 ?>
 
 <?php if ($error): ?>
@@ -127,33 +127,39 @@ layout_head('Dashboard', 'dashboard.php');
 
 <div class="dash-top">
   <form class="month-picker" method="get">
-    <label class="visually-hidden" for="month">Reporting month</label>
+    <label class="visually-hidden" for="month"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></label>
     <input type="month" id="month" name="month"
            value="<?= e($month->format('Y-m')) ?>" onchange="this.form.submit()">
     <input type="hidden" name="eff_category" value="<?= e($effCategory) ?>">
   </form>
   <!-- The kapitan reads these figures over someone's shoulder and asks how
        current they are. Better on the screen than in the answer. -->
-  <p class="as-of">Data as of <span id="as-of-time"><?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A, j M Y')) ?></span>
+  <p class="as-of"><?= e(t('Data as of', 'Datos hanggang')) ?> <span id="as-of-time"><?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A, j M Y')) ?></span>
     <?php if ($month->format('Y-m') === (new DateTimeImmutable('now', $tz))->format('Y-m')): ?>
-      <span class="live-badge" id="live-badge" title="This month's figures update as reports come in — no reload needed">
-        <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">Live</span>
+      <span class="live-badge" id="live-badge" title="<?= e(t("This month's figures update as reports come in — no reload needed", 'Nag-a-update ang mga numero ngayong buwan habang dumarating ang mga ulat — hindi na kailangang i-reload')) ?>">
+        <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span>
       </span>
     <?php endif; ?>
   </p>
+  <!-- Figma DASHBOARD's Download PDF: the Report Summary's own printable
+       report, for the month on screen. -->
+  <a class="btn-pdf btn-pdf--outline" target="_blank" rel="noopener"
+     href="summary.php?print=1&amp;from=<?= e($month->format('Y-m-01')) ?>&amp;to=<?= e($month->format('Y-m-t')) ?>&amp;category=">
+    <?= e(t('Download PDF', 'I-download ang PDF')) ?>
+  </a>
 </div>
 
 <!-- ---------- reports received ---------- -->
 <section class="card chart-card">
   <header class="chart-head">
-    <h2 class="chart-title">Total reports received</h2>
-    <span class="chart-period"><?= e($month->format('F Y')) ?>
+    <h2 class="chart-title"><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2>
+    <span class="chart-period"><?= e(month_year($month)) ?>
       <span id="received-delta"><?= delta_html(delta($total, $prevTotal ?: null)) ?></span></span>
   </header>
 
   <?php if ($total === 0): ?>
-    <p class="empty" id="received-empty"><strong>No complaints were filed in <?= e($month->format('F Y')) ?>.</strong>
-       Pick another month above.</p>
+    <p class="empty" id="received-empty"><strong><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</strong>
+       <?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></p>
   <?php else: ?>
     <div class="chart-box"><canvas id="chart-received"></canvas></div>
   <?php endif; ?>
@@ -164,64 +170,64 @@ layout_head('Dashboard', 'dashboard.php');
 
   <div class="tile-stack">
     <div class="tile">
-      <p class="tile-label">Reports Resolved</p>
+      <p class="tile-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></p>
       <p class="tile-value" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></p>
-      <p class="tile-foot"><?= e($month->format('F Y')) ?>
+      <p class="tile-foot"><?= e(month_year($month)) ?>
         <span id="tile-resolved-delta"><?= delta_html(delta((int) $tiles['resolved'], isset($prevTiles['resolved']) ? (int) $prevTiles['resolved'] : null)) ?></span></p>
     </div>
     <div class="tile">
-      <p class="tile-label">Escalated Reports</p>
+      <p class="tile-label"><?= e(t('Escalated Reports', 'Na-escalate na Ulat')) ?></p>
       <p class="tile-value" id="tile-escalated-value"><?= (int) $tiles['escalated'] ?></p>
-      <p class="tile-foot"><?= e($month->format('F Y')) ?>
+      <p class="tile-foot"><?= e(month_year($month)) ?>
         <span id="tile-escalated-delta"><?= delta_html(delta((int) $tiles['escalated'], isset($prevTiles['escalated']) ? (int) $prevTiles['escalated'] : null, true)) ?></span></p>
     </div>
     <div class="tile tile--warn">
-      <p class="tile-label">Overdue Cases</p>
+      <p class="tile-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></p>
       <p class="tile-value" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></p>
-      <p class="tile-foot">Past their resolution target
+      <p class="tile-foot"><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?>
         <span id="tile-overdue-delta"><?= delta_html(delta((int) $tiles['overdue'], isset($prevTiles['overdue']) ? (int) $prevTiles['overdue'] : null, true)) ?></span></p>
     </div>
   </div>
 
   <section class="card donut-card">
-    <h2 class="chart-title">Resolution status report</h2>
+    <h2 class="chart-title"><?= e(t('Resolution status report', 'Ulat sa katayuan ng paglutas')) ?></h2>
     <?php if ($statusTotal === 0): ?>
-      <p class="empty" id="status-empty">Nothing to chart for this month.</p>
+      <p class="empty" id="status-empty"><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></p>
     <?php else: ?>
       <div class="donut-box">
         <canvas id="chart-status"></canvas>
         <div class="donut-centre">
           <strong id="status-donut-total"><?= $statusTotal ?></strong>
-          <span id="status-donut-label">Report<?= $statusTotal === 1 ? '' : 's' ?></span>
+          <span id="status-donut-label"><?= e(t($statusTotal === 1 ? 'Report' : 'Reports', 'Ulat')) ?></span>
         </div>
       </div>
       <ul class="legend" id="legend-status">
-        <li><span class="sw" style="background:var(--done)"></span>Done (<span id="legend-done"><?= (int) $status['done'] ?></span>)</li>
-        <li><span class="sw" style="background:var(--overdue)"></span>Overdue work (<span id="legend-overdue"><?= (int) $status['overdue'] ?></span>)</li>
-        <li><span class="sw" style="background:var(--late)"></span>Work finished late (<span id="legend-late"><?= (int) $status['late'] ?></span>)</li>
-        <li><span class="sw" style="background:var(--processing)"></span>Processing (<span id="legend-processing"><?= (int) $status['processing'] ?></span>)</li>
+        <li><span class="sw" style="background:var(--done)"></span><?= e(t('Done', 'Tapos')) ?> (<span id="legend-done"><?= (int) $status['done'] ?></span>)</li>
+        <li><span class="sw" style="background:var(--overdue)"></span><?= e(t('Overdue work', 'Lampas-oras')) ?> (<span id="legend-overdue"><?= (int) $status['overdue'] ?></span>)</li>
+        <li><span class="sw" style="background:var(--late)"></span><?= e(t('Work finished late', 'Natapos nang huli')) ?> (<span id="legend-late"><?= (int) $status['late'] ?></span>)</li>
+        <li><span class="sw" style="background:var(--processing)"></span><?= e(t('Processing', 'Pinoproseso')) ?> (<span id="legend-processing"><?= (int) $status['processing'] ?></span>)</li>
         <?php if ((int) ($status['rejected'] ?? 0) > 0): ?>
-          <li id="legend-rejected-row"><span class="sw" style="background:#9ca3af"></span>Denied (<span id="legend-rejected"><?= (int) $status['rejected'] ?></span>)</li>
+          <li id="legend-rejected-row"><span class="sw" style="background:#9ca3af"></span><?= e(t('Denied', 'Tinanggihan')) ?> (<span id="legend-rejected"><?= (int) $status['rejected'] ?></span>)</li>
         <?php endif; ?>
       </ul>
-      <p class="chart-hint">Click a segment to open those complaints.</p>
+      <p class="chart-hint"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
     <?php endif; ?>
   </section>
 
   <section class="card donut-card">
-    <h2 class="chart-title">Category Distribution</h2>
+    <h2 class="chart-title"><?= e(t('Category Distribution', 'Hati ayon sa Kategorya')) ?></h2>
     <?php if (!$categories): ?>
-      <p class="empty" id="category-empty">Nothing to chart for this month.</p>
+      <p class="empty" id="category-empty"><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></p>
     <?php else: ?>
       <div class="donut-box">
         <canvas id="chart-category"></canvas>
         <div class="donut-centre">
           <strong id="category-donut-total"><?= $total ?></strong>
-          <span id="category-donut-label">Report<?= $total === 1 ? '' : 's' ?></span>
+          <span id="category-donut-label"><?= e(t($total === 1 ? 'Report' : 'Reports', 'Ulat')) ?></span>
         </div>
       </div>
       <ul class="legend" id="legend-category"></ul>
-      <p class="chart-hint">Click a segment to open those complaints.</p>
+      <p class="chart-hint"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
     <?php endif; ?>
   </section>
 </div>
@@ -229,13 +235,13 @@ layout_head('Dashboard', 'dashboard.php');
 <!-- ---------- resolution efficiency ---------- -->
 <section class="card chart-card">
   <header class="chart-head">
-    <h2 class="chart-title">Resolution efficiency</h2>
-    <span class="chart-period"><?= e($month->format('F Y')) ?></span>
+    <h2 class="chart-title"><?= e(t('Resolution efficiency', 'Bilis ng paglutas')) ?></h2>
+    <span class="chart-period"><?= e(month_year($month)) ?></span>
     <form class="chart-filter" method="get">
       <input type="hidden" name="month" value="<?= e($month->format('Y-m')) ?>">
-      <label class="visually-hidden" for="eff_category">Filter by category</label>
+      <label class="visually-hidden" for="eff_category"><?= e(t('Filter by category', 'Salain ayon sa kategorya')) ?></label>
       <select id="eff_category" name="eff_category" onchange="this.form.submit()">
-        <option value="">All Categories</option>
+        <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
         <?php foreach (CATEGORIES as $c): ?>
           <option value="<?= e($c) ?>" <?= $effCategory === $c ? 'selected' : '' ?>>
             <?= e(category_label($c)) ?>
@@ -245,9 +251,9 @@ layout_head('Dashboard', 'dashboard.php');
     </form>
   </header>
   <p class="chart-note">
-    Average hours taken to finish a complaint, against the hours its
-    category was allowed. Below the dashed line is inside the SLA.
-    <?= $effCategory !== '' ? 'Showing ' . e(category_label($effCategory)) . ' only.' : '' ?>
+    <?= e(t('Average hours taken to finish a complaint, against the hours its category was allowed. Below the dashed line is inside the SLA.',
+            'Karaniwang oras na inabot bago matapos ang isang sumbong, kumpara sa oras na itinakda para sa kategorya nito. Ang nasa ilalim ng putol-putol na linya ay pasok sa SLA.')) ?>
+    <?= $effCategory !== '' ? e(t('Showing ', 'Ipinapakita lamang ang ') . category_label($effCategory) . t(' only.', '.')) : '' ?>
   </p>
   <div class="chart-box"><canvas id="chart-efficiency"></canvas></div>
 </section>
@@ -261,12 +267,13 @@ layout_head('Dashboard', 'dashboard.php');
   var daily      = <?= json_encode($daily, JSON_UNESCAPED_UNICODE) ?>;
   var efficiency = <?= json_encode($efficiency, JSON_UNESCAPED_UNICODE) ?>;
   var status     = <?= json_encode($status) ?>;
+  var MONTH_NAMES = <?= json_encode(array_map('month_name', range(1, 12)), JSON_UNESCAPED_UNICODE) ?>;
   var categories = <?= json_encode($categories, JSON_UNESCAPED_UNICODE) ?>;
 
-  var css = getComputedStyle(document.documentElement);
-  function token(name) { return css.getPropertyValue(name).trim(); }
+  // Read fresh each time: the values change with the theme (branch B).
+  function token(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
-  Chart.defaults.font.family = "'Roboto', system-ui, sans-serif";
+  Chart.defaults.font.family = "'Urbanist', system-ui, sans-serif";
   Chart.defaults.color = token('--ink-soft');
   Chart.defaults.plugins.legend.display = false;
 
@@ -282,7 +289,7 @@ layout_head('Dashboard', 'dashboard.php');
   // needs to work realtime") can push fresh data into the same instances
   // instead of tearing them down and rebuilding on every change.
   var receivedChart = null, statusChart = null, categoryChart = null, efficiencyChart = null;
-  var categoryPalette = ['#00308f', '#ff9800', '#2563eb', '#22c55e', '#a855f7', '#ef4444', '#0891b2'];
+  var categoryPalette = [token('--chart-navy'), '#ff9800', '#2563eb', '#22c55e', '#a855f7', '#ef4444', '#0891b2'];
 
   function renderCategoryLegend(cats, colours) {
     var list = document.getElementById('legend-category');
@@ -308,11 +315,11 @@ layout_head('Dashboard', 'dashboard.php');
         labels: daily.map(function (d) { return d.label; }),
         datasets: [{
           data: daily.map(function (d) { return d.filed; }),
-          borderColor: token('--navy'),
-          backgroundColor: 'rgba(0, 48, 143, .10)',
+          borderColor: token('--chart-navy'),
+          backgroundColor: token('--chart-navy-fill'),
           fill: true, tension: .35, borderWidth: 2,
           pointRadius: 0, pointHoverRadius: 5,
-          pointHoverBackgroundColor: token('--navy')
+          pointHoverBackgroundColor: token('--chart-navy')
         }]
       },
       options: {
@@ -322,8 +329,8 @@ layout_head('Dashboard', 'dashboard.php');
         plugins: {
           tooltip: {
             callbacks: {
-              title: function (i) { return 'Day ' + i[0].label; },
-              label: function (c) { return c.parsed.y + (c.parsed.y === 1 ? ' report' : ' reports'); }
+              title: function (i) { return T('Day ', 'Araw ') + i[0].label; },
+              label: function (c) { return c.parsed.y + T(c.parsed.y === 1 ? ' report' : ' reports', ' ulat'); }
             }
           }
         },
@@ -341,7 +348,8 @@ layout_head('Dashboard', 'dashboard.php');
     statusChart = new Chart(st, {
       type: 'doughnut',
       data: {
-        labels: ['Done', 'Overdue work', 'Work finished late', 'Processing', 'Denied'],
+        labels: [T('Done', 'Tapos'), T('Overdue work', 'Lampas-oras'), T('Work finished late', 'Natapos nang huli'),
+                 T('Processing', 'Pinoproseso'), T('Denied', 'Tinanggihan')],
         datasets: [{
           data: [status.done, status.overdue, status.late, status.processing, status.rejected || 0],
           backgroundColor: [token('--done'), token('--overdue'), token('--late'),
@@ -351,7 +359,7 @@ layout_head('Dashboard', 'dashboard.php');
       },
       options: {
         responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '68%',
+        animation: { duration: 300 }, cutout: '78%', // the frame's thin ring
         // A chart that shows a problem should also be the way to reach it.
         onClick: function (_, hit) {
           if (!hit.length) return;
@@ -378,7 +386,7 @@ layout_head('Dashboard', 'dashboard.php');
       },
       options: {
         responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '68%',
+        animation: { duration: 300 }, cutout: '78%', // the frame's thin ring
         // category=, not q= — q searches tracking IDs and subjects, so
         // "street_obstruction" matched nothing and every segment opened
         // an empty list.
@@ -403,7 +411,7 @@ layout_head('Dashboard', 'dashboard.php');
         labels: efficiency.map(function (d) { return d.label; }),
         datasets: [
           {
-            label: 'Hours taken',
+            label: T('Hours taken', 'Oras na inabot'),
             data: efficiency.map(function (d) { return d.actual; }),
             borderColor: token('--orange'),
             backgroundColor: 'rgba(255, 152, 0, .12)',
@@ -411,7 +419,7 @@ layout_head('Dashboard', 'dashboard.php');
             spanGaps: true, pointRadius: 3
           },
           {
-            label: 'Hours allowed',
+            label: T('Hours allowed', 'Oras na itinakda'),
             data: efficiency.map(function (d) { return d.allowed; }),
             borderColor: token('--ink-soft'),
             borderDash: [5, 4], borderWidth: 1.5,
@@ -427,7 +435,7 @@ layout_head('Dashboard', 'dashboard.php');
           legend: { display: true, position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } },
           tooltip: {
             callbacks: {
-              title: function (i) { return 'Day ' + i[0].label; },
+              title: function (i) { return T('Day ', 'Araw ') + i[0].label; },
               label: function (c) {
                 return c.dataset.label + ': ' + (c.parsed.y === null ? '—' : c.parsed.y + ' h');
               }
@@ -435,13 +443,36 @@ layout_head('Dashboard', 'dashboard.php');
           }
         },
         scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Hours' },
+          y: { beginAtZero: true, title: { display: true, text: T('Hours', 'Oras') },
                grid: { color: token('--rule') } },
           x: { grid: { display: false } }
         }
       }
     });
   }
+
+  // Dark/light switched from the sidebar (branch B): the same charts,
+  // recoloured from the theme's tokens, without a reload.
+  window.addEventListener('themechange', function () {
+    Chart.defaults.color = token('--ink-soft');
+    categoryPalette[0] = token('--chart-navy');
+    if (receivedChart) {
+      var ds = receivedChart.data.datasets[0];
+      ds.borderColor = ds.pointHoverBackgroundColor = token('--chart-navy');
+      ds.backgroundColor = token('--chart-navy-fill');
+      receivedChart.options.scales.y.grid.color = token('--rule');
+    }
+    if (categoryChart) {
+      var c2 = categoryChart.data.datasets[0].data.map(function (_, i) { return categoryPalette[i % categoryPalette.length]; });
+      categoryChart.data.datasets[0].backgroundColor = c2;
+      renderCategoryLegend(categories, c2);
+    }
+    if (efficiencyChart) {
+      efficiencyChart.data.datasets[1].borderColor = token('--ink-soft');
+      efficiencyChart.options.scales.y.grid.color = token('--rule');
+    }
+    [receivedChart, statusChart, categoryChart, efficiencyChart].forEach(function (ch) { if (ch) ch.update('none'); });
+  });
 
   // ================= Realtime, added 6 Sep 2026 =================
   // Explicit ask: "the entire system needs to work realtime." dashboard_metrics()
@@ -478,13 +509,13 @@ layout_head('Dashboard', 'dashboard.php');
   // update reads the same as a reload would.
   function computeDelta(now, was, goodWhenDown) {
     if (was === null || was === undefined) return null;
-    if (was === 0 && now === 0) return ['flat', 'no change', ''];
-    if (was === 0) return ['up', 'new this month', goodWhenDown ? 'bad' : 'good'];
+    if (was === 0 && now === 0) return ['flat', T('no change', 'walang pagbabago'), ''];
+    if (was === 0) return ['up', T('new this month', 'bago ngayong buwan'), goodWhenDown ? 'bad' : 'good'];
     var pct = Math.round((now - was) / was * 100);
-    if (pct === 0) return ['flat', 'level with last month', ''];
+    if (pct === 0) return ['flat', T('level with last month', 'kapareho ng nakaraang buwan'), ''];
     var dir  = pct > 0 ? 'up' : 'down';
     var tone = (pct > 0) === !!goodWhenDown ? 'bad' : 'good';
-    return [dir, Math.abs(pct) + '% vs last month', tone];
+    return [dir, Math.abs(pct) + T('% vs last month', '% vs nakaraang buwan'), tone];
   }
   function deltaHtml(d) {
     if (!d) return '';
@@ -536,7 +567,7 @@ layout_head('Dashboard', 'dashboard.php');
       statusChart.update();
     }
     setText('status-donut-total', statusTotal2);
-    setText('status-donut-label', 'Report' + (statusTotal2 === 1 ? '' : 's'));
+    setText('status-donut-label', T(statusTotal2 === 1 ? 'Report' : 'Reports', 'Ulat'));
     setText('legend-done', st2.done || 0);
     setText('legend-overdue', st2.overdue || 0);
     setText('legend-late', st2.late || 0);
@@ -553,7 +584,7 @@ layout_head('Dashboard', 'dashboard.php');
       renderCategoryLegend(cats2, colours);
     }
     setText('category-donut-total', total2);
-    setText('category-donut-label', 'Report' + (total2 === 1 ? '' : 's'));
+    setText('category-donut-label', T(total2 === 1 ? 'Report' : 'Reports', 'Ulat'));
 
     if (efficiencyChart) {
       efficiencyChart.data.labels = eff2.map(function (x) { return x.label; });
@@ -600,12 +631,12 @@ layout_head('Dashboard', 'dashboard.php');
           text  = document.getElementById('live-badge-text');
       if (!badge) return;
       if (chStatus === 'SUBSCRIBED') {
-        badge.classList.remove('is-down'); text.textContent = 'Live';
+        badge.classList.remove('is-down'); text.textContent = T('Live', 'Live');
         // Nothing is replayed for the time the socket was down.
         if (wasDown) { wasDown = false; scheduleRefresh(); }
       } else if (chStatus === 'CHANNEL_ERROR' || chStatus === 'TIMED_OUT' || chStatus === 'CLOSED') {
         wasDown = true;
-        badge.classList.add('is-down'); text.textContent = 'Reconnecting…';
+        badge.classList.add('is-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
       }
     });
 })();

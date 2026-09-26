@@ -49,7 +49,7 @@ function attempt_login(string $email, string $password): void
     $session = Supabase::signIn($email, $password);
     $token   = $session['access_token'] ?? null;
     if (!$token) {
-        throw new SupabaseError('Sign in failed. Please try again.');
+        throw new SupabaseError(t('Sign in failed. Please try again.', 'Hindi nakapag-sign in. Subukan muli.'));
     }
 
     $client  = new Supabase($token);
@@ -61,7 +61,7 @@ function attempt_login(string $email, string $password): void
 
     $me = $profile[0] ?? null;
     if (!$me) {
-        throw new SupabaseError('No barangay profile is linked to this account.');
+        throw new SupabaseError(t('No barangay profile is linked to this account.', 'Walang barangay profile na naka-link sa account na ito.'));
     }
     // Suspension is a database flag; GoTrue knows nothing about it, so a
     // suspended account can still authenticate and receive a token. The
@@ -69,12 +69,12 @@ function attempt_login(string $email, string $password): void
     // who was an administrator when it happened.
     if (!empty($me['is_suspended'])) {
         logout();
-        throw new SupabaseError('This account has been suspended. Contact the barangay administrator.');
+        throw new SupabaseError(t('This account has been suspended. Contact the barangay administrator.', 'Na-suspend ang account na ito. Makipag-ugnayan sa administrator ng barangay.'));
     }
 
     if (($me['role'] ?? '') !== 'admin') {
         $client->signOut();
-        throw new SupabaseError('This portal is for barangay administrators only.');
+        throw new SupabaseError(t('This portal is for barangay administrators only.', 'Para lamang sa mga administrator ng barangay ang portal na ito.'));
     }
 
     session_start_once();
@@ -114,6 +114,12 @@ function require_admin(): array
             $admin['expires_at']    = time() + (int) ($fresh['expires_in'] ?? 3600);
             $_SESSION[SESSION_KEY]  = $admin;
         } catch (SupabaseError) {
+            // The refresh token is dead too (the portal was left overnight).
+            // Forget the login entirely: leaving it in the session made
+            // login.php see "signed in" and bounce back here, which bounced
+            // to login.php again — ERR_TOO_MANY_REDIRECTS until the cookie
+            // was cleared by hand.
+            unset($_SESSION[SESSION_KEY]);
             $admin = null;
         }
     }

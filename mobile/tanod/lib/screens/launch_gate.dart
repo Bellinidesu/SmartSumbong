@@ -6,6 +6,8 @@
 // with no explanation. The role lives on public.users and is what every
 // dispatch policy keys off, so it is the honest thing to check.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -13,6 +15,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../widgets/figma_ui.dart';
 import 'login_screen.dart' show rememberMeKey;
 
 /// This screen's own fixed dark gradient (see build() below) never
@@ -42,6 +45,10 @@ const _fixedNavy = Color(0xFF14181D);
 /// them. See the resident app's launch_gate.dart, where the same bug was
 /// found and fixed first.
 bool _isColdStart = true;
+
+/// The last account check the phone saw (JsonCache): {'ok': true} when
+/// it let the tanod through to Home. Home refreshes it on every load.
+const gateCacheKey = 'gate';
 
 class LaunchGate extends StatefulWidget {
   const LaunchGate({super.key, required this.auth});
@@ -101,6 +108,16 @@ class _LaunchGateState extends State<LaunchGate> {
       }
     }
 
+    // The last check this phone saw let this account in (branch B):
+    // straight to Home, no waiting on the network — and Home works
+    // offline on its saved copy. Home re-runs every check below with its
+    // own first requests and sends the tanod on if anything changed.
+    final last = await JsonCache.read(gateCacheKey);
+    if (last is Map && last['ok'] == true) {
+      _go('/home');
+      return;
+    }
+
     try {
       final s = await widget.auth.verificationStatus();
 
@@ -145,6 +162,7 @@ class _LaunchGateState extends State<LaunchGate> {
 
       // '/home', not '/duty'. Duty status moved onto the home screen
       // with HOME - TANOD and the standalone duty screen is gone.
+      unawaited(JsonCache.write(gateCacheKey, {'ok': true}));
       _go('/home');
     } on AuthRequiredException {
       await widget.auth.signOut();
@@ -191,54 +209,107 @@ class _LaunchGateState extends State<LaunchGate> {
   }
 
   @override
+  // The resident's loading screen (Figma LOADING SCREEN) in the tanod's
+  // colours (branch B): the same contour artwork recoloured to ink
+  // (assets/images/loading-bg.png), the three seals on a light plate,
+  // the wordmark with "Tanod" in the accent orange, and progress at the
+  // bottom.
   Widget build(BuildContext context) {
     final s = context.s;
     return Scaffold(
-      // Ink rather than the resident's blue, and a gradient rather than
-      // a flat fill: white text on unbroken #14181D reads as a crash
-      // screen. Lifting the centre toward slate keeps the wordmark and
-      // the spinner sitting on something, and keeps contrast well above
-      // the point where the text stops being legible outdoors.
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF14181D),
-              Color(0xFF2C333D),
-              Color(0xFF14181D),
-            ],
-            stops: [0.0, 0.45, 1.0],
+      backgroundColor: const Color(0xFF14181D),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/loading-bg.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            cacheHeight: (MediaQuery.sizeOf(context).height *
+                    MediaQuery.devicePixelRatioOf(context))
+                .round(),
           ),
-        ),
-        child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(),
-              const Text(
-                'SmartSumbong',
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  fontSize: 30,
-                  color: _fixedBg,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Tanod',
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                  color: Tokens.orange,
-                ),
-              ),
-              const Spacer(),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 32, 32, 40),
+              child: Column(
+                children: [
+                  // The seals first, on a light plate so the navy line
+                  // work in their captions reads on the dark ground.
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xF2FBFBFB),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: kFigmaShadow,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset('assets/images/bagong-pilipinas.png',
+                            height: 56,
+                            filterQuality: FilterQuality.medium,
+                            semanticLabel: 'Bagong Pilipinas'),
+                        const SizedBox(width: 16),
+                        Image.asset('assets/images/brgy-183-seal.png',
+                            height: 76,
+                            filterQuality: FilterQuality.medium,
+                            semanticLabel: 'Barangay 183 Zone 20 Villamor, '
+                                'Pasay City'),
+                        const SizedBox(width: 16),
+                        Image.asset('assets/images/bagong-villamor.png',
+                            height: 56,
+                            filterQuality: FilterQuality.medium,
+                            semanticLabel: 'Bagong Villamor'),
+                      ],
+                    ),
+                  ),
+
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FractionallySizedBox(
+                          widthFactor: 0.78,
+                          child: Image.asset(
+                            'assets/images/logo-wordmark.png',
+                            semanticLabel: 'SmartSumbong',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Tanod',
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w800,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 28,
+                            color: Tokens.orange,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Sumbong na may resibo,\naksyong garantisado!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Urbanist',
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                            height: 1.15,
+                            color: _fixedBg,
+                            shadows: [
+                              Shadow(
+                                color: Color(0x66000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
               if (_wrongApp) ...[
                 Text(
@@ -286,23 +357,28 @@ class _LaunchGateState extends State<LaunchGate> {
                 ),
               ] else ...[
                 const SizedBox(
-                  width: 22,
-                  height: 22,
+                  width: 28,
+                  height: 28,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: Tokens.orange),
+                      strokeWidth: 3, color: Tokens.orange),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Text(
                   s.launchGateSigningIn,
-                  style: const TextStyle(fontSize: 14, color: _fixedBg),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: _fixedBg,
+                  ),
                 ),
               ],
-
-              const Spacer(),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
-        ),
+        ],
       ),
     );
   }

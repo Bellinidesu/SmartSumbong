@@ -514,6 +514,9 @@ class Strings {
   String get navHome => _t('Home', 'Tahanan');
   String get navReports => _t('Reports', 'Mga Ulat');
   String get navSettings => _t('Settings', 'Mga Setting');
+  String get navHistory => _t('History', 'Kasaysayan');
+  String get navStatus => _t('Status', 'Status');
+  String get dutyCurrent => _t('current', 'kasalukuyan');
 
   String get homeWelcome => _t('Welcome!', 'Welcome!');
   String homeWelcomeName(String name) =>

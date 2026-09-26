@@ -33,6 +33,8 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
+import '../outbox.dart';
+import 'launch_gate.dart' show gateCacheKey;
 import '../theme.dart';
 import '../widgets/resident_nav_bar.dart';
 
@@ -103,10 +105,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _load();
+    if (state == AppLifecycleState.resumed) {
+      _load();
+      // Anything filed while offline goes out now.
+      Outbox.instance.flush();
+    }
+  }
+
+  static const _homeCacheKey = 'home';
+
+  /// Last launch's greeting and badge, shown at once.
+  Future<void> _showSaved() async {
+    final c = await JsonCache.read(_homeCacheKey);
+    if (c is! Map || !mounted || !_loading) return;
+    setState(() {
+      _firstName = c['first_name'] as String?;
+      _unread = (c['unread'] as num?)?.toInt() ?? 0;
+      _loading = false;
+    });
   }
 
   Future<void> _load() async {
+    if (_loading) unawaited(_showSaved());
     final client = Supabase.instance.client;
     final uid = client.auth.currentUser?.id;
     if (uid == null) {
@@ -115,17 +135,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     try {
-      final profile = await client
-          .from('users')
-          .select('full_name, verification_status, is_suspended, '
-              'id_image_url, id_type, ocr_rescan_requested_at')
-          .eq('id', uid)
-          .maybeSingle();
+      // The profile and the unread count together (branch B): both need
+      // only the uid. The count is simply dropped if the profile sends
+      // the resident elsewhere.
+      final got = await Future.wait<Object?>([
+        client
+            .from('users')
+            .select('full_name, verification_status, is_suspended, '
+                'must_change_password, '
+                'id_image_url, id_type, ocr_rescan_requested_at')
+            .eq('id', uid)
+            .maybeSingle(),
+        client
+            .from('notifications')
+            .count(CountOption.exact)
+            .eq('user_id', uid)
+            .eq('is_read', false),
+      ], eagerError: true);
+      final profile = got[0] as Map<String, dynamic>?;
+      final unread = got[1] as int;
 
       if (profile == null) {
         _bounce('/login');
         return;
       }
+
+      // The loading screen now sends a resident here on the last check
+      // it saw (branch B), so this is the check: remembered for the next
+      // launch, and acted on if anything changed.
+      unawaited(JsonCache.write(gateCacheKey, {
+        'verified': profile['verification_status'] == 'verified',
+        'suspended': profile['is_suspended'] == true,
+        'must_change': profile['must_change_password'] == true,
+      }));
 
       // Standing can change while the app is open. An admin who suspends
       // an account mid-session should not leave the resident browsing a
@@ -136,6 +178,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
       if (profile['verification_status'] != 'verified') {
         _bounce('/verification-pending');
+        return;
+      }
+      // A temporary password from the barangay: nothing else until it is
+      // replaced (was the loading screen's check).
+      if (profile['must_change_password'] == true) {
+        _bounce('/change-password');
         return;
       }
 
@@ -166,21 +214,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ));
       }
 
-      final unread = await client
-          .from('notifications')
-          .count(CountOption.exact)
-          .eq('user_id', uid)
-          .eq('is_read', false);
-
       if (!mounted) return;
       setState(() {
         _firstName = _firstNameOf(profile['full_name'] as String?);
         _unread = unread;
         _loading = false;
       });
+      unawaited(JsonCache.write(_homeCacheKey,
+          {'first_name': _firstName, 'unread': unread}));
+    } on PostgrestException catch (e) {
+      // The session outlived the account or its token is unusable (was
+      // the loading screen's AuthRequiredException): sign in again.
+      if (e.code == 'PGRST301' || e.message.toLowerCase().contains('jwt')) {
+        await widget.auth.signOut();
+        _bounce('/login');
+        return;
+      }
+      if (mounted) setState(() => _loading = false);
     } catch (_) {
       // Offline. Show the screen anyway — the cards are static and the
-      // buttons still work; only the greeting and badge are missing.
+      // buttons still work; the greeting and badge are the saved ones.
       if (mounted) setState(() => _loading = false);
     }
   }

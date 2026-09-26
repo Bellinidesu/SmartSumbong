@@ -81,7 +81,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:share_plus/share_plus.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
@@ -90,6 +89,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../i18n.dart';
 import '../location_lookup.dart';
 import '../theme.dart';
+import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import 'add_details_screen.dart';
 import 'reports_screen.dart' show ReportStatus;
@@ -181,15 +181,84 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     });
   }
 
+  String get _cacheKey => 'report_${widget.reportId}';
+
+  /// Fills the screen from one report's rows — the network's or the
+  /// saved copy's, the same either way.
+  void _apply(
+    Map<String, dynamic> r,
+    List<Map<String, dynamic>> media,
+    List<Map<String, dynamic>> proof,
+    Map<String, dynamic>? fb,
+    List<Map<String, dynamic>> newestFirst,
+  ) {
+    final logs = <Map<String, dynamic>>[];
+    for (final e in newestFirst.reversed) {
+      final prev = logs.isEmpty ? null : logs.last;
+      if (prev != null &&
+          prev['new_status'] == e['new_status'] &&
+          prev['old_status'] == e['old_status'] &&
+          (prev['remark'] ?? '') == (e['remark'] ?? '')) {
+        continue;
+      }
+      logs.add(e);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _report = r;
+      _photos = [
+        for (final m in media)
+          (
+            url: m['media_url'] as String,
+            isVideo: isVideoMime(m['mime_type'] as String?),
+          ),
+      ];
+      _proof = [
+        for (final m in proof)
+          (
+            url: m['media_url'] as String,
+            isVideo: isVideoMime(m['mime_type'] as String?),
+          ),
+      ];
+      _timeline = List<Map<String, dynamic>>.from(logs);
+      _feedback = fb;
+    });
+  }
+
+  /// The last copy of this report, shown at once while the network
+  /// catches up. False if there was none.
+  Future<bool> _showSaved() async {
+    final c = await JsonCache.read(_cacheKey);
+    if (c is! Map || c['report'] == null || !mounted) return false;
+    List<Map<String, dynamic>> rows(Object? v) => [
+          for (final e in (v as List? ?? const []))
+            Map<String, dynamic>.from(e as Map),
+        ];
+    _apply(
+      Map<String, dynamic>.from(c['report'] as Map),
+      rows(c['media']),
+      rows(c['proof']),
+      c['feedback'] == null
+          ? null
+          : Map<String, dynamic>.from(c['feedback'] as Map),
+      rows(c['logs']),
+    );
+    return true;
+  }
+
   Future<void> _load() async {
     final client = Supabase.instance.client;
     setState(() => _error = null);
+    final hadSaved = _report == null && await _showSaved();
 
     try {
       // No `category` column here (30 Aug 2026) -- Rose's six frames
       // never show it; that meta line was a reference-mockup addition
       // this round undoes. See _ReportCard's own header.
-      final r = await client
+      // All five at once (branch B): they are independent, and on mobile
+      // data each round trip one after another was most of the wait.
+      final reportQ = client
           .from('reports')
           .select('id, tracking_id, subject, description, status, '
               'latitude, longitude, is_anonymous, created_at, '
@@ -197,12 +266,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .eq('id', widget.reportId)
           .maybeSingle();
 
-      if (r == null) {
-        setState(() => _error = context.s.reportViewNotFound);
-        return;
-      }
-
-      final media = await client
+      final mediaQ = client
           .from('report_media')
           .select('media_url, mime_type')
           .eq('report_id', widget.reportId);
@@ -210,7 +274,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // Proof of resolution, readable by the resident since 0024. A
       // resident told their complaint was fixed should be able to see
       // the fix.
-      final proof = await client
+      final proofQ = client
           .from('dispatch_media')
           .select('media_url, mime_type, dispatches!inner(report_id)')
           .eq('dispatches.report_id', widget.reportId);
@@ -218,7 +282,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // Feedback is one row per report at most — the table has a unique
       // constraint on report_id, so this is the resident's single
       // rating or nothing.
-      final fb = await client
+      final fbQ = client
           .from('feedback')
           .select('rating, comment, submitted_at')
           .eq('report_id', widget.reportId)
@@ -241,57 +305,57 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       // every two minutes — oldest-first, those crowded the resolution
       // itself out of the response. Consecutive identical rows (the same
       // retry, again) are then shown once.
-      final newestFirst = await client
+      final logsQ = client
           .from('status_logs')
           .select('id, old_status, new_status, remark, created_at')
           .eq('report_id', widget.reportId)
           .order('created_at', ascending: false)
           .limit(300);
-      final logs = <Map<String, dynamic>>[];
-      for (final e in newestFirst.reversed) {
-        final prev = logs.isEmpty ? null : logs.last;
-        if (prev != null &&
-            prev['new_status'] == e['new_status'] &&
-            prev['old_status'] == e['old_status'] &&
-            (prev['remark'] ?? '') == (e['remark'] ?? '')) {
-          continue;
-        }
-        logs.add(e);
+
+      final got = await Future.wait<Object?>(
+        [reportQ, mediaQ, proofQ, fbQ, logsQ],
+        eagerError: true,
+      );
+      final r = got[0] as Map<String, dynamic>?;
+      if (r == null) {
+        if (mounted) setState(() => _error = context.s.reportViewNotFound);
+        return;
+      }
+      final media = got[1] as List<Map<String, dynamic>>;
+      final proof = got[2] as List<Map<String, dynamic>>;
+      final fb = got[3] as Map<String, dynamic>?;
+      final newestFirst = got[4] as List<Map<String, dynamic>>;
+      // Kept for the next open (and for no signal): the raw rows, as the
+      // API gave them.
+      unawaited(JsonCache.write(_cacheKey, {
+        'report': r,
+        'media': media,
+        'proof': proof,
+        'feedback': fb,
+        'logs': newestFirst,
+      }));
+      if (!mounted) return;
+      _apply(r, media, proof, fb, newestFirst);
+      // Separate, so the report still shows if this fails; alongside the
+      // timeline bylines rather than after them.
+      Future<void> detail() async {
+        try {
+          final q = await client
+              .from('detail_requests')
+              .select('id, message')
+              .eq('report_id', widget.reportId)
+              .isFilter('responded_at', null)
+              .maybeSingle();
+          if (mounted) setState(() => _detailRequest = q);
+        } catch (_) {}
       }
 
-      if (!mounted) return;
-      setState(() {
-        _report = r;
-        _photos = [
-          for (final m in media)
-            (
-              url: m['media_url'] as String,
-              isVideo: isVideoMime(m['mime_type'] as String?),
-            ),
-        ];
-        _proof = [
-          for (final m in proof)
-            (
-              url: m['media_url'] as String,
-              isVideo: isVideoMime(m['mime_type'] as String?),
-            ),
-        ];
-        _timeline = List<Map<String, dynamic>>.from(logs);
-        _feedback = fb;
-      });
-      // Separate, so the report still shows if this fails.
-      try {
-        final q = await client
-            .from('detail_requests')
-            .select('id, message')
-            .eq('report_id', widget.reportId)
-            .isFilter('responded_at', null)
-            .maybeSingle();
-        if (mounted) setState(() => _detailRequest = q);
-      } catch (_) {}
-      await _loadTimelineAuthors();
+      await Future.wait([detail(), _loadTimelineAuthors()]);
     } catch (_) {
       if (!mounted) return;
+      // No signal, but the saved copy is on screen: keep it (the offline
+      // strip says why) rather than replacing it with an error.
+      if (hadSaved || _report != null) return;
       setState(() => _error = context.s.reportViewLoadError);
     }
   }
@@ -1373,30 +1437,27 @@ class _MiniMap extends StatelessWidget {
           border: Border.all(color: const Color(0xFFF3F3F3)),
           borderRadius: BorderRadius.circular(25),
         ),
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: point,
-            initialZoom: 17,
-            interactionOptions:
-                const InteractionOptions(flags: InteractiveFlag.none),
-          ),
+        // A picture of the place, not a map to explore: no gestures,
+        // the pin drawn over the centre with its tip on the report.
+        child: Stack(
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'ph.smartsumbong.resident',
-              maxZoom: 19,
+            BrgyMap(
+              initialCenter: point,
+              interactive: false,
+              cornerRadius: 25,
+              // The report card behind it (see _ReportCard).
+              cornerColour: context.isDark
+                  ? context.colors.field
+                  : const Color(0xFF00308F),
             ),
-            MarkerLayer(markers: [
-              Marker(
-                point: point,
-                width: 36,
-                height: 36,
-                alignment: Alignment.topCenter,
-                // Day navy in both modes: the tiles stay light.
-                child: const Icon(Icons.location_on,
-                    size: 36, color: Color(0xFF00308F)),
+            // Navy on the light map, the pale ink on the night one.
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 36),
+                child: Icon(Icons.location_on,
+                    size: 36, color: context.colors.navy),
               ),
-            ]),
+            ),
           ],
         ),
       ),
@@ -1458,7 +1519,8 @@ class _MediaCarouselState extends State<_MediaCarousel> {
                           ),
                         )
                       : CachedNetworkImage(
-                          imageUrl: photo.url,
+                          // Card width, not the 1920 upload.
+                          imageUrl: cloudinarySized(photo.url, width: 1080),
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
@@ -1705,7 +1767,8 @@ class _StatusNoteBubbleState extends State<_StatusNoteBubble> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: CachedNetworkImage(
-                          imageUrl: widget.proofPhotoUrl!,
+                          imageUrl: cloudinarySized(widget.proofPhotoUrl!,
+                              width: 1080),
                           fit: BoxFit.cover,
                           height: 160,
                           width: double.infinity,
