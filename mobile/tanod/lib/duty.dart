@@ -5,22 +5,21 @@
 // state — the column, the save, and the location push — lives here now,
 // in one place every tab shares.
 //
-// Location sharing follows. It used to run only while Home was open:
-// location_is_fresh() (0005) discards a fix older than 15 minutes, so a
-// tanod who sat on Reports or History — or locked the phone — dropped
-// out of nearest_available_tanod's pool without any warning.
-//
-// Now, while on duty, a location stream runs as an Android foreground
-// service (geolocator's own, with an ongoing "On duty" notification), so
-// a fix reaches update_my_location() every 30 seconds whichever tab is
-// showing, with the app in the background, or with the screen locked —
-// the way real dispatch apps work. Going off duty, or signing out, stops
-// it and clears the notification. Swiping the app away still ends it:
-// that is the tanod saying "not now", and Android is right to honour it.
+// Location (branch B, 26 Sep 2026): one fix at the moments that matter,
+// never a stream. It used to run as an Android foreground service,
+// pushing a fix every 30 seconds for a whole shift — and a shift of that
+// ate the tanod's battery. Now a single fix goes to update_my_location()
+// when the tanod goes On Duty, when the app comes back to the foreground
+// while on duty (at most every two minutes), and at each dispatch step
+// (accept, reroute, field report — dispatch_order.dart calls
+// [DutyController.keyMoment]). nearest_available_tanod (0067) no longer
+// drops a tanod whose last fix is old; it ranks fresh fixes first and
+// falls back to the last known spot, so dispatch keeps working on these
+// occasional fixes.
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -50,8 +49,10 @@ enum LocationNote { sharing, shared, off, failed }
 /// Why a status change was refused.
 enum DutyError { notTanod, failed }
 
-class DutyController extends ChangeNotifier {
-  DutyController._();
+class DutyController extends ChangeNotifier with WidgetsBindingObserver {
+  DutyController._() {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   static final instance = DutyController._();
 
@@ -60,15 +61,24 @@ class DutyController extends ChangeNotifier {
   LocationNote? note;
 
   String? _uid;
-  Timer? _timer;
-
-  /// The foreground-service location stream while on duty.
-  StreamSubscription<Position>? _stream;
   DateTime? _lastPush;
-  // One fix at a time. Indoors a fix can take the full 15-second timeout,
-  // and the 30-second tick used to start a second GPS request and RPC on
-  // top of one still running.
+  // One fix at a time. Indoors a fix can take the full 15-second timeout.
   bool _pushing = false;
+
+  /// Back in the foreground while on duty: one fix, if the last one is
+  /// more than two minutes old.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) keyMoment(minAge: const Duration(minutes: 2));
+  }
+
+  /// A dispatch step or a return to the app: one quiet fix while on duty.
+  Future<void> keyMoment({Duration minAge = Duration.zero}) async {
+    if (status != DutyState.onDuty) return;
+    final last = _lastPush;
+    if (last != null && DateTime.now().difference(last) < minAge) return;
+    await pushLocation(quiet: true);
+  }
 
   /// Reads the tanod's status. Safe to call from every tab: a second
   /// call for the same account only re-reads the column.
@@ -89,7 +99,6 @@ class DutyController extends ChangeNotifier {
       status = DutyState.parse(me['duty_status'] as String?);
       notifyListeners();
       if (status == DutyState.onDuty) await pushLocation();
-      _syncTimer();
     } catch (_) {
       // The picker still works; it just shows no current status.
     }
@@ -118,7 +127,6 @@ class DutyController extends ChangeNotifier {
         note = null;
         notifyListeners();
       }
-      _syncTimer();
       return null;
     } on PostgrestException catch (e) {
       saving = false;
@@ -138,8 +146,8 @@ class DutyController extends ChangeNotifier {
   /// discards a stale fix, so a tanod with no position sits in the queue
   /// invisible to it — said out loud in [note] rather than swallowed.
   ///
-  /// [quiet] is for the 30-second timer: it skips the interim "Sharing
-  /// your location…" line, which otherwise flickered every 30 seconds.
+  /// [quiet] is for the key moments: it skips the interim "Sharing your
+  /// location…" line under the picker.
   Future<void> pushLocation({bool quiet = false}) async {
     if (_pushing) return;
     final client = Supabase.instance.client;
@@ -189,95 +197,9 @@ class DutyController extends ChangeNotifier {
     }
   }
 
-  void _syncTimer() {
-    if (status == DutyState.onDuty) {
-      _startStream();
-      // A safety net under the stream: if the platform goes quiet, a
-      // fix is still asked for every 30 seconds while the app runs.
-      _timer ??= Timer.periodic(const Duration(seconds: 30), (_) {
-        final last = _lastPush;
-        if (last == null ||
-            DateTime.now().difference(last) > const Duration(seconds: 45)) {
-          pushLocation(quiet: true);
-        }
-      });
-    } else {
-      _timer?.cancel();
-      _timer = null;
-      _stopStream();
-    }
-  }
-
-  void _startStream() {
-    if (_stream != null) return;
-    final settings = defaultTargetPlatform == TargetPlatform.android
-        ? AndroidSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 0,
-            intervalDuration: const Duration(seconds: 30),
-            foregroundNotificationConfig: const ForegroundNotificationConfig(
-              notificationTitle: 'SmartSumbong Tanod — On duty',
-              notificationText:
-                  'Sharing your location with Barangay 183 while you are on '
-                  'duty. Go off duty in the app to stop.',
-              notificationChannelName: 'On-duty location',
-              enableWakeLock: true,
-              setOngoing: true,
-            ),
-          )
-        : const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 0,
-          );
-    _stream = Geolocator.getPositionStream(locationSettings: settings).listen(
-      _onFix,
-      onError: (_) {
-        // Permission pulled or GPS switched off mid-shift: say so; the
-        // timer keeps trying and the next Submit restarts the stream.
-        note = LocationNote.off;
-        notifyListeners();
-        _stopStream();
-      },
-    );
-  }
-
-  void _stopStream() {
-    _stream?.cancel();
-    _stream = null;
-  }
-
-  /// One fix from the stream: sent at most every 25 seconds.
-  Future<void> _onFix(Position pos) async {
-    final last = _lastPush;
-    if (_pushing ||
-        (last != null &&
-            DateTime.now().difference(last) < const Duration(seconds: 25))) {
-      return;
-    }
-    final client = Supabase.instance.client;
-    if (client.auth.currentUser == null) return reset();
-    _pushing = true;
-    try {
-      await client.rpc('update_my_location',
-          params: {'p_lat': pos.latitude, 'p_lon': pos.longitude});
-      _lastPush = DateTime.now();
-      if (note != LocationNote.shared) {
-        note = LocationNote.shared;
-        notifyListeners();
-      }
-    } catch (_) {
-      // No signal for a moment; the next fix tries again.
-    } finally {
-      _pushing = false;
-    }
-  }
-
-  /// Signed out, or a different account signed in: stop sharing and
-  /// forget the old status.
+  /// Signed out, or a different account signed in: forget the old
+  /// status.
   void reset() {
-    _timer?.cancel();
-    _timer = null;
-    _stopStream();
     _lastPush = null;
     _uid = null;
     status = null;

@@ -15,6 +15,7 @@
 // acts through accept_dispatch(), reroute_dispatch() and
 // submit_field_report(), never by UPDATE.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -26,6 +27,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../duty.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
@@ -272,6 +275,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     try {
       await Supabase.instance.client.rpc('accept_dispatch',
           params: {'p_dispatch': widget.ticket.dispatchId});
+      // A dispatch step is one of the few moments a location is sent.
+      unawaited(DutyController.instance.keyMoment());
       if (!mounted) return;
       setState(() {
         _busy = false;
@@ -313,6 +318,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         'p_dispatch': widget.ticket.dispatchId,
         'p_reason': _reason.text.trim(),
       });
+      unawaited(DutyController.instance.keyMoment());
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (_) {
@@ -372,6 +378,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         'p_dispatch': widget.ticket.dispatchId,
         'p_text': _update.text.trim(),
       });
+      // A dispatch step is one of the few moments a location is sent.
+      unawaited(DutyController.instance.keyMoment());
 
       if (!mounted) return;
       setState(() {

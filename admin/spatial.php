@@ -65,20 +65,6 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <label class="toggle"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
       <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
 
-      <label class="toggle"><input type="checkbox" id="f-tanods"> <?= e(t('Tanods', 'Mga Tanod')) ?></label>
-
-      <label class="toggle"><input type="checkbox" id="f-tanod-paths"> <?= e(t('Tanod Paths', 'Dinaanan ng Tanod')) ?></label>
-      <label class="visually-hidden" for="f-tanod-from"><?= e(t('Tanod path range start', 'Simula ng dinaanan')) ?></label>
-      <input type="date" id="f-tanod-from" disabled
-             value="<?= e((new DateTime('-7 days', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
-      <label class="visually-hidden" for="f-tanod-to"><?= e(t('Tanod path range end', 'Wakas ng dinaanan')) ?></label>
-      <input type="date" id="f-tanod-to" disabled
-             value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
-      <label class="visually-hidden" for="f-tanod-who"><?= e(t('Filter path to one tanod', 'Isang tanod lamang')) ?></label>
-      <select id="f-tanod-who" disabled>
-        <option value=""><?= e(t('All tanods', 'Lahat ng tanod')) ?></option>
-      </select>
-
       <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
   </header>
@@ -141,21 +127,6 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
         <ol class="pin-list" id="hotspot-list"></ol>
       </aside>
 
-      <button class="incident-badge" id="tanod-toggle" aria-expanded="false"
-              aria-controls="tanod-side" title="<?= e(t('Tanod positions', 'Kinaroroonan ng mga tanod')) ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="8" r="3.2"/>
-          <path d="M5 21c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/>
-        </svg>
-        <span class="incident-count" id="tanod-count">0</span>
-      </button>
-
-      <aside class="map-side" id="tanod-side" hidden>
-        <p class="map-side-head"><?= e(t('Tanod positions', 'Kinaroroonan ng mga tanod')) ?></p>
-        <p class="map-side-note" id="tanod-status"><?= e(t('Turn on Tanods to see live positions.', 'I-on ang Mga Tanod para makita ang kanilang kinaroroonan.')) ?></p>
-        <ol class="pin-list" id="tanod-list"></ol>
-      </aside>
     </div>
   </div>
 </section>
@@ -269,15 +240,6 @@ function pinSvg(shape, fill) {
          '" stroke="#fff" stroke-width="2">' + under + top + '</svg>';
 }
 
-function tanodSvg(fresh) {
-  const fill = fresh ? '#1FA84E' : '#9aa1ab';
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 26 26">' +
-    '<circle cx="13" cy="13" r="11" fill="' + fill + '" stroke="#fff" stroke-width="2.5"/>' +
-    '<circle cx="13" cy="10.5" r="3" fill="#fff"/>' +
-    '<path d="M6.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" fill="#fff"/>' +
-  '</svg>';
-}
-
 function addSvgImage(name, svg) {
   return new Promise(resolve => {
     const img = new Image();
@@ -321,12 +283,11 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
                   ['cross', '#9aa1ab'], ['circle', '#9aa1ab']];
   await Promise.all([
     ...shapes.map(([s, c]) => addSvgImage('pin-' + s + '-' + c.slice(1), pinSvg(s, c))),
-    addSvgImage('tanod-fresh', tanodSvg(true)),
-    addSvgImage('tanod-stale', tanodSvg(false)),
   ]);
 
-  // Bottom to top: fog, outline, complaint heat, tanod path heat,
-  // hotspots, complaints, tanods.
+  // Bottom to top: fog, outline, complaint heat, hotspots, complaints.
+  // (Live tanod positions and path heat were removed on branch B, 26 Sep
+  // 2026: the tanod app no longer streams a location — see 0067.)
   map.addSource('fog', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'fog', type: 'fill', source: 'fog',
                  paint: { 'fill-color': '#0d1117', 'fill-opacity': .55 } });
@@ -349,19 +310,6 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
       'heatmap-opacity': .8,
     } });
 
-  // A distinct blue-to-pink ramp, so a path trail never reads as more
-  // complaint heat when both layers happen to be on at once.
-  map.addSource('tanod-paths', { type: 'geojson', data: EMPTY });
-  map.addLayer({ id: 'tanod-paths', type: 'heatmap', source: 'tanod-paths', layout: { visibility: 'none' },
-    paint: {
-      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 15, 14, 18, 40],
-      'heatmap-weight': 0.6,
-      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 15, 1.5, 18, 3],
-      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(29,78,216,0)', 0.3, '#1d4ed8', 0.6, '#7c3aed', 1, '#db2777'],
-      'heatmap-opacity': .85,
-    } });
-
   map.addSource('hotspots', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'hotspots', type: 'circle', source: 'hotspots', layout: { visibility: 'none' },
     paint: {
@@ -372,16 +320,9 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
       'circle-stroke-width': 2,
     } });
 
-  map.addSource('tanods', { type: 'geojson', data: EMPTY });
-  map.addLayer({ id: 'tanods', type: 'symbol', source: 'tanods', layout: {
-    visibility: 'none',
-    'icon-image': ['case', ['get', 'fresh'], 'tanod-fresh', 'tanod-stale'],
-    'icon-allow-overlap': true, 'icon-ignore-placement': true,
-  } });
-
   setPinsSource(false);
 
-  ['pins', 'clusters', 'hotspots', 'tanods'].forEach(id => {
+  ['pins', 'clusters', 'hotspots'].forEach(id => {
     map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
   });
@@ -392,7 +333,6 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
     map.easeTo({ center: f.geometry.coordinates, zoom });
   });
   map.on('click', 'hotspots', e => { const h = hotspots[e.features[0].properties.i]; if (h) showHotspotDetail(h); });
-  map.on('click', 'tanods', e => { const t = tanodRows[e.features[0].properties.i]; if (t) tanodDetail(t); });
 
   resolve();
 }));
@@ -416,13 +356,12 @@ function setPinsSource(want) {
       'circle-radius': ['step', ['get', 'point_count'], 16, 10, 20, 50, 25],
       'circle-stroke-color': 'rgba(255,255,255,.85)',
       'circle-stroke-width': 4,
-    } }, 'tanods');
+    } });
   map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'reports', filter: ['has', 'point_count'],
     layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13 },
-    paint: { 'text-color': '#14181d' } }, 'tanods');
+    paint: { 'text-color': '#14181d' } });
   map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: ['!', ['has', 'point_count']],
-    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true } },
-    'tanods');
+    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
 }
 
 let all = [], rings = [];
@@ -843,150 +782,6 @@ hotspotToggleBtn.addEventListener('click', () => {
   open ? hotspotSide.removeAttribute('hidden') : hotspotSide.setAttribute('hidden', '');
   hotspotToggleBtn.setAttribute('aria-expanded', String(open));
 });
-
-// ---- tanods: live position + pathing heatmap (0059) -----------------
-// Two independent things, each behind its own checkbox so an admin who
-// only wants complaints sees neither: (1) tanod_live_positions() — each
-// tanod's current fix (users.last_geom, already used for auto-dispatch
-// since 0005), refreshed on a poll matching the mobile app's own 30-second
-// update cadence, since there is no narrow realtime table worth opening a
-// channel on for this that reports-spatial doesn't already cover; (2)
-// tanod_path_heatmap() over an admin-picked date range — the "pathing
-// heatmap of all tanods", or one tanod at a time via the select below.
-// Neither is grid-suppressed or count-gated the way the now-removed
-// public transparency heat was (0058) — this is admin-only and the point
-// is precise, individual movement, not anonymised aggregate.
-
-let tanodRows = [];
-
-function tanodDetail(t) {
-  const box = document.getElementById('pin-detail');
-  box.innerHTML =
-    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
-    '<p class="detail-id">' + esc(t.full_name) + '</p>' +
-    '<p class="detail-cat">' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : T(' — stale fix', ' — lumang lokasyon')) + '</p>' +
-    '<dl class="detail-dates">' +
-      '<dt>' + T('Last update', 'Huling update') + '</dt><dd>' + (fmtDate(t.last_location_at) || T('Never', 'Hindi pa')) + '</dd>' +
-    '</dl>';
-  box.removeAttribute('hidden');
-  box.querySelector('.detail-x').addEventListener('click',
-    () => box.setAttribute('hidden', ''));
-}
-
-async function loadTanodPositions() {
-  const status = document.getElementById('tanod-status');
-  const badge  = document.getElementById('tanod-toggle');
-  const count  = document.getElementById('tanod-count');
-  const list   = document.getElementById('tanod-list');
-  const select = document.getElementById('f-tanod-who');
-
-  if (!document.getElementById('f-tanods').checked) {
-    await mapReady;
-    map.getSource('tanods').setData(EMPTY);
-    map.setLayoutProperty('tanods', 'visibility', 'none');
-    return;
-  }
-
-  const { data, error } = await sb.rpc('tanod_live_positions');
-  if (error) { status.textContent = T('Could not load tanod positions: ', 'Hindi ma-load ang kinaroroonan ng mga tanod: ') + error.message; return; }
-
-  tanodRows = data || [];
-  await mapReady;
-  map.getSource('tanods').setData({ type: 'FeatureCollection', features: tanodRows
-    .map((t, i) => (t.lat == null || t.lng == null) ? null : point(t.lng, t.lat, { i, fresh: !!t.is_fresh }))
-    .filter(Boolean) });
-  map.setLayoutProperty('tanods', 'visibility', 'visible');
-
-  const live = tanodRows.filter(t => t.is_fresh);
-  count.textContent = live.length;
-  badge.classList.toggle('is-live', live.length > 0);
-  status.textContent = tanodRows.length
-    ? T(live.length + ' of ' + tanodRows.length + (tanodRows.length === 1 ? ' tanod' : ' tanods') + ' reporting live.',
-        live.length + ' sa ' + tanodRows.length + ' tanod ang nag-uulat ng lokasyon ngayon.')
-    : T('No tanod has ever reported a position yet.', 'Wala pang tanod na nag-ulat ng lokasyon.');
-
-  list.innerHTML = '';
-  tanodRows.forEach(t => {
-    const li = document.createElement('li');
-    li.className = 'pin-item';
-    li.innerHTML =
-      '<span class="pin-dot" style="background:' + (t.is_fresh ? '#1FA84E' : '#9aa1ab') + '"></span>' +
-      '<span class="pin-body">' + esc(t.full_name) +
-      '<small>' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : T(' — stale', ' — luma')) + '</small></span>';
-    if (t.lat != null && t.lng != null) {
-      li.addEventListener('click', () => map.panTo([t.lng, t.lat]));
-    }
-    list.appendChild(li);
-  });
-  if (!tanodRows.length) {
-    list.innerHTML = '<li class="pin-empty">' + T('No tanod has ever reported a position yet.', 'Wala pang tanod na nag-ulat ng lokasyon.') + '</li>';
-  }
-
-  // Keep "narrow to one tanod" in sync without clobbering whatever the
-  // admin currently has picked, so an open path-heatmap selection survives
-  // a routine 30-second refresh.
-  const current = select.value;
-  select.innerHTML = '<option value="">' + T('All tanods', 'Lahat ng tanod') + '</option>' +
-    tanodRows.map(t => '<option value="' + esc(t.tanod_id) + '">' + esc(t.full_name) + '</option>').join('');
-  select.value = tanodRows.some(t => t.tanod_id === current) ? current : '';
-}
-
-async function loadTanodPaths() {
-  const enabled = document.getElementById('f-tanod-paths').checked;
-  await mapReady;
-  map.getSource('tanod-paths').setData(EMPTY);
-  map.setLayoutProperty('tanod-paths', 'visibility', 'none');
-  if (!enabled) return;
-
-  const from = document.getElementById('f-tanod-from').value;
-  const to   = document.getElementById('f-tanod-to').value;
-  if (!from || !to) return;
-
-  const who = document.getElementById('f-tanod-who').value || null;
-  // Bare dates from the picker, read as Asia/Manila midnight. The "to"
-  // date is inclusive on screen but tanod_path_heatmap()'s p_to is an
-  // exclusive upper bound, so it is pushed one day forward here.
-  const fromIso = new Date(from + 'T00:00:00+08:00').toISOString();
-  const toIso   = new Date(new Date(to + 'T00:00:00+08:00').getTime() + 24 * 60 * 60 * 1000).toISOString();
-
-  const { data, error } = await sb.rpc('tanod_path_heatmap',
-    { p_from: fromIso, p_to: toIso, p_tanod: who });
-  if (error) {
-    document.getElementById('tanod-status').textContent = T('Could not load tanod paths: ', 'Hindi ma-load ang dinaanan ng mga tanod: ') + error.message;
-    return;
-  }
-
-  const points = (data || []).map(p => point(p.lng, p.lat));
-  if (points.length) {
-    map.getSource('tanod-paths').setData({ type: 'FeatureCollection', features: points });
-    map.setLayoutProperty('tanod-paths', 'visibility', 'visible');
-  }
-}
-
-document.getElementById('f-tanods').addEventListener('change', loadTanodPositions);
-document.getElementById('f-tanod-paths').addEventListener('change', e => {
-  const on = e.target.checked;
-  document.getElementById('f-tanod-from').disabled = !on;
-  document.getElementById('f-tanod-to').disabled = !on;
-  document.getElementById('f-tanod-who').disabled = !on;
-  loadTanodPaths();
-});
-['f-tanod-from', 'f-tanod-to', 'f-tanod-who'].forEach(id =>
-  document.getElementById(id).addEventListener('change', loadTanodPaths));
-
-const tanodToggleBtn = document.getElementById('tanod-toggle');
-const tanodSide      = document.getElementById('tanod-side');
-tanodToggleBtn.addEventListener('click', () => {
-  const open = tanodSide.hasAttribute('hidden');
-  open ? tanodSide.removeAttribute('hidden') : tanodSide.setAttribute('hidden', '');
-  tanodToggleBtn.setAttribute('aria-expanded', String(open));
-});
-
-// New pings land every 30 seconds per on-duty tanod (0059's mobile-side
-// change) — re-poll on that cadence while the layer is on. loadTanodPositions()
-// itself no-ops instantly whenever the checkbox is off, so this timer costs
-// nothing while the feature is unused.
-setInterval(loadTanodPositions, 30000);
 
 // The complaints and the boundary are fetched side by side with the
 // style and tiles; each is drawn as soon as the map can take it.
