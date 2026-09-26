@@ -21,11 +21,11 @@ $sent  = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check($_POST['csrf'] ?? null)) {
-        $error = 'That form expired. Please try again.';
+        $error = t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.');
     } else {
         $email = trim((string) ($_POST['email'] ?? ''));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Enter the email address you sign in with.';
+            $error = t('Enter the email address you sign in with.', 'Ilagay ang email address na ginagamit mo sa pag-sign in.');
         } else {
             $redirectTo = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://')
                         . $_SERVER['HTTP_HOST']
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Forgot password — Smart Sumbong</title>
+<title><?= e(t('Forgot password', 'Nakalimutan ang password')) ?> — Smart Sumbong</title>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
 </head>
@@ -94,43 +94,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <div class="login-card">
-      <h1 class="login-title">Forgot password</h1>
+      <h1 class="login-title"><?= e(t('Forgot password', 'Nakalimutan ang password')) ?></h1>
 
       <?php if ($sent): ?>
         <p class="login-note">
-          If that address belongs to an administrator account, a reset link
-          has been sent. It expires after a while, so use it soon after it
-          arrives.
+          <?= e(t('If that address belongs to an administrator account, a reset link has been sent. It expires after a while, so use it soon after it arrives.',
+                  'Kung sa isang administrator account ang address na iyan, naipadala na ang link para sa pag-reset. Mag-e-expire ito, kaya gamitin agad pagdating.')) ?>
         </p>
         <p class="login-signup">
-          <a href="login.php">Back to sign in</a>
+          <a href="login.php"><?= e(t('Back to sign in', 'Bumalik sa pag-sign in')) ?></a>
         </p>
       <?php else: ?>
         <?php if ($error): ?><p class="login-error" role="alert"><?= e($error) ?></p><?php endif; ?>
 
         <p class="field-hint" style="margin-bottom:16px;">
-          Enter the email address you use to sign in. We'll send a link to
-          reset your password.
+          <?= e(t("Enter the email address you use to sign in. We'll send a link to reset your password.",
+                  'Ilagay ang email address na ginagamit mo sa pag-sign in. Magpapadala kami ng link para ma-reset ang iyong password.')) ?>
         </p>
 
         <form method="post" novalidate>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
           <label class="field">
-            <span class="visually-hidden">Email address</span>
+            <span class="visually-hidden"><?= e(t('Email address', 'Email address')) ?></span>
             <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
-            <input type="email" name="email" placeholder="Email address" autocomplete="username"
+            <input type="email" name="email" placeholder="<?= e(t('Email address', 'Email address')) ?>" autocomplete="username"
                    value="<?= e($_POST['email'] ?? '') ?>" required autofocus>
           </label>
 
-          <button class="login-btn" type="submit">Send reset link</button>
+          <button class="login-btn" type="submit"><?= e(t('Send reset link', 'Ipadala ang link')) ?></button>
         </form>
 
         <p class="login-signup">
-          <a href="login.php">Back to sign in</a>
+          <a href="login.php"><?= e(t('Back to sign in', 'Bumalik sa pag-sign in')) ?></a>
         </p>
       <?php endif; ?>
     </div>

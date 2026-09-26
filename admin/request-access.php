@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/layout.php';
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Request access — Smart Sumbong | Barangay 183</title>
+<title><?= e(t('Request access', 'Humiling ng access')) ?> — Smart Sumbong | Barangay 183</title>
 <link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
@@ -51,24 +51,25 @@ require_once __DIR__ . '/includes/layout.php';
     <?php endif; ?>
 
     <div class="login-card access-card">
-      <h1 class="login-title">Requesting access</h1>
+      <h1 class="login-title"><?= e(t('Requesting access', 'Paghiling ng access')) ?></h1>
       <p class="access-lead">
-        This portal is for barangay administrators. Accounts are not created here.
+        <?= e(t('This portal is for barangay administrators. Accounts are not created here.',
+                'Para sa mga administrator ng barangay ang portal na ito. Hindi dito ginagawa ang mga account.')) ?>
       </p>
 
-      <h2 class="access-sub">If you are a resident</h2>
+      <h2 class="access-sub"><?= e(t('If you are a resident', 'Kung ikaw ay residente')) ?></h2>
       <p class="access-text">
-        File complaints through the Smart Sumbong mobile app. Register there with a
-        valid government-issued ID and the barangay will verify your account.
+        <?= e(t('File complaints through the Smart Sumbong mobile app. Register there with a valid government-issued ID and the barangay will verify your account.',
+                'Magsampa ng sumbong sa Smart Sumbong mobile app. Magparehistro doon gamit ang valid na ID mula sa gobyerno at beberipikahin ng barangay ang iyong account.')) ?>
       </p>
 
-      <h2 class="access-sub">If you are barangay staff</h2>
+      <h2 class="access-sub"><?= e(t('If you are barangay staff', 'Kung ikaw ay kawani ng barangay')) ?></h2>
       <p class="access-text">
-        Administrator access is granted by the current administrator through the
-        portal. Speak to them, or to the barangay IT administrator.
+        <?= e(t('Administrator access is granted by the current administrator through the portal. Speak to them, or to the barangay IT administrator.',
+                'Ang kasalukuyang administrator ang nagbibigay ng administrator access sa portal. Kausapin sila, o ang IT administrator ng barangay.')) ?>
       </p>
 
-      <a class="login-btn access-back" href="login.php">Back to sign in</a>
+      <a class="login-btn access-back" href="login.php"><?= e(t('Back to sign in', 'Bumalik sa pag-sign in')) ?></a>
     </div>
   </section>
 </div>

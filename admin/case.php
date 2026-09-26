@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $level = 'ok';
 
     if (!csrf_check($_POST['csrf'] ?? null)) {
-        $flash = 'That form expired. Please try again.';
+        $flash = t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.');
         $level = 'error';
     } else {
         try {
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'p_report'   => $id,
                         'p_decision' => 'validate',
                     ]);
-                    $flash = 'Complaint accepted. Assign a tanod when you are ready.';
+                    $flash = t('Complaint accepted. Assign a tanod when you are ready.', 'Tinanggap ang sumbong. Mag-assign ng tanod kapag handa ka na.');
                     break;
 
                 case 'deny':
@@ -61,13 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // strike count.
                         'p_abusive'  => isset($_POST['abusive']),
                     ]);
-                    $flash = 'Complaint denied. The resident has been told why.';
+                    $flash = t('Complaint denied. The resident has been told why.', 'Tinanggihan ang sumbong. Nasabihan na ang residente kung bakit.');
                     break;
 
                 case 'dispatch':
                     $tanod = trim((string) ($_POST['tanod'] ?? ''));
                     if ($tanod === '') {
-                        throw new SupabaseError('Choose a tanod before dispatching.');
+                        throw new SupabaseError(t('Choose a tanod before dispatching.', 'Pumili muna ng tanod bago mag-dispatch.'));
                     }
 
                     // The target date is optional, and it is set before the
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'p_tanod'        => $tanod,
                         'p_instructions' => trim((string) ($_POST['note'] ?? '')) ?: null,
                     ]);
-                    $flash = 'Dispatched. The tanod has been notified.';
+                    $flash = t('Dispatched. The tanod has been notified.', 'Na-dispatch. Naabisuhan na ang tanod.');
                     break;
 
                 // 0057 — the resident's appeal of a denial. Grants it
@@ -101,18 +101,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'p_report' => $id,
                         'p_remark' => trim((string) ($_POST['remark'] ?? '')) ?: null,
                     ]);
-                    $flash = 'Appeal granted. The complaint is back with the barangay.';
+                    $flash = t('Appeal granted. The complaint is back with the barangay.', 'Pinagbigyan ang apela. Nasa barangay na muli ang sumbong.');
                     break;
 
                 default:
-                    $flash = 'Unknown action.';
+                    $flash = t('Unknown action.', 'Hindi kilalang aksyon.');
                     $level = 'error';
             }
         } catch (SupabaseError $ex) {
             $flash = safe_error($ex);
             $level = 'error';
         } catch (Exception $ex) {
-            $flash = 'That date could not be read. Use the date picker.';
+            $flash = t('That date could not be read. Use the date picker.', 'Hindi mabasa ang petsang iyon. Gamitin ang date picker.');
             $level = 'error';
         }
     }
@@ -196,7 +196,7 @@ try {
 }
 
 if (!$report && !$error) {
-    $error = 'That complaint could not be found. It may have been archived.';
+    $error = t('That complaint could not be found. It may have been archived.', 'Hindi mahanap ang sumbong na iyon. Maaaring naka-archive na ito.');
 }
 
 /** The dispatch that is currently live, if any. */
@@ -294,7 +294,7 @@ if ($report && !$error) {
     }
 }
 
-layout_head('Case Review', 'cases.php');
+layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 ?>
 
 <?php if ($flash): ?>
@@ -303,7 +303,7 @@ layout_head('Case Review', 'cases.php');
 
 <?php if ($error): ?>
   <div class="alert-bar" role="alert"><?= e($error) ?></div>
-  <p><a class="back-link" href="cases.php">&larr; Back to case reports</a></p>
+  <p><a class="back-link" href="cases.php">&larr; <?= e(t('Back to case reports', 'Bumalik sa mga sumbong')) ?></a></p>
   <?php layout_foot(); exit; ?>
 <?php endif; ?>
 
@@ -312,20 +312,20 @@ layout_head('Case Review', 'cases.php');
      So unlike cases.php/dashboard.php, realtime here announces rather
      than rewrites — the admin chooses when to reload. -->
 <div class="update-banner" id="update-banner" role="status">
-  <span>This case has new activity since you opened it.</span>
-  <a href="case.php?id=<?= e($id) ?>">Refresh to see it</a>
+  <span><?= e(t('This case has new activity since you opened it.', 'May bagong aktibidad sa kasong ito mula nang buksan mo.')) ?></span>
+  <a href="case.php?id=<?= e($id) ?>"><?= e(t('Refresh to see it', 'I-refresh para makita')) ?></a>
 </div>
 
 <div class="case-top">
-  <a class="back-link" href="cases.php" aria-label="Back to case reports">
+  <a class="back-link" href="cases.php" aria-label="<?= e(t('Back to case reports', 'Bumalik sa mga sumbong')) ?>">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <line x1="20" y1="12" x2="5" y2="12"/><polyline points="11 18 5 12 11 6"/>
     </svg>
   </a>
-  <span class="chip-tab">Original Report</span>
-  <span class="live-badge" id="live-badge" title="Watching this case for new activity">
-    <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text">Live</span>
+  <span class="chip-tab"><?= e(t('Original Report', 'Orihinal na Ulat')) ?></span>
+  <span class="live-badge" id="live-badge" title="<?= e(t('Watching this case for new activity', 'Binabantayan ang bagong aktibidad sa kasong ito')) ?>">
+    <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span>
   </span>
 </div>
 
@@ -338,7 +338,7 @@ layout_head('Case Review', 'cases.php');
       <!-- Admins read this number out over the phone and paste it into
            texts to residents. One click beats selecting it by hand. -->
       <button class="copy-id" type="button" data-copy="<?= e($report['tracking_id']) ?>"
-              title="Copy complaint ID" aria-label="Copy complaint ID">
+              title="<?= e(t('Copy complaint ID', 'Kopyahin ang ID ng sumbong')) ?>" aria-label="<?= e(t('Copy complaint ID', 'Kopyahin ang ID ng sumbong')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="9" y="9" width="11" height="11" rx="2"/>
@@ -352,47 +352,47 @@ layout_head('Case Review', 'cases.php');
            stroke-linecap="round" aria-hidden="true">
         <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>
       </svg>
-      Filed on <?= e(long_datetime($report['created_at'])) ?>
+      <?= e(t('Filed on', 'Isinampa noong')) ?> <?= e(long_datetime($report['created_at'])) ?>
     </p>
 
     <?php if (!empty($report['due_at'])
               && !in_array($status, ['resolved','closed','archived','rejected'], true)): ?>
       <!-- A date makes you do the arithmetic; a countdown does not. -->
       <p class="sla-countdown" data-due="<?= e($report['due_at']) ?>">
-        <span class="sla-text">calculating&hellip;</span>
+        <span class="sla-text"><?= e(t('calculating…', 'kinakalkula…')) ?></span>
       </p>
     <?php endif; ?>
 
     <div class="case-flags">
       <span class="pill pill--<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
       <?php if (($report['escalation_level'] ?? 0) > 0): ?>
-        <span class="pill pill--escalated">Escalated (level <?= (int) $report['escalation_level'] ?>)</span>
+        <span class="pill pill--escalated"><?= e(t('Escalated (level ', 'Na-escalate (antas ')) ?><?= (int) $report['escalation_level'] ?>)</span>
       <?php endif; ?>
       <?php if (!empty($report['awaiting_unit_since'])): ?>
-        <span class="pill pill--rejected">Awaiting a unit since <?= e(relative_time($report['awaiting_unit_since'])) ?></span>
+        <span class="pill pill--rejected"><?= e(t('Awaiting a unit since', 'Naghihintay ng tanod mula')) ?> <?= e(relative_time($report['awaiting_unit_since'])) ?></span>
       <?php endif; ?>
       <?php if (($report['reopened_count'] ?? 0) > 0): ?>
-        <span class="pill pill--pending">Reopened <?= (int) $report['reopened_count'] ?>&times;</span>
+        <span class="pill pill--pending"><?= e(t('Reopened', 'Binuksang muli')) ?> <?= (int) $report['reopened_count'] ?>&times;</span>
       <?php endif; ?>
       <?php if (!empty($report['appealed_at'])): ?>
-        <span class="pill pill--pending" title="Reinstated on appeal">Appealed</span>
+        <span class="pill pill--pending" title="<?= e(t('Reinstated on appeal', 'Ibinalik dahil sa apela')) ?>"><?= e(t('Appealed', 'Inapela')) ?></span>
       <?php endif; ?>
     </div>
 
     <div class="case-block">
-      <h3 class="case-sub">Subject</h3>
+      <h3 class="case-sub"><?= e(t('Subject', 'Paksa')) ?></h3>
       <p class="case-body"><?= e($report['subject']) ?></p>
     </div>
 
     <div class="case-block">
-      <h3 class="case-sub">Problem Description</h3>
+      <h3 class="case-sub"><?= e(t('Problem Description', 'Paglalarawan ng Problema')) ?></h3>
       <p class="case-body"><?= nl2br(e($report['description'])) ?></p>
     </div>
 
     <div class="case-block">
-      <h3 class="case-sub">Attached Evidence</h3>
+      <h3 class="case-sub"><?= e(t('Attached Evidence', 'Kalakip na Ebidensya')) ?></h3>
       <?php if (!$media): ?>
-        <p class="case-none">No photo or video was attached to this complaint.</p>
+        <p class="case-none"><?= e(t('No photo or video was attached to this complaint.', 'Walang larawan o video na kalakip sa sumbong na ito.')) ?></p>
       <?php else: ?>
         <div class="media-strip">
           <?php foreach ($media as $m): ?>
@@ -406,14 +406,14 @@ layout_head('Case Review', 'cases.php');
               <div class="media-thumb media-thumb--video">
                 <video controls preload="metadata" playsinline>
                   <source src="<?= e($m['media_url']) ?>" type="<?= e($mime) ?>">
-                  Your browser cannot play this video.
-                  <a href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">Open it directly</a>.
+                  <?= e(t('Your browser cannot play this video.', 'Hindi ma-play ng browser ang video na ito.')) ?>
+                  <a href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener"><?= e(t('Open it directly', 'Buksan ito nang direkta')) ?></a>.
                 </video>
                 <span class="media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
               </div>
             <?php else: ?>
               <a class="media-thumb" href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
-                <img src="<?= e($m['media_url']) ?>" alt="Evidence submitted with <?= e($report['tracking_id']) ?>" loading="lazy">
+                <img src="<?= e($m['media_url']) ?>" alt="<?= e(t('Evidence submitted with ', 'Ebidensyang isinumite kasama ng ') . $report['tracking_id']) ?>" loading="lazy">
                 <span class="media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
               </a>
             <?php endif; ?>
@@ -434,11 +434,11 @@ layout_head('Case Review', 'cases.php');
     ?>
     <?php if ($resolved): ?>
       <div class="case-block">
-        <h3 class="case-sub">Field Report</h3>
+        <h3 class="case-sub"><?= e(t('Field Report', 'Ulat mula sa Lugar')) ?></h3>
         <?php foreach ($resolved as $d): ?>
           <?php $shots = $proof[$d['id']] ?? []; ?>
           <p class="case-meta">
-            <?= e($d['tanod']['full_name'] ?? 'Barangay tanod') ?>
+            <?= e($d['tanod']['full_name'] ?? t('Barangay tanod', 'Tanod ng barangay')) ?>
             <?php if (!empty($d['resolved_at'])): ?>
               &middot; <?= e(long_datetime($d['resolved_at'])) ?>
             <?php endif; ?>
@@ -446,7 +446,7 @@ layout_head('Case Review', 'cases.php');
           <?php if (!empty($d['field_report_text'])): ?>
             <p class="case-body"><?= nl2br(e($d['field_report_text'])) ?></p>
           <?php else: ?>
-            <p class="case-none">No narrative was submitted.</p>
+            <p class="case-none"><?= e(t('No narrative was submitted.', 'Walang isinumiteng salaysay.')) ?></p>
           <?php endif; ?>
 
           <?php if ($shots): ?>
@@ -455,14 +455,14 @@ layout_head('Case Review', 'cases.php');
                 <a class="media-thumb" href="<?= e($m['media_url']) ?>"
                    target="_blank" rel="noopener">
                   <img src="<?= e($m['media_url']) ?>"
-                       alt="Proof photo for <?= e($report['tracking_id']) ?>"
+                       alt="<?= e(t('Proof photo for ', 'Larawang patunay para sa ') . $report['tracking_id']) ?>"
                        loading="lazy">
                   <span class="media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
                 </a>
               <?php endforeach; ?>
             </div>
           <?php else: ?>
-            <p class="case-none">No photo proof was attached.</p>
+            <p class="case-none"><?= e(t('No photo proof was attached.', 'Walang kalakip na larawang patunay.')) ?></p>
           <?php endif; ?>
         <?php endforeach; ?>
       </div>
@@ -471,54 +471,53 @@ layout_head('Case Review', 'cases.php');
 
   <!-- ---------- admin controls ---------- -->
   <aside class="card card--controls">
-    <h3 class="case-sub">Admin Controls</h3>
+    <h3 class="case-sub"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></h3>
 
     <?php if ($canJudge): ?>
       <form method="post" class="control-stack" id="review-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <p class="kbd-hint">Press <kbd>A</kbd> to accept, <kbd>D</kbd> to deny.</p>
+        <p class="kbd-hint"><?= e(t('Press', 'Pindutin ang')) ?> <kbd>A</kbd> <?= e(t('to accept,', 'para tanggapin,')) ?> <kbd>D</kbd> <?= e(t('to deny.', 'para tanggihan.')) ?></p>
 
         <button class="btn-accept" type="submit" name="action" value="accept">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
-          Accept Complaint
+          <?= e(t('Accept Complaint', 'Tanggapin ang Sumbong')) ?>
         </button>
 
         <button class="btn-deny" type="button" id="deny-toggle" aria-expanded="false"
                 aria-controls="deny-panel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Deny Complaint
+          <?= e(t('Deny Complaint', 'Tanggihan ang Sumbong')) ?>
         </button>
 
         <div class="deny-panel" id="deny-panel" hidden>
           <label for="reason" class="field-label">
-            Reason for denial &mdash; the resident sees this
+            <?= e(t('Reason for denial — the resident sees this', 'Dahilan ng pagtanggi — makikita ito ng residente')) ?>
           </label>
           <textarea id="reason" name="reason" rows="3" maxlength="200" required
-                    placeholder="e.g. Outside barangay jurisdiction — refer to the city ENRO."></textarea>
+                    placeholder="<?= e(t('e.g. Outside barangay jurisdiction — refer to the city ENRO.', 'hal. Labas sa sakop ng barangay — i-refer sa ENRO ng lungsod.')) ?>"></textarea>
 
           <label class="field-check">
             <input type="checkbox" name="abusive" value="1">
-            Flag as abusive or fabricated
+            <?= e(t('Flag as abusive or fabricated', 'Markahang mapang-abuso o gawa-gawa')) ?>
           </label>
           <p class="control-note">
-            Only for a fake, malicious, or bad-faith report — not an honest
-            mistake like the wrong barangay or a duplicate. Three flagged
-            reports from the same resident automatically restrict their
-            account from filing new ones, the same way Suspend does today.
+            <?= e(t('Only for a fake, malicious, or bad-faith report — not an honest mistake like the wrong barangay or a duplicate. Three flagged reports from the same resident automatically restrict their account from filing new ones, the same way Suspend does today.',
+                    'Para lamang sa pekeng ulat, may masamang layunin, o hindi tapat — hindi sa tapat na pagkakamali gaya ng maling barangay o doble. Kapag tatlong ulat ng iisang residente ang namarkahan, awtomatikong hindi na siya makakapagsampa ng bago, gaya ng Suspend.')) ?>
             <?php if (count($abuseHistory) > 0): ?>
-              This resident already has
+              <?= e(t('This resident already has', 'Mayroon nang')) ?>
               <strong><?= (int) count($abuseHistory) ?></strong>
-              on file<?= count($abuseHistory) >= 2 ? ' — one more will restrict them.' : '.' ?>
+              <?= e(t('on file', 'na naitala sa residenteng ito')) ?><?= count($abuseHistory) >= 2
+                  ? e(t(' — one more will restrict them.', ' — isa pa at mapipigilan na siya.')) : '.' ?>
             <?php endif; ?>
           </p>
 
           <button class="btn-deny-confirm" type="submit" name="action" value="deny">
-            Confirm denial
+            <?= e(t('Confirm denial', 'Kumpirmahin ang pagtanggi')) ?>
           </button>
         </div>
       </form>
@@ -527,10 +526,10 @@ layout_head('Case Review', 'cases.php');
       <form method="post" class="control-stack" id="assign-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <p class="roster-head">Assign Tanod</p>
+        <p class="roster-head"><?= e(t('Assign Tanod', 'Mag-assign ng Tanod')) ?></p>
 
         <?php if (!$roster): ?>
-          <p class="case-none">No tanod accounts exist yet. Add them under Personnel.</p>
+          <p class="case-none"><?= e(t('No tanod accounts exist yet. Add them under Personnel.', 'Wala pang account ng tanod. Idagdag sila sa Mga Tanod.')) ?></p>
         <?php endif; ?>
 
         <div class="roster">
@@ -543,41 +542,41 @@ layout_head('Case Review', 'cases.php');
                 <?= e($t['full_name']) ?>
                 <?php if ($ok && $t['metres'] !== null): ?>
                   <small class="roster-dist<?= empty($t['location_fresh']) ? ' is-stale' : '' ?>">
-                    <?= e(distance_label((float) $t['metres'])) ?> away<?php
-                      if (empty($t['location_fresh'])) echo ', last seen a while ago'; ?>
+                    <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
+                      if (empty($t['location_fresh'])) echo e(t(', last seen a while ago', ', matagal nang huling nakita')); ?>
                   </small>
                 <?php endif; ?>
               </span>
               <span class="roster-state <?= $ok ? 'is-on' : 'is-off' ?>">
                 <?= $ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE'))) ?>
               </span>
-              <span class="roster-pick"><?= $ok ? 'Assign' : '&mdash;' ?></span>
+              <span class="roster-pick"><?= $ok ? e(t('Assign', 'I-assign')) : '&mdash;' ?></span>
             </label>
           <?php endforeach; ?>
         </div>
 
         <div class="control-field">
-          <label class="field-label" for="note">Add Note</label>
+          <label class="field-label" for="note"><?= e(t('Add Note', 'Magdagdag ng Tala')) ?></label>
           <textarea id="note" name="note" rows="2" maxlength="500"
-                    placeholder="Instructions for the tanod on the ground."></textarea>
+                    placeholder="<?= e(t('Instructions for the tanod on the ground.', 'Mga tagubilin para sa tanod sa lugar.')) ?>"></textarea>
         </div>
 
         <div class="control-field">
-          <label class="field-label" for="target">Target date resolution</label>
+          <label class="field-label" for="target"><?= e(t('Target date resolution', 'Target na petsa ng paglutas')) ?></label>
           <input type="datetime-local" id="target" name="target"
                  value="<?= e(local_input_value($report['due_at'])) ?>">
           <p class="field-hint">
             <?php if ($policy): ?>
-              Policy for <?= e(category_label($report['category'])) ?> is
-              <?= (int) $policy['resolution_hours'] ?> hours from filing.
+              <?= e(t('Policy for', 'Ang patakaran para sa')) ?> <?= e(category_label($report['category'])) ?> <?= e(t('is', 'ay')) ?>
+              <?= (int) $policy['resolution_hours'] ?> <?= e(t('hours from filing.', 'oras mula sa pagsampa.')) ?>
             <?php endif; ?>
             <?php if (!empty($report['due_at'])): ?>
-              Currently due <?= e(long_datetime($report['due_at'])) ?>.
+              <?= e(t('Currently due', 'Kasalukuyang takdang oras:')) ?> <?= e(long_datetime($report['due_at'])) ?>.
             <?php endif; ?>
           </p>
         </div>
 
-        <button class="btn-dispatch" type="submit" name="action" value="dispatch">Dispatch</button>
+        <button class="btn-dispatch" type="submit" name="action" value="dispatch"><?= e(t('Dispatch', 'I-dispatch')) ?></button>
       </form>
 
     <?php elseif ($status === 'rejected' && $appealReason !== null): ?>
@@ -588,19 +587,19 @@ layout_head('Case Review', 'cases.php');
       <form method="post" class="control-stack" id="appeal-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <p class="kbd-hint">The resident is appealing this denial.</p>
+        <p class="kbd-hint"><?= e(t('The resident is appealing this denial.', 'Inaapela ng residente ang pagtangging ito.')) ?></p>
 
         <div class="control-field">
-          <label class="field-label">Resident's reason</label>
+          <label class="field-label"><?= e(t("Resident's reason", 'Dahilan ng residente')) ?></label>
           <p class="case-body"><?= e($appealReason) ?></p>
         </div>
 
         <div class="control-field">
           <label for="remark" class="field-label">
-            Note for the trail (optional)
+            <?= e(t('Note for the trail (optional)', 'Tala para sa talaan (opsyonal)')) ?>
           </label>
           <textarea id="remark" name="remark" rows="2" maxlength="300"
-                    placeholder="e.g. New photos confirm the report — reinstating."></textarea>
+                    placeholder="<?= e(t('e.g. New photos confirm the report — reinstating.', 'hal. Kinukumpirma ng bagong larawan ang ulat — ibinabalik.')) ?>"></textarea>
         </div>
 
         <button class="btn-accept" type="submit" name="action" value="appeal_grant">
@@ -608,27 +607,26 @@ layout_head('Case Review', 'cases.php');
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
-          Grant Appeal
+          <?= e(t('Grant Appeal', 'Pagbigyan ang Apela')) ?>
         </button>
         <p class="control-note">
-          Moves this complaint back to Validated with a fresh resolution
-          window. To decline, simply leave this as is — the complaint
-          stays denied.
+          <?= e(t('Moves this complaint back to Validated with a fresh resolution window. To decline, simply leave this as is — the complaint stays denied.',
+                  'Ibabalik ang sumbong sa Tinanggap na may bagong palugit sa paglutas. Para tanggihan, hayaan lamang ito — mananatiling tinanggihan ang sumbong.')) ?>
         </p>
       </form>
 
     <?php else: ?>
       <?php if ($active): ?>
         <div class="assigned-card">
-          <p class="assigned-label">Currently with</p>
-          <p class="assigned-name"><?= e($active['tanod']['full_name'] ?? 'Unknown tanod') ?></p>
+          <p class="assigned-label"><?= e(t('Currently with', 'Kasalukuyang hawak ni')) ?></p>
+          <p class="assigned-name"><?= e($active['tanod']['full_name'] ?? t('Unknown tanod', 'Hindi kilalang tanod')) ?></p>
           <p class="assigned-meta">
             <?= e(status_label($active['state'])) ?>
-            &middot; assigned <?= e(relative_time($active['assigned_at'])) ?>
+            &middot; <?= e(t('assigned', 'na-assign')) ?> <?= e(relative_time($active['assigned_at'])) ?>
           </p>
           <?php if ($active['state'] === 'assigned' && !empty($active['accept_due_at'])): ?>
             <p class="assigned-meta">
-              Must accept by <?= e(long_datetime($active['accept_due_at'])) ?>
+              <?= e(t('Must accept by', 'Dapat tanggapin bago')) ?> <?= e(long_datetime($active['accept_due_at'])) ?>
             </p>
           <?php endif; ?>
           <?php if (!empty($active['admin_instructions'])): ?>
@@ -638,13 +636,13 @@ layout_head('Case Review', 'cases.php');
       <?php else: ?>
         <p class="case-none">
           <?= $status === 'rejected'
-              ? 'This complaint was denied. Nothing further is required.'
-              : 'No action is available at this stage.' ?>
+              ? e(t('This complaint was denied. Nothing further is required.', 'Tinanggihan ang sumbong na ito. Wala nang kailangang gawin.'))
+              : e(t('No action is available at this stage.', 'Walang aksyong magagawa sa yugtong ito.')) ?>
         </p>
       <?php endif; ?>
 
       <?php if (!empty($report['due_at'])): ?>
-        <p class="due-line">Resolution target: <strong><?= e(long_datetime($report['due_at'])) ?></strong></p>
+        <p class="due-line"><?= e(t('Resolution target:', 'Target na paglutas:')) ?> <strong><?= e(long_datetime($report['due_at'])) ?></strong></p>
       <?php endif; ?>
     <?php endif; ?>
 
@@ -657,7 +655,7 @@ layout_head('Case Review', 'cases.php');
     <div class="map-preview" id="case-map-preview">
       <div id="case-map"></div>
       <button class="map-btn map-btn--preview" id="case-map-expand" type="button"
-              title="Expand map to full screen">
+              title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
@@ -670,8 +668,8 @@ layout_head('Case Review', 'cases.php');
   <!-- ---------- the register row, as designed ---------- -->
   <div class="case-strip">
     <span><?= !empty($report['is_anonymous'])
-              ? '<em class="anon">Anonymous</em>'
-              : e($report['resident']['full_name'] ?? 'Unknown') ?></span>
+              ? '<em class="anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</em>'
+              : e($report['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></span>
     <span class="mono"><?= e($report['tracking_id']) ?></span>
     <span><?= e(category_label($report['category'])) ?></span>
     <span><?= e(short_date($report['created_at'])) ?></span>
@@ -679,7 +677,7 @@ layout_head('Case Review', 'cases.php');
 
   <!-- ---------- timeline ---------- -->
   <section class="card card--timeline">
-    <h3 class="case-sub">Activity Timeline</h3>
+    <h3 class="case-sub"><?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?></h3>
 
     <?php
     $trail  = $trail ?? [];
@@ -691,15 +689,15 @@ layout_head('Case Review', 'cases.php');
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><polyline points="9 12 11 14 15 10"/>
         </svg>
-        Trail verified &mdash; <?= count($trail) ?> entries, none altered since they were written.
+        <?= e(t('Trail verified — ', 'Beripikado ang talaan — ')) ?><?= count($trail) ?><?= e(t(' entries, none altered since they were written.', ' tala, walang binago mula nang isulat.')) ?>
       </p>
     <?php elseif ($broken): ?>
       <p class="trail-bad" role="alert">
-        <strong>This trail has been tampered with.</strong>
+        <strong><?= e(t('This trail has been tampered with.', 'May nagbago sa talaang ito.')) ?></strong>
         <?php foreach ($broken as $b): ?>
-          Entry <?= (int) $b['entry_no'] ?>: <?= e($b['problem']) ?>.
+          <?= e(t('Entry', 'Tala')) ?> <?= (int) $b['entry_no'] ?>: <?= e($b['problem']) ?>.
         <?php endforeach; ?>
-        Report this to the barangay administrator before acting on this case.
+        <?= e(t('Report this to the barangay administrator before acting on this case.', 'Iulat ito sa administrator ng barangay bago kumilos sa kasong ito.')) ?>
       </p>
     <?php endif; ?>
 
@@ -726,21 +724,21 @@ layout_head('Case Review', 'cases.php');
         <li class="tl-item">
           <span class="tl-dot" aria-hidden="true"></span>
           <p class="tl-title"><?= e(timeline_title($l)) ?><?php if ($l['repeat'] > 1): ?> <span class="tl-repeat">&times; <?= (int) $l['repeat'] ?></span><?php endif; ?></p>
-          <p class="tl-when"><?= e(long_datetime($l['created_at'])) ?><?php if ($l['repeat'] > 1): ?> &ndash; last <?= e(long_datetime($l['last_at'])) ?><?php endif; ?></p>
+          <p class="tl-when"><?= e(long_datetime($l['created_at'])) ?><?php if ($l['repeat'] > 1): ?> &ndash; <?= e(t('last', 'huli')) ?> <?= e(long_datetime($l['last_at'])) ?><?php endif; ?></p>
           <?php if (!empty($l['remark'])): ?>
             <p class="tl-remark"><?= e($l['remark']) ?></p>
           <?php endif; ?>
           <p class="tl-who">
             <?= !empty($l['is_system'])
-                ? 'System'
-                : e($l['by']['full_name'] ?? 'Barangay staff') ?>
+                ? e(t('System', 'System'))
+                : e($l['by']['full_name'] ?? t('Barangay staff', 'Kawani ng barangay')) ?>
           </p>
         </li>
       <?php endforeach; ?>
 
       <li class="tl-item tl-now">
         <span class="tl-dot tl-dot--now" aria-hidden="true"></span>
-        <p class="tl-when">Today &middot; <?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A')) ?></p>
+        <p class="tl-when"><?= e(t('Today', 'Ngayon')) ?> &middot; <?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A')) ?></p>
       </li>
     </ol>
   </section>
@@ -752,10 +750,10 @@ layout_head('Case Review', 'cases.php');
        "no rating yet" reads as a fact, not a missing feature. -->
   <?php if (in_array($status, ['resolved', 'closed'], true)): ?>
   <section class="card card--feedback">
-    <h3 class="case-sub">Resident Feedback</h3>
+    <h3 class="case-sub"><?= e(t('Resident Feedback', 'Puna ng Residente')) ?></h3>
     <?php if ($feedback): ?>
       <div class="fb-stars" role="img"
-           aria-label="Rated <?= (int) $feedback['rating'] ?> out of 5 stars">
+           aria-label="<?= e(t('Rated ', 'Rating na ')) ?><?= (int) $feedback['rating'] ?><?= e(t(' out of 5 stars', ' sa 5 bituin')) ?>">
         <?php for ($i = 1; $i <= 5; $i++): ?>
           <svg class="fb-star<?= $i <= (int) $feedback['rating'] ? ' is-filled' : '' ?>"
                viewBox="0 0 24 24" aria-hidden="true">
@@ -766,9 +764,9 @@ layout_head('Case Review', 'cases.php');
       <?php if (!empty($feedback['comment'])): ?>
         <p class="fb-comment">&ldquo;<?= nl2br(e($feedback['comment'])) ?>&rdquo;</p>
       <?php endif; ?>
-      <p class="tl-when">Submitted <?= e(long_datetime($feedback['submitted_at'])) ?></p>
+      <p class="tl-when"><?= e(t('Submitted', 'Isinumite')) ?> <?= e(long_datetime($feedback['submitted_at'])) ?></p>
     <?php else: ?>
-      <p class="case-none">The resident has not left feedback on this complaint yet.</p>
+      <p class="case-none"><?= e(t('The resident has not left feedback on this complaint yet.', 'Hindi pa nag-iiwan ng puna ang residente sa sumbong na ito.')) ?></p>
     <?php endif; ?>
   </section>
   <?php endif; ?>
@@ -800,7 +798,7 @@ layout_head('Case Review', 'cases.php');
           h = Math.floor(a % 86400000 / 3600000),
           m = Math.floor(a % 3600000 / 60000);
       var span = (d ? d + 'd ' : '') + (d || h ? h + 'h ' : '') + m + 'm';
-      out.textContent = late ? 'Overdue by ' + span : span + ' left to resolve';
+      out.textContent = late ? T('Overdue by ', 'Lampas na nang ') + span : span + T(' left to resolve', ' na lang para malutas');
       sla.classList.toggle('is-late', late);
       sla.classList.toggle('is-close', !late && a < 21600000);   // under six hours
       setTimeout(tick, 30000);
@@ -903,7 +901,7 @@ layout_head('Case Review', 'cases.php');
       document.addEventListener('fullscreenchange', function () {
         var active = document.fullscreenElement === preview;
         preview.classList.toggle('is-fullscreen', active);
-        expandBtn.title = active ? 'Exit full screen' : 'Expand map to full screen';
+        expandBtn.title = active ? T('Exit full screen', 'Lumabas sa full screen') : T('Expand map to full screen', 'I-full screen ang mapa');
         // Only worth interacting with once it actually fills the screen —
         // small again, it goes right back to a fixed thumbnail.
         interactive.forEach(function (opt) {
@@ -962,9 +960,9 @@ layout_head('Case Review', 'cases.php');
       var badge = document.getElementById('live-badge'),
           text  = document.getElementById('live-badge-text');
       if (status === 'SUBSCRIBED') {
-        badge.classList.remove('is-down'); text.textContent = 'Live';
+        badge.classList.remove('is-down'); text.textContent = T('Live', 'Live');
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        badge.classList.add('is-down'); text.textContent = 'Reconnecting…';
+        badge.classList.add('is-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
       }
     });
 

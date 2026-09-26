@@ -40,6 +40,21 @@ function force_lang(string $l): void
     $GLOBALS['ss_lang_force'] = $l === 'fil' ? 'fil' : 'en';
 }
 
+/** "September 2026" / "Setyembre 2026". */
+function month_year(DateTimeInterface $d): string
+{
+    return month_name((int) $d->format('n')) . ' ' . $d->format('Y');
+}
+
+function month_name(int $n): string
+{
+    if (lang() !== 'fil') {
+        return date('F', mktime(0, 0, 0, $n, 1));
+    }
+    return ['Enero', 'Pebrero', 'Marso', 'Abril', 'Mayo', 'Hunyo', 'Hulyo',
+            'Agosto', 'Setyembre', 'Oktubre', 'Nobyembre', 'Disyembre'][$n - 1];
+}
+
 /** The html lang attribute value. */
 function html_lang(): string
 {

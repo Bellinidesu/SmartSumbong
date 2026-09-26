@@ -34,52 +34,52 @@ $categories = [
     'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
 ];
 
-layout_head('Spatial Distribution', 'spatial.php');
+layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 ?>
 
 <section class="panel panel--map">
   <header class="panel-bar">
-    <h2 class="panel-title">Barangay 183 Map</h2>
+    <h2 class="panel-title"><?= e(t('Barangay 183 Map', 'Mapa ng Barangay 183')) ?></h2>
     <div class="map-toolbar">
-      <label class="visually-hidden" for="f-category">Filter by complaint type</label>
+      <label class="visually-hidden" for="f-category"><?= e(t('Filter by complaint type', 'Salain ayon sa uri ng sumbong')) ?></label>
       <select id="f-category">
-        <option value="">All complaint types</option>
+        <option value=""><?= e(t('All complaint types', 'Lahat ng uri ng sumbong')) ?></option>
         <?php foreach ($categories as $c): ?>
           <option value="<?= e($c) ?>"><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select>
 
-      <label class="visually-hidden" for="f-status">Filter by status</label>
+      <label class="visually-hidden" for="f-status"><?= e(t('Filter by status', 'Salain ayon sa katayuan')) ?></label>
       <select id="f-status">
-        <option value="">All statuses</option>
-        <option value="under_review">Under Review</option>
-        <option value="in_progress">In Progress</option>
-        <option value="resolved">Resolved/Completed</option>
-        <option value="rejected">Rejected</option>
+        <option value=""><?= e(t('All statuses', 'Lahat ng katayuan')) ?></option>
+        <option value="under_review"><?= e(t('Under Review', 'Nirerepaso')) ?></option>
+        <option value="in_progress"><?= e(t('In Progress', 'Isinasagawa')) ?></option>
+        <option value="resolved"><?= e(t('Resolved/Completed', 'Nalutas/Nakumpleto')) ?></option>
+        <option value="rejected"><?= e(t('Rejected', 'Tinanggihan')) ?></option>
       </select>
 
-      <label class="visually-hidden" for="f-period">Hotspot analysis month</label>
+      <label class="visually-hidden" for="f-period"><?= e(t('Hotspot analysis month', 'Buwan ng pagsusuri ng hotspot')) ?></label>
       <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>">
-      <label class="toggle"><input type="checkbox" id="f-period-all"> All time</label>
+      <label class="toggle"><input type="checkbox" id="f-period-all"> <?= e(t('All time', 'Lahat ng panahon')) ?></label>
 
-      <label class="toggle"><input type="checkbox" id="f-heat"> Heatmap</label>
-      <label class="toggle"><input type="checkbox" id="f-hotspots"> Hotspots</label>
+      <label class="toggle"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
+      <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
 
-      <label class="toggle"><input type="checkbox" id="f-tanods"> Tanods</label>
+      <label class="toggle"><input type="checkbox" id="f-tanods"> <?= e(t('Tanods', 'Mga Tanod')) ?></label>
 
-      <label class="toggle"><input type="checkbox" id="f-tanod-paths"> Tanod Paths</label>
-      <label class="visually-hidden" for="f-tanod-from">Tanod path range start</label>
+      <label class="toggle"><input type="checkbox" id="f-tanod-paths"> <?= e(t('Tanod Paths', 'Dinaanan ng Tanod')) ?></label>
+      <label class="visually-hidden" for="f-tanod-from"><?= e(t('Tanod path range start', 'Simula ng dinaanan')) ?></label>
       <input type="date" id="f-tanod-from" disabled
              value="<?= e((new DateTime('-7 days', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
-      <label class="visually-hidden" for="f-tanod-to">Tanod path range end</label>
+      <label class="visually-hidden" for="f-tanod-to"><?= e(t('Tanod path range end', 'Wakas ng dinaanan')) ?></label>
       <input type="date" id="f-tanod-to" disabled
              value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d')) ?>">
-      <label class="visually-hidden" for="f-tanod-who">Filter path to one tanod</label>
+      <label class="visually-hidden" for="f-tanod-who"><?= e(t('Filter path to one tanod', 'Isang tanod lamang')) ?></label>
       <select id="f-tanod-who" disabled>
-        <option value="">All tanods</option>
+        <option value=""><?= e(t('All tanods', 'Lahat ng tanod')) ?></option>
       </select>
 
-      <label class="toggle"><input type="checkbox" id="f-fog" checked> Dim outside 183</label>
+      <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
   </header>
 
@@ -92,18 +92,18 @@ layout_head('Spatial Distribution', 'spatial.php');
     <aside class="pin-detail" id="pin-detail" hidden></aside>
 
     <div class="conn-strip" id="conn" hidden role="status">
-      <span class="conn-dot"></span><span id="conn-text">Reconnecting&hellip;</span>
+      <span class="conn-dot"></span><span id="conn-text"><?= e(t('Reconnecting…', 'Kumokonekta muli…')) ?></span>
     </div>
 
     <div class="map-dock">
-      <button class="map-btn" id="fit-btn" type="button" title="Frame every complaint">
+      <button class="map-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>
         </svg>
       </button>
 
-      <button class="map-btn" id="expand-btn" type="button" title="Expand map to full screen">
+      <button class="map-btn" id="expand-btn" type="button" title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
@@ -111,7 +111,7 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <button class="incident-badge" id="incident-toggle" aria-expanded="false"
-              aria-controls="map-side" title="Live incidents">
+              aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21"/>
@@ -121,13 +121,13 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <aside class="map-side" id="map-side" hidden>
-        <p class="map-side-head">Live incidents</p>
-        <p class="map-side-note" id="map-status">Connecting&hellip;</p>
+        <p class="map-side-head"><?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?></p>
+        <p class="map-side-note" id="map-status"><?= e(t('Connecting…', 'Kumokonekta…')) ?></p>
         <ol class="pin-list" id="pin-list"></ol>
       </aside>
 
       <button class="incident-badge" id="hotspot-toggle" aria-expanded="false"
-              aria-controls="hotspot-side" title="Hotspot clusters">
+              aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 2c-1.5 3-4.5 5.5-4.5 9.5a4.5 4.5 0 0 0 9 0c0-1.5-.6-2.5-1.3-3.4.1 1.6-.7 2.4-1.4 2.4.6-2.4-.4-4.6-1.8-8.5Z"/>
@@ -136,13 +136,13 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <aside class="map-side" id="hotspot-side" hidden>
-        <p class="map-side-head">Top hotspots</p>
-        <p class="map-side-note" id="hotspot-status">Turn on Hotspots to see recurring problem areas.</p>
+        <p class="map-side-head"><?= e(t('Top hotspots', 'Nangungunang hotspot')) ?></p>
+        <p class="map-side-note" id="hotspot-status"><?= e(t('Turn on Hotspots to see recurring problem areas.', 'I-on ang Mga Hotspot para makita ang mga lugar na paulit-ulit ang problema.')) ?></p>
         <ol class="pin-list" id="hotspot-list"></ol>
       </aside>
 
       <button class="incident-badge" id="tanod-toggle" aria-expanded="false"
-              aria-controls="tanod-side" title="Tanod positions">
+              aria-controls="tanod-side" title="<?= e(t('Tanod positions', 'Kinaroroonan ng mga tanod')) ?>">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="8" r="3.2"/>
@@ -152,8 +152,8 @@ layout_head('Spatial Distribution', 'spatial.php');
       </button>
 
       <aside class="map-side" id="tanod-side" hidden>
-        <p class="map-side-head">Tanod positions</p>
-        <p class="map-side-note" id="tanod-status">Turn on Tanods to see live positions.</p>
+        <p class="map-side-head"><?= e(t('Tanod positions', 'Kinaroroonan ng mga tanod')) ?></p>
+        <p class="map-side-note" id="tanod-status"><?= e(t('Turn on Tanods to see live positions.', 'I-on ang Mga Tanod para makita ang kanilang kinaroroonan.')) ?></p>
         <ol class="pin-list" id="tanod-list"></ol>
       </aside>
     </div>
@@ -228,7 +228,10 @@ const COLOUR = {
   resolved: '#22c55e', closed: '#22c55e', archived: '#22c55e',
   rejected: '#9aa1ab',
 };
-const label = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+// Statuses in the portal's language; categories stay as they are, in
+// English, as the apps show them.
+const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
+const label = s => STATUS_LABEL[s] || s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // Every string below that reaches innerHTML passes through this. subject
 // is typed by the resident who filed the complaint and full_name by the
@@ -519,7 +522,7 @@ async function draw() {
   });
 
   if (!rows.length) {
-    list.innerHTML = '<li class="pin-empty">No complaint matches these filters.</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('No complaint matches these filters.', 'Walang sumbong na tugma sa mga salang ito.') + '</li>';
   }
 }
 
@@ -531,12 +534,12 @@ async function load() {
     .order('created_at', { ascending: false });
 
   const note = document.getElementById('map-status');
-  if (error) { note.textContent = 'Could not load complaints: ' + error.message; return; }
+  if (error) { note.textContent = T('Could not load complaints: ', 'Hindi ma-load ang mga sumbong: ') + error.message; return; }
 
   all = data || [];
   note.textContent = all.length
-    ? 'Live — new complaints appear without refreshing.'
-    : 'No complaints have been filed yet.';
+    ? T('Live — new complaints appear without refreshing.', 'Live — lumalabas ang bagong sumbong nang hindi nire-refresh.')
+    : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.');
   draw();
 }
 
@@ -560,7 +563,7 @@ sb.channel('reports-spatial')
       if (connLost) { connLost = false; load(); }
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       connLost = true;
-      text.textContent = 'Connection lost — this map is not updating. Reconnecting…';
+      text.textContent = T('Connection lost — this map is not updating. Reconnecting…', 'Nawala ang koneksyon — hindi nag-a-update ang mapa. Kumokonekta muli…');
       strip.removeAttribute('hidden');
     }
   });
@@ -581,17 +584,17 @@ function showDetail(r) {
   const submitted = fmtDate(r.created_at) || '—';
   const deadline  = fmtDate(r.due_at);
   box.innerHTML =
-    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
     '<p class="detail-id">' + esc(r.tracking_id) + '</p>' +
     '<p class="detail-cat">' + esc(label(r.category)) + '</p>' +
     '<p class="detail-sub">' + esc(r.subject) + '</p>' +
     '<p class="detail-status"><span class="pin-dot" style="background:' +
       (COLOUR[r.status] || '#9aa1ab') + '"></span>' + esc(label(r.status)) + '</p>' +
     '<dl class="detail-dates">' +
-      '<dt>Submitted</dt><dd>' + submitted + '</dd>' +
-      '<dt>Deadline</dt><dd>' + (deadline || 'No deadline set') + '</dd>' +
+      '<dt>' + T('Submitted', 'Isinumite') + '</dt><dd>' + submitted + '</dd>' +
+      '<dt>' + T('Deadline', 'Takdang oras') + '</dt><dd>' + (deadline || T('No deadline set', 'Walang takdang oras')) + '</dd>' +
     '</dl>' +
-    '<a class="detail-open" href="case.php?id=' + encodeURIComponent(r.id) + '">Open this case</a>';
+    '<a class="detail-open" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a>';
   box.removeAttribute('hidden');
   box.querySelector('.detail-x').addEventListener('click',
     () => box.setAttribute('hidden', ''));
@@ -630,7 +633,7 @@ expandBtn.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', () => {
   const active = document.fullscreenElement === mapShell;
   expandBtn.classList.toggle('is-active', active);
-  expandBtn.title = active ? 'Exit full screen' : 'Expand map to full screen';
+  expandBtn.title = active ? T('Exit full screen', 'Lumabas sa full screen') : T('Expand map to full screen', 'I-full screen ang mapa');
   setTimeout(() => map.resize(), 120);
 });
 
@@ -745,20 +748,20 @@ function showHotspotDetail(h) {
   const submittedRange = (h.last_at && h.last_at !== h.first_at)
     ? submitted + ' – ' + (fmtDate(h.last_at) || '—') : submitted;
   const deadlineText = nearestDeadline
-    ? fmtDate(nearestDeadline) + ' (nearest of ' + open.length + ' still open)'
-    : 'No open deadlines in this cluster';
+    ? fmtDate(nearestDeadline) + T(' (nearest of ' + open.length + ' still open)', ' (pinakamalapit sa ' + open.length + ' na bukas pa)')
+    : T('No open deadlines in this cluster', 'Walang bukas na takdang oras sa kumpol na ito');
 
   const box = document.getElementById('pin-detail');
   box.innerHTML =
-    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
-    '<p class="detail-id">Hotspot &mdash; ' + h.report_count + ' report' + (h.report_count === 1 ? '' : 's') + '</p>' +
-    '<p class="detail-cat">Mostly ' + esc(label(h.top_category)) + '</p>' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
+    '<p class="detail-id">Hotspot &mdash; ' + h.report_count + T(h.report_count === 1 ? ' report' : ' reports', ' ulat') + '</p>' +
+    '<p class="detail-cat">' + T('Mostly ', 'Karamihan ay ') + esc(label(h.top_category)) + '</p>' +
     '<dl class="detail-dates">' +
-      '<dt>Submitted</dt><dd>' + submittedRange + '</dd>' +
-      '<dt>Deadline</dt><dd>' + deadlineText + '</dd>' +
+      '<dt>' + T('Submitted', 'Isinumite') + '</dt><dd>' + submittedRange + '</dd>' +
+      '<dt>' + T('Deadline', 'Takdang oras') + '</dt><dd>' + deadlineText + '</dd>' +
     '</dl>' +
     (members.length
-      ? '<p class="detail-sub">Reports in this cluster:</p>' +
+      ? '<p class="detail-sub">' + T('Reports in this cluster:', 'Mga ulat sa kumpol na ito:') + '</p>' +
         '<ol class="pin-list" style="margin:0">' +
         members.slice(0, 8).map(r =>
           '<li class="pin-item">' +
@@ -789,9 +792,9 @@ async function loadHotspots() {
   const { from, to } = periodRange();
   const cat = document.getElementById('f-category').value || null;
 
-  status.textContent = 'Analysing…';
+  status.textContent = T('Analysing…', 'Sinusuri…');
   const { data, error } = await sb.rpc('report_hotspots', { p_from: from, p_to: to, p_category: cat });
-  if (error) { status.textContent = 'Could not load hotspots: ' + error.message; return; }
+  if (error) { status.textContent = T('Could not load hotspots: ', 'Hindi ma-load ang mga hotspot: ') + error.message; return; }
 
   hotspots = data || [];
   await mapReady;
@@ -804,8 +807,10 @@ async function loadHotspots() {
   count.textContent = hotspots.length;
   badge.classList.toggle('is-live', hotspots.length > 0);
   status.textContent = hotspots.length
-    ? hotspots.length + ' recurring area' + (hotspots.length === 1 ? '' : 's') + ' found in this period.'
-    : 'No recurring hotspots in this period — complaints are spread out, or too few to cluster.';
+    ? hotspots.length + T(hotspots.length === 1 ? ' recurring area found in this period.' : ' recurring areas found in this period.',
+                          ' lugar na paulit-ulit ang nakita sa panahong ito.')
+    : T('No recurring hotspots in this period — complaints are spread out, or too few to cluster.',
+        'Walang paulit-ulit na hotspot sa panahong ito — kalat ang mga sumbong, o kakaunti para ipangkat.');
 
   list.innerHTML = '';
   hotspots.slice(0, 15).forEach((h, i) => {
@@ -813,13 +818,13 @@ async function loadHotspots() {
     li.className = 'pin-item';
     li.innerHTML =
       '<span class="pin-dot" style="background:' + hotspotColour(h.report_count) + '"></span>' +
-      '<span class="pin-body">#' + (i + 1) + ' — ' + h.report_count + ' reports' +
+      '<span class="pin-body">#' + (i + 1) + ' — ' + h.report_count + T(' reports', ' ulat') +
       '<small>' + esc(label(h.top_category)) + '</small></span>';
     li.addEventListener('click', () => map.easeTo({ center: [h.centroid_lng, h.centroid_lat], zoom: 17 }));
     list.appendChild(li);
   });
   if (!hotspots.length) {
-    list.innerHTML = '<li class="pin-empty">Nothing recurring enough to call a hotspot yet.</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('Nothing recurring enough to call a hotspot yet.', 'Wala pang sapat na paulit-ulit para tawaging hotspot.') + '</li>';
   }
 }
 
@@ -857,11 +862,11 @@ let tanodRows = [];
 function tanodDetail(t) {
   const box = document.getElementById('pin-detail');
   box.innerHTML =
-    '<button class="detail-x" type="button" aria-label="Close">&times;</button>' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
     '<p class="detail-id">' + esc(t.full_name) + '</p>' +
-    '<p class="detail-cat">' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : ' — stale fix') + '</p>' +
+    '<p class="detail-cat">' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : T(' — stale fix', ' — lumang lokasyon')) + '</p>' +
     '<dl class="detail-dates">' +
-      '<dt>Last update</dt><dd>' + (fmtDate(t.last_location_at) || 'Never') + '</dd>' +
+      '<dt>' + T('Last update', 'Huling update') + '</dt><dd>' + (fmtDate(t.last_location_at) || T('Never', 'Hindi pa')) + '</dd>' +
     '</dl>';
   box.removeAttribute('hidden');
   box.querySelector('.detail-x').addEventListener('click',
@@ -883,7 +888,7 @@ async function loadTanodPositions() {
   }
 
   const { data, error } = await sb.rpc('tanod_live_positions');
-  if (error) { status.textContent = 'Could not load tanod positions: ' + error.message; return; }
+  if (error) { status.textContent = T('Could not load tanod positions: ', 'Hindi ma-load ang kinaroroonan ng mga tanod: ') + error.message; return; }
 
   tanodRows = data || [];
   await mapReady;
@@ -896,8 +901,9 @@ async function loadTanodPositions() {
   count.textContent = live.length;
   badge.classList.toggle('is-live', live.length > 0);
   status.textContent = tanodRows.length
-    ? live.length + ' of ' + tanodRows.length + ' tanod' + (tanodRows.length === 1 ? '' : 's') + ' reporting live.'
-    : 'No tanod has ever reported a position yet.';
+    ? T(live.length + ' of ' + tanodRows.length + (tanodRows.length === 1 ? ' tanod' : ' tanods') + ' reporting live.',
+        live.length + ' sa ' + tanodRows.length + ' tanod ang nag-uulat ng lokasyon ngayon.')
+    : T('No tanod has ever reported a position yet.', 'Wala pang tanod na nag-ulat ng lokasyon.');
 
   list.innerHTML = '';
   tanodRows.forEach(t => {
@@ -906,21 +912,21 @@ async function loadTanodPositions() {
     li.innerHTML =
       '<span class="pin-dot" style="background:' + (t.is_fresh ? '#1FA84E' : '#9aa1ab') + '"></span>' +
       '<span class="pin-body">' + esc(t.full_name) +
-      '<small>' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : ' — stale') + '</small></span>';
+      '<small>' + esc(label(t.duty_status || 'offline')) + (t.is_fresh ? '' : T(' — stale', ' — luma')) + '</small></span>';
     if (t.lat != null && t.lng != null) {
       li.addEventListener('click', () => map.panTo([t.lng, t.lat]));
     }
     list.appendChild(li);
   });
   if (!tanodRows.length) {
-    list.innerHTML = '<li class="pin-empty">No tanod has ever reported a position yet.</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('No tanod has ever reported a position yet.', 'Wala pang tanod na nag-ulat ng lokasyon.') + '</li>';
   }
 
   // Keep "narrow to one tanod" in sync without clobbering whatever the
   // admin currently has picked, so an open path-heatmap selection survives
   // a routine 30-second refresh.
   const current = select.value;
-  select.innerHTML = '<option value="">All tanods</option>' +
+  select.innerHTML = '<option value="">' + T('All tanods', 'Lahat ng tanod') + '</option>' +
     tanodRows.map(t => '<option value="' + esc(t.tanod_id) + '">' + esc(t.full_name) + '</option>').join('');
   select.value = tanodRows.some(t => t.tanod_id === current) ? current : '';
 }
@@ -946,7 +952,7 @@ async function loadTanodPaths() {
   const { data, error } = await sb.rpc('tanod_path_heatmap',
     { p_from: fromIso, p_to: toIso, p_tanod: who });
   if (error) {
-    document.getElementById('tanod-status').textContent = 'Could not load tanod paths: ' + error.message;
+    document.getElementById('tanod-status').textContent = T('Could not load tanod paths: ', 'Hindi ma-load ang dinaanan ng mga tanod: ') + error.message;
     return;
   }
 

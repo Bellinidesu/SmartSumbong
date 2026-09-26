@@ -2292,7 +2292,7 @@ a.btn-accept { text-decoration: none; }
 .case-table td.cell-person { display: table-cell; white-space: nowrap; }
 .case-table td.cell-person > .avatar { display: inline-flex; vertical-align: middle; margin-right: 10px; }
 .case-table td.cell-person > span:last-child { vertical-align: middle; }
-:is(.page-personnel, .page-residents, .page-cases) .case-table th { white-space: nowrap; }
+:is(.page-personnel, .page-residents, .page-cases) .case-table th { white-space: normal; }
 
 /* ---------- Edit Profile (Figma 12:6775, 12:6938, 12:7185, 12:7497; branch B) ---------- */
 .profile-card {

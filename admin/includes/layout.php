@@ -10,14 +10,14 @@ declare(strict_types=1);
 function nav_items(): array
 {
     return [
-        ['dashboard.php',  'Dashboard',           'chart'],
-        ['summary.php',    'Report Summary',      'doc'],
-        ['spatial.php',    'Spatial Distribution','map'],
-        ['cases.php',      'Case Reports',        'chat'],
-        ['residents.php',  'Residents',           'users'],
-        ['personnel.php',  'Personnel',           'user'],
-        ['retirement-requests.php', 'Extra Administrative Services', 'badge'],
-        ['profile.php',    'Edit Profile',        'gear'],
+        ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'chart'],
+        ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'doc'],
+        ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'map'],
+        ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'chat'],
+        ['residents.php',  t('Residents', 'Mga Residente'),                   'users'],
+        ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'user'],
+        ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'badge'],
+        ['profile.php',    t('Edit Profile', 'I-edit ang Profile'),           'gear'],
     ];
 }
 
@@ -73,7 +73,7 @@ function layout_head(string $title, string $active = ''): void
       <?php $pulse = ($icon === 'map' && $live > 0); ?>
       <a class="nav-item<?= basename($href) === $active ? ' active' : '' ?>" href="<?= e($href) ?>">
         <?php if ($pulse): ?>
-          <span class="nav-pulse is-live" title="<?= $live ?> open complaint<?= $live === 1 ? '' : 's' ?>">
+          <span class="nav-pulse is-live" title="<?= e($live . ' ' . t($live === 1 ? 'open complaint' : 'open complaints', 'bukas na sumbong')) ?>">
             <?= nav_icon($icon) ?><span class="nav-num"><?= $live > 99 ? '99+' : $live ?></span>
           </span>
         <?php else: ?>
@@ -87,7 +87,7 @@ function layout_head(string $title, string $active = ''): void
 
     <?= prefs_switches('prefs--sidebar') ?>
 
-    <a class="nav-item" href="logout.php"><?= nav_icon('out') ?><span>Log out</span></a>
+    <a class="nav-item" href="logout.php"><?= nav_icon('out') ?><span><?= e(t('Log out', 'Mag-log out')) ?></span></a>
   </nav>
 
   <main class="main">
@@ -112,14 +112,15 @@ function idle_timeout(): void
     ?>
     <div class="idle-veil" id="idle-veil" hidden>
       <div class="idle-box" role="alertdialog" aria-labelledby="idle-h" aria-describedby="idle-p">
-        <h2 id="idle-h">Still there?</h2>
+        <h2 id="idle-h"><?= e(t('Still there?', 'Nandiyan ka pa ba?')) ?></h2>
         <p id="idle-p">
-          You have been idle for a while. For the barangay's security this
-          session will end in <strong id="idle-left">120</strong> seconds.
+          <?= e(t("You have been idle for a while. For the barangay's security this session will end in",
+                  'Matagal ka nang walang galaw. Para sa seguridad ng barangay, matatapos ang session na ito sa')) ?>
+          <strong id="idle-left">120</strong> <?= e(t('seconds.', 'segundo.')) ?>
         </p>
         <div class="confirm-actions">
-          <button class="btn-accept" type="button" id="idle-stay">Keep me signed in</button>
-          <button class="btn-deny" type="button" id="idle-go">Sign out now</button>
+          <button class="btn-accept" type="button" id="idle-stay"><?= e(t('Keep me signed in', 'Manatiling naka-sign in')) ?></button>
+          <button class="btn-deny" type="button" id="idle-go"><?= e(t('Sign out now', 'Mag-sign out ngayon')) ?></button>
         </div>
       </div>
     </div>
@@ -240,7 +241,49 @@ function layout_foot(): void
 /** Human labels for the enum values the database stores. */
 function status_label(string $s): string
 {
+    if (lang() === 'fil') {
+        $fil = [
+            'pending_review'        => 'Naghihintay ng Repaso',
+            'validated'             => 'Tinanggap',
+            'assigned'              => 'Naka-assign',
+            'in_progress'           => 'Isinasagawa',
+            'offline_investigation' => 'Imbestigasyon sa Lugar',
+            'resolved'              => 'Nalutas',
+            'closed'                => 'Sarado',
+            'archived'              => 'Naka-archive',
+            'rejected'              => 'Tinanggihan',
+            'cancelled'             => 'Kinansela',
+            // duty_state (0001), in the tanod app's own words
+            'on_duty'               => 'Nasa Tungkulin',
+            'break'                 => 'Pahinga',
+            'lunch'                 => 'Pananghalian',
+            'offline'               => 'Naka-offline',
+            // verification, roles, dispatch states
+            'pending'               => 'Nakabinbin',
+            'verified'              => 'Beripikado',
+            'resident'              => 'Residente',
+            'tanod'                 => 'Tanod',
+            'admin'                 => 'Admin',
+            'accepted'              => 'Tinanggap',
+            'rerouted'              => 'Inilipat',
+            'expired'               => 'Nag-expire',
+        ];
+        if (isset($fil[$s])) return $fil[$s];
+    }
     return ucwords(str_replace('_', ' ', $s));
+}
+
+/** status_label() for every value, for the pages' live scripts to share. */
+function status_labels(): array
+{
+    $out = [];
+    foreach (['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation',
+              'resolved', 'closed', 'archived', 'rejected', 'cancelled', 'on_duty', 'break',
+              'lunch', 'offline', 'pending', 'verified', 'resident', 'tanod', 'admin',
+              'accepted', 'rerouted', 'expired'] as $s) {
+        $out[$s] = status_label($s);
+    }
+    return $out;
 }
 
 function status_class(string $s): string
@@ -343,7 +386,7 @@ function timeline_title(array $log): string
     // system row with no previous status is a note about the case, not
     // the start of it.
     if ($old === null && empty($log['is_system'])) {
-        return 'Complaint Filed';
+        return t('Complaint Filed', 'Naisampa ang Sumbong');
     }
 
     // Rose's feedback (Sep 2026): name what actually happened, in plain
@@ -355,49 +398,49 @@ function timeline_title(array $log): string
     // full detail, so the title only needs to name the kind of event, not
     // repeat it.
     if (str_starts_with($remark, 'SLA breach')) {
-        return 'Resolution Deadline Missed';
+        return t('Resolution Deadline Missed', 'Lumampas sa Takdang Paglutas');
     }
     if (str_starts_with($remark, 'Resident appealed the rejection')) {
-        return 'Appeal Requested';
+        return t('Appeal Requested', 'Humiling ng Apela');
     }
     if (str_starts_with($remark, 'Appeal granted')) {
-        return 'Appeal Granted';
+        return t('Appeal Granted', 'Pinagbigyan ang Apela');
     }
     if (str_starts_with($remark, 'Rerouted:')) {
-        return 'Dispatch Rerouted';
+        return t('Dispatch Rerouted', 'Inilipat ang Dispatch');
     }
     if (str_starts_with($remark, 'Reopened:')) {
-        return 'Complaint Reopened';
+        return t('Complaint Reopened', 'Muling Binuksan ang Sumbong');
     }
     if (str_starts_with($remark, 'Outside Barangay 183')) {
-        return 'Referred Outside Barangay';
+        return t('Referred Outside Barangay', 'Ini-refer sa Labas ng Barangay');
     }
     if (str_starts_with($remark, 'No tanod')) {
-        return 'No Tanod Available';
+        return t('No Tanod Available', 'Walang Available na Tanod');
     }
     if (str_starts_with($remark, 'Auto-dispatched')) {
-        return 'Auto-Dispatched';
+        return t('Auto-Dispatched', 'Awtomatikong Na-dispatch');
     }
     if (str_starts_with($remark, 'Re-dispatching')) {
-        return 'Re-Dispatch Attempted';
+        return t('Re-Dispatch Attempted', 'Sinubukang I-dispatch Muli');
     }
     if (str_starts_with($remark, 'Automatic dispatch gave up')) {
-        return 'Automatic Dispatch Exhausted';
+        return t('Automatic Dispatch Exhausted', 'Hindi Na-dispatch nang Awtomatiko');
     }
     if (str_starts_with($remark, 'Resolution target set to')) {
-        return 'Resolution Target Set';
+        return t('Resolution Target Set', 'Naitakda ang Target na Paglutas');
     }
 
     if ($old === null || $old === $new) {
-        return 'Case Update';
+        return t('Case Update', 'Update sa Kaso');
     }
     return match ($new) {
-        'validated'  => 'Complaint Accepted',
-        'rejected'   => 'Complaint Denied',
-        'assigned'   => 'Tanod Assigned',
-        'in_progress'=> 'Response Underway',
-        'resolved'   => 'Marked Resolved',
-        'closed'     => 'Case Closed',
+        'validated'  => t('Complaint Accepted', 'Tinanggap ang Sumbong'),
+        'rejected'   => t('Complaint Denied', 'Tinanggihan ang Sumbong'),
+        'assigned'   => t('Tanod Assigned', 'Na-assign ang Tanod'),
+        'in_progress'=> t('Response Underway', 'Tumutugon na'),
+        'resolved'   => t('Marked Resolved', 'Minarkahang Nalutas'),
+        'closed'     => t('Case Closed', 'Isinara ang Kaso'),
         default      => status_label((string) $new),
     };
 }
@@ -425,8 +468,9 @@ function safe_error(Throwable $e): string
     foreach ($machinery as $needle) {
         if (stripos($msg, $needle) !== false) {
             error_log('SmartSumbong: ' . $msg);
-            return 'That action could not be completed. Reference: ' . substr(sha1($msg), 0, 8)
-                 . ' — give this to whoever maintains the system.';
+            return t('That action could not be completed. Reference: ', 'Hindi natapos ang aksyong iyon. Reference: ')
+                 . substr(sha1($msg), 0, 8)
+                 . t(' — give this to whoever maintains the system.', ' — ibigay ito sa nangangalaga ng system.');
         }
     }
     return $msg;
@@ -441,8 +485,8 @@ function relative_time(?string $iso): string
         return '';
     }
     $mins = (int) round((time() - $then->getTimestamp()) / 60);
-    if ($mins < 1)    return 'Just now';
-    if ($mins < 60)   return "{$mins} min ago";
-    if ($mins < 1440) return floor($mins / 60) . ' hr ago';
-    return $then->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j \a\t g:i A');
+    if ($mins < 1)    return t('Just now', 'Ngayon lang');
+    if ($mins < 60)   return t("{$mins} min ago", "{$mins} minutong nakalipas");
+    if ($mins < 1440) return t(floor($mins / 60) . ' hr ago', floor($mins / 60) . ' oras na nakalipas');
+    return $then->setTimezone(new DateTimeZone('Asia/Manila'))->format(t('M j \a\t g:i A', 'M j, g:i A'));
 }

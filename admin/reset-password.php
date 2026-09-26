@@ -26,7 +26,7 @@ require_once __DIR__ . '/includes/auth.php';
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Set a new password — Smart Sumbong</title>
+<title><?= e(t('Set a new password', 'Magtakda ng bagong password')) ?> — Smart Sumbong</title>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
 </head>
@@ -67,42 +67,42 @@ require_once __DIR__ . '/includes/auth.php';
     <?php endif; ?>
 
     <div class="login-card">
-      <h1 class="login-title">Set a new password</h1>
+      <h1 class="login-title"><?= e(t('Set a new password', 'Magtakda ng bagong password')) ?></h1>
 
       <p id="reset-error" class="login-error" role="alert" hidden></p>
 
       <p id="reset-expired" class="login-note" hidden>
-        This link is no longer valid — it may have already been used, or it
-        expired before you opened it. Request a new one from the sign-in page.
+        <?= e(t('This link is no longer valid — it may have already been used, or it expired before you opened it. Request a new one from the sign-in page.',
+                'Hindi na valid ang link na ito — maaaring nagamit na ito, o nag-expire bago mo nabuksan. Humiling ng bago sa pahina ng pag-sign in.')) ?>
       </p>
 
       <form id="reset-form" novalidate hidden>
         <label class="field">
-          <span class="visually-hidden">New password</span>
+          <span class="visually-hidden"><?= e(t('New password', 'Bagong password')) ?></span>
           <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
           </svg>
-          <input type="password" id="new-password" placeholder="New password"
+          <input type="password" id="new-password" placeholder="<?= e(t('New password', 'Bagong password')) ?>"
                  autocomplete="new-password" required>
         </label>
-        <p class="field-hint">At least 8 characters.</p>
+        <p class="field-hint"><?= e(t('At least 8 characters.', 'Hindi bababa sa 8 karakter.')) ?></p>
 
         <label class="field">
-          <span class="visually-hidden">Confirm new password</span>
+          <span class="visually-hidden"><?= e(t('Confirm new password', 'Kumpirmahin ang bagong password')) ?></span>
           <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
           </svg>
-          <input type="password" id="confirm-password" placeholder="Confirm new password"
+          <input type="password" id="confirm-password" placeholder="<?= e(t('Confirm new password', 'Kumpirmahin ang bagong password')) ?>"
                  autocomplete="new-password" required>
         </label>
 
-        <button class="login-btn" type="submit" id="reset-submit">Save password</button>
+        <button class="login-btn" type="submit" id="reset-submit"><?= e(t('Save password', 'I-save ang password')) ?></button>
       </form>
 
       <p class="login-signup">
-        <a href="login.php">Back to sign in</a>
+        <a href="login.php"><?= e(t('Back to sign in', 'Bumalik sa pag-sign in')) ?></a>
       </p>
     </div>
 </section>
@@ -143,17 +143,17 @@ require_once __DIR__ . '/includes/auth.php';
     var confirm = document.getElementById('confirm-password').value;
 
     if (pw.length < 8) {
-      showError('Your password must be at least 8 characters long.');
+      showError(T('Your password must be at least 8 characters long.', 'Dapat hindi bababa sa 8 karakter ang iyong password.'));
       return;
     }
     if (pw !== confirm) {
-      showError('The two passwords do not match.');
+      showError(T('The two passwords do not match.', 'Hindi magkatugma ang dalawang password.'));
       return;
     }
 
     var btn = document.getElementById('reset-submit');
     btn.disabled = true;
-    btn.textContent = 'Saving…';
+    btn.textContent = T('Saving…', 'Sine-save…');
 
     fetch(SUPABASE_URL + '/auth/v1/user', {
       method: 'PUT',
@@ -166,15 +166,15 @@ require_once __DIR__ . '/includes/auth.php';
     }).then(function (res) {
       if (!res.ok) {
         return res.json().catch(function () { return {}; }).then(function (data) {
-          throw new Error(data.msg || data.error_description || data.message || 'Could not set your new password.');
+          throw new Error(data.msg || data.error_description || data.message || T('Could not set your new password.', 'Hindi naitakda ang bagong password.'));
         });
       }
       window.location.replace('login.php?reset=1');
     }).catch(function (err) {
       btn.disabled = false;
-      btn.textContent = 'Save password';
-      showError('This link may have expired — ' + err.message
-        + ' Request a new one from the sign-in page.');
+      btn.textContent = T('Save password', 'I-save ang password');
+      showError(T('This link may have expired — ', 'Maaaring nag-expire na ang link na ito — ') + err.message
+        + T(' Request a new one from the sign-in page.', ' Humiling ng bago sa pahina ng pag-sign in.'));
     });
   });
 })();
