@@ -28,6 +28,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'location_lookup.dart';
 
 class OutboxItem {
   OutboxItem({
@@ -286,6 +287,8 @@ class Outbox extends ChangeNotifier {
             },
           );
           await _remove(item.id);
+          // The street it was filed on, saved for the portal and tanods (0068).
+          unawaited(ReverseGeocode.labelReport(Supabase.instance.client, row));
           final msg = sentMessage?.call(row is Map ? row['tracking_id'] as String? : null);
           if (msg != null) {
             messengerKey.currentState

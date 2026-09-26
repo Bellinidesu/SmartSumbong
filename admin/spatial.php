@@ -468,7 +468,7 @@ async function draw() {
 // ---- data + realtime ---------------------------------------------
 async function load() {
   const { data, error } = await sb.from('reports')
-    .select('id,tracking_id,subject,category,status,latitude,longitude,created_at,due_at')
+    .select('id,tracking_id,subject,category,status,latitude,longitude,location_label,created_at,due_at')
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
@@ -527,6 +527,7 @@ function showDetail(r) {
     '<p class="detail-id">' + esc(r.tracking_id) + '</p>' +
     '<p class="detail-cat">' + esc(label(r.category)) + '</p>' +
     '<p class="detail-sub">' + esc(r.subject) + '</p>' +
+    (r.location_label ? '<p class="detail-place">' + T('Near ', 'Malapit sa ') + esc(r.location_label) + '</p>' : '') +
     '<p class="detail-status"><span class="pin-dot" style="background:' +
       (COLOUR[r.status] || '#9aa1ab') + '"></span>' + esc(label(r.status)) + '</p>' +
     '<dl class="detail-dates">' +

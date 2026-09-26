@@ -658,6 +658,7 @@ class Strings {
       _t('Ticket #$id', 'Tiket #$id');
   String get dispatchOrderHeaderLabel =>
       _t('DISPATCH ORDER:', 'DISPATCH ORDER:');
+  String dispatchNear(String place) => _t('Near $place', 'Malapit sa $place');
   String dispatchSubmittedOn(String date) =>
       _t('Submitted on: $date', 'Isinumite noong: $date');
   String get dispatchBack => _t('Back', 'Bumalik');

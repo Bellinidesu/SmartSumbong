@@ -67,6 +67,7 @@ import '../outbox.dart';
 import '../theme.dart';
 import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
+import '../location_lookup.dart';
 
 /// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
 /// 2988704. Used only when the resident's own position is unavailable.
@@ -607,6 +608,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
       // Filed successfully — the whole reason this draft existed is gone.
       unawaited(_clearDraft());
+      // The street it was filed on, saved for the portal and tanods (0068).
+      unawaited(ReverseGeocode.labelReport(Supabase.instance.client, row));
 
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(

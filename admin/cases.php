@@ -91,7 +91,7 @@ try {
     // The embedded resident is a PostgREST foreign-key expansion; the
     // join happens in the database, not in a second round trip.
     $query = [
-        'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,'
+        'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
                   . 'escalation_level,due_at,awaiting_unit_since,reopened_count,appealed_at,'
                   . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
@@ -275,7 +275,7 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
               <?php endif; ?>
             </td>
             <td class="mono"><?= e($r['tracking_id']) ?></td>
-            <td><?= e(category_label($r['category'])) ?></td>
+            <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><small class="cell-sub"><?= e($r['location_label']) ?></small><?php endif; ?></td>
             <td>
               <span class="pill pill--<?= e(status_class($r['status'])) ?>">
                 <?= e(status_label($r['status'])) ?>
@@ -415,7 +415,8 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
       return '<tr>' +
         '<td>' + who + '</td>' +
         '<td class="mono">' + escapeHtml(r.tracking_id) + '</td>' +
-        '<td>' + escapeHtml(titleCase(r.category)) + '</td>' +
+        '<td>' + escapeHtml(titleCase(r.category)) +
+          (r.location_label ? '<small class="cell-sub">' + escapeHtml(r.location_label) + '</small>' : '') + '</td>' +
         '<td><span class="pill pill--' + statusClass(r.status) + '">' +
           escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</td>' +
         '<td>' + shortDate(r.created_at) + '</td>' +
@@ -447,7 +448,7 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
 
   async function loadReports() {
     let q = sb.from('reports')
-      .select('id,tracking_id,subject,category,status,created_at,is_anonymous,'
+      .select('id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
         + 'escalation_level,due_at,awaiting_unit_since,reopened_count,appealed_at,'
         + 'resident:users!reports_resident_id_fkey(full_name)')
       .is('deleted_at', null)

@@ -161,6 +161,7 @@ class ReportSummary {
     this.closedAt,
     this.latitude,
     this.longitude,
+    this.locationLabel,
   });
 
   final String id;
@@ -189,6 +190,9 @@ class ReportSummary {
   final double? latitude;
   final double? longitude;
 
+  /// The street saved with the complaint (0068), when there is one.
+  final String? locationLabel;
+
   factory ReportSummary.fromRow(Map<String, dynamic> r) => ReportSummary(
         id: r['id'] as String,
         trackingId: r['tracking_id'] as String? ?? '',
@@ -201,6 +205,7 @@ class ReportSummary {
         closedAt: DateTime.tryParse(r['closed_at'] as String? ?? ''),
         latitude: (r['latitude'] as num?)?.toDouble(),
         longitude: (r['longitude'] as num?)?.toDouble(),
+        locationLabel: r['location_label'] as String?,
       );
 }
 
@@ -355,7 +360,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final rows = await client
           .from('reports')
           .select('id, tracking_id, subject, description, status, category, '
-              'created_at, closed_at, latitude, longitude')
+              'created_at, closed_at, latitude, longitude, location_label')
           .eq('resident_id', uid)
           .isFilter('deleted_at', null)
           .order('created_at', ascending: false);
@@ -1221,6 +1226,7 @@ class _ReportCard extends StatelessWidget {
                   _LocationLabel(
                     latitude: report.latitude!,
                     longitude: report.longitude!,
+                    stored: report.locationLabel,
                     color: _onNavy,
                   ),
               ],
@@ -1279,10 +1285,12 @@ class _LocationLabel extends StatefulWidget {
   const _LocationLabel({
     required this.latitude,
     required this.longitude,
+    this.stored,
     this.color,
   });
   final double latitude;
   final double longitude;
+  final String? stored;
 
   /// Defaults to the theme's muted grey.
   final Color? color;
@@ -1292,14 +1300,22 @@ class _LocationLabel extends StatefulWidget {
 }
 
 class _LocationLabelState extends State<_LocationLabel> {
-  late Future<String?> _future =
-      ReverseGeocode.lookup(widget.latitude, widget.longitude);
+  late Future<String?> _future = _resolve();
+
+  /// The street saved with the complaint (0068) when there is one; the
+  /// live lookup only for complaints filed before it existed.
+  Future<String?> _resolve() {
+    final saved = widget.stored;
+    if (saved != null && saved.isNotEmpty) return Future.value(saved);
+    return ReverseGeocode.lookup(widget.latitude, widget.longitude);
+  }
 
   @override
   void didUpdateWidget(covariant _LocationLabel old) {
     super.didUpdateWidget(old);
-    if (old.latitude != widget.latitude || old.longitude != widget.longitude) {
-      _future = ReverseGeocode.lookup(widget.latitude, widget.longitude);
+    if (old.latitude != widget.latitude || old.longitude != widget.longitude ||
+        old.stored != widget.stored) {
+      _future = _resolve();
     }
   }
 

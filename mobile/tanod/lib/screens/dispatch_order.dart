@@ -230,7 +230,7 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         client
             .from('reports')
             .select('tracking_id, subject, description, created_at, '
-                'latitude, longitude, is_anonymous')
+                'latitude, longitude, location_label, is_anonymous')
             .eq('id', widget.ticket.reportId)
             .single(),
         client
@@ -581,6 +581,29 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             color: context.colors.navy,
           ),
         ),
+        // The street saved with the complaint (0068), when there is one.
+        if ((_report?['location_label'] as String?)?.isNotEmpty ?? false) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.place_outlined, size: 15, color: context.colors.navy),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  context.s.dispatchNear(_report!['location_label'] as String),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Urbanist',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: context.colors.navy,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

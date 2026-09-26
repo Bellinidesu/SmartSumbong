@@ -2678,3 +2678,10 @@ a.btn-accept { text-decoration: none; }
 :root[data-tight] .sidebar .brand { max-width: 112px; }
 :root[data-tight] .pref-theme { min-height: 34px; }
 :root[data-tight] .pref-lang button { min-height: 26px; }
+
+/* ---------- Street labels on complaints (0068, branch B) ---------- */
+.cell-sub { display: block; margin-top: 2px; font-size: 11.5px; color: var(--ink-soft); }
+.case-place { margin-top: -8px; }
+.loc-pin { width: 14px; height: 14px; flex: none; }
+.map-label-place { display: block; font-family: var(--font-body); font-weight: 600; margin-bottom: 1px; }
+.detail-place { margin: 2px 0 6px; font-size: 12.5px; color: var(--ink-soft); }

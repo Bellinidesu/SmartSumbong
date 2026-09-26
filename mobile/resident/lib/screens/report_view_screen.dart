@@ -261,7 +261,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       final reportQ = client
           .from('reports')
           .select('id, tracking_id, subject, description, status, '
-              'latitude, longitude, is_anonymous, created_at, '
+              'latitude, longitude, location_label, is_anonymous, created_at, '
               'resolved_at, closed_at, reopened_count')
           .eq('id', widget.reportId)
           .maybeSingle();
@@ -539,6 +539,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           isAnonymous: r['is_anonymous'] == true,
           latitude: lat,
           longitude: lng,
+          locationLabel: r['location_label'] as String?,
           photos: _photos,
           onViewPhoto: (i) => _openPhoto(_photos, i),
           onCancel: status.canCancel ? () => _cancel(r) : null,
@@ -1106,6 +1107,7 @@ class _ReportCard extends StatelessWidget {
     required this.isAnonymous,
     required this.latitude,
     required this.longitude,
+    this.locationLabel,
     required this.photos,
     required this.onViewPhoto,
     this.onCancel,
@@ -1119,6 +1121,7 @@ class _ReportCard extends StatelessWidget {
   final bool isAnonymous;
   final double? latitude;
   final double? longitude;
+  final String? locationLabel;
   final List<({String url, bool isVideo})> photos;
   final ValueChanged<int> onViewPhoto;
 
@@ -1234,6 +1237,7 @@ class _ReportCard extends StatelessWidget {
                   _LocationLabel(
                     latitude: latitude!,
                     longitude: longitude!,
+                    stored: locationLabel,
                     color: onNavyMuted,
                   ),
               ],
@@ -1358,10 +1362,12 @@ class _LocationLabel extends StatefulWidget {
   const _LocationLabel({
     required this.latitude,
     required this.longitude,
+    this.stored,
     this.color,
   });
   final double latitude;
   final double longitude;
+  final String? stored;
 
   /// Defaults to `context.colors.muted`, right for a light card. The
   /// navy card passes its own "muted-on-navy" tone (30 Aug 2026) so this
@@ -1373,14 +1379,22 @@ class _LocationLabel extends StatefulWidget {
 }
 
 class _LocationLabelState extends State<_LocationLabel> {
-  late Future<String?> _future =
-      ReverseGeocode.lookup(widget.latitude, widget.longitude);
+  late Future<String?> _future = _resolve();
+
+  /// The street saved with the complaint (0068) when there is one; the
+  /// live lookup only for complaints filed before it existed.
+  Future<String?> _resolve() {
+    final saved = widget.stored;
+    if (saved != null && saved.isNotEmpty) return Future.value(saved);
+    return ReverseGeocode.lookup(widget.latitude, widget.longitude);
+  }
 
   @override
   void didUpdateWidget(covariant _LocationLabel old) {
     super.didUpdateWidget(old);
-    if (old.latitude != widget.latitude || old.longitude != widget.longitude) {
-      _future = ReverseGeocode.lookup(widget.latitude, widget.longitude);
+    if (old.latitude != widget.latitude || old.longitude != widget.longitude ||
+        old.stored != widget.stored) {
+      _future = _resolve();
     }
   }
 

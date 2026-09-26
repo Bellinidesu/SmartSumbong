@@ -144,7 +144,7 @@ try {
     $first = $db->selectMany([
         'report' => ['reports', [
             'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
-                      . 'latitude,longitude,due_at,escalated_at,escalation_level,reopened_count,'
+                      . 'latitude,longitude,location_label,due_at,escalated_at,escalation_level,reopened_count,'
                       . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
                       . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
             'id'         => 'eq.' . $id,
@@ -354,6 +354,15 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       </svg>
       <?= e(t('Filed on', 'Isinampa noong')) ?> <?= e(long_datetime($report['created_at'])) ?>
     </p>
+    <?php if (!empty($report['location_label'])): ?>
+      <!-- The street saved with the complaint (0068): a label read off the
+           map, not something the resident typed — the coordinates on the
+           map below stay the record. -->
+      <p class="case-filed case-place" title="<?= e(t('Nearest street, from OpenStreetMap', 'Pinakamalapit na kalye, mula sa OpenStreetMap')) ?>">
+        <svg class="loc-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        <?= e(t('Near', 'Malapit sa')) ?> <?= e($report['location_label']) ?>
+      </p>
+    <?php endif; ?>
 
     <?php if (!empty($report['due_at'])
               && !in_array($status, ['resolved','closed','archived','rejected'], true)): ?>
@@ -661,7 +670,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
         </svg>
       </button>
-      <span class="map-label"><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
+      <span class="map-label"><?php if (!empty($report['location_label'])): ?><span class="map-label-place"><?= e($report['location_label']) ?></span><?php endif; ?><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
     </div>
   </aside>
 

@@ -199,6 +199,29 @@ function layout_foot(): void
   </main>
 </div>
 <?php idle_timeout(); ?>
+<?php if (current_admin()): ?>
+<script>
+// Street labels for complaints that have none yet (0068, geocode.php):
+// a few at a time in the background, at most every five minutes per
+// tab, and never in the way of the page.
+(function () {
+  try {
+    var last = +sessionStorage.getItem('ss-geocode-at') || 0;
+    if (Date.now() - last < 5 * 60 * 1000) return;
+    sessionStorage.setItem('ss-geocode-at', String(Date.now()));
+  } catch (e) {}
+  var rounds = 0;
+  (function run() {
+    var body = new FormData();
+    body.append('csrf', <?= json_encode(csrf_token()) ?>);
+    fetch('geocode.php', { method: 'POST', body: body, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.more && ++rounds < 20) setTimeout(run, 1500); })
+      .catch(function () {});
+  })();
+})();
+</script>
+<?php endif; ?>
 <script>
 // One submit per form. A double-click on Accept or Dispatch (or holding
 // the A shortcut on case.php) sent two POSTs: the first did the work and

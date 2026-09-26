@@ -46,6 +46,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReverseGeocode {
   ReverseGeocode._();
@@ -99,6 +100,58 @@ class ReverseGeocode {
     } catch (_) {
       return _cache[key] = null;
     }
+  }
+
+  /// "Harvard Street, Villamor" — the street and the area around it, the
+  /// label saved on each complaint (0068) for the portal and the tanod
+  /// app. Same rule as the portal's own backfill (admin/geocode.php).
+  static Future<String?> label(double lat, double lng) async {
+    try {
+      final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
+        'format': 'jsonv2',
+        'lat': lat.toString(),
+        'lon': lng.toString(),
+        'zoom': '17',
+        'addressdetails': '1',
+      });
+      final res = await http
+          .get(uri, headers: {'User-Agent': _userAgent})
+          .timeout(const Duration(seconds: 8));
+      if (res.statusCode != 200) return null;
+      final address = (jsonDecode(res.body) as Map<String, dynamic>)['address']
+          as Map<String, dynamic>?;
+      final street = _firstNonEmpty([
+        address?['road'],
+        address?['pedestrian'],
+        address?['footway'],
+      ]);
+      final area = _firstNonEmpty([
+        address?['neighbourhood'],
+        address?['quarter'],
+        address?['suburb'],
+      ]);
+      if (street == null) return area;
+      return area == null || area == street ? street : '$street, $area';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Saves [label] on a complaint just filed, once. Best effort and never
+  /// awaited by the filing flow: the portal labels anything this misses.
+  static Future<void> labelReport(SupabaseClient client, Object? row) async {
+    if (row is! Map) return;
+    final id = row['id'] as String?;
+    final lat = (row['latitude'] as num?)?.toDouble();
+    final lng = (row['longitude'] as num?)?.toDouble();
+    if (id == null || lat == null || lng == null) return;
+    if ((row['location_label'] as String?)?.isNotEmpty ?? false) return;
+    final text = await label(lat, lng);
+    if (text == null) return;
+    try {
+      await client.rpc('set_report_location_label',
+          params: {'p_report': id, 'p_label': text});
+    } catch (_) {}
   }
 
   static String? _firstNonEmpty(List<dynamic> values) {
