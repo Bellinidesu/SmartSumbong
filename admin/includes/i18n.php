@@ -79,11 +79,11 @@ function theme_head(): string
         // Screen fit (branch B): the design is drawn at 1440 wide, so on a
         // bigger screen the whole portal is scaled up rather than stretched
         // thin — 1080p and 1440p then look alike, as the Figma frame does.
-        // The zoom is the smaller of width/1440 and height/810 (so a short
+        // The zoom is the smaller of width/1440 and height/1024 — the Figma frame — (so a short
         // window never has to scroll just to reach the sidebar), never
         // below 1 and at most 1.8. --z lets CSS viewport units undo it.
         . '(function(){var d=document.documentElement;function fit(){'
-        . 'var z=Math.min(innerWidth/1440,innerHeight/810,1.8);if(!(z>1))z=1;z=Math.round(z*1000)/1000;'
+        . 'var z=Math.min(innerWidth/1440,innerHeight/1024,1.8);if(!(z>1))z=1;z=Math.round(z*1000)/1000;'
         . 'd.style.zoom=z;d.style.setProperty("--z",z);'
         . 'var h=innerHeight/z;if(h<900)d.setAttribute("data-short","");else d.removeAttribute("data-short");'
         . 'if(h<780)d.setAttribute("data-tight","");else d.removeAttribute("data-tight");}'
