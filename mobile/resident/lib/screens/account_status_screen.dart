@@ -26,7 +26,7 @@ import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
 
-enum AccountBlock { rejected, suspended }
+enum AccountBlock { rejected, suspended, retired }
 
 class AccountStatusScreen extends StatefulWidget {
   const AccountStatusScreen({
@@ -51,6 +51,7 @@ class AccountStatusScreen extends StatefulWidget {
 
 class _AccountStatusScreenState extends State<AccountStatusScreen> {
   String? _reason;
+  DateTime? _retiredAt;
   bool _loading = true;
 
   @override
@@ -65,6 +66,7 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
       if (!mounted) return;
       setState(() {
         _reason = s.reason;
+        _retiredAt = s.retiredAt;
         _loading = false;
       });
     } catch (_) {
@@ -81,6 +83,9 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
   }
 
   bool get _isRejected => widget.block == AccountBlock.rejected;
+
+  /// A retired tanod (0052) — one app for both roles since branch C.
+  bool get _isRetired => widget.block == AccountBlock.retired;
 
   // No frame of its own: set like its sibling VERIFICATION PENDING —
   // over the contour texture, the 30/800 title and 16/500 body centred,
@@ -108,17 +113,21 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Icon(
-                          _isRejected
-                              ? Icons.cancel_outlined
-                              : Icons.pause_circle_outline,
+                          _isRetired
+                              ? Icons.workspace_premium_outlined
+                              : _isRejected
+                                  ? Icons.cancel_outlined
+                                  : Icons.pause_circle_outline,
                           size: 56,
-                          color: kFigmaRed,
+                          color: _isRetired ? Tokens.orange : kFigmaRed,
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          _isRejected
-                              ? s.accountStatusRejectedTitle
-                              : s.accountStatusSuspendedTitle,
+                          _isRetired
+                              ? s.accountStatusRetiredTitle
+                              : _isRejected
+                                  ? s.accountStatusRejectedTitle
+                                  : s.accountStatusSuspendedTitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'Urbanist',
@@ -130,9 +139,11 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          _isRejected
-                              ? s.accountStatusRejectedBody
-                              : s.accountStatusSuspendedBody,
+                          _isRetired
+                              ? s.accountStatusRetiredBody
+                              : _isRejected
+                                  ? s.accountStatusRejectedBody
+                                  : s.accountStatusSuspendedBody,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'Urbanist',
@@ -151,6 +162,44 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
                               height: 18,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: c.navy),
+                            ),
+                          ),
+                        ] else if (_isRetired && _retiredAt != null) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                            decoration: BoxDecoration(
+                              color: c.field,
+                              border: Border.all(color: c.navy),
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  s.accountStatusRetiredDateLabel,
+                                  style: TextStyle(
+                                    fontFamily: 'Urbanist',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: c.navy,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  () {
+                                    final d = _retiredAt!.toLocal();
+                                    return '${s.monthFull(d.month)} ${d.day}, ${d.year}';
+                                  }(),
+                                  style: TextStyle(
+                                    fontFamily: 'Urbanist',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 14,
+                                    height: 1.4,
+                                    color: c.navy,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ] else if (_reason != null) ...[
@@ -192,11 +241,13 @@ class _AccountStatusScreenState extends State<AccountStatusScreen> {
 
                         const SizedBox(height: 16),
                         Text(
-                          _isRejected
-                              ? (widget.canRegisterAgain
-                                  ? s.accountStatusRejectedCanRegister
-                                  : s.accountStatusRejectedCannotRegister)
-                              : s.accountStatusSuspendedNote,
+                          _isRetired
+                              ? s.accountStatusRetiredNote
+                              : _isRejected
+                                  ? (widget.canRegisterAgain
+                                      ? s.accountStatusRejectedCanRegister
+                                      : s.accountStatusRejectedCannotRegister)
+                                  : s.accountStatusSuspendedNote,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontFamily: 'Urbanist',

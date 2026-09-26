@@ -341,7 +341,12 @@ class _NotificationRow extends StatelessWidget {
       ],
     );
 
-    if (item.reportId == null) return row;
+    // A resident opens the complaint; a tanod's notifications are about
+    // dispatches, which open from the tanod home (one app since branch C).
+    if (item.reportId == null ||
+        AppRoleController.instance.value == AppRole.tanod) {
+      return row;
+    }
     return InkWell(
       onTap: () =>
           Navigator.of(context).pushNamed('/report', arguments: item.reportId),

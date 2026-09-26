@@ -53,12 +53,8 @@ import 'tanod/duty.dart';
 import 'tanod/screens/extra_admin_services_screen.dart';
 import 'tanod/screens/history_screen.dart';
 import 'tanod/screens/retirement_screen.dart';
-import 'tanod/screens/tanod_account_status_screen.dart';
-import 'tanod/screens/tanod_edit_profile_screen.dart';
 import 'tanod/screens/tanod_home_screen.dart';
-import 'tanod/screens/tanod_notifications_screen.dart';
 import 'tanod/screens/tanod_reports_screen.dart';
-import 'tanod/screens/tanod_settings_screen.dart';
 import 'theme.dart';
 
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -314,29 +310,18 @@ class SmartSumbongApp extends StatelessWidget {
         '/t/home': (_) => TanodHomeScreen(auth: auth),
         '/t/reports': (_) => const TanodReportsScreen(),
         '/t/history': (_) => const HistoryScreen(),
-        '/t/notifications': (_) => const TanodNotificationsScreen(),
-        '/t/settings': (_) => TanodSettingsScreen(auth: auth),
-        '/t/edit-profile': (_) => TanodEditProfileScreen(auth: auth),
+        '/t/notifications': (_) => const NotificationsScreen(),
+        '/t/settings': (_) => SettingsScreen(auth: auth),
         '/t/extra-admin-services': (_) => ExtraAdminServicesScreen(auth: auth),
         '/t/retirement': (_) => RetirementScreen(auth: auth),
-        '/account-retired': (_) => TanodAccountStatusScreen(
-            auth: auth, block: TanodAccountBlock.retired, canRegisterAgain: false),
+        '/account-retired': (_) => AccountStatusScreen(
+            auth: auth, block: AccountBlock.retired, canRegisterAgain: false),
       },
           ),
         );
       }),
     );
   }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.name);
-  final String name;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        body: Center(child: Text('$name — not built yet')),
-      );
 }
 
 class _ConfigError extends StatelessWidget {

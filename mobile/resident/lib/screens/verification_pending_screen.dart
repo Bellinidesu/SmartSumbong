@@ -35,7 +35,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../theme.dart';

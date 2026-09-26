@@ -21,6 +21,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
+import '../tanod/tanod_strings.dart';
+import '../tanod/widgets/tanod_nav_bar.dart';
 import '../widgets/resident_nav_bar.dart';
 
 /// The barangay's page. Worth confirming with them before deployment —
@@ -258,10 +260,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    // One Settings for both roles (branch C): a tanod gets the tanod nav
+    // bar and Extra Administrative Services; a resident gets notification
+    // preferences and Delete Account (a tanod retires instead).
+    final tanod = AppRoleController.instance.value == AppRole.tanod;
 
     return Scaffold(
-      bottomNavigationBar:
-          const ResidentNavBar(current: ResidentTab.settings),
+      bottomNavigationBar: tanod
+          ? const TanodNavBar(current: TanodTab.settings)
+          : const ResidentNavBar(current: ResidentTab.settings),
       body: SafeArea(
         bottom: false,
         child: ListView(
@@ -387,6 +394,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               busy: _biometricBusy,
               onChanged: _onBiometricToggle,
             ),
+            if (!tanod)
             _SettingsRow(
               icon: Icons.notifications_none,
               label: s.settingsNotificationPrefs,
@@ -412,6 +420,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
               },
             ),
+            if (tanod)
+              _SettingsRow(
+                icon: Icons.admin_panel_settings_outlined,
+                label: context.ts.settingsExtraAdminServices,
+                onTap: () =>
+                    Navigator.of(context).pushNamed('/t/extra-admin-services'),
+              ),
+            if (!tanod)
             _SettingsRow(
               icon: Icons.delete_outline,
               label: s.settingsDeleteAccount,

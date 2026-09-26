@@ -121,7 +121,7 @@ class _ReportsScreenState extends State<TanodReportsScreen> {
       if (!mounted) return;
       setState(() {
         _rows = [
-          for (final r in rows) _Assigned.fromRow(r as Map<String, dynamic>),
+          for (final r in rows) _Assigned.fromRow(r),
         ];
         _error = null;
       });

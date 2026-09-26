@@ -1226,6 +1226,23 @@ class Strings {
   String get accountStatusRegisterAgain =>
       _t('Register again', 'Magrehistro Ulit');
   String get accountStatusSignOut => _t('Sign out', 'Mag-sign Out');
+  // A retired tanod (0052); moved from the tanod app (branch C).
+  String get accountStatusRetiredTitle =>
+      _t('You have retired', 'Nagretiro Ka Na');
+  String get accountStatusRetiredBody => _t(
+      'The barangay approved your retirement request. Thank you for your '
+      'service as a tanod of Barangay 183.',
+      'Inaprubahan ng barangay ang iyong kahilingan sa pagreretiro. '
+      'Salamat sa iyong paglilingkod bilang tanod ng Barangay 183.');
+  String get accountStatusRetiredDateLabel =>
+      _t('Retired since', 'Nagretiro Noong');
+  String get accountStatusRetiredNote => _t(
+      'This account can no longer sign in. Your records remain on file '
+      'with the barangay. If you believe this was a mistake, visit the '
+      'barangay hall.',
+      'Hindi na maaaring mag-sign in gamit ang account na ito. Nananatili '
+      'ang iyong mga record sa barangay. Kung sa tingin mo ay may '
+      'pagkakamali, pumunta sa barangay hall.');
 
   // ---------- change password ----------
   String get changePasswordTooShort => _t(

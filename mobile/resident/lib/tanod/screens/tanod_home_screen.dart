@@ -185,7 +185,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
         _error = null;
         _firstName = name.isEmpty ? null : name.split(' ').first;
         _incoming = [
-          for (final r in open) Ticket.fromRow(r as Map<String, dynamic>),
+          for (final r in open) Ticket.fromRow(r),
         ];
         _loading = false;
       });

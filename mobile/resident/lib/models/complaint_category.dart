@@ -28,7 +28,6 @@
 // recategorise. Worth raising with Rose and the adviser rather than
 // leaving as a silent choice.
 
-import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 /// Mirrors `public.complaint_category` in 0001.
 enum ComplaintCategory {
