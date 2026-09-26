@@ -363,6 +363,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?= e(t('Near', 'Malapit sa')) ?> <?= e($report['location_label']) ?>
       </p>
     <?php endif; ?>
+    <!-- Filled in by the map script: the Project NOAH hazard levels at
+         this spot, only when there is one. -->
+    <p class="case-filed case-hazard" id="case-hazard" hidden></p>
 
     <?php if (!empty($report['due_at'])
               && !in_array($status, ['resolved','closed','archived','rejected'], true)): ?>
@@ -867,6 +870,17 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     map.keyboard.disableRotation();
     mapFollowTheme(map);
     mapLandmarks(map);
+    hazardAt(lng, lat).then(function (h) {
+      var names = [T('none', 'wala'), T('low', 'mababa'), T('medium', 'katamtaman'), T('high', 'mataas')];
+      var bits = [];
+      if (h.flood) bits.push(T('Flood hazard (100-year): ', 'Panganib ng baha (100-taon): ') + names[h.flood]);
+      if (h.surge) bits.push(T('Storm surge: ', 'Daluyong: ') + names[h.surge]);
+      if (!bits.length) return;
+      var el = document.getElementById('case-hazard');
+      el.textContent = bits.join(' · ') + ' — Project NOAH';
+      el.classList.toggle('is-high', Math.max(h.flood, h.surge) >= 3);
+      el.hidden = false;
+    }).catch(function () {});
     // Navy on the light map, pale blue on the dark one.
     new maplibregl.Marker({ color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#a9c1ff' : '#00308f' })
       .setLngLat([lng, lat]).addTo(map);

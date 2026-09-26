@@ -58,6 +58,7 @@ class _MapScreenState extends State<MapScreen> {
   final _map = BrgyMapController();
 
   bool _showReports = false;
+  bool _hazards = false;
   List<_Pin>? _pins;
   bool _loading = false;
 
@@ -218,6 +219,7 @@ class _MapScreenState extends State<MapScreen> {
                         BrgyMap(
                           controller: _map,
                           boundary: true,
+                          hazards: _hazards,
                           restrictToBarangay: true,
                           attributionBottom: 12,
                           cornerRadius: 25,
@@ -246,6 +248,17 @@ class _MapScreenState extends State<MapScreen> {
                             child: const CircularProgressIndicator(
                                 color: Colors.white),
                           ),
+
+                        // Project NOAH's flood zones on demand (branch B),
+                        // with their three levels spelled out.
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: _HazardChip(
+                            on: _hazards,
+                            onTap: () => setState(() => _hazards = !_hazards),
+                          ),
+                        ),
 
                         // The drag affordance from the design, 25x25
                         // at 11/13 from the frame's bottom-left corner,
@@ -308,6 +321,71 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Flood-hazard toggle on the map, and its legend while on.
+class _HazardChip extends StatelessWidget {
+  const _HazardChip({required this.on, required this.onTap});
+
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final c = context.colors;
+    final text = TextStyle(
+        fontFamily: 'Urbanist', fontSize: 11.5, fontWeight: FontWeight.w600, color: c.navy);
+    Widget swatch(Color colour, String label) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                    color: colour.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 4),
+            Text(label, style: text),
+          ]),
+        );
+    return Material(
+      color: c.field,
+      elevation: 2,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(on ? Icons.water_drop : Icons.water_drop_outlined,
+                    size: 16, color: const Color(0xFF0891B2)),
+                const SizedBox(width: 5),
+                Text(s.mapHazardToggle,
+                    style: text.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700)),
+              ]),
+              if (on) ...[
+                const SizedBox(height: 5),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  swatch(const Color(0xFFFACC15), s.mapHazardLow),
+                  swatch(const Color(0xFFF97316), s.mapHazardMedium),
+                  swatch(const Color(0xFFDC2626), s.mapHazardHigh),
+                ]),
+                const SizedBox(height: 3),
+                Text(s.mapHazardSource,
+                    style: text.copyWith(fontSize: 10, fontWeight: FontWeight.w500, color: c.muted)),
+              ],
+            ],
+          ),
         ),
       ),
     );

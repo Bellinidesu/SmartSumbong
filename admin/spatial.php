@@ -65,6 +65,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <label class="toggle"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
       <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
       <label class="toggle"><input type="checkbox" id="f-landmarks" checked> <?= e(t('Landmarks', 'Mga palatandaan')) ?></label>
+      <label class="toggle"><input type="checkbox" id="f-hazard"> <?= e(t('Flood hazard', 'Panganib ng baha')) ?></label>
 
       <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
@@ -80,6 +81,23 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 
     <div class="conn-strip" id="conn" hidden role="status">
       <span class="conn-dot"></span><span id="conn-text"><?= e(t('Reconnecting…', 'Kumokonekta muli…')) ?></span>
+    </div>
+
+    <!-- Project NOAH hazard legend, shown with the overlay. -->
+    <div class="hazard-legend" id="hazard-legend" hidden>
+      <p class="hazard-legend-title"><?= e(t('Flood hazard (100-year rain)', 'Panganib ng baha (100-taóng ulan)')) ?></p>
+      <ul>
+        <li><span style="background:#facc15"></span><?= e(t('Low', 'Mababa')) ?></li>
+        <li><span style="background:#f97316"></span><?= e(t('Medium', 'Katamtaman')) ?></li>
+        <li><span style="background:#dc2626"></span><?= e(t('High', 'Mataas')) ?></li>
+      </ul>
+      <p class="hazard-legend-title"><?= e(t('Storm surge (worst case)', 'Daluyong (pinakamalala)')) ?></p>
+      <ul>
+        <li><span style="background:#c4b5fd"></span><?= e(t('Low', 'Mababa')) ?></li>
+        <li><span style="background:#8b5cf6"></span><?= e(t('Medium', 'Katamtaman')) ?></li>
+        <li><span style="background:#5b21b6"></span><?= e(t('High', 'Mataas')) ?></li>
+      </ul>
+      <p class="hazard-legend-src">Project NOAH &middot; UP NOAH Center</p>
     </div>
 
     <div class="map-dock">
@@ -335,13 +353,19 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
   });
   map.on('click', 'hotspots', e => { const h = hotspots[e.features[0].properties.i]; if (h) showHotspotDetail(h); });
 
-  // Under the hotspots and pins, over the heat.
+  // Hazards lowest of our layers, under the heat; landmarks under the
+  // hotspots and pins, over the heat.
+  hazards = mapHazards(map, { before: 'heat', hidden: !document.getElementById('f-hazard').checked });
   landmarks = mapLandmarks(map, { before: 'hotspots',
                                   hidden: !document.getElementById('f-landmarks').checked });
 
   resolve();
 }));
-let landmarks = null;
+let landmarks = null, hazards = null;
+document.getElementById('f-hazard').addEventListener('change', e => {
+  if (hazards) hazards.show(e.target.checked);
+  document.getElementById('hazard-legend').hidden = !e.target.checked;
+});
 document.getElementById('f-landmarks').addEventListener('change', e => {
   if (landmarks) landmarks.show(e.target.checked);
 });

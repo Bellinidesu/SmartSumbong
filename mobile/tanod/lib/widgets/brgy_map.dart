@@ -132,6 +132,7 @@ class BrgyMap extends StatefulWidget {
     this.initialCenter = brgyCentre,
     this.initialZoom = 17,
     this.boundary = false,
+    this.hazards = false,
     this.restrictToBarangay = false,
     this.interactive = true,
     this.pins = const [],
@@ -150,6 +151,9 @@ class BrgyMap extends StatefulWidget {
 
   /// Dim everything outside Barangay 183 and outline it.
   final bool boundary;
+
+  /// Project NOAH's flood and storm-surge hazard zones (branch B).
+  final bool hazards;
 
   /// Keep the camera over the residential grid, zoom 15 and closer.
   final bool restrictToBarangay;
@@ -210,6 +214,9 @@ class _BrgyMapState extends State<BrgyMap> {
     super.didUpdateWidget(old);
     if (!_styleReady) return;
     if (!listEquals(old.pins, widget.pins)) unawaited(_setPins());
+    if (old.hazards != widget.hazards) {
+      unawaited(_map?.setLayerVisibility('hazard-fill', widget.hazards));
+    }
     if (old.accuracyCentre != widget.accuracyCentre ||
         old.accuracyMetres != widget.accuracyMetres) {
       unawaited(_setAccuracy());
@@ -246,6 +253,7 @@ class _BrgyMapState extends State<BrgyMap> {
     final dpr = MediaQuery.devicePixelRatioOf(context);
     try {
       if (widget.boundary) await _addBoundary(map, dark);
+      await _addHazards(map);
       await _addLandmarks(map, dark);
 
       await map.addGeoJsonSource('accuracy', _empty);
@@ -301,6 +309,37 @@ class _BrgyMapState extends State<BrgyMap> {
   }
 
   static const _empty = {'type': 'FeatureCollection', 'features': []};
+
+  /// Project NOAH's 100-year flood map and worst-case storm surge,
+  /// clipped to Barangay 183 (UP NOAH Center, ODbL) — the same file and
+  /// colours as the admin portal (assets/map/hazards.geojson). Hidden
+  /// unless [BrgyMap.hazards]; under the landmarks and pins.
+  Future<void> _addHazards(ml.MapLibreMapController map) async {
+    try {
+      final data =
+          jsonDecode(await rootBundle.loadString('assets/map/hazards.geojson'));
+      await map.addGeoJsonSource('hazards', data as Map<String, dynamic>);
+      await map.addFillLayer(
+        'hazards',
+        'hazard-fill',
+        ml.FillLayerProperties(
+          fillColor: const [
+            'match',
+            ['concat', ['get', 'hazard'], '-', ['to-string', ['get', 'level']]],
+            'flood-1', '#FACC15', 'flood-2', '#F97316', 'flood-3', '#DC2626',
+            'surge-1', '#C4B5FD', 'surge-2', '#8B5CF6', 'surge-3', '#5B21B6',
+            '#94A3B8',
+          ],
+          fillOpacity: 0.38,
+          fillAntialias: false,
+          visibility: widget.hazards ? 'visible' : 'none',
+        ),
+        enableInteraction: false,
+      );
+    } catch (e) {
+      debugPrint('BrgyMap hazards: $e');
+    }
+  }
 
   /// The barangay hall, schools, chapels, police posts, clinics, parks,
   /// malls — reference points to steer by (branch B). The same curated

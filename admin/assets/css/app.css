@@ -2685,3 +2685,20 @@ a.btn-accept { text-decoration: none; }
 .loc-pin { width: 14px; height: 14px; flex: none; }
 .map-label-place { display: block; font-family: var(--font-body); font-weight: 600; margin-bottom: 1px; }
 .detail-place { margin: 2px 0 6px; font-size: 12.5px; color: var(--ink-soft); }
+
+/* ---------- Hazard overlay (Project NOAH, branch B) ---------- */
+.hazard-legend {
+  position: absolute; left: 14px; bottom: 40px; z-index: 600;
+  padding: 10px 12px; min-width: 190px;
+  background: var(--dk-glass, rgba(255, 255, 255, .95));
+  border-radius: 10px; box-shadow: var(--shadow);
+  font-size: 12px; color: var(--ink);
+}
+.hazard-legend[hidden] { display: none; }
+.hazard-legend-title { margin: 0 0 4px; font-weight: 700; }
+.hazard-legend ul { display: flex; gap: 10px; margin: 0 0 8px; padding: 0; list-style: none; }
+.hazard-legend li { display: flex; align-items: center; gap: 5px; }
+.hazard-legend li span { width: 12px; height: 12px; border-radius: 3px; opacity: .8; }
+.hazard-legend-src { margin: 0; font-size: 10.5px; color: var(--ink-soft); }
+.case-hazard { color: var(--dk-amber-ink, #a35c00); font-weight: 600; margin-top: -8px; }
+.case-hazard.is-high { color: var(--dk-red-ink, #a01818); }

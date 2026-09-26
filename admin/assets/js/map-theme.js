@@ -89,3 +89,66 @@
     };
   };
 })();
+
+// Hazard overlay (branch B): Project NOAH's 100-year flood map and its
+// worst-case storm surge (Storm Surge Advisory 4), clipped to Barangay
+// 183 — open data from the UP NOAH Center (ODbL), in
+// assets/map/hazards.geojson. NOAH's own colours for flood (yellow,
+// orange, red for low, medium, high); purples for surge so the two read
+// apart. Off until asked for; drawn under the heat, landmarks and pins.
+(function () {
+  var FILL = ['match', ['concat', ['get', 'hazard'], '-', ['to-string', ['get', 'level']]],
+    'flood-1', '#facc15', 'flood-2', '#f97316', 'flood-3', '#dc2626',
+    'surge-1', '#c4b5fd', 'surge-2', '#8b5cf6', 'surge-3', '#5b21b6', '#94a3b8'];
+  var data = null;
+  window.hazardData = function () {
+    return data || (data = fetch('assets/map/hazards.geojson').then(function (r) { return r.json(); }));
+  };
+
+  window.mapHazards = function (map, opts) {
+    opts = opts || {};
+    function add() {
+      if (map.getSource('hazards')) return;
+      map.addSource('hazards', { type: 'geojson', data: 'assets/map/hazards.geojson',
+                                 attribution: 'Hazard maps &copy; UP NOAH Center (Project NOAH)' });
+      var before = opts.before && map.getLayer(opts.before) ? opts.before : undefined;
+      map.addLayer({ id: 'hazard-fill', type: 'fill', source: 'hazards',
+        layout: { visibility: opts.hidden ? 'none' : 'visible' },
+        paint: { 'fill-color': FILL, 'fill-opacity': 0.38, 'fill-antialias': false } }, before);
+    }
+    try { add(); } catch (e) { map.once('load', add); }
+    return {
+      show: function (on) {
+        if (map.getLayer('hazard-fill')) map.setLayoutProperty('hazard-fill', 'visibility', on ? 'visible' : 'none');
+      },
+    };
+  };
+
+  // Which hazard levels a point sits in: {flood: 0-3, surge: 0-3}.
+  function inRing(ring, x, y) {
+    var c = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  }
+  function inPolygon(poly, x, y) {
+    if (!inRing(poly[0], x, y)) return false;
+    for (var k = 1; k < poly.length; k++) if (inRing(poly[k], x, y)) return false;
+    return true;
+  }
+  window.hazardAt = function (lng, lat) {
+    return hazardData().then(function (fc) {
+      var out = { flood: 0, surge: 0 };
+      fc.features.forEach(function (f) {
+        var g = f.geometry, polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+        if (polys.some(function (p) { return inPolygon(p, lng, lat); })) {
+          var k = f.properties.hazard;
+          out[k] = Math.max(out[k], f.properties.level);
+        }
+      });
+      return out;
+    });
+  };
+})();
