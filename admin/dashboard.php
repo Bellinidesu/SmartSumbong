@@ -269,8 +269,8 @@ layout_head('Dashboard', 'dashboard.php');
   var status     = <?= json_encode($status) ?>;
   var categories = <?= json_encode($categories, JSON_UNESCAPED_UNICODE) ?>;
 
-  var css = getComputedStyle(document.documentElement);
-  function token(name) { return css.getPropertyValue(name).trim(); }
+  // Read fresh each time: the values change with the theme (branch B).
+  function token(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
   Chart.defaults.font.family = "'Urbanist', system-ui, sans-serif";
   Chart.defaults.color = token('--ink-soft');
@@ -288,7 +288,7 @@ layout_head('Dashboard', 'dashboard.php');
   // needs to work realtime") can push fresh data into the same instances
   // instead of tearing them down and rebuilding on every change.
   var receivedChart = null, statusChart = null, categoryChart = null, efficiencyChart = null;
-  var categoryPalette = ['#00308f', '#ff9800', '#2563eb', '#22c55e', '#a855f7', '#ef4444', '#0891b2'];
+  var categoryPalette = [token('--chart-navy'), '#ff9800', '#2563eb', '#22c55e', '#a855f7', '#ef4444', '#0891b2'];
 
   function renderCategoryLegend(cats, colours) {
     var list = document.getElementById('legend-category');
@@ -314,11 +314,11 @@ layout_head('Dashboard', 'dashboard.php');
         labels: daily.map(function (d) { return d.label; }),
         datasets: [{
           data: daily.map(function (d) { return d.filed; }),
-          borderColor: token('--navy'),
-          backgroundColor: 'rgba(0, 48, 143, .10)',
+          borderColor: token('--chart-navy'),
+          backgroundColor: token('--chart-navy-fill'),
           fill: true, tension: .35, borderWidth: 2,
           pointRadius: 0, pointHoverRadius: 5,
-          pointHoverBackgroundColor: token('--navy')
+          pointHoverBackgroundColor: token('--chart-navy')
         }]
       },
       options: {
@@ -448,6 +448,29 @@ layout_head('Dashboard', 'dashboard.php');
       }
     });
   }
+
+  // Dark/light switched from the sidebar (branch B): the same charts,
+  // recoloured from the theme's tokens, without a reload.
+  window.addEventListener('themechange', function () {
+    Chart.defaults.color = token('--ink-soft');
+    categoryPalette[0] = token('--chart-navy');
+    if (receivedChart) {
+      var ds = receivedChart.data.datasets[0];
+      ds.borderColor = ds.pointHoverBackgroundColor = token('--chart-navy');
+      ds.backgroundColor = token('--chart-navy-fill');
+      receivedChart.options.scales.y.grid.color = token('--rule');
+    }
+    if (categoryChart) {
+      var c2 = categoryChart.data.datasets[0].data.map(function (_, i) { return categoryPalette[i % categoryPalette.length]; });
+      categoryChart.data.datasets[0].backgroundColor = c2;
+      renderCategoryLegend(categories, c2);
+    }
+    if (efficiencyChart) {
+      efficiencyChart.data.datasets[1].borderColor = token('--ink-soft');
+      efficiencyChart.options.scales.y.grid.color = token('--rule');
+    }
+    [receivedChart, statusChart, categoryChart, efficiencyChart].forEach(function (ch) { if (ch) ch.update('none'); });
+  });
 
   // ================= Realtime, added 6 Sep 2026 =================
   // Explicit ask: "the entire system needs to work realtime." dashboard_metrics()

@@ -44,9 +44,10 @@ function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();
     ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= html_lang() ?>">
 <head>
 <meta charset="utf-8">
+<?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title) ?> — Smart Sumbong | Barangay 183</title>
 <link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
@@ -83,6 +84,8 @@ function layout_head(string $title, string $active = ''): void
     <?php endforeach; ?>
 
     <div class="nav-spacer"></div>
+
+    <?= prefs_switches('prefs--sidebar') ?>
 
     <a class="nav-item" href="logout.php"><?= nav_icon('out') ?><span>Log out</span></a>
   </nav>

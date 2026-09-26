@@ -48,9 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= html_lang() ?>">
 <head>
 <meta charset="utf-8">
+<?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Forgot password — Smart Sumbong</title>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
@@ -75,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </aside>
 
   <section class="login-panel">
+    <?= prefs_switches('prefs--login') ?>
     <?php
     $bg = null;
     foreach (['villamor-street.jpg', 'villamor-street.png'] as $candidate) {

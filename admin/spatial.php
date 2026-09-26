@@ -162,6 +162,7 @@ layout_head('Spatial Distribution', 'spatial.php');
 
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
+<script src="assets/js/map-theme.js"></script>
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
 // Self-hosted rather than imported from esm.sh. This script runs with the
@@ -290,7 +291,7 @@ function addSvgImage(name, svg) {
 // raster tiles.
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'assets/map/style-light.json',
+  style: window.mapStyleUrl(),
   center: RESIDENTIAL_CENTRE,
   zoom: DEFAULT_ZOOM,
   minZoom: 15,
@@ -304,6 +305,7 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 map.touchZoomRotate.disableRotation();
 map.keyboard.disableRotation();
+mapFollowTheme(map);
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
 const EMPTY = { type: 'FeatureCollection', features: [] };

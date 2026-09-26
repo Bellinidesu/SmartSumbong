@@ -776,6 +776,7 @@ layout_head('Case Review', 'cases.php');
 
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
+<script src="assets/js/map-theme.js"></script>
 <script>
 (function () {
   // ---- copy the tracking id ----
@@ -850,14 +851,17 @@ layout_head('Case Review', 'cases.php');
     // Leaflet's 17 — MapLibre's scale sits one lower.
     var map = new maplibregl.Map({
       container: el,
-      style: 'assets/map/style-light.json',
+      style: window.mapStyleUrl(),
       center: [lng, lat], zoom: 16, maxZoom: 18,
       interactive: true, dragRotate: false, pitchWithRotate: false,
       attributionControl: { compact: true }
     });
     map.touchZoomRotate.disableRotation();
     map.keyboard.disableRotation();
-    new maplibregl.Marker({ color: '#00308f' }).setLngLat([lng, lat]).addTo(map);
+    mapFollowTheme(map);
+    // Navy on the light map, pale blue on the dark one.
+    new maplibregl.Marker({ color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#a9c1ff' : '#00308f' })
+      .setLngLat([lng, lat]).addTo(map);
     // Folded to its (i) button: opened, it covers the coordinates label.
     map.on('load', function () {
       var attrib = el.querySelector('.maplibregl-ctrl-attrib');

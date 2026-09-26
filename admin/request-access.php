@@ -14,9 +14,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/layout.php';
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= html_lang() ?>">
 <head>
 <meta charset="utf-8">
+<?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Request access — Smart Sumbong | Barangay 183</title>
 <link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
@@ -41,6 +42,7 @@ require_once __DIR__ . '/includes/layout.php';
   </aside>
 
   <section class="login-panel">
+    <?= prefs_switches('prefs--login') ?>
     <?php if (is_file(__DIR__ . '/assets/img/villamor-street.jpg')): ?>
       <img class="login-panel-bg" src="assets/img/villamor-street.jpg" alt="" aria-hidden="true">
     <?php endif; ?>

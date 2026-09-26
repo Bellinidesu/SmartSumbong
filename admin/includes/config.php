@@ -62,6 +62,8 @@ function supabase_key(): string
     );
 }
 
+require_once __DIR__ . '/i18n.php';
+
 function e(?string $s): string
 {
     return htmlspecialchars($s ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
