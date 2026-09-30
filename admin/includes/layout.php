@@ -540,6 +540,19 @@ function timeline_title(array $log): string
     if (str_starts_with($remark, 'Tanod has arrived')) {
         return t('Tanod Arrived', 'Nakarating ang Tanod');
     }
+    // The resident's side of the trail (0057, 0065).
+    if (str_starts_with($remark, 'Resident requested reopening')) {
+        return t('Reopen Requested', 'Hiniling na Buksan Muli');
+    }
+    if (str_starts_with($remark, 'More details requested')) {
+        return t('More Details Requested', 'Humiling ng Karagdagang Detalye');
+    }
+    if (str_starts_with($remark, 'Resident sent more details')) {
+        return t('More Details Sent', 'Nagpadala ng Karagdagang Detalye');
+    }
+    if (str_starts_with($remark, 'Appeal requested') || str_starts_with($remark, 'Resident appealed')) {
+        return t('Appeal Requested', 'Humiling ng Apela');
+    }
     // 0072: the admin's referral and the resident's follow-up.
     if (str_starts_with($remark, 'Referred to ') || str_starts_with($remark, 'Escalated to ')) {
         return t('Escalated to an Outside Office', 'In-escalate sa Ibang Tanggapan');

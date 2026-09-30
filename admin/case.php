@@ -538,9 +538,6 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
     <div class="case-flags">
       <span class="pill pill--<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
-      <?php if (report_is_overdue($report)): ?>
-        <span class="pill pill--escalated"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span>
-      <?php endif; ?>
       <?php if (!empty($report['referred_to'])): ?>
         <span class="pill pill--escalated"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($report['referred_to']) ?></span>
       <?php endif; ?>
@@ -558,7 +555,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <?= e(t('Resident followed up', 'Nag-follow up ang residente')) ?><?= (int) ($report['follow_up_count'] ?? 0) > 1 ? ' ' . (int) $report['follow_up_count'] . '&times;' : '' ?>
         </span>
       <?php endif; ?>
-      <?php if (!empty($report['awaiting_unit_since'])): ?>
+      <?php if (!empty($report['awaiting_unit_since']) && !$active): ?>
         <span class="pill pill--rejected"><?= e(t('Awaiting a unit since', 'Naghihintay ng tanod mula')) ?> <?= e(relative_time($report['awaiting_unit_since'])) ?></span>
       <?php endif; ?>
       <?php if (($report['reopened_count'] ?? 0) > 0): ?>
@@ -924,6 +921,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <?php if (!empty($active['admin_instructions'])): ?>
             <p class="assigned-note"><?= e($active['admin_instructions']) ?></p>
           <?php endif; ?>
+          <?php if (!empty($report['due_at'])): ?>
+            <p class="assigned-meta"><?= e(t('Resolution target:', 'Target na paglutas:')) ?> <strong><?= e(long_datetime($report['due_at'])) ?></strong></p>
+          <?php endif; ?>
         </div>
 
         <?php // 0070: the admin's reroute. The system's own (a tanod's
@@ -976,7 +976,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </p>
       <?php endif; ?>
 
-      <?php if (!empty($report['due_at'])): ?>
+      <?php if (!empty($report['due_at']) && !$active): ?>
         <p class="due-line"><?= e(t('Resolution target:', 'Target na paglutas:')) ?> <strong><?= e(long_datetime($report['due_at'])) ?></strong></p>
       <?php endif; ?>
     <?php endif; ?>
