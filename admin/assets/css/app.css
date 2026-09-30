@@ -1439,7 +1439,6 @@ a { text-decoration: none; color: inherit; }
 
 /* ---------- the printable document ---------- */
 
-.doc-body { background: var(--dk-surface-2, #f2f3f6); }
 .doc {
   background: var(--dk-surface, #fff);
   max-width: 820px;
@@ -1449,27 +1448,13 @@ a { text-decoration: none; color: inherit; }
   color: var(--dk-ink, #111);
 }
 
-.doc-head { display: grid; grid-template-columns: 78px 1fr 78px; align-items: center; gap: 18px; }
-.doc-seal { width: 78px; height: 78px; object-fit: contain; }
-.doc-org { text-align: center; line-height: 1.35; }
-.doc-org p { margin: 0; font-size: 13px; }
-.doc-org-main { font-weight: 700; font-size: 15px; letter-spacing: .01em; }
 
-.doc-rule {
-  display: flex; justify-content: space-between;
-  border-bottom: 1.5px solid var(--dk-line-strong, #111);
-  padding: 14px 0 6px; margin-bottom: 22px;
-  font-size: 12px; font-weight: 700; letter-spacing: .03em;
-}
-.doc-left { color: var(--dk-red-ink, #8a1420); }
 
 .doc-title {
   text-align: center; font-family: var(--font-display);
   font-size: 20px; font-style: italic; font-weight: 700; margin: 0 0 22px;
 }
 
-.doc-tiles { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; margin-bottom: 26px; }
-.doc-tiles strong { font-size: 17px; }
 
 .doc-block { margin-bottom: 26px; break-inside: auto; }
 .doc .table-wrap { border: 0; }
@@ -1477,16 +1462,9 @@ a { text-decoration: none; color: inherit; }
 .doc .case-table td, .doc .case-table th { border: 1px solid var(--dk-line, #d8dce4); padding: 6px 8px; }
 .doc .case-table tbody tr { box-shadow: none; }
 
-.doc-sign { display: flex; gap: 60px; margin-top: 46px; }
-.sign-slot { display: flex; flex-direction: column; gap: 3px; min-width: 240px; }
-.sign-rule { display: block; border-top: 1px solid var(--dk-line-strong, #111); margin-bottom: 5px; }
-.sign-name { font-size: 13px; font-weight: 600; }
-.sign-role { font-size: 11.5px; color: var(--dk-ink-body, #555); }
 
-.doc-date { text-align: right; font-size: 12px; font-weight: 700; color: var(--dk-red-ink, #8a1420); margin-top: 30px; }
 
 @media print {
-  .doc-body { background: var(--dk-surface, #fff); }
   .doc { margin: 0; max-width: none; padding: 0; }
   .doc-block { break-inside: avoid; }
   thead { display: table-header-group; }
@@ -2603,3 +2581,6 @@ a.btn-accept { text-decoration: none; }
   background: var(--dk-surface, #fff); color: var(--ink); border: 1px solid var(--rule); border-radius: 10px;
   padding: 8px 14px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 .map-note--error { color: var(--dk-red-ink, #a01818); border-color: currentColor; }
+
+/* The printable certificate, from the escalated case's card (30 Sep 2026). */
+.cert-link { display: block; margin-top: 10px; text-align: center; text-decoration: none; }

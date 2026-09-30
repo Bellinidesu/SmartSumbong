@@ -1089,6 +1089,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php if (!empty($report['referral_note'])): ?>
           <p class="assigned-note"><?= e($report['referral_note']) ?></p>
         <?php endif; ?>
+        <a class="btn-dispatch cert-link" target="_blank" rel="noopener" href="certificate.php?id=<?= e($id) ?>">
+          <?= e(t('Certification of Lack of Jurisdiction', 'Sertipikasyon ng Kawalan ng Hurisdiksyon')) ?>
+        </a>
       </div>
     <?php elseif (!in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
       <?php // 0072: escalation = referral to an office outside the barangay. ?>
@@ -1103,7 +1106,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <textarea id="refer-note" name="note" rows="2" maxlength="300"
                       placeholder="<?= e(t('e.g. Please visit the VAWC desk at the barangay hall with a valid ID.', 'hal. Pumunta sa VAWC desk sa barangay hall na may dalang valid ID.')) ?>"></textarea>
           </div>
-          <p class="control-note"><?= e(t('This closes the complaint here and stands down any tanod on it.', 'Isasara nito ang sumbong dito at ititigil ang sinumang tanod na nakatalaga.')) ?></p>
+          <p class="control-note"><?= e(t('This closes the complaint here and stands down any tanod on it. Afterwards you can print the Certification of Lack of Jurisdiction for the resident.', 'Isasara nito ang sumbong dito at ititigil ang sinumang tanod na nakatalaga. Pagkatapos, maaari mong i-print ang Sertipikasyon ng Kawalan ng Hurisdiksyon para sa residente.')) ?></p>
           <button class="btn-deny-confirm" type="submit"><?= e(t('Escalate', 'I-escalate')) ?></button>
         </form>
       </details>

@@ -336,6 +336,9 @@ function escalation_offices(): array
         'City Environment Office'    => t('City Environment Office (ENRO)', 'City Environment Office (ENRO)'),
         'Bureau of Fire Protection'  => t('Bureau of Fire Protection (BFP)', 'Bureau of Fire Protection (BFP)'),
         'City Health Office'         => t('City Health Office', 'City Health Office'),
+        // With the Certification of Lack of Jurisdiction's own reasons.
+        'Office of the Ombudsman'    => t('Office of the Ombudsman (a public officer, in official duties)', 'Office of the Ombudsman (pampublikong opisyal, sa tungkulin)'),
+        'Regular Courts'             => t('Regular courts (parties live in different cities)', 'Regular na hukuman (magkaibang lungsod ang tirahan)'),
     ];
 }
 

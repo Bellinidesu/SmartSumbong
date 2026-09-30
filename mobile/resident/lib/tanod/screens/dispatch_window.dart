@@ -757,6 +757,8 @@ class _DispatchWindowState extends State<DispatchWindow>
                       'City Environment Office',
                       'Bureau of Fire Protection',
                       'City Health Office',
+                      'Office of the Ombudsman',
+                      'Regular Courts',
                     ])
                       DropdownMenuItem(value: o, child: Text(o)),
                   ],

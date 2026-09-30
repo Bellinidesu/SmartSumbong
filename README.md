@@ -88,7 +88,9 @@ admin/                   PHP admin portal
                            admin action (validate, assign, reroute, approve
                            resolution, status, escalate, threads)
   spatial.php              map: pins, heatmap, hotspots
-  summary.php              Report Summary + printable PDF
+  summary.php              Report Summary
+  complaint-summary.php    its PDF: the barangay's Complaint Summary form
+  certificate.php          Certification of Lack of Jurisdiction (escalated cases)
   residents.php,
   personnel.php            accounts (includes/accounts.php)
   retirement-requests.php  Extra Administrative Services (includes/retirement.php)

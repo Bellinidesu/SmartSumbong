@@ -66,10 +66,12 @@ if ($to < $from) { [$from, $to] = [$to, $from]; }
 
 $fromISO = $from->format(DateTimeInterface::ATOM);
 $toISO   = $to->format(DateTimeInterface::ATOM);
-$isPrint = isset($_GET['print']);
-// The signed PDF is the barangay's official record: English, whatever
-// language the screen is set to (branch B).
-if ($isPrint) { force_lang('en'); }
+// The printable report is the barangay's Complaint Summary form
+// (complaint-summary.php, 30 Sep 2026); an old ?print=1 link goes there.
+if (isset($_GET['print'])) {
+    header('Location: complaint-summary.php?month=' . urlencode($from->format('Y-m')));
+    exit;
+}
 
 // The seven categories are fixed per the Scope and Limitations — same list
 // cases.php's category dropdown draws from.
@@ -80,7 +82,7 @@ const CATEGORIES = [
 $category = (string) ($_GET['category'] ?? '');
 if (!in_array($category, CATEGORIES, true)) { $category = ''; }
 
-if (!$isPrint) {
+{
     $_SESSION['summary_period'] = [
         'from'     => $from->format('Y-m-d'),
         'to'       => $to->format('Y-m-d'),
@@ -230,18 +232,14 @@ $tanodIds = array_unique(array_column($attendance, 'tanod_id'));
 $possible = max(1, count($tanodIds) * $days);
 $rate     = $tanodIds ? round(count($onDuty) / $possible * 100) : null;
 
-$periodLabel = $from->format('M j, Y') . ' — ' . $to->format('M j, Y');
-
 // This report's period can include today (the quick ranges above all do,
 // except "Last month"), in which case the figures below can still move
 // while it's on screen. A closed, past period is a fixed report and
 // should read as one — no live badge, nothing to watch.
-$isOngoing = !$isPrint && $to >= new DateTimeImmutable('today', $tz);
+$isOngoing = $to >= new DateTimeImmutable('today', $tz);
 
-$categoryLabel = $category !== '' ? category_label($category) : t('All Categories', 'Lahat ng Kategorya');
 
-if (!$isPrint) { layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php'); }
-else { print_head($periodLabel, $categoryLabel); }
+layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
 ?>
 
 <?php if ($error): ?>
@@ -257,7 +255,6 @@ else { print_head($periodLabel, $categoryLabel); }
   </div>
 <?php endif; ?>
 
-<?php if (!$isPrint): ?>
 <?php if ($isOngoing): ?>
   <!-- A signed, printable document should never move under an admin's
        feet — figures here only ever change on an explicit refresh, never
@@ -300,8 +297,9 @@ else { print_head($periodLabel, $categoryLabel); }
       <?php endforeach; ?>
     </div>
 
+    <?php // Rose (30 Sep 2026): the PDF is the barangay's Complaint Summary form. ?>
     <a class="btn-pdf" target="_blank" rel="noopener"
-       href="summary.php?print=1&amp;from=<?= e($from->format('Y-m-d')) ?>&amp;to=<?= e($to->format('Y-m-d')) ?>&amp;category=<?= e($category) ?>">
+       href="complaint-summary.php?month=<?= e($from->format('Y-m')) ?>">
       <?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?>
     </a>
   </header>
@@ -313,14 +311,6 @@ else { print_head($periodLabel, $categoryLabel); }
     <div class="tile"><strong><?= $avgDays === null ? '—' : $avgDays . t(' days', ' araw') ?></strong><span><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></span></div>
   </div>
 </section>
-<?php else: ?>
-  <div class="doc-tiles">
-    <span><strong><?= $total ?></strong> reports logged</span>
-    <span><strong><?= $resolved ?></strong> resolved</span>
-    <span><strong><?= $rate === null ? 'n/a' : $rate . '%' ?></strong> tanod attendance</span>
-    <span><strong><?= $avgDays === null ? 'n/a' : $avgDays . ' days' ?></strong> average resolution</span>
-  </div>
-<?php endif; ?>
 
 <!-- ---------- Resident Report Ledger ---------- -->
 <section class="panel doc-block">
@@ -441,24 +431,6 @@ else { print_head($periodLabel, $categoryLabel); }
   </div>
 </section>
 
-<?php if ($isPrint): ?>
-  <div class="doc-sign">
-    <div class="sign-slot">
-      <span class="sign-rule"></span>
-      <span class="sign-name">Prepared by: <?= e($admin['full_name']) ?></span>
-      <span class="sign-role">Barangay Administrator</span>
-    </div>
-    <div class="sign-slot">
-      <span class="sign-rule"></span>
-      <span class="sign-name">Noted by</span>
-      <span class="sign-role">Punong Barangay</span>
-    </div>
-  </div>
-  <p class="doc-date"><?= e((new DateTimeImmutable('now', $tz))->format('n.j.Y')) ?></p>
-  </div><!-- /doc -->
-  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
-  </body></html>
-<?php else: ?>
   <?php if ($isOngoing): ?>
   <script src="assets/vendor/supabase/supabase.js"></script>
   <script>
@@ -500,46 +472,3 @@ else { print_head($periodLabel, $categoryLabel); }
   </script>
   <?php endif; ?>
   <?php layout_foot(); ?>
-<?php endif; ?>
-
-<?php
-/**
- * The printable document. Letterhead first: seal left, Bagong Pilipinas
- * right, issuing body centred; then a ruled line carrying the report
- * name and the period, the way a paper carries name and section.
- */
-function print_head(string $period, string $categoryLabel = 'All Categories'): void
-{
-    $img = fn(string $f) => is_file(__DIR__ . '/assets/img/' . $f) ? 'assets/img/' . $f : null;
-    $seal = $img('brgy-183-seal.png');
-    $bp   = $img('bagong-pilipinas.png');
-    ?><!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Report Summary — <?= e($period) ?></title>
-<link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
-<link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
-</head>
-<body class="doc-body">
-<div class="doc">
-
-  <header class="doc-head">
-    <?php if ($seal): ?><img class="doc-seal" src="<?= e($seal) ?>" alt=""><?php endif; ?>
-    <div class="doc-org">
-      <p>Republic of the Philippines</p>
-      <p class="doc-org-main">CITY OF PASAY</p>
-      <p>Barangay 183, Zone 20</p>
-      <p>Villamor, Pasay City</p>
-    </div>
-    <?php if ($bp): ?><img class="doc-seal" src="<?= e($bp) ?>" alt=""><?php endif; ?>
-  </header>
-
-  <div class="doc-rule">
-    <span class="doc-left">COMPLAINT REPORT SUMMARY</span>
-    <span class="doc-right"><?= e($period) ?> &middot; <?= e($categoryLabel) ?></span>
-  </div>
-
-  <h1 class="doc-title">Smart Sumbong &mdash; Barangay Complaint Summary</h1>
-<?php
-}
