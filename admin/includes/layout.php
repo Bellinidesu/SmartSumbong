@@ -49,6 +49,31 @@ function layout_head(string $title, string $active = ''): void
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+// The live connections' token (27 Sep 2026). A page starts with the one
+// it was loaded with; this hands supabase-js a fresh one from token.php
+// before that runs out, so realtime and the polls keep working on a page
+// left open for hours. Pass it as createClient's accessToken option.
+window.ssAccessToken = function (initial) {
+  var token = initial, fetchedAt = Date.now(), pending = null;
+  function renew() {
+    pending = pending || fetch('token.php', { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) {
+        if (r.status === 401) { location.href = 'login.php?expired=1'; return null; }
+        return r.ok ? r.json() : null;
+      })
+      .then(function (d) { if (d && d.token) { token = d.token; fetchedAt = Date.now(); } })
+      .catch(function () {})
+      .then(function () { pending = null; });
+    return pending;
+  }
+  return function () {
+    return Date.now() - fetchedAt > 5 * 60 * 1000
+      ? renew().then(function () { return token; })
+      : Promise.resolve(token);
+  };
+};
+</script>
 <title><?= e($title) ?> — Smart Sumbong | Barangay 183</title>
 <link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
 <link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
@@ -296,6 +321,56 @@ function status_label(string $s): string
     return ucwords(str_replace('_', ' ', $s));
 }
 
+/**
+ * The outside offices a complaint can be escalated to (0072/0073), and
+ * the picker both escalation forms use. "Another office…" reveals a text
+ * field (case.php's script, by data-office).
+ */
+function escalation_offices(): array
+{
+    return [
+        'VAWC Desk'                  => t('VAWC Desk (violence against women and children)', 'VAWC Desk (karahasan sa kababaihan at bata)'),
+        'Philippine National Police' => t('Philippine National Police (PNP)', 'Philippine National Police (PNP)'),
+        'City Social Welfare Office' => t('City Social Welfare Office (DSWD)', 'City Social Welfare Office (DSWD)'),
+        'Lupong Tagapamayapa'        => t('Lupong Tagapamayapa (Katarungang Pambarangay)', 'Lupong Tagapamayapa (Katarungang Pambarangay)'),
+        'City Environment Office'    => t('City Environment Office (ENRO)', 'City Environment Office (ENRO)'),
+        'Bureau of Fire Protection'  => t('Bureau of Fire Protection (BFP)', 'Bureau of Fire Protection (BFP)'),
+        'City Health Office'         => t('City Health Office', 'City Health Office'),
+    ];
+}
+
+function office_picker(string $id, ?string $suggested = null): void
+{
+    $offices = escalation_offices();
+    ?>
+    <div class="control-field">
+      <label class="field-label" for="<?= e($id) ?>"><?= e(t('Escalate to', 'I-escalate sa')) ?></label>
+      <select id="<?= e($id) ?>" name="agency" required data-office>
+        <option value=""><?= e(t('Choose an office', 'Pumili ng tanggapan')) ?></option>
+        <?php foreach ($offices as $val => $lbl): ?>
+          <option value="<?= e($val) ?>" <?= $suggested === $val ? 'selected' : '' ?>><?= e($lbl) ?></option>
+        <?php endforeach; ?>
+        <option value="other"><?= e(t('Another office…', 'Ibang tanggapan…')) ?></option>
+      </select>
+    </div>
+    <div class="control-field" data-office-other hidden>
+      <label class="field-label" for="<?= e($id) ?>-other"><?= e(t('Name of the office', 'Pangalan ng tanggapan')) ?></label>
+      <input type="text" id="<?= e($id) ?>-other" name="agency_other" maxlength="120">
+    </div>
+    <?php
+}
+
+/**
+ * An open complaint whose admin-set target date has passed (0071/0072).
+ * Escalation is no longer automatic; this is what the screens show.
+ */
+function report_is_overdue(array $r): bool
+{
+    return !empty($r['due_at'])
+        && strtotime((string) $r['due_at']) < time()
+        && !in_array($r['status'] ?? '', ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true);
+}
+
 /** status_label() for every value, for the pages' live scripts to share. */
 function status_labels(): array
 {
@@ -450,8 +525,43 @@ function timeline_title(array $log): string
     if (str_starts_with($remark, 'Automatic dispatch gave up')) {
         return t('Automatic Dispatch Exhausted', 'Hindi Na-dispatch nang Awtomatiko');
     }
-    if (str_starts_with($remark, 'Resolution target set to')) {
+    if (str_starts_with($remark, 'Resolution target set to')
+        || str_starts_with($remark, 'Expected to be resolved by')) {   // 0071's wording
         return t('Resolution Target Set', 'Naitakda ang Target na Paglutas');
+    }
+    if (str_starts_with($remark, 'Resolution target moved')
+        || str_starts_with($remark, 'Expected resolution moved')) {
+        return t('Resolution Target Moved', 'Inilipat ang Target na Paglutas');
+    }
+    // The dispatch window's steps (0069) and the admin's reroute (0070).
+    if (str_starts_with($remark, 'Tanod is on the way')) {
+        return t('Tanod On the Way', 'Papunta na ang Tanod');
+    }
+    if (str_starts_with($remark, 'Tanod has arrived')) {
+        return t('Tanod Arrived', 'Nakarating ang Tanod');
+    }
+    // 0072: the admin's referral and the resident's follow-up.
+    if (str_starts_with($remark, 'Referred to ') || str_starts_with($remark, 'Escalated to ')) {
+        return t('Escalated to an Outside Office', 'In-escalate sa Ibang Tanggapan');
+    }
+    // 0073: resolution approval, escalation requests, manual status.
+    if (str_starts_with($remark, 'Resolution report submitted')) {
+        return t('Resolution Submitted for Approval', 'Isinumite ang Resolusyon para Aprubahan');
+    }
+    if (str_starts_with($remark, 'Resolution returned')) {
+        return t('Resolution Returned to Tanod', 'Ibinalik sa Tanod ang Resolusyon');
+    }
+    if (str_starts_with($remark, 'Escalation request denied')) {
+        return t('Escalation Request Denied', 'Tinanggihan ang Hiling na I-escalate');
+    }
+    if (str_starts_with($remark, 'Status set to')) {
+        return t('Status Updated', 'Na-update ang Katayuan');
+    }
+    if (str_starts_with($remark, 'The resident followed up')) {
+        return t('Resident Followed Up', 'Nag-follow Up ang Residente');
+    }
+    if (str_starts_with($remark, 'Rerouted by the barangay')) {
+        return t('Rerouted by the Barangay', 'Inilipat ng Barangay');
     }
 
     if ($old === null || $old === $new) {

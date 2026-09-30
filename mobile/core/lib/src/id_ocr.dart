@@ -16,6 +16,11 @@
 // read must never block registration, so every failure path here
 // degrades to an honest "couldn't read it" result rather than throwing.
 
+// Off for now (Rose, 27–30 Sep 2026): registration does not read the ID
+// photo and the app does not re-scan on request. The code stays for a
+// future update; true brings it back. The portal has the same switch
+// (ID_OCR_ENABLED in admin/includes/accounts.php).
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -25,6 +30,8 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'auth.dart' show IdDocumentType;
+
+const bool kIdOcrEnabled = false;
 
 /// What on-device OCR found on an ID photo, shaped to be written straight
 /// to the matching `users.ocr_*` columns (migrations 0039/0040) once the

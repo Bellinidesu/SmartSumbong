@@ -900,7 +900,6 @@ a.row-card:hover { border-color: var(--dk-navy-ink, var(--navy)); box-shadow: va
 }
 .case-filed svg { width: 14px; height: 14px; }
 
-.case-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 
 .case-block { border-top: 1px solid var(--rule); padding-top: 22px; margin-top: 22px; }
 .case-sub   { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
@@ -2217,17 +2216,6 @@ a.btn-accept { text-decoration: none; }
 .page-dashboard .donut-centre strong { font-size: 44px; font-weight: 500; }
 .page-dashboard .donut-centre span { font-size: 15px; }
 
-/* The Figma's white Download PDF: 1px border, radius 10. */
-.btn-pdf--outline {
-  background: var(--dk-surface, #fff);
-  color: var(--dk-ink, #141b34);
-  border: 1px solid var(--dk-line, rgba(0, 0, 0, .26));
-  border-radius: 10px;
-  padding: 11px 26px;
-  font-weight: 700;
-  font-size: 15px;
-}
-.btn-pdf--outline:hover { background: var(--dk-surface-2, #f5f6fa); }
 
 
 /* ---------- Personnel and Residents (Figma TanodLists, Resident Lists; branch B) ---------- */
@@ -2703,3 +2691,46 @@ a.btn-accept { text-decoration: none; }
 .case-hazard { color: var(--dk-amber-ink, #a35c00); font-weight: 600; margin-top: -8px; }
 .case-hazard.is-high { color: var(--dk-red-ink, #a01818); }
 .case-zone { margin-top: -8px; }
+
+/* The dispatch window thread (0069). */
+.thread { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.thread-step { align-self: center; font-size: 12px; font-weight: 700; color: var(--dk-amber-ink, #a35c00);
+  background: var(--dk-amber-bg, #fff4e2); border-radius: 12px; padding: 4px 12px; }
+.thread-msg { max-width: 78%; padding: 8px 12px; border-radius: 14px; font-size: 13.5px; }
+.thread-msg p { margin: 2px 0 0; color: var(--dk-ink-body, var(--ink)); }
+.thread-msg.is-tanod { align-self: flex-start; background: var(--dk-surface-2, #f3f5fa); border: 1px solid var(--rule); border-bottom-left-radius: 4px; }
+.thread-msg.is-admin { align-self: flex-end; background: var(--dk-blue-bg, #e8eefc); border-bottom-right-radius: 4px; }
+.thread-who { font-size: 11.5px; font-weight: 800; color: var(--orange); }
+.thread-msg time { display: block; margin-top: 4px; font-size: 10.5px; color: var(--ink-soft); text-align: right; }
+.thread-media { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.thread-media img { width: 88px; height: 88px; object-fit: cover; border-radius: 10px; display: block; }
+.thread-reply { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }
+.thread-reply textarea { flex: 1; resize: vertical; }
+.thread-send { background: var(--navy); color: #fff; border: 0; border-radius: 10px; padding: 9px 18px; font-weight: 700; cursor: pointer; }
+.thread-send:hover { background: var(--navy-deep); }
+
+/* The admin's reroute (0070), folded under the assigned card. */
+.reroute { margin-top: 14px; }
+.reroute > summary { cursor: pointer; font-weight: 700; color: var(--dk-red-ink, #c62828); }
+.reroute[open] > summary { margin-bottom: 10px; }
+
+/* Spatial: the filters' Apply (27 Sep 2026); orange while there are choices not yet applied. */
+.map-apply { font: inherit; font-weight: 700; font-size: 13px; padding: 6px 16px; border-radius: 8px;
+  border: 1px solid var(--navy); background: var(--dk-surface, #fff); color: var(--navy); cursor: pointer; }
+.map-apply.is-dirty { background: var(--orange); border-color: var(--orange); color: #fff; }
+.map-apply:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.case-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+
+/* 0073: resolution approval and escalation request boxes; publish switch. */
+.review-box { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--orange); border-radius: 12px;
+  background: var(--dk-surface-2, #fffaf1); display: grid; gap: 8px; }
+.review-box .control-stack { margin: 0; }
+.publish-toggle { margin-top: 12px; }
+.status-control { margin-top: 12px; }
+
+/* The spatial map's use-case messages (0073). */
+.map-note { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: 3; margin: 0;
+  background: var(--dk-surface, #fff); color: var(--ink); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 8px 14px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.map-note--error { color: var(--dk-red-ink, #a01818); border-color: currentColor; }

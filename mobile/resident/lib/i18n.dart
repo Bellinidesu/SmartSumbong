@@ -830,8 +830,11 @@ class Strings {
       'aking kaalaman, tama at kumpleto.');
 
   // ---------- report view (view a report) ----------
+  // Use case "Track Complaint Status", exception: a ticket removed in an
+  // administrative clean-up.
   String get reportViewNotFound => _t(
-      'That report could not be found.', 'Hindi mahanap ang ulat na iyon.');
+      'Record Restructured or Relocated. This complaint is no longer in your history.',
+      'Inayos o inilipat ang talaan. Wala na sa iyong kasaysayan ang sumbong na ito.');
   String get reportViewLoadError => _t(
       'Could not load this report. Pull to retry.',
       'Hindi ma-load ang ulat na ito. I-pull para subukan ulit.');
@@ -896,6 +899,50 @@ class Strings {
   /// 2026) that expands/collapses the full row-by-row status_logs
   /// history -- brought back after direct feedback that the barangay
   /// liked having it, even though none of Rose's six frames draw it.
+  // 0073: incidents the barangay published on the map.
+  String get mapPublishedNote => _t(
+      'Shared by the barangay so residents know about it. Details stay private.',
+      'Ibinahagi ng barangay para malaman ng mga residente. Pribado ang mga detalye.');
+
+  // 0072: the complaint's standing, follow-up and question thread.
+  String get caseExpectedTitle =>
+      _t('The barangay expects to resolve this by', 'Inaasahang malulutas ito ng barangay bago ang');
+  String get caseNoDateYet => _t(
+      'The barangay will set a target date once a tanod is assigned.',
+      'Magtatakda ang barangay ng target na petsa kapag may naitalagang tanod.');
+  String get caseOverdue => _t('Overdue', 'Lampas na sa takdang oras');
+  String caseOverdueBody(String date) => _t(
+      'The target date was $date. You can follow up so the barangay looks at it again.',
+      'Ang target na petsa ay $date. Maaari kang mag-follow up para muling tingnan ito ng barangay.');
+  String caseReferredTitle(String office) =>
+      _t('Escalated to the $office', 'In-escalate sa $office');
+  String get caseReferredBody => _t(
+      'This office handles this kind of complaint. The barangay has closed it on its side.',
+      'Ang tanggapang ito ang humahawak sa ganitong sumbong. Isinara na ito ng barangay sa panig nito.');
+  String get caseAskBarangay => _t('Ask the barangay', 'Magtanong sa barangay');
+  String get followUpButton => _t('Follow up', 'Mag-follow up');
+  String get followUpTitle => _t('Follow up this complaint', 'I-follow up ang sumbong');
+  String get followUpBody => _t(
+      'The barangay will be told that you are still waiting. You can add a short message.',
+      'Sasabihan ang barangay na naghihintay ka pa. Maaari kang magdagdag ng maikling mensahe.');
+  String get followUpHint => _t('Optional message', 'Mensahe (hindi kailangan)');
+  String get followUpCancel => _t('Cancel', 'Kanselahin');
+  String get followUpSend => _t('Follow up', 'Mag-follow up');
+  String get followUpSent =>
+      _t('The barangay has been told.', 'Nasabihan na ang barangay.');
+  String get followUpToday =>
+      _t('Followed up today', 'Nakapag-follow up na ngayong araw');
+  String get followUpFailed =>
+      _t("Couldn't send your follow-up. Try again.", 'Hindi naipadala ang follow-up. Subukan muli.');
+  String get messagesTitle => _t('Ask the barangay', 'Magtanong sa barangay');
+  String get messagesEmpty => _t(
+      'Ask the barangay anything about this complaint. They answer here, and you will be notified.',
+      'Itanong sa barangay ang anumang tungkol sa sumbong na ito. Dito sila sasagot, at aabisuhan ka.');
+  String get messagesBarangay => _t('Barangay 183', 'Barangay 183');
+  String get messagesHint => _t('Write a message…', 'Sumulat ng mensahe…');
+  String get messagesSendFailed =>
+      _t("Couldn't send. Check your connection and try again.", 'Hindi naipadala. Suriin ang koneksyon at subukan muli.');
+
   String get reportViewShowTimeline =>
       _t('View Full Timeline', 'Tingnan ang Buong Takbo');
   String get reportViewHideTimeline =>
@@ -1017,9 +1064,11 @@ class Strings {
   String get registerTakePhoto => _t('Take Photo', 'Kumuha ng Larawan');
   String get registerChooseFromGallery =>
       _t('Choose from Gallery', 'Pumili mula sa Gallery');
+  // Use case "Register Account", A1.
   String get registerMobileTaken => _t(
-      'That mobile number is already registered. Try signing in instead.',
-      'Nakarehistro na ang numerong iyan. Subukang mag-sign in na lang.');
+      'Mobile phone number is already in use.',
+      'Ginagamit na ang numerong ito.');
+  String get registerGoToLogin => _t('Go to Log In', 'Pumunta sa Log In');
   String get registerMobileMismatch => _t(
       'Something went wrong with your mobile number. Please try again.',
       'May problema sa iyong mobile number. Subukan ulit.');
@@ -1052,7 +1101,6 @@ class Strings {
       _t('Confirm & Submit', 'Kumpirmahin at Isumite');
   // On-device OCR pre-submit check (6 Sep 2026) — a heads-up shown before
   // the application is sent, not a rejection: the barangay still makes
-  // the actual decision either way. See register_screen.dart's _submit().
   String get registerOcrConcernTitle =>
       _t('Double-check your ID photo', 'Suriin muli ang larawan ng iyong ID');
   String get registerOcrConcernUnreadable => _t(
@@ -1072,6 +1120,7 @@ class Strings {
   String get registerRetakePhoto => _t('Retake Photo', 'Kumuha Ulit');
   String get registerContinueAnyway =>
       _t('Continue Anyway', 'Magpatuloy Pa Rin');
+  // the actual decision either way. See register_screen.dart's _submit().
   String get registerCreateAccount =>
       _t('Create your Account', 'Gumawa ng Iyong Account');
   String get registerSignUpTanod =>

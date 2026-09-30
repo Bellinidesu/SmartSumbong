@@ -70,18 +70,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new SupabaseError(t('Choose a tanod before dispatching.', 'Pumili muna ng tanod bago mag-dispatch.'));
                     }
 
-                    // The target date is optional, and it is set before the
-                    // dispatch so the tanod's ticket carries the deadline the
-                    // admin meant rather than the policy default.
+                    // The target date is required (0071): set before the
+                    // dispatch, told to the resident, and on the tanod's
+                    // ticket. Instructions are checked here and by the RPC.
                     $target = trim((string) ($_POST['target'] ?? ''));
-                    if ($target !== '') {
-                        $iso = (new DateTimeImmutable($target, new DateTimeZone('Asia/Manila')))
-                            ->format(DateTimeInterface::ATOM);
-                        $db->rpc('set_resolution_target', [
-                            'p_report' => $id,
-                            'p_due'    => $iso,
-                        ]);
+                    if ($target === '') {
+                        throw new SupabaseError(t('Set a target resolution date before dispatching.', 'Magtakda muna ng target na petsa bago mag-dispatch.'));
                     }
+                    if (trim((string) ($_POST['note'] ?? '')) === '') {
+                        throw new SupabaseError(t('Write instructions for the tanod before dispatching.', 'Sumulat muna ng tagubilin para sa tanod bago mag-dispatch.'));
+                    }
+                    $iso = (new DateTimeImmutable($target, new DateTimeZone('Asia/Manila')))
+                        ->format(DateTimeInterface::ATOM);
+                    $db->rpc('set_resolution_target', [
+                        'p_report' => $id,
+                        'p_due'    => $iso,
+                    ]);
 
                     $db->rpc('admin_dispatch', [
                         'p_report'       => $id,
@@ -102,6 +106,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'p_remark' => trim((string) ($_POST['remark'] ?? '')) ?: null,
                     ]);
                     $flash = t('Appeal granted. The complaint is back with the barangay.', 'Pinagbigyan ang apela. Nasa barangay na muli ang sumbong.');
+                    break;
+
+                // 0070 — the admin moves a live dispatch: to a named
+                // tanod, or back to the system's nearest-tanod routing.
+                case 'reroute':
+                    $to = trim((string) ($_POST['to'] ?? ''));
+                    $db->rpc('admin_reroute_dispatch', [
+                        'p_dispatch' => (string) ($_POST['dispatch'] ?? ''),
+                        'p_reason'   => trim((string) ($_POST['reason'] ?? '')),
+                        'p_to'       => $to !== '' ? $to : null,
+                    ]);
+                    $flash = $to !== ''
+                        ? t('Rerouted. The new tanod has been notified.', 'Nailipat. Naabisuhan na ang bagong tanod.')
+                        : t('Rerouted. The system is finding the nearest available tanod.', 'Nailipat. Hinahanap ng sistema ang pinakamalapit na available na tanod.');
+                    break;
+
+                // 0072 — escalation is the admin's referral to an outside
+                // office. The complaint closes here; the resident is told
+                // where it went.
+                // 0073 — Approve Complaint Resolution.
+                case 'approve_resolution':
+                    $db->rpc('approve_resolution', ['p_report' => $id]);
+                    $flash = t('Resolution approved. The resident has been told the complaint is resolved.', 'Naaprubahan ang resolusyon. Nasabihan na ang residente na nalutas na ang sumbong.');
+                    break;
+
+                case 'reject_resolution':
+                    $db->rpc('reject_resolution', [
+                        'p_report' => $id,
+                        'p_reason' => trim((string) ($_POST['reason'] ?? '')),
+                    ]);
+                    $flash = t('Returned to the tanod with your reason.', 'Ibinalik sa tanod kasama ang iyong dahilan.');
+                    break;
+
+                // 0073 — Update Resolution Status.
+                case 'set_status':
+                    $db->rpc('admin_set_status', [
+                        'p_report' => $id,
+                        'p_status' => (string) ($_POST['status'] ?? ''),
+                        'p_remark' => trim((string) ($_POST['remark'] ?? '')) ?: null,
+                    ]);
+                    $flash = t('Status updated. The resident has been told.', 'Na-update ang katayuan. Nasabihan na ang residente.');
+                    break;
+
+                // 0073 — Manage Escalation Request.
+                case 'approve_escalation':
+                    $agency = trim((string) ($_POST['agency'] ?? ''));
+                    if ($agency === 'other') {
+                        $agency = trim((string) ($_POST['agency_other'] ?? ''));
+                    }
+                    $db->rpc('approve_escalation', [
+                        'p_request' => (string) ($_POST['request'] ?? ''),
+                        'p_office'  => $agency,
+                        'p_note'    => trim((string) ($_POST['note'] ?? '')) ?: null,
+                    ]);
+                    $flash = t('Escalation approved. The resident and the tanod have been told.', 'Naaprubahan ang pag-escalate. Nasabihan na ang residente at ang tanod.');
+                    break;
+
+                case 'deny_escalation':
+                    $db->rpc('deny_escalation', [
+                        'p_request' => (string) ($_POST['request'] ?? ''),
+                        'p_reason'  => trim((string) ($_POST['reason'] ?? '')),
+                    ]);
+                    $flash = t('Escalation request denied. The tanod has been told why.', 'Tinanggihan ang hiling na i-escalate. Nasabihan na ang tanod kung bakit.');
+                    break;
+
+                // 0073 — Monitor Real-Time Map (resident): published incidents.
+                case 'set_public':
+                    $db->rpc('set_report_public', [
+                        'p_report' => $id,
+                        'p_public' => !empty($_POST['public']),
+                    ]);
+                    $flash = !empty($_POST['public'])
+                        ? t("Shown on residents' map (category and status only).", 'Ipinapakita na sa mapa ng mga residente (kategorya at katayuan lamang).')
+                        : t("Removed from residents' map.", 'Inalis sa mapa ng mga residente.');
+                    break;
+
+                case 'refer':
+                    $agency = trim((string) ($_POST['agency'] ?? ''));
+                    if ($agency === 'other') {
+                        $agency = trim((string) ($_POST['agency_other'] ?? ''));
+                    }
+                    $db->rpc('refer_report', [
+                        'p_report' => $id,
+                        'p_agency' => $agency,
+                        'p_note'   => trim((string) ($_POST['note'] ?? '')) ?: null,
+                    ]);
+                    $flash = t('Escalated. The resident has been told where their complaint went.', 'Na-escalate na. Nasabihan na ang residente kung saan napunta ang sumbong.');
+                    break;
+
+                // 0072 — the barangay's answer in the resident's question thread.
+                case 'resident_reply':
+                    $db->rpc('post_report_message', [
+                        'p_report' => $id,
+                        'p_body'   => trim((string) ($_POST['body'] ?? '')),
+                    ]);
+                    $flash = t('Reply sent to the resident.', 'Naipadala ang sagot sa residente.');
+                    break;
+
+                // 0069 — a reply into the tanod's dispatch window. The
+                // tanod is notified; the resident never sees it.
+                case 'dispatch_reply':
+                    $db->rpc('post_dispatch_update', [
+                        'p_dispatch' => (string) ($_POST['dispatch'] ?? ''),
+                        'p_body'     => trim((string) ($_POST['body'] ?? '')),
+                    ]);
+                    $flash = t('Sent to the tanod.', 'Naipadala sa tanod.');
                     break;
 
                 default:
@@ -132,6 +242,11 @@ $media = $logs = $dispatches = $roster = [];
 $policy = null;
 $feedback = null;
 $proof = [];
+$proofCount = 0;
+$thread = [];      // dispatch id => dispatch_updates rows (0069)
+$messages = [];    // the resident's question thread (0072)
+$escRequest = null; // a tanod's pending escalation request (0073)
+$threadMedia = []; // update id => its photos
 
 // Two parallel rounds (branch B) in place of about nine requests one
 // after another: everything keyed on the complaint id at once, then what
@@ -144,7 +259,9 @@ try {
     $first = $db->selectMany([
         'report' => ['reports', [
             'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
-                      . 'latitude,longitude,location_label,due_at,escalated_at,escalation_level,reopened_count,'
+                      . 'latitude,longitude,location_label,due_at,reopened_count,'
+                      . 'referred_to,referral_note,referred_at,followed_up_at,follow_up_count,'
+                      . 'resolution_submitted_at,resolution_returned_reason,is_public,'
                       . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
                       . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
             'id'         => 'eq.' . $id,
@@ -251,10 +368,31 @@ if ($report && !$error) {
     )));
     if ($liveIds) {
         $second['proof'] = ['dispatch_media', [
-            'select'      => 'dispatch_id,media_url,bytes,uploaded_at',
+            'select'      => 'dispatch_id,update_id,media_url,mime_type,bytes,uploaded_at',
             'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
             'order'       => 'uploaded_at.asc',
         ]];
+    }
+
+    // The dispatch window's thread (0069): the tanod's updates and
+    // steps, and admin replies. Optional — the page stands without it.
+    if ($liveIds) {
+        $second['escalation'] = ['escalation_requests', [
+            'select'    => 'id,reason,suggested_office,created_at,requester:users!escalation_requests_requested_by_fkey(full_name)',
+            'report_id' => 'eq.' . $id,
+            'status'    => 'eq.pending',
+            'limit'     => '1',
+        ], true];
+        $second['messages'] = ['report_messages', [
+            'select'    => 'id,from_barangay,body,created_at',
+            'report_id' => 'eq.' . $id,
+            'order'     => 'created_at.asc',
+        ], true];
+        $second['thread'] = ['dispatch_updates', [
+            'select'      => 'id,dispatch_id,author_id,kind,step,body,created_at',
+            'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
+            'order'       => 'created_at.asc',
+        ], true];
     }
 
     // Context for the Deny panel: has this resident been flagged abusive
@@ -269,7 +407,7 @@ if ($report && !$error) {
 
     // Only when nobody is on the case already. One round trip saved on
     // every screen that will not show it.
-    if ($canAssign) {
+    if ($canAssign || $active) {
         $second['roster'] = ['rpc/tanod_roster', ['p_report' => $id], true];
     }
 
@@ -277,14 +415,36 @@ if ($report && !$error) {
         $got = $db->selectMany($second);
         $policy = $got['sla'][0] ?? null;
         foreach ($got['proof'] ?? [] as $r) {
+            $proofCount++;
+            // An update's photos belong to the thread; untagged rows are
+            // the final field report's proof.
+            if (!empty($r['update_id'])) {
+                $threadMedia[$r['update_id']][] = $r;
+                continue;
+            }
             $proof[$r['dispatch_id']][] = $r;
+        }
+        if (isset($got['escalation']) && !$got['escalation'] instanceof SupabaseError) {
+            $escRequest = $got['escalation'][0] ?? null;
+        }
+        if (isset($got['messages']) && !$got['messages'] instanceof SupabaseError) {
+            $messages = (array) $got['messages'];
+        }
+        if (isset($got['thread']) && !$got['thread'] instanceof SupabaseError) {
+            foreach ((array) $got['thread'] as $u) {
+                $thread[$u['dispatch_id']][] = $u;
+            }
         }
         if (isset($got['abuse']) && !$got['abuse'] instanceof SupabaseError) {
             $abuseHistory = (array) $got['abuse'];
         }
         if (isset($got['roster'])) {
             if ($got['roster'] instanceof SupabaseError) {
-                $error = safe_error($got['roster']);
+                // The reroute list is a convenience; only the assign
+                // screen cannot stand without it.
+                if ($canAssign) {
+                    $error = safe_error($got['roster']);
+                }
             } else {
                 $roster = (array) $got['roster'];
             }
@@ -378,8 +538,25 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
     <div class="case-flags">
       <span class="pill pill--<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
-      <?php if (($report['escalation_level'] ?? 0) > 0): ?>
-        <span class="pill pill--escalated"><?= e(t('Escalated (level ', 'Na-escalate (antas ')) ?><?= (int) $report['escalation_level'] ?>)</span>
+      <?php if (report_is_overdue($report)): ?>
+        <span class="pill pill--escalated"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span>
+      <?php endif; ?>
+      <?php if (!empty($report['referred_to'])): ?>
+        <span class="pill pill--escalated"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($report['referred_to']) ?></span>
+      <?php endif; ?>
+      <?php if (!empty($report['resolution_submitted_at'])): ?>
+        <span class="pill pill--pending"><?= e(t('Resolution awaiting approval', 'Naghihintay ng pag-apruba ang resolusyon')) ?></span>
+      <?php endif; ?>
+      <?php if ($escRequest): ?>
+        <span class="pill pill--pending"><?= e(t('Escalation requested', 'Hiniling na i-escalate')) ?></span>
+      <?php endif; ?>
+      <?php if (!empty($report['is_public'])): ?>
+        <span class="pill"><?= e(t("On residents' map", 'Nasa mapa ng mga residente')) ?></span>
+      <?php endif; ?>
+      <?php if (!empty($report['followed_up_at'])): ?>
+        <span class="pill pill--pending" title="<?= e(t('Last follow-up ', 'Huling follow-up ') . relative_time($report['followed_up_at'])) ?>">
+          <?= e(t('Resident followed up', 'Nag-follow up ang residente')) ?><?= (int) ($report['follow_up_count'] ?? 0) > 1 ? ' ' . (int) $report['follow_up_count'] . '&times;' : '' ?>
+        </span>
       <?php endif; ?>
       <?php if (!empty($report['awaiting_unit_since'])): ?>
         <span class="pill pill--rejected"><?= e(t('Awaiting a unit since', 'Naghihintay ng tanod mula')) ?> <?= e(relative_time($report['awaiting_unit_since'])) ?></span>
@@ -480,6 +657,102 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
+
+    <?php
+    // The dispatch window (0069): what the tanod sent from the field, the
+    // steps, and the barangay's replies — newest dispatch first, only
+    // those with a thread or still open for one.
+    $threaded = array_values(array_filter(
+        $dispatches,
+        fn($d) => !empty($thread[$d['id']]) || ($d['state'] ?? '') === 'accepted'
+    ));
+    ?>
+    <?php if ($threaded): ?>
+      <div class="case-block">
+        <h3 class="case-sub"><?= e(t('Dispatch Updates', 'Mga Update sa Dispatch')) ?></h3>
+        <?php foreach ($threaded as $d): ?>
+          <?php $tanodName = $d['tanod']['full_name'] ?? t('Tanod', 'Tanod'); ?>
+          <p class="case-meta"><?= e($tanodName) ?></p>
+          <?php if (empty($thread[$d['id']])): ?>
+            <p class="case-none"><?= e(t('No updates yet.', 'Wala pang update.')) ?></p>
+          <?php else: ?>
+            <ol class="thread">
+              <?php foreach ($thread[$d['id']] as $u): ?>
+                <?php if ($u['kind'] === 'step'): ?>
+                  <li class="thread-step">
+                    <?= e($u['step'] === 'arrived'
+                        ? t('Tanod arrived', 'Nakarating ang tanod')
+                        : t('Tanod on the way', 'Papunta na ang tanod')) ?>
+                    &middot; <?= e(long_datetime($u['created_at'])) ?>
+                  </li>
+                <?php else: ?>
+                  <?php $fromTanod = $u['author_id'] === ($d['tanod']['id'] ?? null); ?>
+                  <li class="thread-msg <?= $fromTanod ? 'is-tanod' : 'is-admin' ?>">
+                    <span class="thread-who"><?= e($fromTanod ? $tanodName : t('Barangay', 'Barangay')) ?></span>
+                    <?php if (!empty($u['body'])): ?>
+                      <p><?= nl2br(e($u['body'])) ?></p>
+                    <?php endif; ?>
+                    <?php if (!empty($threadMedia[$u['id']])): ?>
+                      <div class="thread-media">
+                        <?php foreach ($threadMedia[$u['id']] as $m): ?>
+                          <a href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
+                            <img src="<?= e($m['media_url']) ?>" alt="<?= e(t('Update photo', 'Larawan ng update')) ?>" loading="lazy">
+                          </a>
+                        <?php endforeach; ?>
+                      </div>
+                    <?php endif; ?>
+                    <time><?= e(long_datetime($u['created_at'])) ?></time>
+                  </li>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </ol>
+          <?php endif; ?>
+          <?php if (($d['state'] ?? '') === 'accepted'): ?>
+            <form method="post" class="thread-reply">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+              <input type="hidden" name="action" value="dispatch_reply">
+              <input type="hidden" name="dispatch" value="<?= e($d['id']) ?>">
+              <textarea name="body" rows="2" maxlength="2000" required
+                        placeholder="<?= e(t('Reply to the tanod…', 'Sumagot sa tanod…')) ?>"></textarea>
+              <button type="submit" class="thread-send"><?= e(t('Send', 'Ipadala')) ?></button>
+            </form>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+    <?php
+    // 0072: the resident's own questions about this complaint, and the
+    // barangay's answers — the resident sees all of it in their app.
+    $canMessage = !in_array($status, ['archived', 'cancelled'], true);
+    ?>
+    <?php if ($messages || $canMessage): ?>
+      <div class="case-block" id="resident-messages">
+        <h3 class="case-sub"><?= e(t('Questions from the Resident', 'Mga Tanong ng Residente')) ?></h3>
+        <?php if (!$messages): ?>
+          <p class="case-none"><?= e(t('No questions yet. The resident can ask from their app, and you can write to them first.', 'Wala pang tanong. Maaaring magtanong ang residente mula sa app, at maaari mo rin silang sulatan muna.')) ?></p>
+        <?php else: ?>
+          <ol class="thread">
+            <?php foreach ($messages as $m): ?>
+              <li class="thread-msg <?= !empty($m['from_barangay']) ? 'is-admin' : 'is-tanod' ?>">
+                <span class="thread-who"><?= e(!empty($m['from_barangay']) ? t('Barangay', 'Barangay') : t('Resident', 'Residente')) ?></span>
+                <p><?= nl2br(e($m['body'])) ?></p>
+                <time><?= e(long_datetime($m['created_at'])) ?></time>
+              </li>
+            <?php endforeach; ?>
+          </ol>
+        <?php endif; ?>
+        <?php if ($canMessage): ?>
+          <form method="post" class="thread-reply">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="resident_reply">
+            <textarea name="body" rows="2" maxlength="1000" required
+                      placeholder="<?= e(t('Answer the resident…', 'Sagutin ang residente…')) ?>"></textarea>
+            <button type="submit" class="thread-send"><?= e(t('Send', 'Ipadala')) ?></button>
+          </form>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
   </section>
 
   <!-- ---------- admin controls ---------- -->
@@ -492,26 +765,28 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
         <p class="kbd-hint"><?= e(t('Press', 'Pindutin ang')) ?> <kbd>A</kbd> <?= e(t('to accept,', 'para tanggapin,')) ?> <kbd>D</kbd> <?= e(t('to deny.', 'para tanggihan.')) ?></p>
 
-        <button class="btn-accept" type="submit" name="action" value="accept">
+        <!-- formnovalidate: the hidden denial reason must never stop an
+             Accept (Rose, 27 Sep 2026 — Accept did nothing). -->
+        <button class="btn-accept" type="submit" name="action" value="accept" formnovalidate>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
-          <?= e(t('Accept Complaint', 'Tanggapin ang Sumbong')) ?>
+          <?= e(t('Validate Report', 'I-validate ang Ulat')) ?>
         </button>
 
         <button class="btn-deny" type="button" id="deny-toggle" aria-expanded="false"
                 aria-controls="deny-panel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <?= e(t('Deny Complaint', 'Tanggihan ang Sumbong')) ?>
+          <?= e(t('Reject Report', 'Tanggihan ang Ulat')) ?>
         </button>
 
         <div class="deny-panel" id="deny-panel" hidden>
           <label for="reason" class="field-label">
             <?= e(t('Reason for denial — the resident sees this', 'Dahilan ng pagtanggi — makikita ito ng residente')) ?>
           </label>
-          <textarea id="reason" name="reason" rows="3" maxlength="200" required
+          <textarea id="reason" name="reason" rows="3" maxlength="200"
                     placeholder="<?= e(t('e.g. Outside barangay jurisdiction — refer to the city ENRO.', 'hal. Labas sa sakop ng barangay — i-refer sa ENRO ng lungsod.')) ?>"></textarea>
 
           <label class="field-check">
@@ -569,19 +844,23 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </div>
 
         <div class="control-field">
-          <label class="field-label" for="note"><?= e(t('Add Note', 'Magdagdag ng Tala')) ?></label>
-          <textarea id="note" name="note" rows="2" maxlength="500"
-                    placeholder="<?= e(t('Instructions for the tanod on the ground.', 'Mga tagubilin para sa tanod sa lugar.')) ?>"></textarea>
+          <!-- 0071 (Rose, 27 Sep 2026): the admin, not the system, gives the
+               tanod their instructions and the complaint its deadline. -->
+          <label class="field-label" for="note"><?= e(t('Instructions for the tanod', 'Mga tagubilin para sa tanod')) ?></label>
+          <textarea id="note" name="note" rows="2" maxlength="500" required
+                    placeholder="<?= e(t('What to check, who to talk to, what to bring back.', 'Ano ang titingnan, sino ang kakausapin, ano ang iuulat.')) ?>"></textarea>
         </div>
 
         <div class="control-field">
           <label class="field-label" for="target"><?= e(t('Target date resolution', 'Target na petsa ng paglutas')) ?></label>
-          <input type="datetime-local" id="target" name="target"
+          <input type="datetime-local" id="target" name="target" required
+                 min="<?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d\TH:i')) ?>"
                  value="<?= e(local_input_value($report['due_at'])) ?>">
           <p class="field-hint">
+            <?= e(t('The resident is told this date, so choose one the barangay can keep.', 'Sasabihin sa residente ang petsang ito, kaya pumili ng kayang tuparin ng barangay.')) ?>
             <?php if ($policy): ?>
-              <?= e(t('Policy for', 'Ang patakaran para sa')) ?> <?= e(category_label($report['category'])) ?> <?= e(t('is', 'ay')) ?>
-              <?= (int) $policy['resolution_hours'] ?> <?= e(t('hours from filing.', 'oras mula sa pagsampa.')) ?>
+              <?= e(t('Guide for', 'Gabay para sa')) ?> <?= e(category_label($report['category'])) ?>:
+              <?= (int) $policy['resolution_hours'] ?> <?= e(t('hours.', 'oras.')) ?>
             <?php endif; ?>
             <?php if (!empty($report['due_at'])): ?>
               <?= e(t('Currently due', 'Kasalukuyang takdang oras:')) ?> <?= e(long_datetime($report['due_at'])) ?>.
@@ -646,6 +925,49 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <p class="assigned-note"><?= e($active['admin_instructions']) ?></p>
           <?php endif; ?>
         </div>
+
+        <?php // 0070: the admin's reroute. The system's own (a tanod's
+              // hand-back, a lapsed acceptance window) needs nothing here. ?>
+        <details class="reroute">
+          <summary><?= e(t('Reroute this dispatch', 'Ilipat ang dispatch na ito')) ?></summary>
+          <form method="post" class="control-stack">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="reroute">
+            <input type="hidden" name="dispatch" value="<?= e($active['id']) ?>">
+            <div class="roster">
+              <label class="roster-row">
+                <input type="radio" name="to" value="" checked>
+                <span class="roster-name"><?= e(t('Let the system find the nearest tanod', 'Hayaang hanapin ng sistema ang pinakamalapit na tanod')) ?></span>
+                <span class="roster-pick"><?= e(t('Auto', 'Auto')) ?></span>
+              </label>
+              <?php foreach ($roster as $t): ?>
+                <?php if (($t['tanod_id'] ?? null) === ($active['tanod']['id'] ?? null)) continue; ?>
+                <?php $ok = !empty($t['assignable']); ?>
+                <label class="roster-row<?= $ok ? '' : ' is-out' ?>">
+                  <input type="radio" name="to" value="<?= e($t['tanod_id']) ?>" <?= $ok ? '' : 'disabled' ?>>
+                  <span class="roster-name">
+                    <?= e($t['full_name']) ?>
+                    <?php if ($ok && $t['metres'] !== null): ?>
+                      <small class="roster-dist<?= empty($t['location_fresh']) ? ' is-stale' : '' ?>">
+                        <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?>
+                      </small>
+                    <?php endif; ?>
+                  </span>
+                  <span class="roster-state <?= $ok ? 'is-on' : 'is-off' ?>">
+                    <?= $ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE'))) ?>
+                  </span>
+                  <span class="roster-pick"><?= $ok ? e(t('Move', 'Ilipat')) : '&mdash;' ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+            <div class="control-field">
+              <label class="field-label" for="reroute-reason"><?= e(t('Reason', 'Dahilan')) ?></label>
+              <textarea id="reroute-reason" name="reason" rows="2" maxlength="300" required
+                        placeholder="<?= e(t('e.g. Tanod is needed at another emergency.', 'hal. Kailangan ang tanod sa ibang emergency.')) ?>"></textarea>
+            </div>
+            <button class="btn-dispatch" type="submit"><?= e(t('Reroute', 'Ilipat')) ?></button>
+          </form>
+        </details>
       <?php else: ?>
         <p class="case-none">
           <?= $status === 'rejected'
@@ -657,6 +979,134 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php if (!empty($report['due_at'])): ?>
         <p class="due-line"><?= e(t('Resolution target:', 'Target na paglutas:')) ?> <strong><?= e(long_datetime($report['due_at'])) ?></strong></p>
       <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if (!empty($report['resolution_submitted_at'])): ?>
+      <?php // 0073 — Approve Complaint Resolution: the tanod's report is in the Field Report block. ?>
+      <div class="review-box">
+        <p class="assigned-label"><?= e(t('Resolution waiting for approval', 'Resolusyong naghihintay ng pag-apruba')) ?></p>
+        <p class="control-note"><?= e(t("Check the tanod's report and proof under Field Report, then approve it or send it back.", 'Suriin ang ulat at patunay ng tanod sa Field Report, saka aprubahan o ibalik.')) ?></p>
+        <form method="post" class="control-stack">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <button class="btn-accept" type="submit" name="action" value="approve_resolution"><?= e(t('Approve Resolution', 'Aprubahan ang Resolusyon')) ?></button>
+        </form>
+        <details class="reroute">
+          <summary><?= e(t('Return to the tanod', 'Ibalik sa tanod')) ?></summary>
+          <form method="post" class="control-stack">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="reject_resolution">
+            <div class="control-field">
+              <label class="field-label" for="return-reason"><?= e(t('What still needs doing — the tanod sees this', 'Ano pa ang kailangang gawin — makikita ito ng tanod')) ?></label>
+              <textarea id="return-reason" name="reason" rows="2" maxlength="300" required></textarea>
+            </div>
+            <button class="btn-deny-confirm" type="submit"><?= e(t('Return to Tanod', 'Ibalik sa Tanod')) ?></button>
+          </form>
+        </details>
+      </div>
+    <?php endif; ?>
+
+    <?php if ($escRequest && empty($report['referred_to'])): ?>
+      <?php // 0073 — Manage Escalation Request. ?>
+      <div class="review-box">
+        <p class="assigned-label"><?= e(t('Escalation request', 'Hiling na i-escalate')) ?></p>
+        <p class="assigned-meta">
+          <?= e($escRequest['requester']['full_name'] ?? t('Tanod', 'Tanod')) ?> &middot; <?= e(relative_time($escRequest['created_at'])) ?>
+        </p>
+        <p class="assigned-note"><?= nl2br(e($escRequest['reason'])) ?></p>
+        <details class="reroute" open>
+          <summary><?= e(t('Approve: escalate', 'Aprubahan: i-escalate')) ?></summary>
+          <form method="post" class="control-stack">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="approve_escalation">
+            <input type="hidden" name="request" value="<?= e($escRequest['id']) ?>">
+            <?php office_picker('esc-agency', $escRequest['suggested_office'] ?? null); ?>
+            <div class="control-field">
+              <label class="field-label" for="esc-note"><?= e(t('Note — the resident sees this', 'Tala — makikita ito ng residente')) ?></label>
+              <textarea id="esc-note" name="note" rows="2" maxlength="300"></textarea>
+            </div>
+            <button class="btn-deny-confirm" type="submit"><?= e(t('Approve and escalate', 'Aprubahan at i-escalate')) ?></button>
+          </form>
+        </details>
+        <details class="reroute">
+          <summary><?= e(t('Deny the request', 'Tanggihan ang hiling')) ?></summary>
+          <form method="post" class="control-stack">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="deny_escalation">
+            <input type="hidden" name="request" value="<?= e($escRequest['id']) ?>">
+            <div class="control-field">
+              <label class="field-label" for="esc-deny"><?= e(t('Reason — the tanod sees this', 'Dahilan — makikita ito ng tanod')) ?></label>
+              <textarea id="esc-deny" name="reason" rows="2" maxlength="300" required></textarea>
+            </div>
+            <button class="btn-dispatch" type="submit"><?= e(t('Deny', 'Tanggihan')) ?></button>
+          </form>
+        </details>
+      </div>
+    <?php endif; ?>
+
+    <?php if (in_array($status, ['validated', 'assigned', 'in_progress', 'offline_investigation'], true)
+              && empty($report['resolution_submitted_at'])): ?>
+      <?php // 0073 — Update Resolution Status. ?>
+      <details class="reroute status-control">
+        <summary><?= e(t('Update status', 'I-update ang katayuan')) ?></summary>
+        <form method="post" class="control-stack">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="set_status">
+          <div class="control-field">
+            <label class="field-label" for="set-status"><?= e(t('New status', 'Bagong katayuan')) ?></label>
+            <select id="set-status" name="status" required>
+              <?php foreach (['in_progress', 'offline_investigation', 'resolved'] as $opt): ?>
+                <?php if ($opt === $status) continue; ?>
+                <option value="<?= e($opt) ?>"><?= e($opt === 'resolved' ? t('Resolved/Completed', 'Nalutas/Nakumpleto') : status_label($opt)) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="control-field">
+            <label class="field-label" for="set-remark"><?= e(t('Remark — the resident sees this', 'Tala — makikita ito ng residente')) ?></label>
+            <textarea id="set-remark" name="remark" rows="2" maxlength="300"></textarea>
+          </div>
+          <button class="btn-dispatch" type="submit"><?= e(t('Update status', 'I-update ang katayuan')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
+
+    <?php if (!in_array($status, ['rejected', 'cancelled'], true)): ?>
+      <?php // 0073 — the resident map shows published incidents: category and status only. ?>
+      <form method="post" class="publish-toggle">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="set_public">
+        <label class="field-check">
+          <input type="checkbox" name="public" value="1" <?= !empty($report['is_public']) ? 'checked' : '' ?> onchange="this.form.submit()">
+          <?= e(t("Show on residents' map (category and status only)", 'Ipakita sa mapa ng mga residente (kategorya at katayuan lamang)')) ?>
+        </label>
+      </form>
+    <?php endif; ?>
+
+    <?php if (!empty($report['referred_to'])): ?>
+      <div class="assigned-card referral-card">
+        <p class="assigned-label"><?= e(t('Escalated to', 'In-escalate sa')) ?></p>
+        <p class="assigned-name"><?= e($report['referred_to']) ?></p>
+        <p class="assigned-meta"><?= e(long_datetime($report['referred_at'])) ?></p>
+        <?php if (!empty($report['referral_note'])): ?>
+          <p class="assigned-note"><?= e($report['referral_note']) ?></p>
+        <?php endif; ?>
+      </div>
+    <?php elseif (!in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
+      <?php // 0072: escalation = referral to an office outside the barangay. ?>
+      <details class="reroute referral">
+        <summary><?= e(t('Escalate to an outside office', 'I-escalate sa ibang tanggapan')) ?></summary>
+        <form method="post" class="control-stack">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="refer">
+          <?php office_picker('refer-agency'); ?>
+          <div class="control-field">
+            <label class="field-label" for="refer-note"><?= e(t('Note — the resident sees this', 'Tala — makikita ito ng residente')) ?></label>
+            <textarea id="refer-note" name="note" rows="2" maxlength="300"
+                      placeholder="<?= e(t('e.g. Please visit the VAWC desk at the barangay hall with a valid ID.', 'hal. Pumunta sa VAWC desk sa barangay hall na may dalang valid ID.')) ?>"></textarea>
+          </div>
+          <p class="control-note"><?= e(t('This closes the complaint here and stands down any tanod on it.', 'Isasara nito ang sumbong dito at ititigil ang sinumang tanod na nakatalaga.')) ?></p>
+          <button class="btn-deny-confirm" type="submit"><?= e(t('Escalate', 'I-escalate')) ?></button>
+        </form>
+      </details>
     <?php endif; ?>
 
     <!-- ---------- map preview ---------- -->
@@ -836,6 +1286,16 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     if (ev.key === 'd' || ev.key === 'D') { ev.preventDefault(); denyBtn.click(); }
   });
 
+  // Escalation: "Another office…" asks for the office's name.
+  document.querySelectorAll('select[data-office]').forEach(function (sel) {
+    var wrap = sel.closest('.control-field').nextElementSibling;
+    sel.addEventListener('change', function () {
+      var other = sel.value === 'other';
+      wrap.hidden = !other;
+      wrap.querySelector('input').required = other;
+    });
+  });
+
   // Deny is destructive and irreversible, so it asks for a reason before
   // it will submit. The button only reveals the field; the second one commits.
   var toggle = document.getElementById('deny-toggle');
@@ -844,6 +1304,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     toggle.addEventListener('click', function () {
       var open = panel.hasAttribute('hidden');
       if (open) { panel.removeAttribute('hidden'); } else { panel.setAttribute('hidden', ''); }
+      // Required only while the denial is open: a hidden required field
+      // silently blocked the Accept button in the same form.
+      document.getElementById('reason').required = open;
       toggle.setAttribute('aria-expanded', String(open));
       if (open) { document.getElementById('reason').focus(); }
     });
@@ -972,10 +1435,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   const sb = createClient(
     <?= json_encode(supabase_url()) ?>,
     <?= json_encode(supabase_key()) ?>,
-    { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-      auth: { persistSession: false, autoRefreshToken: false } }
+    { accessToken: window.ssAccessToken(TOKEN) }
   );
-  sb.realtime.setAuth(TOKEN);
 
   function showBanner() {
     document.getElementById('update-banner').classList.add('is-shown');
@@ -988,6 +1449,14 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                                filter: 'report_id=eq.' + REPORT_ID }, showBanner)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatches',
                                filter: 'report_id=eq.' + REPORT_ID }, showBanner)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'report_messages',
+                               filter: 'report_id=eq.' + REPORT_ID }, showBanner)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'escalation_requests',
+                               filter: 'report_id=eq.' + REPORT_ID }, showBanner)
+<?php if (!empty($liveIds)): ?>
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dispatch_updates',
+                               filter: <?= json_encode('dispatch_id=in.(' . implode(',', $liveIds) . ')') ?> }, showBanner)
+<?php endif; ?>
     .subscribe(function (status) {
       var badge = document.getElementById('live-badge'),
           text  = document.getElementById('live-badge-text');
@@ -1005,7 +1474,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   // without asking the team to publish two more tables just for this.
   const INITIAL_FEEDBACK_AT = <?= json_encode($feedback['submitted_at'] ?? null) ?>;
   const LIVE_DISPATCH_IDS   = <?= json_encode(array_values($liveIds ?? [])) ?>;
-  const INITIAL_PROOF_COUNT = <?= json_encode(array_sum(array_map('count', $proof))) ?>;
+  const INITIAL_PROOF_COUNT = <?= json_encode($proofCount) ?>;
 
   async function pollUnpublished() {
     if (INITIAL_FEEDBACK_AT === null) {

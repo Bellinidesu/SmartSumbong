@@ -50,6 +50,7 @@ import 'screens/terms_privacy_screen.dart';
 import 'screens/theme_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'tanod/duty.dart';
+import 'tanod/tanod_outbox.dart';
 import 'tanod/screens/extra_admin_services_screen.dart';
 import 'tanod/screens/history_screen.dart';
 import 'tanod/screens/retirement_screen.dart';
@@ -189,6 +190,9 @@ class SmartSumbongApp extends StatelessWidget {
     // Reports filed with no signal go out from here once it returns.
     Outbox.sentMessage = (id) => Strings(locale.value).outboxSent(id);
     Outbox.instance.attach(uploader);
+    // The tanod's own queue (0073): dispatch updates, steps and
+    // resolutions sent with no signal. Idle for a resident.
+    TanodOutbox.instance.start();
 
     return AppThemeScope(
       controller: themeController,

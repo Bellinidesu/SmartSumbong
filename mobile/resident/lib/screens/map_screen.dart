@@ -21,6 +21,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
+import '../models/complaint_category.dart';
 import '../theme.dart';
 import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
@@ -34,13 +35,20 @@ class _Pin {
     required this.trackingId,
     required this.subject,
     required this.status,
+    this.mine = true,
   });
 
   final String id;
   final LatLng point;
   final String trackingId;
+
+  /// For someone else's published incident, its category.
   final String subject;
   final ReportStatus status;
+
+  /// False for an incident the barangay published (0073): category and
+  /// status only, no link to the report.
+  final bool mine;
 }
 
 class MapScreen extends StatefulWidget {
@@ -86,7 +94,29 @@ class _MapScreenState extends State<MapScreen> {
           .eq('resident_id', uid)
           .isFilter('deleted_at', null);
 
+      // The incidents the barangay chose to publish (use case "Monitor
+      // Real-Time Map"): category, status and place only.
+      List<dynamic> published = const [];
+      try {
+        published = await client.rpc('public_incidents') as List<dynamic>;
+      } catch (_) {}
+
       final pins = <_Pin>[];
+      final ownIds = {for (final r in rows) r['id'] as String};
+      for (final r in published.cast<Map<String, dynamic>>()) {
+        final lat = (r['latitude'] as num?)?.toDouble();
+        final lng = (r['longitude'] as num?)?.toDouble();
+        final id = r['id'] as String;
+        if (lat == null || lng == null || ownIds.contains(id)) continue;
+        pins.add(_Pin(
+          id: 'pub:$id',
+          point: LatLng(lat, lng),
+          trackingId: '',
+          subject: ComplaintCategory.parse(r['category'] as String?).label,
+          status: ReportStatus.parse(r['status'] as String?),
+          mine: false,
+        ));
+      }
       for (final r in rows) {
         final lat = (r['latitude'] as num?)?.toDouble();
         final lng = (r['longitude'] as num?)?.toDouble();
@@ -108,7 +138,8 @@ class _MapScreenState extends State<MapScreen> {
 
       // Frame them, so a resident with one report far from the centre is
       // not left staring at an empty map.
-      if (pins.isNotEmpty) _fitTo(pins);
+      final mine = pins.where((p) => p.mine).toList();
+      if (mine.isNotEmpty) _fitTo(mine);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -140,8 +171,10 @@ class _MapScreenState extends State<MapScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '(${p.trackingId} - ${context.s.reportStatusLabel(p.status.wire)}) '
-              '${p.subject}',
+              p.mine
+                  ? '(${p.trackingId} - ${context.s.reportStatusLabel(p.status.wire)}) '
+                      '${p.subject}'
+                  : '${p.subject} - ${context.s.reportStatusLabel(p.status.wire)}',
               style: TextStyle(
                 fontFamily: 'Urbanist',
                 fontWeight: FontWeight.w700,
@@ -151,13 +184,20 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
             const SizedBox(height: 18),
-            FigmaPill(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushNamed('/report', arguments: p.id);
-              },
-              child: Text(context.s.mapViewReport),
-            ),
+            if (p.mine)
+              FigmaPill(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushNamed('/report', arguments: p.id);
+                },
+                child: Text(context.s.mapViewReport),
+              )
+            else
+              Text(context.s.mapPublishedNote,
+                  style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontSize: 13,
+                      color: context.colors.hint)),
           ],
         ),
       ),
@@ -230,8 +270,10 @@ class _MapScreenState extends State<MapScreen> {
                                 BrgyMapPin(
                                   id: p.id,
                                   point: p.point,
-                                  alert: p.status.labelColour(context) !=
-                                      context.colors.bg,
+                                  muted: !p.mine,
+                                  alert: p.mine &&
+                                      p.status.labelColour(context) !=
+                                          context.colors.bg,
                                 ),
                           ],
                           onPinTap: (id) {

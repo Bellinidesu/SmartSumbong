@@ -375,6 +375,18 @@ class _AssignedCard extends StatelessWidget {
                               color: kFigmaRed,
                             ),
                           ),
+                          // 0072: the admin's target date has passed.
+                          if (row.dueAt != null &&
+                              row.dueAt!.isBefore(DateTime.now()))
+                            TextSpan(
+                              text: ' · ${context.ts.ticketOverdue}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                height: 1.4,
+                                fontWeight: FontWeight.w800,
+                                color: kFigmaRed,
+                              ),
+                            ),
                         ],
                       ),
                     ),

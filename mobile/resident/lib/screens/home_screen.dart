@@ -213,7 +213,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Fire-and-forget — this is advisory triage for the admin, same
       // as the original registration-time OCR pass, and must never
       // hold up or interrupt the resident's own screen.
-      if (profile['ocr_rescan_requested_at'] != null &&
+      if (kIdOcrEnabled &&
+          profile['ocr_rescan_requested_at'] != null &&
           profile['id_image_url'] != null) {
         unawaited(_maybeRescanId(
           imageUrl: profile['id_image_url'] as String,

@@ -92,6 +92,7 @@ import '../theme.dart';
 import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import 'add_details_screen.dart';
+import 'report_messages_screen.dart';
 import 'reports_screen.dart' show ReportStatus;
 
 class ReportViewScreen extends StatefulWidget {
@@ -262,7 +263,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .from('reports')
           .select('id, tracking_id, subject, description, status, '
               'latitude, longitude, location_label, is_anonymous, created_at, '
-              'resolved_at, closed_at, reopened_count')
+              'resolved_at, closed_at, reopened_count, due_at, '
+              'referred_to, referral_note, followed_up_at')
           .eq('id', widget.reportId)
           .maybeSingle();
 
@@ -545,6 +547,29 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           onCancel: status.canCancel ? () => _cancel(r) : null,
         ),
 
+        // 0072: when the barangay expects it done, Overdue and Follow up
+        // once that passes, where it was referred, and the question
+        // thread with the barangay.
+        const SizedBox(height: 10),
+        _CaseDeskCard(
+          status: status,
+          dueAt: DateTime.tryParse(r['due_at'] as String? ?? ''),
+          referredTo: r['referred_to'] as String?,
+          referralNote: r['referral_note'] as String?,
+          followedUpAt: DateTime.tryParse(r['followed_up_at'] as String? ?? ''),
+          onFollowUp: () => _followUp(r),
+          onAsk: () => ReportMessagesScreen.open(
+            context,
+            ReportMessagesScreen(
+              reportId: widget.reportId,
+              trackingId: r['tracking_id'] as String? ?? '',
+              subject: r['subject'] as String? ?? '',
+              canWrite: status != ReportStatus.cancelled &&
+                  status != ReportStatus.archived,
+            ),
+          ),
+        ),
+
         // Round 20 (30 Aug 2026): the timeline toggle now lives INSIDE
         // the note bubble's own box, not just sharing its row -- direct
         // feedback that having the toggle as bare text next to a bordered
@@ -627,6 +652,78 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         ],
       ],
     );
+  }
+
+  /// The resident's "up" on an overdue complaint (0072): an optional
+  /// line for the barangay, then follow_up_report(). Once a day.
+  Future<void> _followUp(Map<String, dynamic> r) async {
+    final s = context.s;
+    final note = TextEditingController();
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.colors.bg,
+        title: Text(s.followUpTitle,
+            style: TextStyle(
+                fontFamily: 'Urbanist',
+                fontWeight: FontWeight.w800,
+                color: ctx.colors.navy)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s.followUpBody,
+                style: TextStyle(
+                    fontFamily: 'Urbanist', fontSize: 13.5, color: ctx.colors.navy)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: note,
+              maxLines: 3,
+              maxLength: 500,
+              decoration: InputDecoration(
+                hintText: s.followUpHint,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(s.followUpCancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(s.followUpSend),
+          ),
+        ],
+      ),
+    );
+    final message = note.text.trim();
+    note.dispose();
+    if (go != true || !mounted) return;
+    try {
+      await Supabase.instance.client.rpc('follow_up_report', params: {
+        'p_report': widget.reportId,
+        'p_message': message.isEmpty ? null : message,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(s.followUpSent)));
+      await _load();
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.message.contains('already followed up')
+              ? s.followUpToday
+              : s.followUpFailed)));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(s.followUpFailed)));
+      }
+    }
   }
 
   // Figma 2864:332/2864:461 -- the same flow reports_screen.dart's own
@@ -752,6 +849,115 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 /// Styled for the light `field` card it now lives in (this toggle
 /// section, not the navy report card) -- same colour roles this widget
 /// used the first time it existed, before Round 16 ever deleted it.
+/// 0072: the complaint's standing with the barangay, in one card —
+/// expected date, Overdue with Follow up, or where it was referred — and
+/// the way to ask the barangay about it.
+class _CaseDeskCard extends StatelessWidget {
+  const _CaseDeskCard({
+    required this.status,
+    required this.dueAt,
+    required this.referredTo,
+    required this.referralNote,
+    required this.followedUpAt,
+    required this.onFollowUp,
+    required this.onAsk,
+  });
+
+  final ReportStatus status;
+  final DateTime? dueAt;
+  final String? referredTo;
+  final String? referralNote;
+  final DateTime? followedUpAt;
+  final VoidCallback onFollowUp;
+  final VoidCallback onAsk;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final c = context.colors;
+    final open = status.isOngoing;
+    final due = dueAt?.toLocal();
+    final overdue = open && due != null && due.isBefore(DateTime.now());
+    final followedToday = followedUpAt != null &&
+        DateTime.now().difference(followedUpAt!).inHours < 24;
+    String date(DateTime d) {
+      final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+      return '${s.monthFull(d.month)} ${d.day}, ${d.year}, '
+          '$h:${d.minute.toString().padLeft(2, '0')} ${d.hour < 12 ? 'AM' : 'PM'}';
+    }
+
+    final label = TextStyle(
+        fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, color: c.navy);
+    final body = TextStyle(fontFamily: 'Urbanist', fontSize: 13.5, height: 1.35, color: c.navy);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.field,
+        borderRadius: BorderRadius.circular(16),
+        border: overdue ? Border.all(color: const Color(0xFFFF4949), width: 1.5) : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (referredTo != null && referredTo!.isNotEmpty) ...[
+            Text(s.caseReferredTitle(referredTo!), style: label),
+            const SizedBox(height: 4),
+            Text(referralNote?.isNotEmpty == true ? referralNote! : s.caseReferredBody,
+                style: body),
+            const SizedBox(height: 12),
+          ] else if (overdue) ...[
+            Row(children: [
+              const Icon(Icons.schedule, size: 18, color: Color(0xFFFF4949)),
+              const SizedBox(width: 6),
+              Text(s.caseOverdue,
+                  style: label.copyWith(color: const Color(0xFFFF4949))),
+            ]),
+            const SizedBox(height: 4),
+            Text(s.caseOverdueBody(date(due)), style: body),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  backgroundColor: Tokens.orange,
+                ),
+                onPressed: followedToday ? null : onFollowUp,
+                icon: const Icon(Icons.campaign_outlined),
+                label: Text(followedToday ? s.followUpToday : s.followUpButton),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ] else if (open && due != null) ...[
+            Text(s.caseExpectedTitle, style: label),
+            const SizedBox(height: 4),
+            Text(date(due), style: body),
+            const SizedBox(height: 12),
+          ] else if (open) ...[
+            Text(s.caseNoDateYet, style: body),
+            const SizedBox(height: 12),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 44),
+                foregroundColor: c.navy,
+                side: BorderSide(color: c.navy),
+              ),
+              onPressed: onAsk,
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: Text(s.caseAskBarangay),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Timeline extends StatelessWidget {
   const _Timeline({
     required this.entries,

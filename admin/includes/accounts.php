@@ -21,6 +21,14 @@ require_once __DIR__ . '/layout.php';
 /**
  * @param 'resident'|'tanod' $role
  */
+/**
+ * OCR ID triage (0039/0050) is off for now (Rose, 27–30 Sep 2026): no
+ * flags, no "read as", no re-check, no Quick Verify. The code stays for a
+ * future update; true brings it all back. The app has the same switch
+ * (kIdOcrEnabled in mobile/core/lib/src/id_ocr.dart).
+ */
+const ID_OCR_ENABLED = false;
+
 function render_account_screen(string $role): void
 {
     $admin = require_admin();
@@ -49,7 +57,11 @@ function render_account_screen(string $role): void
             $level = 'error';
         } else {
             try {
-                switch ($_POST['action'] ?? '') {
+                $action = (string) ($_POST['action'] ?? '');
+                if (!ID_OCR_ENABLED && $action === 'request_ocr_rescan') {
+                    $action = '';   // falls through to "Unknown action."
+                }
+                switch ($action) {
                     case 'approve':
                         $db->rpc('verify_user_account', [
                             'p_user' => $target, 'p_decision' => 'approve',
@@ -91,6 +103,17 @@ function render_account_screen(string $role): void
                             'p_user' => $target,
                         ]);
                         $flash = t('Re-check requested. It will run automatically next time they open the app.', 'Humiling ng muling pagsuri. Awtomatiko itong tatakbo sa susunod nilang pagbukas ng app.');
+                        break;
+
+                    // 0073 — Manage User Account (3.2): correct a
+                    // resident's or tanod's name and email.
+                    case 'correct_profile':
+                        $db->rpc('admin_update_user', [
+                            'p_user'      => $target,
+                            'p_full_name' => trim((string) ($_POST['full_name'] ?? '')),
+                            'p_email'     => trim((string) ($_POST['email'] ?? '')) ?: null,
+                        ]);
+                        $flash = t('Profile corrected. The account holder has been told.', 'Naitama ang profile. Nasabihan na ang may-ari ng account.');
                         break;
 
                     case 'reset_password':
@@ -326,11 +349,11 @@ function render_account_screen(string $role): void
                     if (!empty($dupes[$a['id']])): ?>
                       <span class="pill pill--escalated" title="<?= e(implode('; ', $dupes[$a['id']])) ?>"><?= e(t('Possible duplicate', 'Posibleng doble')) ?></span>
                     <?php endif; ?><?php
-                    if (!empty($a['ocr_flags'])): ?>
+                    if (ID_OCR_ENABLED && !empty($a['ocr_flags'])): ?>
                       <span class="pill pill--escalated"
                             title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>"><?= e(t('OCR flag', 'OCR flag')) ?></span>
                     <?php endif; ?><?php
-                    if (!empty($a['ocr_rescan_requested_at'])
+                    if (ID_OCR_ENABLED && !empty($a['ocr_rescan_requested_at'])
                         && (empty($a['ocr_processed_at'])
                             || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?>
                       <span class="pill" title="<?= e(t('Waiting for them to open the app', 'Hinihintay na buksan nila ang app')) ?>"><?= e(t('Re-check pending', 'Nakabinbing muling pagsuri')) ?></span>
@@ -340,7 +363,7 @@ function render_account_screen(string $role): void
                     <?= $a['verification_status'] === 'pending' ? e(t('Review', 'Suriin')) : e(t('View', 'Tingnan')) ?>
                   </a>
                   <?php if ($a['verification_status'] === 'pending'
-                            && account_ocr_is_clean($a)
+                            && ID_OCR_ENABLED && account_ocr_is_clean($a)
                             && empty($dupes[$a['id']])): ?>
                     <form method="post" class="quick-verify-form"
                           data-name="<?= e($a['full_name']) ?>">
@@ -390,6 +413,7 @@ function render_account_screen(string $role): void
       // same way the PHP-rendered ones already carry it as a hidden
       // input.
       const CSRF = <?= json_encode(csrf_token()) ?>;
+      const OCR_ON = <?= json_encode(ID_OCR_ENABLED) ?>;
       const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
       const NOUN_LABEL = <?= json_encode(strtolower($nounLabel), JSON_UNESCAPED_UNICODE) ?>;
       const IS_TANOD = <?= json_encode($isTanod) ?>;
@@ -399,10 +423,8 @@ function render_account_screen(string $role): void
       const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
-        { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-          auth: { persistSession: false, autoRefreshToken: false } }
+        { accessToken: window.ssAccessToken(TOKEN) }
       );
-      sb.realtime.setAuth(TOKEN);
 
       function escapeHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -574,16 +596,16 @@ function render_account_screen(string $role): void
           if (dupes[a.id] && dupes[a.id].length) {
             extra += '<span class="pill pill--escalated" title="' + escapeHtml(dupes[a.id].join('; ')) + '">' + T('Possible duplicate', 'Posibleng doble') + '</span>';
           }
-          if (a.ocr_flags && a.ocr_flags.length) {
+          if (OCR_ON && a.ocr_flags && a.ocr_flags.length) {
             extra += '<span class="pill pill--escalated" title="' +
               escapeHtml(a.ocr_flags.map(ocrFlagLabel).join('; ')) + '">' + T('OCR flag', 'OCR flag') + '</span>';
           }
-          if (a.ocr_rescan_requested_at &&
+          if (OCR_ON && a.ocr_rescan_requested_at &&
               (!a.ocr_processed_at || String(a.ocr_processed_at) < String(a.ocr_rescan_requested_at))) {
             extra += '<span class="pill" title="' + T('Waiting for them to open the app', 'Hinihintay na buksan nila ang app') + '">' + T('Re-check pending', 'Nakabinbing muling pagsuri') + '</span>';
           }
           var quickVerify = '';
-          if (a.verification_status === 'pending' && ocrIsClean(a) &&
+          if (OCR_ON && a.verification_status === 'pending' && ocrIsClean(a) &&
               !(dupes[a.id] && dupes[a.id].length)) {
             quickVerify =
               '<form method="post" class="quick-verify-form" data-name="' + escapeHtml(a.full_name) + '">' +
@@ -968,7 +990,18 @@ function render_account_detail(
           <?php endif; ?>
         </div>
 
-        <?php if (!empty($p['id_image_url'])): ?>
+        <?php
+          $ocrRescanPending = !empty($p['ocr_rescan_requested_at'])
+              && (empty($p['ocr_processed_at'])
+                  || (string) $p['ocr_processed_at'] < (string) $p['ocr_rescan_requested_at']);
+        ?>
+        <?php if (!ID_OCR_ENABLED && !empty($p['id_type'])): ?>
+          <p class="case-meta">
+            <?= e(t('Applicant selected:', 'Pinili ng aplikante:')) ?> <?= e(id_document_type_label($p['id_type'])) ?>
+          </p>
+        <?php endif; ?>
+
+        <?php if (ID_OCR_ENABLED && !empty($p['id_image_url'])): ?>
         <!-- OCR triage (0039): the applicant's own device reads the ID
              photo and flags anything worth a second look before the admin
              opens it. Advisory only — never gates verification, just
@@ -982,11 +1015,7 @@ function render_account_detail(
               <?= e(t('Applicant selected:', 'Pinili ng aplikante:')) ?> <?= e(id_document_type_label($p['id_type'])) ?>
             </p>
           <?php endif; ?>
-          <?php
-            $ocrRescanPending = !empty($p['ocr_rescan_requested_at'])
-                && (empty($p['ocr_processed_at'])
-                    || (string) $p['ocr_processed_at'] < (string) $p['ocr_rescan_requested_at']);
-          ?>
+
           <?php if (empty($p['ocr_detected_type']) && empty($p['ocr_flags'])
                     && empty($p['ocr_extracted_name']) && empty($p['ocr_extracted_number'])): ?>
             <?php if (empty($p['ocr_processed_at'])): ?>
@@ -1082,7 +1111,7 @@ function render_account_detail(
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="id" value="<?= e($p['id']) ?>">
 
-          <?php if (!empty($p['id_image_url'])): ?>
+          <?php if (ID_OCR_ENABLED && !empty($p['id_image_url'])): ?>
             <?php if ($ocrRescanPending): ?>
               <p class="control-note">
                 <?= e(t('ID re-check requested', 'Humiling ng muling pagsuri ng ID')) ?> <?= e(relative_time($p['ocr_rescan_requested_at'])) ?>.
@@ -1106,7 +1135,7 @@ function render_account_detail(
                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <?= e(t('Verify Account', 'I-verify ang Account')) ?>
+              <?= e(t('Approve Registration', 'Aprubahan ang Rehistro')) ?>
             </button>
 
             <button class="btn-deny" type="button" data-reveal="deny-panel" aria-expanded="false">
@@ -1198,6 +1227,26 @@ function render_account_detail(
             </p>
           <?php endif; ?>
         </form>
+
+        <?php // 0073 — Manage User Account 3.2: fix a typo'd name or email. ?>
+        <details class="reroute">
+          <summary><?= e(t('Correct profile details', 'Itama ang detalye ng profile')) ?></summary>
+          <form method="post" class="control-stack">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="id" value="<?= e($p['id']) ?>">
+            <input type="hidden" name="action" value="correct_profile">
+            <div class="control-field">
+              <label class="field-label" for="fix-name"><?= e(t('Full name', 'Buong pangalan')) ?></label>
+              <input type="text" id="fix-name" name="full_name" maxlength="120" required value="<?= e($p['full_name']) ?>">
+            </div>
+            <div class="control-field">
+              <label class="field-label" for="fix-email"><?= e(t('Email address', 'Email address')) ?></label>
+              <input type="email" id="fix-email" name="email" maxlength="160" value="<?= e($p['email'] ?? '') ?>" autocomplete="off">
+            </div>
+            <p class="control-note"><?= e(t('The mobile number is their sign-in and cannot be changed here.', 'Ang mobile number ang kanilang pang-sign in at hindi mababago rito.')) ?></p>
+            <button class="btn-dispatch" type="submit"><?= e(t('Save corrections', 'I-save ang pagtatama')) ?></button>
+          </form>
+        </details>
       </aside>
     </div>
 
@@ -1266,10 +1315,8 @@ function render_account_detail(
       const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
-        { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-          auth: { persistSession: false, autoRefreshToken: false } }
+        { accessToken: window.ssAccessToken(TOKEN) }
       );
-      sb.realtime.setAuth(TOKEN);
 
       // Excludes minutes_left/is_overdue on purpose — those already tick
       // on their own via the countdown script above and would otherwise

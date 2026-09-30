@@ -145,7 +145,7 @@ function select_all_many(Supabase $db, array $tables, array &$truncated): array
 try {
     $reportsQuery = [
         'select'     => 'id,tracking_id,subject,category,status,is_anonymous,created_at,'
-                      . 'due_at,resolved_at,closed_at,escalation_level,'
+                      . 'due_at,resolved_at,closed_at,referred_to,referral_note,referred_at,'
                       . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'and'        => "(created_at.gte.{$fromISO},created_at.lte.{$toISO})",
@@ -344,9 +344,44 @@ else { print_head($periodLabel, $categoryLabel); }
                     ? '<em class="anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</em>'
                     : e($r['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></td>
             <td><?= e(category_label($r['category'])) ?></td>
-            <td><?= e(status_label($r['status'])) ?><?= ($r['escalation_level'] ?? 0) > 0 ? e(t(' (escalated)', ' (na-escalate)')) : '' ?></td>
+            <td><?= !empty($r['referred_to'])
+                    ? e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to'])
+                    : e(status_label($r['status'])) . (report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '') ?></td>
             <td><?= e(short_date($r['created_at'])) ?></td>
             <td><?= e(short_date($r['resolved_at'] ?? $r['closed_at'] ?? null)) ?: '—' ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ---------- Referrals (0072) ---------- -->
+<?php $referrals = array_values(array_filter($reports, fn($r) => !empty($r['referred_to']))); ?>
+<section class="panel doc-block">
+  <h2 class="doc-h"><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2>
+  <div class="table-wrap">
+    <table class="case-table doc-table doc-table--navy">
+      <thead>
+        <tr>
+          <th scope="col"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th>
+          <th scope="col"><?= e(t('Category', 'Kategorya')) ?></th>
+          <th scope="col"><?= e(t('Escalated to', 'In-escalate sa')) ?></th>
+          <th scope="col"><?= e(t('Date', 'Petsa')) ?></th>
+          <th scope="col"><?= e(t('Note', 'Tala')) ?></th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if (!$referrals): ?>
+          <tr class="row-empty"><td colspan="5"><?= e(t('No complaint was escalated outside the barangay in this period.', 'Walang sumbong na in-escalate sa labas ng barangay sa panahong ito.')) ?></td></tr>
+        <?php endif; ?>
+        <?php foreach ($referrals as $r): ?>
+          <tr>
+            <td class="mono"><?= e($r['tracking_id']) ?></td>
+            <td><?= e(category_label($r['category'])) ?></td>
+            <td><?= e($r['referred_to']) ?></td>
+            <td><?= e(short_date($r['referred_at'] ?? null)) ?: '—' ?></td>
+            <td><?= !empty($r['referral_note']) ? e($r['referral_note']) : '—' ?></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
@@ -442,10 +477,8 @@ else { print_head($periodLabel, $categoryLabel); }
     const sb = createClient(
       <?= json_encode(supabase_url()) ?>,
       <?= json_encode(supabase_key()) ?>,
-      { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-        auth: { persistSession: false, autoRefreshToken: false } }
+      { accessToken: window.ssAccessToken(TOKEN) }
     );
-    sb.realtime.setAuth(TOKEN);
 
     sb.channel('summary-period')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' },

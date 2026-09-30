@@ -58,23 +58,26 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
         <option value="rejected"><?= e(t('Rejected', 'Tinanggihan')) ?></option>
       </select>
 
-      <label class="visually-hidden" for="f-period"><?= e(t('Hotspot analysis month', 'Buwan ng pagsusuri ng hotspot')) ?></label>
-      <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>">
-      <label class="toggle"><input type="checkbox" id="f-period-all"> <?= e(t('All time', 'Lahat ng panahon')) ?></label>
+      <label class="visually-hidden" for="f-period"><?= e(t('Month filed', 'Buwan ng pagsampa')) ?></label>
+      <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>" disabled>
+      <label class="toggle"><input type="checkbox" id="f-period-all" checked> <?= e(t('All time', 'Lahat ng panahon')) ?></label>
+
+      <!-- Rose (27 Sep 2026): choices above take effect on Apply, not one
+           by one; the toggles below still act at once. -->
+      <button type="button" class="map-apply" id="f-apply"><?= e(t('Apply', 'Ilapat')) ?></button>
 
       <label class="toggle"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
       <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
-      <label class="toggle"><input type="checkbox" id="f-landmarks" checked> <?= e(t('Landmarks', 'Mga palatandaan')) ?></label>
-      <label class="toggle"><input type="checkbox" id="f-hazard"> <?= e(t('Flood hazard', 'Panganib ng baha')) ?></label>
-      <!-- Shown only once the barangay's zone file exists (map-theme.js). -->
-      <label class="toggle" id="f-zones-wrap" hidden><input type="checkbox" id="f-zones" checked> <?= e(t('Zones', 'Mga purok')) ?></label>
-
       <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
   </header>
 
   <div class="map-shell">
     <div id="map"></div>
+    <!-- The use cases' two map messages (View Geospatial Incident Heatmap,
+         Monitor Real-Time Map). -->
+    <p class="map-note" id="map-empty" hidden><?= e(t('No spatial indices found for selected parameters', 'Walang nakitang lokasyon para sa napiling mga parameter')) ?></p>
+    <p class="map-note map-note--error" id="map-failed" hidden><?= e(t('Map unavailable. Please reload.', 'Hindi available ang mapa. Paki-reload.')) ?></p>
 
     <!-- Barangay wifi drops. A map that has silently stopped updating
          looks exactly like a map with nothing new on it, which is the
@@ -83,23 +86,6 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 
     <div class="conn-strip" id="conn" hidden role="status">
       <span class="conn-dot"></span><span id="conn-text"><?= e(t('Reconnecting…', 'Kumokonekta muli…')) ?></span>
-    </div>
-
-    <!-- Project NOAH hazard legend, shown with the overlay. -->
-    <div class="hazard-legend" id="hazard-legend" hidden>
-      <p class="hazard-legend-title"><?= e(t('Flood hazard (100-year rain)', 'Panganib ng baha (100-taóng ulan)')) ?></p>
-      <ul>
-        <li><span style="background:#facc15"></span><?= e(t('Low', 'Mababa')) ?></li>
-        <li><span style="background:#f97316"></span><?= e(t('Medium', 'Katamtaman')) ?></li>
-        <li><span style="background:#dc2626"></span><?= e(t('High', 'Mataas')) ?></li>
-      </ul>
-      <p class="hazard-legend-title"><?= e(t('Storm surge (worst case)', 'Daluyong (pinakamalala)')) ?></p>
-      <ul>
-        <li><span style="background:#c4b5fd"></span><?= e(t('Low', 'Mababa')) ?></li>
-        <li><span style="background:#8b5cf6"></span><?= e(t('Medium', 'Katamtaman')) ?></li>
-        <li><span style="background:#5b21b6"></span><?= e(t('High', 'Mataas')) ?></li>
-      </ul>
-      <p class="hazard-legend-src">Project NOAH &middot; UP NOAH Center</p>
     </div>
 
     <div class="map-dock">
@@ -170,10 +156,8 @@ const TOKEN = <?= json_encode(access_token()) ?>;
 const sb = createClient(
   <?= json_encode(supabase_url()) ?>,
   <?= json_encode(supabase_key()) ?>,
-  { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-    auth: { persistSession: false, autoRefreshToken: false } }
+  { accessToken: window.ssAccessToken(TOKEN) }
 );
-sb.realtime.setAuth(TOKEN);
 
 // The boundary relation covers the whole barangay, most of which is the
 // airport apron and Villamor Air Base — land with no residents and no
@@ -290,6 +274,13 @@ const map = new maplibregl.Map({
 // Bottom-left, so the zoom buttons sit where Leaflet's did, under the dock.
 map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 map.touchZoomRotate.disableRotation();
+// The style or its tiles could not load: say so rather than show a blank.
+map.on('error', e => {
+  if (!map.isStyleLoaded() || (e && e.error && /style|tile|source/i.test(String(e.error.message || '')))) {
+    document.getElementById('map-failed').hidden = false;
+  }
+});
+map.on('load', () => { document.getElementById('map-failed').hidden = true; });
 map.keyboard.disableRotation();
 mapFollowTheme(map);
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -355,27 +346,8 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
   });
   map.on('click', 'hotspots', e => { const h = hotspots[e.features[0].properties.i]; if (h) showHotspotDetail(h); });
 
-  // Hazards lowest of our layers, under the heat; landmarks under the
-  // hotspots and pins, over the heat.
-  hazards = mapHazards(map, { before: 'heat', hidden: !document.getElementById('f-hazard').checked });
-  zonesLayer = mapZones(map, { before: 'heat' });
-  zonesAvailable().then(ok => { document.getElementById('f-zones-wrap').hidden = !ok; });
-  landmarks = mapLandmarks(map, { before: 'hotspots',
-                                  hidden: !document.getElementById('f-landmarks').checked });
-
   resolve();
 }));
-let landmarks = null, hazards = null, zonesLayer = null;
-document.getElementById('f-zones').addEventListener('change', e => {
-  if (zonesLayer) zonesLayer.show(e.target.checked);
-});
-document.getElementById('f-hazard').addEventListener('change', e => {
-  if (hazards) hazards.show(e.target.checked);
-  document.getElementById('hazard-legend').hidden = !e.target.checked;
-});
-document.getElementById('f-landmarks').addEventListener('change', e => {
-  if (landmarks) landmarks.show(e.target.checked);
-});
 
 // Below the threshold every pin stands alone; above it they would sit on
 // top of each other on a barangay-sized map, so they gather into counted
@@ -405,6 +377,7 @@ function setPinsSource(want) {
 }
 
 let all = [], rings = [];
+let loaded = false;   // the complaints have arrived at least once
 const byId = new Map();
 
 // ---- boundary: OSM returns the relation's ways unordered ----------
@@ -458,18 +431,42 @@ async function loadBoundary() {
 }
 
 // ---- rendering ---------------------------------------------------
+// What the map shows is what was last applied, not what the dropdowns
+// say right now (Rose, 27 Sep 2026: choose, then Apply).
+const applied = { cat: '', st: '', period: '', allTime: true };
+
+function readFilters() {
+  return {
+    cat: document.getElementById('f-category').value,
+    st: document.getElementById('f-status').value,
+    period: document.getElementById('f-period').value,
+    allTime: document.getElementById('f-period-all').checked,
+  };
+}
+
+function markDirty() {
+  const f = readFilters();
+  const dirty = f.cat !== applied.cat || f.st !== applied.st || f.allTime !== applied.allTime
+             || (!f.allTime && f.period !== applied.period);
+  document.getElementById('f-apply').classList.toggle('is-dirty', dirty);
+}
+
 function visible() {
-  const cat = document.getElementById('f-category').value;
-  const st  = document.getElementById('f-status').value;
+  const { cat, st } = applied;
+  const { from, to } = periodRange();
+  const fromMs = new Date(from).getTime(), toMs = new Date(to).getTime();
   return all.filter(r => {
     if (cat && r.category !== cat) return false;
     if (st && !(STATUS_GROUPS[st] || []).includes(r.status)) return false;
+    const t = new Date(r.created_at).getTime();
+    if (t < fromMs || t >= toMs) return false;
     return true;
   });
 }
 
 async function draw() {
   const rows = visible();
+  document.getElementById('map-empty').hidden = rows.length > 0 || !loaded;
   byId.clear();
   all.forEach(r => byId.set(r.id, r));
 
@@ -516,6 +513,7 @@ async function load() {
   if (error) { note.textContent = T('Could not load complaints: ', 'Hindi ma-load ang mga sumbong: ') + error.message; return; }
 
   all = data || [];
+  loaded = true;
   note.textContent = all.length
     ? T('Live — new complaints appear without refreshing.', 'Live — lumalabas ang bagong sumbong nang hindi nire-refresh.')
     : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.');
@@ -638,8 +636,20 @@ if (new URLSearchParams(location.search).has('bounds')) {
   });
 }
 
-['f-category','f-status','f-heat'].forEach(id =>
-  document.getElementById(id).addEventListener('change', draw));
+document.getElementById('f-heat').addEventListener('change', draw);
+['f-category', 'f-status', 'f-period'].forEach(id =>
+  document.getElementById(id).addEventListener('change', () => {
+    // Picking a month means that month, not all time.
+    if (id === 'f-period') document.getElementById('f-period-all').checked = false;
+    document.getElementById('f-period').disabled = document.getElementById('f-period-all').checked;
+    markDirty();
+  }));
+document.getElementById('f-apply').addEventListener('click', () => {
+  Object.assign(applied, readFilters());
+  markDirty();
+  draw();
+  loadHotspots();
+});
 
 document.getElementById('f-fog').addEventListener('change', async e => {
   await mapReady;
@@ -656,11 +666,11 @@ document.getElementById('f-fog').addEventListener('change', async e => {
 let hotspots = [];
 
 function periodRange() {
-  const to = new Date();
-  if (document.getElementById('f-period-all').checked) {
+  const to = new Date(Date.now() + 60 * 1000);
+  if (applied.allTime) {
     return { from: '2000-01-01T00:00:00Z', to: to.toISOString() };
   }
-  const val = document.getElementById('f-period').value; // 'YYYY-MM'
+  const val = applied.period; // 'YYYY-MM'
   if (!val) { return { from: '2000-01-01T00:00:00Z', to: to.toISOString() }; }
   const [y, m] = val.split('-').map(Number);
   return {
@@ -707,7 +717,7 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
 // the cluster's own summary numbers.
 function showHotspotDetail(h) {
   const { from, to } = periodRange();
-  const cat = document.getElementById('f-category').value || null;
+  const cat = applied.cat || null;
   const fromMs = new Date(from).getTime(), toMs = new Date(to).getTime();
 
   const members = all.filter(r => {
@@ -770,7 +780,7 @@ async function loadHotspots() {
   }
 
   const { from, to } = periodRange();
-  const cat = document.getElementById('f-category').value || null;
+  const cat = applied.cat || null;
 
   status.textContent = T('Analysing…', 'Sinusuri…');
   const { data, error } = await sb.rpc('report_hotspots', { p_from: from, p_to: to, p_category: cat });
@@ -809,11 +819,9 @@ async function loadHotspots() {
 }
 
 document.getElementById('f-hotspots').addEventListener('change', loadHotspots);
-document.getElementById('f-period').addEventListener('change', loadHotspots);
-document.getElementById('f-category').addEventListener('change', loadHotspots);
 document.getElementById('f-period-all').addEventListener('change', e => {
   document.getElementById('f-period').disabled = e.target.checked;
-  loadHotspots();
+  markDirty();
 });
 
 const hotspotToggleBtn = document.getElementById('hotspot-toggle');

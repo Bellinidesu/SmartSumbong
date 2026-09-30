@@ -141,12 +141,8 @@ layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
       </span>
     <?php endif; ?>
   </p>
-  <!-- Figma DASHBOARD's Download PDF: the Report Summary's own printable
-       report, for the month on screen. -->
-  <a class="btn-pdf btn-pdf--outline" target="_blank" rel="noopener"
-     href="summary.php?print=1&amp;from=<?= e($month->format('Y-m-01')) ?>&amp;to=<?= e($month->format('Y-m-t')) ?>&amp;category=">
-    <?= e(t('Download PDF', 'I-download ang PDF')) ?>
-  </a>
+  <!-- The Figma frame's Download PDF was taken off the dashboard (branch
+       C); the printable report is on Report Summary. -->
 </div>
 
 <!-- ---------- reports received ---------- -->
@@ -548,10 +544,8 @@ layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
   var sb = createClient(
     <?= json_encode(supabase_url()) ?>,
     <?= json_encode(supabase_key()) ?>,
-    { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-      auth: { persistSession: false, autoRefreshToken: false } }
+    { accessToken: window.ssAccessToken(TOKEN) }
   );
-  sb.realtime.setAuth(TOKEN);
 
   function applyMetrics(m) {
     var d2          = m.daily || [];

@@ -54,23 +54,31 @@ bool withinBrgyBounds(ll.LatLng p) =>
     (p.latitude - brgyCentre.latitude).abs() <= _spanLat &&
     (p.longitude - brgyCentre.longitude).abs() <= _spanLng;
 
-/// One report on the map. [alert] draws it red.
+/// One report on the map. [alert] draws it red; [muted] grey, for an
+/// incident the barangay published that is not the viewer's own (0073).
 class BrgyMapPin {
-  const BrgyMapPin({required this.id, required this.point, this.alert = false});
+  const BrgyMapPin({
+    required this.id,
+    required this.point,
+    this.alert = false,
+    this.muted = false,
+  });
 
   final String id;
   final ll.LatLng point;
   final bool alert;
+  final bool muted;
 
   @override
   bool operator ==(Object other) =>
       other is BrgyMapPin &&
       other.id == id &&
       other.point == point &&
-      other.alert == alert;
+      other.alert == alert &&
+      other.muted == muted;
 
   @override
-  int get hashCode => Object.hash(id, point, alert);
+  int get hashCode => Object.hash(id, point, alert, muted);
 }
 
 /// Moves a [BrgyMap]'s camera. A move asked for before the map is ready
@@ -85,6 +93,16 @@ class BrgyMapController {
 
   void move(ll.LatLng p, double zoom) =>
       _apply(ml.CameraUpdate.newLatLngZoom(_ml(p), _mlZoom(zoom)));
+
+  /// Navigation (branch C): the camera on [p], turned to [bearing]
+  /// degrees and tilted, so the way ahead is up the screen.
+  void follow(ll.LatLng p, {double bearing = 0, double zoom = 18, double tilt = 45}) =>
+      _apply(ml.CameraUpdate.newCameraPosition(ml.CameraPosition(
+        target: _ml(p),
+        zoom: _mlZoom(zoom),
+        bearing: bearing,
+        tilt: tilt,
+      )));
 
   /// Frames [points] with [padding] around them; one point is shown at
   /// zoom 17.
@@ -142,6 +160,7 @@ class BrgyMap extends StatefulWidget {
     this.accuracyCentre,
     this.accuracyMetres,
     this.route = const [],
+    this.me,
     this.attributionBottom = 8,
     this.cornerRadius = 0,
     this.cornerColour,
@@ -175,6 +194,9 @@ class BrgyMap extends StatefulWidget {
 
   /// A route to draw (branch B: the walking route to a dispatch).
   final List<ll.LatLng> route;
+
+  /// Where the person is, as a blue dot (branch C: navigation).
+  final ll.LatLng? me;
 
   /// Keeps the attribution button clear of anything drawn over the
   /// map's bottom edge.
@@ -223,6 +245,7 @@ class _BrgyMapState extends State<BrgyMap> {
       unawaited(_map?.setLayerVisibility('hazard-fill', widget.hazards));
     }
     if (!listEquals(old.route, widget.route)) unawaited(_setRoute());
+    if (old.me != widget.me) unawaited(_setMe());
     if (old.accuracyCentre != widget.accuracyCentre ||
         old.accuracyMetres != widget.accuracyMetres) {
       unawaited(_setAccuracy());
@@ -306,6 +329,8 @@ class _BrgyMapState extends State<BrgyMap> {
       await map.addImage('pin-navy', await _pinPng(c.navy, c.field, dpr));
       await map.addImage(
           'pin-red', await _pinPng(const Color(0xFFFF4949), c.field, dpr));
+      await map.addImage(
+          'pin-grey', await _pinPng(const Color(0xFF8A93A6), c.field, dpr));
       await map.addGeoJsonSource('pins', _empty, promoteId: 'id');
       await map.addSymbolLayer(
         'pins',
@@ -313,6 +338,8 @@ class _BrgyMapState extends State<BrgyMap> {
         ml.SymbolLayerProperties(
           iconImage: [
             'case',
+            ['get', 'muted'],
+            'pin-grey',
             ['get', 'alert'],
             'pin-red',
             'pin-navy',
@@ -327,6 +354,21 @@ class _BrgyMapState extends State<BrgyMap> {
         enableInteraction: widget.onPinTap != null,
       );
       await _setPins();
+
+      // You-are-here, over everything.
+      await map.addGeoJsonSource('me', _empty);
+      await map.addCircleLayer(
+        'me',
+        'me-dot',
+        const ml.CircleLayerProperties(
+          circleRadius: 8,
+          circleColor: '#1A73E8',
+          circleStrokeColor: '#FFFFFF',
+          circleStrokeWidth: 3,
+        ),
+        enableInteraction: false,
+      );
+      await _setMe();
     } catch (e) {
       debugPrint('BrgyMap layers: $e');
     }
@@ -484,7 +526,7 @@ class _BrgyMapState extends State<BrgyMap> {
           {
             'type': 'Feature',
             'id': p.id,
-            'properties': {'id': p.id, 'alert': p.alert},
+            'properties': {'id': p.id, 'alert': p.alert, 'muted': p.muted},
             'geometry': {
               'type': 'Point',
               'coordinates': [p.point.longitude, p.point.latitude],
@@ -511,6 +553,30 @@ class _BrgyMapState extends State<BrgyMap> {
                   'geometry': {
                     'type': 'LineString',
                     'coordinates': [for (final p in r) [p.longitude, p.latitude]],
+                  },
+                },
+              ],
+            },
+    );
+  }
+
+  Future<void> _setMe() async {
+    final map = _map;
+    if (map == null || !_styleReady) return;
+    final p = widget.me;
+    await map.setGeoJsonSource(
+      'me',
+      p == null
+          ? _empty
+          : {
+              'type': 'FeatureCollection',
+              'features': [
+                {
+                  'type': 'Feature',
+                  'properties': <String, dynamic>{},
+                  'geometry': {
+                    'type': 'Point',
+                    'coordinates': [p.longitude, p.latitude],
                   },
                 },
               ],

@@ -51,6 +51,10 @@ $filter   = (string) ($_GET['status'] ?? '');
 $category = (string) ($_GET['category'] ?? '');
 $month    = (string) ($_GET['month'] ?? '');
 $view     = (string) ($_GET['view'] ?? '');
+// The Notification panel's own search and order (Rose, 27 Sep 2026: both
+// were only drawn, never read).
+$nSearch  = trim((string) ($_GET['nq'] ?? ''));
+$nSort    = ($_GET['nsort'] ?? 'newest') === 'oldest' ? 'oldest' : 'newest';
 
 if (!in_array($category, CATEGORIES, true)) { $category = ''; }
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
@@ -86,13 +90,14 @@ function sort_caret(string $col, string $active, string $dir): string
 $error = null;
 $reports = [];
 $notifications = [];
+$escalations = [];
 
 try {
     // The embedded resident is a PostgREST foreign-key expansion; the
     // join happens in the database, not in a second round trip.
     $query = [
         'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
-                  . 'escalation_level,due_at,awaiting_unit_since,reopened_count,appealed_at,'
+                  . 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,followed_up_at,resolution_submitted_at,'
                   . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'order'      => $sort,
@@ -125,21 +130,43 @@ try {
     // with: what is late, what nobody has picked up, and what is still
     // sitting unreviewed. Three separate conditions, one chip.
     $attention = array_values(array_filter($reports, function (array $r) {
-        $open    = !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected'], true);
+        $open    = !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true);
         $overdue = $open && !empty($r['due_at']) && strtotime($r['due_at']) < time();
         return $overdue
+            || ($open && !empty($r['followed_up_at']))   // 0072: the resident asked again
+            || !empty($r['resolution_submitted_at'])      // 0073: waiting for approval
             || !empty($r['awaiting_unit_since'])
             || $r['status'] === 'pending_review';
     }));
     if ($view === 'attention') { $reports = $attention; }
 
-    $notifications = $db->select('notifications', [
+    // Unread by default; a search looks through read ones too, since
+    // what an admin searches for is usually something already seen.
+    $nq = [
         'select'  => 'id,kind,message,created_at,is_read,report_id',
         'user_id' => 'eq.' . $admin['id'],
-        'is_read' => 'is.false',
-        'order'   => 'created_at.desc',
-        'limit'   => '20',
-    ]);
+        'order'   => 'created_at.' . ($nSort === 'oldest' ? 'asc' : 'desc'),
+        'limit'   => $nSearch !== '' ? '50' : '20',
+    ];
+    if ($nSearch !== '') {
+        $nq['message'] = 'ilike.*' . preg_replace('/[,()"\\\\*]/', ' ', $nSearch) . '*';
+    } else {
+        $nq['is_read'] = 'is.false';
+    }
+    $notifications = $db->select('notifications', $nq);
+
+    // 0073 — Manage Escalation Request: tanods' requests waiting on an admin.
+    try {
+        $escalations = $db->select('escalation_requests', [
+            'select' => 'id,reason,suggested_office,created_at,'
+                      . 'report:reports!escalation_requests_report_id_fkey(id,tracking_id,category),'
+                      . 'requester:users!escalation_requests_requested_by_fkey(full_name)',
+            'status' => 'eq.pending',
+            'order'  => 'created_at.asc',
+        ]);
+    } catch (SupabaseError) {
+        $escalations = [];
+    }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -159,17 +186,39 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
         <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span>
       </span>
     </h2>
+    <?php
+    // Both forms carry the Reports panel's filters along, so searching
+    // notifications does not reset the list below.
+    $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $category,
+                          'month' => $month, 'view' => $view, 'by' => $sortCol, 'dir' => $sortDir],
+                         fn($v) => $v !== '');
+    ?>
     <form class="panel-search" method="get">
       <?= nav_icon('search') ?>
-      <input type="search" name="nq" placeholder="<?= e(t('Search Here', 'Maghanap Dito')) ?>" value="<?= e($_GET['nq'] ?? '') ?>">
+      <input type="search" name="nq" placeholder="<?= e(t('Search Here', 'Maghanap Dito')) ?>" value="<?= e($nSearch) ?>"
+             aria-label="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>">
+      <input type="hidden" name="nsort" value="<?= e($nSort) ?>">
+      <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
     </form>
-    <div class="panel-sort"><?= e(t('Sort by:', 'Ayusin ayon sa:')) ?> <strong><?= e(t('Unread', 'Hindi pa nababasa')) ?></strong></div>
+    <form class="panel-sort" method="get">
+      <input type="hidden" name="nq" value="<?= e($nSearch) ?>">
+      <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
+      <label class="filter-option">
+        <?= e(t('Sort by:', 'Ayusin ayon sa:')) ?>
+        <select name="nsort" onchange="this.form.submit()">
+          <option value="newest" <?= $nSort === 'newest' ? 'selected' : '' ?>><?= e(t('Newest first', 'Pinakabago muna')) ?></option>
+          <option value="oldest" <?= $nSort === 'oldest' ? 'selected' : '' ?>><?= e(t('Oldest first', 'Pinakaluma muna')) ?></option>
+        </select>
+      </label>
+    </form>
   </header>
 
   <div class="notif-list" id="notif-list">
     <?php if (!$notifications): ?>
-      <p class="empty" id="notif-empty"><?= e(t('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
-                                               'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) ?></p>
+      <p class="empty" id="notif-empty"><?= $nSearch !== ''
+          ? e(t('No notification matches that search.', 'Walang abisong tugma sa hinanap.'))
+          : e(t('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
+                'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) ?></p>
     <?php endif; ?>
 
     <?php foreach ($notifications as $n): ?>
@@ -186,6 +235,34 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
     <?php endforeach; ?>
   </div>
 </section>
+
+<!-- ---------- escalation requests (0073) ---------- -->
+<?php if (!empty($escalations)): ?>
+<section class="panel">
+  <header class="panel-bar">
+    <h2 class="panel-title"><?= e(t('Escalation Requests', 'Mga Hiling na I-escalate')) ?> (<?= count($escalations) ?>)</h2>
+  </header>
+  <div class="notif-list">
+    <?php foreach ($escalations as $x): ?>
+      <article class="notif">
+        <span class="notif-dot" aria-hidden="true"></span>
+        <div class="notif-body">
+          <p class="notif-msg">
+            <strong class="mono"><?= e($x['report']['tracking_id'] ?? '') ?></strong>
+            &middot; <?= e(category_label((string) ($x['report']['category'] ?? ''))) ?>
+            &middot; <?= e($x['requester']['full_name'] ?? t('Tanod', 'Tanod')) ?>:
+            <?= e($x['reason']) ?>
+          </p>
+          <p class="notif-when"><?= e(relative_time($x['created_at'])) ?><?php if (!empty($x['suggested_office'])): ?> &middot; <?= e(t('suggests ', 'mungkahi: ')) . e($x['suggested_office']) ?><?php endif; ?></p>
+        </div>
+        <?php if (!empty($x['report']['id'])): ?>
+          <a class="btn-review" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+        <?php endif; ?>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</section>
+<?php endif; ?>
 
 <!-- ---------- complaint register ---------- -->
 <section class="panel">
@@ -280,8 +357,17 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
               <span class="pill pill--<?= e(status_class($r['status'])) ?>">
                 <?= e(status_label($r['status'])) ?>
               </span>
-              <?php if (($r['escalation_level'] ?? 0) > 0): ?>
-                <span class="pill pill--escalated" title="<?= e(t('Escalated', 'Na-escalate')) ?>"><?= e(t('Escalated', 'Na-escalate')) ?></span>
+              <?php if (report_is_overdue($r)): ?>
+                <span class="pill pill--escalated"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($r['referred_to'])): ?>
+                <span class="pill pill--escalated"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['referred_to']) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($r['resolution_submitted_at'])): ?>
+                <span class="pill pill--pending"><?= e(t('Awaiting approval', 'Naghihintay ng pag-apruba')) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($r['followed_up_at']) && !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
+                <span class="pill pill--pending"><?= e(t('Followed up', 'Nag-follow up')) ?></span>
               <?php endif; ?>
               <?php if (($r['reopened_count'] ?? 0) > 0): ?>
                 <span class="pill pill--pending"><?= e(t('Reopened', 'Binuksang muli')) ?> <?= (int) $r['reopened_count'] ?>&times;</span>
@@ -321,10 +407,8 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
   const sb = createClient(
     <?= json_encode(supabase_url()) ?>,
     <?= json_encode(supabase_key()) ?>,
-    { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-      auth: { persistSession: false, autoRefreshToken: false } }
+    { accessToken: window.ssAccessToken(TOKEN) }
   );
-  sb.realtime.setAuth(TOKEN);
 
   // The view this page loaded with. Realtime keeps re-querying against
   // this exact filter/sort/search, so a new complaint appears live only
@@ -340,6 +424,8 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
   const MONTH_FROM = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->format(DateTimeInterface::ATOM) : null) ?>;
   const MONTH_TO   = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->modify('first day of next month')->format(DateTimeInterface::ATOM) : null) ?>;
   const SEARCH     = <?= json_encode($search) ?>;
+  const N_SEARCH   = <?= json_encode($nSearch) ?>;
+  const N_OLDEST   = <?= json_encode($nSort === 'oldest') ?>;
   const VIEW       = <?= json_encode($view) ?>;
   const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
 
@@ -383,9 +469,10 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
       .format(new Date(iso));
   }
   function isAttention(r) {
-    const open = !['resolved', 'closed', 'archived', 'rejected'].includes(r.status);
+    const open = !['resolved', 'closed', 'archived', 'rejected', 'cancelled'].includes(r.status);
     const overdue = open && r.due_at && new Date(r.due_at).getTime() < Date.now();
-    return overdue || !!r.awaiting_unit_since || r.status === 'pending_review';
+    return overdue || (open && !!r.followed_up_at) || !!r.resolution_submitted_at
+        || !!r.awaiting_unit_since || r.status === 'pending_review';
   }
 
   function renderReports(all) {
@@ -406,8 +493,18 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
       const who = r.is_anonymous
         ? '<span class="anon">' + T('Anonymous', 'Hindi nagpakilala') + '</span>'
         : escapeHtml((r.resident && r.resident.full_name) || T('Unknown', 'Hindi kilala'));
-      const escalated = (r.escalation_level || 0) > 0
-        ? '<span class="pill pill--escalated">' + T('Escalated', 'Na-escalate') + '</span>' : '';
+      // 0072: Overdue (the admin's date has passed) replaces Escalated;
+      // escalation is now a referral, shown by name.
+      const open = !['resolved', 'closed', 'archived', 'rejected', 'cancelled'].includes(r.status);
+      const escalated =
+        (open && r.due_at && new Date(r.due_at) < new Date()
+          ? '<span class="pill pill--escalated">' + T('Overdue', 'Lampas na sa takdang oras') + '</span>' : '') +
+        (r.referred_to
+          ? '<span class="pill pill--escalated">' + T('Escalated to ', 'In-escalate sa ') + escapeHtml(r.referred_to) + '</span>' : '') +
+        (r.resolution_submitted_at
+          ? '<span class="pill pill--pending">' + T('Awaiting approval', 'Naghihintay ng pag-apruba') + '</span>' : '') +
+        (open && r.followed_up_at
+          ? '<span class="pill pill--pending">' + T('Followed up', 'Nag-follow up') + '</span>' : '');
       const reopened = (r.reopened_count || 0) > 0
         ? '<span class="pill pill--pending">' + T('Reopened ', 'Binuksang muli ') + r.reopened_count + '&times;</span>' : '';
       const appealed = r.appealed_at
@@ -430,9 +527,10 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
     document.getElementById('notif-count').textContent = rows.length;
     const list = document.getElementById('notif-list');
     if (!rows.length) {
-      list.innerHTML = '<p class="empty" id="notif-empty">' +
-        T('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
-          'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.') + '</p>';
+      list.innerHTML = '<p class="empty" id="notif-empty">' + (N_SEARCH
+        ? T('No notification matches that search.', 'Walang abisong tugma sa hinanap.')
+        : T('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
+            'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) + '</p>';
       return;
     }
     list.innerHTML = rows.map(n => {
@@ -449,7 +547,7 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
   async function loadReports() {
     let q = sb.from('reports')
       .select('id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
-        + 'escalation_level,due_at,awaiting_unit_since,reopened_count,appealed_at,'
+        + 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,followed_up_at,resolution_submitted_at,'
         + 'resident:users!reports_resident_id_fkey(full_name)')
       .is('deleted_at', null)
       .order(SORT_COL, { ascending: SORT_ASC })
@@ -467,12 +565,15 @@ layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
   }
 
   async function loadNotifications() {
-    const { data, error } = await sb.from('notifications')
+    let nq = sb.from('notifications')
       .select('id,kind,message,created_at,is_read,report_id')
       .eq('user_id', ADMIN_ID)
-      .eq('is_read', false)
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .order('created_at', { ascending: N_OLDEST })
+      .limit(N_SEARCH ? 50 : 20);
+    // Same rule as the PHP above: a search includes read notifications.
+    nq = N_SEARCH ? nq.ilike('message', '*' + N_SEARCH.replace(/[,()"\\*]/g, ' ') + '*')
+                  : nq.eq('is_read', false);
+    const { data, error } = await nq;
     if (error) return;
     renderNotifications(data || []);
   }

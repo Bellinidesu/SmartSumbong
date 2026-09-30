@@ -49,6 +49,8 @@ dependencies:
   connectivity_plus: ^7.3.1
   path_provider: ^2.1.4
   uuid: ^4.5.1
+  flutter_tts: ^4.2.5
+  wakelock_plus: ^1.8.0
   # local_auth (Face ID / fingerprint unlock) is not listed here: it
   # arrives through smartsumbong_core, same as flutter_secure_storage
   # and supabase_flutter already do, because nothing in this app imports

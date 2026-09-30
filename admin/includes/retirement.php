@@ -47,6 +47,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/layout.php';
 
+/**
+ * Admin succession (Grant Administrator Access, handover, step down) is
+ * off for now (Rose, 30 Sep 2026) and planned for the next update. Its
+ * code stays as it is; true brings the whole section back.
+ */
+const ADMIN_SUCCESSION_ENABLED = false;
+
 function render_retirement_queue(): void
 {
     $admin = require_admin();
@@ -66,7 +73,12 @@ function render_retirement_queue(): void
             $level = 'error';
         } else {
             try {
-                switch ($_POST['action'] ?? '') {
+                $action = (string) ($_POST['action'] ?? '');
+                if (!ADMIN_SUCCESSION_ENABLED
+                    && in_array($action, ['promote', 'cancel_handover', 'step_down'], true)) {
+                    $action = '';   // falls through to "Unknown action."
+                }
+                switch ($action) {
                     case 'approve':
                         $db->rpc('finalize_retirement', [
                             'p_request' => $target, 'p_decision' => 'approve',
@@ -167,24 +179,27 @@ function render_retirement_queue(): void
     // ---------- data: succession ----------
     $candSearch = trim((string) ($_GET['cand'] ?? ''));
     $candidates = [];
-    try {
-        $candidates = $db->rpc('admin_candidates', ['p_search' => $candSearch ?: null]);
-    } catch (SupabaseError $ex) {
-        $error = $error ?? safe_error($ex);
-    }
-
-    // My own in-progress handover, if any — my_admin_handover_status()
-    // always returns exactly one row for the calling admin, with null
-    // fields when no handover is active.
+    $candidates = [];
     $handover = null;
-    try {
-        $rows = $db->rpc('my_admin_handover_status');
-        $row  = $rows[0] ?? null;
-        if ($row && !empty($row['admin_handover_until'])) {
-            $handover = $row;
+    if (ADMIN_SUCCESSION_ENABLED) {
+        try {
+            $candidates = $db->rpc('admin_candidates', ['p_search' => $candSearch ?: null]);
+        } catch (SupabaseError $ex) {
+            $error = $error ?? safe_error($ex);
         }
-    } catch (SupabaseError) {
-        // Not fatal — the succession form still works without this banner.
+
+        // My own in-progress handover, if any — my_admin_handover_status()
+        // always returns exactly one row for the calling admin, with null
+        // fields when no handover is active.
+        try {
+            $rows = $db->rpc('my_admin_handover_status');
+            $row  = $rows[0] ?? null;
+            if ($row && !empty($row['admin_handover_until'])) {
+                $handover = $row;
+            }
+        } catch (SupabaseError) {
+            // Not fatal — the succession form still works without this banner.
+        }
     }
 
     layout_head(t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), $self);
@@ -198,6 +213,7 @@ function render_retirement_queue(): void
       <div class="alert-bar" role="alert"><?= e($error) ?></div>
     <?php endif; ?>
 
+    <?php if (ADMIN_SUCCESSION_ENABLED): ?>
     <?php if ($handover): ?>
       <div class="flash flash--ok handover-banner" role="status">
         <strong><?= e(t('Handover in progress', 'Kasalukuyang handover')) ?></strong> &mdash; <?= e(t('training', 'sinasanay si')) ?>
@@ -315,6 +331,8 @@ function render_retirement_queue(): void
         </form>
       </div>
     </section>
+
+    <?php endif; ?>
 
     <section class="panel">
       <header class="panel-bar">
@@ -451,10 +469,8 @@ function render_retirement_queue(): void
       const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
-        { global: { headers: { Authorization: 'Bearer ' + TOKEN } },
-          auth: { persistSession: false, autoRefreshToken: false } }
+        { accessToken: window.ssAccessToken(TOKEN) }
       );
-      sb.realtime.setAuth(TOKEN);
 
       function escapeHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {

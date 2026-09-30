@@ -246,7 +246,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // filling in the rest of the form. _submit awaits this later,
           // matched against whatever _idType ends up being at that point
           // (see runIdOcr's own doc comment for why not now).
-          _ocrFuture = runIdOcr(f, enteredFullName: _fullName.text);
+          if (kIdOcrEnabled) {
+            _ocrFuture = runIdOcr(f, enteredFullName: _fullName.text);
+          }
         }
       });
     } on MediaUploadException catch (e) {
@@ -390,6 +392,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _banner = message;
         if (e.field != null) _errors[e.field!] = message;
       });
+      // Use case "Register Account", A1: the number is taken, so the way
+      // on is the Login screen.
+      if (e.code == 'mobile_taken' && mounted) {
+        final go = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            content: Text(s.registerMobileTaken),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(s.registerGoToLogin),
+              ),
+            ],
+          ),
+        );
+        if (go == true && mounted) {
+          Navigator.of(context).pushReplacementNamed('/login',
+              arguments: widget.role == AccountRole.tanod ? 'tanod' : null);
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _banner = context.s.registerSomethingWentWrong);

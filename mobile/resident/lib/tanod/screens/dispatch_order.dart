@@ -21,6 +21,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -31,8 +32,13 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../duty.dart';
+import '../../i18n.dart' show AppLocale;
+import '../navigation.dart';
+import '../tanod_outbox.dart';
+import '../../outbox.dart' show Outbox;
 
 import '../tanod_strings.dart';
 import '../../theme.dart';
@@ -40,29 +46,24 @@ import '../../widgets/brgy_map.dart';
 import '../../widgets/figma_ui.dart';
 import 'tickets_screen.dart';
 
+part 'dispatch_nav.dart';
+part 'dispatch_window.dart';
+
 const _cloudName = String.fromEnvironment('CLOUDINARY_CLOUD_NAME');
 const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
 // Optional: falls back to the photo preset (which now also accepts video,
 // per the Cloudinary preset widened 27 Aug 2026) when this dart-define is
 // not set, so builds that have not been updated with the new key yet do
 // not break.
-const _videoUploadPresetRaw =
-    String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET_VIDEO');
+const _videoUploadPresetRaw = String.fromEnvironment(
+  'CLOUDINARY_UPLOAD_PRESET_VIDEO',
+);
 
 const _red = kFigmaRed;
 const _green = Color(0xFF058F00);
 
 /// Which body the card is showing.
-enum _Pane {
-  order,
-  map,
-  media,
-  instructions,
-  rerouteConfirm,
-  accepted,
-  update,
-  submitted,
-}
+enum _Pane { order, map, media, instructions, rerouteConfirm, accepted }
 
 /// Which pane [showDispatchOrder] should land on, for a caller that
 /// wants a specific view rather than the ticket's default (the order
@@ -107,73 +108,41 @@ class _DispatchOrder extends StatefulWidget {
   State<_DispatchOrder> createState() => _DispatchOrderState();
 }
 
-class _DispatchOrderState extends State<_DispatchOrder> {
+class _DispatchOrderState extends State<_DispatchOrder>
+    with _Directions<_DispatchOrder> {
   _Pane _pane = _Pane.order;
-
-  /// Where View Map / View Attached Media / View Instructions return to.
-  /// Usually [_Pane.order] — but an already-accepted ticket opens
-  /// straight into [_Pane.update] (see initState), and a tanod who taps
-  /// View Map from there and then Back should land back on the update
-  /// form, not on the order pane's Accept/Reroute buttons, which would
-  /// raise on a ticket that is not in 'pending' any more.
-  _Pane _returnPane = _Pane.order;
 
   Map<String, dynamic>? _report;
 
-  // Directions (branch B): the tanod's spot when asked, the walking route
-  // from it, and what went wrong if it could not be had.
-  final _mapCtl = BrgyMapController();
-  LatLng? _me;
-  double? _meAccuracy;
-  List<LatLng> _route = const [];
-  double? _routeMetres;
-  double? _routeSeconds;
-  bool _routing = false;
-  String? _routeNote;
   List<({String url, bool isVideo})> _evidence = const [];
 
-  /// The latest request for more details on this report (0065), if any:
-  /// open while `responded_at` is null.
-  Map<String, dynamic>? _detailRequest;
   bool _loading = true;
   bool _busy = false;
   bool _changed = false;
   String? _error;
 
   final _reason = TextEditingController();
-  final _update = TextEditingController();
-  final _photos = <File>[];
 
-  // Optional field-proof video. One only — dispatch_media has no
-  // notion of "several videos" the way it does photos, and a tanod
-  // filing an update from the field has neither the time nor the
-  // data budget to shoot more than one short clip.
-  File? _video;
+  @override
+  LatLng? get _casePoint {
+    final lat = (_report?['latitude'] as num?)?.toDouble();
+    final lon = (_report?['longitude'] as num?)?.toDouble();
+    return lat == null || lon == null ? null : LatLng(lat, lon);
+  }
 
   @override
   void initState() {
     super.initState();
-    // Already accepted tickets arrive here from Reports and go straight
-    // to the update pane — the order pane's Accept and Reroute would
-    // both raise, since neither RPC touches a row in 'accepted'. Kim's
-    // note during the QA exchange (26 Aug 2026) was that this pane used
-    // to show nothing about what the report even was — see the summary
-    // box _updatePane() now opens with, sourced from the same _report /
-    // _evidence load() every pane already uses.
-    final basePane = widget.ticket.state == DispatchState.accepted
-        ? _Pane.update
-        : _Pane.order;
-    _returnPane = basePane;
-
     // A caller that asked for a specific pane (Reports' View Map / View
     // Attached Media / View Instructions links) lands there directly;
-    // Back still returns to [basePane], same as opening that pane from
-    // inside the card itself.
+    // Back returns to the order pane. An accepted ticket keeps the card
+    // (branch C): its order pane offers Open dispatch, into the window,
+    // in place of Reroute and Accept.
     _pane = switch (widget.target) {
       DispatchTarget.map => _Pane.map,
       DispatchTarget.media => _Pane.media,
       DispatchTarget.instructions => _Pane.instructions,
-      DispatchTarget.order => basePane,
+      DispatchTarget.order => _Pane.order,
     };
     _load();
   }
@@ -181,87 +150,32 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   @override
   void dispose() {
     _reason.dispose();
-    _update.dispose();
     super.dispose();
-  }
-
-  /// Asks the resident for more details (0065's
-  /// request_additional_details). The resident is notified and answers
-  /// from their app; the reply shows in the summary box.
-  Future<void> _requestDetails() async {
-    if (_busy) return;
-    final s = context.ts;
-    final message = await showDialog<String>(
-      context: context,
-      builder: (_) => const _DetailsRequestDialog(),
-    );
-    if (message == null || message.trim().isEmpty || !mounted) return;
-
-    setState(() => _busy = true);
-    try {
-      await Supabase.instance.client.rpc('request_additional_details',
-          params: {'p_report': widget.ticket.reportId, 'p_message': message});
-      if (!mounted) return;
-      _changed = true;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(s.dispatchDetailsSent)));
-      await _load();
-    } on PostgrestException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.message.contains('already a request')
-            ? s.dispatchDetailsAlreadyOpen
-            : s.dispatchDetailsFailed),
-      ));
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(s.dispatchDetailsFailed)));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
   }
 
   Future<void> _load() async {
     try {
       final client = Supabase.instance.client;
-      // All three at once. The details request is caught on its own, so
-      // the ticket still loads if that one fails.
-      Future<Map<String, dynamic>?> detailQ() async {
-        try {
-          return await client
-              .from('detail_requests')
-              .select('id, message, requested_at, response, responded_at')
-              .eq('report_id', widget.ticket.reportId)
-              .order('requested_at', ascending: false)
-              .limit(1)
-              .maybeSingle();
-        } catch (_) {
-          return null;
-        }
-      }
-
       final got = await Future.wait<Object?>([
         client
             .from('reports')
-            .select('tracking_id, subject, description, created_at, '
-                'latitude, longitude, location_label, is_anonymous')
+            .select(
+              'tracking_id, subject, description, created_at, '
+              'latitude, longitude, location_label, is_anonymous',
+            )
             .eq('id', widget.ticket.reportId)
             .single(),
         client
             .from('report_media')
             .select('media_url, mime_type')
             .eq('report_id', widget.ticket.reportId),
-        detailQ(),
       ], eagerError: true);
       final report = got[0] as Map<String, dynamic>;
       final media = got[1] as List<Map<String, dynamic>>;
-      final detail = got[2] as Map<String, dynamic>?;
 
       if (!mounted) return;
       setState(() {
         _report = report;
-        _detailRequest = detail;
         _evidence = [
           for (final m in media)
             (
@@ -288,8 +202,10 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       _error = null;
     });
     try {
-      await Supabase.instance.client.rpc('accept_dispatch',
-          params: {'p_dispatch': widget.ticket.dispatchId});
+      await Supabase.instance.client.rpc(
+        'accept_dispatch',
+        params: {'p_dispatch': widget.ticket.dispatchId},
+      );
       // A dispatch step is one of the few moments a location is sent.
       unawaited(DutyController.instance.keyMoment());
       if (!mounted) return;
@@ -329,10 +245,13 @@ class _DispatchOrderState extends State<_DispatchOrder> {
       // p_to omitted: the ticket goes back to the admin queue rather
       // than to a named colleague. A tanod cannot see the roster or who
       // is free, so choosing one would be a guess.
-      await Supabase.instance.client.rpc('reroute_dispatch', params: {
-        'p_dispatch': widget.ticket.dispatchId,
-        'p_reason': _reason.text.trim(),
-      });
+      await Supabase.instance.client.rpc(
+        'reroute_dispatch',
+        params: {
+          'p_dispatch': widget.ticket.dispatchId,
+          'p_reason': _reason.text.trim(),
+        },
+      );
       unawaited(DutyController.instance.keyMoment());
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -345,169 +264,13 @@ class _DispatchOrderState extends State<_DispatchOrder> {
     }
   }
 
-  Future<void> _submitUpdate() async {
-    if (_busy) return;
-    if (_update.text.trim().isEmpty) {
-      setState(() => _error = context.ts.dispatchUpdateDescribeRequired);
-      return;
-    }
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-
-    try {
-      final client = Supabase.instance.client;
-
-      // Photos first, the RPC last. submit_field_report() closes the
-      // dispatch and moves the report to resolved; a resolved dispatch
-      // is not editable, so if that ran and the upload then failed the
-      // case would close with the proof permanently missing.
-      if (_photos.isNotEmpty || _video != null) {
-        final uploader = MediaUploader(
-          cloudName: _cloudName,
-          uploadPreset: _uploadPreset,
-          videoUploadPreset:
-              _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
-        );
-        final rows = <Map<String, dynamic>>[];
-        for (final f in _photos) {
-          final up = await uploader.upload(f, kind: MediaKind.fieldProof);
-          rows.add({
-            'dispatch_id': widget.ticket.dispatchId,
-            ...up.toJson(),
-          });
-        }
-        if (_video != null) {
-          final up =
-              await uploader.uploadVideo(_video!, kind: MediaKind.fieldProof);
-          rows.add({
-            'dispatch_id': widget.ticket.dispatchId,
-            ...up.toJson(),
-          });
-        }
-        await client.from('dispatch_media').insert(rows);
-      }
-
-      await client.rpc('submit_field_report', params: {
-        'p_dispatch': widget.ticket.dispatchId,
-        'p_text': _update.text.trim(),
-      });
-      // A dispatch step is one of the few moments a location is sent.
-      unawaited(DutyController.instance.keyMoment());
-
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _changed = true;
-        _pane = _Pane.submitted;
-      });
-    } on MediaUploadException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _error = context.ts.dispatchUpdateUploadFailed(e.message);
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _error = context.ts.dispatchUpdateSubmitFailed;
-      });
-    }
-  }
-
-  /// Camera or gallery, per the CAPSTONE G12 feedback that attaching
-  /// media forced the camera open with no way to pick an existing shot.
-  /// Mirrors the resident app's register_screen.dart `_chooseSource`.
-  Future<ImageSource?> _chooseSource(BuildContext context) =>
-      showFigmaSourceSheet(
-        context,
-        takeLabel: context.ts.dispatchTakePhoto,
-        galleryLabel: context.ts.dispatchChooseFromGallery,
-      );
-
-  Future<void> _addPhoto() async {
-    if (_photos.length >= 3) return;
-    final source = await _chooseSource(context);
-    if (source == null || !mounted) return;
-    final s = context.ts;
-    final granted = await PermissionGate.ensure(
-      context,
-      permission:
-          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
-      title: source == ImageSource.camera
-          ? s.dispatchCameraAccessTitle
-          : s.dispatchPhotoAccessTitle,
-      rationale: source == ImageSource.camera
-          ? s.dispatchCameraAccessPhotoRationale
-          : s.dispatchGalleryAccessPhotoRationale,
-    );
-    if (!granted || !mounted) return;
-    try {
-      // Through MediaUploader.pick, not ImagePicker directly: that is
-      // where EXIF is stripped (media_upload.dart's header). A camera shot
-      // taken here used to go up to Cloudinary with its GPS fix, capture
-      // time and device MakerNote intact, on a public URL the filing
-      // resident can open (0024).
-      final uploader = MediaUploader(
-        cloudName: _cloudName,
-        uploadPreset: _uploadPreset,
-        videoUploadPreset:
-            _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
-      );
-      final f = await uploader.pick(source: source);
-      if (f == null || !mounted) return;
-      setState(() {
-        _photos.add(f);
-        _error = null;
-      });
-    } catch (_) {
-      if (mounted) {
-        setState(() => _error = context.ts.dispatchMediaOpenFailed);
-      }
-    }
-  }
-
-  Future<void> _addVideo() async {
-    final source = await _chooseSource(context);
-    if (source == null || !mounted) return;
-    final s = context.ts;
-    final granted = await PermissionGate.ensure(
-      context,
-      permission:
-          source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
-      title: source == ImageSource.camera
-          ? s.dispatchCameraAccessTitle
-          : s.dispatchPhotoAccessTitle,
-      rationale: source == ImageSource.camera
-          ? s.dispatchCameraAccessVideoRationale
-          : s.dispatchGalleryAccessVideoRationale,
-    );
-    if (!granted || !mounted) return;
-    try {
-      final uploader = MediaUploader(
-        cloudName: _cloudName,
-        uploadPreset: _uploadPreset,
-        videoUploadPreset:
-            _videoUploadPresetRaw.isEmpty ? null : _videoUploadPresetRaw,
-      );
-      final f = await uploader.pickVideo(source: source);
-      if (f == null || !mounted) return;
-      setState(() {
-        _video = f;
-        _error = null;
-      });
-    } catch (_) {
-      if (mounted) {
-        setState(() => _error = context.ts.dispatchMediaOpenFailed);
-      }
-    }
-  }
-
-  void _removeVideo() => setState(() => _video = null);
-
   void _close() => Navigator.of(context).pop(_changed);
+
+  /// On into the dispatch window, in the card's place.
+  void _toWindow() => Navigator.of(context).pushReplacement(
+    MaterialPageRoute(builder: (_) => DispatchWindow(ticket: widget.ticket)),
+    result: true,
+  );
 
   // ---------- shell ---------------------------------------------
 
@@ -534,7 +297,9 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                 decoration: BoxDecoration(
                   color: context.colors.bg,
                   border: Border.all(
-                      color: reroute ? _red : context.colors.navy, width: 2),
+                    color: reroute ? _red : context.colors.navy,
+                    width: 2,
+                  ),
                   borderRadius: BorderRadius.circular(50),
                   boxShadow: kFigmaShadow,
                 ),
@@ -549,15 +314,13 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   }
 
   Widget _body() => switch (_pane) {
-        _Pane.order => _orderPane(),
-        _Pane.map => _framed(Column(children: [_mapPane(), _directions()])),
-        _Pane.media => _framed(_mediaPane()),
-        _Pane.instructions => _framed(_instructionsPane()),
-        _Pane.rerouteConfirm => _reroutePane(),
-        _Pane.accepted => _acceptedPane(),
-        _Pane.update => _updatePane(),
-        _Pane.submitted => _submittedPane(),
-      };
+    _Pane.order => _orderPane(),
+    _Pane.map => _framed(Column(children: [_mapPane(), _directions()])),
+    _Pane.media => _framed(_mediaPane()),
+    _Pane.instructions => _framed(_instructionsPane()),
+    _Pane.rerouteConfirm => _reroutePane(),
+    _Pane.accepted => _acceptedPane(),
+  };
 
   // ---------- panes ---------------------------------------------
 
@@ -580,13 +343,16 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         ),
         FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(context.ts.dispatchTicketNumber(widget.ticket.trackingId),
-              style: style),
+          child: Text(
+            context.ts.dispatchTicketNumber(widget.ticket.trackingId),
+            style: style,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
-          context.ts
-              .dispatchSubmittedOn(_date(_report?['created_at'] as String?)),
+          context.ts.dispatchSubmittedOn(
+            _date(_report?['created_at'] as String?),
+          ),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'Urbanist',
@@ -626,32 +392,32 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   /// The map, media and instructions panes are the same card with the
   /// inner box swapped and a single Back.
   Widget _framed(Widget inner) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _header(),
-          const SizedBox(height: 14),
-          inner,
-          const SizedBox(height: 30),
-          _Pill(
-            label: context.ts.dispatchBack,
-            colour: context.colors.navy,
-            onTap: () => setState(() => _pane = _returnPane),
-          ),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _header(),
+      const SizedBox(height: 14),
+      inner,
+      const SizedBox(height: 30),
+      _Pill(
+        label: context.ts.dispatchBack,
+        colour: context.colors.navy,
+        onTap: () => setState(() => _pane = _Pane.order),
+      ),
+    ],
+  );
 
   /// The frame's inner box: #FBFBFB, 1px ink edge, radius 20; text 27 in.
   Widget _innerBox({required Widget child, double? height}) => Container(
-        width: double.infinity,
-        height: height,
-        padding: const EdgeInsets.fromLTRB(27, 18, 20, 16),
-        decoration: BoxDecoration(
-          color: context.colors.field,
-          border: Border.all(color: context.colors.navy),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: child,
-      );
+    width: double.infinity,
+    height: height,
+    padding: const EdgeInsets.fromLTRB(27, 18, 20, 16),
+    decoration: BoxDecoration(
+      color: context.colors.field,
+      border: Border.all(color: context.colors.navy),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: child,
+  );
 
   Widget _orderPane() {
     return Column(
@@ -670,8 +436,9 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               // the filer's row at all. A name here needs that policy
               // loosened, which is the barangay's call.
               _Field(
-                  label: context.ts.dispatchComplainantLabel,
-                  value: context.ts.reportsFilerAnonymous),
+                label: context.ts.dispatchComplainantLabel,
+                value: context.ts.reportsFilerAnonymous,
+              ),
               const SizedBox(height: 15),
               _Field(
                 label: context.ts.reportsDescriptionLabel,
@@ -680,33 +447,24 @@ class _DispatchOrderState extends State<_DispatchOrder> {
               const SizedBox(height: 15),
               _Field(
                 label: context.ts.reportsDeadlineLabel,
-                value: _dateOf(widget.ticket.dueAt),
+                value: _deadlineOf(widget.ticket.dueAt),
               ),
               const SizedBox(height: 8),
 
               _Link(
                 icon: Icons.location_on_outlined,
                 label: context.ts.reportsViewMap,
-                onTap: () => setState(() {
-                  _returnPane = _Pane.order;
-                  _pane = _Pane.map;
-                }),
+                onTap: () => setState(() => _pane = _Pane.map),
               ),
               _Link(
                 icon: Icons.photo_camera_outlined,
                 label: context.ts.reportsViewMedia,
-                onTap: () => setState(() {
-                  _returnPane = _Pane.order;
-                  _pane = _Pane.media;
-                }),
+                onTap: () => setState(() => _pane = _Pane.media),
               ),
               _Link(
                 icon: Icons.my_location_rounded,
                 label: context.ts.reportsViewInstructions,
-                onTap: () => setState(() {
-                  _returnPane = _Pane.order;
-                  _pane = _Pane.instructions;
-                }),
+                onTap: () => setState(() => _pane = _Pane.instructions),
               ),
             ],
           ),
@@ -714,36 +472,50 @@ class _DispatchOrderState extends State<_DispatchOrder> {
 
         if (_error != null) ...[
           const SizedBox(height: 10),
-          Text(_error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: _red)),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: _red),
+          ),
         ],
         const SizedBox(height: 14),
 
         // The frame's 112x37 Reroute and Accept, 36 apart, Back under them.
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 36,
-          runSpacing: 12,
-          children: [
-            _Pill(
-              label: context.ts.dispatchReroute,
-              colour: _red,
-              onTap: _busy
-                  ? null
-                  : () => setState(() {
+        // Once accepted, one way on: the dispatch window.
+        if (widget.ticket.state == DispatchState.accepted)
+          _Pill(
+            label: context.ts.windowOpen,
+            colour: kFigmaOrange,
+            width: 214,
+            height: 50,
+            radius: 20,
+            fontSize: 16,
+            onTap: _toWindow,
+          )
+        else
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 36,
+            runSpacing: 12,
+            children: [
+              _Pill(
+                label: context.ts.dispatchReroute,
+                colour: _red,
+                onTap: _busy
+                    ? null
+                    : () => setState(() {
                         _pane = _Pane.rerouteConfirm;
                         _error = null;
                       }),
-            ),
-            _Pill(
-              label: context.ts.dispatchAccept,
-              colour: _green,
-              busy: _busy,
-              onTap: _busy ? null : _accept,
-            ),
-          ],
-        ),
+              ),
+              _Pill(
+                label: context.ts.dispatchAccept,
+                colour: _green,
+                busy: _busy,
+                onTap: _busy ? null : _accept,
+              ),
+            ],
+          ),
         const SizedBox(height: 14),
         _Pill(
           label: context.ts.dispatchBack,
@@ -755,8 +527,8 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   }
 
   Widget _mapPane() {
-    final lat = (_report?['latitude'] as num?)?.toDouble();
-    final lon = (_report?['longitude'] as num?)?.toDouble();
+    final lat = _casePoint?.latitude;
+    final lon = _casePoint?.longitude;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -767,9 +539,10 @@ class _DispatchOrderState extends State<_DispatchOrder> {
             ? Container(
                 color: context.colors.field,
                 child: Center(
-                  child: Text(context.ts.dispatchNoLocation,
-                      style:
-                          TextStyle(fontSize: 12, color: context.colors.muted)),
+                  child: Text(
+                    context.ts.dispatchNoLocation,
+                    style: TextStyle(fontSize: 12, color: context.colors.muted),
+                  ),
                 ),
               )
             // MapLibre on OpenFreeMap vector tiles (widgets/brgy_map.dart),
@@ -786,149 +559,15 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                   pins: [BrgyMapPin(id: 'case', point: LatLng(lat, lon))],
                   route: _route,
                   accuracyCentre: _me,
-                  accuracyMetres:
-                      _me == null ? null : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
+                  accuracyMetres: _me == null
+                      ? null
+                      : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
                   cornerRadius: 20,
                   cornerColour: context.colors.bg,
                 ),
               ),
       ),
     );
-  }
-
-  /// Under the map: the walking route on request, and a hand-off to the
-  /// phone's own maps app for turn-by-turn directions.
-  Widget _directions() {
-    final lat = (_report?['latitude'] as num?)?.toDouble();
-    final lon = (_report?['longitude'] as num?)?.toDouble();
-    if (lat == null || lon == null) return const SizedBox.shrink();
-    final s = context.ts;
-    final navy = context.colors.navy;
-    final small = TextStyle(fontFamily: 'Urbanist', fontSize: 12.5, color: navy);
-    final metres = _routeMetres, seconds = _routeSeconds;
-    return Column(
-      children: [
-        const SizedBox(height: 10),
-        if (metres != null && seconds != null)
-          Text(
-            s.dispatchRouteSummary(
-                metres < 950
-                    ? '${(metres / 10).round() * 10} m'
-                    : '${(metres / 1000).toStringAsFixed(1)} km',
-                (seconds / 60).ceil().clamp(1, 999)),
-            style: small.copyWith(fontWeight: FontWeight.w700, fontSize: 14),
-          )
-        else if (_routing)
-          Text(s.dispatchFindingYou, style: small)
-        else if (_routeNote != null)
-          Text(_routeNote!, style: small, textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _Pill(
-              label: s.dispatchGetDirections,
-              width: 150,
-              fontSize: 13,
-              colour: const Color(0xFFFF9800),
-              onTap: _routing ? null : () => _getRoute(LatLng(lat, lon)),
-            ),
-            const SizedBox(width: 10),
-            _Pill(
-              label: s.dispatchOpenMaps,
-              width: 150,
-              fontSize: 13,
-              colour: navy,
-              onTap: () => _openMaps(lat, lon),
-            ),
-          ],
-        ),
-        if (_route.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(s.dispatchRouteSource,
-              style: small.copyWith(fontSize: 10.5, color: context.colors.muted)),
-        ],
-      ],
-    );
-  }
-
-  /// One location fix (a key moment: it also refreshes the tanod's
-  /// position for dispatch), then the walking route from OpenStreetMap's
-  /// free FOSSGIS router. Nothing runs until the tanod asks.
-  Future<void> _getRoute(LatLng to) async {
-    final s = context.ts;
-    setState(() {
-      _routing = true;
-      _routeNote = null;
-    });
-    try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever ||
-          !await Geolocator.isLocationServiceEnabled()) {
-        if (mounted) setState(() => _routeNote = s.dispatchLocationNeeded);
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      ).timeout(const Duration(seconds: 15));
-      unawaited(DutyController.instance.keyMoment());
-      final me = LatLng(pos.latitude, pos.longitude);
-      if (mounted) {
-        setState(() {
-          _me = me;
-          _meAccuracy = pos.accuracy;
-        });
-      }
-
-      final uri = Uri.parse(
-          'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'
-          '${me.longitude},${me.latitude};${to.longitude},${to.latitude}'
-          '?overview=full&geometries=geojson');
-      final res = await http.get(uri, headers: {
-        'User-Agent':
-            'SmartSumbong/1.0 (Barangay 183 tanod app; dispatch directions)',
-      }).timeout(const Duration(seconds: 12));
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      final routes = body['routes'] as List?;
-      if (res.statusCode != 200 || routes == null || routes.isEmpty) {
-        throw const FormatException('no route');
-      }
-      final r = routes.first as Map<String, dynamic>;
-      final coords = ((r['geometry'] as Map)['coordinates'] as List)
-          .map((c) =>
-              LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
-          .toList();
-      if (!mounted) return;
-      setState(() {
-        _route = coords;
-        _routeMetres = (r['distance'] as num?)?.toDouble();
-        _routeSeconds = (r['duration'] as num?)?.toDouble();
-      });
-      _mapCtl.fit([...coords, to, me], padding: 40);
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _route = const [];
-          _routeMetres = null;
-          _routeSeconds = null;
-          _routeNote = s.dispatchRouteFailed;
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _routing = false);
-    }
-  }
-
-  /// Turn-by-turn in the phone's maps app (Google Maps where installed).
-  Future<void> _openMaps(double lat, double lon) async {
-    final uri = Uri.parse('https://www.google.com/maps/dir/?api=1'
-        '&destination=$lat,$lon&travelmode=walking');
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Widget _mediaPane() {
@@ -947,8 +586,10 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Center(
-          child: Text(context.ts.dispatchNoMedia,
-              style: TextStyle(fontSize: 12, color: context.colors.muted)),
+          child: Text(
+            context.ts.dispatchNoMedia,
+            style: TextStyle(fontSize: 12, color: context.colors.muted),
+          ),
         ),
       );
     }
@@ -970,8 +611,11 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                         color: Colors.black87,
                         width: double.infinity,
                         child: const Center(
-                          child: Icon(Icons.play_circle_fill,
-                              size: 48, color: Colors.white70),
+                          child: Icon(
+                            Icons.play_circle_fill,
+                            size: 48,
+                            color: Colors.white70,
+                          ),
                         ),
                       ),
                     )
@@ -983,13 +627,16 @@ class _DispatchOrderState extends State<_DispatchOrder> {
                       placeholder: (_, __) => Container(
                         color: context.colors.field,
                         child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2)),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       ),
                       errorWidget: (_, __, ___) => Container(
                         color: context.colors.field,
                         child: Center(
-                          child: Icon(Icons.broken_image_outlined,
-                              color: context.colors.muted),
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: context.colors.muted,
+                          ),
                         ),
                       ),
                     ),
@@ -1102,9 +749,11 @@ class _DispatchOrderState extends State<_DispatchOrder> {
         ),
         if (_error != null) ...[
           const SizedBox(height: 8),
-          Text(_error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: _red)),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: _red),
+          ),
         ],
         const SizedBox(height: 30),
         _Pill(
@@ -1129,9 +778,9 @@ class _DispatchOrderState extends State<_DispatchOrder> {
           onTap: _busy
               ? null
               : () => setState(() {
-                    _pane = _Pane.order;
-                    _error = null;
-                  }),
+                  _pane = _Pane.order;
+                  _error = null;
+                }),
         ),
       ],
     );
@@ -1140,322 +789,73 @@ class _DispatchOrderState extends State<_DispatchOrder> {
   // Figma COMPLAINT ACCEPTED: the message 28/800 and 16/500 centred in the
   // 556-tall card, the 180x50 Back under it.
   Widget _acceptedPane() => _message(
-        title: context.ts.dispatchAcceptedTitle(
-            widget.ticket.trackingId, widget.ticket.subject),
-        body: context.ts.dispatchAcceptedBody,
-      );
+    title: context.ts.dispatchAcceptedTitle(
+      widget.ticket.trackingId,
+      widget.ticket.subject,
+    ),
+    body: context.ts.dispatchAcceptedBody,
+    action: context.ts.windowOpen,
+    onAction: _toWindow,
+  );
 
-  Widget _message({required String title, String? body}) => ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 480),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 60),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w800,
-                fontSize: 28,
-                height: 24.5 / 28,
-                color: context.colors.navy,
-              ),
-            ),
-            if (body != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                body,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                  height: 15 / 16,
-                  color: context.colors.navy,
-                ),
-              ),
-            ],
-            const SizedBox(height: 60),
-            _Pill(
-              label: context.ts.dispatchBack,
-              colour: context.colors.navy,
-              width: 180,
-              height: 50,
-              fontSize: 16,
-              onTap: _close,
-            ),
-          ],
-        ),
-      );
-
-  Widget _updatePane() {
-    return Column(
+  Widget _message({
+    required String title,
+    String? body,
+    String? action,
+    VoidCallback? onAction,
+  }) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 480),
+    child: Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _header(),
-        const SizedBox(height: 14),
-
-        // What Kim's QA note (26 Aug 2026) was missing: an
-        // already-accepted ticket used to open straight into this form
-        // with no reminder of what the report even was. Same summary
-        // box the order pane shows, same _report/_evidence this pane
-        // already loads — just never displayed here before.
-        _innerBox(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Field(
-                  label: context.ts.dispatchComplainantLabel,
-                  value: context.ts.reportsFilerAnonymous),
-              const SizedBox(height: 15),
-              _Field(
-                label: context.ts.reportsDescriptionLabel,
-                value: '“${widget.ticket.description}”',
-              ),
-              const SizedBox(height: 15),
-              _Field(
-                label: context.ts.reportsDeadlineLabel,
-                value: _dateOf(widget.ticket.dueAt),
-              ),
-              const SizedBox(height: 8),
-
-              _Link(
-                icon: Icons.location_on_outlined,
-                label: context.ts.reportsViewMap,
-                onTap: () => setState(() {
-                  _returnPane = _Pane.update;
-                  _pane = _Pane.map;
-                }),
-              ),
-              _Link(
-                icon: Icons.photo_camera_outlined,
-                label: context.ts.reportsViewMedia,
-                onTap: () => setState(() {
-                  _returnPane = _Pane.update;
-                  _pane = _Pane.media;
-                }),
-              ),
-              _Link(
-                icon: Icons.my_location_rounded,
-                label: context.ts.reportsViewInstructions,
-                onTap: () => setState(() {
-                  _returnPane = _Pane.update;
-                  _pane = _Pane.instructions;
-                }),
-              ),
-              // More details from the resident (0065): ask, then see the
-              // question waiting or the reply here.
-              if (_detailRequest != null &&
-                  _detailRequest!['responded_at'] == null) ...[
-                const SizedBox(height: 8),
-                _Field(
-                  label: context.ts.dispatchDetailsWaiting,
-                  value: _detailRequest!['message'] as String? ?? '',
-                ),
-              ] else ...[
-                if (_detailRequest != null) ...[
-                  const SizedBox(height: 8),
-                  _Field(
-                    label: context.ts.dispatchDetailsReply,
-                    value: ((_detailRequest!['response'] as String?) ?? '')
-                            .trim()
-                            .isNotEmpty
-                        ? _detailRequest!['response'] as String
-                        : context.ts.dispatchDetailsMediaOnly,
-                  ),
-                ],
-                _Link(
-                  icon: Icons.help_outline,
-                  label: context.ts.dispatchRequestDetails,
-                  onTap: _requestDetails,
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 28),
-
-        // Figma SUBMIT PHOTO EVIDENCE: the title 28/800, the 266x128
-        // report box (radius 25), the photo label 14/700, and 146x107
-        // attach tiles.
+        const SizedBox(height: 60),
         Text(
-          context.ts.reportsSubmitUpdate,
+          title,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'Urbanist',
             fontWeight: FontWeight.w800,
             fontSize: 28,
-            height: 25 / 28,
+            height: 24.5 / 28,
             color: context.colors.navy,
           ),
         ),
-        const SizedBox(height: 26),
-        _InputBox(
-          label: context.ts.dispatchProvideReportLabel,
-          colour: context.colors.navy,
-          controller: _update,
-          hint: context.ts.dispatchInputHint,
-          maxLength: 300,
-          enabled: !_busy,
-          onChanged: (_) => setState(() => _error = null),
-        ),
-        const SizedBox(height: 28),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 2),
-            child: Text(
-              context.ts.dispatchPhotoEvidenceLabel,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                height: 15 / 14,
-                color: context.colors.navy,
-              ),
+        if (body != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Urbanist',
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              height: 15 / 16,
+              color: context.colors.navy,
             ),
           ),
-        ),
-        const SizedBox(height: 6),
-
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              for (var i = 0; i < _photos.length; i++)
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(25),
-                      child: Image.file(_photos[i],
-                          width: 107, height: 107, fit: BoxFit.cover),
-                    ),
-                    Positioned(
-                      top: -6,
-                      right: -6,
-                      child: Material(
-                        color: context.colors.navy,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => setState(() => _photos.removeAt(i)),
-                          child: Padding(
-                            padding: EdgeInsets.all(3),
-                            child: Icon(Icons.close,
-                                size: 14, color: context.colors.bg),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-              // Optional. A tanod who moved an obstruction or spoke to a
-              // neighbour has nothing to photograph, and requiring one
-              // would only teach them to photograph something else.
-              if (_photos.length < 3)
-                _AttachTile(
-                  icon: Icons.add,
-                  label: context.ts.dispatchAttachMedia,
-                  limit: context.ts.dispatchMaxPhotoSize,
-                  onTap: _busy ? null : _addPhoto,
-                ),
-
-              // Same single-clip reasoning as the resident report screen's
-              // _VideoAttach: one optional video, not a strip of them.
-              if (_video != null)
-                Container(
-                  width: 138,
-                  height: 107,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: context.colors.field,
-                    border: Border.all(color: context.colors.navy),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.videocam, color: context.colors.navy, size: 20),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Text(context.ts.dispatchVideoAttached,
-                              style: TextStyle(
-                                fontFamily: 'Urbanist',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11,
-                                color: context.colors.navy,
-                              )),
-                        ),
-                      ),
-                      InkWell(
-                        onTap: _removeVideo,
-                        customBorder: const CircleBorder(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(Icons.close,
-                              size: 16, color: context.colors.navy),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                _AttachTile(
-                  icon: Icons.videocam,
-                  label: context.ts.dispatchAttachVideo,
-                  limit: context.ts.dispatchMaxVideoSize,
-                  onTap: _busy ? null : _addVideo,
-                ),
-            ],
-          ),
-        ),
-
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          Text(_error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: _red)),
         ],
-        const SizedBox(height: 36),
-
-        // The frame's 180x50 Submit; Back (kept, so a tanod can leave
-        // without submitting) as its light twin under it.
+        const SizedBox(height: 60),
         _Pill(
-          label: context.ts.dispatchSubmit,
-          colour: context.colors.navy,
+          label: action ?? context.ts.dispatchBack,
+          colour: action == null ? context.colors.navy : kFigmaOrange,
           width: 180,
           height: 50,
           fontSize: 16,
-          busy: _busy,
-          onTap: _busy ? null : _submitUpdate,
-        ),
-        const SizedBox(height: 12),
-        _Pill(
-          label: context.ts.dispatchBack,
-          colour: context.colors.navy,
-          filled: false,
-          width: 180,
-          height: 50,
-          fontSize: 16,
-          onTap: _busy ? null : _close,
+          onTap: onAction ?? _close,
         ),
       ],
-    );
-  }
-
-  // Figma REPORT SUBMITTED: the same message layout, no body.
-  Widget _submittedPane() =>
-      _message(title: context.ts.dispatchSubmittedTitle(widget.ticket.trackingId));
+    ),
+  );
 
   // ---------- dates ---------------------------------------------
 
   String _date(String? iso) => _dateOf(DateTime.tryParse(iso ?? ''));
+
+  /// The deadline, with Overdue once the admin's date has passed.
+  String _deadlineOf(DateTime? d) => d != null && d.isBefore(DateTime.now())
+      ? '${_dateOf(d)} · ${context.ts.ticketOverdue}'
+      : _dateOf(d);
 
   String _dateOf(DateTime? d) {
     if (d == null) return context.ts.reportsDeadlineNotSet;
@@ -1475,32 +875,29 @@ class _Field extends StatelessWidget {
   // The frame's 14/500 body, the label 700, 15 leading.
   @override
   Widget build(BuildContext context) => Text.rich(
+    TextSpan(
+      style: TextStyle(
+        fontFamily: 'Urbanist',
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+        height: 15 / 14,
+        color: context.colors.navy,
+      ),
+      children: [
         TextSpan(
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            height: 15 / 14,
-            color: context.colors.navy,
-          ),
-          children: [
-            TextSpan(
-                text: label,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
-            TextSpan(text: value),
-          ],
+          text: label,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-      );
+        TextSpan(text: value),
+      ],
+    ),
+  );
 }
 
 /// The frame's link row: a 22px icon, the label 14/700 underlined; rows
 /// 46 apart.
 class _Link extends StatelessWidget {
-  const _Link({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  const _Link({required this.icon, required this.label, required this.onTap});
 
   final IconData icon;
   final String label;
@@ -1756,22 +1153,26 @@ class _AttachTile extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                          height: 1.3,
-                          color: ink,
-                        )),
-                    Text(limit,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w400,
-                          fontStyle: FontStyle.italic,
-                          fontSize: 10,
-                          color: ink,
-                        )),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        height: 1.3,
+                        color: ink,
+                      ),
+                    ),
+                    Text(
+                      limit,
+                      style: TextStyle(
+                        fontFamily: 'Urbanist',
+                        fontWeight: FontWeight.w400,
+                        fontStyle: FontStyle.italic,
+                        fontSize: 10,
+                        color: ink,
+                      ),
+                    ),
                   ],
                 ),
               ),

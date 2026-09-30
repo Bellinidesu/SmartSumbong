@@ -493,6 +493,8 @@ class TanodStrings {
   String get reportsDescriptionLabel =>
       _t('Description: ', 'Deskripsyon: ');
   String get reportsDeadlineLabel => _t('Deadline: ', 'Deadline: ');
+  /// The admin's target date has passed (0072).
+  String get ticketOverdue => _t('Overdue', 'Lampas na');
   String get reportsDeadlineNotSet => _t('not set', 'hindi pa naitatakda');
   String get reportsViewMap => _t('View Map', 'Tingnan ang Mapa');
   String get reportsViewMedia =>
@@ -668,6 +670,119 @@ class TanodStrings {
       _t('Video attached', 'May nakalakip na video');
   String get dispatchAttachVideo => _t('Attach Video', 'Maglakip ng Video');
   String get dispatchMaxVideoSize => _t('(Max. 25 MB)', '(Max. 25 MB)');
+  // The dispatch window (branch C).
+  // 0073: resolution approval, escalation requests, the outbox.
+  String windowResolveSent(String id) => _t(
+      'Report for $id sent to the barangay for approval',
+      'Naipadala sa barangay ang ulat para sa $id para aprubahan');
+  String get windowAwaitingApproval => _t(
+      "Your resolution is waiting for the barangay's approval.",
+      'Naghihintay ng pag-apruba ng barangay ang iyong resolusyon.');
+  String get escButton =>
+      _t('Request escalation', 'Humiling na i-escalate');
+  String get escTitle => _t('Request escalation', 'Humiling na i-escalate');
+  String get escBody => _t(
+      'Ask the barangay to take this beyond its level, for example to the VAWC desk or the police. The admin decides.',
+      'Hilingin sa barangay na dalhin ito sa mas mataas na tanggapan, halimbawa sa VAWC desk o sa pulisya. Ang admin ang magpapasya.');
+  String get escReason => _t('Why it needs to go further', 'Bakit kailangang dalhin pa');
+  String get escOffice => _t('Suggested office (optional)', 'Mungkahing tanggapan (hindi kailangan)');
+  String get escSend => _t('Send request', 'Ipadala ang hiling');
+  String get escReasonRequired =>
+      _t('Say why it needs to be escalated.', 'Sabihin kung bakit kailangang i-escalate.');
+  String get escSent => _t('Request sent to the barangay.', 'Naipadala sa barangay ang hiling.');
+  String get escWaiting => _t(
+      'Escalation requested. Waiting for the barangay to decide.',
+      'Hiniling na i-escalate. Hinihintay ang pasya ng barangay.');
+  String escDenied(String why) => _t(
+      'Escalation request denied${why.isEmpty ? '' : ': $why'}',
+      'Tinanggihan ang hiling na i-escalate${why.isEmpty ? '' : ': $why'}');
+  String get escAlreadyWaiting => _t(
+      'A request for this complaint is already waiting.',
+      'May naghihintay nang hiling para sa sumbong na ito.');
+  String get escFailed => _t(
+      "Couldn't send the request. Try again.",
+      'Hindi naipadala ang hiling. Subukan muli.');
+  String get outboxSaved => _t(
+      "No signal. Saved on this phone; it will send by itself when you're back online.",
+      'Walang signal. Naka-save sa teleponong ito; kusa itong ipapadala pagbalik ng koneksyon.');
+  String get outboxWaiting => _t('Waiting to send', 'Naghihintay na maipadala');
+  String outboxRefused(String why) => _t('Not sent: $why', 'Hindi naipadala: $why');
+  String get outboxDiscard => _t('Discard', 'Itapon');
+  String outboxPhotos(int n) => _t('$n photo${n == 1 ? '' : 's'}', '$n larawan');
+  // Navigation (branch C).
+  String get navNavigate => _t('Navigate', 'Mag-navigate');
+  String get navEnd => _t('End', 'Tapusin');
+  String get navMute => _t('Voice on or off', 'Boses on o off');
+  String get navRecentre => _t('Re-centre', 'Igitna');
+  String get navStart => _t('Start walking', 'Magsimulang maglakad');
+  String get navLeft => _t('Turn left', 'Kumaliwa');
+  String get navRight => _t('Turn right', 'Kumanan');
+  String get navSlightLeft => _t('Keep left', 'Bahagyang kumaliwa');
+  String get navSlightRight => _t('Keep right', 'Bahagyang kumanan');
+  String get navSharpLeft => _t('Turn sharp left', 'Kumaliwa nang todo');
+  String get navSharpRight => _t('Turn sharp right', 'Kumanan nang todo');
+  String get navUturn => _t('Turn around', 'Bumalik');
+  String get navStraight => _t('Continue straight', 'Dumiretso');
+  String get navRoundabout => _t('Take the roundabout', 'Pumasok sa rotonda');
+  String navOnto(String turn, String road) =>
+      _t('$turn onto $road', '$turn papunta sa $road');
+  String navIn(String distance, String instruction) => _t(
+      'In $distance, ${instruction[0].toLowerCase()}${instruction.substring(1)}',
+      'Pagkalipas ng $distance, ${instruction[0].toLowerCase()}${instruction.substring(1)}');
+  String get navArrive => _t('You have arrived', 'Nakarating ka na');
+  String get navArrivedBody => _t(
+      'Mark yourself as arrived? The resident will be told the tanod is here.',
+      'Markahan kang nakarating na? Sasabihan ang residente na nandito na ang tanod.');
+  String get navNotYet => _t('Not yet', 'Hindi pa');
+  String navArriveAt(String time) => _t('Arrive $time', 'Darating $time');
+  String get navRerouting =>
+      _t('Rerouting\u2026', 'Naghahanap ng bagong ruta\u2026');
+  String get navStartFailed => _t(
+      "Couldn't start navigation. Check your location and connection.",
+      'Hindi masimulan ang navigation. Suriin ang lokasyon at koneksyon.');
+  String get dispatchTooFar => _t(
+      'Your location looks far from the barangay. Try again outside, or '
+      'use Open in Maps.',
+      'Mukhang malayo sa barangay ang lokasyon mo. Subukan muli sa labas, '
+      'o gamitin ang Open in Maps.');
+  String get windowOpen => _t('Open dispatch', 'Buksan ang dispatch');
+  String get windowStepAccepted => _t('Accepted', 'Tinanggap');
+  String get windowStepOnTheWay => _t('On the way', 'Papunta na');
+  String get windowStepArrived => _t('Arrived', 'Nakarating');
+  String get windowStepResolved => _t('Resolved', 'Naresolba');
+  String get windowActionOnTheWay => _t("I'm on the way", 'Papunta na ako');
+  String get windowActionArrived => _t("I've arrived", 'Nandito na ako');
+  String get windowResolve => _t('Resolve', 'Iresolba');
+  String get windowResolveTitle =>
+      _t('Resolve this case', 'Iresolba ang kasong ito');
+  String get windowResolveBody => _t(
+      'Your final report goes to the barangay for approval. Once they '
+      'approve it, the resident is told the case is resolved.',
+      'Mapupunta sa barangay ang iyong huling ulat para aprubahan. Kapag '
+      'naaprubahan, sasabihan ang residente na nalutas na ang kaso.');
+  String get windowComposerHint =>
+      _t('Send an update\u2026', 'Magpadala ng update\u2026');
+  String get windowEmpty => _t(
+      'Updates you send show here. The barangay sees them; the resident '
+      'only sees your steps.',
+      'Dito lalabas ang mga update mo. Nakikita ito ng barangay; ang mga '
+      'hakbang mo lang ang nakikita ng residente.');
+  String get windowBarangay => _t('Barangay', 'Barangay');
+  String get windowYou => _t('You', 'Ikaw');
+  String get windowYouAsked =>
+      _t('You asked the resident', 'Tinanong mo ang residente');
+  String get windowInstructions =>
+      _t('Barangay instructions', 'Tagubilin ng barangay');
+  String get windowCase => _t('Case details', 'Detalye ng kaso');
+  String get windowClosed =>
+      _t('This dispatch is closed.', 'Sarado na ang dispatch na ito.');
+  String get windowSendFailed => _t(
+      "Couldn't send. Check your connection and try again.",
+      'Hindi naipadala. Suriin ang koneksyon at subukan muli.');
+  String get windowStepFailed => _t(
+      "Couldn't update your step. Try again.",
+      'Hindi na-update ang hakbang. Subukan muli.');
+
   String dispatchSubmittedTitle(String trackingId) => _t(
       '$trackingId\nReport has been submitted.',
       '$trackingId\nNaipadala na ang report.');

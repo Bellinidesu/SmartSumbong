@@ -13,8 +13,14 @@ class CrashReporting {
 
   /// Call once, after Firebase.initializeApp(), before runApp.
   static void install() {
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    FlutterError.onError = (details) {
+      // Still on the console in a debug build: without this a layout
+      // error only blanked the screen, with nothing in the log.
+      if (kDebugMode) FlutterError.presentError(details);
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    };
     PlatformDispatcher.instance.onError = (error, stack) {
+      if (kDebugMode) debugPrint('$error\n$stack');
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       return true;
     };
