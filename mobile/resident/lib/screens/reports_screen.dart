@@ -857,7 +857,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 24),
       itemCount: visible.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 13),
+      separatorBuilder: (_, _) => const SizedBox(height: 13),
       itemBuilder: (_, i) {
         final r = visible[i];
         return _ReportCard(

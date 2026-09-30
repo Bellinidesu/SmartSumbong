@@ -1744,14 +1744,14 @@ class _MediaCarouselState extends State<_MediaCarousel> {
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
-                          placeholder: (_, __) => Container(
+                          placeholder: (_, _) => Container(
                             color: context.colors.navy.withValues(alpha: 0.08),
                             child: Center(
                               child: CircularProgressIndicator(
                                   color: context.colors.navy, strokeWidth: 2),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => Container(
+                          errorWidget: (_, _, _) => Container(
                             color: context.colors.navy.withValues(alpha: 0.08),
                             child: Icon(Icons.broken_image_outlined,
                                 color: context.colors.navy),

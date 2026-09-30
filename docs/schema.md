@@ -1,138 +1,169 @@
 # SmartSumbong — Schema Reference
 
-Mirrors `supabase/migrations/`. If the manuscript's Data Dictionary and this
-file disagree, one of them is wrong — fix both in the same sitting.
+Mirrors `supabase/migrations/` (0001–0074, all applied to the live project as
+of 30 September 2026). If the manuscript's Data Dictionary and this file
+disagree, one of them is wrong — fix both in the same sitting.
 
-Actor naming is **`tanod`** throughout, per the panel revision. The string
-"responder" should not appear anywhere in this codebase.
+Actor naming is **`tanod`** throughout, per the panel revision.
 
 ---
 
-## Tables
+## Tables (23)
 
-All thirteen exist in `supabase/migrations/`. The right-hand column tracks the
-manuscript's Data Dictionary, which still documents only four of them — that gap
-is a writing task, not a build task.
-
-| Table | Purpose | In the manuscript DD? |
+| Table | Purpose | Since |
 |---|---|---|
-| `users` | Accounts, roles, verification, duty status, last position | Yes — DD lacks the verification, duty and location columns |
-| `reports` | Complaints, location, SLA, escalation | Yes — DD lacks `due_at`, `escalated_at`, `escalation_level`, `reopened_count`, `geom`, `awaiting_unit_since`, `dispatch_attempts` |
-| `report_media` | Resident photos (multiple, 10 MB combined) | **No — add** |
-| `dispatches` | Assignment, accept/reroute, field report | Yes — DD lacks the accept clock and reroute columns |
-| `dispatch_media` | Tanod photo proof | **No — add** |
-| `status_logs` | Append-only audit trail | Yes |
-| `feedback` | Post-resolution rating | **No — add** |
-| `attendance` | Tanod duty logging | **No — add** |
-| `notifications` | In-app alerts (`is_read`, not a `read_at` timestamp) | **No — add** |
-| `sla_policies` | Per-category response windows, plus `auto_dispatch_on_file` | **No — add** |
-| `sla_extensions` | Audited deadline extensions | **No — add** |
-| `barangay_boundary` | OSM relation 2988704 as a PostGIS polygon, for jurisdiction checks | **No — add** |
-| `operational_settings` | Single row: attempt cap, location freshness, awaiting-unit alert. Barangay-owned, not developer-owned | **No — add** |
+| `users` | Accounts, role, verification, suspension, retirement, duty status, last known location | 0001 |
+| `reports` | Complaints: category, place (`geom`), status, admin-set `due_at`, referral (`referred_to`…), follow-ups, resolution awaiting approval, `is_public` | 0001 |
+| `report_media` | Resident photos and video | 0001 |
+| `status_logs` | Append-only, hash-chained audit trail (0015) | 0001 |
+| `feedback` | Post-resolution rating and comment | 0001 |
+| `attendance` | Tanod duty logging | 0001 |
+| `notifications` | In-app alerts, pushed to phones (`is_read`) | 0001 |
+| `sla_policies` | Per-category guide hours and the tanod's accept window | 0001 |
+| `dispatches` | Assignment, accept, reroute, step (On the way / Arrived), field report | 0002 |
+| `dispatch_media` | Tanod photo/video proof; `update_id` tags photos sent in the thread (0069) | 0002 |
+| `sla_extensions` | Audited deadline extensions | 0002 |
+| `barangay_boundary` | OSM relation 2988704 as a PostGIS polygon | 0005 |
+| `operational_settings` | Single row: attempt cap, location freshness, alert thresholds | 0010 |
+| `account_audit` | Hash-chained log of account changes | 0014 |
+| `hotline_groups`, `hotline_numbers` | The resident app's emergency hotline list | 0025 |
+| `login_attempts` | Lockout after repeated failures | 0031 |
+| `device_tokens` | FCM push tokens | 0035 |
+| `retirement_requests` | A tanod's request to retire, and the admin's decision | 0052 |
+| `detail_requests` | "More details needed" asked of the resident, and the answer | 0065 |
+| `dispatch_updates` | The dispatch window's thread: tanod notes, admin replies, steps | 0069 |
+| `report_messages` | "Ask the barangay": a complaint's resident ↔ barangay thread | 0072 |
+| `escalation_requests` | A tanod's request to escalate, and the admin's decision | 0073 |
 
-Nine of thirteen tables are absent from the current Data Dictionary. That is what
-Austria's comment ("ensure all tables are included in the ERD") actually requires.
-
-`emergency_alerts` is deliberately **not** present. The emergency feature was cut
-from scope by unanimous panel direction. Do not reintroduce it.
+Removed: `tanod_locations` (live tracking history, dropped in 0072), the
+public transparency functions (0043 → removed). `emergency_alerts` was never
+built: the emergency feature is out of scope by panel direction.
 
 ---
 
-## Functions the portal calls
+## Functions, by who calls them
 
-Every state change goes through one of these rather than a bare `UPDATE`, so the
+Every state change goes through a function rather than a bare `UPDATE`, so the
 status, the audit trail and the notification move in one transaction. Most are
-`security definer` because `notifications` has no insert policy by design —
-nobody writes their own alerts.
+`security definer` because `notifications` has no insert policy by design.
 
-| Function | Migration | Used by |
+**Admin portal**
+
+| Function | Latest | Does |
 |---|---|---|
-| `review_report(report, decision, remark)` | 0011 | Accept / Deny on the case screen |
-| `set_resolution_target(report, due)` | 0011 | "Target date resolution" field |
-| `tanod_roster(report)` | 0011 | The assign list — everyone, with ONLINE/OFFLINE |
-| `assignable_tanods(report)` | 0009 | Authoritative "who may take this" |
-| `admin_dispatch(report, tanod, instructions)` | 0009 | Dispatch button |
-| `auto_dispatch(report)` | 0005/0007 | Fires on filing for flagged categories |
-| `accept_dispatch` / `reroute_dispatch` / `submit_field_report` | 0002/0006/0008 | Tanod mobile app |
-| `dashboard_metrics(from, to)` | 0012 | Every figure on the dashboard, one call |
+| `review_report(report, decision, remark, abusive)` | 0040 | Validate / Reject Report |
+| `admin_dispatch(report, tanod, instructions)` | 0071 | Assign a tanod — requires a target date and instructions |
+| `set_resolution_target(report, due)` | 0071 | Set the target date; the resident is told it |
+| `admin_reroute_dispatch(dispatch, reason, to)` | 0070 | Move a live dispatch to a tanod or back to the system |
+| `approve_resolution(report)` / `reject_resolution(report, reason)` | 0073 | Approve the tanod's resolution, or return it |
+| `admin_set_status(report, status, remark)` | 0073 | In Progress / Offline Investigation / Resolved |
+| `refer_report(report, office, note)` | 0073 | Escalate to an outside office (closes the case here) |
+| `approve_escalation` / `deny_escalation` | 0073 | Decide a tanod's escalation request |
+| `set_report_public(report, public)` | 0073 | Show on residents' map |
+| `post_dispatch_update` / `post_report_message` | 0069 / 0072 | Reply to the tanod / to the resident |
+| `request_additional_details(report, message)` | 0065 | Ask the resident for more |
+| `appeal_report(report, remark)` / `reopen_report(report, reason)` | 0071 | Grant an appeal / reopen — both clear the date |
+| `verify_user_account`, `set_account_suspension`, `admin_reset_password`, `admin_update_user` | 0013–0073 | Accounts |
+| `finalize_retirement` | 0052 | Retirement requests |
+| `promote_to_admin`, `step_down_as_admin`, `cancel_admin_handover` | 0014–0055 | Admin succession (portal switch off: `ADMIN_SUCCESSION_ENABLED`) |
+| `account_directory`, `tanod_roster`, `dashboard_metrics`, `report_hotspots`, `resident_abuse_reports`, `retirement_requests_queue` | — | Reads for the screens |
 
-`dashboard_metrics` is deliberately **not** definer: it runs with the caller's
-rights, so RLS still decides which reports are counted.
+**Tanod (app)**
+
+| Function | Latest | Does |
+|---|---|---|
+| `accept_dispatch` / `reroute_dispatch` | 0002 / 0034 | Accept, or hand back with a reason |
+| `set_dispatch_step(dispatch, step)` | 0069 | On the way / Arrived — logged and told to the resident |
+| `post_dispatch_update(dispatch, body, media)` | 0069 | A note (with photos) in the window's thread |
+| `request_escalation(dispatch, reason, office)` | 0073 | Ask the admin to escalate |
+| `submit_field_report(dispatch, text)` | 0073 | Resolve — waits for the admin's approval |
+| `update_my_location(lat, lon)` | 0072 | One fix at key moments only; no history kept |
+| `request_retirement` | 0052 | — |
+
+**Resident (app)**
+
+| Function | Latest | Does |
+|---|---|---|
+| `file_report(…)` | 0066 | File a complaint (safe to resend from the offline outbox) |
+| `cancel_report`, `request_reopen`, `request_appeal`, `submit_additional_details` | 0023–0065 | — |
+| `follow_up_report(report, message)` | 0072 | Follow up once the date has passed; once a day |
+| `post_report_message(report, body)` | 0072 | Ask the barangay |
+| `public_incidents()` | 0073 | Published incidents: category, status, place only |
+
+**Scheduled (pg_cron)**
+
+| Job | Every | Does |
+|---|---|---|
+| `sweep_overdue_verifications()` | 10 min | Flags registrations past the 2-hour review window |
+| `sweep_unaccepted_dispatches()` | 5 min | A dispatch not accepted in time goes back to the system |
+| `sweep_awaiting_units()` | 2 min | Retries the system's reroute when no tanod was free |
+| `sweep_overdue_reports()` | 15 min | One "overdue" alert per missed admin date — no automatic escalation (0072) |
+
+`dashboard_metrics` is deliberately **not** definer: RLS still decides which
+reports are counted.
+
+---
+
+## The rules behind the schema
+
+- **Every dispatch is the admin's** (0070). Nothing is dispatched at filing.
+  The system only re-offers a job when a tanod hands it back, does not accept
+  in time, or retires (`redispatch_report` → `auto_dispatch`).
+- **The admin sets the deadline** (0071). No date exists until the admin
+  assigns; the category's `resolution_hours` is only a guide on the form.
+- **A resolution waits for approval** (0073). `submit_field_report` finishes
+  the tanod's dispatch; the complaint stays In Progress until
+  `approve_resolution`.
+- **Escalation means going outside** (0072/0073): VAWC desk, PNP, DSWD… by the
+  admin directly or on a tanod's request. The complaint closes here with
+  `referred_to` set.
+- **No live tracking.** A tanod's location is taken at key moments only (going
+  on duty, returning to the app, each dispatch step, navigation start).
+- **Soft delete only.** `reports.deleted_at`, never `DELETE`.
+- **`geom` is generated** from `latitude`/`longitude`.
+
+Switched off, kept for later: OCR ID triage (`ID_OCR_ENABLED` in
+`admin/includes/accounts.php`, `kIdOcrEnabled` in
+`mobile/core/lib/src/id_ocr.dart`) and admin succession
+(`ADMIN_SUCCESSION_ENABLED` in `admin/includes/retirement.php`).
 
 ---
 
 ## Use case → schema coverage
 
+The use cases in the project document are the spec.
+
 | Use case | Backed by |
 |---|---|
-| Register Account | `users`, `verification_status`, `id_image_url` |
-| Verify User Account | `verification_submitted_at`, `verification_due_at` (**2 h max**), `verified_by` |
-| Manage User Account | `is_suspended`, `suspended_reason` |
-| Submit Complaint Report | `reports`, `report_media`, `is_anonymous`, `geom` |
-| Track Complaint Status | `status_logs` timeline, `deleted_at` soft delete |
-| View Geospatial Heatmap | `reports.geom` + GiST index |
-| View Statistical Dashboard | `escalation_level`, `resolved_at`, `category` |
-| Update Resolution Status | `reports.status`, `status_logs` |
-| **Assign Tanod** | `dispatches.assigned_by`, `assigned_at`, `admin_instructions` |
-| **Receive Dispatch Ticket** | `accept_due_at`, `accepted_at`, `is_primary` |
-| **Accept Dispatch** | `accept_dispatch()` |
-| **Reroute Dispatch** | `reroute_dispatch()`, `reroute_reason`, `rerouted_to` |
-| **Update Availability Status** | `duty_status`, `is_dispatchable`, `attendance` |
-| Upload Report Status | `field_report_text`, `dispatch_media`, `submit_field_report()` |
-| View Ticket Details | `admin_instructions`, `due_at` |
-| **Manage SLA Deadline Extension** | `sla_extensions` |
-| View Report Summary | `status_logs`, `attendance`, `feedback` |
-| Escalated: Reopened Cases (Fig 18) | `reopened_count`, `reopen_report()` |
-| Escalated: Missed Deadline (Fig 19) | `due_at`, `escalated_at`, `sweep_overdue_reports()` |
-
-Bold rows exist in the updated use case diagrams but **not** in the Chapter III
-Data Dictionary. They are the gap between the diagrams and the manuscript.
-
----
-
-## The three SLA clocks
-
-| Clock | Column | Limit | Swept by |
-|---|---|---|---|
-| Account verification | `users.verification_due_at` | **2 hours** (panel: Mandigma) | `sweep_overdue_verifications()` every 10 min |
-| Dispatch acceptance | `dispatches.accept_due_at` | `sla_policies.accept_minutes` | `sweep_unaccepted_dispatches()` every 5 min |
-| Complaint resolution | `reports.due_at` | `sla_policies.resolution_hours` | `sweep_overdue_reports()` every 15 min |
-
-Windows live in `sla_policies` as data, so the barangay can tune them without a
-migration. **The seeded values are placeholders and need barangay sign-off.**
-The captain's 30–45 days refers to Katarungang Pambarangay mediation, not to
-digital response targets — do not conflate them.
+| Register Account | `users`, `handle_new_auth_user()`, `id_image_url` |
+| Verify User Account | `verify_user_account()`, `verification_due_at` (2 h) |
+| Manage User Account | `set_account_suspension()`, `admin_update_user()`, `admin_reset_password()` |
+| Submit Complaint Report | `file_report()`, `report_media`, `is_anonymous` |
+| Track Complaint Status | `status_logs`, `report_messages`, `follow_up_report()` |
+| View Geospatial Incident Heatmap | `reports.geom`, `report_hotspots()` |
+| View Statistical Analytics Dashboard | `dashboard_metrics()` |
+| Update Resolution Status | `admin_set_status()` |
+| Upload Report Status to Admin | `post_dispatch_update()`, `set_dispatch_step()`, `submit_field_report()` |
+| Update Availability Status | `users.duty_status`, `is_dispatchable`, `attendance` |
+| Receive Dispatch Ticket | `dispatches`, `accept_dispatch()`, `reroute_dispatch()` |
+| View Ticket Details | `admin_instructions`, `due_at`, `report_media` |
+| View Report Summary | `status_logs`, `dispatches`, `referred_to` |
+| Validate Report | `review_report()` |
+| Monitor Real-Time Map (admin) | `reports` realtime, `report_hotspots()` |
+| Approve Complaint Resolution | `approve_resolution()`, `reject_resolution()` |
+| Monitor Complaint Status | `due_at`, `overdue_notified_at` |
+| Manage Escalation Request | `escalation_requests`, `approve_escalation()`, `deny_escalation()` |
+| Submit Feedback | `feedback` |
+| View Emergency Service Hotline List | `hotline_groups`, `hotline_numbers` |
+| Monitor Real-Time Map (resident) | `is_public`, `public_incidents()` |
+| Log In | `check_login_lockout()`, `login_attempts` |
 
 ---
 
-## Deliberate design decisions
+## Known gaps
 
-**Soft delete only.** `reports.deleted_at` instead of `DELETE`. An accountability
-system whose audit trail has holes cannot substantiate its own claims.
-
-**Enums over free TEXT.** Category and status are enumerated types, so the seven
-documented categories are enforced by Postgres rather than by convention.
-
-**Tanod act through functions, not UPDATE.** `accept_dispatch()`,
-`reroute_dispatch()` and `submit_field_report()` are `SECURITY DEFINER`. A tanod
-cannot silently rewrite a dispatch row; every transition writes a `status_logs`
-entry in the same transaction.
-
-**Reroute cannot exist without a reason.** Enforced by CHECK constraint, matching
-the UI's "This action cannot be undone and will be logged."
-
-**`geom` is generated.** Derived from `latitude`/`longitude`, so the two can never
-drift apart. `FLOAT8` alone cannot serve `ST_DWithin` or the heatmap.
-
----
-
-## Known mismatches to resolve
-
-1. **Ticket format.** Mockups show `# 42345`; the DD specifies `BRG-YYYY-NNNN`.
-   The migration implements `BRG-YYYY-NNNN`. The UI needs updating, or the DD does.
-2. **Category naming.** Mockups show "Stray Animals"; Scope defines
-   "Animal Welfare". The enum uses `animal_welfare`.
-3. **Manuscript lag.** Chapter III documents 9 use cases; the current diagrams
-   have 14. The manuscript understates the system.
-4. **UC report PDF** still says "Barangay Responder" in its first three tables
-   while every later table says "Barangay Tanod".
+1. The use-case document's dashboard use case still lists "Export Data to PDF";
+   it was removed from the dashboard (Report Summary keeps its PDF).
+2. Submit Feedback's "resend after reconnecting" is not built; a failed
+   submission asks the resident to try again.
+3. The admin ↔ tanod chat is a plan only: `docs/chat/admin_tanod_chat_draft.sql`.

@@ -149,7 +149,7 @@ class _RoleCard extends StatelessWidget {
                       fit: BoxFit.contain,
                       excludeFromSemantics: true,
                       filterQuality: FilterQuality.medium,
-                      errorBuilder: (_, __, ___) =>
+                      errorBuilder: (_, _, _) =>
                           Icon(fallback, size: 74, color: foreground),
                     ),
                 ),

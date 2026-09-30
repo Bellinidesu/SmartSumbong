@@ -15,12 +15,13 @@ Three actors: **Resident**, **Barangay Tanod**, **Barangay Admin**.
 
 | Layer | Technology |
 |---|---|
-| Backend | Supabase — PostgreSQL, Realtime, Edge Functions, Auth, RLS |
-| GIS | PostGIS, Leaflet.js, OpenStreetMap |
-| Admin portal | PHP + Bootstrap 5 |
-| Mobile client | Flutter (web prototype first) |
-| Media | Cloudinary (live), barangay server (cold archive) |
-| Push | FCM (planned) |
+| Backend | Supabase — PostgreSQL, Realtime, Edge Functions, Auth, RLS, pg_cron |
+| GIS | PostGIS; MapLibre GL (portal: JS, app: Flutter) on OpenFreeMap vector tiles |
+| Admin portal | PHP 8, own CSS (Figma design, light/dark, English/Tagalog), Chart.js |
+| Mobile app | Flutter — one app for residents and tanods (Android) |
+| Media | Cloudinary (unsigned uploads, EXIF stripped on the phone) |
+| Push | Firebase Cloud Messaging, via the `send-dispatch-push` Edge Function |
+| Walking routes | OpenStreetMap FOSSGIS router (tanod navigation) |
 | SMS / Email | Not used. See below. |
 
 ### On SMS and email
@@ -75,25 +76,34 @@ psql "$DATABASE_URL" -f supabase/seed.sql
 cp .env.example .env    # then fill it in — .env is gitignored
 ```
 
+Then see `DEPLOY.md` for the admin portal (Render or `run-dev-server.bat`)
+and for building the Android app.
+
 ## Layout
 
 ```
-supabase/migrations/   0001 schema · 0002 dispatch & SLA · 0003 RLS
-                       0004 realtime & signup bridge · 0005 PostGIS proximity
-                       0006 dispatch lifecycle · 0007 awaiting-unit queue
-                       0008 reroute guard · 0009 admin manual dispatch
-                       0010 barangay-owned settings · 0011 admin case review
-                       0012 dashboard metrics · 0013 account management
-                       0014 admin succession · 0015 audit integrity
-                       0016 security hardening
-supabase/seed.sql      SLA policy windows (placeholders) + boundary
-LICENSE                use grant, reserved rights, PUP interest
-docs/schema.md         schema reference, function map, use case coverage
-docs/deployment.md     fresh install and first-admin bootstrap
-docs/turnover.md       account ownership, break-glass, succession, known gaps
-docs/manual.md         admin portal guide for barangay staff
-admin/                 PHP admin portal (login, forgot/reset password, cases,
-                       case, dashboard, logout)
+admin/                   PHP admin portal
+  dashboard.php            figures for a month (live)
+  cases.php, case.php      Case Reports: the list, and one complaint with every
+                           admin action (validate, assign, reroute, approve
+                           resolution, status, escalate, threads)
+  spatial.php              map: pins, heatmap, hotspots
+  summary.php              Report Summary + printable PDF
+  residents.php,
+  personnel.php            accounts (includes/accounts.php)
+  retirement-requests.php  Extra Administrative Services (includes/retirement.php)
+  includes/                auth, Supabase client, layout, i18n (t(en, fil))
+  assets/                  css, js (map-theme.js), map data, vendored libraries
+mobile/core/             shared Flutter package (auth, media upload, push, …)
+mobile/resident/         the SmartSumbong app — residents, and tanods under
+                         lib/tanod/ (dispatch window, navigation, outbox)
+supabase/migrations/     0001–0074, applied in order (see docs/schema.md)
+supabase/functions/      Edge Functions: delete-account, send-dispatch-push
+supabase/seed.sql        SLA guide hours (placeholders) + boundary
+docs/schema.md           tables, functions by actor, rules, use-case coverage
+docs/chat/               admin ↔ tanod chat: draft schema (not a migration)
+DEPLOY.md                portal on Render, database, building the APK
+run-dev-server.bat       local portal on http://127.0.0.1:8000/admin/
 ```
 
 ## Conventions
@@ -101,7 +111,12 @@ admin/                 PHP admin portal (login, forgot/reset password, cases,
 - The actor is **`tanod`**. The word "responder" belongs nowhere in this codebase.
 - Reports are **never deleted** — `deleted_at` only. The audit trail is the product.
 - Tanod change dispatch state through functions, never direct `UPDATE`.
-- SLA windows live in `sla_policies` as data, not as constants.
+- SLA guide hours live in `sla_policies` as data, not as constants; the
+  deadline itself is set by the admin when assigning.
+- Every dispatch is the admin's. Escalation means sending a case to an
+  outside office. A tanod's resolution waits for the admin's approval.
+- Features put away for later stay in the code behind a switch rather than
+  being deleted (`ID_OCR_ENABLED`, `ADMIN_SUCCESSION_ENABLED`, `kIdOcrEnabled`).
 
 ## Security
 

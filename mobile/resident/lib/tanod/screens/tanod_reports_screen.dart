@@ -231,7 +231,7 @@ class _ReportsScreenState extends State<TanodReportsScreen> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(30, 0, 30, 24),
       itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 11),
+      separatorBuilder: (_, _) => const SizedBox(height: 11),
       itemBuilder: (_, i) => _AssignedCard(
         row: rows[i],
         open: _openId == rows[i].dispatchId,

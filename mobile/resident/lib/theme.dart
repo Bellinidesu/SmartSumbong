@@ -185,7 +185,7 @@ class AppRoleController extends ValueNotifier<AppRole> {
 const themeModeKey = 'themeMode';
 
 class ThemeController extends ValueNotifier<ThemeMode> {
-  ThemeController([ThemeMode initial = ThemeMode.system]) : super(initial);
+  ThemeController([super.initial = ThemeMode.system]);
 
   static Future<ThemeController> load() async {
     try {

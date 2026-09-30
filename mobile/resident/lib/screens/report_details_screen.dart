@@ -1201,7 +1201,7 @@ class _DescriptionBox extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: ValueListenableBuilder<TextEditingValue>(
                   valueListenable: controller,
-                  builder: (_, value, __) => Text(
+                  builder: (_, value, _) => Text(
                     context.s.reportDetailsCounter(
                         value.text.characters.length, _maxDescription),
                     style: TextStyle(fontSize: 10, color: context.colors.navy),

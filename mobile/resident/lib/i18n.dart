@@ -43,7 +43,7 @@ enum AppLocale { en, fil }
 /// change is written and broadcast afterward — `languages_screen.dart`
 /// no longer touches SharedPreferences itself.
 class LocaleController extends ValueNotifier<AppLocale> {
-  LocaleController([AppLocale initial = AppLocale.en]) : super(initial);
+  LocaleController([super.initial = AppLocale.en]);
 
   static Future<LocaleController> load() async {
     try {

@@ -14,6 +14,8 @@ supabase/.env
 # Dependencies
 node_modules/
 vendor/
+# ...except the portal's own bundled libraries, which are source here.
+!admin/assets/vendor/
 __pycache__/
 
 # Flutter

@@ -1513,8 +1513,8 @@ class _DispatchWindowState extends State<DispatchWindow>
                     width: size,
                     height: size,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: context.colors.bg),
-                    errorWidget: (_, __, ___) => Container(
+                    placeholder: (_, _) => Container(color: context.colors.bg),
+                    errorWidget: (_, _, _) => Container(
                       width: size,
                       height: size,
                       color: context.colors.bg,
@@ -1530,8 +1530,6 @@ class _DispatchWindowState extends State<DispatchWindow>
   );
 
   List<Widget> _thread() {
-    final s = context.ts;
-    final c = context.colors;
     final waiting = TanodOutbox.instance.forDispatch(_dispatchId);
     if (waiting.isNotEmpty) {
       return [..._threadPosts(), for (final w in waiting) _waitingBubble(w)];

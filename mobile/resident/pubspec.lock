@@ -74,7 +74,7 @@ packages:
     source: hosted
     version: "2.1.2"
   cached_network_image:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: cached_network_image
       sha256: "7c1183e361e5c8b0a0f21a28401eecdbde252441106a9816400dd4c2b2424916"
@@ -314,7 +314,7 @@ packages:
     source: hosted
     version: "0.9.3+5"
   firebase_core:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_core
       sha256: "2343710d8a164e3157a5e2fbb00663503c669be4aa06185311df48626760fdf1"
@@ -705,7 +705,7 @@ packages:
     source: hosted
     version: "4.9.1"
   image_picker:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: image_picker
       sha256: d8402284df184bc05f4a2210c6c23983b0720f4cd87cbd05c5390a78af602667
@@ -993,7 +993,7 @@ packages:
     source: hosted
     version: "3.0.0"
   package_info_plus:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: package_info_plus
       sha256: "127e1751e37ffb2ff4658beeaca77bad0c27bf5f932bd3a501c2296926d4b481"
@@ -1397,7 +1397,7 @@ packages:
     source: hosted
     version: "0.1.2"
   supabase_flutter:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: supabase_flutter
       sha256: "0ef08709e72ef15b98b3b935864cc8e84b12ecc374e31091edd8be4e16e125c7"

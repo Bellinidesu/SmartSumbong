@@ -90,7 +90,7 @@ Future<bool> showDispatchOrder(
     // The frames fade Home to 30% behind the card.
     barrierColor: context.colors.bg.withValues(alpha: 0.7),
     barrierLabel: context.ts.dispatchBarrierLabel,
-    pageBuilder: (_, __, ___) => _DispatchOrder(ticket: ticket, target: target),
+    pageBuilder: (_, _, _) => _DispatchOrder(ticket: ticket, target: target),
   );
   return changed ?? false;
 }
@@ -624,13 +624,13 @@ class _DispatchOrderState extends State<_DispatchOrder>
                       imageUrl: cloudinarySized(item.url, width: 900),
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      placeholder: (_, __) => Container(
+                      placeholder: (_, _) => Container(
                         color: context.colors.field,
                         child: const Center(
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       ),
-                      errorWidget: (_, __, ___) => Container(
+                      errorWidget: (_, _, _) => Container(
                         color: context.colors.field,
                         child: Center(
                           child: Icon(

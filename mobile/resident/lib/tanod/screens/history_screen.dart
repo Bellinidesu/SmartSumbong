@@ -505,7 +505,7 @@ class _ActivityRowState extends State<_ActivityRow> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: entry.media.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
                         itemBuilder: (_, i) =>
                             _ActivityThumb(item: entry.media[i]),
                       ),
@@ -564,12 +564,12 @@ class _ActivityThumb extends StatelessWidget {
                 width: 52,
                 height: 52,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
+                placeholder: (_, _) => Container(
                   width: 52,
                   height: 52,
                   color: context.colors.field,
                 ),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (_, _, _) => Container(
                   width: 52,
                   height: 52,
                   color: context.colors.field,
