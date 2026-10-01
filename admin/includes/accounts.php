@@ -1017,7 +1017,7 @@ function render_account_detail(
           <?php if ($tot > 0): ?>
             <div class="p-shift">
               <?php foreach (['on_duty' => '#A6C442', 'lunch' => '#C49742', 'break' => '#FF9800', 'offline' => '#BDBDBD'] as $k => $c): ?>
-                <?php if ($sh[$k] > 0): ?><i style="flex:<?= round($sh[$k], 3) ?>;background:<?= $c ?>"></i><?php endif; ?>
+                <?php if ($sh[$k] > 0): ?><i style="flex:<?= round($sh[$k] / $tot * 100, 2) ?>;background:<?= $c ?>"></i><?php endif; ?>
               <?php endforeach; ?>
             </div>
             <div class="p-shift-legend">
