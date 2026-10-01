@@ -69,6 +69,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($tanod === '') {
                         throw new SupabaseError(t('Choose a tanod before dispatching.', 'Pumili muna ng tanod bago mag-dispatch.'));
                     }
+                    // Rose (2 Oct 2026): only a tanod who is on duty AND whose app
+                    // is reporting right now. On duty with the app closed is not
+                    // someone who will see the ticket.
+                    $live = null;
+                    foreach ((array) $db->rpc('tanod_roster', ['p_report' => $id]) as $t) {
+                        if (($t['tanod_id'] ?? null) === $tanod) { $live = $t; break; }
+                    }
+                    if (!$live || empty($live['assignable']) || empty($live['location_fresh'])) {
+                        throw new SupabaseError(t('That tanod is not active right now — their app is not reporting. Choose a tanod shown as ONLINE.',
+                                                  'Hindi aktibo ang tanod na iyan ngayon — hindi nag-uulat ang kanilang app. Pumili ng tanod na ONLINE.'));
+                    }
 
                     // The target date is required (0071): set before the
                     // dispatch, told to the resident, and on the tanod's
@@ -916,7 +927,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
         <div class="p-roster">
           <?php foreach ($roster as $i => $t): ?>
-            <?php $ok = !empty($t['assignable']); ?>
+            <?php $ok = !empty($t['assignable']) && !empty($t['location_fresh']); $idle = !empty($t['assignable']) && empty($t['location_fresh']); ?>
             <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
@@ -930,7 +941,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                 <?php endif; ?>
               </span>
               <span class="p-status-dot <?= $ok ? 'p-on-c' : 'p-off-c' ?>">
-                <?= $ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE'))) ?>
+                <?= $ok ? 'ONLINE' : ($idle ? e(t('NOT ACTIVE', 'HINDI AKTIBO')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
               </span>
               <span class="p-pick"><?= $ok ? e(t('Assign', 'I-assign')) : '&mdash;' ?></span>
             </label>
@@ -962,7 +973,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           </p>
         </div>
 
-        <button class="p-btn p-btn-orange p-btn-block" type="submit" name="action" value="dispatch"><?= e(t('Dispatch', 'I-dispatch')) ?></button>
+        <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']) && !empty($t['location_fresh'])); ?>
+        <?php if (!$anyActive): ?>
+          <p class="p-clock p-late" style="margin:0"><?= e(t('No tanod is active right now. Dispatch opens when a tanod is on duty with their app open.', 'Walang aktibong tanod ngayon. Mabubuksan ang dispatch kapag may tanod na naka-duty at bukas ang app.')) ?></p>
+        <?php endif; ?>
+        <button class="p-btn p-btn-orange p-btn-block" type="submit" name="action" value="dispatch"<?= $anyActive ? '' : ' disabled' ?>><?= e(t('Dispatch', 'I-dispatch')) ?></button>
       </form>
 
     <?php elseif ($status === 'rejected' && $appealReason !== null): ?>
@@ -1036,7 +1051,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               </label>
               <?php foreach ($roster as $t): ?>
                 <?php if (($t['tanod_id'] ?? null) === ($active['tanod']['id'] ?? null)) continue; ?>
-                <?php $ok = !empty($t['assignable']); ?>
+                <?php $ok = !empty($t['assignable']) && !empty($t['location_fresh']); $idle = !empty($t['assignable']) && empty($t['location_fresh']); ?>
                 <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
                   <input type="radio" name="to" value="<?= e($t['tanod_id']) ?>" <?= $ok ? '' : 'disabled' ?>>
                   <span class="p-who">
@@ -1048,7 +1063,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                     <?php endif; ?>
                   </span>
                   <span class="p-status-dot <?= $ok ? 'p-on-c' : 'p-off-c' ?>">
-                    <?= $ok ? 'ONLINE' : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE'))) ?>
+                    <?= $ok ? 'ONLINE' : ($idle ? e(t('NOT ACTIVE', 'HINDI AKTIBO')) : e(strtoupper((string) ($t['unavailable_why'] ?? 'OFFLINE')))) ?>
                   </span>
                   <span class="p-pick"><?= $ok ? e(t('Move', 'Ilipat')) : '&mdash;' ?></span>
                 </label>

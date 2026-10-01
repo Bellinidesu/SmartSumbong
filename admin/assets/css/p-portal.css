@@ -233,3 +233,4 @@ a.p-btn-pdf2 { text-decoration: none; }
 .p-fb-star.p-filled { fill: #F9AB35; }
 @media (max-width: 1100px) { .p-case-grid { grid-template-columns: 1fr; } }
 .p-logout-page { min-height: calc(100vh - 80px); display: grid; place-items: center; }
+.p-legend-count { margin: 4px 0 0; padding-top: 6px; border-top: 1px solid var(--p-line); color: var(--p-muted); font-size: 12px; }

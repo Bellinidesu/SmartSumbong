@@ -95,9 +95,12 @@ doc_head('Certification of Lack of Jurisdiction');
   <label>Requested by <input type="text" name="by" value="<?= e($by) ?>" size="18"></label>
   <span style="flex-basis:100%;height:0"></span>
   <?php foreach (CERT_REASONS as $key => $r): ?>
-    <label><input type="checkbox" name="r[]" value="<?= e($key) ?>" <?= in_array($key, $ticked, true) ? 'checked' : '' ?>> <?= e($r['office']) ?></label>
+    <label><input type="checkbox" name="r[]" value="<?= e($key) ?>" data-reason="<?= e($key) ?>" <?= in_array($key, $ticked, true) ? 'checked' : '' ?>> <?= e($r['office']) ?></label>
   <?php endforeach; ?>
-  <button type="submit" style="background:#fff;color:#00308f">Update</button>
+  <?php if (!empty($report['referred_to']) && !$suggested): ?>
+    <span style="flex-basis:100%;font-size:12.5px;background:#fff4e2;color:#7a4a00;padding:6px 10px;border-radius:8px">
+      Escalated to <b><?= e($report['referred_to']) ?></b>, which is not one of this form's reasons — tick the reason that applies.</span>
+  <?php endif; ?>
   <span class="spacer"></span>
   <button type="button" onclick="window.print()">Print / Save as PDF</button>
 </form>
@@ -118,13 +121,13 @@ doc_head('Certification of Lack of Jurisdiction');
   </style>
   <div class="cert">
     <p class="indent">This office certifies that it cannot possibly issue the Certification to File Action being
-      requested by <span class="fill"><?= e($name !== '' ? $name : '[User Full Name]') ?></span> residing in
-      <span class="fill"><?= e($address !== '' ? $address : '[Address]') ?></span> due to the following reason:</p>
+      requested by <span class="fill" data-fill="name" data-empty="[User Full Name]"><?= e($name !== '' ? $name : '[User Full Name]') ?></span> residing in
+      <span class="fill" data-fill="address" data-empty="[Address]"><?= e($address !== '' ? $address : '[Address]') ?></span> due to the following reason:</p>
 
     <ul class="reasons">
       <?php foreach (CERT_REASONS as $key => $r): ?>
         <li>
-          <span class="box"><?= in_array($key, $ticked, true) ? '&#10003;' : '' ?></span>
+          <span class="box" data-box="<?= e($key) ?>"><?= in_array($key, $ticked, true) ? '&#10003;' : '' ?></span>
           <span><strong><?= e($r['lead']) ?></strong><?= $r['rest'] !== '' ? ' ' . e($r['rest']) : '' ?></span>
         </li>
       <?php endforeach; ?>
@@ -132,11 +135,36 @@ doc_head('Certification of Lack of Jurisdiction');
 
     <p class="indent">This Certification is being issued upon the request of the interested party for
       whatever legal purposes this may serve.</p>
-    <p class="indent">Issued this <span class="fill"><?= e($issued->format('jS \d\a\y \o\f F Y')) ?></span></p>
+    <p class="indent">Issued this <span class="fill" data-fill="date"><?= e($issued->format('jS \d\a\y \o\f F Y')) ?></span></p>
   </div>
   <?php endif; ?>
 
   <?php doc_requested_by($by); ?>
 </div>
+<script>
+// Everything in the toolbar shows on the document as it changes, so Print
+// always prints what is on screen (Rose, 2 Oct 2026: a ticked reason was
+// lost because Update had not been pressed).
+(function () {
+  var bar = document.querySelector('.doc-toolbar');
+  function ord(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  function sync() {
+    bar.querySelectorAll('[data-reason]').forEach(function (c) {
+      var box = document.querySelector('[data-box="' + c.dataset.reason + '"]'); if (box) box.innerHTML = c.checked ? '&#10003;' : '';
+    });
+    ['name', 'address'].forEach(function (k) {
+      var inp = bar.querySelector('[name="' + k + '"]'), out = document.querySelector('[data-fill="' + k + '"]');
+      if (inp && out) out.textContent = inp.value.trim() || out.dataset.empty;
+    });
+    var d = bar.querySelector('[name="date"]'), dout = document.querySelector('[data-fill="date"]');
+    if (d && dout && d.value) { var p = d.value.split('-').map(Number), dt = new Date(p[0], p[1] - 1, p[2]);
+      dout.textContent = ord(p[2]) + ' day of ' + dt.toLocaleString('en-US', { month: 'long' }) + ' ' + p[0]; }
+    var by = bar.querySelector('[name="by"]');
+    document.querySelectorAll('.req .fill').forEach(function (el) { if (by) el.textContent = by.value.trim() || 'Name of Requestor'; });
+  }
+  bar.addEventListener('input', sync); bar.addEventListener('change', sync);
+  bar.addEventListener('submit', function (e) { e.preventDefault(); sync(); });
+})();
+</script>
 </body>
 </html>

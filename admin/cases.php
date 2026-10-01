@@ -30,7 +30,7 @@ if (!isset($_GET['q'], $_GET['status'], $_GET['sort'], $_GET['month'], $_GET['ca
 // form both draw from.
 const CATEGORIES = [
     'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
+    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
 ];
 
 // Rose's feedback (Sep 2026): stick to four buckets an admin actually
@@ -384,6 +384,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     }[c]));
   }
+  const CATEGORY_LABEL = <?= json_encode(array_combine(CATEGORIES, array_map('category_label', CATEGORIES)), JSON_UNESCAPED_UNICODE) ?>;
   const titleCase = s => String(s ?? '').replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
   function statusClass(s) {
@@ -462,7 +463,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       return '<tr class="p-click" data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
         '<td>' + who + '</td>' +
         '<td><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span></td>' +
-        '<td>' + escapeHtml(titleCase(r.category)) +
+        '<td>' + escapeHtml(CATEGORY_LABEL[r.category] || titleCase(r.category)) +
           (r.location_label ? '<div class="p-sub">' + escapeHtml(r.location_label) + '</div>' : '') + '</td>' +
         '<td><div class="p-badges"><span class="p-badge p-b-' + statusClass(r.status) + '">' +
           escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</div></td>' +

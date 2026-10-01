@@ -461,9 +461,37 @@ function status_class(string $s): string
     };
 }
 
+/**
+ * One colour per category, shared by the dashboard's charts and the
+ * spatial map's pins (Rose, 2 Oct 2026: colour by category, one shape).
+ */
+function category_colours(): array
+{
+    return [
+        'street_obstruction'           => '#F93535',
+        'public_safety_infrastructure' => '#356CF9',
+        'environmental_waste_hazard'   => '#F9AB35',
+        'animal_welfare'               => '#34C759',
+        'traffic_violation'            => '#8E9ABB',
+        'barangay_service'             => '#422F8A',
+        'peace_order_nuisance'         => '#E0609A',
+        'other'                        => '#0F9D9A',
+    ];
+}
+
+/** The barangay's own names for the categories (its Complaint Summary form). */
 function category_label(string $c): string
 {
-    return ucwords(str_replace('_', ' ', $c));
+    return [
+        'street_obstruction'           => 'Street Obstruction',
+        'public_safety_infrastructure' => 'Public Safety and Infrastructure',
+        'environmental_waste_hazard'   => 'Environmental and Waste Hazards',
+        'animal_welfare'               => 'Animal Welfare',
+        'traffic_violation'            => 'Traffic Violation',
+        'barangay_service'             => 'Barangay Service',
+        'peace_order_nuisance'         => 'Peace, Order, & Nuisance',
+        'other'                        => 'Others',
+    ][$c] ?? ucwords(str_replace('_', ' ', $c));
 }
 
 function short_date(?string $iso): string

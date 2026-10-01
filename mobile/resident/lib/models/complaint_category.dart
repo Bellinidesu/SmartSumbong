@@ -22,11 +22,9 @@
 // barangay later wants a pie chart of pothole complaints specifically,
 // the labels are already here to migrate from.
 //
-// NOTE ON "OTHERS". The design offers it; the enum has no matching
-// value. It maps to peace_order_nuisance with an empty prefill, since
-// that is the closest thing to a general bucket and an admin can
-// recategorise. Worth raising with Rose and the adviser rather than
-// leaving as a silent choice.
+// NOTE ON "OTHERS". It has its own value since 0076 (Rose, 2 Oct 2026);
+// before that it was filed under peace_order_nuisance. It has no issue
+// list of its own, so the picker shows it as its own card.
 
 
 /// Mirrors `public.complaint_category` in 0001.
@@ -102,15 +100,14 @@ enum ComplaintCategory {
       'Altercations / Street Brawls',
       'Unreasonable Neighborhood Noise',
     ],
-  );
+  ),
+  other('other', 'Others', []);
 
   const ComplaintCategory(this.wire, this.label, this.issues);
 
-  /// Reads a stored row's category back out. Falls back to
-  /// peaceOrderNuisance on an unmatched value, for the same reason the
-  /// picker maps "Others" there — see this file's own header.
+  /// Reads a stored row's category back out; an unknown value reads as Others.
   static ComplaintCategory parse(String? wire) => ComplaintCategory.values
-      .firstWhere((c) => c.wire == wire, orElse: () => peaceOrderNuisance);
+      .firstWhere((c) => c.wire == wire, orElse: () => other);
 
   /// The value sent to Postgres. Must match the enum label exactly.
   final String wire;

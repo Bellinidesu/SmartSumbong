@@ -17,21 +17,73 @@ $notice = match (true) {
     default                 => null,
 };
 
+/*
+ * Wrong-password limit (Rose, mock defense feedback, 2 Oct 2026): five
+ * tries per email; the sixth is refused and the person is sent to reset
+ * their password. Counted on the server per email (not per browser), in
+ * the temp directory, and lifted after 15 minutes.
+ */
+const LOGIN_MAX_TRIES = 5;
+const LOGIN_LOCK_SECONDS = 900;
+
+function login_tries_file(string $email): string
+{
+    return sys_get_temp_dir() . '/ss-login-' . sha1(strtolower(trim($email)));
+}
+function login_tries(string $email): array
+{
+    $raw = @file_get_contents(login_tries_file($email));
+    $d = $raw ? json_decode($raw, true) : null;
+    if (!is_array($d) || ($d['at'] ?? 0) < time() - LOGIN_LOCK_SECONDS) return ['n' => 0, 'at' => 0];
+    return $d;
+}
+function login_fail(string $email): int
+{
+    $d = login_tries($email);
+    $d = ['n' => $d['n'] + 1, 'at' => time()];
+    @file_put_contents(login_tries_file($email), json_encode($d), LOCK_EX);
+    return $d['n'];
+}
+
+$lockedOut = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email    = trim((string) ($_POST['email'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
     if (!csrf_check($_POST['csrf'] ?? null)) {
         $error = t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.');
+    } elseif ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = t('Please input a valid email address.', 'Maglagay ng tamang email address.');
+    } elseif ($password === '') {
+        $error = t('Please input the correct password.', 'Ilagay ang tamang password.');
+    } elseif (login_tries($email)['n'] >= LOGIN_MAX_TRIES) {
+        $lockedOut = true;
+        $error = t('Too many wrong passwords for this account. Reset your password to sign in, or try again in 15 minutes.',
+                   'Masyadong maraming maling password para sa account na ito. I-reset ang iyong password para makapag-sign in, o subukan muli pagkalipas ng 15 minuto.');
     } else {
         try {
-            attempt_login(trim($_POST['email'] ?? ''), $_POST['password'] ?? '');
+            attempt_login($email, $password);
+            @unlink(login_tries_file($email));
             header('Location: cases.php');
             exit;
         } catch (SupabaseError $ex) {
             // GoTrue phrases a wrong password as invalid credentials; say
             // it the way the person at the desk would understand it.
-            $error = str_contains(strtolower($ex->getMessage()), 'invalid login')
-                ? t('That email and password do not match an account.',
-                    'Walang account na tugma sa email at password na iyan.')
-                : safe_error($ex);
+            if (str_contains(strtolower($ex->getMessage()), 'invalid login')) {
+                $n = login_fail($email);
+                $left = LOGIN_MAX_TRIES - $n;
+                if ($left <= 0) {
+                    $lockedOut = true;
+                    $error = t('Too many wrong passwords for this account. Reset your password to sign in, or try again in 15 minutes.',
+                               'Masyadong maraming maling password para sa account na ito. I-reset ang iyong password para makapag-sign in, o subukan muli pagkalipas ng 15 minuto.');
+                } else {
+                    $error = t('That email and password do not match an account.', 'Walang account na tugma sa email at password na iyan.')
+                           . ' ' . ($left === 1
+                               ? t('1 try left before you must reset your password.', '1 subok na lang bago kailangang i-reset ang password.')
+                               : $left . t(' tries left.', ' subok pa ang natitira.'));
+                }
+            } else {
+                $error = safe_error($ex);
+            }
         }
     }
 }
@@ -89,7 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <h1 class="login-title"><?= e(t('Account Login', 'Pag-login sa Account')) ?></h1>
 
       <?php if ($notice): ?><p class="login-note"><?= e($notice) ?></p><?php endif; ?>
-      <?php if ($error): ?><p class="login-error" role="alert"><?= e($error) ?></p><?php endif; ?>
+      <?php if ($error): ?><p class="login-error" role="alert"><?= e($error) ?><?php if ($lockedOut): ?>
+        <br><a href="forgot-password.php" style="font-weight:700;text-decoration:underline"><?= e(t('Reset your password', 'I-reset ang password')) ?></a><?php endif; ?></p><?php endif; ?>
 
       <form method="post" novalidate>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

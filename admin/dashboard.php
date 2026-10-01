@@ -46,7 +46,7 @@ $next  = $month->modify('+1 month');
 // this page stays computed over the whole month.
 const CATEGORIES = [
     'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
+    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
 ];
 $effCategory = (string) ($_GET['eff_category'] ?? '');
 if (!in_array($effCategory, CATEGORIES, true)) { $effCategory = ''; }
@@ -212,8 +212,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   var PREV_TILES = <?= json_encode($prevTiles ?: null) ?>;
   var CATEGORY_LABEL = <?= json_encode(array_combine(CATEGORIES, array_map('category_label', CATEGORIES)), JSON_UNESCAPED_UNICODE) ?>;
   // The preview's colours per category, so a category keeps its colour month to month.
-  var CATEGORY_COLOUR = { street_obstruction: '#F93535', public_safety_infrastructure: '#356CF9', environmental_waste_hazard: '#F9AB35',
-                          animal_welfare: '#34C759', traffic_violation: '#8E9ABB', barangay_service: '#422F8A', peace_order_nuisance: '#E0609A' };
+  var CATEGORY_COLOUR = <?= json_encode(category_colours()) ?>;
 
   function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
   function $(id) { return document.getElementById(id); }

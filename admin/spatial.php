@@ -29,9 +29,14 @@ require_once __DIR__ . '/includes/layout.php';
 
 $admin = require_admin();
 
+// Hotspots (0042's report_hotspots clustering) are off since Rose's
+// mock-defense feedback (2 Oct 2026: "remove the hotspots checkbox").
+// Everything is kept; true brings the switch, panel and dock button back.
+const HOTSPOTS_ENABLED = false;
+
 $categories = [
     'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
+    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
 ];
 
 layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
@@ -67,7 +72,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     </div>
     <div class="p-row">
       <label class="p-pill-select p-tog"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
-      <label class="p-pill-select p-tog"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
+      <?php if (HOTSPOTS_ENABLED): ?><label class="p-pill-select p-tog"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label><?php endif; ?>
       <label class="p-pill-select p-tog"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
   </div>
@@ -85,17 +90,19 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     <p class="p-eyebrow"><?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?></p>
     <ol class="p-pin-list" id="pin-list"></ol>
   </aside>
+  <?php if (HOTSPOTS_ENABLED): ?>
   <aside class="p-card p-card-pad p-map-stats" id="hotspot-side" hidden>
     <p class="p-eyebrow"><?= e(t('Top hotspots', 'Nangungunang hotspot')) ?></p>
     <p class="p-hint" id="hotspot-status" style="margin:0 0 8px"><?= e(t('Turn on Hotspots to see recurring problem areas.', 'I-on ang Mga Hotspot para makita ang mga lugar na paulit-ulit ang problema.')) ?></p>
     <ol class="p-pin-list" id="hotspot-list"></ol>
   </aside>
+  <?php endif; ?>
 
   <div class="p-map-legend" id="map-legend">
-    <div><span class="p-lg p-lg-circle" style="--c:#f59e0b"></span><?= e(t('Under review', 'Nirerepaso')) ?></div>
-    <div><span class="p-lg p-lg-square" style="--c:#2563eb"></span><?= e(t('In progress', 'Isinasagawa')) ?></div>
-    <div><span class="p-lg p-lg-diamond" style="--c:#22c55e"></span><?= e(t('Resolved', 'Nalutas')) ?></div>
-    <div><span class="p-lg p-lg-cross" style="--c:#9aa1ab"></span><?= e(t('Rejected', 'Tinanggihan')) ?></div>
+    <?php foreach (category_colours() as $c => $hex): ?>
+      <div><span class="p-lg p-lg-circle" style="--c:<?= e($hex) ?>"></span><?= e(category_label($c)) ?></div>
+    <?php endforeach; ?>
+    <p class="p-legend-count" id="map-count"></p>
   </div>
 
   <div class="p-map-dock">
@@ -105,8 +112,10 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
     <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
       <?= p_icon('i-map', 18) ?><span class="p-cnt" id="pin-count">0</span></button>
+    <?php if (HOTSPOTS_ENABLED): ?>
     <button class="p-dock-btn" id="hotspot-toggle" aria-expanded="false" aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>" aria-label="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 2 1.2 3 2.5 3.5C11 9 11 5 12 2z"/></svg><span class="p-cnt" id="hotspot-count">0</span></button>
+    <?php endif; ?>
   </div>
 </section>
 
@@ -200,7 +209,12 @@ const SHAPE = {
   resolved: 'diamond', closed: 'diamond', archived: 'diamond',
   rejected: 'cross',
 };
-const pinName = status => 'pin-' + (SHAPE[status] || 'circle') + '-' + (COLOUR[status] || '#9aa1ab').slice(1);
+// Rose (2 Oct 2026): pins are coloured by category, one shape for all;
+// status is in the filter and the pin's detail. (The status shapes above
+// stay for the legend-by-status this replaced.)
+const CATEGORY_COLOUR = <?= json_encode(category_colours()) ?>;
+const catColour = c => CATEGORY_COLOUR[c] || CATEGORY_COLOUR.other;
+const pinName = category => 'pin-cat-' + (CATEGORY_COLOUR[category] ? category : 'other');
 
 function pinSvg(shape, fill) {
   const body = {
@@ -263,11 +277,8 @@ const point = (lng, lat, props) => ({ type: 'Feature', properties: props || {},
 
 // Everything waits on the style; data that arrives first is drawn then.
 const mapReady = new Promise(resolve => map.on('load', async () => {
-  const shapes = [['circle', '#f59e0b'], ['square', '#2563eb'], ['diamond', '#22c55e'],
-                  ['cross', '#9aa1ab'], ['circle', '#9aa1ab']];
-  await Promise.all([
-    ...shapes.map(([s, c]) => addSvgImage('pin-' + s + '-' + c.slice(1), pinSvg(s, c))),
-  ]);
+  await Promise.all(Object.entries(CATEGORY_COLOUR).map(([c, hex]) =>
+    addSvgImage('pin-cat-' + c, pinSvg('circle', hex))));
 
   // Bottom to top: fog, outline, complaint heat, hotspots, complaints.
   // (Live tanod positions and path heat were removed on branch B, 26 Sep
@@ -336,14 +347,15 @@ function setPinsSource(want) {
                              cluster: want, clusterRadius: 46, clusterMaxZoom: 17 });
   map.addLayer({ id: 'clusters', type: 'circle', source: 'reports', filter: ['has', 'point_count'],
     paint: {
-      'circle-color': ['step', ['get', 'point_count'], '#ffb74d', 10, '#ff9800', 50, '#e65100'],
+      // Neutral, so a cluster is not read as a category.
+      'circle-color': ['step', ['get', 'point_count'], '#64748b', 10, '#475569', 50, '#1e293b'],
       'circle-radius': ['step', ['get', 'point_count'], 16, 10, 20, 50, 25],
       'circle-stroke-color': 'rgba(255,255,255,.85)',
       'circle-stroke-width': 4,
     } });
   map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'reports', filter: ['has', 'point_count'],
     layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13 },
-    paint: { 'text-color': '#14181d' } });
+    paint: { 'text-color': '#fff' } });
   map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: ['!', ['has', 'point_count']],
     layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
 }
@@ -444,8 +456,33 @@ async function draw() {
 
   await mapReady;
   setPinsSource(rows.length >= CLUSTER_FROM);
-  map.getSource('reports').setData({ type: 'FeatureCollection',
-    features: rows.map(r => point(r.longitude, r.latitude, { id: r.id, icon: pinName(r.status) })) });
+  // Complaints filed from the very same spot would sit exactly on top of
+  // each other and read as one pin (Rose, 2 Oct 2026: "recheck the
+  // number of complaints"). Each repeat is set a few metres round the
+  // spot, so every complaint counted is a pin you can see and click.
+  const seen = new Map();
+  const features = rows.map(r => {
+    const key = (+r.latitude).toFixed(5) + ',' + (+r.longitude).toFixed(5);
+    const n = seen.get(key) || 0;
+    seen.set(key, n + 1);
+    let lng = +r.longitude, lat = +r.latitude;
+    if (n > 0) {
+      const ang = n * 2.4, d = 0.00004 * Math.ceil(n / 6);   // about 4 m per ring
+      lng += d * Math.cos(ang) / Math.cos(lat * Math.PI / 180);
+      lat += d * Math.sin(ang);
+    }
+    return point(lng, lat, { id: r.id, icon: pinName(r.category) });
+  });
+  map.getSource('reports').setData({ type: 'FeatureCollection', features });
+
+  // Complaints pinned outside the area the map can show (old test
+  // reports, or a resident filing from elsewhere) are counted, and said
+  // to be, rather than silently missing from the count you can see.
+  const [[w, s], [e, n]] = AREA;
+  const outside = rows.filter(r => r.longitude < w || r.longitude > e || r.latitude < s || r.latitude > n).length;
+  document.getElementById('map-count').textContent =
+    rows.length + T(rows.length === 1 ? ' complaint' : ' complaints', ' sumbong') +
+    (outside ? T(' · ' + outside + ' outside this map', ' · ' + outside + ' nasa labas ng mapang ito') : '');
 
   const heatOn = document.getElementById('f-heat').checked && rows.length;
   map.getSource('heat').setData(heatOn
@@ -462,7 +499,7 @@ async function draw() {
     const li = document.createElement('li');
     li.className = 'p-pin-row';
     li.innerHTML =
-      '<span class="p-dot-s" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
+      '<span class="p-dot-s" style="background:' + catColour(r.category) + '"></span>' +
       '<span class="p-pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
       '<small>' + esc(label(r.category)) + '</small></span>';
     li.addEventListener('mouseenter', () => map.panTo([r.longitude, r.latitude]));
@@ -644,10 +681,14 @@ function periodRange() {
   }
   const val = applied.period; // 'YYYY-MM'
   if (!val) { return { from: '2000-01-01T00:00:00Z', to: to.toISOString() }; }
+  // A month in Manila (UTC+8): midnight on the 1st there is 16:00 the
+  // day before in UTC. Taking the UTC month moved eight hours of reports
+  // across each month boundary.
   const [y, m] = val.split('-').map(Number);
+  const MANILA = 8 * 3600 * 1000;
   return {
-    from: new Date(Date.UTC(y, m - 1, 1)).toISOString(),
-    to:   new Date(Date.UTC(y, m, 1)).toISOString(),
+    from: new Date(Date.UTC(y, m - 1, 1) - MANILA).toISOString(),
+    to:   new Date(Date.UTC(y, m, 1) - MANILA).toISOString(),
   };
 }
 
@@ -739,6 +780,7 @@ function showHotspotDetail(h) {
 }
 
 async function loadHotspots() {
+  if (!HOTSPOTS) return;
   const status = document.getElementById('hotspot-status');
   const badge  = document.getElementById('hotspot-toggle');
   const count  = document.getElementById('hotspot-count');
@@ -790,7 +832,8 @@ async function loadHotspots() {
   }
 }
 
-document.getElementById('f-hotspots').addEventListener('change', loadHotspots);
+const HOTSPOTS = <?= json_encode(HOTSPOTS_ENABLED) ?>;
+if (HOTSPOTS) document.getElementById('f-hotspots').addEventListener('change', loadHotspots);
 document.getElementById('f-period-all').addEventListener('change', e => {
   document.getElementById('f-period').disabled = e.target.checked;
   markDirty();
@@ -798,7 +841,7 @@ document.getElementById('f-period-all').addEventListener('change', e => {
 
 const hotspotToggleBtn = document.getElementById('hotspot-toggle');
 const hotspotSide      = document.getElementById('hotspot-side');
-hotspotToggleBtn.addEventListener('click', () => {
+if (HOTSPOTS) hotspotToggleBtn.addEventListener('click', () => {
   const open = hotspotSide.hasAttribute('hidden');
   open ? hotspotSide.removeAttribute('hidden') : hotspotSide.setAttribute('hidden', '');
   hotspotToggleBtn.setAttribute('aria-expanded', String(open));

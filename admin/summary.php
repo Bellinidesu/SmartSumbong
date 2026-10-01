@@ -77,7 +77,7 @@ if (isset($_GET['print'])) {
 // cases.php's category dropdown draws from.
 const CATEGORIES = [
     'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance',
+    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
 ];
 $category = (string) ($_GET['category'] ?? '');
 if (!in_array($category, CATEGORIES, true)) { $category = ''; }

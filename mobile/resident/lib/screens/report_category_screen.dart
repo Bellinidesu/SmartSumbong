@@ -93,7 +93,7 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
             ),
             const SizedBox(height: 18),
 
-            for (final c in ComplaintCategory.values) ...[
+            for (final c in ComplaintCategory.values.where((c) => c != ComplaintCategory.other)) ...[
               _CategoryCard(
                 category: c,
                 selectedKey: _choiceKey,
@@ -283,13 +283,9 @@ class _OthersCard extends StatelessWidget {
             selected: selected,
             onTap: () => onPick(
               _othersKey,
-              // No enum value for "Others". Peace, Order & Nuisance is
-              // the closest general bucket and an admin can recategorise
-              // — but this is a gap between the design and the schema,
-              // and it should go to Rose and the adviser rather than
-              // stay a silent decision.
+              // Its own category since 0076.
               const CategoryChoice(
-                category: ComplaintCategory.peaceOrderNuisance,
+                category: ComplaintCategory.other,
               ),
             ),
           ),
