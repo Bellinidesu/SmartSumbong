@@ -17,7 +17,6 @@ function nav_items(): array
         ['residents.php',  t('Residents', 'Mga Residente'),                   'users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'user'],
         ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'badge'],
-        ['profile.php',    t('Edit Profile', 'I-edit ang Profile'),           'gear'],
     ];
 }
 
@@ -81,6 +80,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
+<link href="assets/css/refined.css?v=<?= e(asset_version('refined.css')) ?>" rel="stylesheet">
 </head>
 <body class="page-<?= e(basename($active, '.php')) ?>">
 <div class="shell">
@@ -93,14 +93,16 @@ window.ssAccessToken = function (initial) {
       <?php endif; ?>
     </a>
 
-    <?php $live = open_complaint_count(); ?>
+    <?php $live = open_complaint_count(); $counts = nav_counts(); ?>
     <?php foreach (nav_items() as [$href, $label, $icon]): ?>
-      <?php $pulse = ($icon === 'map' && $live > 0); ?>
+      <?php $pulse = ($icon === 'map' && $live > 0); $n = $counts[$href] ?? 0; ?>
       <a class="nav-item<?= basename($href) === $active ? ' active' : '' ?>" href="<?= e($href) ?>">
         <?php if ($pulse): ?>
           <span class="nav-pulse is-live" title="<?= e($live . ' ' . t($live === 1 ? 'open complaint' : 'open complaints', 'bukas na sumbong')) ?>">
             <?= nav_icon($icon) ?><span class="nav-num"><?= $live > 99 ? '99+' : $live ?></span>
           </span>
+        <?php elseif ($n > 0): ?>
+          <span class="nav-ic"><?= nav_icon($icon) ?><span class="nav-count"><?= $n > 99 ? '99+' : $n ?></span></span>
         <?php else: ?>
           <?= nav_icon($icon) ?>
         <?php endif; ?>
@@ -112,7 +114,14 @@ window.ssAccessToken = function (initial) {
 
     <?= prefs_switches('prefs--sidebar') ?>
 
-    <a class="nav-item" href="logout.php"><?= nav_icon('out') ?><span><?= e(t('Log out', 'Mag-log out')) ?></span></a>
+    <?php // The admin's own card: opens Edit Profile; the arrow signs out. ?>
+    <div class="side-user<?= $active === 'profile.php' ? ' active' : '' ?>">
+      <a class="side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
+        <span class="side-avatar" aria-hidden="true"><?= e(admin_initials((string) ($admin['full_name'] ?? ''))) ?></span>
+        <span class="side-who"><b><?= e($admin['full_name'] ?? t('Administrator', 'Tagapangasiwa')) ?></b><small><?= e(t('Edit profile', 'I-edit ang profile')) ?></small></span>
+      </a>
+      <a class="side-out" href="logout.php" title="<?= e(t('Log out', 'Mag-log out')) ?>" aria-label="<?= e(t('Log out', 'Mag-log out')) ?>"><?= nav_icon('out') ?></a>
+    </div>
   </nav>
 
   <main class="main">
@@ -216,6 +225,45 @@ function open_complaint_count(): int
         $n = 0;
     }
     return $n;
+}
+
+/** Two letters for the admin card: first and last word of the name. */
+function admin_initials(string $name): string
+{
+    $w = preg_split('/\s+/', trim($name)) ?: [];
+    $w = array_values(array_filter($w, fn($x) => $x !== ''));
+    if (!$w) return 'A';
+    $a = mb_substr($w[0], 0, 1);
+    $b = count($w) > 1 ? mb_substr($w[count($w) - 1], 0, 1) : '';
+    return mb_strtoupper($a . $b);
+}
+
+/**
+ * The red counts on the sidebar (refined design, 1 Oct 2026): complaints
+ * waiting for review, residents waiting for verification, retirement
+ * requests waiting for a decision. Kept in the session for a minute so a
+ * page load is not three more round trips; any failure just hides a count.
+ *
+ * @return array<string,int> keyed by nav href
+ */
+function nav_counts(): array
+{
+    static $memo = null;
+    if ($memo !== null) return $memo;
+    $cached = $_SESSION['nav_counts'] ?? null;
+    if (is_array($cached) && ($cached['at'] ?? 0) > time() - 60) {
+        return $memo = $cached['n'];
+    }
+    $count = function (string $table, array $q): int {
+        try { return db()->count($table, $q); } catch (Throwable) { return 0; }
+    };
+    $memo = [
+        'cases.php'               => $count('reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review']),
+        'residents.php'           => $count('users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending']),
+        'retirement-requests.php' => $count('retirement_requests', ['status' => 'eq.pending']),
+    ];
+    $_SESSION['nav_counts'] = ['at' => time(), 'n' => $memo];
+    return $memo;
 }
 
 function layout_foot(): void

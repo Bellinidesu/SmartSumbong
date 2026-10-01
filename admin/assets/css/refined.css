@@ -1,0 +1,270 @@
+/* =========================================================
+   Refined look (1 Oct 2026) — the design Ace picked from the
+   preview (artifact "SmartSumbong Portal Preview"). Loaded after
+   app.css and only restyles: no page loses a control, a field or
+   a behaviour. Colours read the same --dk-* roles app.css uses, so
+   dark mode follows without a second copy of every rule.
+   ========================================================= */
+
+:root {
+  --rf-bg:       #f4f6fb;
+  --rf-surface:  #ffffff;
+  --rf-surface2: #f8f9fc;
+  --rf-line:     #e3e6ee;
+  --rf-line2:    #d0d4de;
+  --rf-muted:    #6e7489;
+  --rf-link:     #00308f;
+  --rf-red:      #e5383b;
+  --rf-side-a:   #00308f;
+  --rf-side-b:   #00236a;
+  --rf-shadow-sm: 0 1px 2px rgba(20,27,52,.06), 0 1px 3px rgba(20,27,52,.05);
+  --rf-shadow:    0 2px 6px rgba(20,27,52,.12), 0 10px 30px rgba(20,27,52,.14);
+  --rf-r: 12px;
+  --rf-r-lg: 16px;
+}
+:root[data-theme="dark"] {
+  --rf-bg:       #0e1322;
+  --rf-surface:  #161c2e;
+  --rf-surface2: #1b2236;
+  --rf-line:     #273050;
+  --rf-line2:    #34406a;
+  --rf-muted:    #9096ab;
+  --rf-link:     #8db2ff;
+  --rf-side-a:   #0a1f5c;
+  --rf-side-b:   #07153f;
+  --rf-shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --rf-shadow:    0 8px 24px rgba(0,0,0,.45);
+}
+
+/* ---------- canvas ---------- */
+body, :root[data-theme="dark"] body { background: var(--rf-bg); }
+.main, :root[data-theme="dark"] .main { background: var(--rf-bg); }
+
+/* ---------- sidebar ---------- */
+.sidebar, :root[data-theme="dark"] .sidebar {
+  background: linear-gradient(180deg, var(--rf-side-a) 0%, var(--rf-side-b) 100%);
+  padding: 22px 16px 18px;
+}
+.sidebar .brand { max-width: 160px; margin: 0 auto 18px; }
+.nav-item, :root[data-theme="dark"] .nav-item {
+  position: relative;
+  min-height: 46px;
+  margin-bottom: 4px;
+  padding: 8px 14px;
+  gap: 12px;
+  background: transparent;
+  color: rgba(255,255,255,.88);
+  border-radius: var(--rf-r);
+  font-weight: 600;
+  font-size: 15px;
+}
+.nav-item svg { width: 21px; height: 21px; }
+.nav-item:hover, :root[data-theme="dark"] .nav-item:hover { background: rgba(255,255,255,.1); color: #fff; }
+.nav-item.active, :root[data-theme="dark"] .nav-item.active {
+  background: var(--orange); color: #fff;
+  box-shadow: 0 6px 16px rgba(255,152,0,.35);
+}
+.nav-item.active:hover { background: #f59100; }
+.nav-item.active .nav-pulse > .nav-num { color: #fff; }
+/* Red counts on the icon's corner, the way app icons carry badges. */
+.nav-ic { position: relative; display: inline-grid; flex: none; }
+.nav-count {
+  position: absolute; left: 11px; top: -8px;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 99px; border: 2px solid var(--rf-side-a);
+  background: var(--rf-red); color: #fff;
+  font: 700 10.5px/14px var(--font-ui); text-align: center;
+}
+.nav-item.active .nav-count { border-color: var(--orange); }
+
+/* Theme + language switches in the sidebar */
+.prefs--sidebar { gap: 8px; margin: 0 0 10px; }
+.prefs--sidebar .pref-theme {
+  min-height: 44px; border-radius: var(--rf-r);
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  font-weight: 600; font-size: 14.5px;
+}
+.prefs--sidebar .pref-lang { border-radius: var(--rf-r); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); padding: 4px; }
+.prefs--sidebar .pref-lang button { min-height: 34px; border-radius: 9px; font-size: 14px; font-weight: 600; }
+
+/* The admin's card: Edit Profile, and the sign-out arrow */
+.side-user {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 8px 9px 11px; border-radius: var(--rf-r);
+  background: rgba(0,0,0,.16); min-width: 0;
+  transition: background .15s, box-shadow .15s;
+}
+.side-user:hover { background: rgba(255,255,255,.12); }
+.side-user.active { background: var(--orange); box-shadow: 0 6px 16px rgba(255,152,0,.35); }
+.side-me { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; color: #fff; }
+.side-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: #ffd08a; color: #5a3700; font-weight: 800; font-size: 13px;
+}
+.side-who { min-width: 0; line-height: 1.25; }
+.side-who b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-who small { display: block; font-size: 12px; color: rgba(255,255,255,.72); }
+.side-user.active .side-who small { color: rgba(255,255,255,.92); }
+.side-out { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: #fff; opacity: .85; }
+.side-out:hover { opacity: 1; background: rgba(255,255,255,.14); }
+.side-out svg { width: 18px; height: 18px; }
+.side-me:focus-visible, .side-out:focus-visible { outline: 3px solid rgba(255,152,0,.6); outline-offset: 3px; border-radius: 10px; }
+
+/* ---------- cards ---------- */
+.card, :root[data-theme="dark"] .card {
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: var(--rf-r-lg);
+  box-shadow: var(--rf-shadow-sm);
+}
+
+/* ---------- orange bars and what sits under them ---------- */
+.panel-bar { border-radius: var(--rf-r); padding: 10px 14px 10px 18px; gap: 12px; }
+.panel-title { font-size: 16px; font-weight: 800; }
+.panel-search input, .panel-sort select, .panel-sort input[type="month"] {
+  height: 36px; border-radius: 10px; border-color: transparent;
+}
+.panel-search input { padding-left: 34px; }
+.notif-list, .table-wrap {
+  margin-top: 14px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: var(--rf-r-lg);
+  box-shadow: var(--rf-shadow-sm);
+}
+.notif-list { padding: 8px; }
+.notif { box-shadow: none; border-color: var(--rf-line); border-radius: 10px; margin-bottom: 6px; }
+.notif-dot, :root[data-theme="dark"] .notif-dot { background: var(--rf-red); }
+.table-wrap { padding: 0; overflow: auto; }
+
+/* Tables: one card, row lines, a quiet header — not a stack of boxes */
+.case-table { border-spacing: 0; }
+.case-table thead th, .case-table th {
+  position: sticky; top: 0; z-index: 1;
+  padding: 12px 16px;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: .02em;
+  color: var(--rf-muted);
+  background: var(--rf-surface2);
+  border-bottom: 1px solid var(--rf-line);
+}
+.case-table td, :root[data-theme="dark"] .case-table td {
+  padding: 13px 16px;
+  background: transparent;
+  border: 0; border-bottom: 1px solid var(--rf-line);
+  border-radius: 0 !important;
+}
+.case-table td:first-child, .case-table td:last-child { border-left: 0; border-right: 0; }
+.case-table tbody tr { box-shadow: none; }
+.case-table tbody tr:last-child td { border-bottom: 0; }
+.case-table tbody tr:hover td { background: var(--rf-surface2); }
+
+/* ---------- status pills: soft, with a dot ---------- */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 24px; padding: 2px 10px;
+  font-size: 12px; font-weight: 700;
+}
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+
+/* ---------- buttons ---------- */
+.btn-review { border-radius: 8px; padding: 7px 14px; font-weight: 700; }
+.btn-accept, .btn-deny, .btn-dispatch, .btn-deny-confirm { border-radius: var(--rf-r); font-weight: 700; }
+.btn-secondary { border-radius: var(--rf-r); }
+
+/* ---------- live badge ---------- */
+.live-badge { border-radius: 99px; }
+
+/* ---------- dashboard ---------- */
+.dash-top { margin-bottom: 18px; }
+.chart-card, .donut-card { padding: 20px 22px; }
+.chart-title { font-weight: 700; }
+.tile, :root[data-theme="dark"] .tile {
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: var(--rf-r-lg);
+  box-shadow: var(--rf-shadow-sm);
+}
+.tile-label { font-weight: 600; font-size: 13px; color: var(--rf-muted); }
+.tile-value { font-weight: 800; letter-spacing: -.02em; }
+
+/* ---------- report summary tiles ---------- */
+.tile-row .tile { padding: 18px 20px; align-items: flex-start; text-align: left; }
+.tile-row .tile strong { font-size: 34px; font-weight: 800; letter-spacing: -.02em; order: 2; }
+.tile-row .tile span { order: 1; font-size: 13px; font-weight: 600; color: var(--rf-muted); }
+
+/* ---------- spatial: the map covers the page, controls float on it ---------- */
+.page-spatial .main { padding: 0; }
+.page-spatial .panel--map {
+  position: relative;
+  height: calc(100dvh / var(--z, 1));
+  margin: 0; border: 0; border-radius: 0;
+}
+.page-spatial .panel--map .map-shell { position: absolute; inset: 0; border: 0; border-radius: 0; }
+.page-spatial .panel--map > .panel-bar {
+  position: absolute; z-index: 6; top: 16px; left: 16px; right: 300px;
+  flex-wrap: wrap; row-gap: 10px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: 18px;
+  box-shadow: var(--rf-shadow);
+  padding: 12px 14px;
+}
+.page-spatial .panel--map > .panel-bar .panel-title { color: var(--ink); font-size: 19px; }
+.page-spatial .map-toolbar { margin-left: 0; gap: 8px; }
+.page-spatial .map-toolbar select, .page-spatial .map-toolbar input[type="month"] {
+  height: 34px; border-radius: 99px; background: var(--rf-surface2); border: 1px solid var(--rf-line2); padding: 0 12px;
+}
+.page-spatial .map-toolbar .toggle {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
+  border-radius: 99px; border: 1px solid var(--rf-line2); background: var(--rf-surface2);
+  color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer;
+}
+.page-spatial .map-toolbar .toggle:has(input:checked) { background: var(--orange); border-color: var(--orange); color: #fff; }
+.page-spatial .map-apply { height: 34px; border-radius: 99px; background: var(--navy); border-color: var(--navy); color: #fff; }
+.page-spatial .map-dock { z-index: 6; }
+.page-spatial .map-btn, .page-spatial .incident-badge { border-radius: 14px; box-shadow: var(--rf-shadow); }
+.page-spatial .map-side, .page-spatial .pin-detail { border-radius: 18px; box-shadow: var(--rf-shadow); }
+.page-spatial .incident-count { background: var(--rf-red); color: #fff; }
+@media (max-width: 1100px) { .page-spatial .panel--map > .panel-bar { right: 16px; } }
+
+/* ---------- account pages (residents / personnel) ---------- */
+.case-heading .avatar--lg, .case-heading .avatar.avatar--lg { width: 84px; height: 84px; font-size: 28px; }
+.detail-list dt { color: var(--rf-muted); }
+
+/* The list pages had their own boxed header row; same one card for them. */
+:is(.page-personnel, .page-residents, .page-cases) .case-table thead th,
+:is(.page-personnel, .page-residents, .page-cases) .case-table thead th:first-child,
+:is(.page-personnel, .page-residents, .page-cases) .case-table thead th:last-child {
+  padding: 12px 16px;
+  background: var(--rf-surface2);
+  border: 0; border-bottom: 1px solid var(--rf-line);
+  border-radius: 0;
+}
+:is(.page-personnel, .page-residents, .page-cases) .case-table td { border-color: var(--rf-line); }
+.case-table td.mono, .case-table .mono { white-space: nowrap; color: var(--rf-link); font-weight: 600; }
+
+/* Report Summary figures: the summary page drew its own outlined boxes. */
+.page-summary .tile-row .tile, :root[data-theme="dark"] .page-summary .tile-row .tile {
+  background: var(--rf-surface); border: 1px solid var(--rf-line);
+  border-radius: var(--rf-r-lg); box-shadow: var(--rf-shadow-sm);
+}
+/* Live / Watching on an orange bar: a white chip so the green reads. */
+.panel-bar .live-badge { background: #fff; padding: 3px 10px; color: #1f8a45; font-weight: 700; }
+.page-summary .btn-pdf { white-space: nowrap; border-radius: 10px; }
+
+/* Account pages: each section its own card, as in the preview. */
+:is(.page-residents, .page-personnel) .card--complaint,
+:root[data-theme="dark"] :is(.page-residents, .page-personnel) .card--complaint {
+  background: none; border: 0; box-shadow: none; padding: 0;
+  display: grid; gap: 16px; align-content: start;
+}
+:is(.page-residents, .page-personnel) .card--complaint > .acc-head-card,
+:is(.page-residents, .page-personnel) .card--complaint > .case-block {
+  margin: 0; padding: 20px 22px;
+  background: var(--rf-surface); border: 1px solid var(--rf-line);
+  border-radius: var(--rf-r-lg); box-shadow: var(--rf-shadow-sm);
+}
+:is(.page-residents, .page-personnel) .card--complaint > .case-meta { margin: -8px 4px 0; }
+:is(.page-residents, .page-personnel) .card--controls,
+:root[data-theme="dark"] :is(.page-residents, .page-personnel) .card--controls { border-color: var(--rf-line); }

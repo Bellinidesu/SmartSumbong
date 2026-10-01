@@ -945,6 +945,7 @@ function render_account_detail(
 
     <div class="case-grid">
       <section class="card card--complaint">
+        <div class="acc-head-card">
         <h1 class="case-heading"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><span><?= e($p['full_name']) ?></span></h1>
         <div class="case-flags"><?= account_status_pills($p) ?></div>
 
@@ -969,6 +970,7 @@ function render_account_detail(
           <p class="clock-line is-late"><?= e(t('Reason on file:', 'Nakatalang dahilan:')) ?> <?= e($p['rejection_reason']) ?></p>
         <?php endif; ?>
 
+        </div>
         <div class="case-block">
           <h3 class="case-sub"><?= e(t('Account Details', 'Detalye ng Account')) ?></h3>
           <dl class="detail-list">
