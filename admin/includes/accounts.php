@@ -224,8 +224,9 @@ function render_account_screen(string $role): void
             }
         }
 
+        $duty = $isTanod ? tanod_duty($db, $person['id']) : null;
         render_account_detail($person, $noun, $idLabel, $self, $navFile, $title, $flash,
-                              $dupes[$person['id']] ?? [], $abuseHistory, $role);
+                              $dupes[$person['id']] ?? [], $abuseHistory, $role, $duty);
         return;
     }
 
@@ -791,6 +792,68 @@ function account_initials(string $name): string
     return mb_strtoupper($first . $last);
 }
 
+/**
+ * The tanod page's two extra cards (preview, 2 Oct 2026): this month's
+ * dispatches and today's shift. Reads dispatches and attendance only —
+ * nothing new is stored. Any failure leaves the cards out.
+ *
+ * @return array{stats: array<string,mixed>, recent: array, shift: array<string,float>}|null
+ */
+function tanod_duty(Supabase $db, string $tanodId): ?array
+{
+    $tz    = new DateTimeZone('Asia/Manila');
+    $now   = new DateTimeImmutable('now', $tz);
+    $month = $now->modify('first day of this month')->setTime(0, 0);
+    $today = $now->setTime(0, 0);
+    try {
+        $got = $db->selectMany([
+            'disp' => ['dispatches', [
+                'select'   => 'id,state,assigned_at,accepted_at,resolved_at,report:reports!dispatches_report_id_fkey(id,tracking_id)',
+                'tanod_id' => 'eq.' . $tanodId,
+                'order'    => 'assigned_at.desc',
+                'limit'    => '200',
+            ]],
+            'att' => ['attendance', [
+                'select'   => 'duty_status,logged_at',
+                'tanod_id' => 'eq.' . $tanodId,
+                'logged_at' => 'gte.' . $today->modify('-1 day')->format(DateTimeInterface::ATOM),
+                'order'    => 'logged_at.asc',
+            ]],
+        ]);
+    } catch (Throwable) {
+        return null;
+    }
+
+    $monthStart = $month->getTimestamp();
+    $mine = array_values(array_filter($got['disp'] ?? [], fn($d) => strtotime($d['assigned_at']) >= $monthStart));
+    $accepted = array_values(array_filter($mine, fn($d) => !empty($d['accepted_at'])));
+    $resolved = array_values(array_filter($mine, fn($d) => ($d['state'] ?? '') === 'resolved'));
+    $mins = array_map(fn($d) => (strtotime($d['accepted_at']) - strtotime($d['assigned_at'])) / 60, $accepted);
+    $avg  = $mins ? array_sum($mins) / count($mins) : null;
+
+    // Today's shift: each log is a change of duty status; it lasts until
+    // the next one (or now). The status carried in from before midnight
+    // counts from midnight.
+    $shift = array_fill_keys(array_keys(TANOD_DUTY_STATES), 0.0);
+    $t0 = $today->getTimestamp(); $tEnd = $now->getTimestamp();
+    $logs = $got['att'] ?? [];
+    $cur = null; $from = $t0;
+    foreach ($logs as $l) {
+        $at = strtotime($l['logged_at']);
+        if ($at <= $t0) { $cur = $l['duty_status']; continue; }
+        if ($cur !== null && isset($shift[$cur])) $shift[$cur] += ($at - $from) / 3600;
+        $cur = $l['duty_status']; $from = $at;
+    }
+    if ($cur !== null && isset($shift[$cur])) $shift[$cur] += ($tEnd - $from) / 3600;
+
+    return [
+        'stats'  => ['dispatched' => count($mine), 'accepted' => count($accepted), 'resolved' => count($resolved),
+                     'avg_min' => $avg, 'month' => month_year($month)],
+        'recent' => array_slice($got['disp'] ?? [], 0, 8),
+        'shift'  => $shift,
+    ];
+}
+
 /** Status, suspension and the two-hour clock, as pills. */
 /** duty_state (0001), in the Figma summary's order. */
 const TANOD_DUTY_STATES = [
@@ -860,7 +923,7 @@ function account_status_pills(array $a): string
 function render_account_detail(
     array $p, string $noun, string $idLabel,
     string $self, string $navFile, string $title, ?array $flash, array $dupes = [],
-    array $abuseHistory = [], string $role = 'resident'
+    array $abuseHistory = [], string $role = 'resident', ?array $duty = null
 ): void {
     $pending = $p['verification_status'] === 'pending';
     $nounLabel = $noun === 'Tanod' ? 'Tanod' : t('Resident', 'Residente');
@@ -939,6 +1002,57 @@ function render_account_detail(
             <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>
           </dl>
         </div>
+
+        <?php if ($duty): $st = $duty['stats']; ?>
+        <div class="p-card p-card-pad">
+          <p class="p-eyebrow"><?= e(t('Duty', 'Tungkulin')) ?> &middot; <?= e($st['month']) ?></p>
+          <div class="p-duty-grid">
+            <div><small><?= e(t('Dispatched', 'Na-dispatch')) ?></small><b><?= (int) $st['dispatched'] ?></b></div>
+            <div><small><?= e(t('Accepted', 'Tinanggap')) ?></small><b><?= (int) $st['accepted'] ?></b></div>
+            <div><small><?= e(t('Resolved', 'Nalutas')) ?></small><b><?= (int) $st['resolved'] ?></b></div>
+            <div><small><?= e(t('Avg. response', 'Karaniwang tugon')) ?></small><b><?= $st['avg_min'] === null ? '—' : ($st['avg_min'] < 60 ? (int) round($st['avg_min']) . ' min' : round($st['avg_min'] / 60, 1) . ' h') ?></b></div>
+          </div>
+          <?php $sh = $duty['shift']; $tot = array_sum($sh); ?>
+          <small class="p-hint"><?= e(t("Today's shift", 'Shift ngayong araw')) ?></small>
+          <?php if ($tot > 0): ?>
+            <div class="p-shift">
+              <?php foreach (['on_duty' => '#A6C442', 'lunch' => '#C49742', 'break' => '#FF9800', 'offline' => '#BDBDBD'] as $k => $c): ?>
+                <?php if ($sh[$k] > 0): ?><i style="flex:<?= round($sh[$k], 3) ?>;background:<?= $c ?>"></i><?php endif; ?>
+              <?php endforeach; ?>
+            </div>
+            <div class="p-shift-legend">
+              <?php foreach (['on_duty' => '#A6C442', 'lunch' => '#C49742', 'break' => '#FF9800', 'offline' => '#BDBDBD'] as $k => $c): ?>
+                <span style="--c:<?= $c ?>"><?= e(status_label($k)) ?> <?= $sh[$k] >= 1 ? round($sh[$k], 1) . ' h' : (int) round($sh[$k] * 60) . ' min' ?></span>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <p class="p-none-line" style="margin-top:6px"><?= !empty($p['duty_status'])
+                ? e(t('Now: ', 'Ngayon: ') . status_label((string) $p['duty_status']) . t('. No shift history is recorded yet.', '. Wala pang naitatalang kasaysayan ng shift.'))
+                : e(t('No shift history is recorded yet.', 'Wala pang naitatalang kasaysayan ng shift.')) ?></p>
+          <?php endif; ?>
+        </div>
+
+        <div class="p-card p-table-card">
+          <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Recent dispatches', 'Mga huling dispatch')) ?></h2></div>
+          <div class="p-tscroll"><table class="p-t">
+            <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
+            <tbody>
+              <?php if (!$duty['recent']): ?>
+                <tr><td colspan="4" class="p-empty"><?= e(t('No dispatches yet.', 'Wala pang dispatch.')) ?></td></tr>
+              <?php endif; ?>
+              <?php foreach ($duty['recent'] as $d): ?>
+                <?php $state = (string) ($d['state'] ?? ''); ?>
+                <tr<?= !empty($d['report']['id']) ? ' class="p-click" data-href="case.php?id=' . e($d['report']['id']) . '"' : '' ?>>
+                  <td><span class="p-mono-id"><?= e($d['report']['tracking_id'] ?? '—') ?></span></td>
+                  <td class="p-num"><?= e(long_datetime($d['assigned_at'])) ?></td>
+                  <td class="p-num"><?= !empty($d['accepted_at']) ? e(long_datetime($d['accepted_at'])) : '<span class="p-over">' . e(t('Not accepted', 'Hindi tinanggap')) . '</span>' ?></td>
+                  <td><span class="p-badge <?= match ($state) { 'resolved' => 'p-b-done', 'accepted' => 'p-b-progress', 'assigned' => 'p-b-pending', default => 'p-b-grey' } ?>"><?= e(status_label($state)) ?></span></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table></div>
+        </div>
+        <?php endif; ?>
 
         <div class="p-card p-card-pad">
           <p class="p-eyebrow"><?= e($idLabel) ?></p>
