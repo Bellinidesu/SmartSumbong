@@ -1,0 +1,497 @@
+/* The signed-out pages (sign-in, forgot/reset password, request access):
+   the sign-in design the preview kept 1:1, lifted out of the old app.css
+   (archived in legacy/portal-v1). */
+/* =========================================================
+   SmartSumbong admin portal
+   Tokens taken from the agreed Figma file, not invented here.
+   ========================================================= */
+
+:root {
+  /* Brand */
+  --navy:        #00308f;   /* sidebar, primary buttons */
+  --navy-deep:   #002571;   /* pressed / hover */
+  --orange:      #ff9800;   /* active nav item, section headers */
+  --orange-soft: #fff4e2;
+
+  /* Surface */
+  --canvas:      #ffffff;
+  --card:        #ffffff;
+  --rule:        #e6e8ee;
+  --ink:         #12172b;
+  --ink-soft:    #6b7280;
+  --ink-faint:   rgba(38, 50, 56, .7);
+
+  /* Status — matches the dashboard legend */
+  --done:        #22c55e;
+  --overdue:     #ef4444;
+  --late:        #f59e0b;
+  --processing:  #2563eb;
+  --chart-navy:      #00308f;
+  --chart-navy-fill: rgba(0, 48, 143, .10);
+
+  /* Geometry */
+  --r-card:      14px;
+  --r-input:     10px;
+  --r-pill:      999px;
+  --shadow:      0 1px 3px rgba(16, 24, 40, .08);
+
+  /* The frame's 279 at 1440, narrowing on smaller screens. */
+  --sidebar-w:   clamp(224px, calc(19.4vw / var(--z, 1)), 279px);
+
+  /* Type: Urbanist (the free stand-in for the design's Visby CF, the
+     same choice the mobile apps made) for everything; Inter where the
+     design itself sets Inter (search fields, small labels). Swap
+     --font-display/--font-body here if the barangay licenses Visby CF. */
+  --font-display: 'Urbanist', 'Visby CF', system-ui, sans-serif;
+  --font-body:    'Urbanist', system-ui, sans-serif;
+  --font-ui:      'Inter', system-ui, sans-serif;
+}
+h1, h2, h3, h4, h5, h6, .display { font-family: var(--font-display); }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--canvas);
+  font-size: 14px;
+}
+a { text-decoration: none; color: inherit; }
+.login-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: min(537px, 78%);
+  background: var(--dk-surface, #fff);
+  border-radius: 60px;
+  padding: 62px 96px 54px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .12);
+}
+.login-card h1 {
+  font-size: 24px;
+  font-weight: 500;
+  margin: 0 0 26px;
+  text-align: center;
+}
+.field { position: relative; margin-bottom: 12px; }
+.field input {
+  width: 100%;
+  height: 37px;
+  border: 1px solid var(--dk-line, rgba(0, 0, 0, .2));
+  border-radius: var(--r-input);
+  padding: 0 14px 0 40px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+}
+.field input::placeholder { color: var(--ink-faint); }
+.field svg {
+  position: absolute; left: 15px; top: 50%;
+  transform: translateY(-50%);
+  width: 17px; height: 17px;
+  stroke: var(--ink-faint); fill: none;
+}
+@media (max-width: 900px) {
+  .login-card { padding: 40px 28px; border-radius: 32px; }
+}
+/* =========================================================
+   Login — Figma node 2:18
+   Split screen: barangay identity rail on the left, orange
+   field on the right carrying the wordmark and the card.
+   ========================================================= */
+
+.login-body { background: var(--dk-surface, #fff); }
+.login-split {
+  display: grid;
+  grid-template-columns: clamp(320px, 24%, 468px) 1fr;
+  min-height: calc(100vh / var(--z, 1));
+}
+.login-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 46px;
+  padding: 48px 32px;
+}
+.rail-logo { width: 186px; height: auto; object-fit: contain; }
+.rail-logo--missing {
+  display: grid;
+  place-items: center;
+  width: 186px;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px dashed var(--rule);
+  border-radius: 12px;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--ink-soft);
+}
+.login-panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--orange);
+  min-height: calc(100vh / var(--z, 1));
+}
+/* Verbatim to the frame: image 10 sits on top of the orange rectangle at
+   reduced opacity. No blend mode and no scrim — both were mine, and
+   neither is in the design. */
+.login-panel-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  /* 0.18, the frame's own fill opacity, over the frame's own crop of the
+     full-colour photo (branch B); the old file was already washed out,
+     so the crowd barely showed through. */
+  opacity: .18;
+  pointer-events: none;
+}
+/* Placement measured off the frame (1440x1024, panel x468 w972):
+     logo   x574 y72  355x369  -> 10.9% from the panel's left, 7% down
+     card   x697 y333 537x360  -> centred, both axes
+   The logo's lower edge overlapping the card's top corner is in the
+   design, not an accident of stacking. */
+
+/* Anchored to the card, not to the panel corner — that is what the frame
+   does. Card 537x360 centred; logo 355x369 starting 123px to its left and
+   overlapping its top edge by 108px. Both hang off the same centre point,
+   so the relationship survives any aspect ratio:
+     left = 50% - (537/2) - 123 = 50% - 391px
+     top  = 50% - (360/2) - 261 = 50% - 441px */
+.login-wordmark {
+  position: absolute;
+  left: calc(50% - 391px);
+  top: calc(50% - 441px);
+  z-index: 3;
+  width: 355px;
+  height: auto;
+}
+.login-wordmark--missing {
+  position: absolute;
+  left: calc(50% - 391px);
+  top: calc(50% - 441px);
+  z-index: 3;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1.05;
+  color: var(--dk-navy-ink, var(--navy));
+  text-align: center;
+  text-shadow: 0 2px 0 #fff;
+}
+.login-card {
+  position: relative;
+  width: 537px;
+  max-width: calc(100% - 48px);
+  padding: 56px 117px 40px;
+  background: var(--dk-surface, #fff);
+  border-radius: 60px;
+}
+.login-title {
+  margin: 0 0 26px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  text-align: center;
+  color: var(--dk-ink, #000);
+}
+.field {
+  position: relative;
+  display: block;
+  margin-bottom: 21px;
+}
+.field-icon {
+  position: absolute;
+  left: 19px;
+  top: 50%;
+  width: 17px;
+  height: 17px;
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+.field input {
+  width: 100%;
+  height: 37px;
+  padding: 0 14px 0 51px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: .25px;
+  color: var(--ink);
+  background: var(--dk-surface, #fff);
+  border: 1px solid var(--dk-line, rgba(0,0,0,.2));
+  border-radius: var(--r-input);
+}
+.field input::placeholder { color: var(--ink-faint); }
+.field input:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.login-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: -12px 0 18px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--dk-ink-body, #707070);
+}
+.remember { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.remember input { width: 11px; height: 11px; accent-color: var(--navy); }
+.forgot { color: var(--dk-ink-body, #6c6c6c); }
+.forgot:hover { text-decoration: underline; }
+.login-btn {
+  display: block;
+  width: 119px;
+  height: 33px;
+  margin: 0 auto;
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: .5px;
+  color: #fff;
+  background: var(--navy);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.login-btn:hover { background: var(--navy-deep); }
+.login-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.login-signup {
+  margin: 18px 0 0;
+  font-size: 10px;
+  font-style: italic;
+  text-align: center;
+  color: var(--dk-ink-body, #6c6c6c);
+}
+.login-signup a { color: #86b0ff; text-decoration: underline; }
+.login-note,
+.login-error {
+  margin: 0 0 16px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-style: normal;
+  text-align: center;
+}
+.login-note  { background: var(--orange-soft); color: var(--dk-amber-ink, #7a4a00); }
+.login-error { background: var(--dk-red-bg, #fdeaea);            color: var(--dk-red-ink, #a01818); }
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 980px) {
+  .login-split { grid-template-columns: 1fr; }
+  .login-rail {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 28px 16px;
+  }
+  .rail-logo, .rail-logo--missing { width: 96px; }
+  .login-card { padding: 40px 28px 32px; border-radius: 32px; }
+}
+.field-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+.field-hint { font-size: 11.5px; color: var(--ink-soft); margin: 6px 0 0; line-height: 1.5; }
+/* case.php's "Flag as abusive" checkbox in the Deny panel -- same
+   inline-checkbox shape as .remember on the login screen, sized up
+   slightly since this one sits in a form full of larger controls
+   rather than beside a small "Forgot password?" link. */
+.field-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  margin: 10px 0 2px;
+}
+.field-check input { width: 14px; height: 14px; accent-color: var(--navy); }
+.btn-period {
+  border: 0; background: var(--navy); color: #fff;
+  border-radius: var(--r-input); padding: 8px 16px;
+  font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer;
+}
+@media (max-width: 900px) {
+  .login-panel { min-height: auto; padding: 40px 24px 56px; }
+  .login-wordmark, .login-wordmark--missing {
+    position: static; width: 230px; margin: 0 auto 24px; display: block;
+  }
+  .login-card {
+    position: static; transform: none; width: 100%; max-width: 460px; margin: 0 auto;
+  }
+}
+/* Login: caps lock */
+.caps-warn {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--dk-amber-ink, #a35c00);
+  background: var(--dk-amber-bg, #fff3e0);
+  border-radius: var(--r-input);
+  padding: 6px 10px;
+  text-align: center;
+}
+.caps-warn[hidden] { display: none; }
+/* ---------- audit trail integrity ---------- */
+
+.trail-ok, .trail-bad {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  border-radius: var(--r-input);
+  padding: 8px 12px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+.trail-ok  { background: var(--dk-green-bg, #e9f6ec); color: var(--dk-green-ink, #16652c); }
+.trail-bad { background: var(--dk-red-bg, #fdeaea); color: var(--dk-red-ink, #a01818); flex-direction: column; gap: 3px; }
+.trail-ok svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+/* ---------- Request access, in the sign-in layout (branch B) ---------- */
+.access-card { padding: 48px 72px 40px; text-align: center; }
+.access-card .login-title { margin-bottom: 10px; }
+.access-lead { margin: 0 0 18px; font-size: 13.5px; color: var(--ink-soft); }
+.access-sub {
+  margin: 16px 0 4px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--dk-navy-ink, var(--navy));
+}
+.access-text { margin: 0; font-size: 13px; line-height: 1.55; color: var(--dk-ink-body, #3f4655); }
+.access-back { display: inline-flex; align-items: center; justify-content: center; margin-top: 26px; text-decoration: none; }
+/* "Send reset link" wrapped onto two lines inside the sign-in button's width. */
+.login-btn { min-width: 119px; padding-inline: 18px; white-space: nowrap; width: fit-content; }
+/* =========================================================
+   Theme and language switches (branch B)
+   ========================================================= */
+.prefs { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
+.pref-theme {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 40px; padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  font: 500 14px var(--font-body);
+  cursor: pointer;
+}
+.pref-theme:hover { background: rgba(255, 255, 255, .1); }
+.pref-ic { width: 20px; height: 20px; flex: none; }
+.pref-ic--sun { display: none; }
+:root[data-theme="dark"] .pref-ic--sun { display: block; }
+:root[data-theme="dark"] .pref-ic--moon { display: none; }
+.pref-lang {
+  display: grid; grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 9px;
+}
+.pref-lang button {
+  min-height: 30px;
+  border: 0; border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font: 500 13px var(--font-body);
+  cursor: pointer;
+}
+.pref-lang button[aria-pressed="true"] { background: #fff; color: var(--navy); font-weight: 700; }
+/* On the sign-in page: over the orange panel, top right. */
+.prefs--login { position: absolute; top: 20px; right: 24px; z-index: 5; flex-direction: row; align-items: center; margin: 0; }
+.prefs--login .pref-theme, .prefs--login .pref-lang { background: rgba(0, 48, 143, .85); border-color: transparent; }
+.prefs--login .pref-lang button { min-width: 72px; }
+/* =========================================================
+   Dark mode (branch B)
+   The resident and tanod apps' night palette — a desaturated barangay
+   navy rather than black (theme.dart AppColors.dark) — so the portal
+   and the apps look like one product at night. Every colour literal in
+   this file reads var(--dk-ROLE, literal): light mode keeps the literal,
+   and the roles are only defined here.
+   ========================================================= */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas:      #0d1b33;
+  --card:        #16264a;
+  --rule:        #30416b;
+  --ink:         #eaf0ff;
+  --ink-soft:    #a8b3c7;
+  --ink-faint:   rgba(234, 240, 255, .6);
+  --orange-soft: rgba(255, 152, 0, .16);
+  --shadow:      0 1px 3px rgba(0, 0, 0, .45);
+
+  --chart-navy:      #7fa2ff;
+  --chart-navy-fill: rgba(127, 162, 255, .14);
+
+  --dk-surface:    #16264a;
+  --dk-glass:      rgba(22, 38, 74, .96);
+  --dk-surface-2:  #1c2f59;
+  --dk-cream:      #221f2c;
+  --dk-red-bg:     rgba(239, 68, 68, .18);
+  --dk-green-bg:   rgba(34, 197, 94, .17);
+  --dk-amber-bg:   rgba(255, 152, 0, .16);
+  --dk-blue-bg:    rgba(59, 130, 246, .22);
+  --dk-purple-bg:  rgba(139, 92, 246, .24);
+
+  --dk-ink:        #eaf0ff;
+  --dk-ink-body:   #c5cedf;
+  --dk-red-ink:    #ff9d9d;
+  --dk-green-ink:  #7ee2a3;
+  --dk-amber-ink:  #ffc46b;
+  --dk-blue-ink:   #a9c1ff;
+  --dk-purple-ink: #cbb8ff;
+  --dk-navy-ink:   #a9c1ff;
+
+  --dk-line:        #30416b;
+  --dk-line-strong: #5d71a3;
+  --dk-red-line:    rgba(239, 68, 68, .45);
+  --dk-cream-line:  rgba(255, 183, 77, .35);
+}
+:root[data-theme="dark"] body { background: var(--canvas); color: var(--ink); }
+/* The sidebar keeps the brand navy, one step deeper so it reads apart
+   from the page; the active item keeps dark ink on its orange. */
+:root[data-theme="dark"] .sidebar { background: #0a2463; }
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-item.active svg { color: #141b34; }
+/* The barangay seals carry navy lettering: they stay on light, as the
+   apps' loading screen puts them on a light plate. */
+:root[data-theme="dark"] .login-rail { background: #f3f3f3; }
+:root[data-theme="dark"] .login-body { background: var(--canvas); }
+:root[data-theme="dark"] input, :root[data-theme="dark"] select, :root[data-theme="dark"] textarea {
+  color: var(--ink);
+}
+:root[data-theme="dark"] input::placeholder, :root[data-theme="dark"] textarea::placeholder { color: #8391ad; }
+:root[data-theme="dark"] .maplibregl-ctrl-group { background: var(--card); }
+:root[data-theme="dark"] .maplibregl-ctrl-group button + button { border-top-color: var(--rule); }
+:root[data-theme="dark"] .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: invert(1) hue-rotate(180deg); }
+:root[data-theme="dark"] .maplibregl-ctrl-attrib { background: rgba(22, 38, 74, .85); color: var(--ink-soft); }
+:root[data-theme="dark"] .maplibregl-ctrl-attrib a { color: var(--ink-soft); }
+:root[data-theme="dark"] .profile-confirm::backdrop { background: rgba(9, 14, 30, .5); }
+:root[data-theme="dark"] .panel-bar .toggle { color: #141b34; }
+:root[data-theme="dark"] .case-grid .tl-dot { background: #a9c1ff; border-color: var(--card); box-shadow: 0 0 0 1.5px #a9c1ff; }
+:root[data-theme="dark"] .case-grid .tl-dot--now { background: var(--orange); box-shadow: 0 0 0 1.5px var(--orange); }
+:root[data-short] .prefs--sidebar { gap: 6px; margin-bottom: 8px; }
+:root[data-tight] .sidebar .nav-item { min-height: 42px; margin-bottom: 6px; padding-block: 4px; }
+:root[data-tight] .sidebar .brand { max-width: 112px; }
+:root[data-tight] .pref-theme { min-height: 34px; }
+:root[data-tight] .pref-lang button { min-height: 26px; }

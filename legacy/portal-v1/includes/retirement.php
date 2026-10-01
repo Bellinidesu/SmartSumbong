@@ -205,27 +205,24 @@ function render_retirement_queue(): void
     layout_head(t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), $self);
     ?>
 
-    <div class="p-topbar"><h1><?= e(t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin')) ?></h1>
-      <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
-
     <?php if ($flash): ?>
-      <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
+      <div class="flash flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
     <?php endif; ?>
 
     <?php if ($error): ?>
-      <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
+      <div class="alert-bar" role="alert"><?= e($error) ?></div>
     <?php endif; ?>
 
     <?php if (ADMIN_SUCCESSION_ENABLED): ?>
     <?php if ($handover): ?>
-      <div class="p-flash p-flash--ok" role="status">
+      <div class="flash flash--ok handover-banner" role="status">
         <strong><?= e(t('Handover in progress', 'Kasalukuyang handover')) ?></strong> &mdash; <?= e(t('training', 'sinasanay si')) ?>
         <?= e($handover['successor_name'] ?? t('your successor', 'ang iyong kahalili')) ?>. <?= e(t('You return to', 'Babalik ka bilang')) ?>
         <?= e(status_label((string) $handover['admin_handover_role'])) ?> <?= e(t('automatically on', 'nang awtomatiko sa')) ?>
         <?= e(long_datetime((string) $handover['admin_handover_until'])) ?> <?= e(t('unless you cancel it first.', 'maliban kung kanselahin mo ito.')) ?>
         <form method="post" style="display:inline">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="action" value="cancel_handover"
+          <button class="btn-link-inline" type="submit" name="action" value="cancel_handover"
                   onclick="return confirm(<?= e(json_encode(t('Cancel the handover? Your successor keeps admin access either way.', 'Kanselahin ang handover? Mananatili ang admin access ng iyong kahalili alinman dito.'), JSON_UNESCAPED_UNICODE)) ?>)">
             <?= e(t('Cancel handover', 'Kanselahin ang handover')) ?>
           </button>
@@ -233,59 +230,62 @@ function render_retirement_queue(): void
       </div>
     <?php endif; ?>
 
-    <div class="p-band"><h2><?= e(t('Grant Administrator Access', 'Magbigay ng Administrator Access')) ?></h2></div>
-    <section class="p-card p-card-pad" style="margin-bottom:28px">
-      <div class="p-ctl-stack">
-        <p class="p-ctl-note">
+    <section class="panel">
+      <header class="panel-bar">
+        <h2 class="panel-title"><?= e(t('Grant Administrator Access', 'Magbigay ng Administrator Access')) ?></h2>
+      </header>
+
+      <div class="succession-body">
+        <p class="control-note">
           <?= e(t("Only verified accounts appear below. Verification is the step where the barangay confirmed the person lives in 183, so an outsider cannot be appointed. A real turnover — certification, oath-taking, the barangay's own bureaucracy — is not instant, so you can optionally keep acting as administrator for up to 90 days while you train them, instead of handing over everything at once.",
                   'Mga beripikadong account lamang ang lumalabas sa ibaba. Sa beripikasyon kinumpirma ng barangay na nakatira sa 183 ang tao, kaya hindi maitatalaga ang taga-labas. Hindi agad-agad ang tunay na turnover — sertipikasyon, panunumpa, at proseso ng barangay — kaya maaari kang manatiling administrator nang hanggang 90 araw habang sinasanay mo sila, sa halip na ibigay agad ang lahat.')) ?>
         </p>
 
-        <form method="get" class="p-input" style="margin:8px 0">
+        <form method="get" class="panel-search succession-search">
           <?= nav_icon('search') ?>
-          <input type="search" name="cand" style="border:0;outline:0;background:transparent;width:100%" placeholder="<?= e(t("Type the successor's name", 'I-type ang pangalan ng kahalili')) ?>"
+          <input type="search" name="cand" placeholder="<?= e(t("Type the successor's name", 'I-type ang pangalan ng kahalili')) ?>"
                  value="<?= e($candSearch) ?>">
         </form>
 
         <form method="post">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-          <div class="p-roster" style="margin-bottom:12px">
+          <div class="cand-list">
             <?php if (!$candidates): ?>
-              <p class="p-none-line"><?= e(t('No verified account matches that name.', 'Walang beripikadong account na tugma sa pangalang iyan.')) ?></p>
+              <p class="case-none"><?= e(t('No verified account matches that name.', 'Walang beripikadong account na tugma sa pangalang iyan.')) ?></p>
             <?php endif; ?>
             <?php foreach ($candidates as $c): ?>
-              <label class="p-tanod-opt">
+              <label class="roster-row">
                 <input type="radio" name="successor" value="<?= e($c['id']) ?>" required>
-                <span class="p-who"><?= e($c['full_name']) ?>
-                  <small><?= e($c['email']) ?></small></span>
-                <span class="p-status-dot p-on-c"><?= e(mb_strtoupper(status_label((string) $c['role']))) ?></span>
-                <span class="p-pick"><?= e(t('Appoint', 'Italaga')) ?></span>
+                <span class="roster-name"><?= e($c['full_name']) ?>
+                  <small class="roster-dist"><?= e($c['email']) ?></small></span>
+                <span class="roster-state is-on"><?= e(mb_strtoupper(status_label((string) $c['role']))) ?></span>
+                <span class="roster-pick"><?= e(t('Appoint', 'Italaga')) ?></span>
               </label>
             <?php endforeach; ?>
           </div>
 
-          <div class="p-cfield">
-            <label class="p-flabel" for="t-reason"><?= e(t('Reason for the handover', 'Dahilan ng handover')) ?></label>
-            <input class="p-input-plain" type="text" id="t-reason" name="reason" maxlength="200" autocomplete="off"
+          <div class="control-field">
+            <label class="field-label" for="t-reason"><?= e(t('Reason for the handover', 'Dahilan ng handover')) ?></label>
+            <input type="text" id="t-reason" name="reason" maxlength="200" autocomplete="off"
                    placeholder="<?= e(t('e.g. Turnover following the October 2026 barangay election', 'hal. Turnover kasunod ng halalang pambarangay ng Oktubre 2026')) ?>">
           </div>
 
-          <div class="p-cfield">
+          <div class="control-field field-check">
             <label>
               <input type="checkbox" id="t-handover-toggle" name="use_handover" value="1">
               <?= e(t('Keep my own admin access for a training/overlap period', 'Panatilihin ang aking admin access habang nagsasanay')) ?>
             </label>
           </div>
 
-          <div class="p-reveal" id="t-handover-fields" hidden>
-            <div class="p-cfield">
-              <label class="p-flabel" for="t-handover-days"><?= e(t('Length, in days (max 90)', 'Haba, sa araw (hanggang 90)')) ?></label>
-              <input class="p-input-plain" type="number" id="t-handover-days" name="handover_days" min="1" max="90" value="30">
+          <div class="handover-fields" id="t-handover-fields" hidden>
+            <div class="control-field">
+              <label class="field-label" for="t-handover-days"><?= e(t('Length, in days (max 90)', 'Haba, sa araw (hanggang 90)')) ?></label>
+              <input type="number" id="t-handover-days" name="handover_days" min="1" max="90" value="30">
             </div>
-            <div class="p-cfield">
-              <label class="p-flabel" for="t-revert-role"><?= e(t('Your role once the handover ends', 'Ang iyong papel pagkatapos ng handover')) ?></label>
-              <select class="p-input-plain" id="t-revert-role" name="revert_role">
+            <div class="control-field">
+              <label class="field-label" for="t-revert-role"><?= e(t('Your role once the handover ends', 'Ang iyong papel pagkatapos ng handover')) ?></label>
+              <select id="t-revert-role" name="revert_role">
                 <option value="resident"><?= e(t('Resident', 'Residente')) ?></option>
                 <option value="tanod">Tanod</option>
               </select>
@@ -296,36 +296,36 @@ function render_retirement_queue(): void
                followed by a password box is a sign-in form, and it filled
                the admin's saved email into the reason and their password
                below, one click away from granting access. -->
-          <div class="p-cfield">
-            <label class="p-flabel" for="t-pass"><?= e(t('Your password', 'Ang iyong password')) ?></label>
-            <input class="p-input-plain" type="password" id="t-pass" name="password" required autocomplete="new-password">
-            <p class="p-hint" style="margin:4px 0 0"><?= e(t('Confirms it is you making this change.', 'Patunay na ikaw ang gumagawa ng pagbabagong ito.')) ?></p>
+          <div class="control-field">
+            <label class="field-label" for="t-pass"><?= e(t('Your password', 'Ang iyong password')) ?></label>
+            <input type="password" id="t-pass" name="password" required autocomplete="new-password">
+            <p class="field-hint"><?= e(t('Confirms it is you making this change.', 'Patunay na ikaw ang gumagawa ng pagbabagong ito.')) ?></p>
           </div>
 
-          <div>
-            <button class="p-btn p-btn-primary" type="submit" name="action" value="promote"><?= e(t('Grant admin access', 'Ibigay ang admin access')) ?></button>
+          <div class="confirm-actions" style="justify-content:flex-start">
+            <button class="btn-accept" type="submit" name="action" value="promote"><?= e(t('Grant admin access', 'Ibigay ang admin access')) ?></button>
           </div>
         </form>
 
-        <form method="post" class="p-ctl-stack" style="margin-top:20px;border-top:1px solid var(--p-line);padding-top:16px">
+        <form method="post" class="step-down">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <p class="p-eyebrow"><?= e(t('Stepping down', 'Pagbaba sa puwesto')) ?></p>
-          <p class="p-ctl-note">
+          <h3 class="case-sub"><?= e(t('Stepping down', 'Pagbaba sa puwesto')) ?></h3>
+          <p class="control-note">
             <?= e(t('Once your successor has admin access, hand over. You will be signed out and returned to a normal account. This is refused while you are the only administrator.',
                     'Kapag may admin access na ang iyong kahalili, ipasa na. Masa-sign out ka at ibabalik sa karaniwang account. Hindi ito papayagan habang ikaw lamang ang administrator.')) ?>
           </p>
-          <div class="p-cfield">
-            <label class="p-flabel" for="t-role"><?= e(t('Return to', 'Bumalik bilang')) ?></label>
-            <select class="p-input-plain" id="t-role" name="new_role">
+          <div class="control-field">
+            <label class="field-label" for="t-role"><?= e(t('Return to', 'Bumalik bilang')) ?></label>
+            <select id="t-role" name="new_role">
               <option value="resident"><?= e(t('Resident', 'Residente')) ?></option>
               <option value="tanod">Tanod</option>
             </select>
           </div>
-          <div class="p-cfield">
-            <label class="p-flabel" for="t-pass2"><?= e(t('Your password', 'Ang iyong password')) ?></label>
-            <input class="p-input-plain" type="password" id="t-pass2" name="password" required autocomplete="new-password">
+          <div class="control-field">
+            <label class="field-label" for="t-pass2"><?= e(t('Your password', 'Ang iyong password')) ?></label>
+            <input type="password" id="t-pass2" name="password" required autocomplete="new-password">
           </div>
-          <button class="p-btn p-btn-danger-solid" type="submit" name="action" value="step_down">
+          <button class="btn-deny-confirm" type="submit" name="action" value="step_down">
             <?= e(t('Step down as administrator', 'Bumaba bilang administrator')) ?>
           </button>
         </form>
@@ -334,27 +334,89 @@ function render_retirement_queue(): void
 
     <?php endif; ?>
 
-    <div class="p-band">
-      <h2><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('waiting', 'naghihintay')) ?></span></h2>
-      <span class="p-spacer"></span>
-      <label class="p-pill-select"><span class="p-lbl"><?= e(t('Show', 'Ipakita')) ?></span>
-        <select id="ret-filter"><option value="pending"><?= e(t('Waiting', 'Naghihintay')) ?></option><option value="" id="ret-all" data-label="<?= e(t('All', 'Lahat')) ?>"><?= e(t('All', 'Lahat')) ?> (<?= count($requests) ?>)</option></select></label>
-    </div>
+    <section class="panel">
+      <header class="panel-bar">
+        <h2 class="panel-title">
+          <?= e(t('Retirement Requests', 'Mga Kahilingang Magretiro')) ?> (<span id="requests-count"><?= count($requests) ?></span>)
+          <span class="live-badge" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>">
+            <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span>
+          </span>
+          <span id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>>
+            &middot; <span class="pending-count" id="pending-count"><?= $pending ?></span> <?= e(t('awaiting a decision', 'naghihintay ng desisyon')) ?>
+          </span>
+        </h2>
+      </header>
 
-    <div class="p-card p-table-card"><div class="p-tscroll">
-      <table class="p-t">
-        <thead><tr>
-          <th scope="col"><?= e(t('Tanod', 'Tanod')) ?></th>
-          <th scope="col"><?= e(t('Requested', 'Hiniling')) ?></th>
-          <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
-          <th scope="col"><?= e(t('Decision', 'Desisyon')) ?></th>
-          <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
-        </tr></thead>
-        <tbody id="requests-tbody"></tbody>
-      </table>
-    </div></div>
-    <p class="p-hint" style="margin-top:12px"><?= e(t('A tanod files this from the app when they stop serving. Approving it retires the account, so they no longer appear when you dispatch.',
-                                                  'Inihahain ito ng tanod mula sa app kapag titigil na sila. Kapag inaprubahan, nireretiro ang account kaya hindi na sila lalabas sa pag-dispatch.')) ?></p>
+      <div class="table-wrap">
+        <table class="case-table">
+          <thead>
+            <tr>
+              <th scope="col"><?= e(t('Tanod Name', 'Pangalan ng Tanod')) ?></th>
+              <th scope="col"><?= e(t('Requested', 'Hiniling')) ?></th>
+              <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
+              <th scope="col"><?= e(t('Decision', 'Desisyon')) ?></th>
+              <th scope="col"><span class="visually-hidden"><?= e(t('Action', 'Aksyon')) ?></span></th>
+            </tr>
+          </thead>
+          <tbody id="requests-tbody">
+            <?php if (!$requests): ?>
+              <tr class="row-empty">
+                <td colspan="5"><?= e(t('No tanod has requested retirement yet.', 'Wala pang tanod na humiling na magretiro.')) ?></td>
+              </tr>
+            <?php endif; ?>
+
+            <?php foreach ($requests as $r): ?>
+              <tr>
+                <td><?= e($r['full_name']) ?></td>
+                <td><?= e(long_datetime($r['requested_at'])) ?></td>
+                <td><?= retirement_status_pill((string) $r['status']) ?></td>
+                <td>
+                  <?php if ($r['status'] === 'approved'): ?>
+                    <?= e(t('Approved by', 'Inaprubahan ni')) ?> <?= e($r['decided_by_name'] ?? t('an administrator', 'isang administrator')) ?>
+                    <?= e(t('on', 'noong')) ?> <?= e(long_datetime($r['decided_at'])) ?>
+                  <?php elseif ($r['status'] === 'denied'): ?>
+                    <?= e(t('Denied by', 'Tinanggihan ni')) ?> <?= e($r['decided_by_name'] ?? t('an administrator', 'isang administrator')) ?>
+                    <?= e(t('on', 'noong')) ?> <?= e(long_datetime($r['decided_at'])) ?>.
+                    <?= e(t('Reason:', 'Dahilan:')) ?> <?= e($r['denial_reason'] ?? '') ?>
+                  <?php else: ?>
+                    <span class="case-none">&mdash;</span>
+                  <?php endif; ?>
+                </td>
+                <td class="cell-action">
+                  <?php if ($r['status'] === 'pending'): ?>
+                    <form method="post" class="quick-verify-form" style="display:inline">
+                      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                      <input type="hidden" name="id" value="<?= e($r['id']) ?>">
+                      <button class="btn-accept" type="submit" name="action" value="approve"
+                              onclick="return confirm(<?= e(json_encode(t('Approve retirement for ' . $r['full_name'] . '? This account will no longer be able to sign in.', 'Aprubahan ang pagreretiro ni ' . $r['full_name'] . '? Hindi na makakapag-sign in ang account na ito.'), JSON_UNESCAPED_UNICODE)) ?>)">
+                        <?= e(t('Approve', 'Aprubahan')) ?>
+                      </button>
+                    </form>
+                    <button class="btn-deny" type="button" data-reveal="deny-<?= e($r['id']) ?>" aria-expanded="false">
+                      <?= e(t('Deny', 'Tanggihan')) ?>
+                    </button>
+                    <div class="deny-panel" id="deny-<?= e($r['id']) ?>" hidden>
+                      <form method="post">
+                        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="id" value="<?= e($r['id']) ?>">
+                        <label class="field-label" for="reason-<?= e($r['id']) ?>">
+                          <?= e(t('Reason — the tanod sees this', 'Dahilan — makikita ito ng tanod')) ?>
+                        </label>
+                        <textarea id="reason-<?= e($r['id']) ?>" name="reason" rows="2" maxlength="200"
+                                  placeholder="<?= e(t('e.g. Please see the barangay captain before this request can be decided.', 'hal. Mangyaring kausapin muna ang kapitan bago mapagpasyahan ang kahilingang ito.')) ?>"></textarea>
+                        <button class="btn-deny-confirm" type="submit" name="action" value="deny"><?= e(t('Confirm denial', 'Kumpirmahin ang pagtanggi')) ?></button>
+                      </form>
+                    </div>
+                  <?php else: ?>
+                    <span class="case-none"><?= e(t('Decided', 'Napagpasyahan na')) ?></span>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <script>
     // Show/hide the handover-length fields as the checkbox toggles.
@@ -395,17 +457,20 @@ function render_retirement_queue(): void
     // cover the succession panel above — public.users still carries no
     // realtime push (0046) — so that half of the page is a plain load.
     (function () {
+      if (!window.supabase) { return; }
+      const { createClient } = supabase;
+
       const TOKEN = <?= json_encode(access_token()) ?>;
       // Same session token every page load (csrf_token() memoizes it) --
       // safe to bake into the JS-rendered Approve/Deny forms below the
       // same way the PHP-rendered ones already carry it as a hidden
       // input.
       const CSRF = <?= json_encode(csrf_token()) ?>;
-      const sb = window.supabase ? window.supabase.createClient(
+      const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
         { accessToken: window.ssAccessToken(TOKEN) }
-      ) : null;
+      );
 
       function escapeHtml(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -431,9 +496,9 @@ function render_retirement_queue(): void
 
       // Mirrors retirement_status_pill() in this same file exactly.
       function statusPill(status) {
-        if (status === 'approved') return '<span class="p-badge p-b-done">' + T('Approved', 'Inaprubahan') + '</span>';
-        if (status === 'denied')   return '<span class="p-badge p-b-denied">' + T('Denied', 'Tinanggihan') + '</span>';
-        return '<span class="p-badge p-b-pending">' + T('Waiting', 'Naghihintay') + '</span>';
+        if (status === 'approved') return '<span class="pill pill--resolved">' + T('Approved', 'Inaprubahan') + '</span>';
+        if (status === 'denied')   return '<span class="pill pill--rejected">' + T('Denied', 'Tinanggihan') + '</span>';
+        return '<span class="pill pill--pending">' + T('Pending', 'Nakabinbin') + '</span>';
       }
 
       function decisionCell(r) {
@@ -445,12 +510,12 @@ function render_retirement_queue(): void
           return T('Denied by ', 'Tinanggihan ni ') + escapeHtml(r.decided_by_name || T('an administrator', 'isang administrator')) +
             T(' on ', ' noong ') + escapeHtml(longDatetime(r.decided_at)) + T('. Reason: ', '. Dahilan: ') + escapeHtml(r.denial_reason || '');
         }
-        return '<span class="p-sub">&mdash;</span>';
+        return '<span class="case-none">&mdash;</span>';
       }
 
       function actionCell(r) {
         if (r.status !== 'pending') {
-          return '<span class="p-sub">' + T('Decided', 'Napagpasyahan na') + '</span>';
+          return '<span class="case-none">' + T('Decided', 'Napagpasyahan na') + '</span>';
         }
         // Escaped for the JS string first, then for the HTML attribute —
         // the other order let the browser decode &#39; back into a bare
@@ -458,63 +523,54 @@ function render_retirement_queue(): void
         // handler and the request was approved with no confirmation.
         var name = escapeHtml(String(r.full_name == null ? '' : r.full_name)
           .replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
-        var nm = escapeHtml(String(r.full_name == null ? '' : r.full_name).replace(/\|/g, '/'));
         return (
-          '<button class="p-btn p-btn-ghost p-btn-sm" type="button" data-reveal="deny-' + escapeHtml(r.id) + '" aria-expanded="false">' +
-            T('Decline', 'Tanggihan') +
-          '</button> ' +
-          '<form method="post" style="display:inline">' +
+          '<form method="post" class="quick-verify-form" style="display:inline">' +
             '<input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '">' +
             '<input type="hidden" name="id" value="' + escapeHtml(r.id) + '">' +
-            '<button class="p-btn p-btn-primary p-btn-sm" type="submit" name="action" value="approve" data-confirm="' +
-              T('Approve ', 'Aprubahan ang pagreretiro ni ') + nm + T('’s retirement?', '?') + '|' +
-              T('Their account is retired and they no longer appear when you dispatch. They will not be able to sign in.', 'Nireretiro ang kanilang account at hindi na sila lalabas sa pag-dispatch. Hindi na sila makakapag-sign in.') + '|' +
-              T('Approve', 'Aprubahan') + '|blue">' +
+            '<button class="btn-accept" type="submit" name="action" value="approve" ' +
+              'onclick="return confirm(\'' + T('Approve retirement for ', 'Aprubahan ang pagreretiro ni ') + name +
+              T('? This account will no longer be able to sign in.', '? Hindi na makakapag-sign in ang account na ito.') + '\')">' +
               T('Approve', 'Aprubahan') +
             '</button>' +
           '</form>' +
-          '<div class="p-reveal p-deny-row" id="deny-' + escapeHtml(r.id) + '" hidden>' +
+          '<button class="btn-deny" type="button" data-reveal="deny-' + escapeHtml(r.id) + '" aria-expanded="false">' +
+            T('Deny', 'Tanggihan') +
+          '</button>' +
+          '<div class="deny-panel" id="deny-' + escapeHtml(r.id) + '" hidden>' +
             '<form method="post">' +
               '<input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '">' +
               '<input type="hidden" name="id" value="' + escapeHtml(r.id) + '">' +
-              '<label class="p-field" style="margin:0"><span>' + T('Reason — the tanod sees this', 'Dahilan — makikita ito ng tanod') + '</span>' +
-              '<textarea class="p-note" id="reason-' + escapeHtml(r.id) + '" name="reason" rows="2" maxlength="200" ' +
-                'placeholder="' + T('e.g. Please see the barangay captain before this request can be decided.', 'hal. Mangyaring kausapin muna ang kapitan bago mapagpasyahan ang kahilingang ito.') + '"></textarea></label>' +
-              '<button class="p-btn p-btn-danger-solid p-btn-sm" type="submit" name="action" value="deny">' + T('Confirm decline', 'Kumpirmahin ang pagtanggi') + '</button>' +
+              '<label class="field-label" for="reason-' + escapeHtml(r.id) + '">' + T('Reason — the tanod sees this', 'Dahilan — makikita ito ng tanod') + '</label>' +
+              '<textarea id="reason-' + escapeHtml(r.id) + '" name="reason" rows="2" maxlength="200" ' +
+                'placeholder="' + T('e.g. Please see the barangay captain before this request can be decided.', 'hal. Mangyaring kausapin muna ang kapitan bago mapagpasyahan ang kahilingang ito.') + '"></textarea>' +
+              '<button class="btn-deny-confirm" type="submit" name="action" value="deny">' + T('Confirm denial', 'Kumpirmahin ang pagtanggi') + '</button>' +
             '</form>' +
           '</div>'
         );
       }
 
       function renderRequests(rows) {
-        window.__retRows = rows;
-        var all = document.getElementById('ret-all'); all.textContent = all.dataset.label + ' (' + rows.length + ')';
+        document.getElementById('requests-count').textContent = rows.length;
         var pending = rows.filter(function (r) { return r.status === 'pending'; }).length;
         var pendingWrap = document.getElementById('pending-wrap');
         pendingWrap.hidden = pending === 0;
         document.getElementById('pending-count').textContent = pending;
 
         var tbody = document.getElementById('requests-tbody');
-        var want = document.getElementById('ret-filter').value;
-        var shown = want ? rows.filter(function (r) { return r.status === want; }) : rows;
-        if (!shown.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="p-empty">' + (rows.length
-            ? T('No requests waiting.', 'Walang naghihintay na kahilingan.')
-            : T('No tanod has requested retirement yet.', 'Wala pang tanod na humiling na magretiro.')) + '</td></tr>';
+        if (!rows.length) {
+          tbody.innerHTML = '<tr class="row-empty"><td colspan="5">' + T('No tanod has requested retirement yet.', 'Wala pang tanod na humiling na magretiro.') + '</td></tr>';
           return;
         }
-        tbody.innerHTML = shown.map(function (r) {
+        tbody.innerHTML = rows.map(function (r) {
           return '<tr>' +
-            '<td><b>' + escapeHtml(r.full_name) + '</b></td>' +
-            '<td class="p-num">' + escapeHtml(longDatetime(r.requested_at)) + '</td>' +
+            '<td>' + escapeHtml(r.full_name) + '</td>' +
+            '<td>' + escapeHtml(longDatetime(r.requested_at)) + '</td>' +
             '<td>' + statusPill(r.status) + '</td>' +
             '<td>' + decisionCell(r) + '</td>' +
-            '<td class="p-right">' + actionCell(r) + '</td>' +
+            '<td class="cell-action">' + actionCell(r) + '</td>' +
             '</tr>';
         }).join('');
       }
-      document.getElementById('ret-filter').addEventListener('change', function () { renderRequests(window.__retRows || []); });
-      renderRequests(<?= json_encode(array_values($requests), JSON_UNESCAPED_UNICODE) ?>);
 
       // Bursts (approve + deny landing close together from two admins)
       // collapse into one refetch instead of one per row.
@@ -529,15 +585,15 @@ function render_retirement_queue(): void
         }, 250);
       }
 
-      if (sb) sb.channel('retirement-requests-list')
+      sb.channel('retirement-requests-list')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'retirement_requests' }, kick)
         .subscribe(function (status) {
           var badge = document.getElementById('live-badge'),
               text  = document.getElementById('live-badge-text');
           if (status === 'SUBSCRIBED') {
-            badge.classList.remove('p-down'); text.textContent = T('Live', 'Live');
+            badge.classList.remove('is-down'); text.textContent = T('Live', 'Live');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
+            badge.classList.add('is-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
           }
         });
     })();
@@ -551,8 +607,8 @@ function render_retirement_queue(): void
 function retirement_status_pill(string $status): string
 {
     return match ($status) {
-        'approved' => '<span class="p-badge p-b-done">' . e(t('Approved', 'Inaprubahan')) . '</span>',
-        'denied'   => '<span class="p-badge p-b-denied">' . e(t('Denied', 'Tinanggihan')) . '</span>',
-        default    => '<span class="p-badge p-b-pending">' . e(t('Waiting', 'Naghihintay')) . '</span>',
+        'approved' => '<span class="pill pill--resolved">' . e(t('Approved', 'Inaprubahan')) . '</span>',
+        'denied'   => '<span class="pill pill--rejected">' . e(t('Denied', 'Tinanggihan')) . '</span>',
+        default    => '<span class="pill pill--pending">' . e(t('Pending', 'Nakabinbin')) . '</span>',
     };
 }

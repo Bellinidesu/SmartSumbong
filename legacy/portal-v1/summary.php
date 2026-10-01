@@ -242,195 +242,194 @@ $isOngoing = $to >= new DateTimeImmutable('today', $tz);
 layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
 ?>
 
-<div class="p-topbar"><h1><?= e(t('Report Summary', 'Buod ng mga Ulat')) ?></h1></div>
-
 <?php if ($error): ?>
-  <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
+  <div class="alert-bar" role="alert"><?= e($error) ?></div>
 <?php endif; ?>
 
 <?php if ($truncated): ?>
   <!-- Printed too: a signed report must not pass off a partial count. -->
-  <div class="p-flash p-flash--warn" role="alert">
+  <div class="alert-bar" role="alert">
     <?= e(t('This period has more than ', 'Mahigit ')) ?><?= number_format(SUMMARY_MAX) ?><?= e(t(' rows in ', ' na hanay sa ')) ?>
     <?= e(implode(', ', array_map(fn($t) => str_replace('_', ' ', $t), array_keys($truncated)))) ?>;
     <?= e(t('only the first ', 'ang unang ')) ?><?= number_format(SUMMARY_MAX) ?><?= e(t(' are included. Choose a shorter period.', ' lamang ang kasama. Pumili ng mas maikling panahon.')) ?>
   </div>
 <?php endif; ?>
 
-<div class="p-band p-period-band">
-  <h2><?= e(t('Report Period:', 'Panahon ng Ulat:')) ?>
-    <?php if ($isOngoing): ?>
-      <span class="p-watching" id="live-badge" title="<?= e(t('This period is still open — watching for new activity', 'Bukas pa ang panahong ito — binabantayan ang bagong aktibidad')) ?>"><i></i><span id="live-badge-text"><?= e(t('Watching', 'Nagbabantay')) ?></span></span>
-    <?php endif; ?>
-  </h2>
-  <form method="get" class="p-period-form">
-    <label class="p-pill-select"><span class="p-sr"><?= e(t('From', 'Mula')) ?></span><input type="date" id="from" name="from" value="<?= e($from->format('Y-m-d')) ?>"></label>
-    <span class="p-to"><?= e(t('to', 'hanggang')) ?></span>
-    <label class="p-pill-select"><span class="p-sr"><?= e(t('To', 'Hanggang')) ?></span><input type="date" id="to" name="to" value="<?= e($to->format('Y-m-d')) ?>"></label>
-    <label class="p-pill-select"><span class="p-sr"><?= e(t('Category', 'Kategorya')) ?></span>
+<?php if ($isOngoing): ?>
+  <!-- A signed, printable document should never move under an admin's
+       feet — figures here only ever change on an explicit refresh, never
+       in place, and only shown at all when the period is still open. -->
+  <div class="update-banner" id="update-banner" role="status">
+    <span><?= e(t('New activity has been recorded for this period.', 'May bagong aktibidad na naitala sa panahong ito.')) ?></span>
+    <a href="summary.php"><?= e(t('Refresh to include it', 'I-refresh para maisama')) ?></a>
+  </div>
+<?php endif; ?>
+<section class="panel">
+  <header class="panel-bar">
+    <h2 class="panel-title"><?= e(t('Report Period:', 'Panahon ng Ulat:')) ?>
+      <?php if ($isOngoing): ?>
+        <span class="live-badge" id="live-badge" title="<?= e(t('This period is still open — watching for new activity', 'Bukas pa ang panahong ito — binabantayan ang bagong aktibidad')) ?>">
+          <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Watching', 'Nagbabantay')) ?></span>
+        </span>
+      <?php endif; ?>
+    </h2>
+    <form class="period-form" method="get">
+      <label class="visually-hidden" for="from"><?= e(t('From', 'Mula')) ?></label>
+      <input type="date" id="from" name="from" value="<?= e($from->format('Y-m-d')) ?>">
+      <span class="period-dash"><?= e(t('to', 'hanggang')) ?></span>
+      <label class="visually-hidden" for="to"><?= e(t('To', 'Hanggang')) ?></label>
+      <input type="date" id="to" name="to" value="<?= e($to->format('Y-m-d')) ?>">
+      <label class="visually-hidden" for="category"><?= e(t('Category', 'Kategorya')) ?></label>
       <select id="category" name="category">
         <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
         <?php foreach (CATEGORIES as $c): ?>
-          <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
+          <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>>
+            <?= e(category_label($c)) ?>
+          </option>
         <?php endforeach; ?>
-      </select></label>
-    <button class="p-btn p-btn-primary p-btn-sm" style="height:36px" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
-  </form>
-  <span class="p-chips-q">
-    <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
-      <a class="p-chip<?= $range === $key ? ' p-on' : '' ?>" href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>"><?= e($lbl) ?></a>
-    <?php endforeach; ?>
-  </span>
-  <span class="p-spacer"></span>
-  <?php // Rose (30 Sep 2026): the PDF is the barangay's Complaint Summary form. ?>
-  <a class="p-btn-pdf2" target="_blank" rel="noopener" href="complaint-summary.php?month=<?= e($from->format('Y-m')) ?>"><?= p_icon('i-dl', 16) ?><?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?></a>
-</div>
+      </select>
+      <button class="btn-period" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
+    </form>
+    <div class="quick-ranges">
+      <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
+        <a class="chip-filter<?= $range === $key ? ' is-on' : '' ?>"
+           href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>"><?= e($lbl) ?></a>
+      <?php endforeach; ?>
+    </div>
 
-<?php if ($isOngoing): ?>
-  <!-- A signed, printable document should never move under an admin's feet:
-       new activity is announced, and included only on an explicit refresh. -->
-  <div class="p-fresh p-upd" id="update-banner" role="status"><?= p_icon('i-bell', 16) ?>
-    <span><?= e(t('New activity has been recorded for this period.', 'May bagong aktibidad na naitala sa panahong ito.')) ?></span>
-    <a class="p-btn p-btn-ghost p-btn-sm" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'range' => $range]))) ?>"><?= e(t('Refresh to include it', 'I-refresh para maisama')) ?></a>
+    <?php // Rose (30 Sep 2026): the PDF is the barangay's Complaint Summary form. ?>
+    <a class="btn-pdf" target="_blank" rel="noopener"
+       href="complaint-summary.php?month=<?= e($from->format('Y-m')) ?>">
+      <?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?>
+    </a>
+  </header>
+
+  <div class="tile-row">
+    <div class="tile"><strong><?= str_pad((string) $total, 2, '0', STR_PAD_LEFT) ?></strong><span><?= e(t('Total Reports Logged', 'Kabuuang Naitalang Ulat')) ?></span></div>
+    <div class="tile"><strong><?= str_pad((string) $resolved, 2, '0', STR_PAD_LEFT) ?></strong><span><?= e(t('Case Resolved', 'Nalutas na Kaso')) ?></span></div>
+    <div class="tile"><strong><?= $rate === null ? '—' : $rate . '%' ?></strong><span><?= e(t('Tanod Attendance Rate', 'Antas ng Pagdalo ng Tanod')) ?></span></div>
+    <div class="tile"><strong><?= $avgDays === null ? '—' : $avgDays . t(' days', ' araw') ?></strong><span><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></span></div>
   </div>
-<?php endif; ?>
-
-<div class="p-kpis" style="margin-bottom:20px">
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Total Reports Logged', 'Kabuuang Naitalang Ulat')) ?></div><div class="p-value p-num"><?= str_pad((string) $total, 2, '0', STR_PAD_LEFT) ?></div></div>
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Case Resolved', 'Nalutas na Kaso')) ?></div><div class="p-value p-num"><?= str_pad((string) $resolved, 2, '0', STR_PAD_LEFT) ?></div>
-    <?php if ($total > 0): ?><div class="p-delta p-up"><?= (int) round($resolved / $total * 100) ?><?= e(t('% of logged', '% ng naitala')) ?></div><?php endif; ?></div>
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Tanod Attendance Rate', 'Antas ng Pagdalo ng Tanod')) ?></div><div class="p-value p-num"><?= $rate === null ? '—' : $rate . '%' ?></div></div>
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></div><div class="p-value p-num"><?= $avgDays === null ? '—' : $avgDays . ' <span style="font-size:20px">' . e(t('days', 'araw')) . '</span>' ?></div>
-    <?php if ($avgDays !== null): ?><div class="p-delta"><?= e(t('from filing to resolved', 'mula pagsampa hanggang nalutas')) ?></div><?php endif; ?></div>
-</div>
+</section>
 
 <!-- ---------- Resident Report Ledger ---------- -->
-<div class="p-card p-table-card" style="margin-bottom:20px">
-  <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Resident Report Ledger', 'Talaan ng mga Ulat ng Residente')) ?></h2><span class="p-spacer"></span><span class="p-hint"><?= count($reports) ?> <?= e(t(count($reports) === 1 ? 'complaint' : 'complaints', 'sumbong')) ?></span></div>
-  <div class="p-tscroll" style="max-height:360px"><table class="p-t">
-    <thead class="p-orange"><tr>
-      <th><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th><?= e(t('Resident', 'Residente')) ?></th><th><?= e(t('Category', 'Kategorya')) ?></th>
-      <th><?= e(t('Status', 'Katayuan')) ?></th><th><?= e(t('Filed', 'Naisampa')) ?></th><th><?= e(t('Resolved', 'Nalutas')) ?></th>
-    </tr></thead>
-    <tbody>
-      <?php if (!$reports): ?>
-        <tr><td colspan="6" class="p-empty"><?= e(t('No complaints were filed in this period.', 'Walang naisampang sumbong sa panahong ito.')) ?></td></tr>
-      <?php endif; ?>
-      <?php foreach ($reports as $r): ?>
-        <tr class="p-click" data-href="case.php?id=<?= e($r['id'] ?? '') ?>">
-          <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
-          <td><?= !empty($r['is_anonymous'])
-                  ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
-                  : e($r['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></td>
-          <td><?= e(category_label($r['category'])) ?></td>
-          <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
-              <?php else: ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
-          <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
-          <td class="p-num"><?= e(short_date($r['resolved_at'] ?? $r['closed_at'] ?? null)) ?: '<span class="p-sub">—</span>' ?></td>
+<section class="panel doc-block">
+  <h2 class="doc-h"><?= e(t('Resident Report Ledger', 'Talaan ng mga Ulat ng Residente')) ?></h2>
+  <div class="table-wrap">
+    <table class="case-table doc-table doc-table--orange">
+      <thead>
+        <tr>
+          <th><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th><?= e(t('Resident', 'Residente')) ?></th><th><?= e(t('Category', 'Kategorya')) ?></th>
+          <th><?= e(t('Status', 'Katayuan')) ?></th><th><?= e(t('Filed', 'Naisampa')) ?></th><th><?= e(t('Resolved', 'Nalutas')) ?></th>
         </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table></div>
-</div>
+      </thead>
+      <tbody>
+        <?php if (!$reports): ?>
+          <tr class="row-empty"><td colspan="6"><?= e(t('No complaints were filed in this period.', 'Walang naisampang sumbong sa panahong ito.')) ?></td></tr>
+        <?php endif; ?>
+        <?php foreach ($reports as $r): ?>
+          <tr>
+            <td class="mono"><?= e($r['tracking_id']) ?></td>
+            <td><?= !empty($r['is_anonymous'])
+                    ? '<em class="anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</em>'
+                    : e($r['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></td>
+            <td><?= e(category_label($r['category'])) ?></td>
+            <td><?= !empty($r['referred_to'])
+                    ? e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to'])
+                    : e(status_label($r['status'])) . (report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '') ?></td>
+            <td><?= e(short_date($r['created_at'])) ?></td>
+            <td><?= e(short_date($r['resolved_at'] ?? $r['closed_at'] ?? null)) ?: '—' ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <!-- ---------- Referrals (0072) ---------- -->
 <?php $referrals = array_values(array_filter($reports, fn($r) => !empty($r['referred_to']))); ?>
-<div class="p-card p-table-card" style="margin-bottom:20px">
-  <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2></div>
-  <div class="p-tscroll" style="max-height:300px"><table class="p-t">
-    <thead class="p-blue"><tr>
-      <th scope="col"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th scope="col"><?= e(t('Category', 'Kategorya')) ?></th>
-      <th scope="col"><?= e(t('Escalated to', 'In-escalate sa')) ?></th><th scope="col"><?= e(t('Date', 'Petsa')) ?></th><th scope="col"><?= e(t('Note', 'Tala')) ?></th>
-    </tr></thead>
-    <tbody>
-      <?php if (!$referrals): ?>
-        <tr><td colspan="5" class="p-empty"><?= e(t('No complaint was escalated outside the barangay in this period.', 'Walang sumbong na in-escalate sa labas ng barangay sa panahong ito.')) ?></td></tr>
-      <?php endif; ?>
-      <?php foreach ($referrals as $r): ?>
+<section class="panel doc-block">
+  <h2 class="doc-h"><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2>
+  <div class="table-wrap">
+    <table class="case-table doc-table doc-table--navy">
+      <thead>
         <tr>
-          <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
-          <td><?= e(category_label($r['category'])) ?></td>
-          <td><b><?= e($r['referred_to']) ?></b></td>
-          <td class="p-num"><?= e(short_date($r['referred_at'] ?? null)) ?: '—' ?></td>
-          <td><?= !empty($r['referral_note']) ? e($r['referral_note']) : '<span class="p-sub">—</span>' ?></td>
+          <th scope="col"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th>
+          <th scope="col"><?= e(t('Category', 'Kategorya')) ?></th>
+          <th scope="col"><?= e(t('Escalated to', 'In-escalate sa')) ?></th>
+          <th scope="col"><?= e(t('Date', 'Petsa')) ?></th>
+          <th scope="col"><?= e(t('Note', 'Tala')) ?></th>
         </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table></div>
-</div>
+      </thead>
+      <tbody>
+        <?php if (!$referrals): ?>
+          <tr class="row-empty"><td colspan="5"><?= e(t('No complaint was escalated outside the barangay in this period.', 'Walang sumbong na in-escalate sa labas ng barangay sa panahong ito.')) ?></td></tr>
+        <?php endif; ?>
+        <?php foreach ($referrals as $r): ?>
+          <tr>
+            <td class="mono"><?= e($r['tracking_id']) ?></td>
+            <td><?= e(category_label($r['category'])) ?></td>
+            <td><?= e($r['referred_to']) ?></td>
+            <td><?= e(short_date($r['referred_at'] ?? null)) ?: '—' ?></td>
+            <td><?= !empty($r['referral_note']) ? e($r['referral_note']) : '—' ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <!-- ---------- Tanod's Activity Timeline ---------- -->
-<div class="p-card p-table-card" style="margin-bottom:20px">
-  <div class="p-card-head" style="padding-bottom:14px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2></div>
-  <div class="p-tscroll" style="max-height:340px"><table class="p-t">
-    <thead class="p-blue"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
-    <tbody>
-      <?php if (!$dispatches): ?>
-        <tr><td colspan="5" class="p-empty"><?= e(t('No dispatches were issued in this period.', 'Walang dispatch na inilabas sa panahong ito.')) ?></td></tr>
-      <?php endif; ?>
-      <?php foreach ($dispatches as $d): ?>
-        <tr>
-          <td><b><?= e($d['tanod']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></b></td>
-          <td><span class="p-mono-id"><?= e($d['report']['tracking_id'] ?? '—') ?></span></td>
-          <td class="p-num"><?= e(long_datetime($d['assigned_at'])) ?></td>
-          <td class="p-num"><?= $d['accepted_at'] ? e(long_datetime($d['accepted_at'])) : '<span class="p-over">' . e(t('Not accepted', 'Hindi tinanggap')) . '</span>' ?></td>
-          <td><?= e(status_label($d['state'])) ?></td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table></div>
-</div>
-
-<!-- ---------- Report Case Timeline: pick a complaint, see its changes ---------- -->
-<?php
-$byReport = [];
-foreach ($logs as $l) {
-    $tid = $l['report']['tracking_id'] ?? '—';
-    $byReport[$tid][] = $l;
-}
-?>
-<div class="p-card">
-  <div class="p-card-head"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2></div>
-  <?php if (!$byReport): ?>
-    <p class="p-empty" style="padding:22px"><?= e(t('No case activity was recorded in this period.', 'Walang naitalang aktibidad sa kaso sa panahong ito.')) ?></p>
-  <?php else: ?>
-  <div class="p-rs-split" style="display:grid;grid-template-columns:minmax(260px,340px) 1fr;padding:14px 0 0">
-    <div class="p-tscroll" style="max-height:440px;border-right:1px solid var(--p-line)"><table class="p-t">
-      <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th class="p-right"><?= e(t('Changes', 'Pagbabago')) ?></th></tr></thead>
-      <tbody id="tl-pick">
-        <?php $i = 0; foreach ($byReport as $tid => $list): ?>
-          <tr class="p-click<?= $i === 0 ? ' p-sel' : '' ?>" data-tl="<?= $i ?>" tabindex="0"><td><span class="p-mono-id"><?= e($tid) ?></span></td><td class="p-right p-num"><?= count($list) ?></td></tr>
-        <?php $i++; endforeach; ?>
+<section class="panel doc-block">
+  <h2 class="doc-h"><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2>
+  <div class="table-wrap">
+    <table class="case-table doc-table doc-table--navy">
+      <thead>
+        <tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr>
+      </thead>
+      <tbody>
+        <?php if (!$dispatches): ?>
+          <tr class="row-empty"><td colspan="5"><?= e(t('No dispatches were issued in this period.', 'Walang dispatch na inilabas sa panahong ito.')) ?></td></tr>
+        <?php endif; ?>
+        <?php foreach ($dispatches as $d): ?>
+          <tr>
+            <td><?= e($d['tanod']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></td>
+            <td class="mono"><?= e($d['report']['tracking_id'] ?? '—') ?></td>
+            <td><?= e(long_datetime($d['assigned_at'])) ?></td>
+            <td><?= $d['accepted_at'] ? e(long_datetime($d['accepted_at'])) : e(t('Not accepted', 'Hindi tinanggap')) ?></td>
+            <td><?= e(status_label($d['state'])) ?></td>
+          </tr>
+        <?php endforeach; ?>
       </tbody>
-    </table></div>
-    <div style="padding:6px 22px 22px">
-      <?php $i = 0; foreach ($byReport as $tid => $list): ?>
-        <div class="p-tl-group" data-tl="<?= $i ?>"<?= $i === 0 ? '' : ' hidden' ?>>
-          <p class="p-eyebrow"><?= e($tid) ?></p>
-          <ul class="p-tl-change">
-            <?php foreach ($list as $l): ?>
-              <li><span class="p-w"><?= e(long_datetime($l['created_at'])) ?></span><b><?= e(timeline_title($l)) ?><?php if (($l['repeat'] ?? 1) > 1): ?> <span class="p-sub">× <?= (int) $l['repeat'] ?></span><?php endif; ?></b>
-                <span class="p-by"><?= !empty($l['is_system']) ? e(t('System', 'System')) : e($l['by']['full_name'] ?? t('Barangay staff', 'Kawani ng barangay')) ?></span>
-                <?php if (!empty($l['remark'])): ?><span class="p-rm"><?= e($l['remark']) ?></span><?php endif; ?></li>
-            <?php endforeach; ?>
-          </ul>
-        </div>
-      <?php $i++; endforeach; ?>
-    </div>
+    </table>
   </div>
-  <?php endif; ?>
-</div>
-<script>
-(function () {
-  var pick = document.getElementById('tl-pick'); if (!pick) return;
-  function show(i) {
-    pick.querySelectorAll('tr').forEach(function (tr) { tr.classList.toggle('p-sel', tr.dataset.tl === i); });
-    document.querySelectorAll('.p-tl-group').forEach(function (g) { g.hidden = g.dataset.tl !== i; });
-  }
-  pick.addEventListener('click', function (e) { var tr = e.target.closest('tr[data-tl]'); if (tr) show(tr.dataset.tl); });
-  pick.addEventListener('keydown', function (e) { var tr = e.target.closest('tr[data-tl]'); if (tr && e.key === 'Enter') show(tr.dataset.tl); });
-})();
-</script>
+</section>
+
+<!-- ---------- Report Case Timeline ---------- -->
+<section class="panel doc-block">
+  <h2 class="doc-h"><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2>
+  <div class="table-wrap">
+    <table class="case-table doc-table doc-table--orange">
+      <thead>
+        <tr><th><?= e(t('When', 'Kailan')) ?></th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Change', 'Pagbabago')) ?></th><th><?= e(t('Remark', 'Puna')) ?></th><th><?= e(t('By', 'Ni')) ?></th></tr>
+      </thead>
+      <tbody>
+        <?php if (!$logs): ?>
+          <tr class="row-empty"><td colspan="5"><?= e(t('No case activity was recorded in this period.', 'Walang naitalang aktibidad sa kaso sa panahong ito.')) ?></td></tr>
+        <?php endif; ?>
+        <?php foreach ($logs as $l): ?>
+          <tr>
+            <td><?= e(long_datetime($l['created_at'])) ?></td>
+            <td class="mono"><?= e($l['report']['tracking_id'] ?? '—') ?></td>
+            <td><?= e(timeline_title($l)) ?></td>
+            <td><?= e($l['remark'] ?? '') ?><?php if (($l['repeat'] ?? 1) > 1): ?> <span class="muted">× <?= (int) $l['repeat'] ?></span><?php endif; ?></td>
+            <td><?= !empty($l['is_system']) ? e(t('System', 'System')) : e($l['by']['full_name'] ?? t('Barangay staff', 'Kawani ng barangay')) ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
 
   <?php if ($isOngoing): ?>
   <script src="assets/vendor/supabase/supabase.js"></script>
@@ -455,18 +454,18 @@ foreach ($logs as $l) {
 
     sb.channel('summary-period')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' },
-        function () { document.getElementById('update-banner').classList.add('p-on'); })
+        function () { document.getElementById('update-banner').classList.add('is-shown'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'dispatches' },
-        function () { document.getElementById('update-banner').classList.add('p-on'); })
+        function () { document.getElementById('update-banner').classList.add('is-shown'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'status_logs' },
-        function () { document.getElementById('update-banner').classList.add('p-on'); })
+        function () { document.getElementById('update-banner').classList.add('is-shown'); })
       .subscribe(function (status) {
         var badge = document.getElementById('live-badge'),
             text  = document.getElementById('live-badge-text');
         if (!badge) return;
-        if (status === 'SUBSCRIBED') { badge.classList.remove('p-down'); text.textContent = T('Watching', 'Nagbabantay'); }
+        if (status === 'SUBSCRIBED') { badge.classList.remove('is-down'); text.textContent = T('Watching', 'Nagbabantay'); }
         else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
+          badge.classList.add('is-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
         }
       });
   })();

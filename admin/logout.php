@@ -31,18 +31,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] ?? null))
 layout_head('Log out', 'logout.php');
 ?>
 
-<section class="card confirm-card">
-  <h1 class="case-heading">Log out?</h1>
-  <p class="case-body">
-    You are signed in as <strong><?= e($admin['full_name']) ?></strong>.
-    Any complaint you left open will still be there when you come back.
-  </p>
-
-  <form method="post" class="confirm-actions">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-    <button class="btn-accept" type="submit">Log out</button>
-    <a class="btn-deny" href="dashboard.php">Stay signed in</a>
-  </form>
-</section>
+<div class="p-logout-page">
+  <div class="p-modal" role="dialog" aria-labelledby="lo-t">
+    <div class="p-m-ico" style="background:var(--p-blue-50);color:var(--p-link)"><?= p_icon('i-out', 26) ?></div>
+    <h3 id="lo-t"><?= e(t('Log out?', 'Mag-log out?')) ?></h3>
+    <p><?= e(t('You are signed in as ', 'Naka-sign in ka bilang ')) ?><b><?= e($admin['full_name']) ?></b>. <?= e(t('Any complaint you left open will still be there when you come back.', 'Nandito pa rin ang anumang sumbong na iniwan mong bukas pagbalik mo.')) ?></p>
+    <form method="post" class="p-actions">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <a class="p-btn p-btn-ghost" href="dashboard.php"><?= e(t('Stay signed in', 'Manatiling naka-sign in')) ?></a>
+      <button class="p-btn p-btn-primary" type="submit"><?= e(t('Log out', 'Mag-log out')) ?></button>
+    </form>
+  </div>
+</div>
 
 <?php layout_foot(); ?>

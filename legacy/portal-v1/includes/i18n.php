@@ -67,7 +67,7 @@ function html_lang(): string
  * saved choice, or the device's own setting until one is made — applied
  * before anything paints, so a dark-mode visit never flashes white.
  */
-function theme_head(bool $fit = true): string
+function theme_head(): string
 {
     return '<script>'
         . 'window.LANG=' . json_encode(lang()) . ';'
@@ -82,12 +82,12 @@ function theme_head(bool $fit = true): string
         // The zoom is the smaller of width/1440 and height/1024 — the Figma frame — (so a short
         // window never has to scroll just to reach the sidebar), never
         // below 1 and at most 1.8. --z lets CSS viewport units undo it.
-        . ($fit ? '(function(){var d=document.documentElement;function fit(){'
+        . '(function(){var d=document.documentElement;function fit(){'
         . 'var z=Math.min(innerWidth/1440,innerHeight/1024,1.8);if(!(z>1))z=1;z=Math.round(z*1000)/1000;'
         . 'd.style.zoom=z;d.style.setProperty("--z",z);'
         . 'var h=innerHeight/z;if(h<900)d.setAttribute("data-short","");else d.removeAttribute("data-short");'
         . 'if(h<780)d.setAttribute("data-tight","");else d.removeAttribute("data-tight");}'
-        . 'fit();addEventListener("resize",fit);})();' : '')
+        . 'fit();addEventListener("resize",fit);})();'
         . '</script>';
 }
 
@@ -115,15 +115,6 @@ function prefs_switches(string $extraClass = ''): string
     <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>">Tagalog</button>
   </div>
 </div>
-<?= prefs_script() ?>
-<?php
-    return (string) ob_get_clean();
-}
-
-/** The theme and language switch behaviour, for any [data-theme-toggle] and .pref-lang [data-lang]. */
-function prefs_script(): string
-{
-    return <<<'HTML'
 <script>
 (function () {
   var root = document.documentElement;
@@ -156,5 +147,6 @@ function prefs_script(): string
   label();
 })();
 </script>
-HTML;
+<?php
+    return (string) ob_get_clean();
 }

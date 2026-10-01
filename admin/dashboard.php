@@ -119,537 +119,272 @@ function delta_html(?array $d): string
 }
 
 layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
+$isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->format('Y-m');
 ?>
 
 <?php if ($error): ?>
-  <div class="alert-bar" role="alert"><?= e($error) ?></div>
+  <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
 <?php endif; ?>
 
-<div class="dash-top">
-  <form class="month-picker" method="get">
-    <label class="visually-hidden" for="month"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></label>
-    <input type="month" id="month" name="month"
-           value="<?= e($month->format('Y-m')) ?>" onchange="this.form.submit()">
+<div class="p-dash-top">
+  <form method="get">
+    <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></span>
+      <input type="month" id="month" name="month" value="<?= e($month->format('Y-m')) ?>" onchange="this.form.submit()"></label>
     <input type="hidden" name="eff_category" value="<?= e($effCategory) ?>">
   </form>
-  <!-- The kapitan reads these figures over someone's shoulder and asks how
-       current they are. Better on the screen than in the answer. -->
-  <p class="as-of"><?= e(t('Data as of', 'Datos hanggang')) ?> <span id="as-of-time"><?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A, j M Y')) ?></span>
-    <?php if ($month->format('Y-m') === (new DateTimeImmutable('now', $tz))->format('Y-m')): ?>
-      <span class="live-badge" id="live-badge" title="<?= e(t("This month's figures update as reports come in — no reload needed", 'Nag-a-update ang mga numero ngayong buwan habang dumarating ang mga ulat — hindi na kailangang i-reload')) ?>">
-        <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span>
-      </span>
-    <?php endif; ?>
-  </p>
-  <!-- The Figma frame's Download PDF was taken off the dashboard (branch
-       C); the printable report is on Report Summary. -->
+  <span class="p-spacer"></span>
+  <!-- The kapitan reads these figures over someone's shoulder and asks how current they are. -->
+  <span class="p-asof"><?= e(t('Data as of', 'Datos hanggang')) ?> <span id="as-of-time" class="p-num"><?= e((new DateTimeImmutable('now', $tz))->format('g:i A, j M Y')) ?></span></span>
+  <?php if ($isCurrent): ?>
+    <span class="p-live" id="live-badge" title="<?= e(t("This month's figures update as reports come in — no reload needed", 'Nag-a-update ang mga numero ngayong buwan habang dumarating ang mga ulat — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>
+  <?php endif; ?>
 </div>
 
 <!-- ---------- reports received ---------- -->
-<section class="card chart-card">
-  <header class="chart-head">
-    <h2 class="chart-title"><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2>
-    <span class="chart-period"><?= e(month_year($month)) ?>
-      <span id="received-delta"><?= delta_html(delta($total, $prevTotal ?: null)) ?></span></span>
-  </header>
+<div class="p-card" style="margin-bottom:20px">
+  <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
+    <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span></div>
+  <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="260" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
+    <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
+</div>
 
-  <?php if ($total === 0): ?>
-    <p class="empty" id="received-empty"><strong><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</strong>
-       <?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></p>
-  <?php else: ?>
-    <div class="chart-box"><canvas id="chart-received"></canvas></div>
-  <?php endif; ?>
-</section>
-
-<!-- ---------- counters and donuts ---------- -->
-<div class="dash-mid">
-
-  <div class="tile-stack">
-    <div class="tile">
-      <p class="tile-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></p>
-      <p class="tile-value" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></p>
-      <p class="tile-foot"><?= e(month_year($month)) ?>
-        <span id="tile-resolved-delta"><?= delta_html(delta((int) $tiles['resolved'], isset($prevTiles['resolved']) ? (int) $prevTiles['resolved'] : null)) ?></span></p>
-    </div>
-    <div class="tile">
-      <p class="tile-label"><?= e(t('Escalated Reports', 'Na-escalate na Ulat')) ?></p>
-      <p class="tile-value" id="tile-escalated-value"><?= (int) $tiles['escalated'] ?></p>
-      <p class="tile-foot"><?= e(month_year($month)) ?>
-        <span id="tile-escalated-delta"><?= delta_html(delta((int) $tiles['escalated'], isset($prevTiles['escalated']) ? (int) $prevTiles['escalated'] : null, true)) ?></span></p>
-    </div>
-    <div class="tile tile--warn">
-      <p class="tile-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></p>
-      <p class="tile-value" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></p>
-      <p class="tile-foot"><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?>
-        <span id="tile-overdue-delta"><?= delta_html(delta((int) $tiles['overdue'], isset($prevTiles['overdue']) ? (int) $prevTiles['overdue'] : null, true)) ?></span></p>
-    </div>
+<div class="p-dash-mid p-grid" style="margin-bottom:20px">
+  <div class="p-stack">
+    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></span><b class="p-num" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-resolved-delta"></span></div>
+    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Escalated Reports', 'Na-escalate na Ulat')) ?></span><b class="p-num" id="tile-escalated-value"><?= (int) $tiles['escalated'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-escalated-delta"></span></div>
+    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></span><b class="p-num" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></b><small><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?></small><span class="p-delta-t" id="tile-overdue-delta"></span></div>
   </div>
-
-  <section class="card donut-card">
-    <h2 class="chart-title"><?= e(t('Resolution status report', 'Ulat sa katayuan ng paglutas')) ?></h2>
-    <?php if ($statusTotal === 0): ?>
-      <p class="empty" id="status-empty"><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></p>
-    <?php else: ?>
-      <div class="donut-box">
-        <canvas id="chart-status"></canvas>
-        <div class="donut-centre">
-          <strong id="status-donut-total"><?= $statusTotal ?></strong>
-          <span id="status-donut-label"><?= e(t($statusTotal === 1 ? 'Report' : 'Reports', 'Ulat')) ?></span>
-        </div>
-      </div>
-      <ul class="legend" id="legend-status">
-        <li><span class="sw" style="background:var(--done)"></span><?= e(t('Done', 'Tapos')) ?> (<span id="legend-done"><?= (int) $status['done'] ?></span>)</li>
-        <li><span class="sw" style="background:var(--overdue)"></span><?= e(t('Overdue work', 'Lampas-oras')) ?> (<span id="legend-overdue"><?= (int) $status['overdue'] ?></span>)</li>
-        <li><span class="sw" style="background:var(--late)"></span><?= e(t('Work finished late', 'Natapos nang huli')) ?> (<span id="legend-late"><?= (int) $status['late'] ?></span>)</li>
-        <li><span class="sw" style="background:var(--processing)"></span><?= e(t('Processing', 'Pinoproseso')) ?> (<span id="legend-processing"><?= (int) $status['processing'] ?></span>)</li>
-        <?php if ((int) ($status['rejected'] ?? 0) > 0): ?>
-          <li id="legend-rejected-row"><span class="sw" style="background:#9ca3af"></span><?= e(t('Denied', 'Tinanggihan')) ?> (<span id="legend-rejected"><?= (int) $status['rejected'] ?></span>)</li>
-        <?php endif; ?>
-      </ul>
-      <p class="chart-hint"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
-    <?php endif; ?>
-  </section>
-
-  <section class="card donut-card">
-    <h2 class="chart-title"><?= e(t('Category Distribution', 'Hati ayon sa Kategorya')) ?></h2>
-    <?php if (!$categories): ?>
-      <p class="empty" id="category-empty"><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></p>
-    <?php else: ?>
-      <div class="donut-box">
-        <canvas id="chart-category"></canvas>
-        <div class="donut-centre">
-          <strong id="category-donut-total"><?= $total ?></strong>
-          <span id="category-donut-label"><?= e(t($total === 1 ? 'Report' : 'Reports', 'Ulat')) ?></span>
-        </div>
-      </div>
-      <ul class="legend" id="legend-category"></ul>
-      <p class="chart-hint"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
-    <?php endif; ?>
-  </section>
+  <div class="p-card p-donut-card">
+    <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Resolution status report', 'Ulat sa katayuan ng paglutas')) ?></h2></div>
+    <div class="p-donut"><svg id="donut-status" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Resolution status', 'Katayuan ng paglutas')) ?>"></svg><div class="p-center"><b class="p-num" id="status-donut-total">0</b><span id="status-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
+    <div class="p-legend" id="legend-status"></div>
+    <p class="p-hint" style="margin:0"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
+    <div class="p-empty-state" id="status-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
+  </div>
+  <div class="p-card p-donut-card">
+    <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Category Distribution', 'Hati ayon sa Kategorya')) ?></h2></div>
+    <div class="p-donut"><svg id="donut-category" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaints by category', 'Mga sumbong ayon sa kategorya')) ?>"></svg><div class="p-center"><b class="p-num" id="category-donut-total">0</b><span id="category-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
+    <div class="p-legend" id="legend-category"></div>
+    <p class="p-hint" style="margin:0"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
+    <div class="p-empty-state" id="category-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
+  </div>
 </div>
 
 <!-- ---------- resolution efficiency ---------- -->
-<section class="card chart-card">
-  <header class="chart-head">
-    <h2 class="chart-title"><?= e(t('Resolution efficiency', 'Bilis ng paglutas')) ?></h2>
-    <span class="chart-period"><?= e(month_year($month)) ?></span>
-    <form class="chart-filter" method="get">
+<div class="p-card">
+  <div class="p-card-head" style="flex-wrap:wrap"><h2><?= e(t('Resolution efficiency', 'Bilis ng paglutas')) ?></h2><span class="p-spacer"></span>
+    <span class="p-hint"><?= e(month_year($month)) ?></span>
+    <form method="get">
       <input type="hidden" name="month" value="<?= e($month->format('Y-m')) ?>">
-      <label class="visually-hidden" for="eff_category"><?= e(t('Filter by category', 'Salain ayon sa kategorya')) ?></label>
-      <select id="eff_category" name="eff_category" onchange="this.form.submit()">
-        <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
-        <?php foreach (CATEGORIES as $c): ?>
-          <option value="<?= e($c) ?>" <?= $effCategory === $c ? 'selected' : '' ?>>
-            <?= e(category_label($c)) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
+      <label class="p-pill-select"><span class="p-sr"><?= e(t('Filter by category', 'Salain ayon sa kategorya')) ?></span>
+        <select name="eff_category" id="eff_category" onchange="this.form.submit()">
+          <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
+          <?php foreach (CATEGORIES as $c): ?>
+            <option value="<?= e($c) ?>" <?= $effCategory === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
+          <?php endforeach; ?>
+        </select></label>
     </form>
-  </header>
-  <p class="chart-note">
-    <?= e(t('Average hours taken to finish a complaint, against the hours its category was allowed. Below the dashed line is inside the SLA.',
-            'Karaniwang oras na inabot bago matapos ang isang sumbong, kumpara sa oras na itinakda para sa kategorya nito. Ang nasa ilalim ng putol-putol na linya ay pasok sa SLA.')) ?>
-    <?= $effCategory !== '' ? e(t('Showing ', 'Ipinapakita lamang ang ') . category_label($effCategory) . t(' only.', '.')) : '' ?>
-  </p>
-  <div class="chart-box"><canvas id="chart-efficiency"></canvas></div>
-</section>
+  </div>
+  <p class="p-hint p-eff-note"><?= e(t('Average hours taken to finish a complaint, against the hours its category was allowed. Below the dashed line is inside the SLA.',
+                                     'Karaniwang oras bago matapos ang isang sumbong, kumpara sa oras na itinakda para sa kategorya nito. Ang nasa ilalim ng putol-putol na linya ay pasok sa SLA.')) ?>
+    <?php if ($effCategory): ?><?= e(t('Showing ', 'Ipinapakita lamang ang ') . category_label($effCategory) . t(' only.', '.')) ?><?php endif; ?></p>
+  <div class="p-chart-wrap"><svg id="chart-efficiency" width="100%" height="240" style="display:block" role="img" aria-label="<?= e(t('Hours taken against hours allowed', 'Oras na inabot kumpara sa itinakda')) ?>"></svg><div class="p-chart-tip"></div>
+    <div class="p-empty-state" id="efficiency-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div></div>
+  <div class="p-eff-legend" id="eff-legend">
+    <button type="button" aria-pressed="true" data-s="taken"><i style="border-color:#FF9800"></i><span><?= e(t('Hours taken', 'Oras na inabot')) ?></span></button>
+    <button type="button" aria-pressed="true" data-s="allowed"><i class="p-dash" style="border-color:var(--p-muted)"></i><span><?= e(t('Hours allowed', 'Oras na itinakda')) ?></span></button>
+  </div>
+</div>
 
-<script src="assets/vendor/chart/chart.umd.min.js"></script>
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
 (function () {
-  if (!window.Chart) { return; }
-
-  var daily      = <?= json_encode($daily, JSON_UNESCAPED_UNICODE) ?>;
-  var efficiency = <?= json_encode($efficiency, JSON_UNESCAPED_UNICODE) ?>;
-  var status     = <?= json_encode($status) ?>;
-  var MONTH_NAMES = <?= json_encode(array_map('month_name', range(1, 12)), JSON_UNESCAPED_UNICODE) ?>;
-  var categories = <?= json_encode($categories, JSON_UNESCAPED_UNICODE) ?>;
-
-  // Read fresh each time: the values change with the theme (branch B).
-  function token(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-
-  Chart.defaults.font.family = "'Urbanist', system-ui, sans-serif";
-  Chart.defaults.color = token('--ink-soft');
-  Chart.defaults.plugins.legend.display = false;
-
-  // The portal is scaled with CSS zoom to fit bigger screens (branch B).
-  // The browser reports the pointer in zoomed pixels while a chart reasons
-  // in its own, so hovers and segment clicks landed in the wrong place;
-  // this puts every pointer event back into the chart's own coordinates.
-  Chart.register({
-    id: 'screenFitPointer',
-    beforeEvent: function (chart, args) {
-      var ev = args.event, n = ev && ev.native;
-      if (!n || n.clientX == null) return;
-      var r = chart.canvas.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      ev.x = (n.clientX - r.left) * chart.width / r.width;
-      ev.y = (n.clientY - r.top) * chart.height / r.height;
-      // Worked out before plugins run, from the unconverted position.
-      args.inChartArea = chart.isPointInArea(ev);
-    }
-  });
-
-  // The month on screen, so a donut click opens the complaints it counted
-  // rather than every month's.
+  var M = {
+    daily: <?= json_encode($daily, JSON_UNESCAPED_UNICODE) ?>,
+    efficiency: <?= json_encode($efficiency, JSON_UNESCAPED_UNICODE) ?>,
+    resolution_status: <?= json_encode($status) ?>,
+    categories: <?= json_encode($categories, JSON_UNESCAPED_UNICODE) ?>,
+    tiles: <?= json_encode($tiles) ?>,
+    total: <?= json_encode($total) ?>
+  };
   var MONTH = <?= json_encode($month->format('Y-m')) ?>;
+  var PREV_TOTAL = <?= json_encode($prev !== null ? $prevTotal : null) ?>;
+  var PREV_TILES = <?= json_encode($prevTiles ?: null) ?>;
+  var CATEGORY_LABEL = <?= json_encode(array_combine(CATEGORIES, array_map('category_label', CATEGORIES)), JSON_UNESCAPED_UNICODE) ?>;
+  // The preview's colours per category, so a category keeps its colour month to month.
+  var CATEGORY_COLOUR = { street_obstruction: '#F93535', public_safety_infrastructure: '#356CF9', environmental_waste_hazard: '#F9AB35',
+                          animal_welfare: '#34C759', traffic_violation: '#8E9ABB', barangay_service: '#422F8A', peace_order_nuisance: '#E0609A' };
 
-  function title(s) {
-    return s.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-  }
+  function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
-  // Kept so the realtime block below (added 6 Sep 2026, "the entire system
-  // needs to work realtime") can push fresh data into the same instances
-  // instead of tearing them down and rebuilding on every change.
-  var receivedChart = null, statusChart = null, categoryChart = null, efficiencyChart = null;
-  var categoryPalette = [token('--chart-navy'), '#ff9800', '#2563eb', '#22c55e', '#a855f7', '#ef4444', '#0891b2'];
-
-  function renderCategoryLegend(cats, colours) {
-    var list = document.getElementById('legend-category');
-    if (!list) return;
-    list.innerHTML = '';
-    cats.forEach(function (c, i) {
-      var li = document.createElement('li');
-      var sw = document.createElement('span');
-      sw.className = 'sw';
-      sw.style.background = colours[i % colours.length];
-      li.appendChild(sw);
-      li.appendChild(document.createTextNode(title(c.category) + ' (' + c.n + ')'));
-      list.appendChild(li);
-    });
-  }
-
-  // ---- reports received ----
-  var received = document.getElementById('chart-received');
-  if (received) {
-    receivedChart = new Chart(received, {
-      type: 'line',
-      data: {
-        labels: daily.map(function (d) { return d.label; }),
-        datasets: [{
-          data: daily.map(function (d) { return d.filed; }),
-          borderColor: token('--chart-navy'),
-          backgroundColor: token('--chart-navy-fill'),
-          fill: true, tension: .35, borderWidth: 2,
-          pointRadius: 0, pointHoverRadius: 5,
-          pointHoverBackgroundColor: token('--chart-navy')
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 },
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              title: function (i) { return T('Day ', 'Araw ') + i[0].label; },
-              label: function (c) { return c.parsed.y + T(c.parsed.y === 1 ? ' report' : ' reports', ' ulat'); }
-            }
-          }
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: token('--rule') } },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-  }
-
-  // ---- resolution status ----
-  var st = document.getElementById('chart-status');
-  if (st) {
-    statusChart = new Chart(st, {
-      type: 'doughnut',
-      data: {
-        labels: [T('Done', 'Tapos'), T('Overdue work', 'Lampas-oras'), T('Work finished late', 'Natapos nang huli'),
-                 T('Processing', 'Pinoproseso'), T('Denied', 'Tinanggihan')],
-        datasets: [{
-          data: [status.done, status.overdue, status.late, status.processing, status.rejected || 0],
-          backgroundColor: [token('--done'), token('--overdue'), token('--late'),
-                            token('--processing'), '#9ca3af'],
-          borderWidth: 0
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '78%', // the frame's thin ring
-        // A chart that shows a problem should also be the way to reach it.
-        onClick: function (_, hit) {
-          if (!hit.length) return;
-          var to = ['resolved', '', '', 'in_progress', 'rejected'][hit[0].index];
-          location.href = (to ? 'cases.php?status=' + to : 'cases.php?view=attention')
-                        + '&month=' + MONTH;
-        },
-        onHover: function (ev, hit) { ev.native.target.style.cursor = hit.length ? 'pointer' : 'default'; }
-      }
-    });
-  }
-
-  // ---- category distribution ----
-  var cat = document.getElementById('chart-category');
-  if (cat) {
-    var colours = categories.map(function (_, i) { return categoryPalette[i % categoryPalette.length]; });
-
-    categoryChart = new Chart(cat, {
-      type: 'doughnut',
-      data: {
-        labels: categories.map(function (c) { return title(c.category); }),
-        datasets: [{ data: categories.map(function (c) { return c.n; }),
-                     backgroundColor: colours, borderWidth: 0 }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 }, cutout: '78%', // the frame's thin ring
-        // category=, not q= — q searches tracking IDs and subjects, so
-        // "street_obstruction" matched nothing and every segment opened
-        // an empty list.
-        onClick: function (_, hit) {
-          if (!hit.length || !categories[hit[0].index]) return;
-          location.href = 'cases.php?category=' + encodeURIComponent(categories[hit[0].index].category)
-                        + '&month=' + MONTH;
-        },
-        onHover: function (ev, hit) { ev.native.target.style.cursor = hit.length ? 'pointer' : 'default'; }
-      }
-    });
-
-    renderCategoryLegend(categories, colours);
-  }
-
-  // ---- resolution efficiency ----
-  var eff = document.getElementById('chart-efficiency');
-  if (eff) {
-    efficiencyChart = new Chart(eff, {
-      type: 'line',
-      data: {
-        labels: efficiency.map(function (d) { return d.label; }),
-        datasets: [
-          {
-            label: T('Hours taken', 'Oras na inabot'),
-            data: efficiency.map(function (d) { return d.actual; }),
-            borderColor: token('--orange'),
-            backgroundColor: 'rgba(255, 152, 0, .12)',
-            fill: true, tension: .35, borderWidth: 2,
-            spanGaps: true, pointRadius: 3
-          },
-          {
-            label: T('Hours allowed', 'Oras na itinakda'),
-            data: efficiency.map(function (d) { return d.allowed; }),
-            borderColor: token('--ink-soft'),
-            borderDash: [5, 4], borderWidth: 1.5,
-            fill: false, spanGaps: true, pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, resizeDelay: 120,
-        animation: { duration: 300 },
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: true, position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } },
-          tooltip: {
-            callbacks: {
-              title: function (i) { return T('Day ', 'Araw ') + i[0].label; },
-              label: function (c) {
-                return c.dataset.label + ': ' + (c.parsed.y === null ? '—' : c.parsed.y + ' h');
-              }
-            }
-          }
-        },
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: T('Hours', 'Oras') },
-               grid: { color: token('--rule') } },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-  }
-
-  // Dark/light switched from the sidebar (branch B): the same charts,
-  // recoloured from the theme's tokens, without a reload.
-  window.addEventListener('themechange', function () {
-    Chart.defaults.color = token('--ink-soft');
-    categoryPalette[0] = token('--chart-navy');
-    if (receivedChart) {
-      var ds = receivedChart.data.datasets[0];
-      ds.borderColor = ds.pointHoverBackgroundColor = token('--chart-navy');
-      ds.backgroundColor = token('--chart-navy-fill');
-      receivedChart.options.scales.y.grid.color = token('--rule');
+  function smooth(pts) {
+    var d = 'M' + pts[0][0] + ',' + pts[0][1];
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = pts[i - 1] || pts[i], b = pts[i], c = pts[i + 1], e = pts[i + 2] || pts[i + 1];
+      d += ' C' + (b[0] + (c[0] - a[0]) / 6) + ',' + (b[1] + (c[1] - a[1]) / 6) + ' ' + (c[0] - (e[0] - b[0]) / 6) + ',' + (c[1] - (e[1] - b[1]) / 6) + ' ' + c[0] + ',' + c[1];
     }
-    if (categoryChart) {
-      var c2 = categoryChart.data.datasets[0].data.map(function (_, i) { return categoryPalette[i % categoryPalette.length]; });
-      categoryChart.data.datasets[0].backgroundColor = c2;
-      renderCategoryLegend(categories, c2);
-    }
-    if (efficiencyChart) {
-      efficiencyChart.data.datasets[1].borderColor = token('--ink-soft');
-      efficiencyChart.options.scales.y.grid.color = token('--rule');
-    }
-    [receivedChart, statusChart, categoryChart, efficiencyChart].forEach(function (ch) { if (ch) ch.update('none'); });
-  });
-
-  // ================= Realtime, added 6 Sep 2026 =================
-  // Explicit ask: "the entire system needs to work realtime." dashboard_metrics()
-  // (0012) only ever reads from public.reports, so a change there is the
-  // whole live-update signal this page needs — no need to also watch
-  // dispatches or status_logs separately. Only wired up when viewing the
-  // current month; a past month's figures do not move as new reports
-  // come in, so there is nothing to subscribe to.
-  var IS_CURRENT_MONTH = <?= json_encode($month->format('Y-m') === (new DateTimeImmutable('now', $tz))->format('Y-m')) ?>;
-  if (!IS_CURRENT_MONTH || !window.supabase) { return; }
-
-  // These four flags describe which sections the server template actually
-  // built at load. If a realtime figure would flip one of them (a month
-  // that opened empty gets its first report, or vice versa), that is a
-  // change in page *structure*, not just numbers — simplest and safest
-  // is to let the server re-render its own template rather than grow
-  // ad-hoc DOM-morphing logic for what should be a rare edge.
-  var HAS_RECEIVED = <?= json_encode($total !== 0) ?>;
-  var HAS_STATUS   = <?= json_encode($statusTotal !== 0) ?>;
-  var HAS_CATEGORY = <?= json_encode((bool) $categories) ?>;
-  var HAS_REJECTED = <?= json_encode(((int) ($status['rejected'] ?? 0)) > 0) ?>;
-  var PREV_TOTAL   = <?= json_encode($prevTotal ?: null) ?>;
-  var PREV_TILES   = <?= json_encode($prevTiles ?: null) ?>;
-  var MONTH_FROM   = <?= json_encode($month->format(DateTimeInterface::ATOM)) ?>;
-  var MONTH_TO     = <?= json_encode($next->format(DateTimeInterface::ATOM)) ?>;
-  var EFF_CATEGORY = <?= json_encode($effCategory ?: null) ?>;
-
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
+    return d;
   }
-  // Mirrors delta()/delta_html() in dashboard.php exactly, so a live
-  // update reads the same as a reload would.
-  function computeDelta(now, was, goodWhenDown) {
-    if (was === null || was === undefined) return null;
-    if (was === 0 && now === 0) return ['flat', T('no change', 'walang pagbabago'), ''];
-    if (was === 0) return ['up', T('new this month', 'bago ngayong buwan'), goodWhenDown ? 'bad' : 'good'];
-    var pct = Math.round((now - was) / was * 100);
-    if (pct === 0) return ['flat', T('level with last month', 'kapareho ng nakaraang buwan'), ''];
-    var dir  = pct > 0 ? 'up' : 'down';
-    var tone = (pct > 0) === !!goodWhenDown ? 'bad' : 'good';
-    return [dir, Math.abs(pct) + T('% vs last month', '% vs nakaraang buwan'), tone];
+  function niceStep(x) { var p = Math.pow(10, Math.floor(Math.log10(Math.max(x, 1e-9)))), f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+  function clampY(path, lo, top) { return path.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, function (m, a, b) { return a + ',' + Math.min(lo, Math.max(top, +b)); }); }
+  function dayTicks(n, W) { var t = W < 560 ? [1, 10, 20, n] : [1, 5, 10, 15, 20, 25, n]; return t.filter(function (d, i) { return d <= n && t.indexOf(d) === i; }); }
+
+  // Reports filed each day: the preview's area chart.
+  function received(svg, data, labels) {
+    var H = +svg.getAttribute('height'), W = Math.max(300, Math.round(svg.getBoundingClientRect().width || 900)), L = 44, R = 12, T = 16, B = 28, n = data.length;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    if (n < 2) { svg.innerHTML = ''; return; }
+    var max = Math.max(4, niceStep(Math.max(1, Math.max.apply(null, data)) / 4) * 4);
+    var x = function (i) { return L + (W - L - R) * i / (n - 1); }, y = function (v) { return T + (H - T - B) * (1 - v / max); };
+    var violet = css('--p-c-violet'), s = '<defs><linearGradient id="g-recv" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="' + violet + '" stop-opacity=".18"/><stop offset="1" stop-color="' + violet + '" stop-opacity="0"/></linearGradient></defs>';
+    for (var g = 0; g <= max; g += max / 4) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="' + css('--p-line') + '" stroke-dasharray="' + (g ? '3 4' : '') + '"/><text x="' + (L - 8) + '" y="' + (y(g) + 4) + '" text-anchor="end" font-size="11" fill="' + css('--p-faint') + '" font-family="Inter">' + g + '</text>';
+    dayTicks(n, W).forEach(function (d) { s += '<text x="' + x(d - 1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="' + css('--p-faint') + '" font-family="Inter">' + labels[d - 1] + '</text>'; });
+    var pts = data.map(function (v, i) { return [x(i), y(v)]; }), lo = y(0), p = clampY(smooth(pts), lo, T);
+    s += '<path d="' + p + ' L' + pts[n - 1][0] + ',' + lo + ' L' + pts[0][0] + ',' + lo + ' Z" fill="url(#g-recv)"/><path d="' + p + '" fill="none" stroke="' + violet + '" stroke-width="2.5" stroke-linecap="round"/>';
+    s += '<line class="hl" x1="0" x2="0" y1="' + T + '" y2="' + lo + '" stroke="' + css('--p-line-2') + '" stroke-dasharray="3 3" opacity="0"/><circle class="hd" r="5" fill="' + css('--p-surface') + '" stroke="' + violet + '" stroke-width="2.5" opacity="0"/><rect x="' + L + '" y="0" width="' + (W - L - R) + '" height="' + H + '" fill="transparent" class="hit"/>';
+    svg.innerHTML = s;
+    var tip = svg.parentElement.querySelector('.p-chart-tip'), hit = svg.querySelector('.hit');
+    hit.onmousemove = function (e) {
+      var r = svg.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left) / r.width * W - L) / (W - L - R) * (n - 1)))), v = data[i];
+      var hl = svg.querySelector('.hl'), hd = svg.querySelector('.hd');
+      hl.setAttribute('x1', x(i)); hl.setAttribute('x2', x(i)); hl.setAttribute('opacity', 1);
+      hd.setAttribute('cx', x(i)); hd.setAttribute('cy', y(v)); hd.setAttribute('opacity', 1);
+      tip.innerHTML = T('Day ', 'Araw ') + esc(labels[i]) + '<b>' + v + '</b>' + T(v === 1 ? 'report' : 'reports', 'ulat');
+      tip.style.left = (x(i) / W * r.width + 22) + 'px'; tip.style.top = (y(v) / H * r.height + 8) + 'px'; tip.style.opacity = 1;
+    };
+    hit.onmouseleave = function () { tip.style.opacity = 0; svg.querySelector('.hl').setAttribute('opacity', 0); svg.querySelector('.hd').setAttribute('opacity', 0); };
   }
-  function deltaHtml(d) {
-    if (!d) return '';
-    var arrow = d[0] === 'up' ? '▲' : (d[0] === 'down' ? '▼' : '•');
-    return '<span class="delta delta--' + d[2] + '">' + arrow + ' ' + escapeHtml(d[1]) + '</span>';
+
+  // Hours taken against hours allowed: the preview's two lines and their buttons.
+  var effShow = { taken: true, allowed: true };
+  function efficiencyChart(svg, taken, allowed, labels) {
+    var H = +svg.getAttribute('height'), W = Math.max(300, Math.round(svg.getBoundingClientRect().width || 900)), L = 48, R = 12, T = 16, B = 28, n = taken.length;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    if (n < 2) { svg.innerHTML = ''; return; }
+    var all = [].concat(effShow.taken ? taken : [], effShow.allowed ? allowed : []).filter(function (v) { return v != null; });
+    var max = niceStep(Math.max.apply(null, [1].concat(all)) / 4) * 4;
+    var x = function (i) { return L + (W - L - R) * i / (n - 1); }, y = function (v) { return T + (H - T - B) * (1 - v / max); }, lo = y(0);
+    var line = function (d) { var p = d.map(function (v, i) { return v == null ? null : [x(i), y(v)]; }).filter(Boolean); return p.length > 1 ? clampY(smooth(p), lo, T) : ''; };
+    var orange = '#FF9800', s = '<defs><linearGradient id="g-eff" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="' + orange + '" stop-opacity=".16"/><stop offset="1" stop-color="' + orange + '" stop-opacity="0"/></linearGradient></defs>';
+    for (var g = 0; g <= max; g += max / 4) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(g) + '" y2="' + y(g) + '" stroke="' + css('--p-line') + '" stroke-dasharray="' + (g ? '3 4' : '') + '"/><text x="' + (L - 8) + '" y="' + (y(g) + 4) + '" text-anchor="end" font-size="11" fill="' + css('--p-faint') + '" font-family="Inter">' + g + ' h</text>';
+    dayTicks(n, W).forEach(function (d) { s += '<text x="' + x(d - 1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="' + css('--p-faint') + '" font-family="Inter">' + labels[d - 1] + '</text>'; });
+    var pt = taken.map(function (v, i) { return v == null ? null : [x(i), y(v)]; }).filter(Boolean);
+    if (effShow.taken && pt.length) {
+      if (pt.length > 1) { var p = line(taken); s += '<path d="' + p + ' L' + pt[pt.length - 1][0] + ',' + lo + ' L' + pt[0][0] + ',' + lo + ' Z" fill="url(#g-eff)"/><path d="' + p + '" fill="none" stroke="' + orange + '" stroke-width="2" stroke-linecap="round"/>'; }
+      pt.forEach(function (q) { s += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3" fill="' + orange + '"/>'; });
+    }
+    if (effShow.allowed) s += '<path d="' + line(allowed) + '" fill="none" stroke="' + css('--p-muted') + '" stroke-width="1.5" stroke-dasharray="5 4"/>';
+    s += '<line class="hl" x1="0" x2="0" y1="' + T + '" y2="' + lo + '" stroke="' + css('--p-line-2') + '" stroke-dasharray="3 3" opacity="0"/><rect x="' + L + '" y="0" width="' + (W - L - R) + '" height="' + H + '" fill="transparent" class="hit"/>';
+    svg.innerHTML = s;
+    var tip = svg.parentElement.querySelector('.p-chart-tip'), hit = svg.querySelector('.hit'), hl = svg.querySelector('.hl');
+    hit.onmousemove = function (e) {
+      var r = svg.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left) / r.width * W - L) / (W - L - R) * (n - 1))));
+      var t = taken[i], a = allowed[i];
+      hl.setAttribute('x1', x(i)); hl.setAttribute('x2', x(i)); hl.setAttribute('opacity', 1);
+      tip.innerHTML = T('Day ', 'Araw ') + esc(labels[i]) + '<b>' + (t == null ? '—' : t + ' h') + '</b>' + T('Hours allowed', 'Oras na itinakda') + ': ' + (a == null ? '—' : a + ' h');
+      tip.style.left = (x(i) / W * r.width + 22) + 'px'; tip.style.top = (y(t != null ? t : (a != null ? a : 0)) / H * r.height + 8) + 'px'; tip.style.opacity = 1;
+    };
+    hit.onmouseleave = function () { tip.style.opacity = 0; hl.setAttribute('opacity', 0); };
   }
-  function setText(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
-  function setHtml(id, v) { var el = document.getElementById(id); if (el) el.innerHTML = v; }
 
-  var { createClient } = supabase;
-  var TOKEN = <?= json_encode(access_token()) ?>;
-  var sb = createClient(
-    <?= json_encode(supabase_url()) ?>,
-    <?= json_encode(supabase_key()) ?>,
-    { accessToken: window.ssAccessToken(TOKEN) }
-  );
+  // The preview's thin-ring donut; each segment and legend row opens its complaints.
+  function donut(svg, legend, parts) {
+    var total = parts.reduce(function (a, p) { return a + p.n; }, 0), off = 25;
+    var s = '<circle cx="21" cy="21" r="15.9" fill="none" stroke="' + css('--p-line') + '" stroke-width="5"/>';
+    parts.forEach(function (p, i) { if (!p.n) return; var len = p.n / total * 100; s += '<circle data-i="' + i + '" cx="21" cy="21" r="15.9" fill="none" stroke="' + p.colour + '" stroke-width="5" stroke-dasharray="' + Math.max(0, len - 1.2) + ' ' + (100 - len + 1.2) + '" stroke-dashoffset="' + off + '" style="cursor:pointer"><title>' + esc(p.label) + ': ' + p.n + '</title></circle>'; off -= len; });
+    svg.innerHTML = s;
+    legend.innerHTML = parts.map(function (p, i) { return '<div data-i="' + i + '" role="link" tabindex="0"><i style="background:' + p.colour + '"></i>' + esc(p.label) + '<span class="p-n">' + p.n + '</span></div>'; }).join('');
+    var go = function (e) { var t = e.target.closest('[data-i]'); if (t && parts[+t.dataset.i].href) location.href = parts[+t.dataset.i].href; };
+    svg.onclick = go; legend.onclick = go; legend.onkeydown = function (e) { if (e.key === 'Enter') go(e); };
+  }
 
-  function applyMetrics(m) {
-    var d2          = m.daily || [];
-    var eff2        = m.efficiency || [];
-    var st2         = m.resolution_status || { done: 0, overdue: 0, late: 0, processing: 0, rejected: 0 };
-    var cats2       = m.categories || [];
-    var tiles2      = m.tiles || { resolved: 0, escalated: 0, overdue: 0 };
-    var total2      = m.total || 0;
-    var statusTotal2 = (st2.done || 0) + (st2.overdue || 0) + (st2.late || 0)
-                     + (st2.processing || 0) + (st2.rejected || 0);
-
-    var needsReceived = total2 !== 0;
-    var needsStatus   = statusTotal2 !== 0;
-    var needsCategory = cats2.length > 0;
-    var needsRejected = (st2.rejected || 0) > 0;
-    if (needsReceived !== HAS_RECEIVED || needsStatus !== HAS_STATUS ||
-        needsCategory !== HAS_CATEGORY || needsRejected !== HAS_REJECTED) {
-      location.reload();
-      return;
+  function delta(now, was, goodWhenDown) {
+    if (was === null || was === undefined) return '';
+    var d;
+    if (was === 0 && now === 0) d = ['•', T('no change', 'walang pagbabago'), 'flat'];
+    else if (was === 0) d = ['▲', T('new this month', 'bago ngayong buwan'), goodWhenDown ? 'bad' : 'good'];
+    else {
+      var pct = Math.round((now - was) / was * 100);
+      if (pct === 0) d = ['•', T('level with last month', 'kapareho ng nakaraang buwan'), 'flat'];
+      else d = [pct > 0 ? '▲' : '▼', Math.abs(pct) + T('% vs last month', '% vs nakaraang buwan'), (pct > 0) === !!goodWhenDown ? 'bad' : 'good'];
     }
+    return '<span class="p-' + d[2] + '">' + d[0] + ' ' + esc(d[1]) + '</span>';
+  }
 
-    if (receivedChart) {
-      receivedChart.data.labels = d2.map(function (x) { return x.label; });
-      receivedChart.data.datasets[0].data = d2.map(function (x) { return x.filed; });
-      receivedChart.update();
-    }
-    setHtml('received-delta', deltaHtml(computeDelta(total2, PREV_TOTAL)));
+  function render(m) {
+    var daily = m.daily || [], eff = m.efficiency || [], st = m.resolution_status || {}, cats = m.categories || [], tiles = m.tiles || {};
+    var total = m.total || 0;
+    $('received-empty').hidden = total !== 0; $('chart-received').style.visibility = total ? '' : 'hidden';
+    received($('chart-received'), daily.map(function (d) { return +d.filed || 0; }), daily.map(function (d) { return d.label; }));
+    $('received-delta').innerHTML = delta(total, PREV_TOTAL);
 
-    if (statusChart) {
-      statusChart.data.datasets[0].data = [st2.done, st2.overdue, st2.late, st2.processing, st2.rejected || 0];
-      statusChart.update();
-    }
-    setText('status-donut-total', statusTotal2);
-    setText('status-donut-label', T(statusTotal2 === 1 ? 'Report' : 'Reports', 'Ulat'));
-    setText('legend-done', st2.done || 0);
-    setText('legend-overdue', st2.overdue || 0);
-    setText('legend-late', st2.late || 0);
-    setText('legend-processing', st2.processing || 0);
-    if (HAS_REJECTED) setText('legend-rejected', st2.rejected || 0);
+    var parts = [
+      { label: T('Done', 'Tapos'), n: +st.done || 0, colour: '#34C759', href: 'cases.php?status=resolved&month=' + MONTH },
+      { label: T('Overdue work', 'Lampas-oras'), n: +st.overdue || 0, colour: '#F93535', href: 'cases.php?view=attention&month=' + MONTH },
+      { label: T('Work finished late', 'Natapos nang huli'), n: +st.late || 0, colour: '#F9AB35', href: 'cases.php?view=attention&month=' + MONTH },
+      { label: T('Processing', 'Pinoproseso'), n: +st.processing || 0, colour: '#356CF9', href: 'cases.php?status=in_progress&month=' + MONTH }
+    ];
+    if (+st.rejected) parts.push({ label: T('Denied', 'Tinanggihan'), n: +st.rejected, colour: '#8E9ABB', href: 'cases.php?status=rejected&month=' + MONTH });
+    var stTotal = parts.reduce(function (a, p) { return a + p.n; }, 0);
+    $('status-empty').hidden = stTotal !== 0;
+    donut($('donut-status'), $('legend-status'), stTotal ? parts : []);
+    $('status-donut-total').textContent = stTotal;
+    $('status-donut-label').textContent = T(stTotal === 1 ? 'Report' : 'Reports', 'Ulat');
 
-    categories = cats2; // keep the donut's own onClick (defined above) current
-    if (categoryChart) {
-      var colours = cats2.map(function (_, i) { return categoryPalette[i % categoryPalette.length]; });
-      categoryChart.data.labels = cats2.map(function (c) { return title(c.category); });
-      categoryChart.data.datasets[0].data = cats2.map(function (c) { return c.n; });
-      categoryChart.data.datasets[0].backgroundColor = colours;
-      categoryChart.update();
-      renderCategoryLegend(cats2, colours);
-    }
-    setText('category-donut-total', total2);
-    setText('category-donut-label', T(total2 === 1 ? 'Report' : 'Reports', 'Ulat'));
+    var cp = cats.map(function (c) { return { label: CATEGORY_LABEL[c.category] || c.category, n: +c.n || 0, colour: CATEGORY_COLOUR[c.category] || '#8E9ABB', href: 'cases.php?category=' + encodeURIComponent(c.category) + '&month=' + MONTH }; });
+    $('category-empty').hidden = cp.length !== 0;
+    donut($('donut-category'), $('legend-category'), cp);
+    $('category-donut-total').textContent = total;
+    $('category-donut-label').textContent = T(total === 1 ? 'Report' : 'Reports', 'Ulat');
 
-    if (efficiencyChart) {
-      efficiencyChart.data.labels = eff2.map(function (x) { return x.label; });
-      efficiencyChart.data.datasets[0].data = eff2.map(function (x) { return x.actual; });
-      efficiencyChart.data.datasets[1].data = eff2.map(function (x) { return x.allowed; });
-      efficiencyChart.update();
-    }
+    var hasEff = eff.some(function (d) { return d.actual != null || d.allowed != null; });
+    $('efficiency-empty').hidden = hasEff; $('chart-efficiency').style.visibility = hasEff ? '' : 'hidden'; $('eff-legend').style.visibility = hasEff ? '' : 'hidden';
+    efficiencyChart($('chart-efficiency'), eff.map(function (d) { return d.actual == null ? null : +d.actual; }), eff.map(function (d) { return d.allowed == null ? null : +d.allowed; }), eff.map(function (d) { return d.label; }));
 
-    setText('tile-resolved-value', tiles2.resolved || 0);
-    setText('tile-escalated-value', tiles2.escalated || 0);
-    setText('tile-overdue-value', tiles2.overdue || 0);
+    $('tile-resolved-value').textContent = tiles.resolved || 0;
+    $('tile-escalated-value').textContent = tiles.escalated || 0;
+    $('tile-overdue-value').textContent = tiles.overdue || 0;
     var pr = PREV_TILES || {};
-    setHtml('tile-resolved-delta', deltaHtml(computeDelta(tiles2.resolved || 0, pr.resolved != null ? pr.resolved : null)));
-    setHtml('tile-escalated-delta', deltaHtml(computeDelta(tiles2.escalated || 0, pr.escalated != null ? pr.escalated : null, true)));
-    setHtml('tile-overdue-delta', deltaHtml(computeDelta(tiles2.overdue || 0, pr.overdue != null ? pr.overdue : null, true)));
-
-    var asOf = document.getElementById('as-of-time');
-    if (asOf) {
-      asOf.textContent = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true,
-        day: 'numeric', month: 'short', year: 'numeric'
-      }).format(new Date());
-    }
+    $('tile-resolved-delta').innerHTML = delta(tiles.resolved || 0, pr.resolved != null ? pr.resolved : null);
+    $('tile-escalated-delta').innerHTML = delta(tiles.escalated || 0, pr.escalated != null ? pr.escalated : null, true);
+    $('tile-overdue-delta').innerHTML = delta(tiles.overdue || 0, pr.overdue != null ? pr.overdue : null, true);
   }
 
-  // Several reports landing at once (a batch, several tanods updating in
-  // the same minute) collapse into one RPC call instead of one per row.
-  var refreshTimer = null;
-  function scheduleRefresh() {
-    clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(function () {
-      sb.rpc('dashboard_metrics', { p_from: MONTH_FROM, p_to: MONTH_TO, p_category: EFF_CATEGORY }).then(function (res) {
+  document.querySelectorAll('#eff-legend button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.s, on = b.getAttribute('aria-pressed') !== 'true';
+      if (!on && !effShow[k === 'taken' ? 'allowed' : 'taken']) return; // keep one line showing
+      effShow[k] = on; b.setAttribute('aria-pressed', String(on)); render(M);
+    });
+  });
+  var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { render(M); }, 100); });
+  window.addEventListener('themechange', function () { render(M); });
+  render(M);
+
+  // This month only: re-run dashboard_metrics when a report changes.
+  if (!<?= json_encode($isCurrent) ?> || !window.supabase) return;
+  var sb = window.supabase.createClient(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>,
+                                        { accessToken: window.ssAccessToken(<?= json_encode(access_token()) ?>) });
+  var FROM = <?= json_encode($month->format(DateTimeInterface::ATOM)) ?>, TO = <?= json_encode($next->format(DateTimeInterface::ATOM)) ?>, CAT = <?= json_encode($effCategory ?: null) ?>;
+  var timer = null, wasDown = false;
+  function refresh() {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      sb.rpc('dashboard_metrics', { p_from: FROM, p_to: TO, p_category: CAT }).then(function (res) {
         if (res.error || !res.data) return; // stale figures beat a half-applied update
-        applyMetrics(res.data);
+        M = res.data; render(M);
+        $('as-of-time').textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
       });
     }, 400);
   }
-
-  var wasDown = false;
   sb.channel('dashboard-metrics')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, scheduleRefresh)
-    .subscribe(function (chStatus) {
-      var badge = document.getElementById('live-badge'),
-          text  = document.getElementById('live-badge-text');
-      if (!badge) return;
-      if (chStatus === 'SUBSCRIBED') {
-        badge.classList.remove('is-down'); text.textContent = T('Live', 'Live');
-        // Nothing is replayed for the time the socket was down.
-        if (wasDown) { wasDown = false; scheduleRefresh(); }
-      } else if (chStatus === 'CHANNEL_ERROR' || chStatus === 'TIMED_OUT' || chStatus === 'CLOSED') {
-        wasDown = true;
-        badge.classList.add('is-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
-      }
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, refresh)
+    .subscribe(function (s) {
+      var badge = $('live-badge'), text = $('live-badge-text'); if (!badge) return;
+      if (s === 'SUBSCRIBED') { badge.classList.remove('p-down'); text.textContent = T('Live', 'Live'); if (wasDown) { wasDown = false; refresh(); } }
+      else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') { wasDown = true; badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…'); }
     });
 })();
 </script>

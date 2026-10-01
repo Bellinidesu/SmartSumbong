@@ -174,168 +174,218 @@ try {
 layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
 ?>
 
-<div class="p-topbar"><h1><?= e(t('Case Reports', 'Mga Sumbong')) ?></h1>
-  <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
-
 <?php if ($error): ?>
-  <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
+  <div class="alert-bar" role="alert"><?= e($error) ?></div>
 <?php endif; ?>
 
-<?php
-// Both forms carry the Reports panel's filters along, so searching
-// notifications does not reset the list below.
-$keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $category,
-                      'month' => $month, 'view' => $view, 'by' => $sortCol, 'dir' => $sortDir],
-                     fn($v) => $v !== '');
-?>
 <!-- ---------- notifications ---------- -->
-<div class="p-band">
-  <h2><?= e(t('Notifications', 'Mga abiso')) ?><span class="p-badge-n" id="notif-count"><?= count($notifications) ?></span></h2>
-  <form class="p-search" method="get" role="search">
-    <?= p_icon('i-search', 16) ?>
-    <input type="search" name="nq" placeholder="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>" value="<?= e($nSearch) ?>"
-           aria-label="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>">
-    <input type="hidden" name="nsort" value="<?= e($nSort) ?>">
-    <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
-  </form>
-  <span class="p-spacer"></span>
-  <form method="get">
-    <input type="hidden" name="nq" value="<?= e($nSearch) ?>">
-    <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
-    <label class="p-pill-select"><span class="p-lbl"><?= e(t('Sort by', 'Ayusin ayon sa')) ?></span>
-      <select name="nsort" onchange="this.form.submit()">
-        <option value="newest" <?= $nSort === 'newest' ? 'selected' : '' ?>><?= e(t('Newest', 'Pinakabago')) ?></option>
-        <option value="oldest" <?= $nSort === 'oldest' ? 'selected' : '' ?>><?= e(t('Oldest', 'Pinakaluma')) ?></option>
-      </select></label>
-  </form>
-</div>
+<section class="panel">
+  <header class="panel-bar">
+    <h2 class="panel-title"><?= e(t('Notification', 'Abiso')) ?> (<span id="notif-count"><?= count($notifications) ?></span>)
+      <span class="live-badge" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>">
+        <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span>
+      </span>
+    </h2>
+    <?php
+    // Both forms carry the Reports panel's filters along, so searching
+    // notifications does not reset the list below.
+    $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $category,
+                          'month' => $month, 'view' => $view, 'by' => $sortCol, 'dir' => $sortDir],
+                         fn($v) => $v !== '');
+    ?>
+    <form class="panel-search" method="get">
+      <?= nav_icon('search') ?>
+      <input type="search" name="nq" placeholder="<?= e(t('Search Here', 'Maghanap Dito')) ?>" value="<?= e($nSearch) ?>"
+             aria-label="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>">
+      <input type="hidden" name="nsort" value="<?= e($nSort) ?>">
+      <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
+    </form>
+    <form class="panel-sort" method="get">
+      <input type="hidden" name="nq" value="<?= e($nSearch) ?>">
+      <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
+      <label class="filter-option">
+        <?= e(t('Sort by:', 'Ayusin ayon sa:')) ?>
+        <select name="nsort" onchange="this.form.submit()">
+          <option value="newest" <?= $nSort === 'newest' ? 'selected' : '' ?>><?= e(t('Newest first', 'Pinakabago muna')) ?></option>
+          <option value="oldest" <?= $nSort === 'oldest' ? 'selected' : '' ?>><?= e(t('Oldest first', 'Pinakaluma muna')) ?></option>
+        </select>
+      </label>
+    </form>
+  </header>
 
-<div class="p-card p-notif-card" style="margin-bottom:28px"><div class="p-notif-list" id="notif-list">
-  <?php if (!$notifications): ?>
-    <p class="p-empty" id="notif-empty"><?= $nSearch !== ''
-        ? e(t('No notification matches that search.', 'Walang abisong tugma sa hinanap.'))
-        : e(t('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
-              'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) ?></p>
-  <?php endif; ?>
-  <?php foreach ($notifications as $n): ?>
-    <div class="p-notif p-unread">
-      <span class="p-n-ico"><?= p_icon('i-bell', 18) ?></span>
-      <div><div><span class="p-unread-dot"></span><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
-      <?php if (!empty($n['report_id'])): ?>
-        <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
-      <?php else: ?><span></span><?php endif; ?>
-    </div>
-  <?php endforeach; ?>
-</div></div>
+  <div class="notif-list" id="notif-list">
+    <?php if (!$notifications): ?>
+      <p class="empty" id="notif-empty"><?= $nSearch !== ''
+          ? e(t('No notification matches that search.', 'Walang abisong tugma sa hinanap.'))
+          : e(t('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
+                'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) ?></p>
+    <?php endif; ?>
+
+    <?php foreach ($notifications as $n): ?>
+      <article class="notif">
+        <span class="notif-dot" aria-hidden="true"></span>
+        <div class="notif-body">
+          <p class="notif-msg"><?= e($n['message']) ?></p>
+          <p class="notif-when"><?= e(relative_time($n['created_at'])) ?></p>
+        </div>
+        <?php if (!empty($n['report_id'])): ?>
+          <a class="btn-review" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+        <?php endif; ?>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</section>
 
 <!-- ---------- escalation requests (0073) ---------- -->
 <?php if (!empty($escalations)): ?>
-<div class="p-band">
-  <h2><?= e(t('Escalation requests', 'Mga hiling na i-escalate')) ?><span class="p-badge-n"><?= count($escalations) ?></span></h2>
-</div>
-<div class="p-card p-notif-card" style="margin-bottom:28px"><div class="p-notif-list">
-  <?php foreach ($escalations as $x): ?>
-    <div class="p-notif p-unread">
-      <span class="p-n-ico" style="background:var(--p-violet-bg);color:var(--p-violet-fg)"><?= p_icon('i-up', 18) ?></span>
-      <div><div><span class="p-mono-id"><?= e($x['report']['tracking_id'] ?? '') ?></span> &middot; <?= e(category_label((string) ($x['report']['category'] ?? ''))) ?>
-          &middot; <b><?= e($x['requester']['full_name'] ?? t('Tanod', 'Tanod')) ?>:</b> <?= e($x['reason']) ?></div>
-        <div class="p-when"><?= e(relative_time($x['created_at'])) ?><?php if (!empty($x['suggested_office'])): ?> &middot; <?= e(t('suggests ', 'mungkahi: ')) . e($x['suggested_office']) ?><?php endif; ?></div></div>
-      <?php if (!empty($x['report']['id'])): ?>
-        <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
-      <?php else: ?><span></span><?php endif; ?>
-    </div>
-  <?php endforeach; ?>
-</div></div>
+<section class="panel">
+  <header class="panel-bar">
+    <h2 class="panel-title"><?= e(t('Escalation Requests', 'Mga Hiling na I-escalate')) ?> (<?= count($escalations) ?>)</h2>
+  </header>
+  <div class="notif-list">
+    <?php foreach ($escalations as $x): ?>
+      <article class="notif">
+        <span class="notif-dot" aria-hidden="true"></span>
+        <div class="notif-body">
+          <p class="notif-msg">
+            <strong class="mono"><?= e($x['report']['tracking_id'] ?? '') ?></strong>
+            &middot; <?= e(category_label((string) ($x['report']['category'] ?? ''))) ?>
+            &middot; <?= e($x['requester']['full_name'] ?? t('Tanod', 'Tanod')) ?>:
+            <?= e($x['reason']) ?>
+          </p>
+          <p class="notif-when"><?= e(relative_time($x['created_at'])) ?><?php if (!empty($x['suggested_office'])): ?> &middot; <?= e(t('suggests ', 'mungkahi: ')) . e($x['suggested_office']) ?><?php endif; ?></p>
+        </div>
+        <?php if (!empty($x['report']['id'])): ?>
+          <a class="btn-review" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+        <?php endif; ?>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</section>
 <?php endif; ?>
 
 <!-- ---------- complaint register ---------- -->
-<?php $atc = count($attention ?? []); ?>
-<div class="p-band">
-  <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= count($reports) ?></span></h2>
-  <a class="p-chip p-chip-band<?= $view === 'attention' ? ' p-on' : '' ?>" id="attention-chip"
-     href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
-    <?= e(t('Needs attention', 'Kailangang asikasuhin')) ?> <span class="p-chip-num<?= $atc > 0 ? ' p-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
-  </a>
-  <form class="p-search" method="get" role="search">
-    <?= p_icon('i-search', 16) ?>
-    <input type="search" name="q" placeholder="<?= e(t('Search name, ID or category', 'Hanapin ang pangalan, ID o kategorya')) ?>" value="<?= e($search) ?>" aria-label="<?= e(t('Search reports', 'Maghanap sa mga ulat')) ?>">
-    <input type="hidden" name="status" value="<?= e($filter) ?>">
-    <input type="hidden" name="category" value="<?= e($category) ?>">
-    <input type="hidden" name="month" value="<?= e($month) ?>">
-    <input type="hidden" name="sort" value="<?= e($_GET['sort'] ?? 'newest') ?>">
-  </form>
-  <span class="p-spacer"></span>
-  <form method="get">
-    <input type="hidden" name="q" value="<?= e($search) ?>">
-    <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Filter by month', 'Salain ayon sa buwan')) ?></span>
-      <input type="month" name="month" value="<?= e($month) ?>" onchange="this.form.submit()"></label>
-    <label class="p-pill-select"><span class="p-lbl"><?= e(t('Category', 'Kategorya')) ?></span>
-      <select name="category" onchange="this.form.submit()">
-        <option value=""><?= e(t('All', 'Lahat')) ?></option>
-        <?php foreach (CATEGORIES as $c): ?>
-          <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
-        <?php endforeach; ?>
-      </select></label>
-    <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
-      <select name="status" onchange="this.form.submit()">
-        <option value=""><?= e(t('All', 'Lahat')) ?></option>
-        <?php foreach ([
-            'under_review' => t('Under Review', 'Nirerepaso'),
-            'in_progress'  => t('In Progress', 'Isinasagawa'),
-            'resolved'     => t('Resolved/Completed', 'Nalutas/Nakumpleto'),
-            'rejected'     => t('Rejected', 'Tinanggihan'),
-        ] as $s => $lbl): ?>
-          <option value="<?= e($s) ?>" <?= $filter === $s ? 'selected' : '' ?>><?= e($lbl) ?></option>
-        <?php endforeach; ?>
-      </select></label>
-  </form>
-</div>
+<section class="panel">
+  <header class="panel-bar">
+    <h2 class="panel-title"><?= e(t('Reports', 'Mga Ulat')) ?> (<span id="reports-count"><?= count($reports) ?></span>)</h2>
 
-<div class="p-card p-table-card"><div class="p-tscroll">
-  <table class="p-t">
-    <thead><tr>
-      <th scope="col"><?= e(t('Resident', 'Residente')) ?></th>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
-      <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
-    </tr></thead>
-    <tbody id="reports-tbody">
-      <?php if (!$reports): ?>
-        <tr><td colspan="6" class="p-empty">
-          <?= $search !== '' || $filter !== '' || $category !== '' || $month !== ''
-              ? e(t('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.'))
-              : e(t('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) ?>
-        </td></tr>
-      <?php endif; ?>
-      <?php foreach ($reports as $r): ?>
-        <tr class="p-click" data-href="case.php?id=<?= e($r['id']) ?>">
-          <td>
-            <?php if (!empty($r['is_anonymous'])): ?>
-              <span class="p-anon"><?= e(t('Anonymous', 'Hindi nagpakilala')) ?></span>
-            <?php else: ?>
-              <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e($r['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></span></div>
-            <?php endif; ?>
-          </td>
-          <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
-          <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?></td>
-          <td><div class="p-badges">
-            <span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?></span>
-            <?php if (report_is_overdue($r)): ?><span class="p-badge p-b-denied"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span><?php endif; ?>
-            <?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['referred_to']) ?></span><?php endif; ?>
-            <?php if (!empty($r['resolution_submitted_at'])): ?><span class="p-badge p-b-pending"><?= e(t('Awaiting approval', 'Naghihintay ng pag-apruba')) ?></span><?php endif; ?>
-            <?php if (!empty($r['followed_up_at']) && !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?><span class="p-badge p-b-pending"><?= e(t('Followed up', 'Nag-follow up')) ?></span><?php endif; ?>
-            <?php if (($r['reopened_count'] ?? 0) > 0): ?><span class="p-badge p-b-pending"><?= e(t('Reopened', 'Binuksang muli')) ?> <?= (int) $r['reopened_count'] ?>&times;</span><?php endif; ?>
-            <?php if (!empty($r['appealed_at'])): ?><span class="p-badge p-b-pending" title="<?= e(t('Reinstated on appeal', 'Ibinalik dahil sa apela')) ?>"><?= e(t('Appealed', 'Inapela')) ?></span><?php endif; ?>
-          </div></td>
-          <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
-          <td class="p-right"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a></td>
+    <?php $atc = count($attention ?? []); ?>
+    <a class="chip-filter<?= $view === 'attention' ? ' is-on' : '' ?>" id="attention-chip"
+       href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
+      <?= e(t('Needs attention', 'Kailangang asikasuhin')) ?>
+      <span class="chip-num<?= $atc > 0 ? ' is-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
+    </a>
+
+    <form class="panel-search" method="get">
+      <?= nav_icon('search') ?>
+      <input type="search" name="q" placeholder="<?= e(t('Search Here', 'Maghanap Dito')) ?>" value="<?= e($search) ?>">
+      <input type="hidden" name="status" value="<?= e($filter) ?>">
+      <input type="hidden" name="category" value="<?= e($category) ?>">
+      <input type="hidden" name="month" value="<?= e($month) ?>">
+      <input type="hidden" name="sort" value="<?= e($_GET['sort'] ?? 'newest') ?>">
+    </form>
+
+    <form class="panel-sort" method="get">
+      <input type="hidden" name="q" value="<?= e($search) ?>">
+      <label class="filter-option">
+        <input type="month" name="month" value="<?= e($month) ?>"
+               onchange="this.form.submit()" aria-label="<?= e(t('Filter by month', 'Salain ayon sa buwan')) ?>">
+      </label>
+      <label class="filter-option">
+        <select name="category" onchange="this.form.submit()">
+          <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
+          <?php foreach (CATEGORIES as $c): ?>
+            <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>>
+              <?= e(category_label($c)) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+      <label class="filter-option">
+        <select name="status" onchange="this.form.submit()">
+          <option value=""><?= e(t('Filter Option', 'Salain')) ?></option>
+          <?php foreach ([
+              'under_review' => t('Under Review', 'Nirerepaso'),
+              'in_progress'  => t('In Progress', 'Isinasagawa'),
+              'resolved'     => t('Resolved/Completed', 'Nalutas/Nakumpleto'),
+              'rejected'     => t('Rejected', 'Tinanggihan'),
+          ] as $s => $lbl): ?>
+            <option value="<?= e($s) ?>" <?= $filter === $s ? 'selected' : '' ?>>
+              <?= e($lbl) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+    </form>
+  </header>
+
+  <div class="table-wrap">
+    <table class="case-table">
+      <thead>
+        <tr>
+          <th scope="col"><?= e(t('Resident Name', 'Pangalan ng Residente')) ?></th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
+          <th scope="col"><a class="th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Date', 'Petsa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
+          <th scope="col"><span class="visually-hidden"><?= e(t('Action', 'Aksyon')) ?></span></th>
         </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
-</div></div>
+      </thead>
+      <tbody id="reports-tbody">
+        <?php if (!$reports): ?>
+          <tr class="row-empty">
+            <td colspan="6">
+              <?= $search !== '' || $filter !== '' || $category !== '' || $month !== ''
+                  ? e(t('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.'))
+                  : e(t('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) ?>
+            </td>
+          </tr>
+        <?php endif; ?>
+
+        <?php foreach ($reports as $r): ?>
+          <tr>
+            <td>
+              <?php if (!empty($r['is_anonymous'])): ?>
+                <span class="anon"><?= e(t('Anonymous', 'Hindi nagpakilala')) ?></span>
+              <?php else: ?>
+                <?= e($r['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?>
+              <?php endif; ?>
+            </td>
+            <td class="mono"><?= e($r['tracking_id']) ?></td>
+            <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><small class="cell-sub"><?= e($r['location_label']) ?></small><?php endif; ?></td>
+            <td>
+              <span class="pill pill--<?= e(status_class($r['status'])) ?>">
+                <?= e(status_label($r['status'])) ?>
+              </span>
+              <?php if (report_is_overdue($r)): ?>
+                <span class="pill pill--escalated"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($r['referred_to'])): ?>
+                <span class="pill pill--escalated"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['referred_to']) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($r['resolution_submitted_at'])): ?>
+                <span class="pill pill--pending"><?= e(t('Awaiting approval', 'Naghihintay ng pag-apruba')) ?></span>
+              <?php endif; ?>
+              <?php if (!empty($r['followed_up_at']) && !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
+                <span class="pill pill--pending"><?= e(t('Followed up', 'Nag-follow up')) ?></span>
+              <?php endif; ?>
+              <?php if (($r['reopened_count'] ?? 0) > 0): ?>
+                <span class="pill pill--pending"><?= e(t('Reopened', 'Binuksang muli')) ?> <?= (int) $r['reopened_count'] ?>&times;</span>
+              <?php endif; ?>
+              <?php if (!empty($r['appealed_at'])): ?>
+                <span class="pill pill--pending" title="<?= e(t('Reinstated on appeal', 'Ibinalik dahil sa apela')) ?>"><?= e(t('Appealed', 'Inapela')) ?></span>
+              <?php endif; ?>
+            </td>
+            <td><?= e(short_date($r['created_at'])) ?></td>
+            <td class="cell-action">
+              <a class="btn-review" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
@@ -387,14 +437,16 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
   const titleCase = s => String(s ?? '').replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
   function statusClass(s) {
-    // Mirrors status_class() in layout.php: the preview's badge colours.
     switch (s) {
       case 'pending_review': return 'pending';
-      case 'validated': case 'assigned':
-      case 'in_progress': case 'offline_investigation': return 'progress';
-      case 'resolved': return 'done';
-      case 'closed': case 'archived': return 'grey';
-      case 'rejected': return 'denied';
+      case 'validated': return 'validated';
+      case 'assigned': return 'assigned';
+      case 'in_progress':
+      case 'offline_investigation': return 'progress';
+      case 'resolved': return 'resolved';
+      case 'closed':
+      case 'archived': return 'closed';
+      case 'rejected': return 'rejected';
       default: return 'pending';
     }
   }
@@ -431,43 +483,41 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
 
     const tbody = document.getElementById('reports-tbody');
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="p-empty">' +
+      tbody.innerHTML = '<tr class="row-empty"><td colspan="6">' +
         (SEARCH || STATUS || CATEGORY || MONTH_FROM ? T('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.')
                                                     : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) +
         '</td></tr>';
       return;
     }
     tbody.innerHTML = filtered.map(r => {
-      const nm = (r.resident && r.resident.full_name) || T('Unknown', 'Hindi kilala');
-      const ini = String(nm).trim().split(/\s+/).filter(Boolean);
       const who = r.is_anonymous
-        ? '<span class="p-anon">' + T('Anonymous', 'Hindi nagpakilala') + '</span>'
-        : '<div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true">' + escapeHtml(((ini[0] || '?')[0] + (ini.length > 1 ? ini[ini.length - 1][0] : '')).toUpperCase()) + '</span><span>' + escapeHtml(nm) + '</span></div>';
+        ? '<span class="anon">' + T('Anonymous', 'Hindi nagpakilala') + '</span>'
+        : escapeHtml((r.resident && r.resident.full_name) || T('Unknown', 'Hindi kilala'));
       // 0072: Overdue (the admin's date has passed) replaces Escalated;
       // escalation is now a referral, shown by name.
       const open = !['resolved', 'closed', 'archived', 'rejected', 'cancelled'].includes(r.status);
       const escalated =
         (open && r.due_at && new Date(r.due_at) < new Date()
-          ? '<span class="p-badge p-b-denied">' + T('Overdue', 'Lampas na sa takdang oras') + '</span>' : '') +
+          ? '<span class="pill pill--escalated">' + T('Overdue', 'Lampas na sa takdang oras') + '</span>' : '') +
         (r.referred_to
-          ? '<span class="p-badge p-b-violet">' + T('Escalated to ', 'In-escalate sa ') + escapeHtml(r.referred_to) + '</span>' : '') +
+          ? '<span class="pill pill--escalated">' + T('Escalated to ', 'In-escalate sa ') + escapeHtml(r.referred_to) + '</span>' : '') +
         (r.resolution_submitted_at
-          ? '<span class="p-badge p-b-pending">' + T('Awaiting approval', 'Naghihintay ng pag-apruba') + '</span>' : '') +
+          ? '<span class="pill pill--pending">' + T('Awaiting approval', 'Naghihintay ng pag-apruba') + '</span>' : '') +
         (open && r.followed_up_at
-          ? '<span class="p-badge p-b-pending">' + T('Followed up', 'Nag-follow up') + '</span>' : '');
+          ? '<span class="pill pill--pending">' + T('Followed up', 'Nag-follow up') + '</span>' : '');
       const reopened = (r.reopened_count || 0) > 0
-        ? '<span class="p-badge p-b-pending">' + T('Reopened ', 'Binuksang muli ') + r.reopened_count + '&times;</span>' : '';
+        ? '<span class="pill pill--pending">' + T('Reopened ', 'Binuksang muli ') + r.reopened_count + '&times;</span>' : '';
       const appealed = r.appealed_at
-        ? '<span class="p-badge p-b-pending" title="' + T('Reinstated on appeal', 'Ibinalik dahil sa apela') + '">' + T('Appealed', 'Inapela') + '</span>' : '';
-      return '<tr class="p-click" data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
+        ? '<span class="pill pill--pending" title="' + T('Reinstated on appeal', 'Ibinalik dahil sa apela') + '">' + T('Appealed', 'Inapela') + '</span>' : '';
+      return '<tr>' +
         '<td>' + who + '</td>' +
-        '<td><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span></td>' +
+        '<td class="mono">' + escapeHtml(r.tracking_id) + '</td>' +
         '<td>' + escapeHtml(titleCase(r.category)) +
-          (r.location_label ? '<div class="p-sub">' + escapeHtml(r.location_label) + '</div>' : '') + '</td>' +
-        '<td><div class="p-badges"><span class="p-badge p-b-' + statusClass(r.status) + '">' +
-          escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</div></td>' +
-        '<td class="p-num">' + shortDate(r.created_at) + '</td>' +
-        '<td class="p-right"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=' +
+          (r.location_label ? '<small class="cell-sub">' + escapeHtml(r.location_label) + '</small>' : '') + '</td>' +
+        '<td><span class="pill pill--' + statusClass(r.status) + '">' +
+          escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</td>' +
+        '<td>' + shortDate(r.created_at) + '</td>' +
+        '<td class="cell-action"><a class="btn-review" href="case.php?id=' +
           encodeURIComponent(r.id) + '">' + T('Review', 'Suriin') + '</a></td>' +
         '</tr>';
     }).join('');
@@ -477,7 +527,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     document.getElementById('notif-count').textContent = rows.length;
     const list = document.getElementById('notif-list');
     if (!rows.length) {
-      list.innerHTML = '<p class="p-empty" id="notif-empty">' + (N_SEARCH
+      list.innerHTML = '<p class="empty" id="notif-empty">' + (N_SEARCH
         ? T('No notification matches that search.', 'Walang abisong tugma sa hinanap.')
         : T('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
             'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) + '</p>';
@@ -485,12 +535,12 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     }
     list.innerHTML = rows.map(n => {
       const review = n.report_id
-        ? '<a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=' + encodeURIComponent(n.report_id) + '">' + T('Review', 'Suriin') + '</a>' : '<span></span>';
-      return '<div class="p-notif p-unread">' +
-        '<span class="p-n-ico"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg></span>' +
-        '<div><div><span class="p-unread-dot"></span><b>' + escapeHtml(n.message) + '</b></div>' +
-        '<div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + '</div></div>' +
-        review + '</div>';
+        ? '<a class="btn-review" href="case.php?id=' + encodeURIComponent(n.report_id) + '">' + T('Review', 'Suriin') + '</a>' : '';
+      return '<article class="notif">' +
+        '<span class="notif-dot" aria-hidden="true"></span>' +
+        '<div class="notif-body"><p class="notif-msg">' + escapeHtml(n.message) + '</p>' +
+        '<p class="notif-when">' + escapeHtml(relativeTime(n.created_at)) + '</p></div>' +
+        review + '</article>';
     }).join('');
   }
 
@@ -546,12 +596,12 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       const badge = document.getElementById('live-badge'),
             text  = document.getElementById('live-badge-text');
       if (status === 'SUBSCRIBED') {
-        badge.classList.remove('p-down'); text.textContent = T('Live', 'Live');
+        badge.classList.remove('is-down'); text.textContent = T('Live', 'Live');
         // Nothing is replayed for the time the socket was down.
         if (wasDown) { wasDown = false; kickReports(); kickNotifs(); }
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         wasDown = true;
-        badge.classList.add('p-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
+        badge.classList.add('is-down'); text.textContent = T('Reconnecting…', 'Kumokonekta muli…');
       }
     });
 })();

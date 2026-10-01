@@ -256,103 +256,136 @@ function render_account_screen(string $role): void
     layout_head($title, $navFile);
     ?>
 
-    <div class="p-topbar"><h1><?= e($title) ?></h1>
-      <span class="p-live" id="live-badge" title="<?= e(t('New registrations appear here on their own', 'Kusang lumalabas dito ang mga bagong rehistro')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
-
     <?php if ($flash): ?>
-      <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
-    <?php endif; ?>
-    <?php if ($error): ?>
-      <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
+      <div class="flash flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
     <?php endif; ?>
 
-    <!-- Always rendered so the polling below can show it as accounts age past the window. -->
-    <div class="p-flash p-flash--error" id="overdue-banner" role="alert"<?= $overdue > 0 ? '' : ' hidden' ?>>
+    <?php if ($error): ?>
+      <div class="alert-bar" role="alert"><?= e($error) ?></div>
+    <?php endif; ?>
+
+    <!-- Always rendered so realtime polling below (added 6 Sep 2026) can
+         toggle it as accounts age past the window, rather than only being
+         able to show a banner that already existed at page load. -->
+    <div class="flash flash--error" id="overdue-banner" role="alert"
+         style="<?= $overdue > 0 ? '' : 'display:none' ?>">
       <span id="overdue-text"><?= $overdue ?> <?= e(t(($overdue === 1 ? 'registration has' : 'registrations have') . ' passed the two-hour verification window.',
                                                  'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.')) ?></span>
     </div>
 
-    <?php if ($isTanod): ?>
-      <!-- Today's shift: every active tanod (verified, not suspended or retired), whatever the search. -->
-      <div class="p-kpis p-attendance" id="attendance-grid" aria-label="<?= e(t("Today's shift attendance summary", 'Buod ng pagdalo sa shift ngayong araw')) ?>" style="margin-bottom:20px">
-        <?php foreach (TANOD_DUTY_STATES as $state => $label): ?>
-          <div class="p-card p-kpi p-att-<?= e($state) ?>"><div class="p-label"><span class="p-att-dot" aria-hidden="true"></span><?= e(status_label($state)) ?></div>
-            <div class="p-value p-num" data-state="<?= e($state) ?>"><?= (int) ($attendance[$state] ?? 0) ?></div>
-            <div class="p-delta"><?= e(t('Today’s shift', 'Shift ngayong araw')) ?></div></div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
+    <section class="panel">
+      <header class="panel-bar">
+        <h2 class="panel-title">
+          <?= e(t($noun . ' Accounts', 'Mga Account ng ' . $nounLabel)) ?> (<span id="accounts-count"><?= count($accounts) ?></span>)<span id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>> &middot; <span class="pending-count" id="pending-count"><?= $pending ?></span> <?= e(t('awaiting review', 'naghihintay ng pagsusuri')) ?></span>
+          <span class="live-badge" id="live-badge" title="<?= e(t('New registrations appear here on their own', 'Kusang lumalabas dito ang mga bagong rehistro')) ?>">
+            <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span>
+          </span>
+        </h2>
 
-    <div class="p-band">
-      <h2><?= e(t($noun . ' accounts', 'Mga account ng ' . $nounLabel)) ?><span class="p-badge-n p-badge-n--quiet" id="accounts-count"><?= count($accounts) ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('to review', 'susuriin')) ?></span></h2>
-      <form class="p-search" method="get" role="search">
-        <?= p_icon('i-search', 16) ?><label class="p-sr" for="acc-q"><?= e(t('Search', 'Maghanap')) ?></label>
-        <input id="acc-q" type="search" name="q" placeholder="<?= e(t('Search name, phone or email', 'Hanapin ang pangalan, telepono o email')) ?>" value="<?= e($search) ?>">
-        <?php if ($statusFilter !== ''): ?><input type="hidden" name="sort" value="<?= e($statusFilter) ?>"><?php endif; ?>
-      </form>
-      <span class="p-spacer"></span>
-      <form method="get">
-        <input type="hidden" name="q" value="<?= e($search) ?>">
-        <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
-          <select name="sort" onchange="this.form.submit()">
-            <option value=""><?= e(t('All', 'Lahat')) ?></option>
-            <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>><?= e(t('Pending', 'Nakabinbin')) ?></option>
-            <option value="verified" <?= $statusFilter === 'verified' ? 'selected' : '' ?>><?= e(t('Verified', 'Beripikado')) ?></option>
-          </select></label>
-      </form>
-    </div>
+        <form class="panel-search" method="get">
+          <?= nav_icon('search') ?>
+          <input type="search" name="q" placeholder="<?= e(t('Search Here', 'Maghanap Dito')) ?>" value="<?= e($search) ?>">
+        </form>
 
-    <div class="p-card p-table-card"><div class="p-tscroll">
-      <table class="p-t">
-        <thead><tr>
-          <th scope="col"><?= e(t($noun, $nounLabel)) ?></th>
-          <th scope="col"><?= e(t('Phone number', 'Numero ng telepono')) ?></th>
-          <?php if ($isTanod): ?><th scope="col"><?= e(t('Latest complaint handled', 'Huling hinawakang sumbong')) ?></th><?php endif; ?>
-          <th scope="col"><?= e(t('Email', 'Email')) ?></th>
-          <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
-          <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
-        </tr></thead>
-        <tbody id="accounts-tbody">
-          <?php if (!$accounts): ?>
-            <tr><td colspan="<?= $isTanod ? 6 : 5 ?>" class="p-empty"><?= $search !== ''
-                ? e(t('No account matches that search.', 'Walang account na tugma sa hinanap.'))
-                : e(t('No ' . strtolower($noun) . ' accounts have registered yet.', 'Wala pang nagparehistrong ' . strtolower($nounLabel) . '.')) ?></td></tr>
-          <?php endif; ?>
-          <?php foreach ($accounts as $a): ?>
+        <form class="panel-sort" method="get">
+          <input type="hidden" name="q" value="<?= e($search) ?>">
+          <label><?= e(t('Filter:', 'Salain:')) ?>
+            <select name="sort" onchange="this.form.submit()">
+              <option value=""><?= e(t('All accounts', 'Lahat ng account')) ?></option>
+              <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>><?= e(t('Pending Verification', 'Naghihintay ng Beripikasyon')) ?></option>
+              <option value="verified" <?= $statusFilter === 'verified' ? 'selected' : '' ?>><?= e(t('Verified', 'Beripikado')) ?></option>
+            </select>
+          </label>
+        </form>
+      </header>
+
+      <?php if ($isTanod): ?>
+        <!-- Figma TanodLists (branch B). Counted over every active tanod
+             (verified, not suspended or retired), whatever the search or
+             filter — it answers "who is out there right now". -->
+        <div class="attendance-card" aria-label="<?= e(t("Today's shift attendance summary", 'Buod ng pagdalo sa shift ngayong araw')) ?>">
+          <h3 class="attendance-title"><?= e(t('Today’s Shift Attendance Summary', 'Buod ng Pagdalo sa Shift Ngayong Araw')) ?></h3>
+          <ul class="attendance-grid" id="attendance-grid">
+            <?php foreach (TANOD_DUTY_STATES as $state => $label): ?>
+              <li class="attendance-cell attendance-cell--<?= e($state) ?>">
+                <span class="attendance-label"><span class="attendance-dot" aria-hidden="true"></span><?= e(status_label($state)) ?></span>
+                <strong data-state="<?= e($state) ?>"><?= (int) ($attendance[$state] ?? 0) ?></strong>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+
+      <div class="table-wrap">
+        <table class="case-table">
+          <thead>
             <tr>
-              <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e($a['full_name']) ?></span></div></td>
-              <td class="p-num"><?= e($a['mobile_number']) ?></td>
-              <?php if ($isTanod): ?>
-                <td><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">' . e(t('None', 'Wala')) . '</span>' ?></td>
-              <?php endif; ?>
-              <td><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
-              <td><div class="p-badges"><?= account_status_pills($a) ?><?php
-                  if (!empty($dupes[$a['id']])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', $dupes[$a['id']])) ?>"><?= e(t('Possible duplicate', 'Posibleng doble')) ?></span><?php endif; ?><?php
-                  if (ID_OCR_ENABLED && !empty($a['ocr_flags'])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>"><?= e(t('OCR flag', 'OCR flag')) ?></span><?php endif; ?><?php
-                  if (ID_OCR_ENABLED && !empty($a['ocr_rescan_requested_at'])
-                      && (empty($a['ocr_processed_at'])
-                          || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?><span class="p-badge p-b-grey" title="<?= e(t('Waiting for them to open the app', 'Hinihintay na buksan nila ang app')) ?>"><?= e(t('Re-check pending', 'Nakabinbing muling pagsuri')) ?></span><?php endif; ?></div></td>
-              <td class="p-right">
-                <a class="p-btn p-btn-sm <?= $a['verification_status'] === 'pending' ? 'p-btn-primary' : 'p-btn-ghost' ?>" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
-                  <?= $a['verification_status'] === 'pending' ? e(t('Review', 'Suriin')) : e(t('View', 'Tingnan')) ?>
-                </a>
-                <?php if ($a['verification_status'] === 'pending'
-                          && ID_OCR_ENABLED && account_ocr_is_clean($a)
-                          && empty($dupes[$a['id']])): ?>
-                  <form method="post" class="quick-verify-form" style="display:inline" data-name="<?= e($a['full_name']) ?>">
-                    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                    <input type="hidden" name="id" value="<?= e($a['id']) ?>">
-                    <button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="action" value="approve"
-                            title="<?= e(t('OCR read a clean, matching ID with no flags — verify without opening the full review', 'Malinaw at tugma ang ID ayon sa OCR, walang flag — i-verify nang hindi binubuksan ang buong pagsusuri')) ?>">
-                      <?= p_icon('i-check', 14) ?><?= e(t('Quick Verify', 'Mabilisang I-verify')) ?></button>
-                  </form>
-                <?php endif; ?>
-              </td>
+              <th scope="col"><?= e(t($noun . ' Name', 'Pangalan ng ' . $nounLabel)) ?></th>
+              <th scope="col"><?= e(t('Phone Number', 'Numero ng Telepono')) ?></th>
+              <?php if ($isTanod): ?><th scope="col"><?= e(t('Latest Complaint Handled', 'Huling Hinawakang Sumbong')) ?></th><?php endif; ?>
+              <th scope="col"><?= e(t('Email', 'Email')) ?></th>
+              <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
+              <th scope="col"><span class="visually-hidden"><?= e(t('Action', 'Aksyon')) ?></span></th>
             </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div></div>
+          </thead>
+          <tbody id="accounts-tbody">
+            <?php if (!$accounts): ?>
+              <tr class="row-empty">
+                <td colspan="<?= $isTanod ? 6 : 5 ?>"><?= $search !== ''
+                    ? e(t('No account matches that search.', 'Walang account na tugma sa hinanap.'))
+                    : e(t('No ' . strtolower($noun) . ' accounts have registered yet.', 'Wala pang nagparehistrong ' . strtolower($nounLabel) . '.')) ?></td>
+              </tr>
+            <?php endif; ?>
+
+            <?php foreach ($accounts as $a): ?>
+              <tr>
+                <td class="cell-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e($a['full_name']) ?></span></td>
+                <td class="mono"><?= e($a['mobile_number']) ?></td>
+                <?php if ($isTanod): ?>
+                  <td class="mono"><?= !empty($latestCase[$a['id']]) ? e($latestCase[$a['id']]) : '<span class="muted">' . e(t('None', 'Wala')) . '</span>' ?></td>
+                <?php endif; ?>
+                <td><?= e($a['email']) ?></td>
+                <td><?= account_status_pills($a) ?><?php
+                    if (!empty($dupes[$a['id']])): ?>
+                      <span class="pill pill--escalated" title="<?= e(implode('; ', $dupes[$a['id']])) ?>"><?= e(t('Possible duplicate', 'Posibleng doble')) ?></span>
+                    <?php endif; ?><?php
+                    if (ID_OCR_ENABLED && !empty($a['ocr_flags'])): ?>
+                      <span class="pill pill--escalated"
+                            title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>"><?= e(t('OCR flag', 'OCR flag')) ?></span>
+                    <?php endif; ?><?php
+                    if (ID_OCR_ENABLED && !empty($a['ocr_rescan_requested_at'])
+                        && (empty($a['ocr_processed_at'])
+                            || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?>
+                      <span class="pill" title="<?= e(t('Waiting for them to open the app', 'Hinihintay na buksan nila ang app')) ?>"><?= e(t('Re-check pending', 'Nakabinbing muling pagsuri')) ?></span>
+                    <?php endif; ?></td>
+                <td class="cell-action">
+                  <a class="btn-review" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
+                    <?= $a['verification_status'] === 'pending' ? e(t('Review', 'Suriin')) : e(t('View', 'Tingnan')) ?>
+                  </a>
+                  <?php if ($a['verification_status'] === 'pending'
+                            && ID_OCR_ENABLED && account_ocr_is_clean($a)
+                            && empty($dupes[$a['id']])): ?>
+                    <form method="post" class="quick-verify-form"
+                          data-name="<?= e($a['full_name']) ?>">
+                      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                      <input type="hidden" name="id" value="<?= e($a['id']) ?>">
+                      <button class="btn-quick-verify" type="submit" name="action" value="approve"
+                              title="<?= e(t('OCR read a clean, matching ID with no flags — verify without opening the full review', 'Malinaw at tugma ang ID ayon sa OCR, walang flag — i-verify nang hindi binubuksan ang buong pagsusuri')) ?>">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <?= e(t('Quick Verify', 'Mabilisang I-verify')) ?>
+                      </button>
+                    </form>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <script src="assets/vendor/supabase/supabase.js"></script>
     <script>
@@ -412,11 +445,11 @@ function render_account_screen(string $role): void
         return (first + last).toUpperCase();
       }
       function avatarHtml(url, name, size) {
-        var cls = 'p-avatar p-av-' + size;
+        var cls = 'avatar avatar--' + size;
         if (url) {
           return '<img class="' + cls + '" src="' + escapeHtml(url) + '" alt="" loading="lazy">';
         }
-        return '<span class="' + cls + '" aria-hidden="true">' + escapeHtml(initials(name)) + '</span>';
+        return '<span class="' + cls + ' avatar--fallback" aria-hidden="true">' + escapeHtml(initials(name)) + '</span>';
       }
 
       // Mirrors account_ocr_is_clean() in this same file exactly.
@@ -448,24 +481,24 @@ function render_account_screen(string $role): void
 
       function statusPillsHtml(a) {
         var out = [];
-        if (a.verification_status === 'verified') out.push('<span class="p-badge p-b-done">' + T('Verified', 'Beripikado') + '</span>');
-        else if (a.verification_status === 'rejected') out.push('<span class="p-badge p-b-denied">' + T('Rejected', 'Tinanggihan') + '</span>');
-        else out.push('<span class="p-badge p-b-pending">' + T('Pending', 'Nakabinbin') + '</span>');
+        if (a.verification_status === 'verified') out.push('<span class="pill pill--resolved">' + T('Verified', 'Beripikado') + '</span>');
+        else if (a.verification_status === 'rejected') out.push('<span class="pill pill--rejected">' + T('Rejected', 'Tinanggihan') + '</span>');
+        else out.push('<span class="pill pill--pending">' + T('Pending', 'Nakabinbin') + '</span>');
 
         if (a.is_suspended) {
           out.push(isSelfDeletedAccount(a)
-            ? '<span class="p-badge p-b-denied">' + T('Deleted by Resident', 'Binura ng Residente') + '</span>'
-            : '<span class="p-badge p-b-denied">' + T('Suspended', 'Suspendido') + '</span>');
+            ? '<span class="pill pill--rejected">' + T('Deleted by Resident', 'Binura ng Residente') + '</span>'
+            : '<span class="pill pill--rejected">' + T('Suspended', 'Suspendido') + '</span>');
         }
 
         if (a.verification_status === 'pending') {
-          if (a.is_overdue) out.push('<span class="p-badge p-b-denied">' + T('Overdue', 'Lampas-oras') + '</span>');
+          if (a.is_overdue) out.push('<span class="pill pill--escalated">' + T('Overdue', 'Lampas-oras') + '</span>');
           else if (a.minutes_left !== null && a.minutes_left !== undefined) {
-            out.push('<span class="p-badge p-b-progress">' + Math.trunc(a.minutes_left) + T(' min left', ' minuto pa') + '</span>');
+            out.push('<span class="pill pill--validated">' + Math.trunc(a.minutes_left) + T(' min left', ' minuto pa') + '</span>');
           }
         }
-        if (a.holding_incident) out.push('<span class="p-badge p-b-progress">' + T('On an incident', 'May hawak na insidente') + '</span>');
-        if (a.duty_status) out.push('<span class="p-badge p-b-grey">' + escapeHtml(STATUS_LABEL[a.duty_status] || titleCase(a.duty_status)) + '</span>');
+        if (a.holding_incident) out.push('<span class="pill pill--assigned">' + T('On an incident', 'May hawak na insidente') + '</span>');
+        if (a.duty_status) out.push('<span class="pill pill--closed">' + escapeHtml(STATUS_LABEL[a.duty_status] || titleCase(a.duty_status)) + '</span>');
         return out.join(' ');
       }
 
@@ -543,7 +576,7 @@ function render_account_screen(string $role): void
         document.getElementById('pending-count').textContent = pending;
 
         var overdueBanner = document.getElementById('overdue-banner');
-        overdueBanner.hidden = !(overdue > 0);
+        overdueBanner.style.display = overdue > 0 ? '' : 'none';
         document.getElementById('overdue-text').textContent =
           overdue + ' ' + T((overdue === 1 ? 'registration has' : 'registrations have') + ' passed the two-hour verification window.',
                             'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.');
@@ -552,7 +585,7 @@ function render_account_screen(string $role): void
 
         var tbody = document.getElementById('accounts-tbody');
         if (!filtered.length) {
-          tbody.innerHTML = '<tr><td class="p-empty" colspan="' + (IS_TANOD ? 6 : 5) + '">' +
+          tbody.innerHTML = '<tr class="row-empty"><td colspan="' + (IS_TANOD ? 6 : 5) + '">' +
             (SEARCH ? T('No account matches that search.', 'Walang account na tugma sa hinanap.')
                     : T('No ' + <?= json_encode(strtolower($noun)) ?> + ' accounts have registered yet.', 'Wala pang nagparehistrong ' + escapeHtml(NOUN_LABEL) + '.')) +
             '</td></tr>';
@@ -561,24 +594,24 @@ function render_account_screen(string $role): void
         tbody.innerHTML = filtered.map(function (a) {
           var extra = '';
           if (dupes[a.id] && dupes[a.id].length) {
-            extra += '<span class="p-badge p-b-violet" title="' + escapeHtml(dupes[a.id].join('; ')) + '">' + T('Possible duplicate', 'Posibleng doble') + '</span>';
+            extra += '<span class="pill pill--escalated" title="' + escapeHtml(dupes[a.id].join('; ')) + '">' + T('Possible duplicate', 'Posibleng doble') + '</span>';
           }
           if (OCR_ON && a.ocr_flags && a.ocr_flags.length) {
-            extra += '<span class="p-badge p-b-violet" title="' +
+            extra += '<span class="pill pill--escalated" title="' +
               escapeHtml(a.ocr_flags.map(ocrFlagLabel).join('; ')) + '">' + T('OCR flag', 'OCR flag') + '</span>';
           }
           if (OCR_ON && a.ocr_rescan_requested_at &&
               (!a.ocr_processed_at || String(a.ocr_processed_at) < String(a.ocr_rescan_requested_at))) {
-            extra += '<span class="p-badge p-b-grey" title="' + T('Waiting for them to open the app', 'Hinihintay na buksan nila ang app') + '">' + T('Re-check pending', 'Nakabinbing muling pagsuri') + '</span>';
+            extra += '<span class="pill" title="' + T('Waiting for them to open the app', 'Hinihintay na buksan nila ang app') + '">' + T('Re-check pending', 'Nakabinbing muling pagsuri') + '</span>';
           }
           var quickVerify = '';
           if (OCR_ON && a.verification_status === 'pending' && ocrIsClean(a) &&
               !(dupes[a.id] && dupes[a.id].length)) {
             quickVerify =
-              '<form method="post" class="quick-verify-form" style="display:inline" data-name="' + escapeHtml(a.full_name) + '">' +
+              '<form method="post" class="quick-verify-form" data-name="' + escapeHtml(a.full_name) + '">' +
                 '<input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '">' +
                 '<input type="hidden" name="id" value="' + escapeHtml(a.id) + '">' +
-                '<button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="action" value="approve" ' +
+                '<button class="btn-quick-verify" type="submit" name="action" value="approve" ' +
                   'title="' + T('OCR read a clean, matching ID with no flags — verify without opening the full review', 'Malinaw at tugma ang ID ayon sa OCR, walang flag — i-verify nang hindi binubuksan ang buong pagsusuri') + '">' +
                   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
                     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -588,13 +621,13 @@ function render_account_screen(string $role): void
               '</form>';
           }
           return '<tr>' +
-            '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(a.full_name) + '</span></div></td>' +
-            '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
-            (IS_TANOD ? '<td>' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
-                                               : '<span class="p-sub">' + T('None', 'Wala') + '</span>') + '</td>' : '') +
-            '<td>' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>' +
-            '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +
-            '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
+            '<td class="cell-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(a.full_name) + '</span></td>' +
+            '<td class="mono">' + escapeHtml(a.mobile_number) + '</td>' +
+            (IS_TANOD ? '<td class="mono">' + (LATEST[a.id] ? escapeHtml(LATEST[a.id])
+                                                            : '<span class="muted">' + T('None', 'Wala') + '</span>') + '</td>' : '') +
+            '<td>' + escapeHtml(a.email) + '</td>' +
+            '<td>' + statusPillsHtml(a) + extra + '</td>' +
+            '<td class="cell-action"><a class="btn-review" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
               (a.verification_status === 'pending' ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +
             '</tr>';
         }).join('');
@@ -775,11 +808,11 @@ function is_self_deleted_account(array $a): bool
  */
 function account_avatar_html(?string $url, string $name, string $size = 'sm'): string
 {
-    $cls = 'p-avatar p-av-' . $size;
+    $cls = 'avatar avatar--' . $size;
     if (!empty($url)) {
         return '<img class="' . $cls . '" src="' . e($url) . '" alt="" loading="lazy">';
     }
-    return '<span class="' . $cls . '" aria-hidden="true">' . e(account_initials($name)) . '</span>';
+    return '<span class="' . $cls . ' avatar--fallback" aria-hidden="true">' . e(account_initials($name)) . '</span>';
 }
 
 function account_initials(string $name): string
@@ -826,32 +859,32 @@ function account_status_pills(array $a): string
     $out = [];
 
     $out[] = match ($a['verification_status']) {
-        'verified' => '<span class="p-badge p-b-done">' . e(t('Verified', 'Beripikado')) . '</span>',
-        'rejected' => '<span class="p-badge p-b-denied">' . e(t('Rejected', 'Tinanggihan')) . '</span>',
-        default    => '<span class="p-badge p-b-pending">' . e(t('Pending', 'Nakabinbin')) . '</span>',
+        'verified' => '<span class="pill pill--resolved">' . e(t('Verified', 'Beripikado')) . '</span>',
+        'rejected' => '<span class="pill pill--rejected">' . e(t('Rejected', 'Tinanggihan')) . '</span>',
+        default    => '<span class="pill pill--pending">' . e(t('Pending', 'Nakabinbin')) . '</span>',
     };
 
     if (!empty($a['is_suspended'])) {
         $out[] = is_self_deleted_account($a)
-            ? '<span class="p-badge p-b-denied">' . e(t('Deleted by Resident', 'Binura ng Residente')) . '</span>'
-            : '<span class="p-badge p-b-denied">' . e(t('Suspended', 'Suspendido')) . '</span>';
+            ? '<span class="pill pill--rejected">' . e(t('Deleted by Resident', 'Binura ng Residente')) . '</span>'
+            : '<span class="pill pill--rejected">' . e(t('Suspended', 'Suspendido')) . '</span>';
     }
 
     if ($a['verification_status'] === 'pending') {
         $mins = $a['minutes_left'];
         if (!empty($a['is_overdue'])) {
-            $out[] = '<span class="p-badge p-b-denied">' . e(t('Overdue', 'Lampas-oras')) . '</span>';
+            $out[] = '<span class="pill pill--escalated">' . e(t('Overdue', 'Lampas-oras')) . '</span>';
         } elseif ($mins !== null) {
-            $out[] = '<span class="p-badge p-b-progress">' . (int) $mins . e(t(' min left', ' minuto pa')) . '</span>';
+            $out[] = '<span class="pill pill--validated">' . (int) $mins . e(t(' min left', ' minuto pa')) . '</span>';
         }
     }
 
     if (!empty($a['holding_incident'])) {
-        $out[] = '<span class="p-badge p-b-progress">' . e(t('On an incident', 'May hawak na insidente')) . '</span>';
+        $out[] = '<span class="pill pill--assigned">' . e(t('On an incident', 'May hawak na insidente')) . '</span>';
     }
 
     if (!empty($a['duty_status'])) {
-        $out[] = '<span class="p-badge p-b-grey">' . e(status_label((string) $a['duty_status'])) . '</span>';
+        $out[] = '<span class="pill pill--closed">' . e(status_label((string) $a['duty_status'])) . '</span>';
     }
 
     return implode(' ', $out);
@@ -869,7 +902,7 @@ function render_account_detail(
     ?>
 
     <?php if ($flash): ?>
-      <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
+      <div class="flash flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
       <?php
         // Shown once and cleared. Kept out of the flash text itself so a
         // reload, a screenshot of the toast, or a shoulder at the desk
@@ -878,13 +911,13 @@ function render_account_detail(
         unset($_SESSION['issued_password']);
       ?>
       <?php if ($issuedPassword !== null): ?>
-        <div class="p-temp-pass" role="status" style="margin-bottom:16px">
-          <span class="p-eyebrow" style="margin:0"><?= e(t('Temporary password', 'Pansamantalang password')) ?></span>
-          <code><?= e($issuedPassword) ?></code>
-          <small>
+        <div class="issued-password" role="status">
+          <span class="issued-password__label"><?= e(t('Temporary password', 'Pansamantalang password')) ?></span>
+          <code class="issued-password__value"><?= e($issuedPassword) ?></code>
+          <span class="issued-password__note">
             <?= e(t('Shown once. It is not stored anywhere and cannot be looked up again — if it is lost, issue another.',
                     'Isang beses lang ipinapakita. Hindi ito naka-save kahit saan at hindi na makikita muli — kung mawala, magbigay ng bago.')) ?>
-          </small>
+          </span>
         </div>
       <?php endif; ?>
     <?php endif; ?>
@@ -892,30 +925,38 @@ function render_account_detail(
     <!-- Same reasoning as case.php: this page has a deny-reason textarea
          and password fields live on screen, so a background change is
          announced rather than silently swapped in. -->
-    <div class="p-upd" id="update-banner" role="status">
+    <div class="update-banner" id="update-banner" role="status">
       <span><?= e(t('This account has changed since you opened it.', 'May nagbago sa account na ito mula nang buksan mo.')) ?></span>
-      <a class="p-btn p-btn-ghost p-btn-sm" href="<?= e($self) ?>?id=<?= e($p['id']) ?>"><?= e(t('Refresh to see it', 'I-refresh para makita')) ?></a>
+      <a href="<?= e($self) ?>?id=<?= e($p['id']) ?>"><?= e(t('Refresh to see it', 'I-refresh para makita')) ?></a>
     </div>
 
-    <div class="p-acc-top">
-      <a class="p-back" href="<?= e($self) ?>" aria-label="<?= e(t('Back to the list', 'Bumalik sa listahan')) ?>"><?= p_icon('i-back', 18) ?><?= e($navFile === 'personnel.php' ? t('Personnel', 'Mga Tanod') : t('Residents', 'Mga Residente')) ?></a>
-      <span class="p-acc-chip"><?= e(t($noun . ' Account', 'Account ng ' . $nounLabel)) ?></span>
-      <span class="p-live" id="live-badge" title="<?= e(t('Watching this account for changes', 'Binabantayan ang mga pagbabago sa account na ito')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live (checks every 20s)', 'Live (sinusuri kada 20s)')) ?></span></span>
+    <div class="case-top">
+      <a class="back-link" href="<?= e($self) ?>" aria-label="<?= e(t('Back to the list', 'Bumalik sa listahan')) ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="20" y1="12" x2="5" y2="12"/><polyline points="11 18 5 12 11 6"/>
+        </svg>
+      </a>
+      <span class="chip-tab"><?= e(t($noun . ' Account', 'Account ng ' . $nounLabel)) ?></span>
+      <span class="live-badge" id="live-badge" title="<?= e(t('Watching this account for changes', 'Binabantayan ang mga pagbabago sa account na ito')) ?>">
+        <span class="live-dot" aria-hidden="true"></span><span id="live-badge-text"><?= e(t('Live (checks every 20s)', 'Live (sinusuri kada 20s)')) ?></span>
+      </span>
     </div>
 
-    <div class="p-profile-grid">
-      <div class="p-grid">
-        <div class="p-card p-card-pad">
-        <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e($p['full_name']) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
+    <div class="case-grid">
+      <section class="card card--complaint">
+        <div class="acc-head-card">
+        <h1 class="case-heading"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><span><?= e($p['full_name']) ?></span></h1>
+        <div class="case-flags"><?= account_status_pills($p) ?></div>
 
         <?php if ($pending && !empty($p['due_at'])): ?>
-          <p class="p-clock verif-clock<?= !empty($p['is_overdue']) ? ' p-late' : '' ?>"
+          <p class="clock-line verif-clock<?= !empty($p['is_overdue']) ? ' is-late' : '' ?>"
              data-due="<?= e($p['due_at']) ?>">
             <span class="verif-text"><?= e(t('calculating…', 'kinakalkula…')) ?></span>
             <?= e(t('Submitted', 'Isinumite')) ?> <?= e(long_datetime($p['submitted_at'])) ?>.
           </p>
         <?php elseif ($pending && $p['minutes_left'] !== null): ?>
-          <p class="p-clock<?= !empty($p['is_overdue']) ? ' p-late' : '' ?>">
+          <p class="clock-line<?= !empty($p['is_overdue']) ? ' is-late' : '' ?>">
             <?php if (!empty($p['is_overdue'])): ?>
               <?= e(t('Past the two-hour window by ', 'Lampas na sa dalawang oras na palugit nang ')) ?><?= abs((int) $p['minutes_left']) ?><?= e(t(' minutes.', ' minuto.')) ?>
             <?php else: ?>
@@ -926,40 +967,41 @@ function render_account_detail(
         <?php endif; ?>
 
         <?php if (!empty($p['rejection_reason'])): ?>
-          <p class="p-clock p-late"><?= e(t('Reason on file:', 'Nakatalang dahilan:')) ?> <?= e($p['rejection_reason']) ?></p>
+          <p class="clock-line is-late"><?= e(t('Reason on file:', 'Nakatalang dahilan:')) ?> <?= e($p['rejection_reason']) ?></p>
         <?php endif; ?>
 
         </div>
-        <div class="p-card p-card-pad">
-          <p class="p-eyebrow"><?= e(t('Account Details', 'Detalye ng Account')) ?></p>
-          <dl class="p-dl">
+        <div class="case-block">
+          <h3 class="case-sub"><?= e(t('Account Details', 'Detalye ng Account')) ?></h3>
+          <dl class="detail-list">
             <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e($p['full_name']) ?></dd>
             <dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?></dd>
-            <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?></dd>
+            <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="mono"><?= e($p['mobile_number']) ?></dd>
             <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>
           </dl>
         </div>
 
-        <div class="p-card p-card-pad">
-          <p class="p-eyebrow"><?= e($idLabel) ?></p>
+        <div class="case-block">
+          <h3 class="case-sub"><?= e($idLabel) ?></h3>
           <?php if (empty($p['id_image_url'])): ?>
-            <p class="p-none-line"><?= e(t('No identification was uploaded. This account cannot be verified until one is.', 'Walang na-upload na ID. Hindi maveberipika ang account na ito hangga\'t walang ID.')) ?></p>
+            <p class="case-none"><?= e(t('No identification was uploaded. This account cannot be verified until one is.', 'Walang na-upload na ID. Hindi maveberipika ang account na ito hangga\'t walang ID.')) ?></p>
           <?php else: ?>
-            <a class="p-id-shot" href="<?= e($p['id_image_url']) ?>" target="_blank" rel="noopener">
+            <a class="id-shot" href="<?= e($p['id_image_url']) ?>" target="_blank" rel="noopener">
               <img src="<?= e($p['id_image_url']) ?>" alt="<?= e(t('Identification submitted by ', 'ID na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>
+        </div>
+
         <?php
           $ocrRescanPending = !empty($p['ocr_rescan_requested_at'])
               && (empty($p['ocr_processed_at'])
                   || (string) $p['ocr_processed_at'] < (string) $p['ocr_rescan_requested_at']);
         ?>
         <?php if (!ID_OCR_ENABLED && !empty($p['id_type'])): ?>
-          <p class="p-meta-line">
+          <p class="case-meta">
             <?= e(t('Applicant selected:', 'Pinili ng aplikante:')) ?> <?= e(id_document_type_label($p['id_type'])) ?>
           </p>
         <?php endif; ?>
-        </div>
 
         <?php if (ID_OCR_ENABLED && !empty($p['id_image_url'])): ?>
         <!-- OCR triage (0039): the applicant's own device reads the ID
@@ -968,10 +1010,10 @@ function render_account_detail(
              orders the queue and points at what to check first. The data
              has been flowing through account_directory() since 0039; this
              box is the first place any of it actually reaches a screen. -->
-        <div class="p-card p-card-pad">
-          <p class="p-eyebrow"><?= e(t('OCR Triage', 'Pagsusuri ng OCR')) ?></p>
+        <div class="case-block">
+          <h3 class="case-sub"><?= e(t('OCR Triage', 'Pagsusuri ng OCR')) ?></h3>
           <?php if (!empty($p['id_type'])): ?>
-            <p class="p-meta-line">
+            <p class="case-meta">
               <?= e(t('Applicant selected:', 'Pinili ng aplikante:')) ?> <?= e(id_document_type_label($p['id_type'])) ?>
             </p>
           <?php endif; ?>
@@ -979,22 +1021,22 @@ function render_account_detail(
           <?php if (empty($p['ocr_detected_type']) && empty($p['ocr_flags'])
                     && empty($p['ocr_extracted_name']) && empty($p['ocr_extracted_number'])): ?>
             <?php if (empty($p['ocr_processed_at'])): ?>
-              <p class="p-none-line">
+              <p class="case-none">
                 <?= e(t('OCR has never run on this account — it registered before this feature existed, or on an older app build.',
                         'Hindi pa natakbo ang OCR sa account na ito — nagparehistro ito bago ang feature na ito, o sa lumang bersyon ng app.')) ?>
               </p>
             <?php else: ?>
-              <p class="p-none-line"><?= e(t('OCR ran and found nothing to flag on this ID.', 'Natakbo ang OCR at walang nakitang dapat i-flag sa ID na ito.')) ?></p>
+              <p class="case-none"><?= e(t('OCR ran and found nothing to flag on this ID.', 'Natakbo ang OCR at walang nakitang dapat i-flag sa ID na ito.')) ?></p>
             <?php endif; ?>
           <?php else: ?>
             <?php if (!empty($p['ocr_flags'])): ?>
-              <div class="p-acc-flags">
+              <div class="case-flags">
                 <?php foreach ($p['ocr_flags'] as $flag): ?>
-                  <span class="p-badge p-b-violet"><?= e(ocr_flag_label((string) $flag)) ?></span>
+                  <span class="pill pill--escalated"><?= e(ocr_flag_label((string) $flag)) ?></span>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>
-            <dl class="p-dl">
+            <dl class="detail-list">
               <?php if (!empty($p['ocr_detected_type'])): ?>
                 <dt><?= e(t('OCR read this as', 'Binasa ito ng OCR bilang')) ?></dt><dd><?= e(id_document_type_label($p['ocr_detected_type'])) ?></dd>
               <?php endif; ?>
@@ -1002,16 +1044,16 @@ function render_account_detail(
                 <dt><?= e(t('Name on the ID', 'Pangalan sa ID')) ?></dt><dd><?= e($p['ocr_extracted_name']) ?></dd>
               <?php endif; ?>
               <?php if (!empty($p['ocr_extracted_number'])): ?>
-                <dt><?= e(t('ID number', 'Numero ng ID')) ?></dt><dd class="p-mono"><?= e($p['ocr_extracted_number']) ?></dd>
+                <dt><?= e(t('ID number', 'Numero ng ID')) ?></dt><dd class="mono"><?= e($p['ocr_extracted_number']) ?></dd>
               <?php endif; ?>
             </dl>
-            <p class="p-none-line" style="margin-top:8px">
+            <p class="case-none" style="margin-top:8px">
               <?= e(t("Advisory only, read off the photo by the applicant's own device — cross-check it against the ID photo above before deciding.",
                       'Payo lamang, binasa mula sa larawan ng sariling device ng aplikante — ihambing ito sa larawan ng ID sa itaas bago magpasya.')) ?>
             </p>
           <?php endif; ?>
           <?php if ($ocrRescanPending): ?>
-            <p class="p-ctl-note" style="margin-top:8px">
+            <p class="control-note" style="margin-top:8px">
               <?= e(t('Re-check requested', 'Humiling ng muling pagsuri')) ?> <?= e(relative_time($p['ocr_rescan_requested_at'])) ?> &mdash;
               <?= e(t('waiting for them to open the app.', 'hinihintay na buksan nila ang app.')) ?>
             </p>
@@ -1019,26 +1061,26 @@ function render_account_detail(
         </div>
         <?php endif; ?>
 
-        <div class="p-card p-card-pad">
-          <p class="p-eyebrow"><?= e(t('Uploaded Selfie', 'Na-upload na Selfie')) ?></p>
+        <div class="case-block">
+          <h3 class="case-sub"><?= e(t('Uploaded Selfie', 'Na-upload na Selfie')) ?></h3>
           <?php if (empty($p['selfie_url'])): ?>
-            <p class="p-none-line">
+            <p class="case-none">
               <?= e(t('Not submitted. Registration does not currently ask for one.', 'Hindi isinumite. Hindi ito kasalukuyang hinihingi sa rehistro.')) ?>
             </p>
           <?php else: ?>
-            <a class="p-id-shot p-id-shot--square" href="<?= e($p['selfie_url']) ?>" target="_blank" rel="noopener">
+            <a class="id-shot id-shot--square" href="<?= e($p['selfie_url']) ?>" target="_blank" rel="noopener">
               <img src="<?= e($p['selfie_url']) ?>" alt="<?= e(t('Selfie submitted by ', 'Selfie na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>
         </div>
 
         <?php if ($noun === 'Resident'): ?>
-          <div class="p-card p-card-pad">
-            <p class="p-eyebrow"><?= e(t('Abuse History', 'Kasaysayan ng Pang-aabuso')) ?></p>
+          <div class="case-block">
+            <h3 class="case-sub"><?= e(t('Abuse History', 'Kasaysayan ng Pang-aabuso')) ?></h3>
             <?php if (!$abuseHistory): ?>
-              <p class="p-none-line"><?= e(t('No complaints from this resident have been flagged as abusive or fabricated.', 'Walang sumbong ng residenteng ito na namarkahang mapang-abuso o gawa-gawa.')) ?></p>
+              <p class="case-none"><?= e(t('No complaints from this resident have been flagged as abusive or fabricated.', 'Walang sumbong ng residenteng ito na namarkahang mapang-abuso o gawa-gawa.')) ?></p>
             <?php else: ?>
-              <p class="p-clock<?= count($abuseHistory) >= 3 ? ' p-late' : '' ?>" style="margin:0">
+              <p class="clock-line<?= count($abuseHistory) >= 3 ? ' is-late' : '' ?>">
                 <strong><?= count($abuseHistory) ?></strong> <?= e(t((count($abuseHistory) === 1 ? 'report' : 'reports') . ' flagged as abusive or fabricated',
                                                                   'ulat na namarkahang mapang-abuso o gawa-gawa')) ?><?php if (count($abuseHistory) >= 3): ?>
                   &mdash; <?= e(t('this account was automatically restricted after the third flag.', 'awtomatikong pinigilan ang account na ito pagkatapos ng ikatlong flag.')) ?>
@@ -1046,12 +1088,12 @@ function render_account_detail(
                   &mdash; <?= e(t('one more flag will automatically restrict this account.', 'isa pang flag at awtomatikong pipigilan ang account na ito.')) ?>
                 <?php else: ?>.<?php endif; ?>
               </p>
-              <dl class="p-dl">
+              <dl class="detail-list">
                 <?php foreach ($abuseHistory as $ab): ?>
-                  <dt class="p-mono"><?= e($ab['tracking_id']) ?></dt>
+                  <dt class="mono"><?= e($ab['tracking_id']) ?></dt>
                   <dd>
                     <?= e($ab['subject']) ?><br>
-                    <span class="p-sub">
+                    <span class="clock-line" style="margin:0">
                       <?= e(t('Denied', 'Tinanggihan')) ?> <?= e(long_datetime($ab['flagged_at'])) ?><?php if (!empty($ab['remark'])): ?>
                         &mdash; <?= e($ab['remark']) ?>
                       <?php endif; ?>
@@ -1062,54 +1104,60 @@ function render_account_detail(
             <?php endif; ?>
           </div>
         <?php endif; ?>
-      </div>
+      </section>
 
-      <aside class="p-card p-controls">
-        <p class="p-eyebrow" style="margin:0"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
+      <aside class="card card--controls">
+        <h3 class="case-sub"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></h3>
 
-        <form method="post" class="p-ctl-stack">
+        <form method="post" class="control-stack">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="id" value="<?= e($p['id']) ?>">
 
           <?php if (ID_OCR_ENABLED && !empty($p['id_image_url'])): ?>
             <?php if ($ocrRescanPending): ?>
-              <p class="p-ctl-note">
+              <p class="control-note">
                 <?= e(t('ID re-check requested', 'Humiling ng muling pagsuri ng ID')) ?> <?= e(relative_time($p['ocr_rescan_requested_at'])) ?>.
               </p>
             <?php else: ?>
-              <button class="p-btn p-btn-ghost p-btn-block" type="submit" name="action" value="request_ocr_rescan">
+              <button class="btn-secondary" type="submit" name="action" value="request_ocr_rescan">
                 <?= e(t('Request ID Re-check', 'Humiling ng Muling Pagsuri ng ID')) ?>
               </button>
             <?php endif; ?>
           <?php endif; ?>
 
           <?php if ($pending): ?>
-            <p class="p-ctl-note">
+            <p class="control-note">
               <?= e(t('Check the name and address on the document against barangay records before approving.',
                       'Ihambing ang pangalan at address sa dokumento sa talaan ng barangay bago aprubahan.')) ?>
             </p>
 
-            <button class="p-btn p-btn-success p-btn-block" type="submit" name="action" value="approve"
+            <button class="btn-accept" type="submit" name="action" value="approve"
                     <?= empty($p['id_image_url']) ? 'disabled' : '' ?>>
-              <?= p_icon('i-check', 18) ?>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
               <?= e(t('Approve Registration', 'Aprubahan ang Rehistro')) ?>
             </button>
 
-            <button class="p-btn p-btn-danger-soft p-btn-block" type="button" data-reveal="deny-panel" aria-expanded="false">
-              <?= p_icon('i-x', 18) ?>
+            <button class="btn-deny" type="button" data-reveal="deny-panel" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                   stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <?= e(t('Deny Account', 'Tanggihan ang Account')) ?>
             </button>
 
-            <div class="p-reveal" id="deny-panel" hidden>
-              <label class="p-flabel" for="deny-reason"><?= e(t('Reason — the applicant sees this', 'Dahilan — makikita ito ng aplikante')) ?></label>
-              <textarea class="p-note" id="deny-reason" name="reason" rows="3" maxlength="200"
+            <div class="deny-panel" id="deny-panel" hidden>
+              <label class="field-label" for="deny-reason">
+                <?= e(t('Reason — the applicant sees this', 'Dahilan — makikita ito ng aplikante')) ?>
+              </label>
+              <textarea id="deny-reason" name="reason" rows="3" maxlength="200"
                         placeholder="<?= e(t('e.g. The ID photo is unreadable. Please re-upload a clearer image.', 'hal. Hindi mabasa ang larawan ng ID. Mag-upload muli ng mas malinaw.')) ?>"></textarea>
-              <button class="p-btn p-btn-danger-solid p-btn-sm" type="submit" name="action" value="deny"><?= e(t('Confirm denial', 'Kumpirmahin ang pagtanggi')) ?></button>
+              <button class="btn-deny-confirm" type="submit" name="action" value="deny"><?= e(t('Confirm denial', 'Kumpirmahin ang pagtanggi')) ?></button>
             </div>
 
           <?php elseif (!empty($p['is_suspended'])): ?>
             <?php $selfDeleted = is_self_deleted_account($p); ?>
-            <p class="p-ctl-note">
+            <p class="control-note">
               <?= $selfDeleted
                   ? e(t('This resident deleted their own account. Their filed reports remain on record — the name, email, and phone number you see here have been intentionally scrubbed, not just hidden.',
                         'Binura ng residenteng ito ang sarili niyang account. Nananatili sa talaan ang kanyang mga isinampang ulat — sinadyang burahin ang pangalan, email, at numerong nakikita mo rito, hindi lang itinago.'))
@@ -1119,31 +1167,31 @@ function render_account_detail(
               <?php endif; ?>
             </p>
             <?php if ($selfDeleted): ?>
-              <p class="p-none-line">
+              <p class="case-none">
                 <?= e(t('Reinstating would not restore their original name, email, or phone number — those are gone, not just concealed. There is nothing meaningful to reinstate this account to.',
                         'Hindi maibabalik ng pag-reinstate ang orihinal na pangalan, email, o numero — wala na ang mga iyon, hindi lang itinago. Walang makabuluhang maibabalik sa account na ito.')) ?>
               </p>
             <?php else: ?>
-              <button class="p-btn p-btn-success p-btn-block" type="submit" name="action" value="reinstate"
-                      data-confirm="<?= e(t('Reinstate ' . $p['full_name'] . '?', 'Ibalik si ' . $p['full_name'] . '?') . '|' . t('They will be able to sign in again.', 'Makakapag-sign in na silang muli.') . '|' . t('Reinstate', 'Ibalik') . '|blue') ?>"><?= e(t('Reinstate Account', 'Ibalik ang Account')) ?></button>
+              <button class="btn-accept" type="submit" name="action" value="reinstate"
+                      onclick="return confirm(<?= e(json_encode(t('Reinstate ' . $p['full_name'] . '? They will be able to sign in again.', 'Ibalik si ' . $p['full_name'] . '? Makakapag-sign in na silang muli.'), JSON_UNESCAPED_UNICODE)) ?>)"><?= e(t('Reinstate Account', 'Ibalik ang Account')) ?></button>
             <?php endif; ?>
 
           <?php elseif ($p['verification_status'] === 'verified'): ?>
-            <p class="p-ctl-note">
+            <p class="control-note">
               <?= e(t('Verified', 'Beripikado')) ?><?= !empty($p['holding_incident'])
                   ? e(t('. This tanod is holding a live incident — suspending them sends it back to the queue.', '. May hawak na insidente ang tanod na ito — kapag sinuspinde, babalik ito sa pila.'))
                   : '.' ?>
             </p>
 
-            <button class="p-btn p-btn-danger-soft p-btn-block" type="button" data-reveal="suspend-panel" aria-expanded="false">
+            <button class="btn-deny" type="button" data-reveal="suspend-panel" aria-expanded="false">
               <?= e(t('Suspend Account', 'Suspindihin ang Account')) ?>
             </button>
 
-            <div class="p-reveal" id="suspend-panel" hidden>
-              <label class="p-flabel" for="suspend-reason"><?= e(t('Reason for suspension', 'Dahilan ng suspensyon')) ?></label>
-              <textarea class="p-note" id="suspend-reason" name="reason" rows="3" maxlength="200"
+            <div class="deny-panel" id="suspend-panel" hidden>
+              <label class="field-label" for="suspend-reason"><?= e(t('Reason for suspension', 'Dahilan ng suspensyon')) ?></label>
+              <textarea id="suspend-reason" name="reason" rows="3" maxlength="200"
                         placeholder="<?= e(t('e.g. Repeatedly filed fraudulent complaints.', 'hal. Paulit-ulit na nagsampa ng mapanlinlang na sumbong.')) ?>"></textarea>
-              <button class="p-btn p-btn-danger-solid p-btn-sm" type="submit" name="action" value="suspend"><?= e(t('Confirm suspension', 'Kumpirmahin ang suspensyon')) ?></button>
+              <button class="btn-deny-confirm" type="submit" name="action" value="suspend"><?= e(t('Confirm suspension', 'Kumpirmahin ang suspensyon')) ?></button>
             </div>
 
             <!--
@@ -1156,47 +1204,49 @@ function render_account_detail(
               account was approved. That inspection is the whole security
               of this control.
             -->
-            <button class="p-btn p-btn-ghost p-btn-block" type="button" data-reveal="reset-panel"
+            <button class="btn-secondary" type="button" data-reveal="reset-panel"
                     aria-expanded="false">
               <?= e(t('Reset Password', 'I-reset ang Password')) ?>
             </button>
 
-            <div class="p-reveal" id="reset-panel" hidden>
-              <p class="p-ctl-note">
+            <div class="deny-panel" id="reset-panel" hidden>
+              <p class="control-note">
                 <?= e(t('Only do this with the person in front of you and their ID in hand. They will be shown a temporary password once — read it to them, do not send it. They must change it when they next sign in.',
                         'Gawin lamang ito kung kaharap mo ang tao at hawak mo ang kanilang ID. Isang beses lang ipapakita ang pansamantalang password — basahin ito sa kanila, huwag ipadala. Kailangan nila itong palitan sa susunod na pag-sign in.')) ?>
               </p>
-              <label class="p-flabel" for="reset-password"><?= e(t('Your password — confirms it is you at the keyboard', 'Ang iyong password — patunay na ikaw ang gumagamit')) ?></label>
-              <input class="p-input-plain" id="reset-password" type="password" name="password"
+              <label class="field-label" for="reset-password">
+                <?= e(t('Your password — confirms it is you at the keyboard', 'Ang iyong password — patunay na ikaw ang gumagamit')) ?>
+              </label>
+              <input id="reset-password" type="password" name="password"
                      autocomplete="new-password">
-              <button class="p-btn p-btn-danger-solid p-btn-sm" type="submit" name="action"
+              <button class="btn-deny-confirm" type="submit" name="action"
                       value="reset_password"><?= e(t('Issue temporary password', 'Magbigay ng pansamantalang password')) ?></button>
             </div>
 
           <?php else: ?>
-            <p class="p-ctl-note">
+            <p class="control-note">
               <?= e(t('This registration was denied. The applicant must register again.', 'Tinanggihan ang rehistrong ito. Kailangang magparehistro muli ng aplikante.')) ?>
             </p>
           <?php endif; ?>
         </form>
 
         <?php // 0073 — Manage User Account 3.2: fix a typo'd name or email. ?>
-        <details class="p-fix">
+        <details class="reroute">
           <summary><?= e(t('Correct profile details', 'Itama ang detalye ng profile')) ?></summary>
-          <form method="post" class="p-ctl-stack p-reveal">
+          <form method="post" class="control-stack">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= e($p['id']) ?>">
             <input type="hidden" name="action" value="correct_profile">
-            <div class="p-cfield">
-              <label class="p-flabel" for="fix-name"><?= e(t('Full name', 'Buong pangalan')) ?></label>
-              <input class="p-input-plain" type="text" id="fix-name" name="full_name" maxlength="120" required value="<?= e($p['full_name']) ?>">
+            <div class="control-field">
+              <label class="field-label" for="fix-name"><?= e(t('Full name', 'Buong pangalan')) ?></label>
+              <input type="text" id="fix-name" name="full_name" maxlength="120" required value="<?= e($p['full_name']) ?>">
             </div>
-            <div class="p-cfield">
-              <label class="p-flabel" for="fix-email"><?= e(t('Email address', 'Email address')) ?></label>
-              <input class="p-input-plain" type="email" id="fix-email" name="email" maxlength="160" value="<?= e($p['email'] ?? '') ?>" autocomplete="off">
+            <div class="control-field">
+              <label class="field-label" for="fix-email"><?= e(t('Email address', 'Email address')) ?></label>
+              <input type="email" id="fix-email" name="email" maxlength="160" value="<?= e($p['email'] ?? '') ?>" autocomplete="off">
             </div>
-            <p class="p-ctl-note"><?= e(t('The mobile number is their sign-in and cannot be changed here.', 'Ang mobile number ang kanilang pang-sign in at hindi mababago rito.')) ?></p>
-            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save corrections', 'I-save ang pagtatama')) ?></button>
+            <p class="control-note"><?= e(t('The mobile number is their sign-in and cannot be changed here.', 'Ang mobile number ang kanilang pang-sign in at hindi mababago rito.')) ?></p>
+            <button class="btn-dispatch" type="submit"><?= e(t('Save corrections', 'I-save ang pagtatama')) ?></button>
           </form>
         </details>
       </aside>
@@ -1216,7 +1266,7 @@ function render_account_detail(
         out.textContent = late
           ? T('Past the two-hour verification window by ', 'Lampas na sa dalawang oras na palugit nang ') + span + '.'
           : span + T(' left of the two-hour verification window.', ' pa ang natitira sa dalawang oras na palugit.');
-        el.classList.toggle('p-late', late);
+        el.classList.toggle('is-late', late);
         setTimeout(tick, 20000);
       })();
     })();
@@ -1305,7 +1355,7 @@ function render_account_detail(
           var found = res.data.find(function (a) { return a.id === ACCOUNT_ID; });
           if (!found) { return; } // account left this role's queue entirely (rare) — nothing safe to compare
           if (fingerprint(found) !== INITIAL_FINGERPRINT) {
-            document.getElementById('update-banner').classList.add('p-on');
+            document.getElementById('update-banner').classList.add('is-shown');
           }
         });
       }

@@ -190,14 +190,13 @@ $editing = isset($_GET['edit']);
 
 layout_head(t('Edit Profile', 'I-edit ang Profile'), 'profile.php');
 ?>
-<div class="p-topbar"><h1><?= e(t('Edit Profile', 'I-edit ang Profile')) ?></h1></div>
 
 <?php if ($flash): ?>
-  <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
+  <div class="flash flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
 <?php endif; ?>
 
 <?php if ($error || !$me): ?>
-  <div class="p-flash p-flash--error" role="alert"><?= e($error ?? t('Your profile could not be loaded.', 'Hindi ma-load ang iyong profile.')) ?></div>
+  <div class="alert-bar" role="alert"><?= e($error ?? t('Your profile could not be loaded.', 'Hindi ma-load ang iyong profile.')) ?></div>
   <?php layout_foot(); exit; ?>
 <?php endif; ?>
 
@@ -205,107 +204,176 @@ layout_head(t('Edit Profile', 'I-edit ang Profile'), 'profile.php');
 $parts    = preg_split('/\s+/', trim((string) $me['full_name'])) ?: [];
 $initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
 ?>
-<div class="p-profile-grid">
-  <div class="p-card p-card-pad">
-    <p class="p-eyebrow"><?= e(t('Profile', 'Profile')) ?></p>
+<!-- Figma "Edit profile" (12:6775) and "Editing profile" (12:6938),
+     branch B: the fields on the left, who is signed in on the right. -->
+<section class="profile-card">
+  <div class="profile-main">
+    <h1 class="profile-title"><?= e(t('Profile', 'Profile')) ?></h1>
+
     <?php if (!$editing): ?>
-      <label class="p-field" for="pf_name"><span><?= e(t('Full name', 'Buong pangalan')) ?></span><div class="p-input"><input id="pf_name" type="text" value="<?= e($me['full_name']) ?>" readonly></div></label>
-      <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
-        <label class="p-field" for="pf_mobile"><span><?= e(t('Mobile number', 'Mobile number')) ?></span><div class="p-input"><input id="pf_mobile" type="text" value="<?= e($me['mobile_number']) ?>" readonly></div></label>
-        <label class="p-field" for="pf_email"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input id="pf_email" type="text" value="<?= e($me['email']) ?>" readonly></div></label>
+      <div class="profile-field">
+        <label for="pf_name"><?= e(t('Full Name', 'Buong Pangalan')) ?></label>
+        <input id="pf_name" type="text" value="<?= e($me['full_name']) ?>" readonly>
       </div>
-      <label class="p-field" for="pf_pw" style="margin:0"><span><?= e(t('Password', 'Password')) ?></span><div class="p-input"><input id="pf_pw" type="password" value="************" readonly aria-describedby="pf_pw_hint"></div>
-        <small class="p-hint" id="pf_pw_hint"><?= e(t('Change it with Edit profile.', 'Palitan ito sa I-edit ang profile.')) ?></small></label>
+      <div class="profile-field">
+        <label for="pf_mobile"><?= e(t('Mobile Number', 'Mobile Number')) ?></label>
+        <input id="pf_mobile" type="text" value="<?= e($me['mobile_number']) ?>" readonly>
+      </div>
+      <div class="profile-field">
+        <label for="pf_email"><?= e(t('Email', 'Email')) ?></label>
+        <input id="pf_email" type="text" value="<?= e($me['email']) ?>" readonly>
+      </div>
+      <div class="profile-field">
+        <label for="pf_pw"><?= e(t('Password', 'Password')) ?></label>
+        <input id="pf_pw" type="password" value="************" readonly aria-describedby="pf_pw_hint">
+        <p class="field-hint" id="pf_pw_hint"><?= e(t('Change it with Edit Profile.', 'Palitan ito sa I-edit ang Profile.')) ?></p>
+      </div>
+
     <?php else: ?>
       <form method="post" id="profile-form">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="profile">
-        <label class="p-field" for="full_name"><span><?= e(t('Full name', 'Buong pangalan')) ?></span><div class="p-input"><input type="text" id="full_name" name="full_name" required maxlength="120" value="<?= e($me['full_name']) ?>"></div></label>
-        <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
-          <label class="p-field" for="mobile_number"><span><?= e(t('Mobile number', 'Mobile number')) ?></span>
-            <?php if ($mobileLocked): ?>
-              <!-- Sent unchanged, so the server still sees the same number. -->
-              <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" readonly value="<?= e($me['mobile_number']) ?>"></div>
-              <small class="p-hint"><?= e(t('This is how you sign in to the Smart Sumbong app, so it cannot be changed here.', 'Ito ang ginagamit mo sa pag-sign in sa Smart Sumbong app, kaya hindi ito mapapalitan dito.')) ?></small>
-            <?php else: ?>
-              <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" required pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>"></div>
-              <small class="p-hint"><?= e(t('Eleven digits, starting 09.', 'Labing-isang digit, nagsisimula sa 09.')) ?></small>
-            <?php endif; ?></label>
-          <label class="p-field" for="email_ro"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled></div>
-            <small class="p-hint"><?= e(t('This is your sign-in identity and cannot be changed here.', 'Ito ang iyong pagkakakilanlan sa pag-sign in at hindi mapapalitan dito.')) ?></small></label>
+
+        <div class="profile-field">
+          <label for="full_name"><?= e(t('Full Name', 'Buong Pangalan')) ?></label>
+          <input type="text" id="full_name" name="full_name" required maxlength="120"
+                 value="<?= e($me['full_name']) ?>">
         </div>
-        <p class="p-hint" style="margin:6px 0 12px"><?= e(t('To change your password, fill in all three boxes below. Leave them empty to keep it.', 'Para palitan ang password, punan ang tatlong kahon sa ibaba. Iwanang blangko para panatilihin ito.')) ?></p>
-        <label class="p-field" for="current_password"><span><?= e(t('Current password', 'Kasalukuyang password')) ?></span><div class="p-input"><input type="password" id="current_password" name="current_password" autocomplete="current-password"></div></label>
-        <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
-          <label class="p-field" for="new_password"><span><?= e(t('New password', 'Bagong password')) ?></span><div class="p-input"><input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password"></div>
-            <!-- Guidance, not a gate: the rule is eight characters. -->
-            <div class="p-pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
-            <small class="p-hint" id="pw-note"><?= e(t('At least 8 characters.', 'Hindi bababa sa 8 karakter.')) ?></small></label>
-          <label class="p-field" for="confirm_password"><span><?= e(t('Repeat new password', 'Ulitin ang bagong password')) ?></span><div class="p-input"><input type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password"></div></label>
+
+        <div class="profile-field">
+          <label for="mobile_number"><?= e(t('Mobile Number', 'Mobile Number')) ?></label>
+          <?php if ($mobileLocked): ?>
+            <!-- Sent unchanged, so the server still sees the same number. -->
+            <input type="tel" id="mobile_number" name="mobile_number" readonly
+                   value="<?= e($me['mobile_number']) ?>">
+            <p class="field-hint">
+              <?= e(t('This is how you sign in to the Smart Sumbong app, so it cannot be changed here.',
+                      'Ito ang ginagamit mo sa pag-sign in sa Smart Sumbong app, kaya hindi ito mapapalitan dito.')) ?>
+            </p>
+          <?php else: ?>
+            <input type="tel" id="mobile_number" name="mobile_number" required
+                   pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>">
+            <p class="field-hint"><?= e(t('Eleven digits, starting 09.', 'Labing-isang digit, nagsisimula sa 09.')) ?></p>
+          <?php endif; ?>
         </div>
-        <div class="p-row-between" style="justify-content:flex-end;gap:10px;margin-top:6px">
-          <button type="button" class="p-btn p-btn-ghost" id="profile-cancel"><?= e(t('Cancel', 'Kanselahin')) ?></button>
-          <button type="submit" class="p-btn p-btn-primary"><?= e(t('Save changes', 'I-save ang mga pagbabago')) ?></button>
+
+        <div class="profile-field">
+          <label for="email_ro"><?= e(t('Email', 'Email')) ?></label>
+          <input type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled>
+          <p class="field-hint"><?= e(t('This is your sign-in identity and cannot be changed here.', 'Ito ang iyong pagkakakilanlan sa pag-sign in at hindi mapapalitan dito.')) ?></p>
+        </div>
+
+        <p class="profile-note"><?= e(t('To change your password, fill in all three boxes below. Leave them empty to keep it.',
+                                 'Para palitan ang password, punan ang tatlong kahon sa ibaba. Iwanang blangko para panatilihin ito.')) ?></p>
+
+        <div class="profile-field">
+          <label for="current_password"><?= e(t('Current Password', 'Kasalukuyang Password')) ?></label>
+          <input type="password" id="current_password" name="current_password" autocomplete="current-password">
+        </div>
+
+        <div class="profile-field">
+          <label for="new_password"><?= e(t('New Password', 'Bagong Password')) ?></label>
+          <input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password">
+          <!-- Guidance, not a gate. The rule is eight characters; the meter
+               just tells you whether you have done better than that. -->
+          <div class="pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
+          <p class="field-hint" id="pw-note"><?= e(t('At least 8 characters.', 'Hindi bababa sa 8 karakter.')) ?></p>
+        </div>
+
+        <div class="profile-field">
+          <label for="confirm_password"><?= e(t('Repeat New Password', 'Ulitin ang Bagong Password')) ?></label>
+          <input type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password">
+        </div>
+
+        <div class="profile-actions">
+          <button type="button" class="profile-btn" id="profile-cancel"><?= e(t('Cancel', 'Kanselahin')) ?></button>
+          <button type="submit" class="profile-btn profile-btn--save"><?= e(t('Save', 'I-save')) ?></button>
         </div>
       </form>
 
-      <div class="p-scrim" id="confirm-save"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cs-t">
-        <div class="p-m-ico" style="background:var(--p-green-bg);color:var(--p-green)"><?= p_icon('i-check', 26) ?></div>
-        <h3 id="cs-t"><?= e(t('Save changes?', 'I-save ang mga pagbabago?')) ?></h3><p><?= e(t('Your profile will be updated right away.', 'Maa-update agad ang iyong profile.')) ?></p>
-        <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><button type="button" class="p-btn p-btn-primary" id="confirm-save-ok"><?= e(t('Save', 'I-save')) ?></button></div></div></div>
-      <div class="p-scrim" id="confirm-cancel"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cc-t">
-        <div class="p-m-ico" style="background:var(--p-red-bg);color:var(--p-red)"><?= p_icon('i-x', 26) ?></div>
-        <h3 id="cc-t"><?= e(t('Discard changes?', 'Itapon ang mga pagbabago?')) ?></h3><p><?= e(t('Anything you changed will be lost.', 'Mawawala ang anumang binago mo.')) ?></p>
-        <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><a class="p-btn p-btn-danger-soft" href="profile.php"><?= e(t('Discard', 'Itapon')) ?></a></div></div></div>
+      <!-- Figma 12:7185 and 12:7497. -->
+      <dialog class="profile-confirm" id="confirm-cancel">
+        <p class="profile-confirm-title"><?= e(t('Are you Sure?', 'Sigurado ka ba?')) ?></p>
+        <p class="profile-confirm-text"><?= e(t('Your changes will not be saved.', 'Hindi mase-save ang iyong mga pagbabago.')) ?></p>
+        <div class="profile-confirm-actions">
+          <button type="button" class="profile-btn" data-close><?= e(t('Cancel', 'Kanselahin')) ?></button>
+          <a class="profile-btn profile-btn--save" href="profile.php">OK !</a>
+        </div>
+      </dialog>
+      <dialog class="profile-confirm" id="confirm-save">
+        <p class="profile-confirm-title"><?= e(t('Save Changes ?', 'I-save ang mga Pagbabago?')) ?></p>
+        <div class="profile-confirm-actions">
+          <button type="button" class="profile-btn" data-close><?= e(t('Cancel', 'Kanselahin')) ?></button>
+          <button type="button" class="profile-btn profile-btn--save" id="confirm-save-ok">OK !</button>
+        </div>
+      </dialog>
     <?php endif; ?>
   </div>
 
-  <aside class="p-card p-card-pad p-profile-side">
+  <aside class="profile-side">
     <?php if (!empty($me['avatar_url'])): ?>
-      <img class="p-avatar-lg" src="<?= e($me['avatar_url']) ?>" alt="">
+      <img class="profile-avatar" src="<?= e($me['avatar_url']) ?>" alt="">
     <?php else: ?>
-      <div class="p-avatar-lg" aria-hidden="true"><?= e($initials) ?></div>
+      <span class="profile-avatar profile-avatar--initials" aria-hidden="true"><?= e($initials) ?></span>
     <?php endif; ?>
-    <div><b style="font-size:18px"><?= e($me['full_name']) ?></b><div class="p-hint"><?= e($me['email']) ?></div></div>
-    <div class="p-badges" style="justify-content:center">
-      <span class="p-badge p-b-progress"><?= e(status_label($me['role'])) ?></span>
-      <span class="p-badge p-b-done"><?= e(status_label($me['verification_status'])) ?></span>
+    <p class="profile-name"><?= e($me['full_name']) ?></p>
+    <p class="profile-email"><?= e($me['email']) ?></p>
+    <div class="profile-pills">
+      <span class="pill pill--assigned"><?= e(status_label($me['role'])) ?></span>
+      <span class="pill pill--resolved"><?= e(status_label($me['verification_status'])) ?></span>
     </div>
     <?php if (!$editing): ?>
-      <a class="p-btn p-btn-ghost" href="profile.php?edit=1"><?= p_icon('i-gear', 16) ?><?= e(t('Edit profile', 'I-edit ang profile')) ?></a>
+      <a class="profile-edit" href="profile.php?edit=1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M4 12h7M4 17h5"/><path d="m14 19 1-3 5-5 2 2-5 5-3 1z"/></svg>
+        <?= e(t('Edit Profile', 'I-edit ang Profile')) ?>
+      </a>
     <?php endif; ?>
-    <div class="p-sep"></div>
-    <div class="p-kv"><span><?= e(t('Account created', 'Ginawa ang account')) ?></span><b><?= e(long_datetime($me['created_at'])) ?></b></div>
-    <?php if ($lastSeen): ?>
-      <div class="p-kv"><span><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><b><?= e(long_datetime($lastSeen)) ?></b></div>
-    <?php endif; ?>
+    <dl class="profile-meta">
+      <dt><?= e(t('Account created', 'Ginawa ang account')) ?></dt><dd><?= e(long_datetime($me['created_at'])) ?></dd>
+      <?php if ($lastSeen): ?>
+        <dt><?= e(t('Last signed in', 'Huling pag-sign in')) ?></dt><dd><?= e(long_datetime($lastSeen)) ?></dd>
+      <?php endif; ?>
+    </dl>
   </aside>
-</div>
+</section>
 
 <script>
 (function () {
   var form = document.getElementById('profile-form');
   if (!form) return;
-  // Save asks first; the browser's own checks run before the question.
-  var sure = false;
+
+  // Save asks first (Figma 12:7497); the browser's own checks run before
+  // the question, so the dialog never confirms a form that cannot send.
+  var ask = document.getElementById('confirm-save'), sure = false;
   form.addEventListener('submit', function (e) {
     if (sure) return;
     e.preventDefault();
     if (!form.reportValidity()) return;
-    window.pOpen('confirm-save');
+    ask.showModal();
   });
   document.getElementById('confirm-save-ok').addEventListener('click', function () {
-    sure = true; window.pClose(); form.requestSubmit();
+    sure = true;
+    ask.close();
+    form.requestSubmit();
   });
-  // Cancel asks only when something was changed.
-  var start = new FormData(form);
+
+  // Cancel asks only when something was changed (Figma 12:7185).
+  var start = new FormData(form), cancel = document.getElementById('confirm-cancel');
   document.getElementById('profile-cancel').addEventListener('click', function () {
     var changed = false;
     new FormData(form).forEach(function (v, k) { if (start.get(k) !== v) changed = true; });
-    if (changed) window.pOpen('confirm-cancel'); else location.href = 'profile.php';
+    if (changed) cancel.showModal(); else location.href = 'profile.php';
   });
-  // A password change needs all three boxes: any one filled makes the other two required.
-  var pwBoxes = ['current_password', 'new_password', 'confirm_password'].map(function (id) { return document.getElementById(id); });
+  document.querySelectorAll('.profile-confirm [data-close]').forEach(function (b) {
+    b.addEventListener('click', function () { b.closest('dialog').close(); });
+  });
+
+  // A password change needs all three boxes: any one filled makes the
+  // other two required, so the browser says which is missing.
+  var pwBoxes = ['current_password', 'new_password', 'confirm_password'].map(function (id) {
+    return document.getElementById(id);
+  });
   pwBoxes.forEach(function (box) {
     box.addEventListener('input', function () {
       var any = pwBoxes.some(function (b) { return b.value !== ''; });
@@ -333,7 +401,7 @@ $initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? 
                   T('Weak — add length.', 'Mahina — habaan pa.'), T('Weak — add length.', 'Mahina — habaan pa.'),
                   T('Fair. A longer phrase beats added symbols.', 'Katamtaman. Mas mabuti ang mas mahabang parirala kaysa dagdag na simbolo.'),
                   T('Good.', 'Mabuti.'), T('Strong.', 'Malakas.')];
-    bar.className = levels[score] ? 'p-' + levels[score] : '';
+    bar.className = levels[score] || '';
     bar.style.width = (score / 5 * 100) + '%';
     note.textContent = v === '' ? words[0] : words[score];
   });

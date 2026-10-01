@@ -37,76 +37,104 @@ $categories = [
 layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 ?>
 
-<!-- The preview's map: it covers the page, everything else floats on it. -->
-<section class="p-map-page" id="s-spatial">
-  <div class="p-map-full" id="map"></div>
+<section class="panel panel--map">
+  <header class="panel-bar">
+    <h2 class="panel-title"><?= e(t('Barangay 183 Map', 'Mapa ng Barangay 183')) ?></h2>
+    <div class="map-toolbar">
+      <label class="visually-hidden" for="f-category"><?= e(t('Filter by complaint type', 'Salain ayon sa uri ng sumbong')) ?></label>
+      <select id="f-category">
+        <option value=""><?= e(t('All complaint types', 'Lahat ng uri ng sumbong')) ?></option>
+        <?php foreach ($categories as $c): ?>
+          <option value="<?= e($c) ?>"><?= e(category_label($c)) ?></option>
+        <?php endforeach; ?>
+      </select>
 
-  <div class="p-map-float p-map-search" id="map-search">
-    <div class="p-ttl"><h1><?= e(t('Spatial Distribution', 'Mapa ng mga Sumbong')) ?></h1>
-      <span class="p-live" id="map-live"><i></i><?= e(t('Live', 'Live')) ?></span>
-      <span class="p-note" id="map-status"><?= e(t('Connecting…', 'Kumokonekta…')) ?></span></div>
-    <div class="p-row">
-      <label class="p-pill-select"><span class="p-sr"><?= e(t('Filter by complaint type', 'Salain ayon sa uri ng sumbong')) ?></span>
-        <select id="f-category">
-          <option value=""><?= e(t('All complaint types', 'Lahat ng uri ng sumbong')) ?></option>
-          <?php foreach ($categories as $c): ?><option value="<?= e($c) ?>"><?= e(category_label($c)) ?></option><?php endforeach; ?>
-        </select></label>
-      <label class="p-pill-select"><span class="p-sr"><?= e(t('Filter by status', 'Salain ayon sa katayuan')) ?></span>
-        <select id="f-status">
-          <option value=""><?= e(t('All statuses', 'Lahat ng katayuan')) ?></option>
-          <option value="under_review"><?= e(t('Under Review', 'Nirerepaso')) ?></option>
-          <option value="in_progress"><?= e(t('In Progress', 'Isinasagawa')) ?></option>
-          <option value="resolved"><?= e(t('Resolved/Completed', 'Nalutas/Nakumpleto')) ?></option>
-          <option value="rejected"><?= e(t('Rejected', 'Tinanggihan')) ?></option>
-        </select></label>
-      <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Month filed', 'Buwan ng pagsampa')) ?></span>
-        <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>" disabled></label>
-      <label class="p-pill-select p-tog"><input type="checkbox" id="f-period-all" checked> <?= e(t('All time', 'Lahat ng panahon')) ?></label>
-      <!-- Rose (27 Sep 2026): choices above take effect on Apply; the switches below act at once. -->
-      <button type="button" class="p-btn p-btn-primary p-btn-sm p-apply" id="f-apply"><?= e(t('Apply', 'Ilapat')) ?></button>
+      <label class="visually-hidden" for="f-status"><?= e(t('Filter by status', 'Salain ayon sa katayuan')) ?></label>
+      <select id="f-status">
+        <option value=""><?= e(t('All statuses', 'Lahat ng katayuan')) ?></option>
+        <option value="under_review"><?= e(t('Under Review', 'Nirerepaso')) ?></option>
+        <option value="in_progress"><?= e(t('In Progress', 'Isinasagawa')) ?></option>
+        <option value="resolved"><?= e(t('Resolved/Completed', 'Nalutas/Nakumpleto')) ?></option>
+        <option value="rejected"><?= e(t('Rejected', 'Tinanggihan')) ?></option>
+      </select>
+
+      <label class="visually-hidden" for="f-period"><?= e(t('Month filed', 'Buwan ng pagsampa')) ?></label>
+      <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>" disabled>
+      <label class="toggle"><input type="checkbox" id="f-period-all" checked> <?= e(t('All time', 'Lahat ng panahon')) ?></label>
+
+      <!-- Rose (27 Sep 2026): choices above take effect on Apply, not one
+           by one; the toggles below still act at once. -->
+      <button type="button" class="map-apply" id="f-apply"><?= e(t('Apply', 'Ilapat')) ?></button>
+
+      <label class="toggle"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
+      <label class="toggle"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
+      <label class="toggle"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
     </div>
-    <div class="p-row">
-      <label class="p-pill-select p-tog"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
-      <label class="p-pill-select p-tog"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label>
-      <label class="p-pill-select p-tog"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
+  </header>
+
+  <div class="map-shell">
+    <div id="map"></div>
+    <!-- The use cases' two map messages (View Geospatial Incident Heatmap,
+         Monitor Real-Time Map). -->
+    <p class="map-note" id="map-empty" hidden><?= e(t('No spatial indices found for selected parameters', 'Walang nakitang lokasyon para sa napiling mga parameter')) ?></p>
+    <p class="map-note map-note--error" id="map-failed" hidden><?= e(t('Map unavailable. Please reload.', 'Hindi available ang mapa. Paki-reload.')) ?></p>
+
+    <!-- Barangay wifi drops. A map that has silently stopped updating
+         looks exactly like a map with nothing new on it, which is the
+         more dangerous of the two. -->
+    <aside class="pin-detail" id="pin-detail" hidden></aside>
+
+    <div class="conn-strip" id="conn" hidden role="status">
+      <span class="conn-dot"></span><span id="conn-text"><?= e(t('Reconnecting…', 'Kumokonekta muli…')) ?></span>
     </div>
-  </div>
 
-  <p class="p-map-empty" id="map-empty" hidden><?= e(t('No spatial indices found for selected parameters', 'Walang nakitang lokasyon para sa napiling mga parameter')) ?></p>
-  <p class="p-map-empty p-map-empty--error" id="map-failed" hidden><?= e(t('Map unavailable. Please reload.', 'Hindi available ang mapa. Paki-reload.')) ?></p>
+    <div class="map-dock">
+      <button class="map-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>
+        </svg>
+      </button>
 
-  <aside class="p-map-detail" id="pin-detail" hidden></aside>
+      <button class="map-btn" id="expand-btn" type="button" title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+        </svg>
+      </button>
 
-  <!-- Barangay wifi drops: a map that has silently stopped updating looks
-       exactly like a map with nothing new on it. -->
-  <div class="p-conn" id="conn" hidden role="status"><span class="p-conn-dot"></span><span id="conn-text"><?= e(t('Reconnecting…', 'Kumokonekta muli…')) ?></span></div>
+      <button class="incident-badge" id="incident-toggle" aria-expanded="false"
+              aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21"/>
+          <line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/>
+        </svg>
+        <span class="incident-count" id="pin-count">0</span>
+      </button>
 
-  <aside class="p-card p-card-pad p-map-stats" id="map-side" hidden>
-    <p class="p-eyebrow"><?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?></p>
-    <ol class="p-pin-list" id="pin-list"></ol>
-  </aside>
-  <aside class="p-card p-card-pad p-map-stats" id="hotspot-side" hidden>
-    <p class="p-eyebrow"><?= e(t('Top hotspots', 'Nangungunang hotspot')) ?></p>
-    <p class="p-hint" id="hotspot-status" style="margin:0 0 8px"><?= e(t('Turn on Hotspots to see recurring problem areas.', 'I-on ang Mga Hotspot para makita ang mga lugar na paulit-ulit ang problema.')) ?></p>
-    <ol class="p-pin-list" id="hotspot-list"></ol>
-  </aside>
+      <aside class="map-side" id="map-side" hidden>
+        <p class="map-side-head"><?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?></p>
+        <p class="map-side-note" id="map-status"><?= e(t('Connecting…', 'Kumokonekta…')) ?></p>
+        <ol class="pin-list" id="pin-list"></ol>
+      </aside>
 
-  <div class="p-map-legend" id="map-legend">
-    <div><span class="p-lg p-lg-circle" style="--c:#f59e0b"></span><?= e(t('Under review', 'Nirerepaso')) ?></div>
-    <div><span class="p-lg p-lg-square" style="--c:#2563eb"></span><?= e(t('In progress', 'Isinasagawa')) ?></div>
-    <div><span class="p-lg p-lg-diamond" style="--c:#22c55e"></span><?= e(t('Resolved', 'Nalutas')) ?></div>
-    <div><span class="p-lg p-lg-cross" style="--c:#9aa1ab"></span><?= e(t('Rejected', 'Tinanggihan')) ?></div>
-  </div>
+      <button class="incident-badge" id="hotspot-toggle" aria-expanded="false"
+              aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2c-1.5 3-4.5 5.5-4.5 9.5a4.5 4.5 0 0 0 9 0c0-1.5-.6-2.5-1.3-3.4.1 1.6-.7 2.4-1.4 2.4.6-2.4-.4-4.6-1.8-8.5Z"/>
+        </svg>
+        <span class="incident-count" id="hotspot-count">0</span>
+      </button>
 
-  <div class="p-map-dock">
-    <button class="p-dock-btn" id="expand-btn" type="button" title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>" aria-label="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-    <button class="p-dock-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>" aria-label="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
-    <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
-      <?= p_icon('i-map', 18) ?><span class="p-cnt" id="pin-count">0</span></button>
-    <button class="p-dock-btn" id="hotspot-toggle" aria-expanded="false" aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>" aria-label="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 2 1.2 3 2.5 3.5C11 9 11 5 12 2z"/></svg><span class="p-cnt" id="hotspot-count">0</span></button>
+      <aside class="map-side" id="hotspot-side" hidden>
+        <p class="map-side-head"><?= e(t('Top hotspots', 'Nangungunang hotspot')) ?></p>
+        <p class="map-side-note" id="hotspot-status"><?= e(t('Turn on Hotspots to see recurring problem areas.', 'I-on ang Mga Hotspot para makita ang mga lugar na paulit-ulit ang problema.')) ?></p>
+        <ol class="pin-list" id="hotspot-list"></ol>
+      </aside>
+
+    </div>
   </div>
 </section>
 
@@ -420,7 +448,7 @@ function markDirty() {
   const f = readFilters();
   const dirty = f.cat !== applied.cat || f.st !== applied.st || f.allTime !== applied.allTime
              || (!f.allTime && f.period !== applied.period);
-  document.getElementById('f-apply').classList.toggle('p-dirty', dirty);
+  document.getElementById('f-apply').classList.toggle('is-dirty', dirty);
 }
 
 function visible() {
@@ -454,23 +482,23 @@ async function draw() {
 
   const badge = document.getElementById('incident-toggle');
   document.getElementById('pin-count').textContent = rows.length;
-  badge.classList.toggle('p-live-n', rows.length > 0);
+  badge.classList.toggle('is-live', rows.length > 0);
 
   const list = document.getElementById('pin-list');
   list.innerHTML = '';
   rows.slice(0, 40).forEach(r => {
     const li = document.createElement('li');
-    li.className = 'p-pin-row';
+    li.className = 'pin-item';
     li.innerHTML =
-      '<span class="p-dot-s" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
-      '<span class="p-pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
+      '<span class="pin-dot" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
+      '<span class="pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
       '<small>' + esc(label(r.category)) + '</small></span>';
     li.addEventListener('mouseenter', () => map.panTo([r.longitude, r.latitude]));
     list.appendChild(li);
   });
 
   if (!rows.length) {
-    list.innerHTML = '<li class="p-pin-empty">' + T('No complaint matches these filters.', 'Walang sumbong na tugma sa mga salang ito.') + '</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('No complaint matches these filters.', 'Walang sumbong na tugma sa mga salang ito.') + '</li>';
   }
 }
 
@@ -533,20 +561,20 @@ function showDetail(r) {
   const submitted = fmtDate(r.created_at) || '—';
   const deadline  = fmtDate(r.due_at);
   box.innerHTML =
-    '<button class="p-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
-    '<p class="p-id">' + esc(r.tracking_id) + '</p>' +
-    '<p class="p-cat">' + esc(label(r.category)) + '</p>' +
-    '<p class="p-sub">' + esc(r.subject) + '</p>' +
-    (r.location_label ? '<p class="p-near">' + T('Near ', 'Malapit sa ') + esc(r.location_label) + '</p>' : '') +
-    '<p class="p-st"><span class="p-dot-s" style="background:' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
+    '<p class="detail-id">' + esc(r.tracking_id) + '</p>' +
+    '<p class="detail-cat">' + esc(label(r.category)) + '</p>' +
+    '<p class="detail-sub">' + esc(r.subject) + '</p>' +
+    (r.location_label ? '<p class="detail-place">' + T('Near ', 'Malapit sa ') + esc(r.location_label) + '</p>' : '') +
+    '<p class="detail-status"><span class="pin-dot" style="background:' +
       (COLOUR[r.status] || '#9aa1ab') + '"></span>' + esc(label(r.status)) + '</p>' +
-    '<dl class="p-dates">' +
+    '<dl class="detail-dates">' +
       '<dt>' + T('Submitted', 'Isinumite') + '</dt><dd>' + submitted + '</dd>' +
       '<dt>' + T('Deadline', 'Takdang oras') + '</dt><dd>' + (deadline || T('No deadline set', 'Walang takdang oras')) + '</dd>' +
     '</dl>' +
-    '<a class="p-btn p-btn-primary p-btn-sm" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a>';
+    '<a class="detail-open" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a>';
   box.removeAttribute('hidden');
-  box.querySelector('.p-x').addEventListener('click',
+  box.querySelector('.detail-x').addEventListener('click',
     () => box.setAttribute('hidden', ''));
 }
 
@@ -565,7 +593,7 @@ document.getElementById('fit-btn').addEventListener('click', () => {
 // container size, so it needs an explicit nudge once the browser has
 // actually finished resizing the element.
 const expandBtn = document.getElementById('expand-btn');
-const mapShell  = document.getElementById('s-spatial');
+const mapShell  = document.querySelector('.map-shell');
 // iPhone Safari has no element fullscreen at all; a button that does
 // nothing when tapped reads as broken, so it is not offered there.
 if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
@@ -582,7 +610,7 @@ expandBtn.addEventListener('click', () => {
 });
 document.addEventListener('fullscreenchange', () => {
   const active = document.fullscreenElement === mapShell;
-  expandBtn.classList.toggle('p-on', active);
+  expandBtn.classList.toggle('is-active', active);
   expandBtn.title = active ? T('Exit full screen', 'Lumabas sa full screen') : T('Expand map to full screen', 'I-full screen ang mapa');
   setTimeout(() => map.resize(), 120);
 });
@@ -715,26 +743,26 @@ function showHotspotDetail(h) {
 
   const box = document.getElementById('pin-detail');
   box.innerHTML =
-    '<button class="p-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
-    '<p class="p-id">Hotspot &mdash; ' + h.report_count + T(h.report_count === 1 ? ' report' : ' reports', ' ulat') + '</p>' +
-    '<p class="p-cat">' + T('Mostly ', 'Karamihan ay ') + esc(label(h.top_category)) + '</p>' +
-    '<dl class="p-dates">' +
+    '<button class="detail-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
+    '<p class="detail-id">Hotspot &mdash; ' + h.report_count + T(h.report_count === 1 ? ' report' : ' reports', ' ulat') + '</p>' +
+    '<p class="detail-cat">' + T('Mostly ', 'Karamihan ay ') + esc(label(h.top_category)) + '</p>' +
+    '<dl class="detail-dates">' +
       '<dt>' + T('Submitted', 'Isinumite') + '</dt><dd>' + submittedRange + '</dd>' +
       '<dt>' + T('Deadline', 'Takdang oras') + '</dt><dd>' + deadlineText + '</dd>' +
     '</dl>' +
     (members.length
-      ? '<p class="p-sub">' + T('Reports in this cluster:', 'Mga ulat sa kumpol na ito:') + '</p>' +
-        '<ol class="p-pin-list" style="margin:0">' +
+      ? '<p class="detail-sub">' + T('Reports in this cluster:', 'Mga ulat sa kumpol na ito:') + '</p>' +
+        '<ol class="pin-list" style="margin:0">' +
         members.slice(0, 8).map(r =>
-          '<li class="p-pin-row">' +
-            '<span class="p-dot-s" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
-            '<span class="p-pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
+          '<li class="pin-item">' +
+            '<span class="pin-dot" style="background:' + (COLOUR[r.status] || '#9aa1ab') + '"></span>' +
+            '<span class="pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
             '<small>' + esc(label(r.category)) + '</small></span>' +
           '</li>').join('') +
         '</ol>'
       : '');
   box.removeAttribute('hidden');
-  box.querySelector('.p-x').addEventListener('click',
+  box.querySelector('.detail-x').addEventListener('click',
     () => box.setAttribute('hidden', ''));
 }
 
@@ -767,7 +795,7 @@ async function loadHotspots() {
   map.setLayoutProperty('hotspots', 'visibility', 'visible');
 
   count.textContent = hotspots.length;
-  badge.classList.toggle('p-live-n', hotspots.length > 0);
+  badge.classList.toggle('is-live', hotspots.length > 0);
   status.textContent = hotspots.length
     ? hotspots.length + T(hotspots.length === 1 ? ' recurring area found in this period.' : ' recurring areas found in this period.',
                           ' lugar na paulit-ulit ang nakita sa panahong ito.')
@@ -777,16 +805,16 @@ async function loadHotspots() {
   list.innerHTML = '';
   hotspots.slice(0, 15).forEach((h, i) => {
     const li = document.createElement('li');
-    li.className = 'p-pin-row';
+    li.className = 'pin-item';
     li.innerHTML =
-      '<span class="p-dot-s" style="background:' + hotspotColour(h.report_count) + '"></span>' +
-      '<span class="p-pin-body">#' + (i + 1) + ' — ' + h.report_count + T(' reports', ' ulat') +
+      '<span class="pin-dot" style="background:' + hotspotColour(h.report_count) + '"></span>' +
+      '<span class="pin-body">#' + (i + 1) + ' — ' + h.report_count + T(' reports', ' ulat') +
       '<small>' + esc(label(h.top_category)) + '</small></span>';
     li.addEventListener('click', () => map.easeTo({ center: [h.centroid_lng, h.centroid_lat], zoom: 17 }));
     list.appendChild(li);
   });
   if (!hotspots.length) {
-    list.innerHTML = '<li class="p-pin-empty">' + T('Nothing recurring enough to call a hotspot yet.', 'Wala pang sapat na paulit-ulit para tawaging hotspot.') + '</li>';
+    list.innerHTML = '<li class="pin-empty">' + T('Nothing recurring enough to call a hotspot yet.', 'Wala pang sapat na paulit-ulit para tawaging hotspot.') + '</li>';
   }
 }
 

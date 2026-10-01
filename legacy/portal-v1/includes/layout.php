@@ -10,40 +10,43 @@ declare(strict_types=1);
 function nav_items(): array
 {
     return [
-        ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'i-dash'],
-        ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
-        ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
-        ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
-        ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
-        ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
-        ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'i-brief'],
+        ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'chart'],
+        ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'doc'],
+        ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'map'],
+        ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'chat'],
+        ['residents.php',  t('Residents', 'Mga Residente'),                   'users'],
+        ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'user'],
+        ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'badge'],
     ];
 }
 
-/** An icon from the preview's set (includes/p_sprite.svg). */
-function p_icon(string $id, int $size = 0): string
-{
-    $wh = $size ? ' width="' . $size . '" height="' . $size . '"' : '';
-    return '<svg' . $wh . ' aria-hidden="true"><use href="#' . e($id) . '"/></svg>';
-}
-
-/** Kept for pages still drawing the old icon names (doc_print, certificate). */
 function nav_icon(string $name): string
 {
-    $map = ['chart' => 'i-dash', 'doc' => 'i-doc', 'map' => 'i-map', 'chat' => 'i-chat', 'users' => 'i-users',
-            'user' => 'i-shield', 'badge' => 'i-brief', 'gear' => 'i-gear', 'out' => 'i-out', 'search' => 'i-search'];
-    return p_icon($map[$name] ?? 'i-doc');
+    $paths = [
+        'chart' => '<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/>',
+        'doc'   => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+        'map'   => '<polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/>',
+        'chat'  => '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>',
+        'users' => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/>',
+        'user'  => '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+        'badge' => '<circle cx="12" cy="8" r="6"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/>',
+        'gear'  => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.5-2.6l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4z"/>',
+        'out'   => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+        'search'=> '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    ];
+    $d = $paths[$name] ?? '';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+         . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $d . '</svg>';
 }
 
 function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();
-    $en = lang() === 'en';
     ?><!DOCTYPE html>
 <html lang="<?= html_lang() ?>">
 <head>
 <meta charset="utf-8">
-<?= theme_head(false) ?>
+<?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
 // The live connections' token (27 Sep 2026). A page starts with the one
@@ -73,55 +76,56 @@ window.ssAccessToken = function (initial) {
 <title><?= e($title) ?> — Smart Sumbong | Barangay 183</title>
 <link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
 <link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
-<meta name="theme-color" content="#00308F">
+<meta name="theme-color" content="#0B2B6B">
+<link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
-<link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
-<link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
-<script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
+<link href="assets/css/app.css?v=<?= e(asset_version('app.css')) ?>" rel="stylesheet">
+<link href="assets/css/refined.css?v=<?= e(asset_version('refined.css')) ?>" rel="stylesheet">
 </head>
-<body class="p-body page-<?= e(basename($active, '.php')) ?>">
-<?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
-<div id="app" class="p-on">
-  <aside class="p-sidebar">
-    <a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.png" alt="Smart Sumbong"></a>
-    <nav class="p-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
-      <?php $live = open_complaint_count(); $counts = nav_counts(); $counts['spatial.php'] = $live; ?>
-      <?php foreach (nav_items() as [$href, $label, $icon]): ?>
-        <?php $n = $counts[$href] ?? 0; ?>
-        <a href="<?= e($href) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
-          <?= p_icon($icon) ?><span><?= e($label) ?></span>
-          <?php if ($n > 0): ?><span class="p-count" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?>
-        </a>
-      <?php endforeach; ?>
-    </nav>
-    <div class="p-side-foot">
-      <button type="button" class="p-side-toggle" data-theme-toggle data-dark="<?= e(t('Dark Mode', 'Madilim na Tema')) ?>" data-light="<?= e(t('Dark Mode', 'Madilim na Tema')) ?>">
-        <span class="p-left"><?= p_icon('i-moon', 18) ?><span class="p-lbl" data-theme-label><?= e(t('Dark Mode', 'Madilim na Tema')) ?></span></span><span class="p-switch"></span>
-      </button>
-      <div class="p-seg pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
-        <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" class="<?= $en ? 'p-on' : '' ?>">English</button>
-        <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" class="<?= $en ? '' : 'p-on' ?>">Tagalog</button>
-      </div>
-      <div class="p-side-user<?= $active === 'profile.php' ? ' p-active' : '' ?>" id="side-user">
-        <a class="p-side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
-          <?= admin_avatar_html($admin) ?>
-          <div class="p-who"><b><?= e($admin['full_name'] ?? t('Administrator', 'Tagapangasiwa')) ?></b><small><?= e(t('Edit profile', 'I-edit ang profile')) ?></small></div>
-        </a>
-        <button type="button" title="<?= e(t('Log out', 'Mag-log out')) ?>" aria-label="<?= e(t('Log out', 'Mag-log out')) ?>" data-p-open="p-m-logout"><?= p_icon('i-out', 18) ?></button>
-      </div>
+<body class="page-<?= e(basename($active, '.php')) ?>">
+<div class="shell">
+  <nav class="sidebar">
+    <a class="brand" href="dashboard.php">
+      <?php if (is_file(__DIR__ . '/../assets/img/logo-wordmark.png')): ?>
+        <img src="assets/img/logo-wordmark.png" alt="Smart Sumbong">
+      <?php else: ?>
+        <div class="brand-fallback">Sm<span>art</span>Sumbong</div>
+      <?php endif; ?>
+    </a>
+
+    <?php $live = open_complaint_count(); $counts = nav_counts(); ?>
+    <?php foreach (nav_items() as [$href, $label, $icon]): ?>
+      <?php $pulse = ($icon === 'map' && $live > 0); $n = $counts[$href] ?? 0; ?>
+      <a class="nav-item<?= basename($href) === $active ? ' active' : '' ?>" href="<?= e($href) ?>">
+        <?php if ($pulse): ?>
+          <span class="nav-pulse is-live" title="<?= e($live . ' ' . t($live === 1 ? 'open complaint' : 'open complaints', 'bukas na sumbong')) ?>">
+            <?= nav_icon($icon) ?><span class="nav-num"><?= $live > 99 ? '99+' : $live ?></span>
+          </span>
+        <?php elseif ($n > 0): ?>
+          <span class="nav-ic"><?= nav_icon($icon) ?><span class="nav-count"><?= $n > 99 ? '99+' : $n ?></span></span>
+        <?php else: ?>
+          <?= nav_icon($icon) ?>
+        <?php endif; ?>
+        <span><?= e($label) ?></span>
+      </a>
+    <?php endforeach; ?>
+
+    <div class="nav-spacer"></div>
+
+    <?= prefs_switches('prefs--sidebar') ?>
+
+    <?php // The admin's own card: opens Edit Profile; the arrow signs out. ?>
+    <div class="side-user<?= $active === 'profile.php' ? ' active' : '' ?>">
+      <a class="side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
+        <span class="side-avatar" aria-hidden="true"><?= e(admin_initials((string) ($admin['full_name'] ?? ''))) ?></span>
+        <span class="side-who"><b><?= e($admin['full_name'] ?? t('Administrator', 'Tagapangasiwa')) ?></b><small><?= e(t('Edit profile', 'I-edit ang profile')) ?></small></span>
+      </a>
+      <a class="side-out" href="logout.php" title="<?= e(t('Log out', 'Mag-log out')) ?>" aria-label="<?= e(t('Log out', 'Mag-log out')) ?>"><?= nav_icon('out') ?></a>
     </div>
-  </aside>
+  </nav>
 
-  <main class="p-main">
+  <main class="main">
 <?php
-}
-
-/** The admin's picture on their sidebar card, or their initials. */
-function admin_avatar_html(?array $admin): string
-{
-    $url = $admin['avatar_url'] ?? null;
-    if ($url) return '<img class="p-avatar" src="' . e($url) . '" alt="">';
-    return '<div class="p-avatar" aria-hidden="true">' . e(admin_initials((string) ($admin['full_name'] ?? ''))) . '</div>';
 }
 
 /**
@@ -140,17 +144,20 @@ function idle_timeout(): void
 {
     if (!current_admin()) return;
     ?>
-    <div class="p-scrim" id="idle-veil"><div class="p-modal" role="alertdialog" aria-modal="true" aria-labelledby="idle-h" aria-describedby="idle-p">
-      <div class="p-m-ico" style="background:var(--p-amber-bg);color:var(--p-amber)"><?= p_icon('i-clock', 26) ?></div>
-      <h3 id="idle-h"><?= e(t('Still there?', 'Nandiyan ka pa ba?')) ?></h3>
-      <p id="idle-p"><?= e(t("You have been idle for a while. For the barangay's security this session will end in",
-                             'Matagal ka nang walang galaw. Para sa seguridad ng barangay, matatapos ang session na ito sa')) ?>
-        <b id="idle-left" class="p-num">120</b> <?= e(t('seconds.', 'segundo.')) ?></p>
-      <div class="p-actions">
-        <button class="p-btn p-btn-ghost" type="button" id="idle-go"><?= e(t('Sign out now', 'Mag-sign out ngayon')) ?></button>
-        <button class="p-btn p-btn-primary" type="button" id="idle-stay"><?= e(t('Keep me signed in', 'Manatiling naka-sign in')) ?></button>
+    <div class="idle-veil" id="idle-veil" hidden>
+      <div class="idle-box" role="alertdialog" aria-labelledby="idle-h" aria-describedby="idle-p">
+        <h2 id="idle-h"><?= e(t('Still there?', 'Nandiyan ka pa ba?')) ?></h2>
+        <p id="idle-p">
+          <?= e(t("You have been idle for a while. For the barangay's security this session will end in",
+                  'Matagal ka nang walang galaw. Para sa seguridad ng barangay, matatapos ang session na ito sa')) ?>
+          <strong id="idle-left">120</strong> <?= e(t('seconds.', 'segundo.')) ?>
+        </p>
+        <div class="confirm-actions">
+          <button class="btn-accept" type="button" id="idle-stay"><?= e(t('Keep me signed in', 'Manatiling naka-sign in')) ?></button>
+          <button class="btn-deny" type="button" id="idle-go"><?= e(t('Sign out now', 'Mag-sign out ngayon')) ?></button>
+        </div>
       </div>
-    </div></div>
+    </div>
 
     <form method="post" action="logout.php" id="idle-form" hidden>
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -169,7 +176,7 @@ function idle_timeout(): void
       function warn() {
         remaining = GRACE_S;
         left.textContent = remaining;
-        veil.classList.add('p-on');
+        veil.removeAttribute('hidden');
         graceTimer = setInterval(function () {
           left.textContent = --remaining;
           if (remaining <= 0) { clearInterval(graceTimer); signOut(); }
@@ -177,14 +184,14 @@ function idle_timeout(): void
       }
 
       function reset() {
-        if (veil.classList.contains('p-on')) return;   // the prompt is up; ignore stray events
+        if (!veil.hasAttribute('hidden')) return;   // the prompt is up; ignore stray events
         clearTimeout(idleTimer);
         idleTimer = setTimeout(warn, IDLE_MS);
       }
 
       document.getElementById('idle-stay').addEventListener('click', function () {
         clearInterval(graceTimer);
-        veil.classList.remove('p-on');
+        veil.setAttribute('hidden', '');
         reset();
       });
       document.getElementById('idle-go').addEventListener('click', signOut);
@@ -264,24 +271,6 @@ function layout_foot(): void
     ?>
   </main>
 </div>
-<?php if (current_admin()): ?>
-<div class="p-scrim" id="p-m-logout"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="p-ml-t">
-  <div class="p-m-ico" style="background:var(--p-blue-50);color:var(--p-link)"><?= p_icon('i-out', 26) ?></div>
-  <h3 id="p-ml-t"><?= e(t('Log out?', 'Mag-log out?')) ?></h3>
-  <p><?= e(t("You'll need to sign in again to manage reports.", 'Kailangan mong mag-sign in muli para mapamahalaan ang mga ulat.')) ?></p>
-  <form class="p-actions" method="post" action="logout.php">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-    <button class="p-btn p-btn-ghost" type="button" data-p-close><?= e(t('Stay', 'Manatili')) ?></button>
-    <button class="p-btn p-btn-primary" type="submit"><?= e(t('Log out', 'Mag-log out')) ?></button>
-  </form>
-</div></div>
-<?php endif; ?>
-<div class="p-scrim" id="p-m-confirm"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="p-mc-t">
-  <div class="p-m-ico" id="p-mc-ico"></div><h3 id="p-mc-t"></h3><p id="p-mc-p"></p>
-  <div class="p-actions"><button class="p-btn p-btn-ghost" type="button" data-p-close><?= e(t('Cancel', 'Kanselahin')) ?></button><button class="p-btn p-btn-primary" type="button" id="p-mc-go"></button></div>
-</div></div>
-<div class="p-toast" id="p-toast" role="status"></div>
-<?= prefs_script() ?>
 <?php idle_timeout(); ?>
 <?php if (current_admin()): ?>
 <script>
@@ -405,9 +394,9 @@ function office_picker(string $id, ?string $suggested = null): void
 {
     $offices = escalation_offices();
     ?>
-    <div class="p-cfield">
-      <label class="p-flabel" for="<?= e($id) ?>"><?= e(t('Escalate to', 'I-escalate sa')) ?></label>
-      <select class="p-input-plain" id="<?= e($id) ?>" name="agency" required data-office>
+    <div class="control-field">
+      <label class="field-label" for="<?= e($id) ?>"><?= e(t('Escalate to', 'I-escalate sa')) ?></label>
+      <select id="<?= e($id) ?>" name="agency" required data-office>
         <option value=""><?= e(t('Choose an office', 'Pumili ng tanggapan')) ?></option>
         <?php foreach ($offices as $val => $lbl): ?>
           <option value="<?= e($val) ?>" <?= $suggested === $val ? 'selected' : '' ?>><?= e($lbl) ?></option>
@@ -415,9 +404,9 @@ function office_picker(string $id, ?string $suggested = null): void
         <option value="other"><?= e(t('Another office…', 'Ibang tanggapan…')) ?></option>
       </select>
     </div>
-    <div class="p-cfield" data-office-other hidden>
-      <label class="p-flabel" for="<?= e($id) ?>-other"><?= e(t('Name of the office', 'Pangalan ng tanggapan')) ?></label>
-      <input class="p-input-plain" type="text" id="<?= e($id) ?>-other" name="agency_other" maxlength="120">
+    <div class="control-field" data-office-other hidden>
+      <label class="field-label" for="<?= e($id) ?>-other"><?= e(t('Name of the office', 'Pangalan ng tanggapan')) ?></label>
+      <input type="text" id="<?= e($id) ?>-other" name="agency_other" maxlength="120">
     </div>
     <?php
 }
@@ -448,15 +437,15 @@ function status_labels(): array
 
 function status_class(string $s): string
 {
-    // The preview's badge colours: p-b-<this>.
     return match ($s) {
         'pending_review'        => 'pending',
-        'validated', 'assigned',
+        'validated'             => 'validated',
+        'assigned'              => 'assigned',
         'in_progress',
         'offline_investigation' => 'progress',
-        'resolved'              => 'done',
-        'closed', 'archived'    => 'grey',
-        'rejected'              => 'denied',
+        'resolved'              => 'resolved',
+        'closed', 'archived'    => 'closed',
+        'rejected'              => 'rejected',
         default                 => 'pending',
     };
 }
