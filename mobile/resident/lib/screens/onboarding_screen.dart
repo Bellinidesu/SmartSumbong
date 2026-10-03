@@ -15,8 +15,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
-import '../theme.dart';
 
 /// Set once the resident has seen or skipped the introduction.
 const onboardingSeenKey = 'onboarding_seen';
@@ -147,269 +148,97 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // they land at 663 in English and move down, not into the copy, when a
   // translation runs longer), and 114x44 Skip / Next at 769, 46 in from
   // each side. Skip is absent on the first page, as in its frame.
+  // Branch D: the full contour behind; each page the art over a soft
+  // halo, the heading and the line under it, the dots (the current one
+  // stretched), and Skip / Next pinned at the bottom.
   @override
   Widget build(BuildContext context) {
     final last = _index == _pages.length - 1;
-    final size = MediaQuery.sizeOf(context);
-    final g = _Grid(size);
-
-    return Scaffold(
-      body: Stack(
-        children: [
-          // The same contour texture as the launch gate and home, so the
-          // first four screens and the fifth read as one surface.
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.asset(
-                'assets/images/texture.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
-            ),
-          ),
-
-          PageView.builder(
+    final d = context.dResident;
+    return DPage(
+      colors: d,
+      fullContour: true,
+      child: Column(children: [
+        Expanded(
+          child: PageView.builder(
             controller: _controller,
             itemCount: _pages.length,
             onPageChanged: (i) => setState(() => _index = i),
-            itemBuilder: (_, i) => _PageView(
-              page: _pages[i],
-              grid: g,
-              index: i,
-              count: _pages.length,
-            ),
+            itemBuilder: (_, i) => _PageView(page: _pages[i]),
           ),
-
-          // The first page has no Skip in the design: there is nothing
-          // yet to skip past.
-          if (_index > 0)
-            Positioned(
-              left: g.x(46),
-              top: g.y(769),
-              child: _PillButton(
-                label: context.s.onboardSkip,
-                filled: false,
-                onTap: _finish,
-              ),
+        ),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          for (var i = 0; i < _pages.length; i++)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: i == _index ? 26 : 9,
+              height: 9,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: i <= _index ? d.accent : d.line),
             ),
-          Positioned(
-            right: g.x(46),
-            top: g.y(769),
-            child: _PillButton(
-              label: last ? context.s.onboardStart : context.s.onboardNext,
-              filled: true,
-              onTap: _next,
-            ),
-          ),
-        ],
-      ),
+        ]),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+          child: Row(children: [
+            // The first page has no Skip: there is nothing yet to skip past.
+            if (_index > 0) Expanded(flex: 2, child: DButton(context.s.onboardSkip, kind: DButtonKind.ghost, expand: true, onTap: _finish)),
+            if (_index > 0) const SizedBox(width: 10),
+            Expanded(flex: 3, child: DButton(last ? context.s.onboardStart : context.s.onboardNext, expand: true, onTap: _next)),
+          ]),
+        ),
+      ]),
     );
   }
 }
 
-/// Maps the frames' 412x917 coordinates onto this screen.
-class _Grid {
-  const _Grid(this.size);
-
-  final Size size;
-
-  double x(double v) => v * size.width / 412;
-  double y(double v) => v * size.height / 917;
-
-  /// Square art keeps its shape: the smaller of the two scales.
-  double side(double v) =>
-      v * (size.width / 412 < size.height / 917
-          ? size.width / 412
-          : size.height / 917);
-}
-
 class _PageView extends StatelessWidget {
-  const _PageView({
-    required this.page,
-    required this.grid,
-    required this.index,
-    required this.count,
-  });
+  const _PageView({required this.page});
 
   final _Page page;
-  final _Grid grid;
-  final int index;
-  final int count;
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final g = grid;
-    final art = g.side(page.artSize);
-
-    return Stack(
-      children: [
-        Positioned(
-          // Centred on the frame's box, so a narrower scale stays centred.
-          left: g.x(page.artLeft + page.artSize / 2) - art / 2,
-          top: g.y(page.artTop + page.artSize / 2) - art / 2,
-          width: art,
-          height: art,
-          // Decoded at the size drawn (branch B): the art is 2048 px
-          // square, about 17 MB in memory at full size, for a box a third
-          // of that on screen.
-          child: page.wordmark
-              ? Image.asset(
-                  page.image,
-                  semanticLabel: 'SmartSumbong',
-                  filterQuality: FilterQuality.medium,
-                  cacheWidth:
-                      (art * MediaQuery.devicePixelRatioOf(context)).round(),
-                )
-              : Image.asset(
-                  page.image,
-                  fit: BoxFit.contain,
-                  cacheWidth:
-                      (art * MediaQuery.devicePixelRatioOf(context)).round(),
-                  filterQuality: FilterQuality.medium,
-                  // The illustrations carry no information the copy
-                  // below does not already state, so a screen reader
-                  // should skip straight to the heading.
-                  excludeFromSemantics: true,
-                ),
-        ),
-        Positioned(
-          left: g.x(45),
-          right: g.x(45),
-          top: g.y(page.wordmark ? 518 : 546),
-          child: Column(
-            children: [
-              Text(
-                page.title(s),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  fontSize: 30,
-                  height: page.wordmark ? 1.0 : 38 / 30,
-                  color: context.colors.navy,
+    final d = context.dResident;
+    return LayoutBuilder(builder: (context, box) {
+      final art = (box.maxHeight * .48).clamp(160.0, 330.0);
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(26, 24, 26, 12),
+        child: Column(children: [
+          SizedBox(
+            height: art + 20,
+            child: Stack(alignment: Alignment.center, children: [
+              Container(
+                width: art,
+                height: art,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [
+                    d.accent.withValues(alpha: d.dark ? .22 : .12),
+                    d.accent.withValues(alpha: 0),
+                  ]),
                 ),
               ),
-              SizedBox(height: page.wordmark ? 6 : 5),
-              Text(
-                page.body(s),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                  height: 20 / 16,
-                  color: context.colors.navy,
-                ),
+              Image.asset(
+                page.image,
+                width: art,
+                height: art,
+                fit: BoxFit.contain,
+                cacheWidth: (art * MediaQuery.devicePixelRatioOf(context)).round(),
+                filterQuality: FilterQuality.medium,
+                semanticLabel: page.wordmark ? 'SmartSumbong' : null,
+                // The illustrations carry no information the copy below
+                // does not already state.
+                excludeFromSemantics: !page.wordmark,
               ),
-              SizedBox(height: page.wordmark ? 20 : 32),
-              _Dots(count: count, active: index),
-            ],
+            ]),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The frame's dots: 13 across, 13 apart, navy up to the current page and
-/// #BFBFBF after it.
-class _Dots extends StatelessWidget {
-  const _Dots({required this.count, required this.active});
-
-  final int count;
-  final int active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < count; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 6.5),
-            width: 13,
-            height: 13,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: i <= active
-                  ? context.colors.navy
-                  : const Color(0xFFBFBFBF),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// The frames' 114x44 pills: Next navy with a 1px #F3F3F3 edge, Skip
-/// #FBFBFB with a navy edge, both 16/700 with the y5 / blur 5 shadow.
-class _PillButton extends StatelessWidget {
-  const _PillButton({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    const size = Size(114, 44);
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Tokens.pill),
-    );
-    const text = TextStyle(
-      fontFamily: 'Urbanist',
-      fontWeight: FontWeight.w700,
-      fontSize: 16,
-    );
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Tokens.pill),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x4D121212),
-            blurRadius: 3.5,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: filled
-          ? FilledButton(
-              onPressed: onTap,
-              style: FilledButton.styleFrom(
-                backgroundColor: context.colors.navy,
-                foregroundColor: context.colors.bg,
-                fixedSize: size,
-                minimumSize: size,
-                padding: EdgeInsets.zero,
-                elevation: 0,
-                side: BorderSide(color: context.colors.bg),
-                shape: shape,
-                textStyle: text,
-              ),
-              child: Text(label),
-            )
-          : OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                backgroundColor: context.colors.field,
-                foregroundColor: context.colors.navy,
-                side: BorderSide(color: context.colors.navy),
-                fixedSize: size,
-                minimumSize: size,
-                padding: EdgeInsets.zero,
-                shape: shape,
-                textStyle: text,
-              ),
-              child: Text(label),
-            ),
-    );
+          const SizedBox(height: 10),
+          Text(page.title(s), textAlign: TextAlign.center, style: DType.h1(d.accent).copyWith(fontSize: 28)),
+          const SizedBox(height: 8),
+          Text(page.body(s), textAlign: TextAlign.center, style: DType.body(d.ink2, size: 15.5)),
+        ]),
+      );
+    });
   }
 }

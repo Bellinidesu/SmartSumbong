@@ -26,6 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_theme.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
@@ -241,23 +242,34 @@ class _LaunchGateState extends State<LaunchGate> {
     // A tanod's phone opens on the tanod loading screen (branch C, one
     // app): the same layout in ink, as the tanod app had it.
     final tanod = AppRoleController.instance.value == AppRole.tanod;
+    // Branch D: the role colour edge to edge (navy, or the tanod's ink —
+    // black at night), the contour lines over it, a soft light from the top.
+    final d = tanod
+        ? (context.isDark ? DColors.tanodDark : DColors.tanodLight)
+        : (context.isDark ? DColors.residentDark : DColors.residentLight);
     return Scaffold(
-      backgroundColor: tanod ? AppColors.inkLight.navy : AppColors.light.navy,
+      backgroundColor: d.card2,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            tanod ? 'assets/images/loading-bg-ink.png' : 'assets/images/loading-bg.png',
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-            // The screen's own height in pixels (branch B): the 4x export
-            // is 24 MB in memory at full size and stayed in the image
-            // cache long after this screen.
-            cacheHeight: (MediaQuery.sizeOf(context).height *
-                    MediaQuery.devicePixelRatioOf(context))
-                .round(),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: tanod
+                    ? (context.isDark ? const [Color(0xFF2A3038), Color(0xFF0E1115)] : const [Color(0xFF3A414A), Color(0xFF14181D)])
+                    : (context.isDark ? const [Color(0xFF13235A), Color(0xFF070D24)] : const [Color(0xFF1C4FC0), Color(0xFF00236A)]),
+              ),
+            ),
           ),
-          if (context.isDark) const ColoredBox(color: Color(0x800D1B33)),
+          Image.asset('assets/images/texture.png',
+              fit: BoxFit.cover, color: Colors.white.withValues(alpha: .10), colorBlendMode: BlendMode.srcIn),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(center: Alignment(0, -.55), radius: .9, colors: [Color(0x33FFFFFF), Color(0x00FFFFFF)]),
+            ),
+          ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(32, 32, 32, 40),
