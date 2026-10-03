@@ -22,6 +22,8 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../d/d_theme.dart';
+import '../../d/d_ui.dart';
 import '../tanod_strings.dart';
 import '../../theme.dart';
 import '../../widgets/figma_ui.dart';
@@ -134,18 +136,23 @@ class _RetirementScreenState extends State<RetirementScreen> {
     final c = context.colors;
     final s = context.ts;
 
+    // Branch D: the page colour and contour, back and the heading.
     return Scaffold(
-      backgroundColor: c.bg,
-      body: SafeArea(
+      backgroundColor: context.d.bg,
+      body: Stack(children: [
+        const DContour(),
+        SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _loading
               ? const Center(child: CircularProgressIndicator())
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(height: figmaTop(context, 50)),
-                    FigmaTitle(s.retirementTitle),
+                    const SizedBox(height: 10),
+                    const Align(alignment: Alignment.centerLeft, child: DBack()),
+                    const SizedBox(height: 12),
+                    DHeading(s.retirementTitle),
                     const SizedBox(height: 20),
                     Expanded(
                       child: SingleChildScrollView(
@@ -154,29 +161,16 @@ class _RetirementScreenState extends State<RetirementScreen> {
                     ),
                     if (_status != _Status.pending) ...[
                       const SizedBox(height: 12),
-                      FigmaPill(
-                        onPressed: _submitting ? null : _requestConfirm,
-                        child: _submitting
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: c.bg),
-                              )
-                            : Text(s.retirementRequestButton),
-                      ),
-                      const SizedBox(height: 14),
+                      DButton(s.retirementRequestButton, expand: true, busy: _submitting, onTap: _submitting ? null : _requestConfirm),
+                      const SizedBox(height: 10),
                     ],
-                    FigmaPill(
-                      style: FigmaPillStyle.light,
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(s.retirementBack),
-                    ),
+                    DButton(s.retirementBack, kind: DButtonKind.ghost, expand: true, onTap: () => Navigator.of(context).pop()),
                     const SizedBox(height: 20),
                   ],
                 ),
         ),
       ),
+      ]),
     );
   }
 

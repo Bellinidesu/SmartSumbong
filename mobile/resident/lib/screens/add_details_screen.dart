@@ -23,6 +23,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
@@ -179,12 +181,11 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _sent) Navigator.of(context).pop(true);
       },
-      child: Scaffold(
-        body: SafeArea(
-          child: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: _sent ? _confirmation() : _form(),
-          ),
+      child: DPage(
+        fullContour: _sent,
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: _sent ? _confirmation() : _form(),
         ),
       ),
     );
@@ -196,9 +197,20 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
     final s = context.s;
     final c = context.colors;
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(43, figmaTop(context, 331, min: 40), 43, 24),
+      padding: EdgeInsets.fromLTRB(26, figmaTop(context, 240, min: 40), 26, 24),
       child: Column(
         children: [
+          Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: DColors.greenVivid,
+              boxShadow: [BoxShadow(color: DColors.greenVivid.withValues(alpha: .45), blurRadius: 28, offset: const Offset(0, 10))],
+            ),
+            child: const Icon(Icons.check_rounded, size: 52, color: Colors.white),
+          ),
+          const SizedBox(height: 20),
           Text(
             s.addDetailsSentTitle(_head),
             textAlign: TextAlign.center,
@@ -223,14 +235,7 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
             ),
           ),
           const SizedBox(height: 48),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 301),
-            child: FigmaPill(
-              onPressed: () => Navigator.of(context)
-                  .pushNamedAndRemoveUntil('/home', (_) => false),
-              child: Text(s.reportSubmittedBackHome),
-            ),
-          ),
+          DButton(s.reportSubmittedBackHome, expand: true, onTap: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false)),
         ],
       ),
     );
@@ -243,18 +248,14 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
     final created = widget.createdAt?.toLocal();
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(41, figmaTop(context, 45, min: 16), 41, 24),
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The frame's navy header card: 20 radius, the ticket at
-          // 28/800 on a 30 line, the date 12/500 under it.
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 10, 18, 17),
-            decoration: BoxDecoration(
-              color: const Color(0xFF00308F),
-              borderRadius: BorderRadius.circular(20),
-            ),
+          const Align(alignment: Alignment.centerLeft, child: DBack()),
+          const SizedBox(height: 12),
+          DCard(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
