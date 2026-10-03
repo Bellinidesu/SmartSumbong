@@ -160,7 +160,11 @@ a.p-btn-pdf2 { text-decoration: none; }
 .p-map-page .maplibregl-ctrl-group { border-radius: 14px !important; overflow: hidden; box-shadow: 0 2px 6px rgba(20,27,52,.12), 0 10px 30px rgba(20,27,52,.14) !important; }
 .p-map-page .maplibregl-ctrl-bottom-left { left: 8px; bottom: 8px; }  /* the legend moved into the dock (3 Oct 2026) */
 @media (max-width: 1100px) { .p-map-search { right: 16px; } .p-map-page .p-map-stats { top: auto; bottom: 16px; right: 70px; } }
-.p-profile-side > div { text-align: center; width: 100%; }
+.p-profile-side > div:not(.p-avatar-lg) { text-align: center; width: 100%; }
+/* As the preview (3 Oct 2026): a round avatar, a full-width Edit profile button, initials readable in dark mode. */
+.p-profile-side > .p-avatar-lg { flex: none; width: 112px; height: 112px; object-fit: cover; }
+.p-profile-side > .p-btn { width: 100%; justify-content: center; }
+:root[data-theme="dark"] .p-profile-side > div.p-avatar-lg { color: #8DB2FF; }
 
 /* Case page */
 .p-case-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
