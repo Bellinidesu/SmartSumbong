@@ -536,7 +536,9 @@ async function draw() {
       '<span class="p-dot-s" style="background:' + catColour(r.category) + '"></span>' +
       '<span class="p-pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
       '<small>' + esc(label(r.category)) + '</small></span>';
-    li.addEventListener('mouseenter', () => map.panTo([r.longitude, r.latitude]));
+    // Clicking a row (not hovering) moves the map, and opens the case panel.
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', e => { if (e.target.closest('a')) return; showDetail(r); });
     list.appendChild(li);
   });
 
@@ -739,8 +741,20 @@ toggle.addEventListener('click', () => {
   const open = side.hasAttribute('hidden');
   if (open) mapDrawer('incidents');
   open ? side.removeAttribute('hidden') : side.setAttribute('hidden', '');
+  if (open) placeSide();
   toggle.setAttribute('aria-expanded', String(open));
 });
+
+// The incidents list opens below the filter box wherever the two would
+// overlap (narrower windows), never on top of it.
+function placeSide() {
+  if (innerWidth <= 980) { side.style.top = ''; side.style.maxHeight = ''; return; }
+  const shell = document.getElementById('s-spatial').getBoundingClientRect();
+  const sr = document.getElementById('map-search').getBoundingClientRect(), lr = side.getBoundingClientRect();
+  const top = lr.left < sr.right + 8 ? Math.max(84, sr.bottom - shell.top + 12) : 84;
+  side.style.top = top + 'px'; side.style.maxHeight = 'calc(100% - ' + (top + 16) + 'px)';
+}
+addEventListener('resize', () => { if (!side.hasAttribute('hidden')) placeSide(); });
 
 // The legend, the incidents list and the flood watch card share the right
 // side of the map, so opening one closes the others.
