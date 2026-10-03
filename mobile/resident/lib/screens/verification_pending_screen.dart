@@ -36,8 +36,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
-import '../theme.dart';
 
 class VerificationPendingScreen extends StatefulWidget {
   const VerificationPendingScreen({super.key, required this.auth});
@@ -190,125 +191,70 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
     return s.verificationCheckedOverHour;
   }
 
+  // Branch D: one centred card — an hourglass in an amber circle, the
+  // heading and what happens next, the review window and when it was
+  // sent, then Check my status and Back to Login. The body copy stays
+  // the app's: the Figma frame promises an SMS the system cannot send.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
+    final d = context.d;
     final submitted = _snapshot?.submittedAt;
-
-    // Figma VERIFICATION PENDING - Resident: the 30/800 title centred at
-    // 322, the 16/500 body centred under it, and the navy 301x44 Back to
-    // Login 40 below — the same sign-out-to-login the app always had. The
-    // app's own additions (the review window, Check my status and when it
-    // last checked) follow it, in the same centred style. The body copy
-    // stays the app's: the frame promises an SMS the system cannot send.
-    return Scaffold(
-      body: Stack(
-        children: [
-          // The frame's contour texture, same asset and opacity as login.
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.asset(
-                'assets/images/texture.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
+    return DPage(
+      fullContour: true,
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 380),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: BoxDecoration(
+              color: d.card,
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: d.line),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: d.dark ? .35 : .08), blurRadius: 24, offset: const Offset(0, 10))],
             ),
-          ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                46,
-                (322 - MediaQuery.paddingOf(context).top).clamp(24.0, 322.0),
-                46,
-                24,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Center(
+                child: Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: DColors.orange.withValues(alpha: .15)),
+                  child: const Icon(Icons.hourglass_top_rounded, size: 38, color: DColors.orange),
+                ),
               ),
-              child: Column(
-                children: [
-                  Text(
-                    s.verificationTitle,
-                    textAlign: TextAlign.center,
-                    style: t.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      height: 38 / 30,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    s.verificationBody,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      height: 20 / 16,
-                      color: context.colors.navy,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _windowLine(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 13, color: context.colors.navy, height: 1.4),
-                  ),
-                  if (submitted != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      s.verificationSubmitted(_formatSubmitted(s, submitted)),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: context.colors.muted),
-                    ),
-                  ],
-
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_error!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: context.colors.hint, fontSize: 12)),
-                  ],
-
-                  const SizedBox(height: 40),
-                  _Pill(
-                    filled: true,
-                    onPressed: _busy
-                        ? null
-                        : () async {
-                            await widget.auth.signOut();
-                            if (context.mounted) {
-                              Navigator.of(context)
-                                  .pushReplacementNamed('/login');
-                            }
-                          },
-                    child: Text(s.verificationSignOut),
-                  ),
-                  const SizedBox(height: 16),
-                  _Pill(
-                    filled: false,
-                    onPressed: _canRefresh
-                        ? () => _refresh(userInitiated: true)
-                        : null,
-                    child: _busy
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: context.colors.navy),
-                          )
-                        : Text(s.verificationCheckStatus),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _lastCheckedLine(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: context.colors.muted),
-                  ),
-                ],
+              const SizedBox(height: 14),
+              Text(s.verificationTitle, textAlign: TextAlign.center, style: DType.h1(d.ink)),
+              const SizedBox(height: 8),
+              Text(s.verificationBody, textAlign: TextAlign.center, style: DType.body(d.ink2, size: 15)),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: d.field, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
+                child: Column(children: [
+                  Text(_windowLine(), textAlign: TextAlign.center, style: DType.body(d.ink, size: 13.5, w: FontWeight.w700)),
+                  if (submitted != null)
+                    Text(s.verificationSubmitted(_formatSubmitted(s, submitted)), textAlign: TextAlign.center, style: DType.body(d.muted, size: 12)),
+                ]),
               ),
-            ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
+              ],
+              const SizedBox(height: 18),
+              DButton(s.verificationCheckStatus, expand: true, busy: _busy, onTap: _canRefresh ? () => _refresh(userInitiated: true) : null),
+              const SizedBox(height: 6),
+              Text(_lastCheckedLine(), textAlign: TextAlign.center, style: DType.body(d.muted, size: 12)),
+              const SizedBox(height: 10),
+              DButton(s.verificationSignOut, kind: DButtonKind.ghost, expand: true, onTap: _busy
+                  ? null
+                  : () async {
+                      await widget.auth.signOut();
+                      if (context.mounted) Navigator.of(context).pushReplacementNamed('/login');
+                    }),
+            ]),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -319,82 +265,6 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
     final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
     final ampm = h24 < 12 ? 'AM' : 'PM';
     final mm = d.minute.toString().padLeft(2, '0');
-    return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} \u2022 $h12:$mm $ampm';
-  }
-}
-
-/// The frame's 301x44 pill (narrower only if the screen is) with the
-/// y5 / blur 5 shadow: navy with a 1px light edge when [filled],
-/// otherwise the light outlined secondary.
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.filled,
-    required this.onPressed,
-    required this.child,
-  });
-
-  final bool filled;
-  final VoidCallback? onPressed;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    const size = Size.fromHeight(44);
-    final shape =
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(50));
-    const text = TextStyle(
-      fontFamily: 'Urbanist',
-      fontWeight: FontWeight.w700,
-      fontSize: 16,
-    );
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 301),
-      child: SizedBox(
-        width: double.infinity,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(50)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x4D121212),
-                blurRadius: 3.5,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: filled
-              ? FilledButton(
-                  onPressed: onPressed,
-                  style: FilledButton.styleFrom(
-                    minimumSize: size,
-                    elevation: 0,
-                    // Still readable while a status check is running.
-                    disabledBackgroundColor:
-                        context.colors.navy.withValues(alpha: 0.6),
-                    disabledForegroundColor:
-                        context.colors.bg.withValues(alpha: 0.85),
-                    padding: EdgeInsets.zero,
-                    side: BorderSide(color: context.colors.bg),
-                    shape: shape,
-                    textStyle: text,
-                  ),
-                  child: child,
-                )
-              : OutlinedButton(
-                  onPressed: onPressed,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: context.colors.navy,
-                    backgroundColor: context.colors.field,
-                    minimumSize: size,
-                    padding: EdgeInsets.zero,
-                    side: BorderSide(color: context.colors.navy),
-                    shape: shape,
-                    textStyle: text,
-                  ),
-                  child: child,
-                ),
-        ),
-      ),
-    );
+    return '${s.monthAbbr(d.month)} ${d.day}, ${d.year} • $h12:$mm $ampm';
   }
 }
