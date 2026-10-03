@@ -82,6 +82,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
   <p class="p-map-empty p-map-empty--error" id="map-failed" hidden><?= e(t('Map unavailable. Please reload.', 'Hindi available ang mapa. Paki-reload.')) ?></p>
 
   <aside class="p-map-detail" id="pin-detail" hidden></aside>
+  <aside class="cs-sheet" id="case-sheet" hidden aria-label="<?= e(t('Complaint details', 'Detalye ng sumbong')) ?>"></aside>
 
   <!-- Barangay wifi drops: a map that has silently stopped updating looks
        exactly like a map with nothing new on it. -->
@@ -598,26 +599,78 @@ function fmtDate(iso) {
   }).format(new Date(iso));
 }
 
+// ---- case panel ------------------------------------------------------
+// A pin opens a Google Maps-style panel over the left of the map (3 Oct
+// 2026, replacing the small detail box): the complaint, where it is, who
+// has it, whether it sits in a Project NOAH flood zone, what else is
+// nearby, and how far along it is. "Open this case" is at the bottom.
+const CS_OPEN = ['pending_review', 'validated'], CS_DISPATCHED = ['assigned', 'in_progress', 'offline_investigation'], CS_DONE = ['resolved', 'closed', 'archived'];
+let csFor = null;
+function csIcon(d) { return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
+function csPad() { return { left: innerWidth > 980 ? 420 : 0, top: 0, right: 0, bottom: 0 }; }
 function showDetail(r) {
-  const box = document.getElementById('pin-detail');
-  const submitted = fmtDate(r.created_at) || '—';
-  const deadline  = fmtDate(r.due_at);
-  box.innerHTML =
-    '<button class="p-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
-    '<p class="p-id">' + esc(r.tracking_id) + '</p>' +
-    '<p class="p-cat">' + esc(label(r.category)) + '</p>' +
-    '<p class="p-sub">' + esc(r.subject) + '</p>' +
-    (r.location_label ? '<p class="p-near">' + T('Near ', 'Malapit sa ') + esc(r.location_label) + '</p>' : '') +
-    '<p class="p-st"><span class="p-dot-s" style="background:' +
-      (COLOUR[r.status] || '#9aa1ab') + '"></span>' + esc(label(r.status)) + '</p>' +
-    '<dl class="p-dates">' +
-      '<dt>' + T('Submitted', 'Isinumite') + '</dt><dd>' + submitted + '</dd>' +
-      '<dt>' + T('Deadline', 'Takdang oras') + '</dt><dd>' + (deadline || T('No deadline set', 'Walang takdang oras')) + '</dd>' +
-    '</dl>' +
-    '<a class="p-btn p-btn-primary p-btn-sm" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a>';
-  box.removeAttribute('hidden');
-  box.querySelector('.p-x').addEventListener('click',
-    () => box.setAttribute('hidden', ''));
+  const el = document.getElementById('case-sheet');
+  csFor = r.id;
+  const col = catColour(r.category);
+  const lng = +r.longitude, lat = +r.latitude;
+  const nearby = all.filter(q => q.id !== r.id && Math.hypot((q.longitude - lng) * 107500, (q.latitude - lat) * 110600) < 150).length;
+  const rejected = r.status === 'rejected' || r.status === 'cancelled';
+  const steps = rejected ? [[T('Filed', 'Naisampa'), 1], [label(r.status), 1]]
+    : [[T('Filed', 'Naisampa'), 1], [T('Validated', 'Napatunayan'), r.status !== 'pending_review'],
+       [T('Tanod dispatched', 'Na-dispatch ang tanod'), CS_DISPATCHED.includes(r.status) || CS_DONE.includes(r.status)], [T('Resolved', 'Nalutas'), CS_DONE.includes(r.status)]];
+  el.style.setProperty('--cs', col);
+  el.innerHTML =
+    '<div class="cs-hero" id="cs-hero"><button class="cs-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
+      '<span class="cs-cat">' + esc(label(r.category)) + '</span>' +
+      '<svg class="cs-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg></div>' +
+    '<div class="cs-body">' +
+      '<h2 class="cs-title">' + esc(r.subject || label(r.category)) + '</h2>' +
+      '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span></p>' +
+      '<div class="cs-acts">' +
+        '<a href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + csIcon('<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/>') + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
+        '<button type="button" data-act="zoom"><span>' + csIcon('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>') + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        '<button type="button" data-act="copy"><span>' + csIcon('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>') + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
+      '</div>' +
+      '<ul class="cs-rows">' +
+        '<li>' + csIcon('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/>') + '<span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Pinned location', 'Naka-pin na lokasyon')) + '<small>Barangay 183, Zone 20, Villamor, Pasay City</small></span></li>' +
+        '<li>' + csIcon('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') + '<span>' + T('Submitted ', 'Isinumite ') + esc(fmtDate(r.created_at) || '—') + '<small>' + esc(r.due_at ? T('Deadline ', 'Takdang oras ') + fmtDate(r.due_at) : T('No deadline set', 'Walang takdang oras')) + '</small></span></li>' +
+        '<li>' + csIcon('<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/>') + '<span id="cs-tanod">' + T('Checking who has it…', 'Tinitingnan kung sino ang may hawak…') + '<small>&nbsp;</small></span></li>' +
+        '<li>' + csIcon('<path d="M2 15c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0M2 20c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0M12 3v7"/>') + '<span id="cs-flood">' + T('Checking the flood map…', 'Tinitingnan ang mapa ng baha…') + '<small>Project NOAH 100-year flood map</small></span></li>' +
+        '<li>' + csIcon('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/>') + '<span>' + nearby + T(nearby === 1 ? ' other complaint within 150 m' : ' other complaints within 150 m', ' iba pang sumbong sa loob ng 150 m') + '<small>' + T('Same block or the next', 'Parehong bloke o katabi') + '</small></span></li>' +
+      '</ul>' +
+      '<h3 class="cs-h">' + T('Progress', 'Takbo') + '</h3>' +
+      '<ol class="cs-steps">' + steps.map(([t, on]) => '<li class="' + (on ? 'on' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' +
+    '</div>' +
+    '<div class="cs-foot"><a class="p-btn p-btn-primary" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a></div>';
+  el.hidden = false; el.scrollTop = 0;
+  document.getElementById('s-spatial').classList.add('sheet-open');
+  if (typeof mapDrawer === 'function') mapDrawer('sheet');
+  map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 17), padding: csPad(), duration: 800 });
+  el.querySelector('.cs-x').addEventListener('click', closeCaseSheet);
+  el.querySelector('[data-act=zoom]').addEventListener('click', () => map.easeTo({ center: [lng, lat], zoom: 18, padding: csPad() }));
+  el.querySelector('[data-act=copy]').addEventListener('click', () => {
+    const done = () => (window.pToast ? pToast(T('Copied ', 'Nakopya ') + r.tracking_id) : null);
+    try { navigator.clipboard.writeText(r.tracking_id).then(done, done); } catch (e) { done(); }
+  });
+  // Who has it, the first photo, and the flood level, filled in as they arrive.
+  sb.from('dispatches').select('state,assigned_at,tanod:users!dispatches_tanod_id_fkey(full_name)').eq('report_id', r.id).order('assigned_at', { ascending: false }).limit(1)
+    .then(({ data }) => { if (csFor !== r.id) return; const d = data && data[0], box = document.getElementById('cs-tanod'); if (!box) return;
+      box.innerHTML = d && d.tanod ? esc(d.tanod.full_name) + '<small>' + esc(label(d.state)) + ' · ' + esc(fmtDate(d.assigned_at) || '') + '</small>'
+        : esc(T('No tanod assigned yet', 'Wala pang naka-assign na tanod')) + '<small>' + esc(T('Dispatch from the case', 'I-dispatch mula sa kaso')) + '</small>'; });
+  sb.from('report_media').select('media_url').eq('report_id', r.id).limit(1)
+    .then(({ data }) => { if (csFor !== r.id || !data || !data[0]) return; const h = document.getElementById('cs-hero'); if (!h) return;
+      const img = new Image(); img.alt = ''; img.className = 'cs-photo'; img.referrerPolicy = 'no-referrer'; img.onload = () => h.classList.add('has-photo'); img.src = data[0].media_url; h.prepend(img); });
+  (window.hazardAt ? window.hazardAt(lng, lat) : Promise.resolve({ flood: 0 })).then(h => {
+    if (csFor !== r.id) return; const box = document.getElementById('cs-flood'); if (!box) return;
+    const lv = h.flood || 0;
+    box.firstChild.textContent = lv ? [T('Low', 'Mababa'), T('Medium', 'Katamtaman'), T('High', 'Mataas')][lv - 1] + T(' flood hazard', ' na panganib sa baha') : T('Outside the flood zones', 'Labas sa bahaing lugar');
+  }).catch(() => {});
+}
+function closeCaseSheet() {
+  csFor = null;
+  document.getElementById('case-sheet').hidden = true;
+  document.getElementById('s-spatial').classList.remove('sheet-open');
+  map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 500 });
 }
 
 // Frame everything currently shown, without losing the residential pin.
@@ -670,6 +723,7 @@ toggle.addEventListener('click', () => {
 // The legend, the incidents list and the flood watch card share the right
 // side of the map, so opening one closes the others.
 function mapDrawer(which) {
+  if (which !== 'sheet' && csFor) closeCaseSheet();
   if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
   if (which !== 'legend') { document.getElementById('map-legend').hidden = true; document.getElementById('legend-toggle').setAttribute('aria-expanded', 'false'); }
   if (which !== 'flood') { document.getElementById('fw-card').hidden = true; document.getElementById('fw-chip').setAttribute('aria-expanded', 'false'); }

@@ -17,6 +17,7 @@ function nav_items(): array
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
         ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'i-brief'],
+        ['settings.php',   t('Settings', 'Mga Setting'),                      'i-gear'],
     ];
 }
 
