@@ -86,6 +86,10 @@ import 'package:share_plus/share_plus.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_categories.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
+import '../models/complaint_category.dart';
 import '../i18n.dart';
 import '../location_lookup.dart';
 import '../theme.dart';
@@ -264,7 +268,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           .select('id, tracking_id, subject, description, status, '
               'latitude, longitude, location_label, is_anonymous, created_at, '
               'resolved_at, closed_at, reopened_count, due_at, '
-              'referred_to, referral_note, followed_up_at')
+              'referred_to, referral_note, followed_up_at, category')
           .eq('id', widget.reportId)
           .maybeSingle();
 
@@ -404,50 +408,89 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     }
   }
 
+  // Branch D (go list: the individual report page): the case's category
+  // colour across the top with the contour lines, back and share on it;
+  // under it the status pill, the subject, the ticket and date, the
+  // detail rows, the resident's words, the map and photos; then the
+  // case desk, the latest note, the timeline and the rating as before.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
-
+    final d = context.d;
+    final r = _report;
+    final cat = ComplaintCategory.parse(r?['category'] as String?);
+    final col = categoryColour(cat);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: context.colors.bg,
-        surfaceTintColor: context.colors.bg,
-        elevation: 0,
-        foregroundColor: context.colors.navy,
-        title: Text(s.reportViewTitle,
-            style: t.labelLarge?.copyWith(fontSize: 18)),
-        actions: [
-          if (_report != null)
-            IconButton(
-              icon: const Icon(Icons.share_outlined),
-              tooltip: s.reportViewShare,
-              onPressed: _share,
+      backgroundColor: d.bg,
+      body: RefreshIndicator(
+        onRefresh: _load,
+        color: d.accent,
+        child: CustomScrollView(slivers: [
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 170 + MediaQuery.paddingOf(context).top,
+              child: Stack(children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: r == null
+                            ? [d.card1, d.card2]
+                            : [Color.lerp(col, Colors.white, .12)!, col, Color.lerp(col, Colors.black, .28)!],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Image.asset('assets/images/texture.png',
+                      fit: BoxFit.cover, color: Colors.white.withValues(alpha: .14), colorBlendMode: BlendMode.srcIn),
+                ),
+                Positioned(left: 12, top: MediaQuery.paddingOf(context).top + 8, child: const DBack(onImage: true)),
+                if (r != null)
+                  Positioned(
+                    right: 12,
+                    top: MediaQuery.paddingOf(context).top + 8,
+                    child: Material(
+                      color: Colors.black.withValues(alpha: .38),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        tooltip: s.reportViewShare,
+                        onPressed: _share,
+                        icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ),
+                if (r != null)
+                  Positioned(
+                    left: 16,
+                    bottom: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), borderRadius: BorderRadius.circular(99)),
+                      child: Text(cat.label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
+                    ),
+                  ),
+              ]),
             ),
-        ],
-      ),
-      body: SafeArea(
-        top: false,
-        child: RefreshIndicator(
-          onRefresh: _load,
-          color: context.colors.navy,
-          child: _body(s),
-        ),
+          ),
+          SliverToBoxAdapter(child: _body(s)),
+        ]),
       ),
     );
   }
 
   Widget _body(Strings s) {
+    final d = context.d;
     if (_error != null) {
-      return ListView(children: [
-        const SizedBox(height: 80),
-        Text(_error!,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.colors.hint)),
-      ]);
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+        child: Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 14, w: FontWeight.w700)),
+      );
     }
     if (_report == null) {
-      return Center(child: CircularProgressIndicator(color: context.colors.navy));
+      return Padding(padding: const EdgeInsets.only(top: 60), child: Center(child: CircularProgressIndicator(color: d.accent)));
     }
 
     final r = _report!;
@@ -456,39 +499,24 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final lng = (r['longitude'] as num?)?.toDouble();
 
     // Whether a note bubble shows at all, and what it says, both live in
-    // _StatusNoteBubble now (30 Aug 2026) -- see that widget's header.
-    // Neither Under Review nor Cancelled gets a bubble in Rose's frames.
-    final showsNote = status != ReportStatus.pendingReview &&
-        status != ReportStatus.validated &&
-        status != ReportStatus.cancelled;
+    // _StatusNoteBubble. Neither Under Review nor Cancelled gets a bubble.
+    final showsNote = status != ReportStatus.pendingReview && status != ReportStatus.validated && status != ReportStatus.cancelled;
     // The note is the entry that explains the current status, not simply
     // the newest row: a completed report's resolution note, a rejected
-    // one's denial. Newer system rows can follow those — dispatch retries
-    // ("No tanod available…"), and before 0062 the SLA sweep — and used to
-    // replace the tanod's note in this box. Same choice as the Reports
-    // list's resolution note.
+    // one's denial. Newer system rows can follow those (dispatch retries,
+    // the old SLA sweep) and used to replace the tanod's note here.
     final wanted = switch (status) {
-      ReportStatus.resolved ||
-      ReportStatus.closed ||
-      ReportStatus.archived =>
-        const {'resolved', 'closed', 'archived'},
+      ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => const {'resolved', 'closed', 'archived'},
       ReportStatus.rejected => const {'rejected'},
       _ => null,
     };
-    Map<String, dynamic>? latestEntry =
-        _timeline.isNotEmpty ? _timeline.last : null;
+    Map<String, dynamic>? latestEntry = _timeline.isNotEmpty ? _timeline.last : null;
     if (wanted != null) {
-      // Newest matching entry that says something (a close with no
-      // remark shouldn't hide the tanod's note before it), else the
-      // newest matching one at all.
       Map<String, dynamic>? bare;
       latestEntry = null;
       for (final e in _timeline.reversed) {
         final remark = ((e['remark'] as String?) ?? '').trim();
-        if (!wanted.contains(e['new_status']) ||
-            remark.startsWith('SLA breach')) {
-          continue;
-        }
+        if (!wanted.contains(e['new_status']) || remark.startsWith('SLA breach')) continue;
         if (remark.isNotEmpty) {
           latestEntry = e;
           break;
@@ -499,12 +527,22 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     }
 
     final createdAt = DateTime.tryParse(r['created_at'] as String? ?? '');
+    final referred = (r['referred_to'] as String?)?.isNotEmpty ?? false;
+    final (Color stCol, String stLabel) = referred && status.isOngoing
+        ? (const Color(0xFF8B5CF6), context.tr('Escalated', 'In-escalate'))
+        : (_statusColour(status), s.reportStatusLabel(status.wire));
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-      children: [
-        // The tanod is waiting on more details (0065): their question
-        // and the way to answer, above everything else.
+    Widget toggle() => _TimelineToggle(
+          expanded: _timelineExpanded,
+          label: _timelineExpanded ? s.reportViewHideTimeline : s.reportViewShowTimeline,
+          onTap: () => setState(() => _timelineExpanded = !_timelineExpanded),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 32),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // The tanod is waiting on more details (0065): their question and
+        // the way to answer, above everything else.
         if (_detailRequest != null && widget.uploader != null) ...[
           _DetailsNeededCard(
             question: _detailRequest!['message'] as String? ?? '',
@@ -526,31 +564,53 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           ),
           const SizedBox(height: 14),
         ],
-        // Round 17 (30 Aug 2026): the top status field is gone. It has
-        // no job on this screen -- there is only ever one report here,
-        // nothing for a dropdown-styled control to switch between -- and
-        // it was just taking up space above the card for no reason once
-        // that was pointed out. See _StatusBadge's own removal note if
-        // that class still lingers in git history.
-        _ReportCard(
-          trackingId: r['tracking_id'] as String? ?? '',
-          subject: r['subject'] as String? ?? '',
-          description: r['description'] as String? ?? '',
-          status: status,
-          createdAt: createdAt,
-          isAnonymous: r['is_anonymous'] == true,
-          latitude: lat,
-          longitude: lng,
-          locationLabel: r['location_label'] as String?,
-          photos: _photos,
-          onViewPhoto: (i) => _openPhoto(_photos, i),
-          onCancel: status.canCancel ? () => _cancel(r) : null,
-        ),
-
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: stCol.withValues(alpha: .14),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: stCol.withValues(alpha: .45)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: stCol)),
+              const SizedBox(width: 6),
+              Text(stLabel, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, color: d.dark ? Color.lerp(stCol, Colors.white, .35) : stCol)),
+            ]),
+          ),
+          const Spacer(),
+          if (status.canCancel) _CardMenu(onCancel: () => _cancel(r)),
+        ]),
+        const SizedBox(height: 10),
+        Text(r['subject'] as String? ?? '', style: DType.h1(d.ink).copyWith(fontSize: 24)),
+        const SizedBox(height: 3),
+        Text.rich(TextSpan(children: [
+          TextSpan(text: r['tracking_id'] as String? ?? '', style: DType.mono(d.link, size: 13)),
+          if (createdAt != null)
+            TextSpan(text: '  ·  ${s.reportsSubmittedOn(_ReportCard._formatDate(s, createdAt))}', style: DType.body(d.muted, size: 13)),
+        ])),
+        const SizedBox(height: 10),
+        if (lat != null && lng != null)
+          DRow(
+            icon: Icons.place_outlined,
+            title: (r['location_label'] as String?)?.isNotEmpty == true ? r['location_label'] as String : 'Barangay 183',
+            sub: context.tr('Pinned on the map below', 'Naka-pin sa mapa sa ibaba'),
+          ),
+        if (r['is_anonymous'] == true) DRow(icon: Icons.visibility_off_outlined, title: s.reportViewAnonymous),
+        const SizedBox(height: 12),
+        Text(r['description'] as String? ?? '', style: DType.body(d.ink2, size: 14.5)),
+        if (lat != null && lng != null) ...[
+          const SizedBox(height: 14),
+          _MiniMap(point: LatLng(lat, lng)),
+        ],
+        if (_photos.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _MediaCarousel(photos: _photos, onViewPhoto: (i) => _openPhoto(_photos, i)),
+        ],
+        const SizedBox(height: 16),
         // 0072: when the barangay expects it done, Overdue and Follow up
         // once that passes, where it was referred, and the question
         // thread with the barangay.
-        const SizedBox(height: 10),
         _CaseDeskCard(
           status: status,
           dueAt: DateTime.tryParse(r['due_at'] as String? ?? ''),
@@ -564,21 +624,11 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               reportId: widget.reportId,
               trackingId: r['tracking_id'] as String? ?? '',
               subject: r['subject'] as String? ?? '',
-              canWrite: status != ReportStatus.cancelled &&
-                  status != ReportStatus.archived,
+              canWrite: status != ReportStatus.cancelled && status != ReportStatus.archived,
             ),
           ),
         ),
-
-        // Round 20 (30 Aug 2026): the timeline toggle now lives INSIDE
-        // the note bubble's own box, not just sharing its row -- direct
-        // feedback that having the toggle as bare text next to a bordered
-        // card read as two different elements, not one uniform control.
-        // See _StatusNoteBubble's own header for the box change. Still
-        // only makes sense when there IS a bubble to put it in; the
-        // states with none (Under Review, Validated, Cancelled) keep the
-        // toggle centered on its own row, same as Round 17.
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         if (showsNote)
           _StatusNoteBubble(
             status: status,
@@ -587,72 +637,47 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             proofPhotoUrl: _proof.isNotEmpty ? _proof.first.url : null,
             onViewProof: () => _openPhoto(_proof, 0),
             reopenedCount: (r['reopened_count'] as num?)?.toInt() ?? 0,
-            toggle: _TimelineToggle(
-              expanded: _timelineExpanded,
-              label: _timelineExpanded
-                  ? s.reportViewHideTimeline
-                  : s.reportViewShowTimeline,
-              onTap: () =>
-                  setState(() => _timelineExpanded = !_timelineExpanded),
-            ),
+            toggle: toggle(),
           )
         else
-          Center(
-            child: _TimelineToggle(
-              expanded: _timelineExpanded,
-              label: _timelineExpanded
-                  ? s.reportViewHideTimeline
-                  : s.reportViewShowTimeline,
-              onTap: () =>
-                  setState(() => _timelineExpanded = !_timelineExpanded),
-            ),
-          ),
+          Center(child: toggle()),
         if (_timelineExpanded) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            decoration: BoxDecoration(
-              color: context.colors.field,
-              borderRadius: BorderRadius.circular(16),
-            ),
+            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
             child: _Timeline(
               entries: _timeline,
               submittedAt: createdAt,
               upcomingWire: status.isOngoing
-                  ? (status == ReportStatus.pendingReview ||
-                          status == ReportStatus.validated
-                      ? 'assigned'
-                      : 'resolved')
+                  ? (status == ReportStatus.pendingReview || status == ReportStatus.validated ? 'assigned' : 'resolved')
                   : null,
             ),
           ),
         ],
-
-        // Feedback closes the loop the resident started -- RLS only
-        // allows the insert on a resolved or closed report, so this only
-        // ever shows on the states the database would accept. Its own
-        // light card again (30 Aug 2026), not absorbed into the navy
-        // card -- none of Rose's six frames show ratings living inside
-        // the report card itself. Gap to the toggle/bubble row above it
-        // tightened 10 -> 6 (Round 19) -- direct feedback that ratings
-        // should read as sitting right under the note bubble, not
-        // floating further down the screen.
+        // Feedback closes the loop — RLS only allows the insert on a
+        // resolved or closed report.
         if (status.isFinished) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: context.colors.field,
-              borderRadius: BorderRadius.circular(16),
-            ),
+            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
             child: _FeedbackCard(feedback: _feedback, onRate: _openFeedback),
           ),
         ],
-      ],
+      ]),
     );
   }
+
+  static Color _statusColour(ReportStatus s) => switch (s) {
+        ReportStatus.pendingReview || ReportStatus.validated => const Color(0xFFF59E0B),
+        ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => const Color(0xFF356CF9),
+        ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => const Color(0xFF1F8A45),
+        ReportStatus.rejected => const Color(0xFFC62828),
+        ReportStatus.cancelled => const Color(0xFF9AA1AB),
+      };
 
   /// The resident's "up" on an overdue complaint (0072): an optional
   /// line for the barangay, then follow_up_report(). Once a day.

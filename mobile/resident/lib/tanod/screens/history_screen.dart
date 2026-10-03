@@ -15,6 +15,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../tanod_strings.dart';
 import '../../theme.dart';
+import '../../d/d_theme.dart';
+import '../../d/d_ui.dart';
 import '../../widgets/figma_ui.dart';
 import '../widgets/tanod_nav_bar.dart';
 
@@ -149,38 +151,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // The title 28/800 at y=50 like every other tab, then the Activity
   // History card from the RESPONDED / MISSED frames at full height.
+  // Branch D: the preview's History — the heading, the counts for the
+  // past seven days, All / Responded / Missed as one segmented control,
+  // and the entries as white cards (a responded one opens to the field
+  // report and its proof).
   @override
   Widget build(BuildContext context) {
     final s = context.ts;
-    return Scaffold(
-      bottomNavigationBar: const TanodNavBar(current: TanodTab.history),
-      body: Stack(
-        children: [
-          const FigmaTexture(),
-          SafeArea(
-            bottom: false,
-            child: RefreshIndicator(
-              onRefresh: _load,
-              color: context.colors.navy,
-              child: ListView(
-                padding:
-                    EdgeInsets.fromLTRB(30, figmaTop(context, 50), 30, 24),
-                children: [
-                  FigmaTitle(s.navHistory),
-                  const SizedBox(height: 18),
-                  if (_error != null) ...[
-                    Text(_error!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 12, color: context.colors.hint)),
-                    const SizedBox(height: 12),
-                  ],
-                  _ActivityHistoryCard(loading: _loading, entries: _activity),
-                ],
+    final d = context.d;
+    return DPage(
+      bottomBar: const TanodNavBar(current: TanodTab.history),
+      child: RefreshIndicator(
+        onRefresh: _load,
+        color: d.accent,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          children: [
+            DHeading(s.homeActivityHistory,
+                lead: context.tr('Everything you responded to or missed in the past 7 days.',
+                    'Lahat ng sinagot o nalampasan mo nitong nakaraang 7 araw.')),
+            const SizedBox(height: 16),
+            if (_error != null) ...[
+              DSheet(
+                borderColor: DColors.red.withValues(alpha: .5),
+                child: Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
               ),
-            ),
-          ),
-        ],
+              const SizedBox(height: 12),
+            ],
+            _ActivityHistoryCard(loading: _loading, entries: _activity),
+          ],
+        ),
       ),
     );
   }
@@ -275,112 +275,77 @@ class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
 
   @override
   Widget build(BuildContext context) {
-    final shown = _filter == null
-        ? widget.entries
-        : widget.entries.where((a) => a.kind == _filter).toList();
-
+    final d = context.d;
     final s = context.ts;
-    return _Card(
-      title: s.homeActivityHistory,
-      trailing: s.homeAlertHistoryTrailing,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _Tab(
-                label: s.homeTabAll,
-                active: _filter == null,
-                colour: context.colors.navy,
-                onTap: () => setState(() => _filter = null),
-              ),
-              const SizedBox(width: 5),
-              _Tab(
-                label: s.homeTabResponded,
-                active: _filter == ActivityKind.responded,
-                colour: _green,
-                onTap: () =>
-                    setState(() => _filter = ActivityKind.responded),
-              ),
-              const SizedBox(width: 5),
-              _Tab(
-                label: s.homeTabMissed,
-                active: _filter == ActivityKind.missed,
-                colour: kFigmaRed,
-                onTap: () => setState(() => _filter = ActivityKind.missed),
-              ),
-            ],
+    final shown = _filter == null ? widget.entries : widget.entries.where((a) => a.kind == _filter).toList();
+    final responded = widget.entries.where((a) => a.kind == ActivityKind.responded).length;
+    final missed = widget.entries.where((a) => a.kind == ActivityKind.missed).length;
+    Widget stat(String n, String label, Color c) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+            child: Column(children: [
+              Text(n, style: DType.mono(c, size: 22)),
+              Text(label, style: DType.body(d.muted, size: 11.5)),
+            ]),
           ),
-          Divider(height: 1, thickness: 1, color: _rule(context)),
-          const SizedBox(height: 10),
-
-          if (widget.loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (shown.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Text(
-                s.homeAlertHistoryEmpty,
-                style: TextStyle(fontSize: 12, color: context.colors.muted),
-              ),
-            )
-          else
-            for (final a in shown) _ActivityRow(entry: a),
-        ],
-      ),
-    );
-  }
-}
-
-class _Tab extends StatelessWidget {
-  const _Tab({
-    required this.label,
-    required this.active,
-    required this.colour,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final Color colour;
-  final VoidCallback onTap;
-
-  // Figma: 14/600 in the tab's colour, centred in a third of the card;
-  // the active one underlined by a 2px ink rule its own width.
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                label,
+        );
+    Widget seg(String label, ActivityKind? k) {
+      final on = _filter == k;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _filter = k),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            decoration: BoxDecoration(
+              color: on ? d.accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(label,
                 textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  height: 21.84 / 14,
-                  color: colour,
-                ),
-              ),
-            ),
-            Container(
-              height: 2,
-              color: active ? context.colors.navy : Colors.transparent,
-            ),
-          ],
+                style: DType.body(on ? d.bg : d.ink2, size: 13.5, w: FontWeight.w800)),
+          ),
         ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
+        stat('${widget.entries.length}', s.homeTabAll, d.ink),
+        const SizedBox(width: 8),
+        stat('$responded', s.homeTabResponded, d.dark ? const Color(0xFF5FD68A) : DColors.green),
+        const SizedBox(width: 8),
+        stat('$missed', s.homeTabMissed, d.dark ? const Color(0xFFFF8A8A) : DColors.red),
+      ]),
+      const SizedBox(height: 14),
+      Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(color: d.field, borderRadius: BorderRadius.circular(13), border: Border.all(color: d.line)),
+        child: Row(children: [
+          seg(s.homeTabAll, null),
+          seg(s.homeTabResponded, ActivityKind.responded),
+          seg(s.homeTabMissed, ActivityKind.missed),
+        ]),
       ),
-    );
+      const SizedBox(height: 12),
+      if (widget.loading)
+        const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: CircularProgressIndicator()))
+      else if (shown.isEmpty)
+        DSheet(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+          child: Text(s.homeAlertHistoryEmpty, textAlign: TextAlign.center, style: DType.body(d.muted, size: 13)),
+        )
+      else
+        for (final a in shown) ...[
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+            child: _ActivityRow(entry: a),
+          ),
+          const SizedBox(height: 10),
+        ],
+    ]);
   }
 }
 
@@ -587,67 +552,4 @@ class _ActivityThumb extends StatelessWidget {
 /// The frame's green (#058F00): View Details, Responded.
 const _green = Color(0xFF058F00);
 
-/// The frame's rule under a card title: #6C6C6C at 50%.
-Color _rule(BuildContext context) =>
-    const Color(0xFF6C6C6C).withValues(alpha: 0.5);
-
-/// Figma "Frame 934/935": 352 wide, #FBFBFB, 1px ink edge, radius 25, the
-/// design shadow; the title 18/700 at 20 in and 13 down, then a rule.
-class _Card extends StatelessWidget {
-  const _Card({
-    required this.title,
-    required this.child,
-    this.trailing,
-  });
-
-  final String title;
-  final String? trailing;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 13, 20, 18),
-      decoration: BoxDecoration(
-        color: context.colors.field,
-        border: Border.all(color: context.colors.navy),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: kFigmaShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text.rich(
-            TextSpan(
-              text: title,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-                height: 1.5,
-                color: context.colors.navy,
-              ),
-              children: [
-                if (trailing != null)
-                  TextSpan(
-                    text: '  $trailing',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 11,
-                      color: kFigmaRed,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Divider(height: 1, thickness: 1, color: _rule(context)),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-}
 

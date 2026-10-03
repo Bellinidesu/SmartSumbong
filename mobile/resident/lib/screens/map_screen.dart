@@ -24,7 +24,8 @@ import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
 import '../widgets/brgy_map.dart';
-import '../widgets/figma_ui.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../widgets/resident_nav_bar.dart';
 import 'reports_screen.dart' show ReportStatus;
 
@@ -158,373 +159,186 @@ class _MapScreenState extends State<MapScreen> {
       ]);
 
   void _openPin(_Pin p) {
+    final d = context.d;
+    final s = context.s;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
+      backgroundColor: d.card,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(40, 24, 40, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              p.mine
-                  ? '(${p.trackingId} - ${context.s.reportStatusLabel(p.status.wire)}) '
-                      '${p.subject}'
-                  : '${p.subject} - ${context.s.reportStatusLabel(p.status.wire)}',
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-                height: 1.2,
-                color: context.colors.navy,
-              ),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: DColors.orange.withValues(alpha: .14), borderRadius: BorderRadius.circular(99)),
+              child: Text(s.reportStatusLabel(p.status.wire),
+                  style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFFB26A00))),
             ),
-            const SizedBox(height: 18),
-            if (p.mine)
-              FigmaPill(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushNamed('/report', arguments: p.id);
-                },
-                child: Text(context.s.mapViewReport),
-              )
-            else
-              Text(context.s.mapPublishedNote,
-                  style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontSize: 13,
-                      color: context.colors.hint)),
-          ],
-        ),
+            const SizedBox(width: 8),
+            if (p.mine) Text(p.trackingId, style: DType.mono(d.link, size: 12.5)),
+          ]),
+          const SizedBox(height: 8),
+          Text(p.subject, style: DType.h2(d.ink)),
+          const SizedBox(height: 14),
+          if (p.mine)
+            DButton(s.mapViewReport, expand: true, onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushNamed('/report', arguments: p.id);
+            })
+          else
+            Text(s.mapPublishedNote, style: DType.body(d.muted, size: 13)),
+        ]),
       ),
     );
   }
 
-  // Figma MAP / MAP - SEE REPORTS: the title 28/800 50 from the top of
-  // the screen, the 352-wide map 14 under it, the card 25 under the map
-  // and 47 above the nav bar. The frame's map is a static picture; the
-  // live tiles stand in for it and take whatever height is left.
+  // Branch D (go list: the Map): the real map of Barangay 183 edge to
+  // edge, in the app's day or night colours; a floating title card with
+  // the two switches — your reports (the eye) and Project NOAH's flood
+  // hazard — and a sheet like Google Maps' when a pin is tapped.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final d = context.d;
     final pins = _pins ?? const <_Pin>[];
-
     return Scaffold(
+      backgroundColor: d.bg,
       bottomNavigationBar: const ResidentNavBar(current: ResidentTab.map),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            SizedBox(
-                height: (50 - MediaQuery.paddingOf(context).top)
-                    .clamp(8.0, 50.0)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 43),
-              child: Text(
-                s.mapTitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  fontSize: 28,
-                  height: 43.68 / 28,
-                  color: context.colors.navy,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(25),
-                  child: Container(
-                    // In front of the map, which would otherwise cover it.
-                    foregroundDecoration: BoxDecoration(
-                      border: Border.all(color: context.colors.navy),
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    child: Stack(
-                      children: [
-                        // Pinned to the residential grid, the outside of
-                        // 183 dimmed rather than hidden so a resident can
-                        // still see the bordering streets. The pins are
-                        // the design's tilted pin, red where the status
-                        // label is.
-                        BrgyMap(
-                          controller: _map,
-                          boundary: true,
-                          hazards: _hazards,
-                          restrictToBarangay: true,
-                          attributionBottom: 12,
-                          cornerRadius: 25,
-                          cornerColour: context.colors.bg,
-                          pins: [
-                            if (_showReports)
-                              for (final p in pins)
-                                BrgyMapPin(
-                                  id: p.id,
-                                  point: p.point,
-                                  muted: !p.mine,
-                                  alert: p.mine &&
-                                      p.status.labelColour(context) !=
-                                          context.colors.bg,
-                                ),
-                          ],
-                          onPinTap: (id) {
-                            for (final p in pins) {
-                              if (p.id == id) return _openPin(p);
-                            }
-                          },
-                        ),
-
-                        if (_loading)
-                          Container(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            alignment: Alignment.center,
-                            child: const CircularProgressIndicator(
-                                color: Colors.white),
-                          ),
-
-                        // Project NOAH's flood zones on demand (branch B),
-                        // with their three levels spelled out.
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: _HazardChip(
-                            on: _hazards,
-                            onTap: () => setState(() => _hazards = !_hazards),
-                          ),
-                        ),
-
-                        // The drag affordance from the design, 25x25
-                        // at 11/13 from the frame's bottom-left corner,
-                        // with its y1 / blur 1 shadow.
-                        const Positioned(
-                          left: 11,
-                          bottom: 13,
-                          child: Icon(
-                            Icons.open_with,
-                            color: Color(0xFFFF9800),
-                            size: 25,
-                            shadows: [
-                              Shadow(
-                                color: Color(0xCC121212),
-                                blurRadius: 1,
-                                offset: Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+      body: Stack(children: [
+        Positioned.fill(
+          child: BrgyMap(
+            controller: _map,
+            boundary: true,
+            hazards: _hazards,
+            restrictToBarangay: true,
+            attributionBottom: 12,
+            pins: [
+              if (_showReports)
+                for (final p in pins)
+                  BrgyMapPin(
+                    id: p.id,
+                    point: p.point,
+                    muted: !p.mine,
+                    alert: p.mine && p.status.labelColour(context) != context.colors.bg,
                   ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 25),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(30, 0, 30, 47),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  _MapCard(showing: _showReports, onToggle: _toggle),
-
-                  // The orange pin straddling the card's top-left corner
-                  // in the design (its 68x73 group at -16/-23).
-                  // Decorative only — the title is indented to clear it.
-                  // Filled with the card's own `field` (the frame's
-                  // #FBFBFB) so it isn't a white blob in dark mode.
-                  Positioned(
-                    left: -16,
-                    top: -23,
-                    width: 68,
-                    height: 73,
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: FigmaPinPainter(
-                          radius: 25.5,
-                          ring: 9.4,
-                          stroke: 2.5,
-                          colour: const Color(0xFFFF9800),
-                          fill: context.colors.field,
-                          tip: const Offset(41.7, 64),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+            onPinTap: (id) {
+              for (final p in pins) {
+                if (p.id == id) return _openPin(p);
+              }
+            },
+          ),
         ),
-      ),
+        if (_loading)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: .2),
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(color: Colors.white),
+            ),
+          ),
+        Positioned(
+          left: 14,
+          right: 14,
+          top: MediaQuery.paddingOf(context).top + 10,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: d.card.withValues(alpha: .96),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: d.line),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 16, offset: const Offset(0, 6))],
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.mapTitle, style: DType.h3(d.accent).copyWith(fontSize: 18)),
+              Text(_showReports ? s.mapCardBodyShowing : s.mapCardBodyHidden, style: DType.body(d.muted, size: 12.5)),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(
+                  child: _Switch(
+                    on: _showReports,
+                    icon: _showReports ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                    label: context.tr('My reports', 'Aking mga ulat'),
+                    colour: DColors.orange,
+                    onTap: _toggle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _Switch(
+                    on: _hazards,
+                    icon: Icons.water_rounded,
+                    label: s.mapHazardToggle,
+                    colour: const Color(0xFF0891B2),
+                    onTap: () => setState(() => _hazards = !_hazards),
+                  ),
+                ),
+              ]),
+              if (_hazards) ...[
+                const SizedBox(height: 10),
+                Row(children: [
+                  _swatch(const Color(0xFFFACC15), s.mapHazardLow, d),
+                  _swatch(const Color(0xFFF97316), s.mapHazardMedium, d),
+                  _swatch(const Color(0xFFDC2626), s.mapHazardHigh, d),
+                  const Spacer(),
+                  Text(s.mapHazardSource, style: DType.body(d.muted, size: 10.5)),
+                ]),
+              ],
+            ]),
+          ),
+        ),
+      ]),
     );
   }
+
+  Widget _swatch(Color c, String label, DColors d) => Padding(
+        padding: const EdgeInsets.only(right: 10),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 11, height: 11, decoration: BoxDecoration(color: c.withValues(alpha: .85), borderRadius: BorderRadius.circular(3))),
+          const SizedBox(width: 4),
+          Text(label, style: DType.body(d.ink2, size: 11.5, w: FontWeight.w700)),
+        ]),
+      );
 }
 
-/// Flood-hazard toggle on the map, and its legend while on.
-class _HazardChip extends StatelessWidget {
-  const _HazardChip({required this.on, required this.onTap});
+/// A switch chip: an icon, a label and a small sliding toggle.
+class _Switch extends StatelessWidget {
+  const _Switch({required this.on, required this.icon, required this.label, required this.colour, required this.onTap});
 
   final bool on;
+  final IconData icon;
+  final String label;
+  final Color colour;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final s = context.s;
-    final c = context.colors;
-    final text = TextStyle(
-        fontFamily: 'Urbanist', fontSize: 11.5, fontWeight: FontWeight.w600, color: c.navy);
-    Widget swatch(Color colour, String label) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                    color: colour.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(width: 4),
-            Text(label, style: text),
-          ]),
-        );
+    final d = context.d;
     return Material(
-      color: c.field,
-      elevation: 2,
-      borderRadius: BorderRadius.circular(12),
+      color: on ? colour.withValues(alpha: .14) : d.field,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: on ? colour.withValues(alpha: .6) : d.line)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(on ? Icons.water_drop : Icons.water_drop_outlined,
-                    size: 16, color: const Color(0xFF0891B2)),
-                const SizedBox(width: 5),
-                Text(s.mapHazardToggle,
-                    style: text.copyWith(fontSize: 12.5, fontWeight: FontWeight.w700)),
-              ]),
-              if (on) ...[
-                const SizedBox(height: 5),
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  swatch(const Color(0xFFFACC15), s.mapHazardLow),
-                  swatch(const Color(0xFFF97316), s.mapHazardMedium),
-                  swatch(const Color(0xFFDC2626), s.mapHazardHigh),
-                ]),
-                const SizedBox(height: 3),
-                Text(s.mapHazardSource,
-                    style: text.copyWith(fontSize: 10, fontWeight: FontWeight.w500, color: c.muted)),
-              ],
-            ],
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          child: Row(children: [
+            Icon(icon, size: 18, color: on ? colour : d.muted),
+            const SizedBox(width: 7),
+            Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 13, w: FontWeight.w800))),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 30,
+              height: 18,
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: on ? colour : d.line),
+              alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(width: 14, height: 14, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+            ),
+          ]),
         ),
-      ),
-    );
-  }
-}
-
-/// The white card under the map, with the eye button.
-class _MapCard extends StatelessWidget {
-  const _MapCard({
-    required this.showing,
-    required this.onToggle,
-  });
-
-  final bool showing;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    // Verbatim from the MAP and MAP - SEE REPORTS frames. The grammar in
-    // the second string ("you will back to") is the designer's; it is
-    // reproduced as drawn because the copy was signed off as-is. The
-    // Filipino translation (in i18n.dart) carries the meaning rather
-    // than that grammar quirk.
-    final s = context.s;
-    final String body = showing ? s.mapCardBodyShowing : s.mapCardBodyHidden;
-
-    // The frame's 352x131 card: the title at 52/17 across the width, the
-    // body at 36 stopping at the pill (9 short of it in SEE REPORTS), and
-    // the 60x45 orange pill 20 in from the right, centred on the card.
-    return Container(
-      constraints: const BoxConstraints(minHeight: 131),
-      decoration: BoxDecoration(
-        color: context.colors.field,
-        border: Border.all(color: context.colors.navy, width: 2),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Stack(
-        alignment: Alignment.centerRight,
-        children: [
-          Padding(
-            // The title's 31.2 line is kept as 3.6 above and below a 24
-            // line, so the English single line sits where the frame has
-            // it and a longer (Filipino) title doesn't wrap into gaps.
-            padding: EdgeInsets.fromLTRB(34, 19, showing ? 87 : 78, 15),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Text(
-                    showing ? s.mapReportsSpotted : s.mapWantToSeeReports,
-                    style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
-                      height: 24 / 20,
-                      color: context.colors.navy,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  body,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                    height: 21.84 / 14,
-                    color: context.colors.navy,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 18),
-            child: InkWell(
-              onTap: onToggle,
-              borderRadius: BorderRadius.circular(50),
-              child: Container(
-                width: 60,
-                height: 45,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF9800),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: showing
-                    ? Image.asset('assets/images/eye-open.png',
-                        width: 32, height: 20, color: context.colors.bg)
-                    : Image.asset('assets/images/eye-closed.png',
-                        width: 30, height: 11, color: context.colors.bg),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
