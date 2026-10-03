@@ -261,6 +261,22 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .cs-sheet.cs-dragging .cs-hero { cursor: grabbing; }
 .cs-grip { position: absolute; z-index: 1; top: 8px; left: 50%; transform: translateX(-50%); width: 38px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.7); }
 
+
+/* ── Sign-in pages in dark mode: "Night street" (3 Oct 2026) ──
+   The Villamor photo through deep navy with a warm streetlight glow, a navy
+   logo strip with the contour lines, the logos as they are, and an orange
+   Login button on the dark card. */
+:root[data-theme="dark"] .login-rail { background: #0E1630; }
+:root[data-theme="dark"] .login-rail::before { background: #8DB2FF; opacity: .12; }
+:root[data-theme="dark"] .login-panel { background: #0B1540; }
+:root[data-theme="dark"] .login-panel-bg { opacity: .55; filter: saturate(.7) brightness(.8); }
+:root[data-theme="dark"] .login-panel::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(60% 50% at 70% 30%, rgba(255,170,60,.22), transparent 70%), linear-gradient(180deg, rgba(11,21,64,.55), rgba(11,21,64,.85)); }
+:root[data-theme="dark"] .login-card { z-index: 2; }
+:root[data-theme="dark"] .login-btn { background: #FF9800; color: #fff; }
+:root[data-theme="dark"] .login-btn:hover { background: #F08A00; }
+:root[data-theme="dark"] .prefs--login .pref-theme, :root[data-theme="dark"] .prefs--login .pref-lang { background: rgba(29,43,92,.9); }
+
 @media (prefers-reduced-motion: reduce) {
   .dn i, .dn::before, .dn::after, .map-sw .scene span, .map-sw .wave, .map-sw .dim, .map-sw .edge, #s-spatial .p-map-legend.lg-card { transition: none; animation: none !important; }
   .fw[data-live="1"] .fw-dot { animation: none; }
