@@ -267,9 +267,13 @@ class _Post {
 }
 
 class DispatchWindow extends StatefulWidget {
-  const DispatchWindow({super.key, required this.ticket});
+  const DispatchWindow({super.key, required this.ticket, this.startOnTheWay = false});
 
   final Ticket ticket;
+
+  /// From Dispatch accepted's I'm on the way: mark the step and open
+  /// Navigate as soon as the case has loaded.
+  final bool startOnTheWay;
 
   @override
   State<DispatchWindow> createState() => _DispatchWindowState();
@@ -316,7 +320,9 @@ class _DispatchWindowState extends State<DispatchWindow>
   @override
   void initState() {
     super.initState();
-    _load();
+    _load().then((_) {
+      if (mounted && widget.startOnTheWay) _onTheWay();
+    });
     _listen();
     TanodOutbox.instance.addListener(_outboxChanged);
     unawaited(TanodOutbox.instance.flush());

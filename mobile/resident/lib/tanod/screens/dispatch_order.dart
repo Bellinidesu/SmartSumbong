@@ -271,8 +271,8 @@ class _DispatchOrderState extends State<_DispatchOrder>
   void _close() => Navigator.of(context).pop(_changed);
 
   /// On into the dispatch window, in the card's place.
-  void _toWindow() => Navigator.of(context).pushReplacement(
-    MaterialPageRoute(builder: (_) => DispatchWindow(ticket: widget.ticket)),
+  void _toWindow({bool startOnTheWay = false}) => Navigator.of(context).pushReplacement(
+    MaterialPageRoute(builder: (_) => DispatchWindow(ticket: widget.ticket, startOnTheWay: startOnTheWay)),
     result: true,
   );
 
@@ -285,6 +285,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
   // straight on to the job page.
   @override
   Widget build(BuildContext context) {
+    if (_pane == _Pane.accepted) return _acceptedScreen();
     final d = context.d;
     final cat = ComplaintCategory.parse(_report?['category'] as String?);
     final col = categoryColour(cat);
@@ -361,7 +362,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
     _Pane.media => _framed(_mediaPane()),
     _Pane.instructions => _framed(_instructionsPane()),
     _Pane.rerouteConfirm => _reroutePane(),
-    _Pane.accepted => _acceptedPane(),
+    _Pane.accepted => const SizedBox.shrink(),
   };
 
   // ---------- panes ---------------------------------------------
@@ -602,22 +603,126 @@ class _DispatchOrderState extends State<_DispatchOrder>
     ]);
   }
 
-  /// Accepted: straight on to the job page (one frame of the message, for
-  /// the slow phone that is still pushing).
-  Widget _acceptedPane() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _pane == _Pane.accepted) _toWindow();
-    });
+  /// Accepted (Ace, 4 Oct): a green top with the tick, the case and that
+  /// the barangay can see it; what happens next in three steps; the
+  /// admin's directives; then I'm on the way (straight into Navigate) or
+  /// Not yet (the job page).
+  Widget _acceptedScreen() {
     final d = context.d;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Column(children: [
-        const Icon(Icons.task_alt_rounded, size: 56, color: DColors.greenVivid),
-        const SizedBox(height: 12),
-        Text(context.ts.dispatchAcceptedTitle(widget.ticket.trackingId, widget.ticket.subject), textAlign: TextAlign.center, style: DType.h2(d.ink)),
-        const SizedBox(height: 6),
-        Text(context.ts.dispatchAcceptedBody, textAlign: TextAlign.center, style: DType.body(d.muted, size: 14)),
-      ]),
+    final s = context.ts;
+    final near = _report?['location_label'] as String?;
+    final instructions = widget.ticket.instructions?.trim() ?? '';
+    Widget step(int n, Color c, String title, String sub) => DSheet(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Row(children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: c),
+              child: Center(child: Text('$n', style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 15, color: Colors.white))),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: DType.body(d.ink, size: 15.5, w: FontWeight.w800)),
+                Text(sub, style: DType.body(d.muted, size: 12.5)),
+              ]),
+            ),
+          ]),
+        );
+    final cs = d.steps;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _toWindow();
+      },
+      child: Scaffold(
+        backgroundColor: d.bg,
+        body: Column(children: [
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF2BC46B), Color(0xFF1F8A45), Color(0xFF146B33)]),
+              boxShadow: [BoxShadow(color: Color(0x591F8A45), blurRadius: 30, offset: Offset(0, 12))],
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+              child: Stack(children: [
+                Positioned.fill(
+                  child: Image.asset('assets/images/texture.png', fit: BoxFit.cover, color: Colors.white.withValues(alpha: .10), colorBlendMode: BlendMode.srcIn),
+                ),
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 26, 22, 28),
+                    child: Column(children: [
+                      const _AcceptedTick(),
+                      const SizedBox(height: 14),
+                      Text(context.tr('Dispatch accepted', 'Tinanggap ang dispatch'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white)),
+                      const SizedBox(height: 4),
+                      Text(widget.ticket.subject,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white)),
+                      Text(
+                        near != null && near.isNotEmpty ? '${widget.ticket.trackingId} · ${s.dispatchNear(near)}' : widget.ticket.trackingId,
+                        textAlign: TextAlign.center,
+                        style: DType.mono(Colors.white.withValues(alpha: .88), size: 13),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .18), borderRadius: BorderRadius.circular(99)),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.visibility_outlined, size: 16, color: Colors.white),
+                          const SizedBox(width: 6),
+                          Text(context.tr('The barangay can see you took it', 'Nakikita ng barangay na tinanggap mo'),
+                              style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)),
+                        ]),
+                      ),
+                    ]),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+              children: [
+                Text(context.tr('WHAT’S NEXT', 'SUSUNOD'), style: DType.label(d.muted)),
+                const SizedBox(height: 10),
+                step(1, cs[1], context.tr('Tap I’m on the way when you leave', 'Pindutin ang Papunta na ako pag-alis mo'),
+                    context.tr('The app shows you the way there.', 'Ituturo ng app ang daan.')),
+                const SizedBox(height: 8),
+                step(2, cs[2], context.tr('Tap I’ve arrived at the place', 'Pindutin ang Nandito na ako pagdating'),
+                    context.tr('It turns on once you’re there.', 'Bubukas ito pagdating mo.')),
+                const SizedBox(height: 8),
+                step(3, cs[3], context.tr('Resolve with a photo', 'Iresolba nang may litrato'),
+                    context.tr('The barangay approves it.', 'Aaprubahan ito ng barangay.')),
+                const SizedBox(height: 12),
+                DNote(title: s.dispatchAdminDirectivesTitle, body: instructions.isEmpty ? s.dispatchNoDirectives : instructions),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  DButton(s.windowActionOnTheWay, expand: true, height: 56, onTap: () => _toWindow(startOnTheWay: true)),
+                  const SizedBox(height: 8),
+                  DButton(context.tr('Not yet · open the job', 'Hindi pa · buksan ang trabaho'), kind: DButtonKind.ghost, expand: true, height: 46, onTap: _toWindow),
+                ]),
+              ),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 
@@ -961,4 +1066,96 @@ class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
       ),
     );
   }
+}
+
+
+/// The tick on Dispatch accepted: a white disc that pops in, the check
+/// drawing itself, two rings rippling out.
+class _AcceptedTick extends StatefulWidget {
+  const _AcceptedTick();
+
+  @override
+  State<_AcceptedTick> createState() => _AcceptedTickState();
+}
+
+class _AcceptedTickState extends State<_AcceptedTick> with TickerProviderStateMixin {
+  late final _pop = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))..forward();
+  late final _ripple = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat();
+
+  @override
+  void dispose() {
+    _pop.dispose();
+    _ripple.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 110,
+      height: 110,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_pop, _ripple]),
+        builder: (_, _) {
+          final p = Curves.elasticOut.transform((_pop.value / .7).clamp(0.0, 1.0));
+          final tick = ((_pop.value - .45) / .55).clamp(0.0, 1.0);
+          Widget ring(double phase) {
+            final t = (_ripple.value + phase) % 1;
+            return Transform.scale(
+              scale: .7 + .65 * t,
+              child: Container(
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: .55 * (1 - t)), width: 3)),
+              ),
+            );
+          }
+
+          return Stack(fit: StackFit.expand, children: [
+            ring(0),
+            ring(.5),
+            Center(
+              child: Transform.scale(
+                scale: p,
+                child: Container(
+                  width: 78,
+                  height: 78,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [BoxShadow(color: Color(0x2E000000), blurRadius: 18, offset: Offset(0, 8))],
+                  ),
+                  child: CustomPaint(painter: _TickPainter(tick)),
+                ),
+              ),
+            ),
+          ]);
+        },
+      ),
+    );
+  }
+}
+
+class _TickPainter extends CustomPainter {
+  _TickPainter(this.t);
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * .28, size.height * .52)
+      ..lineTo(size.width * .44, size.height * .67)
+      ..lineTo(size.width * .74, size.height * .36);
+    final paint = Paint()
+      ..color = const Color(0xFF1F8A45)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    for (final m in path.computeMetrics()) {
+      canvas.drawPath(m.extractPath(0, m.length * t), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TickPainter old) => old.t != t;
 }
