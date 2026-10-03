@@ -241,6 +241,26 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .cs-foot .p-btn { width: 100%; justify-content: center; }
 @media (prefers-reduced-motion: reduce) { .cs-sheet { animation: none; } }
 
+
+/* Contour texture, fading up from the bottom: case panel and the map's filter box. */
+.cs-sheet, #s-spatial .p-map-search { isolation: isolate; }
+.cs-sheet::before, #s-spatial .p-map-search::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit;
+  background: var(--p-ink); opacity: .07;
+  -webkit-mask: url("../img/texture-contours.png") 0 0 / 420px 420px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%);
+  mask: url("../img/texture-contours.png") 0 0 / 420px 420px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%);
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
+#s-spatial .p-map-search::before { -webkit-mask-size: 360px 360px, auto; mask-size: 360px 360px, auto; }
+/* The panel stays put and only its middle scrolls, so the texture holds to the panel's lower half. */
+.cs-sheet { overflow: hidden; }
+.cs-sheet > .cs-body { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; }
+.cs-sheet > .cs-foot { position: static; background: none; border-top: 1px solid var(--p-line); }
+.cs-foot { background: linear-gradient(to top, color-mix(in srgb, var(--p-surface) 85%, transparent) 70%, transparent); }
+/* Movable: drag the panel by its header. */
+.cs-hero { cursor: grab; touch-action: none; }
+.cs-sheet.cs-dragging { animation: none; user-select: none; }
+.cs-sheet.cs-dragging .cs-hero { cursor: grabbing; }
+.cs-grip { position: absolute; z-index: 1; top: 8px; left: 50%; transform: translateX(-50%); width: 38px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.7); }
+
 @media (prefers-reduced-motion: reduce) {
   .dn i, .dn::before, .dn::after, .map-sw .scene span, .map-sw .wave, .map-sw .dim, .map-sw .edge, #s-spatial .p-map-legend.lg-card { transition: none; animation: none !important; }
   .fw[data-live="1"] .fw-dot { animation: none; }

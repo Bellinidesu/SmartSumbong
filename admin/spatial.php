@@ -620,7 +620,7 @@ function showDetail(r) {
        [T('Tanod dispatched', 'Na-dispatch ang tanod'), CS_DISPATCHED.includes(r.status) || CS_DONE.includes(r.status)], [T('Resolved', 'Nalutas'), CS_DONE.includes(r.status)]];
   el.style.setProperty('--cs', col);
   el.innerHTML =
-    '<div class="cs-hero" id="cs-hero"><button class="cs-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
+    '<div class="cs-hero" id="cs-hero" title="' + T('Drag to move', 'I-drag para ilipat') + '"><span class="cs-grip" aria-hidden="true"></span><button class="cs-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
       '<span class="cs-cat">' + esc(label(r.category)) + '</span>' +
       '<svg class="cs-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg></div>' +
     '<div class="cs-body">' +
@@ -642,11 +642,12 @@ function showDetail(r) {
       '<ol class="cs-steps">' + steps.map(([t, on]) => '<li class="' + (on ? 'on' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' +
     '</div>' +
     '<div class="cs-foot"><a class="p-btn p-btn-primary" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a></div>';
-  el.hidden = false; el.scrollTop = 0;
+  el.hidden = false; el.querySelector('.cs-body').scrollTop = 0;
   document.getElementById('s-spatial').classList.add('sheet-open');
   if (typeof mapDrawer === 'function') mapDrawer('sheet');
   map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 17), padding: csPad(), duration: 800 });
   el.querySelector('.cs-x').addEventListener('click', closeCaseSheet);
+  csDraggable(el);
   el.querySelector('[data-act=zoom]').addEventListener('click', () => map.easeTo({ center: [lng, lat], zoom: 18, padding: csPad() }));
   el.querySelector('[data-act=copy]').addEventListener('click', () => {
     const done = () => (window.pToast ? pToast(T('Copied ', 'Nakopya ') + r.tracking_id) : null);
@@ -665,6 +666,27 @@ function showDetail(r) {
     const lv = h.flood || 0;
     box.firstChild.textContent = lv ? [T('Low', 'Mababa'), T('Medium', 'Katamtaman'), T('High', 'Mataas')][lv - 1] + T(' flood hazard', ' na panganib sa baha') : T('Outside the flood zones', 'Labas sa bahaing lugar');
   }).catch(() => {});
+}
+// Drag the panel by its header; it stays inside the map and remembers where
+// it was put for the rest of the visit.
+let csPos = null;
+function csDraggable(el) {
+  if (csPos) { el.style.left = csPos[0] + 'px'; el.style.top = csPos[1] + 'px'; el.style.bottom = 'auto'; el.style.height = csPos[2] + 'px'; }
+  const hero = el.querySelector('.cs-hero');
+  hero.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    const box = document.getElementById('s-spatial').getBoundingClientRect(), r = el.getBoundingClientRect();
+    const dx = e.clientX - r.left, dy = e.clientY - r.top, h = r.height;
+    el.classList.add('cs-dragging'); hero.setPointerCapture(e.pointerId);
+    const move = ev => {
+      const x = Math.max(8, Math.min(box.width - r.width - 8, ev.clientX - box.left - dx));
+      const y = Math.max(8, Math.min(box.height - h - 8, ev.clientY - box.top - dy));
+      el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.bottom = 'auto'; el.style.height = h + 'px';
+      csPos = [x, y, h];
+    };
+    const up = () => { el.classList.remove('cs-dragging'); hero.removeEventListener('pointermove', move); hero.removeEventListener('pointerup', up); };
+    hero.addEventListener('pointermove', move); hero.addEventListener('pointerup', up);
+  });
 }
 function closeCaseSheet() {
   csFor = null;
