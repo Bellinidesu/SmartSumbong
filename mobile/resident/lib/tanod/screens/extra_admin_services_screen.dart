@@ -20,9 +20,9 @@ import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../d/d_theme.dart';
+import '../../d/d_ui.dart';
 import '../tanod_strings.dart';
-import '../../theme.dart';
-import '../../widgets/figma_ui.dart';
 
 class ExtraAdminServicesScreen extends StatefulWidget {
   const ExtraAdminServicesScreen({super.key, required this.auth});
@@ -96,149 +96,96 @@ class _ExtraAdminServicesScreenState extends State<ExtraAdminServicesScreen> {
     }
   }
 
+  // Branch D: locked, a padlock card asking for the password; unlocked,
+  // back, the heading, and the services as white rows (retirement today).
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final c = context.colors;
     final s = context.ts;
+    final d = context.d;
+    return DPage(child: _unlocked ? _buildMenu(d, s) : _buildLock(d, s));
+  }
 
-    return Scaffold(
-      backgroundColor: c.bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: _unlocked ? _buildMenu(t, c, s) : _buildLock(t, c, s),
+  Widget _buildLock(DColors d, TanodStrings s) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 380),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(26), border: Border.all(color: d.line)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Center(
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: d.field, border: Border.all(color: d.line)),
+                child: Icon(Icons.lock_outline_rounded, size: 34, color: d.link),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(s.extraAdminServicesLockedTitle, textAlign: TextAlign.center, style: DType.h2(d.ink)),
+            const SizedBox(height: 6),
+            Text(s.extraAdminServicesLockedBody, textAlign: TextAlign.center, style: DType.body(d.muted, size: 14)),
+            const SizedBox(height: 18),
+            Text(s.extraAdminServicesPasswordLabel, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _password,
+              obscureText: true,
+              autofocus: true,
+              onSubmitted: (_) => _unlock(),
+              style: DType.body(d.ink, size: 15),
+              decoration: InputDecoration(
+                hintText: s.extraAdminServicesPasswordHint,
+                hintStyle: DType.body(d.muted, size: 14),
+                filled: true,
+                fillColor: d.field,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: DColors.orange, width: 2)),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
+            ],
+            const SizedBox(height: 16),
+            DButton(s.extraAdminServicesUnlock, kind: DButtonKind.accent, expand: true, busy: _checking, onTap: _checking ? null : _unlock),
+            const SizedBox(height: 8),
+            DButton(s.extraAdminServicesBack, kind: DButtonKind.ghost, expand: true, onTap: () => Navigator.of(context).pop()),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _buildLock(TextTheme t, AppColors c, TanodStrings s) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _buildMenu(DColors d, TanodStrings s) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
       children: [
-        const Spacer(),
-        Icon(Icons.lock_outline, size: 48, color: c.navy),
-        const SizedBox(height: 16),
-        // In the frames' language: 24/800 title, 16/500 body, the 16/700
-        // field label, the frames' 44-tall pills.
-        FigmaTitle(s.extraAdminServicesLockedTitle, size: 24),
-        const SizedBox(height: 8),
-        Text(
-          s.extraAdminServicesLockedBody,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            height: 1.4,
-            color: c.muted,
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        Padding(
-          padding: const EdgeInsets.only(left: 12, bottom: 6),
-          child: Text(s.extraAdminServicesPasswordLabel,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-                color: c.navy,
-              )),
-        ),
-        TextField(
-          controller: _password,
-          obscureText: true,
-          autofocus: true,
-          onSubmitted: (_) => _unlock(),
-          style: TextStyle(fontSize: 14, color: c.navy),
-          decoration:
-              InputDecoration(hintText: s.extraAdminServicesPasswordHint),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          Text(_error!, style: TextStyle(color: c.hint, fontSize: 12)),
-        ],
-        const SizedBox(height: 20),
-
-        FigmaPill(
-          onPressed: _checking ? null : _unlock,
-          child: _checking
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: c.bg),
-                )
-              : Text(s.extraAdminServicesUnlock),
-        ),
-        const SizedBox(height: 14),
-        FigmaPill(
-          style: FigmaPillStyle.light,
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(s.extraAdminServicesBack),
-        ),
-        const Spacer(flex: 2),
-      ],
-    );
-  }
-
-  Widget _buildMenu(TextTheme t, AppColors c, TanodStrings s) {
-    return Column(
-      children: [
-        SizedBox(height: figmaTop(context, 50)),
-        FigmaTitle(s.extraAdminServicesTitle),
-        const SizedBox(height: 28),
-
-        InkWell(
-          onTap: () => Navigator.of(context)
-              .pushNamed('/t/retirement')
-              .then((_) => _loadRetirementStatus().then((_) {
-                    if (mounted) setState(() {});
-                  })),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Row(
-              children: [
-                Icon(Icons.workspace_premium_outlined,
-                    color: c.navy, size: 22),
-                const SizedBox(width: 18),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(s.extraAdminServicesRetirementLabel,
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: c.navy,
-                          )),
-                      const SizedBox(height: 2),
-                      Text(
-                        _pendingRetirement
-                            ? s.extraAdminServicesRetirementPending
-                            : s.extraAdminServicesRetirementSubtitle,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                          color: c.muted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: c.navy, size: 20),
-              ],
+        const Align(alignment: Alignment.centerLeft, child: DBack()),
+        const SizedBox(height: 12),
+        DHeading(s.extraAdminServicesTitle),
+        const SizedBox(height: 18),
+        DSheet(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+          onTap: () => Navigator.of(context).pushNamed('/t/retirement').then((_) => _loadRetirementStatus().then((_) {
+                if (mounted) setState(() {});
+              })),
+          child: Row(children: [
+            DWell(Icons.workspace_premium_outlined, size: 44, color: DColors.orange, tint: DColors.orange.withValues(alpha: .12)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.extraAdminServicesRetirementLabel, style: DType.body(d.ink, size: 15.5, w: FontWeight.w800)),
+                Text(_pendingRetirement ? s.extraAdminServicesRetirementPending : s.extraAdminServicesRetirementSubtitle,
+                    style: DType.body(_pendingRetirement ? const Color(0xFFB26A00) : d.muted, size: 12.5)),
+              ]),
             ),
-          ),
+            Icon(Icons.chevron_right_rounded, color: d.muted),
+          ]),
         ),
-
-        const SizedBox(height: 40),
-        FigmaBackPill(label: s.extraAdminServicesBack),
-        const Spacer(),
       ],
     );
   }
