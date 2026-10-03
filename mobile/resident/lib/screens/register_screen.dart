@@ -40,6 +40,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
@@ -578,211 +580,158 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // ---------- build ------------------------------------------
 
+  // Branch D: the full contour, back, "Create your Account" over Sign Up
+  // as Resident / Tanod, then the form in two white cards — the account
+  // (name, email for residents, phone, password twice) and the proof (ID
+  // type for residents, the ID photo, the selfie for residents) — the
+  // agreement, Sign Up, and the way back to Log In.
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     final s = context.s;
-
-    // Figma SIGN UP as Resident: the page inset 45, "Create your Account"
-    // 16/500 at 56 with the 30/700 title right under it, then each group
-    // 24 apart — 16/700 label 12 in over a 44-tall field — the ID
-    // dropdown, the 11px agreement box with its Inter 12 line, and the
-    // 44-tall Sign Up with its light edge and shadow. The photo tiles are
-    // the app's own step (the frame's Take Photo screens) and keep their
-    // place above the agreement.
-    return Scaffold(
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-                45,
-                (56 - MediaQuery.paddingOf(context).top).clamp(8.0, 56.0),
-                44,
-                40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.registerCreateAccount,
-                    style: t.titleMedium?.copyWith(height: 1.15)),
-                Text(
-                  widget.role == AccountRole.tanod
-                      ? s.registerSignUpTanod
-                      : s.registerSignUpResident,
-                  style: t.headlineLarge?.copyWith(height: 38 / 30),
-                ),
-                const SizedBox(height: 24),
-
-                if (_banner != null) ...[
-                  _Banner(_banner!),
-                  const SizedBox(height: 24),
-                ],
-
+    final tanod = widget.role == AccountRole.tanod;
+    final d = tanod ? (context.isDark ? DColors.tanodDark : DColors.tanodLight) : context.dResident;
+    Widget card(List<Widget> children) => Container(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        );
+    return DPage(
+      colors: d,
+      fullContour: true,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 32),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: DBack(onTap: _busy ? () {} : () => Navigator.of(context).pushReplacementNamed('/login', arguments: tanod ? 'tanod' : null)),
+            ),
+            const SizedBox(height: 12),
+            Text(s.registerCreateAccount.toUpperCase(), style: DType.label(d.muted)),
+            const SizedBox(height: 4),
+            Text(tanod ? s.registerSignUpTanod : s.registerSignUpResident, style: DType.h1(d.accent).copyWith(fontSize: 27)),
+            const SizedBox(height: 16),
+            if (_banner != null) ...[
+              _Banner(_banner!),
+              const SizedBox(height: 14),
+            ],
+            card([
+              _Field(
+                label: s.registerFullNameLabel,
+                note: s.registerFullNameNote,
+                hint: s.registerFullNameHint,
+                controller: _fullName,
+                error: _errors['full_name'],
+                textCapitalization: TextCapitalization.words,
+                enabled: !_busy,
+              ),
+              // A tanod's identity is the roster check at approval, so the
+              // tanod form has no email (contact_email is optional anyway).
+              if (!tanod)
                 _Field(
-                  label: s.registerFullNameLabel,
-                  note: s.registerFullNameNote,
-                  hint: s.registerFullNameHint,
-                  controller: _fullName,
-                  error: _errors['full_name'],
-                  textCapitalization: TextCapitalization.words,
+                  label: s.registerEmailLabel,
+                  note: s.registerEmailNote,
+                  hint: s.registerEmailHint,
+                  controller: _email,
+                  error: _errors['email'],
+                  keyboardType: TextInputType.emailAddress,
                   enabled: !_busy,
                 ),
-                // Figma's Sign Up as Tanod (2613:921) has no Email Address
-                // field at all — a tanod's identity is already the roster
-                // check at approval, not a lookup key the way it can be
-                // for an anonymous resident. contact_email is optional in
-                // handle_new_auth_user() regardless of role, so hiding it
-                // here is a UI choice, not a workaround for a backend
-                // requirement.
-                if (widget.role != AccountRole.tanod)
-                  _Field(
-                    label: s.registerEmailLabel,
-                    note: s.registerEmailNote,
-                    hint: s.registerEmailHint,
-                    controller: _email,
-                    error: _errors['email'],
-                    keyboardType: TextInputType.emailAddress,
-                    enabled: !_busy,
-                  ),
-                _Field(
-                  label: s.registerPhoneLabel,
-                  note: s.registerPhoneNote,
-                  hint: s.registerPhoneHint,
-                  controller: _mobile,
-                  error: _errors['mobile_number'],
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
-                  ],
+              _Field(
+                label: s.registerPhoneLabel,
+                note: s.registerPhoneNote,
+                hint: s.registerPhoneHint,
+                controller: _mobile,
+                error: _errors['mobile_number'],
+                keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))],
+                enabled: !_busy,
+              ),
+              _Field(
+                label: s.registerPasswordLabel,
+                note: s.registerPasswordNote,
+                hint: s.registerPasswordHint,
+                controller: _password,
+                error: _errors['password'],
+                obscure: true,
+                enabled: !_busy,
+              ),
+              _Field(
+                label: s.registerConfirmPasswordLabel,
+                note: s.registerConfirmPasswordNote,
+                hint: s.registerConfirmPasswordHint,
+                controller: _confirm,
+                error: _errors['confirm'],
+                obscure: true,
+                enabled: !_busy,
+              ),
+            ]),
+            const SizedBox(height: 12),
+            card([
+              // The tanod form presets the Barangay ID, so no dropdown.
+              if (!tanod) ...[
+                _IdTypeDropdown(
+                  role: widget.role,
+                  value: _idType,
+                  open: _dropdownOpen,
+                  error: _errors['id_type'],
                   enabled: !_busy,
-                ),
-                _Field(
-                  label: s.registerPasswordLabel,
-                  note: s.registerPasswordNote,
-                  hint: s.registerPasswordHint,
-                  controller: _password,
-                  error: _errors['password'],
-                  obscure: true,
-                  enabled: !_busy,
-                ),
-                _Field(
-                  label: s.registerConfirmPasswordLabel,
-                  note: s.registerConfirmPasswordNote,
-                  hint: s.registerConfirmPasswordHint,
-                  controller: _confirm,
-                  error: _errors['confirm'],
-                  obscure: true,
-                  enabled: !_busy,
-                ),
-
-                // Figma's tanod signup (2613:921) has no dropdown — see
-                // the header comment and initState for why _idType is
-                // preset to barangayId instead of asked here.
-                if (widget.role != AccountRole.tanod)
-                  _IdTypeDropdown(
-                    role: widget.role,
-                    value: _idType,
-                    open: _dropdownOpen,
-                    error: _errors['id_type'],
-                    enabled: !_busy,
-                    onToggle: () =>
-                        setState(() => _dropdownOpen = !_dropdownOpen),
-                    onSelect: (v) => setState(() {
-                      _idType = v;
-                      _dropdownOpen = false;
-                      _errors.remove('id_type');
-                    }),
-                  ),
-                if (widget.role != AccountRole.tanod)
-                  const SizedBox(height: 24),
-
-                _PhotoRow(
-                  showLabel: widget.role == AccountRole.tanod,
-                  label: widget.role == AccountRole.tanod
-                      ? s.registerAttachBarangayId
-                      : s.registerPhotoOfYourId,
-                  caption: widget.role == AccountRole.tanod
-                      ? s.registerMakeSureReadable
-                      : (_idType == null
-                          ? s.registerChooseIdTypeFirst
-                          : s.registerMakeSureReadable),
-                  file: _idFile,
-                  uploaded: _idUrl != null,
-                  error: _errors['id_image'],
-                  enabled: !_busy && _idType != null,
-                  onTap: () => _capture(selfie: false),
-                ),
-                // Figma's tanod signup has no selfie step — see _validate
-                // and 0036 for why that is safe to drop for this role.
-                if (widget.role != AccountRole.tanod) ...[
-                  const SizedBox(height: 24),
-                  _PhotoRow(
-                    showLabel: true,
-                    label: s.registerPhotoOfYourself,
-                    caption: s.registerSelfieCaption,
-                    file: _selfieFile,
-                    uploaded: _selfieUrl != null,
-                    error: _errors['selfie'],
-                    enabled: !_busy,
-                    onTap: () => _capture(selfie: true),
-                  ),
-                ],
-                const SizedBox(height: 24),
-
-                _Agreement(
-                  value: _agreed,
-                  error: _errors['agree'],
-                  enabled: !_busy,
-                  onChanged: (v) => setState(() {
-                    _agreed = v ?? false;
-                    _errors.remove('agree');
+                  onToggle: () => setState(() => _dropdownOpen = !_dropdownOpen),
+                  onSelect: (v) => setState(() {
+                    _idType = v;
+                    _dropdownOpen = false;
+                    _errors.remove('id_type');
                   }),
                 ),
-                const SizedBox(height: 24),
-
-                DecoratedBox(
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(50)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x4D121212),
-                        blurRadius: 3.5,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: FilledButton(
-                    onPressed: _busy ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(44),
-                      elevation: 0,
-                      side: BorderSide(color: context.colors.bg),
-                    ),
-                    child: _busy
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: context.colors.bg,
-                            ),
-                          )
-                        : Text(s.registerSignUp),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                Center(
-                  child: TextButton(
-                    onPressed: _busy
-                        ? null
-                        : () => Navigator.of(context).pushReplacementNamed('/login'),
-                    child: Text(s.registerAlreadyHaveAccount),
-                  ),
+                const SizedBox(height: 20),
+              ],
+              _PhotoRow(
+                showLabel: tanod,
+                label: tanod ? s.registerAttachBarangayId : s.registerPhotoOfYourId,
+                caption: tanod ? s.registerMakeSureReadable : (_idType == null ? s.registerChooseIdTypeFirst : s.registerMakeSureReadable),
+                file: _idFile,
+                uploaded: _idUrl != null,
+                error: _errors['id_image'],
+                enabled: !_busy && _idType != null,
+                onTap: () => _capture(selfie: false),
+              ),
+              // No selfie step for a tanod (0036).
+              if (!tanod) ...[
+                const SizedBox(height: 20),
+                _PhotoRow(
+                  showLabel: true,
+                  label: s.registerPhotoOfYourself,
+                  caption: s.registerSelfieCaption,
+                  file: _selfieFile,
+                  uploaded: _selfieUrl != null,
+                  error: _errors['selfie'],
+                  enabled: !_busy,
+                  onTap: () => _capture(selfie: true),
                 ),
               ],
+              const SizedBox(height: 18),
+            ]),
+            const SizedBox(height: 14),
+            _Agreement(
+              value: _agreed,
+              error: _errors['agree'],
+              enabled: !_busy,
+              onChanged: (v) => setState(() {
+                _agreed = v ?? false;
+                _errors.remove('agree');
+              }),
             ),
-          ),
+            const SizedBox(height: 16),
+            DButton(s.registerSignUp, expand: true, busy: _busy, onTap: _busy ? null : _submit),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: _busy ? null : () => Navigator.of(context).pushReplacementNamed('/login', arguments: tanod ? 'tanod' : null),
+                child: Text(s.registerAlreadyHaveAccount, style: DType.body(d.link, size: 14, w: FontWeight.w800)),
+              ),
+            ),
+          ],
         ),
       ),
     );
