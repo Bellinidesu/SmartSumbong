@@ -42,6 +42,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
@@ -325,243 +327,146 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // 139 avatar 20 under it with its 25 camera badge, the fields at 35 in
   // on a 20 gap in the frame's order, and BACK / SAVE 150x45 pills 44
   // under the last one.
+  // Branch D: Edit Profile as the preview has it — back and the heading,
+  // the round photo with its camera badge, the fields in one white card
+  // (name, phone and password locked behind a request; email and address
+  // editable), Back / Save pinned at the bottom.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-
+    final d = context.d;
     return PopScope(
       canPop: !_dirty,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final leave = await showDialog<bool>(
-          context: context,
-          barrierColor: context.colors.bg.withValues(alpha: 0.7),
-          builder: (_) => _ProfileDialog(
-            title: s.editProfileUnsavedTitle,
-            body: s.editProfileUnsavedBody,
-            secondaryLabel: s.editProfileCancel,
-            onSecondary: () => Navigator.of(context).pop(false),
-            primaryLabel: s.editProfileContinue,
-            onPrimary: () => Navigator.of(context).pop(true),
-          ),
+        final leave = await showDDialog(
+          context,
+          title: s.editProfileUnsavedTitle,
+          body: s.editProfileUnsavedBody,
+          primary: s.editProfileContinue,
+          secondary: s.editProfileCancel,
+          icon: Icons.edit_note_rounded,
         );
         if (leave == true && context.mounted) Navigator.of(context).pop();
       },
-      child: Scaffold(
-        body: SafeArea(
-          child: _loading
-              ? Center(
-                  child: CircularProgressIndicator(color: context.colors.navy))
-              : ListView(
-                  padding: EdgeInsets.fromLTRB(
-                      35,
-                      (50 - MediaQuery.paddingOf(context).top)
-                          .clamp(8.0, 50.0),
-                      35,
-                      32),
-                  children: [
-                    Center(
-                      child: Text(
-                        s.editProfileTitle,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w800,
-                          fontSize: 28,
-                          height: 43.68 / 28,
-                          color: context.colors.navy,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    Center(
-                      child: GestureDetector(
-                        onTap: _saving ? null : _pickAvatar,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
+      child: DPage(
+        child: _loading
+            ? Center(child: CircularProgressIndicator(color: d.accent))
+            : Column(children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+                    children: [
+                      const Align(alignment: Alignment.centerLeft, child: DBack()),
+                      const SizedBox(height: 12),
+                      DHeading(s.editProfileTitle),
+                      const SizedBox(height: 18),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _saving ? null : _pickAvatar,
+                          child: Stack(clipBehavior: Clip.none, children: [
                             Container(
-                              width: 139,
-                              height: 139,
+                              width: 124,
+                              height: 124,
                               decoration: BoxDecoration(
-                                color: context.colors.navy,
                                 shape: BoxShape.circle,
+                                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [d.card1, d.card2]),
+                                border: Border.all(color: d.card, width: 4),
+                                boxShadow: [BoxShadow(color: d.card1.withValues(alpha: .35), blurRadius: 18, offset: const Offset(0, 8))],
                                 image: _newAvatar != null
-                                    ? DecorationImage(
-                                        image: FileImage(_newAvatar!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : (_avatarUrl != null
-                                        ? DecorationImage(
-                                            image: NetworkImage(cloudinarySized(_avatarUrl!, width: 420)),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null),
+                                    ? DecorationImage(image: FileImage(_newAvatar!), fit: BoxFit.cover)
+                                    : (_avatarUrl != null ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 420)), fit: BoxFit.cover) : null),
                               ),
                               alignment: Alignment.center,
                               child: (_newAvatar != null || _avatarUrl != null)
-                                  ? (_uploadingAvatar
-                                      ? CircularProgressIndicator(
-                                          color: context.colors.bg, strokeWidth: 2)
-                                      : null)
-                                  : Text(
-                                      _SettingsInitials.of(_name),
-                                      style: TextStyle(
-                                        fontFamily: 'Urbanist',
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 44,
-                                        color: context.colors.bg,
-                                      ),
-                                    ),
+                                  ? (_uploadingAvatar ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) : null)
+                                  : Text(_SettingsInitials.of(_name),
+                                      style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 40, color: Colors.white)),
                             ),
-                            // A small camera badge is the only hint that the
-                            // circle above is tappable — nothing else on this
-                            // screen suggests avatar upload lives here.
-                            // The frame's 25 #FBFBFB badge, 14/10 in from
-                            // the circle's bottom-right.
+                            // The only hint the circle can be tapped.
                             Positioned(
-                              right: 14,
-                              bottom: 10,
+                              right: 4,
+                              bottom: 4,
                               child: Container(
-                                width: 25,
-                                height: 25,
-                                // The frame's #FBFBFB is the light
-                                // theme's `field`; following the theme
-                                // keeps the navy glyph visible in dark
-                                // mode, where navy turns light.
+                                width: 34,
+                                height: 34,
                                 decoration: BoxDecoration(
-                                  color: context.colors.field,
+                                  color: DColors.orange,
                                   shape: BoxShape.circle,
+                                  border: Border.all(color: d.card, width: 3),
                                 ),
-                                alignment: Alignment.center,
-                                child: Image.asset(
-                                    'assets/images/icon-camera.png',
-                                    scale: 4,
-                                    color: context.colors.navy),
+                                child: const Icon(Icons.photo_camera_rounded, size: 17, color: Color(0xFF141B34)),
                               ),
                             ),
-                          ],
+                          ]),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 21),
-
-                    if (_banner != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: context.colors.hint.withValues(alpha: 0.08),
-                          border: Border.all(color: context.colors.hint),
-                          borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 18),
+                      if (_banner != null) ...[
+                        DSheet(
+                          borderColor: DColors.red.withValues(alpha: .5),
+                          child: Text(_banner!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
                         ),
-                        child: Text(_banner!,
-                            style: TextStyle(
-                                color: context.colors.hint, fontSize: 13)),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    _LockedField(
-                      label: s.editProfileNameLabel,
-                      value: _name ?? '',
-                      note: s.editProfileNameNote,
-                      onTap: () =>
-                          _requestChange('full_name', s.editProfileNameWord),
-                    ),
-                    const SizedBox(height: 20),
-
-                    _EditableField(
-                      label: s.editProfileEmailLabel,
-                      controller: _email,
-                      hint: s.editProfileEmailHint,
-                      note: s.editProfileOptional,
-                      error: _emailError,
-                      enabled: !_saving,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 20),
-
-                    _LockedField(
-                      label: s.editProfilePhoneLabel,
-                      value: _mobile ?? '',
-                      note: s.editProfilePhoneNote,
-                      onTap: () => _requestChange(
-                          'mobile_number', s.editProfilePhoneWord),
-                    ),
-                    const SizedBox(height: 20),
-
-                    _LockedField(
-                      label: s.editProfilePasswordLabel,
-                      value: '\u2022' * 10,
-                      note: s.editProfilePasswordChange,
-                      onTap: _changePassword,
-                    ),
-                    const SizedBox(height: 20),
-
-                    _EditableField(
-                      label: s.editProfileAddressLabel,
-                      controller: _address,
-                      hint: s.editProfileAddressHint,
-                      note: s.editProfileOptional,
-                      enabled: !_saving,
-                      keyboardType: TextInputType.streetAddress,
-                    ),
-                    const SizedBox(height: 44),
-
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _PageShadow(
-                          child: OutlinedButton(
-                            onPressed: _saving
-                                ? null
-                                : () => Navigator.of(context).maybePop(),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: context.colors.navy,
-                              backgroundColor: context.colors.field,
-                              fixedSize: const Size(150, 45),
-                              minimumSize: const Size(150, 45),
-                              padding: EdgeInsets.zero,
-                              side: BorderSide(color: context.colors.navy),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: 'Urbanist',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                              ),
-                            ),
-                            child: Text(s.editProfileBack),
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                        _PageShadow(
-                          child: FilledButton(
-                            onPressed: (_saving || !_dirty) ? null : _save,
-                            style: FilledButton.styleFrom(
-                              fixedSize: const Size(150, 45),
-                              minimumSize: const Size(150, 45),
-                              padding: EdgeInsets.zero,
-                              elevation: 0,
-                              side: BorderSide(color: context.colors.bg),
-                            ),
-                            child: _saving
-                                ? SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: context.colors.bg),
-                                  )
-                                : Text(s.editProfileSave),
-                          ),
-                        ),
+                        const SizedBox(height: 14),
                       ],
-                    ),
-                  ],
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                        decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                          _LockedField(
+                            label: s.editProfileNameLabel,
+                            value: _name ?? '',
+                            note: s.editProfileNameNote,
+                            onTap: () => _requestChange('full_name', s.editProfileNameWord),
+                          ),
+                          const SizedBox(height: 18),
+                          _EditableField(
+                            label: s.editProfileEmailLabel,
+                            controller: _email,
+                            hint: s.editProfileEmailHint,
+                            note: s.editProfileOptional,
+                            error: _emailError,
+                            enabled: !_saving,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 18),
+                          _LockedField(
+                            label: s.editProfilePhoneLabel,
+                            value: _mobile ?? '',
+                            note: s.editProfilePhoneNote,
+                            onTap: () => _requestChange('mobile_number', s.editProfilePhoneWord),
+                          ),
+                          const SizedBox(height: 18),
+                          _LockedField(
+                            label: s.editProfilePasswordLabel,
+                            value: '•' * 10,
+                            note: s.editProfilePasswordChange,
+                            onTap: _changePassword,
+                          ),
+                          const SizedBox(height: 18),
+                          _EditableField(
+                            label: s.editProfileAddressLabel,
+                            controller: _address,
+                            hint: s.editProfileAddressHint,
+                            note: s.editProfileOptional,
+                            enabled: !_saving,
+                            keyboardType: TextInputType.streetAddress,
+                          ),
+                        ]),
+                      ),
+                    ],
+                  ),
                 ),
-        ),
+                Container(
+                  decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+                  child: Row(children: [
+                    Expanded(flex: 2, child: DButton(s.editProfileBack, kind: DButtonKind.ghost, expand: true, onTap: _saving ? null : () => Navigator.of(context).maybePop())),
+                    const SizedBox(width: 10),
+                    Expanded(flex: 3, child: DButton(s.editProfileSave, expand: true, busy: _saving, onTap: (_saving || !_dirty) ? null : _save)),
+                  ]),
+                ),
+              ]),
       ),
     );
   }
