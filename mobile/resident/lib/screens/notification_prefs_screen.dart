@@ -16,8 +16,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
-import '../theme.dart';
-import '../widgets/figma_ui.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 
 class NotificationPrefsScreen extends StatefulWidget {
   const NotificationPrefsScreen({super.key});
@@ -115,86 +115,53 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
   // No frame of its own: laid out as the translated settings pickers
   // (LANGUAGES) — the title 28/800 at 50, the 16/600 rows with the
   // design's switch on a 66 pitch, and the 150x45 Back pill.
+  // Branch D: back, the heading, then the kinds of notice in one white
+  // card, each with its switch (on = the push is allowed).
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
+    final d = context.d;
     final s = context.s;
-
-    return Scaffold(
-      backgroundColor: c.bg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(30, figmaTop(context, 50), 30, 24),
-          child: Column(
-            children: [
-              FigmaTitle(s.notifPrefsTitle),
-              const SizedBox(height: 4),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 13),
-                child: Text(
-                  s.notifPrefsSubtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                    height: 18 / 14,
-                    color: c.navy,
+    return DPage(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+        children: [
+          const Align(alignment: Alignment.centerLeft, child: DBack()),
+          const SizedBox(height: 12),
+          DHeading(s.notifPrefsTitle, lead: s.notifPrefsSubtitle),
+          const SizedBox(height: 18),
+          if (_loading)
+            Padding(padding: const EdgeInsets.only(top: 40), child: Center(child: CircularProgressIndicator(color: d.accent)))
+          else if (_error != null)
+            DSheet(
+              borderColor: DColors.red.withValues(alpha: .5),
+              child: Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+              child: Column(children: [
+                for (var i = 0; i < _mutableKinds.length; i++) ...[
+                  if (i > 0) Divider(height: 1, thickness: 1, indent: 16, color: d.line),
+                  _PrefRow(
+                    label: _label(s, _mutableKinds[i]),
+                    // A row shows ON when the push is allowed — "muted" is
+                    // the stored, negative concept, but a switch reads as
+                    // "this is turned on".
+                    value: !_muted.contains(_mutableKinds[i]),
+                    busy: _busy.contains(_mutableKinds[i]),
+                    onChanged: (allow) => _toggle(_mutableKinds[i], !allow),
                   ),
-                ),
-              ),
-              const SizedBox(height: 22),
-
-              if (_loading)
-                Padding(
-                  padding: const EdgeInsets.only(top: 40),
-                  child: CircularProgressIndicator(color: c.navy),
-                )
-              else if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 40),
-                  child: Text(_error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: c.hint)),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 16, 0),
-                  child: Column(
-                    children: [
-                      for (final kind in _mutableKinds)
-                        _PrefRow(
-                          label: _label(s, kind),
-                          // A row shows ON when the push is allowed —
-                          // "muted" is the stored/negative concept, but a
-                          // resident reads a switch as "this is turned
-                          // on," so the toggle itself speaks in the
-                          // positive.
-                          value: !_muted.contains(kind),
-                          busy: _busy.contains(kind),
-                          onChanged: (allow) => _toggle(kind, !allow),
-                        ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 32),
-              FigmaBackPill(label: s.notifPrefsBack),
-            ],
-          ),
-        ),
+                ],
+              ]),
+            ),
+        ],
       ),
     );
   }
 }
 
 class _PrefRow extends StatelessWidget {
-  const _PrefRow({
-    required this.label,
-    required this.value,
-    required this.busy,
-    required this.onChanged,
-  });
+  const _PrefRow({required this.label, required this.value, required this.busy, required this.onChanged});
 
   final String label;
   final bool value;
@@ -203,42 +170,20 @@ class _PrefRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 66),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: c.navy,
-              ),
-            ),
+    final d = context.d;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 10, 8),
+      child: Row(children: [
+        Expanded(child: Text(label, style: DType.body(d.ink, size: 15, w: FontWeight.w700))),
+        const SizedBox(width: 12),
+        if (busy)
+          const SizedBox(width: 48, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))))
+        else
+          Semantics(
+            label: label,
+            child: Switch(value: value, activeThumbColor: Colors.white, activeTrackColor: DColors.greenVivid, onChanged: onChanged),
           ),
-          const SizedBox(width: 12),
-          if (busy)
-            SizedBox(
-              width: 48,
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child:
-                      CircularProgressIndicator(strokeWidth: 2, color: c.navy),
-                ),
-              ),
-            )
-          else
-            Semantics(
-              label: label,
-              child: FigmaSwitch(value: value, onChanged: onChanged),
-            ),
-        ],
-      ),
+      ]),
     );
   }
 }

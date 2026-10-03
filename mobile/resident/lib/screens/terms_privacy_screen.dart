@@ -35,7 +35,8 @@ import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
-import '../widgets/figma_ui.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 
 class TermsPrivacyScreen extends StatelessWidget {
   const TermsPrivacyScreen({super.key});
@@ -43,55 +44,85 @@ class TermsPrivacyScreen extends StatelessWidget {
   // No frame of its own: set like the translated pages — the title
   // 28/800 at 50 (no app bar; the pill at the foot and the system back
   // both return), 16/700 headings over 14/500 text, and the 150x45 Back.
+  // Branch D: back, the heading, the draft note, then the eight sections
+  // as numbered cards that open one at a time.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(30, figmaTop(context, 50), 30, 32),
-          children: [
-            FigmaTitle(s.termsPrivacyTitle),
-            const SizedBox(height: 16),
-            const _DraftBanner(),
-            const SizedBox(height: 24),
-            _Section(
-              title: s.termsPrivacySection1Title,
-              body: s.termsPrivacySection1Body,
-            ),
-            _Section(
-              title: s.termsPrivacySection2Title,
-              body: s.termsPrivacySection2Body,
-            ),
-            _Section(
-              title: s.termsPrivacySection3Title,
-              body: s.termsPrivacySection3Body,
-            ),
-            _Section(
-              title: s.termsPrivacySection4Title,
-              body: s.termsPrivacySection4Body,
-            ),
-            _Section(
-              title: s.termsPrivacySection5Title,
-              body: s.termsPrivacySection5Body,
-            ),
-            _Section(
-              title: s.termsPrivacySection6Title,
-              body: s.termsPrivacySection6Body,
-            ),
-            _Section(
-              title: s.termsPrivacySection7Title,
-              body: s.termsPrivacySection7Body,
-            ),
-            _Section(
-              title: s.termsPrivacySection8Title,
-              body: s.termsPrivacySection8Body,
-            ),
-            const SizedBox(height: 12),
-            Center(child: FigmaBackPill(label: s.termsPrivacyBack)),
+    final sections = [
+      (s.termsPrivacySection1Title, s.termsPrivacySection1Body),
+      (s.termsPrivacySection2Title, s.termsPrivacySection2Body),
+      (s.termsPrivacySection3Title, s.termsPrivacySection3Body),
+      (s.termsPrivacySection4Title, s.termsPrivacySection4Body),
+      (s.termsPrivacySection5Title, s.termsPrivacySection5Body),
+      (s.termsPrivacySection6Title, s.termsPrivacySection6Body),
+      (s.termsPrivacySection7Title, s.termsPrivacySection7Body),
+      (s.termsPrivacySection8Title, s.termsPrivacySection8Body),
+    ];
+    return DPage(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+        children: [
+          const Align(alignment: Alignment.centerLeft, child: DBack()),
+          const SizedBox(height: 12),
+          DHeading(s.termsPrivacyTitle),
+          const SizedBox(height: 14),
+          const _DraftBanner(),
+          const SizedBox(height: 14),
+          for (var i = 0; i < sections.length; i++) ...[
+            _Acc(n: i + 1, title: sections[i].$1, body: sections[i].$2),
+            const SizedBox(height: 8),
           ],
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Acc extends StatefulWidget {
+  const _Acc({required this.n, required this.title, required this.body});
+
+  final int n;
+  final String title;
+  final String body;
+
+  @override
+  State<_Acc> createState() => _AccState();
+}
+
+class _AccState extends State<_Acc> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return DSheet(
+      padding: EdgeInsets.zero,
+      onTap: () => setState(() => _open = !_open),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: d.field, border: Border.all(color: d.line)),
+              child: Center(child: Text('${widget.n}', style: DType.mono(d.link, size: 13))),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(widget.title, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800))),
+            AnimatedRotation(
+              turns: _open ? .25 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: Icon(Icons.chevron_right_rounded, color: d.muted),
+            ),
+          ]),
+          if (_open)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(40, 8, 6, 2),
+              child: Text(widget.body, style: DType.body(d.ink2, size: 13.5)),
+            ),
+        ]),
       ),
     );
   }
@@ -105,8 +136,8 @@ class _DraftBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
       decoration: BoxDecoration(
-        color: kFigmaOrange.withValues(alpha: 0.12),
-        border: Border.all(color: kFigmaOrange),
+        color: DColors.orange.withValues(alpha: 0.12),
+        border: Border.all(color: DColors.orange),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Text(
@@ -123,42 +154,3 @@ class _DraftBanner extends StatelessWidget {
   }
 }
 
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.body});
-
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              height: 1.25,
-              color: context.colors.navy,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-              height: 20 / 14,
-              color: context.colors.navy,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

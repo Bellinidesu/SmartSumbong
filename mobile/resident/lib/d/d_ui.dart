@@ -586,3 +586,71 @@ Future<bool?> showDDialog(
     },
   );
 }
+
+/// One choice on a pick-one page (Languages, Appearance).
+class DOption {
+  const DOption({required this.title, this.sub, this.leading, required this.selected, required this.onTap});
+
+  final String title;
+  final String? sub;
+  final Widget? leading;
+  final bool selected;
+  final VoidCallback onTap;
+}
+
+/// A pick-one page: back, the heading, the choices as white cards with
+/// a radio that fills in the role colour.
+class DOptionsPage extends StatelessWidget {
+  const DOptionsPage({super.key, required this.title, this.lead, required this.options});
+
+  final String title;
+  final String? lead;
+  final List<DOption> options;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return DPage(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+        children: [
+          const Align(alignment: Alignment.centerLeft, child: DBack()),
+          const SizedBox(height: 12),
+          DHeading(title, lead: lead),
+          const SizedBox(height: 18),
+          for (final o in options) ...[
+            Semantics(
+              inMutuallyExclusiveGroup: true,
+              selected: o.selected,
+              button: true,
+              child: DSheet(
+                onTap: o.onTap,
+                borderColor: o.selected ? d.accent : null,
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                child: Row(children: [
+                  if (o.leading != null) ...[o.leading!, const SizedBox(width: 12)],
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(o.title, style: DType.body(d.ink, size: 15.5, w: FontWeight.w800)),
+                      if (o.sub != null) Text(o.sub!, style: DType.body(d.muted, size: 12.5)),
+                    ]),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: o.selected ? d.accent : d.line, width: o.selected ? 7 : 2),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
