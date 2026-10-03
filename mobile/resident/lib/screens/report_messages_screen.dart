@@ -11,8 +11,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
-import '../theme.dart';
 
 class ReportMessagesScreen extends StatefulWidget {
   const ReportMessagesScreen({
@@ -131,178 +132,144 @@ class _ReportMessagesScreenState extends State<ReportMessagesScreen> {
     return '${context.s.monthFull(d.month).substring(0, 3)} ${d.day}, $hm';
   }
 
+  // Branch D: back and the case at the top, the thread as bubbles (yours
+  // in the role colour on the right, the barangay's white on the left with
+  // its name in orange), the composer pinned with an orange send.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final c = context.colors;
+    final d = context.d;
     return Scaffold(
-      backgroundColor: c.bg,
-      appBar: AppBar(
-        backgroundColor: c.bg,
-        foregroundColor: c.navy,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(s.messagesTitle,
-                style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: c.navy)),
-            Text('${widget.trackingId} · ${widget.subject}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontFamily: 'Urbanist', fontSize: 12.5, color: c.hint)),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _loading
-                ? Center(child: CircularProgressIndicator(color: c.navy))
-                : _messages.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Text(s.messagesEmpty,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontFamily: 'Urbanist',
-                                  fontSize: 14,
-                                  height: 1.4,
-                                  color: c.hint)),
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scroll,
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                        itemCount: _messages.length,
-                        itemBuilder: (_, i) {
-                          final m = _messages[i];
-                          final mine = m['from_barangay'] != true;
-                          return Align(
-                            alignment: mine
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              constraints: BoxConstraints(
-                                  maxWidth:
-                                      MediaQuery.sizeOf(context).width * 0.78),
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding:
-                                  const EdgeInsets.fromLTRB(14, 9, 14, 8),
-                              decoration: BoxDecoration(
-                                color: mine ? c.navy : c.field,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(18),
-                                  topRight: const Radius.circular(18),
-                                  bottomLeft: Radius.circular(mine ? 18 : 4),
-                                  bottomRight: Radius.circular(mine ? 4 : 18),
+      backgroundColor: d.bg,
+      body: Stack(children: [
+        const DContour(),
+        SafeArea(
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+              child: Row(children: [
+                const DBack(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(s.messagesTitle, style: DType.h3(d.accent).copyWith(fontSize: 18)),
+                    Text('${widget.trackingId} · ${widget.subject}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12.5)),
+                  ]),
+                ),
+              ]),
+            ),
+            Divider(height: 1, color: d.line),
+            Expanded(
+              child: _loading
+                  ? Center(child: CircularProgressIndicator(color: d.accent))
+                  : _messages.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const DWell(Icons.forum_outlined, size: 64),
+                              const SizedBox(height: 12),
+                              Text(s.messagesEmpty, textAlign: TextAlign.center, style: DType.body(d.muted, size: 14)),
+                            ]),
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scroll,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          itemCount: _messages.length,
+                          itemBuilder: (_, i) {
+                            final m = _messages[i];
+                            final mine = m['from_barangay'] != true;
+                            final fg = mine ? Colors.white : d.ink;
+                            return Align(
+                              alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                              child: Container(
+                                constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.fromLTRB(14, 9, 14, 8),
+                                decoration: BoxDecoration(
+                                  color: mine ? (d.tanod ? d.card1 : DColors.brandNavy) : d.card,
+                                  border: mine ? null : Border.all(color: d.line),
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(18),
+                                    topRight: const Radius.circular(18),
+                                    bottomLeft: Radius.circular(mine ? 18 : 4),
+                                    bottomRight: Radius.circular(mine ? 4 : 18),
+                                  ),
                                 ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                   if (!mine)
                                     Text(s.messagesBarangay,
-                                        style: const TextStyle(
-                                          fontFamily: 'Urbanist',
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 11.5,
-                                          color: Tokens.orange,
-                                        )),
-                                  Text(m['body'] as String? ?? '',
-                                      style: TextStyle(
-                                        fontFamily: 'Urbanist',
-                                        fontSize: 14,
-                                        height: 1.3,
-                                        color: mine ? c.bg : c.navy,
-                                      )),
+                                        style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 11.5, color: Color(0xFFE07400))),
+                                  Text(m['body'] as String? ?? '', style: DType.body(fg, size: 14.5)),
                                   const SizedBox(height: 3),
                                   Align(
                                     alignment: Alignment.bottomRight,
-                                    child: Text(_time(m['created_at'] as String?),
-                                        style: TextStyle(
-                                          fontFamily: 'Urbanist',
-                                          fontSize: 10.5,
-                                          color: (mine ? c.bg : c.navy)
-                                              .withValues(alpha: 0.7),
-                                        )),
+                                    child: Text(_time(m['created_at'] as String?), style: DType.body(fg.withValues(alpha: .7), size: 10.5)),
                                   ),
-                                ],
+                                ]),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-          ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-              child: Text(_error!,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFFFF4949))),
+                            );
+                          },
+                        ),
             ),
-          if (widget.canWrite)
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 10, 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _text,
-                        enabled: !_sending,
-                        minLines: 1,
-                        maxLines: 4,
-                        maxLength: 1000,
-                        textCapitalization: TextCapitalization.sentences,
-                        style: TextStyle(
-                            fontFamily: 'Urbanist', fontSize: 14, color: c.navy),
-                        decoration: InputDecoration(
-                          hintText: s.messagesHint,
-                          counterText: '',
-                          isDense: true,
-                          filled: true,
-                          fillColor: c.field,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 11),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(22),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Material(
-                      color: c.navy,
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: _sending ? null : _send,
-                        child: Padding(
-                          padding: const EdgeInsets.all(11),
-                          child: _sending
-                              ? SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: c.bg))
-                              : Icon(Icons.send_rounded, color: c.bg, size: 20),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                child: Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
               ),
-            ),
-        ],
-      ),
+            if (widget.canWrite)
+              Container(
+                decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+                padding: const EdgeInsets.fromLTRB(12, 8, 10, 10),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _text,
+                      enabled: !_sending,
+                      minLines: 1,
+                      maxLines: 4,
+                      maxLength: 1000,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: DType.body(d.ink, size: 14.5),
+                      decoration: InputDecoration(
+                        hintText: s.messagesHint,
+                        hintStyle: DType.body(d.muted, size: 14),
+                        counterText: '',
+                        isDense: true,
+                        filled: true,
+                        fillColor: d.field,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide(color: d.line)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide(color: d.line)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: const BorderSide(color: DColors.orange, width: 1.6)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: DColors.orange,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _sending ? null : _send,
+                      child: SizedBox(
+                        width: 46,
+                        height: 46,
+                        child: Center(
+                          child: _sending
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF141B34)))
+                              : const Icon(Icons.send_rounded, color: Color(0xFF141B34), size: 21),
+                        ),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+          ]),
+        ),
+      ]),
     );
   }
 }
