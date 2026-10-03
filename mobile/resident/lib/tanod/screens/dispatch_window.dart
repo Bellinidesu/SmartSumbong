@@ -1404,34 +1404,19 @@ class _DispatchWindowState extends State<DispatchWindow>
     ];
   }
 
+  // Branch D: steps as a quiet centred line; the tanod's posts in the
+  // role colour on the right; the barangay's white on the left, its
+  // instructions in the amber of the dispatch order's directives.
   Widget _systemLine(String text, DateTime at, IconData icon) {
-    final c = context.colors;
+    final d = context.d;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: kFigmaOrange.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: kFigmaOrange),
-              const SizedBox(width: 5),
-              Text(
-                '$text · ${_time(at)}',
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: c.navy,
-                ),
-              ),
-            ],
-          ),
-        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 14, color: d.muted),
+          const SizedBox(width: 6),
+          Text('$text · ${_time(at)}', style: DType.body(d.muted, size: 12, w: FontWeight.w700)),
+        ]),
       ),
     );
   }
@@ -1442,22 +1427,24 @@ class _DispatchWindowState extends State<DispatchWindow>
     required bool mine,
     String? fallback,
   }) {
-    final c = context.colors;
-    final fg = mine ? c.bg : c.navy;
+    final d = context.d;
+    final instr = !mine && who == context.ts.windowInstructions;
+    final fg = mine ? Colors.white : d.ink;
     final body = (p.body ?? '').trim();
+    final bg = mine
+        ? (d.tanod ? (d.dark ? const Color(0xFF2E343C) : const Color(0xFF14181D)) : DColors.brandNavy)
+        : instr
+            ? Color.alphaBlend(DColors.orange.withValues(alpha: .12), d.card)
+            : d.card;
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-        ),
+        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.8),
         margin: const EdgeInsets.symmetric(vertical: 5),
         padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
         decoration: BoxDecoration(
-          color: mine ? c.navy : c.field,
-          border: mine
-              ? null
-              : Border.all(color: c.navy.withValues(alpha: 0.4)),
+          color: bg,
+          border: mine ? null : Border.all(color: instr ? DColors.orange.withValues(alpha: .4) : d.line),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18),
             topRight: const Radius.circular(18),
@@ -1465,191 +1452,117 @@ class _DispatchWindowState extends State<DispatchWindow>
             bottomRight: Radius.circular(mine ? 4 : 18),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              who,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(who,
               style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w800,
-                fontSize: 11.5,
-                color: mine ? fg.withValues(alpha: 0.8) : kFigmaOrange,
-              ),
-            ),
-            if (body.isNotEmpty || fallback != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                body.isNotEmpty ? body : fallback!,
-                style: TextStyle(
                   fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                  height: 1.3,
-                  color: fg,
-                ),
-              ),
-            ],
-            if (p.media.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              _thumbs(p.media, 84),
-            ],
-            const SizedBox(height: 3),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Text(
-                _time(p.at),
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontSize: 10.5,
-                  color: fg.withValues(alpha: 0.7),
-                ),
-              ),
-            ),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11.5,
+                  color: mine ? Colors.white.withValues(alpha: .8) : const Color(0xFFE07400))),
+          if (body.isNotEmpty || fallback != null) ...[
+            const SizedBox(height: 2),
+            Text(body.isNotEmpty ? body : fallback!, style: DType.body(fg, size: instr ? 15.5 : 14.5, w: instr ? FontWeight.w700 : FontWeight.w500)),
           ],
-        ),
+          if (p.media.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            _thumbs(p.media, 84),
+          ],
+          const SizedBox(height: 3),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Text(_time(p.at), style: DType.body(fg.withValues(alpha: .65), size: 10.5)),
+          ),
+        ]),
       ),
     );
   }
 
   Widget _composer() {
-    final c = context.colors;
+    final d = context.d;
     final s = context.ts;
-    return Material(
-      color: c.bg,
-      elevation: 8,
+    return Container(
+      decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
       child: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_pics.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < _pics.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  _pics[i],
-                                  width: 56,
-                                  height: 56,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                top: -6,
-                                right: -6,
-                                child: GestureDetector(
-                                  onTap: _sending
-                                      ? null
-                                      : () => setState(() => _pics.removeAt(i)),
-                                  child: CircleAvatar(
-                                    radius: 10,
-                                    backgroundColor: c.navy,
-                                    child: Icon(
-                                      Icons.close,
-                                      size: 12,
-                                      color: c.bg,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (_pics.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(children: [
+                  for (var i = 0; i < _pics.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Stack(clipBehavior: Clip.none, children: [
+                        ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_pics[i], width: 56, height: 56, fit: BoxFit.cover)),
+                        Positioned(
+                          top: -6,
+                          right: -6,
+                          child: GestureDetector(
+                            onTap: _sending ? null : () => setState(() => _pics.removeAt(i)),
+                            child: const CircleAvatar(radius: 10, backgroundColor: Color(0x99000000), child: Icon(Icons.close, size: 12, color: Colors.white)),
                           ),
                         ),
-                    ],
+                      ]),
+                    ),
+                ]),
+              ),
+            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Material(
+                color: d.field,
+                shape: CircleBorder(side: BorderSide(color: d.line)),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _sending || _pics.length >= 3 ? null : _addPic,
+                  child: SizedBox(width: 46, height: 46, child: Icon(Icons.photo_camera_outlined, color: d.link)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _text,
+                  enabled: !_sending,
+                  minLines: 1,
+                  maxLines: 4,
+                  maxLength: 2000,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: DType.body(d.ink, size: 14.5),
+                  decoration: InputDecoration(
+                    hintText: s.windowComposerHint,
+                    hintStyle: DType.body(d.muted, size: 14),
+                    counterText: '',
+                    isDense: true,
+                    filled: true,
+                    fillColor: d.field,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(23), borderSide: BorderSide(color: d.line)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(23), borderSide: BorderSide(color: d.line)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(23), borderSide: const BorderSide(color: DColors.orange, width: 1.6)),
+                  ),
+                  onChanged: (_) => setState(() => _error = null),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Material(
+                color: DColors.orange,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _sending ? null : _send,
+                  child: SizedBox(
+                    width: 46,
+                    height: 46,
+                    child: Center(
+                      child: _sending
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF141B34)))
+                          : const Icon(Icons.send_rounded, color: Color(0xFF141B34), size: 21),
+                    ),
                   ),
                 ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.add_a_photo_outlined, color: c.navy),
-                    onPressed: _sending || _pics.length >= 3 ? null : _addPic,
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _text,
-                      enabled: !_sending,
-                      minLines: 1,
-                      maxLines: 4,
-                      maxLength: 2000,
-                      textCapitalization: TextCapitalization.sentences,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontSize: 14,
-                        color: c.navy,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: s.windowComposerHint,
-                        counterText: '',
-                        isDense: true,
-                        filled: true,
-                        fillColor: c.field,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 11,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(22),
-                          borderSide: BorderSide(color: c.navy),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(22),
-                          borderSide: BorderSide(
-                            color: c.navy.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(22),
-                          borderSide: BorderSide(color: c.navy, width: 1.5),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() => _error = null),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Material(
-                      color: kFigmaOrange,
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: _sending ? null : _send,
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: _sending
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.send_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ],
-          ),
+            ]),
+          ]),
         ),
       ),
     );

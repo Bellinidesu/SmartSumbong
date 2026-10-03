@@ -7,6 +7,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../d/d_theme.dart';
+import '../../d/d_ui.dart';
 import '../duty.dart';
 import '../tanod_strings.dart';
 import '../../theme.dart';
@@ -14,7 +16,7 @@ import '../../widgets/figma_ui.dart';
 
 /// The colour each status wears, in the popup and on the nav button.
 Color dutyColour(BuildContext context, DutyState? s) => switch (s) {
-      DutyState.onDuty => const Color(0xFF058F00),
+      DutyState.onDuty => const Color(0xFF16C25B),
       DutyState.breakTime || DutyState.lunch => kFigmaOrange,
       DutyState.offline => kFigmaRed,
       null => context.colors.muted,
@@ -24,7 +26,7 @@ Future<void> showDutySheet(BuildContext context) =>
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: context.colors.bg,
+      backgroundColor: context.d.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -74,79 +76,52 @@ class _DutySheetState extends State<_DutySheet> {
         null => null,
       };
 
+  // Branch D: the question, the statuses as cards each with its colour
+  // (the picked one ringed in it, the current one labelled), the location
+  // note while on duty, and Submit.
   @override
   Widget build(BuildContext context) {
     final s = context.ts;
-    final c = context.colors;
+    final d = context.d;
     return ListenableBuilder(
       listenable: _duty,
       builder: (context, _) {
-        final note = _duty.status == DutyState.onDuty
-            ? _noteText(s, _duty.note)
-            : null;
+        final note = _duty.status == DutyState.onDuty ? _noteText(s, _duty.note) : null;
         final changed = _picked != null && _picked != _duty.status;
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(40, 10, 40, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: c.divider,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: d.line, borderRadius: BorderRadius.circular(5)))),
+              const SizedBox(height: 16),
+              Text(s.homeStatusQuestion, textAlign: TextAlign.center, style: DType.h2(d.ink)),
+              const SizedBox(height: 14),
+              for (final st in DutyState.values) ...[
+                _StatusRow(
+                  label: s.dutyStateLabel(st.wire),
+                  colour: dutyColour(context, st),
+                  current: st == _duty.status,
+                  selected: st == _picked,
+                  onTap: _duty.saving
+                      ? null
+                      : () => setState(() {
+                            _picked = st;
+                            _error = null;
+                          }),
                 ),
-                const SizedBox(height: 18),
-                FigmaTitle(s.homeStatusQuestion, size: 24),
-                const SizedBox(height: 10),
-                for (final d in DutyState.values)
-                  _StatusRow(
-                    label: s.dutyStateLabel(d.wire),
-                    colour: dutyColour(context, d),
-                    current: d == _duty.status,
-                    selected: d == _picked,
-                    onTap: _duty.saving
-                        ? null
-                        : () => setState(() {
-                              _picked = d;
-                              _error = null;
-                            }),
-                  ),
-                if (note != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    note,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 12, height: 1.35, color: c.muted),
-                  ),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(_error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: c.hint)),
-                ],
-                const SizedBox(height: 18),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 301),
-                  child: FigmaPill(
-                    onPressed: _duty.saving || !changed ? null : _submit,
-                    child: _duty.saving
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: c.bg),
-                          )
-                        : Text(s.homeSubmit),
-                  ),
-                ),
+                const SizedBox(height: 8),
               ],
-            ),
+              if (note != null) ...[
+                const SizedBox(height: 2),
+                Text(note, textAlign: TextAlign.center, style: DType.body(d.muted, size: 12.5)),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 6),
+                Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
+              ],
+              const SizedBox(height: 12),
+              DButton(s.homeSubmit, kind: DButtonKind.accent, expand: true, busy: _duty.saving, onTap: _duty.saving || !changed ? null : _submit),
+            ]),
           ),
         );
       },
@@ -154,16 +129,8 @@ class _DutySheetState extends State<_DutySheet> {
   }
 }
 
-/// A status: its colour dot, the label 16/600, the orange radio; the
-/// current one marked in its own colour.
 class _StatusRow extends StatelessWidget {
-  const _StatusRow({
-    required this.label,
-    required this.colour,
-    required this.current,
-    required this.selected,
-    required this.onTap,
-  });
+  const _StatusRow({required this.label, required this.colour, required this.current, required this.selected, required this.onTap});
 
   final String label;
   final Color colour;
@@ -173,70 +140,34 @@ class _StatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ink = context.colors.navy;
+    final d = context.d;
     return Semantics(
       inMutuallyExclusiveGroup: true,
       selected: selected,
       button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          child: Row(
-            children: [
+      child: Material(
+        color: selected ? colour.withValues(alpha: .12) : d.field,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: selected ? colour : d.line, width: selected ? 2 : 1)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(children: [
               Container(
-                width: 12,
-                height: 12,
-                decoration:
-                    BoxDecoration(color: colour, shape: BoxShape.circle),
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(color: colour, shape: BoxShape.circle, boxShadow: [BoxShadow(color: colour.withValues(alpha: .35), spreadRadius: 4)]),
               ),
               const SizedBox(width: 14),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    text: label,
-                    style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: ink,
-                    ),
-                    children: [
-                      if (current)
-                        TextSpan(
-                          text: '  •  ${context.ts.dutyCurrent}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                            color: colour,
-                          ),
-                        ),
-                    ],
-                  ),
+              Expanded(child: Text(label, style: DType.body(d.ink, size: 16, w: FontWeight.w800))),
+              if (current)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(color: colour.withValues(alpha: .16), borderRadius: BorderRadius.circular(99)),
+                  child: Text(context.ts.dutyCurrent, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11, color: colour)),
                 ),
-              ),
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: kFigmaOrange, width: 1.5),
-                ),
-                child: selected
-                    ? Center(
-                        child: Container(
-                          width: 11,
-                          height: 11,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: kFigmaOrange,
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
-            ],
+            ]),
           ),
         ),
       ),
