@@ -17,9 +17,10 @@
 import 'package:flutter/material.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../theme.dart';
-import '../widgets/figma_ui.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key, required this.auth});
@@ -129,13 +130,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     // No back button and no gesture out. Signing out is the only other
     // way off this screen, and it is offered explicitly below.
+    // Branch D: the full contour behind, the form or the success on one
+    // centred white card.
+    final d = context.d;
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        body: SafeArea(
-          child: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: _done ? _success(s) : _form(s),
+      child: DPage(
+        fullContour: true,
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 380),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                decoration: BoxDecoration(
+                  color: d.card,
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(color: d.line),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: d.dark ? .35 : .08), blurRadius: 24, offset: const Offset(0, 10))],
+                ),
+                child: _done ? _success(s) : _form(s),
+              ),
+            ),
           ),
         ),
       ),
@@ -143,17 +161,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Widget _success(Strings s) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(46, figmaTop(context, 338, min: 24), 46, 24),
-      child: Column(
+    return Column(
         children: [
+          Container(
+            width: 74,
+            height: 74,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: DColors.greenVivid.withValues(alpha: .15)),
+            child: const Icon(Icons.verified_user_rounded, size: 38, color: DColors.greenVivid),
+          ),
+          const SizedBox(height: 14),
           Text(
             s.changePasswordDoneTitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Urbanist',
               fontWeight: FontWeight.w800,
-              fontSize: 30,
+              fontSize: 26,
               height: 1.1,
               color: context.colors.navy,
             ),
@@ -170,30 +193,27 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               color: context.colors.navy,
             ),
           ),
-          const SizedBox(height: 40),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 301),
-            child: FigmaPill(
-              onPressed: _continue,
-              child: Text(s.changePasswordContinue),
-            ),
-          ),
+          const SizedBox(height: 22),
+          DButton(s.changePasswordContinue, expand: true, onTap: _continue),
         ],
-      ),
     );
   }
 
   Widget _form(Strings s) {
     final newBad = _errorOn == 'new' || _errorOn == 'both';
     final confirmBad = _errorOn == 'both';
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(52, figmaTop(context, 109, min: 24), 52, 24),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 301),
-          child: Column(
+    return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(
+                child: Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: DColors.orange.withValues(alpha: .15)),
+                  child: const Icon(Icons.lock_reset_rounded, size: 38, color: DColors.orange),
+                ),
+              ),
+              const SizedBox(height: 12),
               Text(
                 s.changePasswordTitle,
                 textAlign: TextAlign.center,
@@ -260,17 +280,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ],
               const SizedBox(height: 34),
 
-              FigmaPill(
-                onPressed: _busy ? null : _submit,
-                child: _busy
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: context.colors.bg),
-                      )
-                    : Text(s.changePasswordSave),
-              ),
+              DButton(s.changePasswordSave, expand: true, busy: _busy, onTap: _busy ? null : _submit),
               const SizedBox(height: 12),
 
               Center(
@@ -289,9 +299,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
     );
   }
 }
