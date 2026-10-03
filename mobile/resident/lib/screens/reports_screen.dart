@@ -57,6 +57,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_categories.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../location_lookup.dart';
 import '../models/complaint_category.dart';
@@ -750,131 +753,85 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   // ---------- build ------------------------------------------
 
+  // Branch D: Your reports in the preview's look — the heading, the
+  // filter, anything still waiting to send, then each report as a white
+  // card with its category colour down the side, a status pill, the
+  // subject, ticket, date and street, and the resident's words (or the
+  // tanod's resolution note once it is done). The menu keeps every
+  // action: view, cancel, reopen, appeal, add details.
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final s = context.s;
-
-    // Figma REPORTS (2869:156): content 46 in; the heading 47 from the
-    // top of the screen, the filter box 3 under it, the first card 25
-    // under the box, cards 13 apart.
-    return Scaffold(
-      bottomNavigationBar: const ResidentNavBar(current: ResidentTab.reports),
-      body: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 46),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                  height: (47 - MediaQuery.paddingOf(context).top)
-                      .clamp(8.0, 47.0)),
-              Text(s.reportsViewTitle,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                    height: 28.08 / 18,
-                    color: context.colors.navy,
-                  )),
-              const SizedBox(height: 3),
-              _FilterDropdown(
-                value: _filter,
-                counts: _filterCounts,
-                onChanged: _setFilter,
+    final d = context.d;
+    return DPage(
+      bottomBar: const ResidentNavBar(current: ResidentTab.reports),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const SizedBox(height: 18),
+          Text(s.reportsViewTitle, style: DType.h1(d.accent).copyWith(fontSize: 28)),
+          const SizedBox(height: 10),
+          _FilterDropdown(value: _filter, counts: _filterCounts, onChanged: _setFilter),
+          const SizedBox(height: 14),
+          // Waiting to send: at most a couple on screen, the rest a
+          // scroll away inside the same box.
+          if (Outbox.instance.items.isNotEmpty)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 250),
+              child: SingleChildScrollView(
+                child: Column(children: [
+                  for (final q in Outbox.instance.items) ...[_QueuedCard(item: q), const SizedBox(height: 12)],
+                ]),
               ),
-              const SizedBox(height: 25),
-
-              // Waiting to send: at most a couple on screen, the rest a
-              // scroll away inside the same box.
-              if (Outbox.instance.items.isNotEmpty) ...[
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 250),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        for (final q in Outbox.instance.items) ...[
-                          _QueuedCard(item: q),
-                          const SizedBox(height: 13),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _load,
-                  color: context.colors.navy,
-                  child: _body(t, s),
-                ),
-              ),
-            ],
+            ),
+          Expanded(
+            child: RefreshIndicator(onRefresh: _load, color: d.accent, child: _body(t, s)),
           ),
-        ),
+        ]),
       ),
     );
   }
 
   Widget _body(TextTheme t, Strings s) {
+    final d = context.d;
     if (_error != null) {
-      return ListView(
-        children: [
-          const SizedBox(height: 80),
-          Text(_error!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.colors.hint)),
-        ],
-      );
+      return ListView(children: [
+        const SizedBox(height: 60),
+        Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 14, w: FontWeight.w700)),
+      ]);
     }
-
     if (_reports == null) {
-      return Center(child: CircularProgressIndicator(color: context.colors.navy));
+      return Center(child: CircularProgressIndicator(color: d.accent));
     }
-
     final visible = _visible;
     if (visible.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 100),
-          Icon(Icons.description_outlined,
-              size: 48, color: context.colors.navy.withValues(alpha: 0.4)),
-          const SizedBox(height: 16),
-          Text(
-            _filter == ReportFilter.all
-                ? s.reportsEmptyAll
-                : s.reportsEmptyFiltered(
-                    s.reportFilterLabel(_filter.name).toLowerCase()),
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.colors.muted),
-          ),
-        ],
-      );
+      return ListView(children: [
+        const SizedBox(height: 70),
+        Icon(Icons.description_outlined, size: 46, color: d.muted),
+        const SizedBox(height: 12),
+        Text(
+          _filter == ReportFilter.all ? s.reportsEmptyAll : s.reportsEmptyFiltered(s.reportFilterLabel(_filter.name).toLowerCase()),
+          textAlign: TextAlign.center,
+          style: DType.body(d.muted, size: 14),
+        ),
+      ]);
     }
-
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 24),
       itemCount: visible.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 13),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (_, i) {
         final r = visible[i];
         return _ReportCard(
           report: r,
           resolutionNote: _resolutionNotes[r.id],
           resolutionAuthor: _resolutionAuthors[r.id],
-          onView: () => Navigator.of(context)
-              .pushNamed('/report', arguments: r.id)
-              .then((_) => _load()),
+          onView: () => Navigator.of(context).pushNamed('/report', arguments: r.id).then((_) => _load()),
           onCancel: r.status.canCancel ? () => _cancel(r) : null,
-          onReopen:
-              r.status.canRequestReopen ? () => _requestReopen(r) : null,
-          onAppeal:
-              r.status.canRequestAppeal ? () => _requestAppeal(r) : null,
-          onAddDetails: _detailRequests.containsKey(r.id)
-              ? () => _addDetails(r)
-              : null,
+          onReopen: r.status.canRequestReopen ? () => _requestReopen(r) : null,
+          onAppeal: r.status.canRequestAppeal ? () => _requestAppeal(r) : null,
+          onAddDetails: _detailRequests.containsKey(r.id) ? () => _addDetails(r) : null,
         );
       },
     );
@@ -1109,18 +1066,10 @@ class _ReportCard extends StatelessWidget {
   final VoidCallback onView;
 
   /// The tanod's own resolution note, when this report is finished and
-  /// one exists — ReportsScreen._loadResolutionNotes() batch-fetches
-  /// this for the whole visible list. Null for an ongoing report, a
-  /// finished one with no remark on file, or while the batch fetch is
-  /// still in flight (the card just shows the description meanwhile,
-  /// same as it always has).
+  /// one exists (batch-fetched for the whole visible list).
   final String? resolutionNote;
 
-  /// "TANOD <NAME>" or "SYSTEM" — who wrote [resolutionNote], from 0049's
-  /// my_resolution_authors RPC (ReportsScreen._loadResolutionAuthors()).
-  /// Null whenever resolutionNote is null, and also possible even when
-  /// resolutionNote is set (byline not resolved yet, or the lookup found
-  /// nothing) — in that case the note still renders, just without one.
+  /// "TANOD <NAME>" or "SYSTEM" — who wrote [resolutionNote] (0049).
   final String? resolutionAuthor;
 
   final VoidCallback? onCancel;
@@ -1128,141 +1077,71 @@ class _ReportCard extends StatelessWidget {
   final VoidCallback? onAppeal;
   final VoidCallback? onAddDetails;
 
-  // Figma REPORTS card: fixed navy and #F3F3F3 text, like View Report's
-  // own card (not theme-adaptive; see report_view_screen.dart's ROUND 16
-  // header). Only "# <id> - Cancelled" goes red, as drawn.
-  static const _navy = Color(0xFF00308F);
-  static const _onNavy = Color(0xFFF3F3F3);
-  static const _cancelRed = Color(0xFFFF4949);
-
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final cancelled = report.status == ReportStatus.cancelled;
-    return InkWell(
-      onTap: onView,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: double.infinity,
-        // 323 wide in the frame, radius 20, 1px #F3F3F3 edge, y5 / blur 5
-        // shadow at 30%; padding 15 top, 20 left, 10 right and bottom.
-        padding: const EdgeInsets.fromLTRB(20, 15, 10, 10),
-        decoration: BoxDecoration(
-          // Dark mode: the page's raised surface, not the day navy.
-          color: context.isDark ? context.colors.field : _navy,
-          border: Border.all(color: _onNavy),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x4D121212),
-              blurRadius: 3.5,
-              offset: Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      style: const TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        // 18 in the frame; a step down so the ID, status
-                        // and subject don't crowd the card on a phone.
-                        fontSize: 16,
-                        height: 1.2,
-                        color: _onNavy,
+    final d = context.d;
+    final col = categoryColour(report.category);
+    final st = reportStatusColour(report.status);
+    return Material(
+      color: d.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: onAddDetails != null ? DColors.orange : d.line, width: onAddDetails != null ? 1.6 : 1)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onView,
+        child: IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Container(width: 5, color: col),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 4, 14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                      decoration: BoxDecoration(color: st.withValues(alpha: .14), borderRadius: BorderRadius.circular(99)),
+                      child: Text(s.reportStatusLabel(report.status.wire),
+                          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, color: d.dark ? Color.lerp(st, Colors.white, .35) : st)),
+                    ),
+                    if (onAddDetails != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                        decoration: BoxDecoration(color: DColors.orange.withValues(alpha: .16), borderRadius: BorderRadius.circular(99)),
+                        child: Text(context.tr('Details needed', 'Kailangan ng detalye'),
+                            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11.5, color: Color(0xFFB26A00))),
                       ),
-                      children: [
-                        const TextSpan(text: '('),
-                        TextSpan(
-                          text: '# ${report.trackingId} - '
-                              '${s.reportStatusLabel(report.status.wire)}',
-                          style: cancelled
-                              ? const TextStyle(color: _cancelRed)
-                              : null,
-                        ),
-                        TextSpan(text: ') ${report.subject}'),
-                      ],
+                    ],
+                    const Spacer(),
+                    _CardMenu(onView: onView, onCancel: onCancel, onReopen: onReopen, onAppeal: onAppeal, onAddDetails: onAddDetails),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text(report.subject, style: DType.h3(d.ink).copyWith(fontSize: 17)),
+                  const SizedBox(height: 2),
+                  Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    Text(report.trackingId, style: DType.mono(d.link, size: 12.5)),
+                    Text(_formatDate(s, report.createdAt), style: DType.body(d.muted, size: 12.5)),
+                    if (report.latitude != null && report.longitude != null)
+                      _LocationLabel(latitude: report.latitude!, longitude: report.longitude!, stored: report.locationLabel, color: d.muted),
+                  ]),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Text.rich(
+                      TextSpan(children: [
+                        if (resolutionNote != null && resolutionAuthor != null)
+                          TextSpan(text: '$resolutionAuthor: ', style: const TextStyle(fontWeight: FontWeight.w800)),
+                        TextSpan(text: resolutionNote ?? s.reportsCardDescription(report.description)),
+                      ]),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: DType.body(d.ink2, size: 13),
                     ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                _CardMenu(
-                  onView: onView,
-                  onCancel: onCancel,
-                  onReopen: onReopen,
-                  onAppeal: onAppeal,
-                  onAddDetails: onAddDetails,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            // The street goes under the date when both don't fit, rather
-            // than squeezing the date onto two lines.
-            Wrap(
-              spacing: 10,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  s.reportsSubmittedOn(_formatDate(s, report.createdAt)),
-                  style: const TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
-                    height: 18.72 / 12,
-                    color: _onNavy,
-                  ),
-                ),
-                // Kept from the pre-Figma card (a real, user-requested
-                // upgrade): the street name beside the date, as View
-                // Report already shows it.
-                if (report.latitude != null && report.longitude != null)
-                  _LocationLabel(
-                    latitude: report.latitude!,
-                    longitude: report.longitude!,
-                    stored: report.locationLabel,
-                    color: _onNavy,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // The frame's quoted body. A finished report shows the
-            // tanod's resolution note with its byline instead, as it has
-            // since 29 Aug; otherwise the resident's own words.
-            Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    if (resolutionNote != null && resolutionAuthor != null)
-                      TextSpan(
-                        text: '$resolutionAuthor: ',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    TextSpan(
-                      text: resolutionNote ??
-                          s.reportsCardDescription(report.description),
-                    ),
-                  ],
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                  height: 15 / 12,
-                  color: _onNavy,
-                ),
+                ]),
               ),
             ),
-          ],
+          ]),
         ),
       ),
     );
@@ -1273,6 +1152,15 @@ class _ReportCard extends StatelessWidget {
     return '${s.monthFull(d.month)} ${d.day}, ${d.year}';
   }
 }
+
+/// The preview's status colours.
+Color reportStatusColour(ReportStatus s) => switch (s) {
+      ReportStatus.pendingReview || ReportStatus.validated => const Color(0xFFF59E0B),
+      ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => const Color(0xFF356CF9),
+      ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => const Color(0xFF1F8A45),
+      ReportStatus.rejected => const Color(0xFFC62828),
+      ReportStatus.cancelled => const Color(0xFF9AA1AB),
+    };
 
 /// The mockup's "📍 <place>" footer meta item, resolved from the
 /// report's coordinates via location_lookup.dart rather than a stored

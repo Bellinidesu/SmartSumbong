@@ -61,6 +61,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_categories.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../outbox.dart';
@@ -660,254 +663,144 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   // ---------- build ------------------------------------------
 
+  // Branch D: the report form in the preview's look — back, the issue in
+  // its category colour, then the three steps as numbered white cards
+  // (where, what happened, photos and video), the anonymous switch and
+  // the acknowledgement, and Back / Submit pinned at the bottom.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final d = context.d;
+    final col = categoryColour(widget.choice.category);
+    Widget section(int n, String title, List<Widget> body) => Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: col),
+                child: Center(child: Text('$n', style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 13, color: Colors.white))),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: Text(title, style: DType.body(d.ink, size: 15, w: FontWeight.w800))),
+            ]),
+            const SizedBox(height: 12),
+            ...body,
+          ]),
+        );
 
-    return Scaffold(
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Column(
-            children: [
-              Expanded(
-                // Figma SUBMIT REPORT - 1 (2277:3268): content 42 in,
-                // title 50 from the top of the screen, sections 20 apart,
-                // each field directly under its label, and Back/Submit at
-                // the end of the scrolling page rather than pinned.
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(42, 26, 42, 50),
-                  children: [
-                    Text(
-                      widget.choice.title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w800,
-                        fontSize: 28,
-                        // Subtitle starts 34 below the title's top.
-                        height: 34 / 28,
-                        color: context.colors.navy,
-                      ),
-                    ),
-                    Text(
-                      s.reportDetailsCompleteBelow,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
-                        height: 24.96 / 16,
-                        color: context.colors.navy,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    if (_banner != null) ...[
-                      _Banner(_banner!),
-                      const SizedBox(height: 16),
-                    ],
-
-                    _StepLabel(1, s.reportDetailsStep1),
-                    _MapCard(
-                      controller: _map,
-                      pin: _pin,
-                      accuracyMetres: _accuracyMetres,
-                      locating: _locating,
-                      onMoved: (p) => setState(() {
-                        _pin = p;
-                        // The circle described the GPS fix, not a hand
-                        // placed pin. Keeping it would claim an accuracy
-                        // that no longer applies.
-                        _accuracyMetres = null;
-                      }),
-                    ),
-                    // The frame's pill sits 4 under the map.
-                    const SizedBox(height: 4),
-                    _LocationStatus(
-                      locating: _locating,
-                      denied: _locationDenied,
-                      accuracyMetres: _accuracyMetres,
-                      onRetry: _locate,
-                    ),
-                    if (_locationDenied && !_locating) ...[
-                      const SizedBox(height: 20),
-                      _ManualAddressField(
-                        controller: _addressSearch,
-                        busy: _geocoding,
-                        error: _geocodeError,
-                        enabled: !_busy,
-                        onSearch: _searchAddress,
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-
-                    _StepLabel(2, s.reportDetailsStep2),
-                    _DescriptionBox(
-                      controller: _description,
-                      error: _errors['description'],
+    return DPage(
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+              children: [
+                Align(alignment: Alignment.centerLeft, child: DBack(onTap: _busy ? () {} : null)),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
+                  const SizedBox(width: 8),
+                  Text(widget.choice.category.label.toUpperCase(), style: DType.label(d.muted)),
+                ]),
+                const SizedBox(height: 6),
+                DHeading(widget.choice.title, lead: s.reportDetailsCompleteBelow),
+                const SizedBox(height: 14),
+                if (_banner != null) ...[
+                  _Banner(_banner!),
+                  const SizedBox(height: 14),
+                ],
+                section(1, s.reportDetailsStep1, [
+                  _MapCard(
+                    controller: _map,
+                    pin: _pin,
+                    accuracyMetres: _accuracyMetres,
+                    locating: _locating,
+                    onMoved: (p) => setState(() {
+                      _pin = p;
+                      // The circle described the GPS fix, not a hand placed
+                      // pin. Keeping it would claim an accuracy that no
+                      // longer applies.
+                      _accuracyMetres = null;
+                    }),
+                  ),
+                  const SizedBox(height: 6),
+                  _LocationStatus(locating: _locating, denied: _locationDenied, accuracyMetres: _accuracyMetres, onRetry: _locate),
+                  if (_locationDenied && !_locating) ...[
+                    const SizedBox(height: 14),
+                    _ManualAddressField(
+                      controller: _addressSearch,
+                      busy: _geocoding,
+                      error: _geocodeError,
                       enabled: !_busy,
-                    ),
-                    const SizedBox(height: 20),
-
-                    _StepLabel(3, s.reportDetailsStep3),
-                    _PhotoStrip(
-                      photos: _photos,
-                      max: _maxPhotos,
-                      enabled: !_busy,
-                      onAdd: _addPhoto,
-                      onRemove: _removePhoto,
-                    ),
-                    const SizedBox(height: 16),
-                    _VideoAttach(
-                      video: _video,
-                      enabled: !_busy,
-                      onAdd: _addVideo,
-                      onRemove: _removeVideo,
-                    ),
-                    const SizedBox(height: 20),
-
-                    Text(
-                      s.reportDetailsAnonymousQuestion,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        // Two lines in 32, the frame's text box.
-                        height: 15 / 14,
-                        color: context.colors.navy,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        _SmallSwitch(
-                          value: _anonymous,
-                          onChanged: _busy
-                              ? null
-                              : (v) {
-                                  setState(() => _anonymous = v);
-                                  _scheduleDraftSave();
-                                },
-                        ),
-                        Expanded(
-                          child: Text(
-                            _anonymous
-                                ? s.reportDetailsHiddenNote
-                                : s.reportDetailsShownNote,
-                            style: TextStyle(
-                                fontSize: 11, color: context.colors.muted),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    _Acknowledgement(
-                      value: _acknowledged,
-                      error: _errors['ack'],
-                      enabled: !_busy,
-                      onChanged: (v) => setState(() {
-                        _acknowledged = v ?? false;
-                        _errors.remove('ack');
-                      }),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // The frame's pair: 150x45 pills, 20 apart, centred —
-                    // each shrinking to share the row on a phone narrower
-                    // than the frame (the page's 42 insets leave 308 of a
-                    // 392 screen, not the 320 two 150s need).
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 150),
-                            child: _PillShadow(
-                              opacity: 0.30,
-                              child: OutlinedButton(
-                                onPressed: _busy
-                                    ? null
-                                    : () => Navigator.of(context).pop(),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: context.colors.navy,
-                                  backgroundColor: context.colors.field,
-                                  minimumSize: const Size.fromHeight(45),
-                                  padding: EdgeInsets.zero,
-                                  side: BorderSide(color: context.colors.navy),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(50),
-                                  ),
-                                  textStyle: const TextStyle(
-                                    fontFamily: 'Urbanist',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                child: Text(s.reportDetailsBack),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                        Flexible(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 150),
-                            child: _PillShadow(
-                              opacity: 0.50,
-                              child: FilledButton(
-                                onPressed: _busy ? null : _submit,
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(45),
-                                  padding: EdgeInsets.zero,
-                                  elevation: 0,
-                                  side: BorderSide(color: context.colors.bg),
-                                ),
-                                child: _busy
-                                    ? SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: context.colors.bg),
-                                      )
-                                    : Text(s.reportDetailsSubmit),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      onSearch: _searchAddress,
                     ),
                   ],
+                ]),
+                const SizedBox(height: 12),
+                section(2, s.reportDetailsStep2, [
+                  _DescriptionBox(controller: _description, error: _errors['description'], enabled: !_busy),
+                ]),
+                const SizedBox(height: 12),
+                section(3, s.reportDetailsStep3, [
+                  _PhotoStrip(photos: _photos, max: _maxPhotos, enabled: !_busy, onAdd: _addPhoto, onRemove: _removePhoto),
+                  const SizedBox(height: 12),
+                  _VideoAttach(video: _video, enabled: !_busy, onAdd: _addVideo, onRemove: _removeVideo),
+                ]),
+                const SizedBox(height: 12),
+                DSheet(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(s.reportDetailsAnonymousQuestion, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      _SmallSwitch(
+                        value: _anonymous,
+                        onChanged: _busy
+                            ? null
+                            : (v) {
+                                setState(() => _anonymous = v);
+                                _scheduleDraftSave();
+                              },
+                      ),
+                      Expanded(child: Text(_anonymous ? s.reportDetailsHiddenNote : s.reportDetailsShownNote, style: DType.body(d.muted, size: 12))),
+                    ]),
+                  ]),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                _Acknowledgement(
+                  value: _acknowledged,
+                  error: _errors['ack'],
+                  enabled: !_busy,
+                  onChanged: (v) => setState(() {
+                    _acknowledged = v ?? false;
+                    _errors.remove('ack');
+                  }),
+                ),
+              ],
+            ),
           ),
-        ),
+          Container(
+            decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+            child: SafeArea(
+              top: false,
+              child: Row(children: [
+                Expanded(flex: 2, child: DButton(s.reportDetailsBack, kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
+                const SizedBox(width: 10),
+                Expanded(flex: 3, child: DButton(s.reportDetailsSubmit, expand: true, busy: _busy, onTap: _busy ? null : _submit)),
+              ]),
+            ),
+          ),
+        ]),
       ),
     );
   }
 }
 
 // ---------- pieces -------------------------------------------
-
-class _StepLabel extends StatelessWidget {
-  const _StepLabel(this.number, this.text);
-  final int number;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-        context.s.reportDetailsStepLabel(number, text),
-        style: TextStyle(
-          fontFamily: 'Urbanist',
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-          color: context.colors.navy,
-        ),
-      );
-}
 
 class _MapCard extends StatelessWidget {
   const _MapCard({
@@ -1566,29 +1459,6 @@ class _SmallSwitch extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The frame's y5 / blur 5 drop shadow under a 45-tall pill button.
-class _PillShadow extends StatelessWidget {
-  const _PillShadow({required this.opacity, required this.child});
-
-  final double opacity;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF121212).withValues(alpha: opacity),
-              blurRadius: 3.5,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: child,
-      );
 }
 
 class _Banner extends StatelessWidget {
