@@ -35,7 +35,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../i18n.dart';
 import '../outbox.dart';
 import 'launch_gate.dart' show gateCacheKey;
-import '../theme.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
+import '../d/flood_watch.dart';
 import '../widgets/resident_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -52,6 +54,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _unread = 0;
   bool _loading = true;
 
+  FloodReading? _flood;
+  Timer? _floodTimer;
+
   RealtimeChannel? _liveChannel;
   Timer? _liveDebounce;
 
@@ -60,10 +65,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    _readFlood();
+    _floodTimer = Timer.periodic(const Duration(minutes: 10), (_) => _readFlood());
+  }
+
+  Future<void> _readFlood() async {
+    final r = await FloodReading.read();
+    if (mounted) setState(() => _flood = r);
   }
 
   @override
   void dispose() {
+    _floodTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _liveDebounce?.cancel();
     if (_liveChannel != null) {
@@ -280,372 +293,109 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return full.trim().split(RegExp(r'\s+')).first;
   }
 
+  // Branch D: the preview's Home in the C app's layout — the bell at the
+  // top right, the trimmed wordmark centred, the greeting, the live flood
+  // watch, then the three role-colour cards. The contour runs the whole
+  // height of the page.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-
-    return Scaffold(
-      bottomNavigationBar: const ResidentNavBar(current: ResidentTab.home),
-      body: Stack(
-        children: [
-          // The contour texture from the design, edge to edge behind
-          // everything. Exported at one frame's size (412x917), so it
-          // covers rather than tiles — on a taller handset the bottom
-          // is cropped, which is the right failure for a background
-          // whose whole job is to not be looked at.
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.asset(
-                'assets/images/texture.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
-            ),
-          ),
-          SafeArea(
-            bottom: false,
-            child: RefreshIndicator(
-              onRefresh: _load,
-              color: context.colors.navy,
-              child: ListView(
-                // Figma HOME - RESIDENT (2117:72), a 412-wide frame: content
-                // at x=30, and the bell's top edge 33 from the top of the
-                // screen — measured from the screen, so the status bar the
-                // SafeArea already clears is taken off that 33.
-                padding: EdgeInsets.fromLTRB(
-                  30,
-                  (33 - MediaQuery.paddingOf(context).top).clamp(8.0, 33.0),
-                  30,
-                  24,
+    final d = context.d;
+    return DPage(
+      fullContour: true,
+      bottomBar: const ResidentNavBar(current: ResidentTab.home),
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await _load();
+          await _readFlood();
+        },
+        color: d.accent,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            SizedBox(
+              height: 168,
+              child: Stack(children: [
+                Positioned.fill(
+                  top: 30,
+                  child: Center(
+                    child: Image.asset('assets/images/home-wordmark.png',
+                        width: 250, fit: BoxFit.contain, semanticLabel: 'SmartSumbong'),
+                  ),
                 ),
-                children: [
-                  // The logo box (308x236 at x=47, y=55) overlaps the bell
-                  // row, and the greeting starts 236 below the bell's top
-                  // edge (y=269), inside the logo box's transparent margin.
-                  SizedBox(
-                    height: 236,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        // 5 left of centre, as in the frame (x=47 in 412,
-                        // where centred would be 52) — measured from the
-                        // centre so it stays balanced on other widths.
-                        // `contain` so a very narrow phone scales it down
-                        // rather than squashing it.
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          top: 22,
-                          height: 236,
-                          child: Center(
-                            child: Transform.translate(
-                              offset: const Offset(-5, 0),
-                              child: SizedBox(
-                                width: 308,
-                                height: 236,
-                                child: Image.asset(
-                                  'assets/images/home-wordmark.png',
-                                  fit: BoxFit.contain,
-                                  // The wordmark carries the brand; a screen
-                                  // reader should hear the name, not "image".
-                                  semanticLabel: 'SmartSumbong',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          right: -2,
-                          child: _NotificationBell(
-                            unread: _unread,
-                            onTap: () => Navigator.of(context)
-                                .pushNamed('/notifications'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.only(left: 13),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _loading
-                              ? s.homeWelcomeGeneric
-                              : (_firstName == null
-                                  ? s.homeWelcomeGeneric
-                                  : s.homeWelcomeNamed(_firstName!)),
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w800,
-                            fontSize: 28,
-                            // Subtitle starts 34 below the greeting's top.
-                            height: 34 / 28,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                        Text(
-                          s.homeSubtitle,
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                            height: 21.84 / 14,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 33),
-
-                  // Gaps and the first card's 16 bottom padding are the
-                  // frame's own per-card values, kept as drawn.
-                  _ActionCard(
-                    title: s.homeEmergencyTitle,
-                    body: s.homeEmergencyBody,
-                    gap: 15,
-                    bottomPadding: 16,
-                    actions: [
-                      _CardAction(
-                        label: s.homeEmergencyLabel,
-                        width: 172,
-                        onTap: () => Navigator.of(context)
-                            .pushReplacementNamed('/emergency'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 11),
-
-                  _ActionCard(
-                    title: s.homeReportTitle,
-                    body: s.homeReportBody,
-                    gap: 17,
-                    actions: [
-                      _CardAction(
-                        label: s.homeReportIssue,
-                        width: 140,
-                        onTap: () =>
-                            Navigator.of(context).pushNamed('/submit-report'),
-                      ),
-                      _CardAction(
-                        label: s.homeViewReports,
-                        width: 140,
-                        onTap: () => Navigator.of(context)
-                            .pushReplacementNamed('/reports'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 11),
-
-                  _ActionCard(
-                    title: s.homeMapTitle,
-                    body: s.homeMapBody,
-                    gap: 12,
-                    actions: [
-                      _CardAction(
-                        label: s.homeViewMap,
-                        width: 120,
-                        onTap: () =>
-                            Navigator.of(context).pushReplacementNamed('/map'),
-                      ),
-                    ],
-                  ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: DBell(unread: _unread, onTap: () => Navigator.of(context).pushNamed('/notifications')),
+                ),
+              ]),
+            ),
+            Text(
+              _loading || _firstName == null ? s.homeWelcomeGeneric : s.homeWelcomeNamed(_firstName!),
+              style: DType.h1(d.ink),
+            ),
+            const SizedBox(height: 2),
+            Text(s.homeSubtitle, style: DType.body(d.muted)),
+            const SizedBox(height: 16),
+            DFloodCard(reading: _flood, onTap: () => Navigator.of(context).pushReplacementNamed('/map')),
+            const SizedBox(height: 14),
+            DCard(
+              gradient: const [Color(0xFFC62828), Color(0xFF8E1B1B)],
+              glow: const Color(0xFFE53935),
+              child: _CardBody(
+                title: s.homeEmergencyTitle,
+                body: s.homeEmergencyBody,
+                actions: [
+                  DButton(s.homeEmergencyLabel, small: true, kind: DButtonKind.white,
+                      onTap: () => Navigator.of(context).pushReplacementNamed('/emergency')),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------- pieces -------------------------------------------
-
-class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.unread, required this.onTap});
-
-  final int unread;
-  final VoidCallback onTap;
-
-  // Figma NOTIF BUTTON: a 39x38 navy pill (radius 19) with the design's
-  // own bell glyph (25x25 at 7,6), exported from the frame rather than a
-  // Material look-alike. Tinted from the theme so dark mode still reads.
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(19),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 39,
-            height: 38,
-            padding: const EdgeInsets.only(left: 7, top: 6),
-            alignment: Alignment.topLeft,
-            decoration: BoxDecoration(
-              color: context.colors.navy,
-              borderRadius: BorderRadius.circular(19),
-            ),
-            child: Image.asset(
-              'assets/images/icon-bell.png',
-              width: 25,
-              height: 25,
-              color: context.colors.bg,
-            ),
-          ),
-          if (unread > 0)
-            Positioned(
-              right: -2,
-              top: -2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                constraints: const BoxConstraints(minWidth: 18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF9800),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: context.colors.bg, width: 1.5),
-                ),
-                child: Text(
-                  unread > 99 ? '99+' : '$unread',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            const SizedBox(height: 14),
+            DCard(
+              child: _CardBody(
+                title: s.homeReportTitle,
+                body: s.homeReportBody,
+                actions: [
+                  DButton(s.homeReportIssue, small: true, onTap: () => Navigator.of(context).pushNamed('/submit-report')),
+                  DButton(s.homeViewReports, small: true, kind: DButtonKind.white,
+                      onTap: () => Navigator.of(context).pushReplacementNamed('/reports')),
+                ],
               ),
             ),
-        ],
+            const SizedBox(height: 14),
+            DCard(
+              child: _CardBody(
+                title: s.homeMapTitle,
+                body: s.homeMapBody,
+                actions: [
+                  DButton(s.homeViewMap, small: true, kind: DButtonKind.white,
+                      onTap: () => Navigator.of(context).pushReplacementNamed('/map')),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _CardAction {
-  const _CardAction({
-    required this.label,
-    required this.width,
-    required this.onTap,
-  });
-  final String label;
-
-  /// The button's width in the frame. A minimum, not a fixed size, so a
-  /// longer Tagalog label grows the pill instead of being clipped.
-  final double width;
-  final VoidCallback onTap;
-}
-
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.title,
-    required this.body,
-    required this.actions,
-    this.gap = 17,
-    this.bottomPadding = 20,
-  });
+class _CardBody extends StatelessWidget {
+  const _CardBody({required this.title, required this.body, required this.actions});
 
   final String title;
   final String body;
-  final List<_CardAction> actions;
-
-  /// Space between the text and the buttons; differs per card in the frame.
-  final double gap;
-  final double bottomPadding;
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
-    // Figma card: 352 wide, radius 25, 20 padding, 1px #F3F3F3 stroke,
-    // drop shadow y5 / blur 5 / #121212 at 30%. Figma's blur 5 is sigma
-    // 2.5, which Flutter's blurRadius expresses as 3.5.
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPadding),
-      decoration: BoxDecoration(
-        color: context.colors.navy,
-        border: Border.all(color: context.colors.bg),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x4D121212),
-            blurRadius: 3.5,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            // Inverts to the page background, the same navy-card pattern
-            // used on the login screen — a literal white would vanish
-            // against the near-white card colour dark mode gives
-            // context.colors.navy.
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-              // The body starts 26 below the title's top.
-              height: 26 / 18,
-              color: context.colors.bg,
-            ),
-          ),
-          Text(
-            body,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w500,
-              fontSize: 12,
-              height: 15 / 12,
-              color: context.colors.bg,
-            ),
-          ),
-          SizedBox(height: gap),
-          Wrap(
-            spacing: 16,
-            runSpacing: 8,
-            children: [
-              for (final a in actions)
-                InkWell(
-                  onTap: a.onTap,
-                  borderRadius: BorderRadius.circular(20),
-                  // No `alignment` on the Container: that makes it fill the
-                  // width the Wrap offers. Center(widthFactor: 1) centres the
-                  // label while the pill keeps its own (minimum) width.
-                  child: Container(
-                    height: 36,
-                    constraints: BoxConstraints(minWidth: a.width),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: context.colors.bg,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Center(
-                      widthFactor: 1,
-                      child: Text(
-                        a.label,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          color: context.colors.navy,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, style: DType.h3(Colors.white).copyWith(fontSize: 19)),
+      const SizedBox(height: 6),
+      Text(body, style: DType.body(Colors.white.withValues(alpha: .86), size: 13)),
+      const SizedBox(height: 14),
+      Wrap(spacing: 8, runSpacing: 8, children: actions),
+    ]);
   }
 }

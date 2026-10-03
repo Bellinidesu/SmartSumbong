@@ -1,41 +1,29 @@
-// SmartSumbong — resident bottom navigation.
+// SmartSumbong — resident bottom bar (branch D).
 //
-// Figma "Footer" (2715:590, the same group on every resident frame).
-// Shared by Home, Emergency, Reports, Map and Settings, so it lives on its
-// own rather than being copied into five screens that would then drift
-// apart.
-//
-// 1:1 with the frame (23 Sep 2026): the design's own five icons, exported
-// from Figma and tinted from the theme so dark mode still reads, instead
-// of the Material look-alikes this used before; 14px labels, 700 for the
-// active tab and 500 otherwise, all #F3F3F3; a 50x2 line 6 from the top
-// marks the active tab. Positions come from the frame: tabs spread edge
-// to edge with 37 padding, and each icon and label keeps its own offset
-// from the bar's top edge.
+// The Figma footer as the C app has it: filled with the role colour
+// (barangay navy by day, pale at night), the design's own icons and the
+// labels in the page colour, 30px top corners, a 2px line over the tab
+// you are on. Five equal tabs; the tabs are peers, so a tap replaces the
+// screen rather than stacking it.
 
 import 'package:flutter/material.dart';
 
+import '../d/d_theme.dart';
 import '../i18n.dart';
-import '../theme.dart';
 
 enum ResidentTab {
-  // route, icon asset, icon size, icon top and label top (both measured
-  // from the bar's top edge in the frame).
-  home('/home', 'nav-home', 24, 24, 19, 43),
-  emergency('/emergency', 'nav-emergency', 26, 26, 17, 43),
-  reports('/reports', 'nav-reports', 21, 20, 19, 44),
-  map('/map', 'nav-map', 22, 19, 17, 44),
-  settings('/settings', 'nav-settings', 16, 23, 16, 45);
+  home('/home', 'nav-home', 24, 24),
+  emergency('/emergency', 'nav-emergency', 26, 26),
+  reports('/reports', 'nav-reports', 22, 21),
+  map('/map', 'nav-map', 23, 20),
+  settings('/settings', 'nav-settings', 17, 24);
 
-  const ResidentTab(this.route, this.asset, this.iconWidth, this.iconHeight,
-      this.iconTop, this.labelTop);
+  const ResidentTab(this.route, this.asset, this.iconWidth, this.iconHeight);
 
   final String route;
   final String asset;
   final double iconWidth;
   final double iconHeight;
-  final double iconTop;
-  final double labelTop;
 
   String label(Strings s) => switch (this) {
         home => s.navHome,
@@ -49,130 +37,56 @@ enum ResidentTab {
 class ResidentNavBar extends StatelessWidget {
   const ResidentNavBar({super.key, required this.current});
 
-  final ResidentTab current;
-
-  static const _framePadding = 37.0; // the frame's side padding
-  static const _minPadding = 10.0;
-  static const _minGap = 8.0; // least space kept between two tabs
-  static const _fontSize = 14.0;
+  /// Null on a screen reached from the bar but not one of its tabs.
+  final ResidentTab? current;
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final scaler = MediaQuery.textScalerOf(context);
+    final d = context.d;
+    return DBar(
+      colors: d,
+      children: [
+        for (final t in ResidentTab.values)
+          DBarTab(
+            label: t.label(s),
+            icon: Image.asset('assets/images/${t.asset}.png', width: t.iconWidth, height: t.iconHeight, color: d.barFg),
+            active: t == current,
+            color: d.barFg,
+            onTap: () {
+              if (t == current) return;
+              Navigator.of(context).pushReplacementNamed(t.route);
+            },
+          ),
+      ],
+    );
+  }
+}
+
+/// The bar itself, shared with the tanod's.
+class DBar extends StatelessWidget {
+  const DBar({super.key, required this.colors, required this.children});
+
+  final DColors colors;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: context.colors.navy,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+        color: colors.bar,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 18, offset: const Offset(0, -6))],
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          // 917 (frame bottom) - 840 (bar top).
           height: 77,
-          child: LayoutBuilder(
-            builder: (context, box) {
-              final tabs = ResidentTab.values;
-              final w = box.maxWidth;
-
-              // Each tab is as wide as its icon or its label, whichever is
-              // wider, measured with the phone's own text scaling.
-              double labelWidth(ResidentTab t) => (TextPainter(
-                    text: TextSpan(
-                      text: t.label(s),
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontSize: _fontSize,
-                        fontWeight: t == current
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                      ),
-                    ),
-                    textDirection: TextDirection.ltr,
-                    textScaler: scaler,
-                    maxLines: 1,
-                  )..layout())
-                      .width;
-              final widths = [
-                for (final t in tabs)
-                  labelWidth(t) > t.iconWidth ? labelWidth(t) : t.iconWidth,
-              ];
-              final total = widths.fold<double>(0, (a, b) => a + b);
-              const gaps = _minGap * 4;
-
-              // As drawn in the frame when it fits. Narrower phones, long
-              // Tagalog labels or a large system font size: give up side
-              // padding first, then shrink the tabs, rather than overflow.
-              var pad = _framePadding;
-              var scale = 1.0;
-              if (w - 2 * pad - total < gaps) {
-                pad = ((w - total - gaps) / 2).clamp(_minPadding, _framePadding);
-                if (w - 2 * pad - total < gaps) {
-                  scale = (w - 2 * pad - gaps) / total;
-                }
-              }
-              final gap = (w - 2 * pad - total * scale) / (tabs.length - 1);
-
-              final lefts = <double>[];
-              var x = pad;
-              for (final tw in widths) {
-                lefts.add(x);
-                x += tw * scale + gap;
-              }
-              final centres = [
-                for (var i = 0; i < tabs.length; i++)
-                  lefts[i] + widths[i] * scale / 2,
-              ];
-
-              return Stack(
-                children: [
-                  for (var i = 0; i < tabs.length; i++)
-                    Positioned(
-                      left: lefts[i],
-                      top: 0,
-                      width: widths[i] * scale,
-                      height: 77,
-                      child: _NavItem(
-                        tab: tabs[i],
-                        active: tabs[i] == current,
-                        scale: scale,
-                      ),
-                    ),
-                  // Tap areas run between the midpoints of neighbouring
-                  // tabs and the full height of the bar, so every tab is
-                  // easy to hit without moving anything that is drawn.
-                  for (var i = 0; i < tabs.length; i++)
-                    Positioned(
-                      left: i == 0 ? 0 : (centres[i - 1] + centres[i]) / 2,
-                      right: i == tabs.length - 1
-                          ? 0
-                          : w - (centres[i] + centres[i + 1]) / 2,
-                      top: 0,
-                      bottom: 0,
-                      child: Semantics(
-                        button: true,
-                        selected: tabs[i] == current,
-                        label: tabs[i].label(s),
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            final tab = tabs[i];
-                            if (tab == current) return;
-                            // Replace rather than push: the tabs are peers,
-                            // and stacking them would build a back stack
-                            // five deep from tapping around.
-                            Navigator.of(context)
-                                .pushReplacementNamed(tab.route);
-                          },
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              for (final c in children) Expanded(child: c),
+            ]),
           ),
         ),
       ),
@@ -180,62 +94,50 @@ class ResidentNavBar extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.tab,
-    required this.active,
-    required this.scale,
-  });
+class DBarTab extends StatelessWidget {
+  const DBarTab({super.key, required this.label, required this.icon, required this.active, required this.color, required this.onTap});
 
-  final ResidentTab tab;
+  final String label;
+  final Widget icon;
   final bool active;
-
-  /// Below 1 only when the bar would otherwise overflow; see above.
-  final double scale;
+  final Color color;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final colour = context.colors.bg;
-    return ExcludeSemantics(
-      // The tap area above carries the label for screen readers.
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 6),
-          // Takes no width, so the 50-wide marker cannot widen a narrow
-          // tab.
-          SizedBox(
-            width: 0,
-            height: 2,
-            child: OverflowBox(
-              minWidth: 50,
-              maxWidth: 50,
-              child: active ? ColoredBox(color: colour) : null,
+    return Semantics(
+      button: true,
+      selected: active,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: ExcludeSemantics(
+          child: Column(children: [
+            const SizedBox(height: 5),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: active ? 46 : 0,
+              height: 2,
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
             ),
-          ),
-          SizedBox(height: tab.iconTop - 8),
-          Image.asset(
-            'assets/images/${tab.asset}.png',
-            width: tab.iconWidth * scale,
-            height: tab.iconHeight * scale,
-            color: colour,
-          ),
-          SizedBox(
-              height: tab.labelTop - tab.iconTop - tab.iconHeight * scale),
-          Text(
-            tab.label(context.s),
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.visible,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontSize: ResidentNavBar._fontSize * scale,
-              height: 20 / 14,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              color: colour,
+            const Spacer(),
+            SizedBox(height: 26, child: Center(child: icon)),
+            const SizedBox(height: 5),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label,
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontSize: 13.5,
+                      height: 1.2,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                      color: color)),
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+          ]),
+        ),
       ),
     );
   }

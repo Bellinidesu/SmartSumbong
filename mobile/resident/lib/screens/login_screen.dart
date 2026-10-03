@@ -27,6 +27,9 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import '../d/d_prefs.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../widgets/figma_ui.dart';
 
 /// Whether this handset should keep the session across app launches.
@@ -128,261 +131,132 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Branch D: the preview's sign-in. Full contour behind, the page in the
+  // light/dark setting, the wordmark, "Resident Profile" or "Tanod
+  // Profile", and the form on the role-colour card. Sign Up stays for
+  // tanods too — they register themselves and the admin approves them.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-
-    return Scaffold(
-      body: Stack(
-        children: [
-          // The contour texture, same asset and opacity as Home and the
-          // launch gate, so the three screens a resident sees first read
-          // as one surface.
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.asset(
-                'assets/images/texture.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              ),
+    final tanod = ModalRoute.of(context)?.settings.arguments == 'tanod';
+    final d = tanod ? (context.isDark ? DColors.tanodDark : DColors.tanodLight) : context.dResident;
+    final cardText = Colors.white;
+    return DPage(
+      colors: d,
+      fullContour: true,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
+          children: [
+            Align(alignment: Alignment.centerRight, child: DPrefsRow(colors: d)),
+            const SizedBox(height: 18),
+            Center(
+              child: Image.asset('assets/images/onboarding-logo.png',
+                  width: 220, semanticLabel: 'SmartSumbong', filterQuality: FilterQuality.medium),
             ),
-          ),
-          // Figma LOG IN RESIDENT: the 403-wide logo art (its FILL box at
-          // y=119, 337 tall), "Resident Profile" 28/800 at 426, and the
-          // 357-wide navy card at 481 — radius 50, 1px #F3F3F3 edge, y5 /
-          // blur 5 shadow — holding 301x44 white fields at 28 in, the
-          // 11px Remember me box, the orange Log In and navy Back to Roles
-          // pills, and the Inter sign-up line.
-          SafeArea(
-            child: GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  top: (119 - MediaQuery.paddingOf(context).top)
-                      .clamp(8.0, 119.0),
-                  bottom: 32,
+            Text(
+              tanod ? context.tr('Tanod Profile', 'Profile ng Tanod') : s.loginProfileHeading,
+              textAlign: TextAlign.center,
+              style: DType.h1(d.accent).copyWith(fontStyle: FontStyle.italic, fontSize: 25),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [d.card1, d.card2]),
+                boxShadow: [BoxShadow(color: d.card1.withValues(alpha: .35), blurRadius: 26, offset: const Offset(0, 12))],
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _DField(
+                  label: s.loginPhoneLabel,
+                  hint: s.loginPhoneHint,
+                  controller: _mobile,
+                  error: _fieldErrors['mobile'] ?? _fieldErrors['mobile_number'],
+                  enabled: !_busy,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _Logo(),
-                    Center(
-                      child: Text(
-                        s.loginProfileHeading,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w800,
-                          fontStyle: FontStyle.italic,
-                          fontSize: 28,
-                          height: 43.68 / 28,
-                          color: context.colors.navy,
+                const SizedBox(height: 12),
+                _DField(
+                  label: s.loginPasswordLabel,
+                  hint: s.loginPasswordHint,
+                  controller: _password,
+                  error: _fieldErrors['password'],
+                  enabled: !_busy,
+                  obscure: _obscure,
+                  onToggleObscure: () => setState(() => _obscure = !_obscure),
+                ),
+                const SizedBox(height: 6),
+                Row(children: [
+                  InkWell(
+                    onTap: _busy ? null : () => setState(() => _remember = !_remember),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            color: _remember ? DColors.orange : Colors.transparent,
+                            border: Border.all(color: _remember ? DColors.orange : Colors.white70, width: 2),
+                          ),
+                          child: _remember ? const Icon(Icons.check_rounded, size: 14, color: Color(0xFF141B34)) : null,
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Text(s.loginRememberMe, style: DType.body(cardText, size: 13, w: FontWeight.w600)),
+                      ]),
                     ),
-                    const SizedBox(height: 11),
-
-                    // The navy card from the design. Fields sit on white
-                    // inside it, so labels invert to the page background.
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 27),
-                      padding: const EdgeInsets.fromLTRB(27, 23, 27, 21),
-                      decoration: BoxDecoration(
-                        color: context.colors.navy,
-                        borderRadius: BorderRadius.circular(50),
-                        border: Border.all(color: context.colors.bg),
-                        boxShadow: _shadow,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _OnNavyField(
-                            label: s.loginPhoneLabel,
-                            hint: s.loginPhoneHint,
-                            controller: _mobile,
-                            error: _fieldErrors['mobile'] ??
-                                _fieldErrors['mobile_number'],
-                            enabled: !_busy,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9+ ]')),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          _OnNavyField(
-                            label: s.loginPasswordLabel,
-                            hint: s.loginPasswordHint,
-                            controller: _password,
-                            error: _fieldErrors['password'],
-                            enabled: !_busy,
-                            obscure: _obscure,
-                            onToggleObscure: () =>
-                                setState(() => _obscure = !_obscure),
-                          ),
-                          Row(
-                            children: [
-                              _RememberMe(
-                                value: _remember,
-                                label: s.loginRememberMe,
-                                onChanged: _busy
-                                    ? null
-                                    : (v) => setState(() => _remember = v),
-                              ),
-                              const Spacer(),
-                              TextButton(
-                                onPressed:
-                                    _busy ? null : () => _forgotPassword(),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: context.colors.bg,
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 6),
-                                  minimumSize: const Size(0, 32),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  s.loginForgotPassword,
-                                  style: TextStyle(
-                                    fontFamily: 'Urbanist',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: context.colors.bg,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          if (_error != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              _error!,
-                              style: const TextStyle(
-                                  color: Color(0xFFFFC107), fontSize: 12),
-                            ),
-                          ],
-                          const SizedBox(height: 9),
-
-                          DecoratedBox(
-                            decoration: const BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(50)),
-                              boxShadow: _shadow,
-                            ),
-                            child: FilledButton(
-                              onPressed: _busy ? null : _submit,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF9800),
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(44),
-                                elevation: 0,
-                                side: BorderSide(color: context.colors.bg),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
-                              ),
-                              child: _busy
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white),
-                                    )
-                                  : Text(s.loginButton),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          DecoratedBox(
-                            decoration: const BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(50)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(0x4D121212),
-                                  blurRadius: 2.9,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: OutlinedButton(
-                              onPressed: _busy
-                                  ? null
-                                  : () => Navigator.of(context)
-                                      .pushNamedAndRemoveUntil(
-                                          '/roles', (_) => false),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: context.colors.bg,
-                                backgroundColor: context.colors.navy,
-                                side: BorderSide(color: context.colors.bg),
-                                minimumSize: const Size.fromHeight(44),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontFamily: 'Urbanist',
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              child: Text(s.loginBackToRoles),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          Center(
-                            child: TextButton(
-                              onPressed: _busy
-                                  ? null
-                                  // From the responder card: tanod signup.
-                                  : () => Navigator.of(context)
-                                      .pushReplacementNamed(
-                                          ModalRoute.of(context)?.settings.arguments == 'tanod'
-                                              ? '/register-tanod'
-                                              : '/register'),
-                              // 40 tall so the line sits 18 under Back to
-                              // Roles, as in the frame.
-                              style: TextButton.styleFrom(
-                                foregroundColor: context.colors.bg,
-                                minimumSize: const Size(0, 40),
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 8),
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text.rich(
-                                TextSpan(
-                                  text: s.loginNoAccountPrefix,
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 13,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: s.loginSignUp,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: context.colors.bg,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _busy ? null : _forgotPassword,
+                    style: TextButton.styleFrom(foregroundColor: cardText, padding: const EdgeInsets.symmetric(horizontal: 4)),
+                    child: Text(s.loginForgotPassword,
+                        style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, decoration: TextDecoration.underline, decorationColor: Colors.white)),
+                  ),
+                ]),
+                if (_error != null) ...[
+                  Container(
+                    margin: const EdgeInsets.only(top: 4, bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: const Color(0x33FFC107), border: Border.all(color: const Color(0x80FFC107))),
+                    child: Text(_error!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, color: Color(0xFFFFE08A), fontSize: 13)),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                DButton(s.loginButton, onTap: _busy ? null : _submit, busy: _busy, expand: true),
+                const SizedBox(height: 10),
+                DButton(s.loginBackToRoles,
+                    kind: DButtonKind.white,
+                    expand: true,
+                    onTap: _busy ? null : () => Navigator.of(context).pushNamedAndRemoveUntil('/roles', (_) => false)),
+                const SizedBox(height: 4),
+              ]),
+            ),
+            const SizedBox(height: 14),
+            Center(
+              child: TextButton(
+                onPressed: _busy ? null : () => Navigator.of(context).pushReplacementNamed(tanod ? '/register-tanod' : '/register'),
+                style: TextButton.styleFrom(foregroundColor: d.ink),
+                child: Text.rich(TextSpan(
+                  text: s.loginNoAccountPrefix,
+                  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 13.5, color: d.muted),
+                  children: [
+                    TextSpan(
+                      text: s.loginSignUp,
+                      style: TextStyle(fontWeight: FontWeight.w800, color: d.link, decoration: TextDecoration.underline, decorationColor: d.link),
                     ),
                   ],
-                ),
+                )),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -413,12 +287,13 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
 }
 
-/// A labelled field sitting on the navy card: white input, navy text,
-/// label in the page background colour.
-class _OnNavyField extends StatelessWidget {
-  const _OnNavyField({
+/// A labelled field on the role-colour card: the label in white over a
+/// white field with dark text, an error line in amber under it.
+class _DField extends StatelessWidget {
+  const _DField({
     required this.label,
     required this.hint,
     required this.controller,
@@ -442,173 +317,45 @@ class _OnNavyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // The frame's label: 16/600 in a 23 box, 12 in from the field.
+    final r = BorderRadius.circular(14);
+    OutlineInputBorder b(Color c, [double w = 1.5]) => OutlineInputBorder(borderRadius: r, borderSide: BorderSide(color: c, width: w));
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 6),
+        child: Text(label, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
+      ),
+      TextField(
+        controller: controller,
+        enabled: enabled,
+        obscureText: obscure,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15.5, color: Color(0xFF141B34)),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 14.5, color: Color(0xFF8A90A3), fontStyle: FontStyle.normal),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: b(Colors.transparent),
+          enabledBorder: b(Colors.transparent),
+          disabledBorder: b(Colors.transparent),
+          focusedBorder: b(DColors.orange, 2),
+          errorBorder: b(const Color(0xFFFFC107)),
+          focusedErrorBorder: b(const Color(0xFFFFC107), 2),
+          suffixIcon: onToggleObscure == null
+              ? null
+              : IconButton(
+                  onPressed: onToggleObscure,
+                  icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF6E7489)),
+                ),
+        ),
+      ),
+      if (error != null)
         Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              height: 23 / 16,
-              color: context.colors.bg,
-            ),
-          ),
+          padding: const EdgeInsets.only(left: 4, top: 5),
+          child: Text(error!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFFFFE08A))),
         ),
-        TextField(
-          controller: controller,
-          enabled: enabled,
-          obscureText: obscure,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            color: context.colors.navy,
-          ),
-          // 44 tall with the text 21 in, as the frame's fields.
-          decoration: InputDecoration(
-            hintText: hint,
-            filled: true,
-            // The frame's white. `field` rather than a literal white so it
-            // still inverts with the navy card in dark mode, where
-            // context.colors.navy is near-white.
-            fillColor: context.colors.field,
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 21, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(50),
-              borderSide: BorderSide.none,
-            ),
-            suffixIconConstraints:
-                const BoxConstraints.tightFor(width: 44, height: 44),
-            suffixIcon: onToggleObscure == null
-                ? null
-                : IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      obscure ? Icons.visibility_off : Icons.visibility,
-                      color: context.colors.navy,
-                      size: 20,
-                    ),
-                    onPressed: enabled ? onToggleObscure : null,
-                  ),
-          ),
-        ),
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 16, top: 4),
-            child: Text(
-              error!,
-              style: const TextStyle(color: Color(0xFFFFC107), fontSize: 11),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-const _shadow = [
-  BoxShadow(
-    color: Color(0x4D121212),
-    blurRadius: 3.5,
-    offset: Offset(0, 5),
-  ),
-];
-
-/// The frame's logo: the square art drawn 403 wide (scaled to narrower
-/// screens), its box starting at y=119 and the title overlapping its
-/// transparent lower edge by 30, as in the frame.
-class _Logo extends StatelessWidget {
-  const _Logo();
-
-  @override
-  Widget build(BuildContext context) {
-    final k = (MediaQuery.sizeOf(context).width / 412).clamp(0.0, 1.0);
-    final side = 403 * k;
-    return SizedBox(
-      height: 307 * k,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          Positioned(
-            top: -33 * k,
-            width: side,
-            height: side,
-            child: Image.asset(
-              'assets/images/onboarding-logo.png',
-              semanticLabel: 'SmartSumbong',
-              filterQuality: FilterQuality.medium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The frame's 11px light square with its 11/600 label. The whole row is
-/// the tap target (at least 32 tall), not just the tiny box.
-class _RememberMe extends StatelessWidget {
-  const _RememberMe({
-    required this.value,
-    required this.label,
-    required this.onChanged,
-  });
-
-  final bool value;
-  final String label;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      checked: value,
-      enabled: onChanged != null,
-      label: label,
-      excludeSemantics: true,
-      child: InkWell(
-        onTap: onChanged == null ? null : () => onChanged!(!value),
-        borderRadius: BorderRadius.circular(8),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 32),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 12, right: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 11,
-                  height: 11,
-                  color: context.colors.bg,
-                  alignment: Alignment.center,
-                  child: value
-                      ? Icon(Icons.check, size: 10, color: context.colors.navy)
-                      : null,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w600,
-                    fontStyle: FontStyle.italic,
-                    fontSize: 11,
-                    color: context.colors.bg,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    ]);
   }
 }

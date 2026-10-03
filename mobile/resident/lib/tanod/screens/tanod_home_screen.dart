@@ -14,8 +14,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../duty.dart';
 import '../tanod_strings.dart';
-import '../../theme.dart';
-import '../../widgets/figma_ui.dart';
+import '../../d/d_theme.dart';
+import '../../d/d_ui.dart';
+import '../../d/flood_watch.dart';
 import '../widgets/tanod_nav_bar.dart';
 import 'dispatch_order.dart';
 import '../../screens/launch_gate.dart' show gateCacheKey;
@@ -47,6 +48,9 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   // since 0004 for the admin map, so this rides along for free at the
   // database level; the only new cost is the one open channel while
   // Home is on screen.
+  FloodReading? _flood;
+  Timer? _floodTimer;
+
   RealtimeChannel? _liveChannel;
   Timer? _liveDebounce;
 
@@ -54,10 +58,18 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   void initState() {
     super.initState();
     _load();
+    _readFlood();
+    _floodTimer = Timer.periodic(const Duration(minutes: 10), (_) => _readFlood());
+  }
+
+  Future<void> _readFlood() async {
+    final r = await FloodReading.read();
+    if (mounted) setState(() => _flood = r);
   }
 
   @override
   void dispose() {
+    _floodTimer?.cancel();
     _liveDebounce?.cancel();
     if (_liveChannel != null) {
       Supabase.instance.client.removeChannel(_liveChannel!);
@@ -235,366 +247,92 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
     if (await showDispatchOrder(context, t)) await _load();
   }
 
+  // Branch D: the resident Home's layout in the tanod's ink — the bell,
+  // the wordmark, the greeting, the flood watch, then one card per
+  // dispatch waiting for an answer (with the time left to accept) and a
+  // card for the ones already accepted. No activity history here; that
+  // is the History tab.
   @override
   Widget build(BuildContext context) {
     final s = context.ts;
-
-    return Scaffold(
-      bottomNavigationBar: const TanodNavBar(current: TanodTab.home),
-      body: Stack(
-        children: [
-          const FigmaTexture(),
-          SafeArea(
-            bottom: false,
-            child: RefreshIndicator(
-              onRefresh: _load,
-              color: context.colors.navy,
-              child: ListView(
-                // Figma HOME - TANOD: the bell's top at y=33, cards 352
-                // wide at x=30.
-                padding: EdgeInsets.fromLTRB(30, figmaTop(context, 33), 30, 24),
-                children: [
-                  // The logo box (308x236 at x=47, y=55) overlaps the bell
-                  // row, and the greeting starts 236 below the bell's top
-                  // edge (y=269), inside the logo box's transparent margin
-                  // — the same arrangement as the resident Home.
-                  SizedBox(
-                    height: 236,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          top: 22,
-                          height: 236,
-                          child: Center(
-                            child: Transform.translate(
-                              offset: const Offset(-5, 0),
-                              child: SizedBox(
-                                width: 308,
-                                height: 236,
-                                child: Image.asset(
-                                  'assets/images/home-wordmark.png',
-                                  fit: BoxFit.contain,
-                                  semanticLabel: 'SmartSumbong',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          right: -2,
-                          child: _NotificationBell(
-                            onTap: () => Navigator.of(context)
-                                .pushNamed('/t/notifications'),
-                          ),
-                        ),
-                      ],
-                    ),
+    final d = context.d;
+    final waiting = [for (final t in _incoming) if (t.awaitingResponse) t];
+    final working = [for (final t in _incoming) if (!t.awaitingResponse) t];
+    return DPage(
+      fullContour: true,
+      bottomBar: const TanodNavBar(current: TanodTab.home),
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await _load();
+          await _readFlood();
+        },
+        color: d.accent,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            SizedBox(
+              height: 168,
+              child: Stack(children: [
+                Positioned.fill(
+                  top: 30,
+                  child: Center(
+                    child: Image.asset('assets/images/home-wordmark.png', width: 250, fit: BoxFit.contain, semanticLabel: 'SmartSumbong'),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 13),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _loading || _firstName == null
-                              ? s.homeWelcome
-                              : s.homeWelcomeName(_firstName!),
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w800,
-                            fontSize: 28,
-                            height: 34 / 28,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                        Text(
-                          s.homeHowAreYou,
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                            height: 21.84 / 14,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  if (_error != null) ...[
-                    Text(_error!,
-                        style: TextStyle(
-                            fontSize: 12, color: context.colors.hint)),
-                    const SizedBox(height: 12),
-                  ],
-                  _IncomingCard(
-                    loading: _loading,
-                    tickets: _incoming,
-                    onOpen: _open,
-                  ),
-                ],
-              ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: DBell(unread: 0, onTap: () => Navigator.of(context).pushNamed('/t/notifications')),
+                ),
+              ]),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------- incoming dispatch ----------------------------------
-
-class _IncomingCard extends StatelessWidget {
-  const _IncomingCard({
-    required this.loading,
-    required this.tickets,
-    required this.onOpen,
-  });
-
-  final bool loading;
-  final List<Ticket> tickets;
-  final ValueChanged<Ticket> onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      title: context.ts.homeIncomingDispatch,
-      child: loading
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 18),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          : tickets.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Text(
-                    context.ts.homeIncomingEmpty,
-                    style: TextStyle(
-                        fontSize: 12, height: 1.4, color: context.colors.muted),
-                  ),
+            Text(_loading || _firstName == null ? s.homeWelcome : s.homeWelcomeName(_firstName!), style: DType.h1(d.ink)),
+            const SizedBox(height: 2),
+            Text(s.homeHowAreYou, style: DType.body(d.muted)),
+            const SizedBox(height: 16),
+            DFloodCard(reading: _flood),
+            const SizedBox(height: 14),
+            if (_error != null) ...[
+              DSheet(
+                borderColor: DColors.red.withValues(alpha: .5),
+                child: Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
+              ),
+              const SizedBox(height: 14),
+            ],
+            if (_loading)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: CircularProgressIndicator()))
+            else ...[
+              if (waiting.isEmpty)
+                DCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(context.tr('INCOMING DISPATCH', 'PAPASOK NA DISPATCH'), style: DType.label(Colors.white.withValues(alpha: .8))),
+                    const SizedBox(height: 8),
+                    Text(s.homeIncomingEmpty, style: DType.body(Colors.white.withValues(alpha: .9), size: 13.5)),
+                  ]),
                 )
-              // The whole queue, at full height: on branch B the queue is
-              // Home, so it scrolls with the page instead of in a window.
-              : Column(
-                  children: [
-                    for (var i = 0; i < tickets.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 16),
-                      _DispatchRow(
-                        ticket: tickets[i],
-                        onOpen: () => onOpen(tickets[i]),
-                      ),
-                    ],
-                  ],
-                ),
-    );
-  }
-}
-
-class _DispatchRow extends StatelessWidget {
-  const _DispatchRow({required this.ticket, required this.onOpen});
-
-  final Ticket ticket;
-  final VoidCallback onOpen;
-
-  // Figma "Group 301": the 20x25 clipboard at 18 in, the line 14/600 with
-  // the complaint in red, the date and time 10/500, and under them the
-  // 128x30 green View Details pill.
-  @override
-  Widget build(BuildContext context) {
-    final ink = context.colors.navy;
-    return Padding(
-      padding: const EdgeInsets.only(left: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 5),
-                child: Icon(Icons.assignment, size: 25, color: ink),
-              ),
-              const SizedBox(width: 22),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text.rich(
-                      TextSpan(
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          height: 15 / 14,
-                          color: ink,
-                        ),
-                        children: [
-                          TextSpan(text: context.ts.homeAssignedTo),
-                          TextSpan(
-                            text: ticket.trackingId,
-                            style: const TextStyle(color: kFigmaRed),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _date(context, ticket.assignedAt),
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 10,
-                        height: 15.6 / 10,
-                        color: ink,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  _time(ticket.assignedAt),
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 10,
-                    color: ink,
+              else
+                for (final t in waiting) ...[
+                  _IncomingCard(ticket: t, onOpen: () => _open(t)),
+                  const SizedBox(height: 14),
+                ],
+              if (waiting.isEmpty) const SizedBox(height: 14),
+              DCard(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(context.tr('Your assigned reports', 'Mga naka-assign sa iyo'), style: DType.h3(Colors.white).copyWith(fontSize: 19)),
+                  const SizedBox(height: 6),
+                  Text(
+                    working.isEmpty
+                        ? context.tr('Nothing in progress. Accepted dispatches show here.', 'Walang isinasagawa. Dito lalabas ang mga tinanggap na dispatch.')
+                        : context.tr('${working.length} ${working.length == 1 ? 'dispatch' : 'dispatches'} in progress. Open one to update it or send your field report.',
+                            '${working.length} dispatch ang isinasagawa. Buksan ang isa para i-update o ipadala ang ulat.'),
+                    style: DType.body(Colors.white.withValues(alpha: .86), size: 13),
                   ),
-                ),
+                  const SizedBox(height: 14),
+                  DButton(context.tr('View assigned reports', 'Tingnan ang mga naka-assign'),
+                      small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushReplacementNamed('/t/reports')),
+                ]),
               ),
             ],
-          ),
-          const SizedBox(height: 5),
-          Padding(
-            padding: const EdgeInsets.only(left: 21),
-            child: _GreenPill(
-              label: context.ts.homeViewDetails,
-              onPressed: onOpen,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _date(BuildContext context, DateTime? d) {
-    if (d == null) return '';
-    final l = d.toLocal();
-    return '${context.ts.monthFull(l.month)} ${l.day}, ${l.year}';
-  }
-
-  static String _time(DateTime? d) {
-    if (d == null) return '';
-    final l = d.toLocal();
-    final h = l.hour % 12 == 0 ? 12 : l.hour % 12;
-    final mm = l.minute.toString().padLeft(2, '0');
-    return '$h:$mm ${l.hour < 12 ? 'AM' : 'PM'}';
-  }
-}
-
-// ---------- shared bits ----------------------------------------
-
-/// The frame's green (#058F00): View Details, Responded.
-const _green = Color(0xFF058F00);
-
-/// The frame's rule under a card title: #6C6C6C at 50%.
-Color _rule(BuildContext context) =>
-    const Color(0xFF6C6C6C).withValues(alpha: 0.5);
-
-/// Figma "Frame 934/935": 352 wide, #FBFBFB, 1px ink edge, radius 25, the
-/// design shadow; the title 18/700 at 20 in and 13 down, then a rule.
-class _Card extends StatelessWidget {
-  const _Card({
-    required this.title,
-    required this.child,
-  });
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 13, 20, 18),
-      decoration: BoxDecoration(
-        color: context.colors.field,
-        border: Border.all(color: context.colors.navy),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: kFigmaShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text.rich(
-            TextSpan(
-              text: title,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-                height: 1.5,
-                color: context.colors.navy,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Divider(height: 1, thickness: 1, color: _rule(context)),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-/// The frame's 128x30 green pill: #058F00, 1px #F3F3F3 edge, the design
-/// shadow, 14/700 label and a chevron.
-class _GreenPill extends StatelessWidget {
-  const _GreenPill({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(50)),
-        boxShadow: kFigmaShadow,
-      ),
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: _green,
-          foregroundColor: const Color(0xFFF3F3F3),
-          minimumSize: const Size(128, 30),
-          maximumSize: const Size(220, 30),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          elevation: 0,
-          side: const BorderSide(color: Color(0xFFF3F3F3)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(50),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded, size: 18),
           ],
         ),
       ),
@@ -602,38 +340,73 @@ class _GreenPill extends StatelessWidget {
   }
 }
 
-/// The frame's bell: a 39x38 ink circle with the design's own bell glyph
-/// (25x25 at 7,6), tinted from the theme so dark mode still reads.
-class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.onTap});
+/// One dispatch waiting for this tanod: the pulsing label, what and where,
+/// the time left to accept counting down, View Details.
+class _IncomingCard extends StatefulWidget {
+  const _IncomingCard({required this.ticket, required this.onOpen});
 
-  final VoidCallback onTap;
+  final Ticket ticket;
+  final VoidCallback onOpen;
+
+  @override
+  State<_IncomingCard> createState() => _IncomingCardState();
+}
+
+class _IncomingCardState extends State<_IncomingCard> with SingleTickerProviderStateMixin {
+  late final _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))..repeat(reverse: true);
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: context.ts.notificationsTitle,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(19),
-        child: Container(
-          width: 39,
-          height: 38,
-          padding: const EdgeInsets.only(left: 7, top: 6),
-          alignment: Alignment.topLeft,
-          decoration: BoxDecoration(
-            color: context.colors.navy,
-            borderRadius: BorderRadius.circular(19),
+    final t = widget.ticket;
+    final due = t.acceptDueAt;
+    final left = due?.difference(DateTime.now());
+    String? clock;
+    if (left != null) {
+      final sec = left.inSeconds.clamp(0, 359999);
+      clock = '${(sec ~/ 60).toString().padLeft(2, '0')}:${(sec % 60).toString().padLeft(2, '0')}';
+    }
+    return DCard(
+      onTap: widget.onOpen,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          FadeTransition(
+            opacity: Tween(begin: 1.0, end: .25).animate(_pulse),
+            child: Container(width: 9, height: 9, decoration: const BoxDecoration(shape: BoxShape.circle, color: DColors.orange)),
           ),
-          child: Image.asset(
-            'assets/images/icon-bell.png',
-            width: 25,
-            height: 25,
-            color: context.colors.bg,
-          ),
-        ),
-      ),
+          const SizedBox(width: 8),
+          Text(context.tr('INCOMING DISPATCH', 'PAPASOK NA DISPATCH'), style: DType.label(Colors.white.withValues(alpha: .85))),
+        ]),
+        const SizedBox(height: 8),
+        Text(t.subject, style: DType.h3(Colors.white).copyWith(fontSize: 19)),
+        const SizedBox(height: 2),
+        Text(t.trackingId, style: DType.mono(Colors.white.withValues(alpha: .8), size: 12.5)),
+        if (clock != null) ...[
+          const SizedBox(height: 12),
+          Row(children: [
+            Text(context.tr('Accept within', 'Tanggapin sa loob ng'), style: DType.body(Colors.white.withValues(alpha: .85), size: 13)),
+            const Spacer(),
+            Text(clock, style: DType.mono(left!.inMinutes < 2 ? const Color(0xFFFFB4A8) : Colors.white, size: 20)),
+          ]),
+        ],
+        const SizedBox(height: 12),
+        DButton(context.ts.homeViewDetails, small: true, onTap: widget.onOpen),
+      ]),
     );
   }
 }

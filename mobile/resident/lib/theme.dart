@@ -110,13 +110,15 @@ class AppColors {
 
   /// A dark desaturated navy surface rather than neutral black, so the
   /// app still reads as the same barangay-blue product at night.
+  // Branch D: the app preview's night page (d/d_theme.dart residentDark),
+  // so screens not yet rebuilt sit on the same colour as the rebuilt ones.
   static const dark = AppColors._(
     navy: Color(0xFFEAF0FF),
-    bg: Color(0xFF0D1B33),
-    field: Color(0xFF16264A),
+    bg: Color(0xFF0E1322),
+    field: Color(0xFF1B2236),
     hint: Color(0xFFE53935),
-    divider: Color(0xFF30416B),
-    muted: Color(0xFFA8B3C7),
+    divider: Color(0xFF273050),
+    muted: Color(0xFF9096AB),
   );
 
   /// The tanod screens' ink (branch C, one app — Ace kept the tanod app's
