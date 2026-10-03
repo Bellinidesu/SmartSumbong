@@ -21,6 +21,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -41,6 +42,10 @@ import '../tanod_outbox.dart';
 import '../../outbox.dart' show Outbox;
 
 import '../tanod_strings.dart';
+import '../../d/d_theme.dart';
+import '../../d/d_ui.dart';
+import '../../d/d_categories.dart';
+import '../../models/complaint_category.dart';
 import '../../theme.dart';
 import '../../widgets/brgy_map.dart';
 import '../../widgets/figma_ui.dart';
@@ -60,7 +65,6 @@ const _videoUploadPresetRaw = String.fromEnvironment(
 );
 
 const _red = kFigmaRed;
-const _green = Color(0xFF058F00);
 
 /// Which body the card is showing.
 enum _Pane { order, map, media, instructions, rerouteConfirm, accepted }
@@ -88,7 +92,7 @@ Future<bool> showDispatchOrder(
     context: context,
     barrierDismissible: false,
     // The frames fade Home to 30% behind the card.
-    barrierColor: context.colors.bg.withValues(alpha: 0.7),
+    barrierColor: context.d.bg,
     barrierLabel: context.ts.dispatchBarrierLabel,
     pageBuilder: (_, _, _) => _DispatchOrder(ticket: ticket, target: target),
   );
@@ -161,7 +165,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
             .from('reports')
             .select(
               'tracking_id, subject, description, created_at, '
-              'latitude, longitude, location_label, is_anonymous',
+              'latitude, longitude, location_label, is_anonymous, category',
             )
             .eq('id', widget.ticket.reportId)
             .single(),
@@ -274,41 +278,79 @@ class _DispatchOrderState extends State<_DispatchOrder>
 
   // ---------- shell ---------------------------------------------
 
+  // Branch D: the dispatch order is the preview's full page — the case's
+  // category colour across the top, DISPATCH ORDER, the subject, three
+  // round actions (map, media, instructions), the details, the admin's
+  // directives, and Reroute / Accept pinned at the bottom. Accept goes
+  // straight on to the job page.
   @override
   Widget build(BuildContext context) {
-    final reroute = _pane == _Pane.rerouteConfirm;
-
+    final d = context.d;
+    final cat = ComplaintCategory.parse(_report?['category'] as String?);
+    final col = categoryColour(cat);
+    final order = _pane == _Pane.order;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _close();
+        if (didPop) return;
+        if (!order && _pane != _Pane.accepted) {
+          setState(() {
+            _pane = _Pane.order;
+            _error = null;
+          });
+        } else {
+          _close();
+        }
       },
-      child: Material(
-        type: MaterialType.transparency,
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              // Figma "Frame 950": 352 wide at x=30, #F3F3F3, a 2px ink
-              // edge (red on the reroute pane), radius 50, the design
-              // shadow; content 32 in.
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 352),
-                decoration: BoxDecoration(
-                  color: context.colors.bg,
-                  border: Border.all(
-                    color: reroute ? _red : context.colors.navy,
-                    width: 2,
+      child: Scaffold(
+        backgroundColor: d.bg,
+        body: Column(children: [
+          Expanded(
+            child: ListView(padding: EdgeInsets.zero, children: [
+              // the category header
+              SizedBox(
+                height: 170 + MediaQuery.paddingOf(context).top,
+                child: Stack(children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color.lerp(col, Colors.white, .12)!, col, Color.lerp(col, Colors.black, .28)!],
+                        ),
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(50),
-                  boxShadow: kFigmaShadow,
-                ),
-                padding: const EdgeInsets.fromLTRB(30, 36, 30, 28),
+                  Positioned.fill(
+                    child: Image.asset('assets/images/texture.png',
+                        fit: BoxFit.cover, color: Colors.white.withValues(alpha: .14), colorBlendMode: BlendMode.srcIn),
+                  ),
+                  Positioned(
+                    left: 12,
+                    top: MediaQuery.paddingOf(context).top + 8,
+                    child: DBack(onImage: true, onTap: order ? _close : () => setState(() => _pane = _Pane.order)),
+                  ),
+                  if (_report != null)
+                    Positioned(
+                      left: 16,
+                      bottom: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), borderRadius: BorderRadius.circular(99)),
+                        child: Text(cat.label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
+                      ),
+                    ),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
                 child: _body(),
               ),
-            ),
+            ]),
           ),
-        ),
+          if (order) _orderBar(),
+        ]),
       ),
     );
   }
@@ -324,529 +366,260 @@ class _DispatchOrderState extends State<_DispatchOrder>
 
   // ---------- panes ---------------------------------------------
 
-  // The frame's title: "DISPATCH ORDER:" over "Ticket #…", 28/800 with
-  // tight leading, each line shrinking rather than wrapping when a
-  // tracking ID is long; "Submitted on" 14/500 under it.
+  /// DISPATCH ORDER, the subject, the ticket and when it was filed.
   Widget _header() {
-    final style = TextStyle(
-      fontFamily: 'Urbanist',
-      fontWeight: FontWeight.w800,
-      fontSize: 28,
-      height: 24.5 / 28,
-      color: context.colors.navy,
-    );
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(context.ts.dispatchOrderHeaderLabel, style: style),
-        ),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            context.ts.dispatchTicketNumber(widget.ticket.trackingId),
-            style: style,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          context.ts.dispatchSubmittedOn(
-            _date(_report?['created_at'] as String?),
-          ),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            height: 15 / 14,
-            color: context.colors.navy,
-          ),
-        ),
-        // The street saved with the complaint (0068), when there is one.
-        if ((_report?['location_label'] as String?)?.isNotEmpty ?? false) ...[
-          const SizedBox(height: 4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.place_outlined, size: 15, color: context.colors.navy),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  context.ts.dispatchNear(_report!['location_label'] as String),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: context.colors.navy,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
+    final d = context.d;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(context.tr('DISPATCH ORDER', 'DISPATCH ORDER'), style: DType.label(d.muted)),
+      const SizedBox(height: 4),
+      Text(widget.ticket.subject, style: DType.h1(d.ink).copyWith(fontSize: 24)),
+      const SizedBox(height: 3),
+      Text.rich(TextSpan(children: [
+        TextSpan(text: widget.ticket.trackingId, style: DType.mono(d.link, size: 13)),
+        TextSpan(text: '  ·  ${context.ts.dispatchSubmittedOn(_date(_report?['created_at'] as String?))}', style: DType.body(d.muted, size: 13)),
+      ])),
+    ]);
   }
 
-  /// The map, media and instructions panes are the same card with the
-  /// inner box swapped and a single Back.
+  /// The map, media and instructions panes: the header, the pane, Back.
   Widget _framed(Widget inner) => Column(
-    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       _header(),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       inner,
-      const SizedBox(height: 30),
-      _Pill(
-        label: context.ts.dispatchBack,
-        colour: context.colors.navy,
-        onTap: () => setState(() => _pane = _Pane.order),
-      ),
+      const SizedBox(height: 20),
+      DButton(context.ts.dispatchBack, kind: DButtonKind.ghost, expand: true, onTap: () => setState(() => _pane = _Pane.order)),
     ],
   );
 
-  /// The frame's inner box: #FBFBFB, 1px ink edge, radius 20; text 27 in.
-  Widget _innerBox({required Widget child, double? height}) => Container(
-    width: double.infinity,
-    height: height,
-    padding: const EdgeInsets.fromLTRB(27, 18, 20, 16),
-    decoration: BoxDecoration(
-      color: context.colors.field,
-      border: Border.all(color: context.colors.navy),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: child,
-  );
-
   Widget _orderPane() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _header(),
-        const SizedBox(height: 14),
-
-        _innerBox(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // "Complainant: Anonymous" on every row, and not because
-              // every complaint is anonymous — users_self_read is
-              // `id = auth.uid() or is_admin()`, so a tanod cannot read
-              // the filer's row at all. A name here needs that policy
-              // loosened, which is the barangay's call.
-              _Field(
-                label: context.ts.dispatchComplainantLabel,
-                value: context.ts.reportsFilerAnonymous,
-              ),
-              const SizedBox(height: 15),
-              _Field(
-                label: context.ts.reportsDescriptionLabel,
-                value: '\u201C${widget.ticket.description}\u201D',
-              ),
-              const SizedBox(height: 15),
-              _Field(
-                label: context.ts.reportsDeadlineLabel,
-                value: _deadlineOf(widget.ticket.dueAt),
-              ),
-              const SizedBox(height: 8),
-
-              _Link(
-                icon: Icons.location_on_outlined,
-                label: context.ts.reportsViewMap,
-                onTap: () => setState(() => _pane = _Pane.map),
-              ),
-              _Link(
-                icon: Icons.photo_camera_outlined,
-                label: context.ts.reportsViewMedia,
-                onTap: () => setState(() => _pane = _Pane.media),
-              ),
-              _Link(
-                icon: Icons.my_location_rounded,
-                label: context.ts.reportsViewInstructions,
-                onTap: () => setState(() => _pane = _Pane.instructions),
-              ),
-            ],
+    final d = context.d;
+    final near = _report?['location_label'] as String?;
+    final instructions = widget.ticket.instructions?.trim() ?? '';
+    Widget act(IconData icon, String label, VoidCallback onTap) => Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(children: [
+                DWell(icon, size: 46),
+                const SizedBox(height: 6),
+                Text(label, textAlign: TextAlign.center, style: DType.body(d.link, size: 12.5, w: FontWeight.w800)),
+              ]),
+            ),
           ),
-        ),
-
-        if (_error != null) ...[
-          const SizedBox(height: 10),
-          Text(
-            _error!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, color: _red),
-          ),
-        ],
-        const SizedBox(height: 14),
-
-        // The frame's 112x37 Reroute and Accept, 36 apart, Back under them.
-        // Once accepted, one way on: the dispatch window.
-        if (widget.ticket.state == DispatchState.accepted)
-          _Pill(
-            label: context.ts.windowOpen,
-            colour: kFigmaOrange,
-            width: 214,
-            height: 50,
-            radius: 20,
-            fontSize: 16,
-            onTap: _toWindow,
-          )
-        else
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 36,
-            runSpacing: 12,
-            children: [
-              _Pill(
-                label: context.ts.dispatchReroute,
-                colour: _red,
-                onTap: _busy
-                    ? null
-                    : () => setState(() {
-                        _pane = _Pane.rerouteConfirm;
-                        _error = null;
-                      }),
-              ),
-              _Pill(
-                label: context.ts.dispatchAccept,
-                colour: _green,
-                busy: _busy,
-                onTap: _busy ? null : _accept,
-              ),
-            ],
-          ),
-        const SizedBox(height: 14),
-        _Pill(
-          label: context.ts.dispatchBack,
-          colour: context.colors.navy,
-          onTap: _close,
-        ),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _header(),
+      const SizedBox(height: 14),
+      Container(
+        padding: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: d.line))),
+        child: Row(children: [
+          act(Icons.map_outlined, context.ts.reportsViewMap, () => setState(() => _pane = _Pane.map)),
+          act(Icons.photo_library_outlined, context.ts.reportsViewMedia, () => setState(() => _pane = _Pane.media)),
+          act(Icons.assignment_outlined, context.ts.reportsViewInstructions, () => setState(() => _pane = _Pane.instructions)),
+        ]),
+      ),
+      if (near != null && near.isNotEmpty)
+        DRow(icon: Icons.place_outlined, title: context.ts.dispatchNear(near), sub: _routeLine ?? 'Barangay 183'),
+      // "Complainant: Anonymous" on every row, and not because every
+      // complaint is anonymous — users_self_read is `id = auth.uid() or
+      // is_admin()`, so a tanod cannot read the filer's row at all.
+      DRow(icon: Icons.person_outline_rounded, title: '${context.ts.dispatchComplainantLabel}${context.ts.reportsFilerAnonymous}'),
+      DRow(icon: Icons.event_outlined, title: '${context.ts.reportsDeadlineLabel}${_deadlineOf(widget.ticket.dueAt)}'),
+      const SizedBox(height: 12),
+      Text('“${widget.ticket.description}”', style: DType.body(d.ink2, size: 14.5)),
+      const SizedBox(height: 14),
+      DNote(
+        title: context.ts.dispatchAdminDirectivesTitle,
+        body: instructions.isEmpty ? context.ts.dispatchNoDirectives : instructions,
+      ),
+      if (_error != null) ...[
+        const SizedBox(height: 10),
+        Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
       ],
+    ]);
+  }
+
+  /// Reroute / Accept, pinned. Once accepted, one way on: the job page.
+  Widget _orderBar() {
+    final d = context.d;
+    return Container(
+      decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+          child: widget.ticket.state == DispatchState.accepted
+              ? DButton(context.ts.windowOpen, expand: true, onTap: _toWindow)
+              : Row(children: [
+                  Expanded(
+                    child: DButton(context.ts.dispatchReroute,
+                        kind: DButtonKind.ghost,
+                        expand: true,
+                        onTap: _busy
+                            ? null
+                            : () => setState(() {
+                                  _pane = _Pane.rerouteConfirm;
+                                  _error = null;
+                                })),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: DButton(context.ts.dispatchAccept, expand: true, busy: _busy, onTap: _busy ? null : _accept)),
+                ]),
+        ),
+      ),
     );
   }
 
   Widget _mapPane() {
-    final lat = _casePoint?.latitude;
-    final lon = _casePoint?.longitude;
-
+    final d = context.d;
+    final p = _casePoint;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       child: SizedBox(
         height: 300,
         width: double.infinity,
-        child: lat == null || lon == null
-            ? Container(
-                color: context.colors.field,
-                child: Center(
-                  child: Text(
-                    context.ts.dispatchNoLocation,
-                    style: TextStyle(fontSize: 12, color: context.colors.muted),
-                  ),
-                ),
-              )
-            // MapLibre on OpenFreeMap vector tiles (widgets/brgy_map.dart),
-            // light or ink-dark with the app; the design's tilted pin on
-            // the case. The frame's 1px ink edge, drawn over the map.
-            : Container(
-                foregroundDecoration: BoxDecoration(
-                  border: Border.all(color: context.colors.navy),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: BrgyMap(
-                  controller: _mapCtl,
-                  initialCenter: LatLng(lat, lon),
-                  pins: [BrgyMapPin(id: 'case', point: LatLng(lat, lon))],
-                  route: _route,
-                  accuracyCentre: _me,
-                  accuracyMetres: _me == null
-                      ? null
-                      : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
-                  cornerRadius: 20,
-                  cornerColour: context.colors.bg,
-                ),
+        child: p == null
+            ? Container(color: d.field, child: Center(child: Text(context.ts.dispatchNoLocation, style: DType.body(d.muted, size: 12.5))))
+            : BrgyMap(
+                controller: _mapCtl,
+                initialCenter: p,
+                pins: [BrgyMapPin(id: 'case', point: p)],
+                route: _route,
+                accuracyCentre: _me,
+                accuracyMetres: _me == null ? null : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
+                cornerRadius: 18,
+                cornerColour: d.bg,
               ),
       ),
     );
   }
 
   Widget _mediaPane() {
-    if (_loading) {
-      return const SizedBox(
-        height: 300,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
+    final d = context.d;
+    if (_loading) return const SizedBox(height: 300, child: Center(child: CircularProgressIndicator()));
     if (_evidence.isEmpty) {
       return Container(
-        height: 300,
-        decoration: BoxDecoration(
-          color: context.colors.field,
-          border: Border.all(color: context.colors.navy),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Center(
-          child: Text(
-            context.ts.dispatchNoMedia,
-            style: TextStyle(fontSize: 12, color: context.colors.muted),
-          ),
-        ),
+        height: 220,
+        decoration: BoxDecoration(color: d.field, border: Border.all(color: d.line), borderRadius: BorderRadius.circular(18)),
+        child: Center(child: Text(context.ts.dispatchNoMedia, style: DType.body(d.muted, size: 13))),
       );
     }
     return SizedBox(
       height: 300,
-      child: PageView(
-        children: [
-          for (final item in _evidence)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+      child: PageView(children: [
+        for (final item in _evidence)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
               child: item.isVideo
                   ? GestureDetector(
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => VideoPlayerScreen(url: item.url),
-                        ),
-                      ),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => VideoPlayerScreen(url: item.url))),
                       child: Container(
                         color: Colors.black87,
-                        width: double.infinity,
-                        child: const Center(
-                          child: Icon(
-                            Icons.play_circle_fill,
-                            size: 48,
-                            color: Colors.white70,
-                          ),
-                        ),
+                        child: const Center(child: Icon(Icons.play_circle_fill_rounded, size: 54, color: Colors.white70)),
                       ),
                     )
                   : CachedNetworkImage(
-                      // The card's width, not the 1920 upload.
                       imageUrl: cloudinarySized(item.url, width: 900),
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      placeholder: (_, _) => Container(
-                        color: context.colors.field,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                      errorWidget: (_, _, _) => Container(
-                        color: context.colors.field,
-                        child: Center(
-                          child: Icon(
-                            Icons.broken_image_outlined,
-                            color: context.colors.muted,
-                          ),
-                        ),
-                      ),
+                      placeholder: (_, _) => Container(color: d.field, child: const Center(child: CircularProgressIndicator(strokeWidth: 2))),
+                      errorWidget: (_, _, _) => Container(color: d.field, child: Center(child: Icon(Icons.broken_image_outlined, color: d.muted))),
                     ),
             ),
-        ],
-      ),
+          ),
+      ]),
     );
   }
 
   Widget _instructionsPane() {
+    final d = context.d;
     final text = widget.ticket.instructions?.trim() ?? '';
-
-    // Figma INSTRUCTIONS OPENED: the 287x326 box, "Admin Directives:" and
-    // the steps 14 (700 / 500), the responder note red italic under them.
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 326),
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(27, 18, 20, 16),
-      decoration: BoxDecoration(
-        color: context.colors.field,
-        border: Border.all(color: context.colors.navy),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Scrollbar(
-        thumbVisibility: true,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(right: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                context.ts.dispatchAdminDirectivesTitle,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  height: 15 / 14,
-                  color: context.colors.navy,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                text.isEmpty ? context.ts.dispatchNoDirectives : text,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                  height: 15 / 14,
-                  color: context.colors.navy,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                context.ts.dispatchResponderNote,
-                style: const TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                  height: 1.25,
-                  fontStyle: FontStyle.italic,
-                  color: _red,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      DNote(title: context.ts.dispatchAdminDirectivesTitle, body: text.isEmpty ? context.ts.dispatchNoDirectives : text),
+      const SizedBox(height: 12),
+      Text(context.ts.dispatchResponderNote,
+          style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5).copyWith(fontStyle: FontStyle.italic)),
+    ]);
   }
 
-  // Figma REROUTED EMERGENCY: the red title 28/800, the body 16/500, the
-  // 266x128 reason box (radius 25, red edge), then the 214x50 Confirm and
-  // Cancel.
+  /// Reroute: are you sure, why, Confirm / Cancel. Logged and final.
   Widget _reroutePane() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          context.ts.dispatchRerouteConfirmTitle,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w800,
-            fontSize: 28,
-            height: 25 / 28,
-            color: _red,
-          ),
+    final d = context.d;
+    final red = d.dark ? const Color(0xFFFF8A8A) : DColors.red;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text(context.ts.dispatchRerouteConfirmTitle, style: DType.h2(red)),
+      const SizedBox(height: 6),
+      Text(context.ts.dispatchRerouteConfirmBody, style: DType.body(d.ink2, size: 14)),
+      const SizedBox(height: 16),
+      Text(context.ts.dispatchRerouteReasonLabel, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+      const SizedBox(height: 8),
+      TextField(
+        controller: _reason,
+        enabled: !_busy,
+        maxLength: 200,
+        minLines: 3,
+        maxLines: 6,
+        onChanged: (_) => setState(() => _error = null),
+        style: DType.body(d.ink, size: 14.5),
+        decoration: InputDecoration(
+          hintText: context.ts.dispatchInputHint,
+          hintStyle: DType.body(d.muted, size: 14),
+          filled: true,
+          fillColor: d.field,
+          contentPadding: const EdgeInsets.all(14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: red, width: 2)),
         ),
-        const SizedBox(height: 8),
-        Text(
-          context.ts.dispatchRerouteConfirmBody,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-            height: 15 / 16,
-            color: _red,
-          ),
-        ),
-        const SizedBox(height: 30),
-        _InputBox(
-          label: context.ts.dispatchRerouteReasonLabel,
-          colour: _red,
-          controller: _reason,
-          hint: context.ts.dispatchInputHint,
-          maxLength: 200,
-          enabled: !_busy,
-          onChanged: (_) => setState(() => _error = null),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            _error!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: _red),
-          ),
-        ],
-        const SizedBox(height: 30),
-        _Pill(
-          label: context.ts.dispatchConfirm,
-          colour: _red,
-          width: 214,
-          height: 50,
-          radius: 20,
-          fontSize: 16,
-          busy: _busy,
-          onTap: _busy ? null : _reroute,
-        ),
-        const SizedBox(height: 15),
-        _Pill(
-          label: context.ts.dispatchCancel,
-          colour: _red,
-          filled: false,
-          width: 214,
-          height: 50,
-          radius: 20,
-          fontSize: 16,
-          onTap: _busy
-              ? null
-              : () => setState(() {
-                  _pane = _Pane.order;
-                  _error = null;
-                }),
-        ),
+      ),
+      if (_error != null) ...[
+        const SizedBox(height: 4),
+        Text(_error!, style: DType.body(red, size: 12.5, w: FontWeight.w700)),
       ],
-    );
+      const SizedBox(height: 14),
+      Row(children: [
+        Expanded(
+          child: DButton(context.ts.dispatchCancel,
+              kind: DButtonKind.ghost,
+              expand: true,
+              onTap: _busy
+                  ? null
+                  : () => setState(() {
+                        _pane = _Pane.order;
+                        _error = null;
+                      })),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: DButton(context.ts.dispatchConfirm, kind: DButtonKind.danger, expand: true, busy: _busy, onTap: _busy ? null : _reroute)),
+      ]),
+    ]);
   }
 
-  // Figma COMPLAINT ACCEPTED: the message 28/800 and 16/500 centred in the
-  // 556-tall card, the 180x50 Back under it.
-  Widget _acceptedPane() => _message(
-    title: context.ts.dispatchAcceptedTitle(
-      widget.ticket.trackingId,
-      widget.ticket.subject,
-    ),
-    body: context.ts.dispatchAcceptedBody,
-    action: context.ts.windowOpen,
-    onAction: _toWindow,
-  );
-
-  Widget _message({
-    required String title,
-    String? body,
-    String? action,
-    VoidCallback? onAction,
-  }) => ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: 480),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: 60),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w800,
-            fontSize: 28,
-            height: 24.5 / 28,
-            color: context.colors.navy,
-          ),
-        ),
-        if (body != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w500,
-              fontSize: 16,
-              height: 15 / 16,
-              color: context.colors.navy,
-            ),
-          ),
-        ],
-        const SizedBox(height: 60),
-        _Pill(
-          label: action ?? context.ts.dispatchBack,
-          colour: action == null ? context.colors.navy : kFigmaOrange,
-          width: 180,
-          height: 50,
-          fontSize: 16,
-          onTap: onAction ?? _close,
-        ),
-      ],
-    ),
-  );
+  /// Accepted: straight on to the job page (one frame of the message, for
+  /// the slow phone that is still pushing).
+  Widget _acceptedPane() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _pane == _Pane.accepted) _toWindow();
+    });
+    final d = context.d;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(children: [
+        const Icon(Icons.task_alt_rounded, size: 56, color: DColors.greenVivid),
+        const SizedBox(height: 12),
+        Text(context.ts.dispatchAcceptedTitle(widget.ticket.trackingId, widget.ticket.subject), textAlign: TextAlign.center, style: DType.h2(d.ink)),
+        const SizedBox(height: 6),
+        Text(context.ts.dispatchAcceptedBody, textAlign: TextAlign.center, style: DType.body(d.muted, size: 14)),
+      ]),
+    );
+  }
 
   // ---------- dates ---------------------------------------------
 
@@ -1108,120 +881,6 @@ class _Pill extends StatelessWidget {
   }
 }
 
-/// The frame's 146x107 attach tile: dashed edge, radius 25, the small
-/// filled square with its icon, the label 12/700 and the limit 10/400.
-class _AttachTile extends StatelessWidget {
-  const _AttachTile({
-    required this.icon,
-    required this.label,
-    required this.limit,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String limit;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = context.colors.navy;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(25),
-      child: CustomPaint(
-        painter: _DashedBorder(colour: ink),
-        child: SizedBox(
-          // 146 in the frame; 138 so two sit side by side in the card.
-          width: 138,
-          height: 107,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: ink,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Icon(icon, size: 16, color: context.colors.bg),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        height: 1.3,
-                        color: ink,
-                      ),
-                    ),
-                    Text(
-                      limit,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w400,
-                        fontStyle: FontStyle.italic,
-                        fontSize: 10,
-                        color: ink,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The dashed attach-media box. Flutter has no dashed border, and the
-/// alternative is a package for one rectangle.
-class _DashedBorder extends CustomPainter {
-  const _DashedBorder({required this.colour});
-
-  final Color colour;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = colour
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-
-    final rect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(25),
-    );
-    final path = Path()..addRRect(rect);
-
-    for (final metric in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(d, (d + 5).clamp(0, metric.length)),
-          paint,
-        );
-        d += 9;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorder old) => old.colour != colour;
-}
-
-/// The question box for asking the resident for more details: one field
-/// (300 characters, the table's limit), Cancel and Send.
 class _DetailsRequestDialog extends StatefulWidget {
   const _DetailsRequestDialog();
 

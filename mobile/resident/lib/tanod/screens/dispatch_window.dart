@@ -634,46 +634,41 @@ class _DispatchWindowState extends State<DispatchWindow>
     unawaited(DutyController.instance.keyMoment());
     if (_step == null && _open) unawaited(_setStep('on_the_way'));
 
-    final arrived = await Navigator.of(context).push<bool>(
+    final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => _NavScreen(to: to, route: route, start: pos),
+        builder: (_) => _NavScreen(
+          to: to,
+          route: route,
+          start: pos,
+          step: _stepIndex,
+          title: '${widget.ticket.subject} · ${widget.ticket.trackingId}',
+        ),
       ),
     );
-    if (arrived != true || !mounted || !_open || _step == 'arrived') return;
+    if (!mounted) return;
+    // I've arrived on the Navigate sheet (offered only once the GPS has
+    // the tanod at the report) marks the step and lands on the job page
+    // in on-site mode.
+    if (result == 'arrived' && _open && _step != 'arrived') {
+      await _setStep('arrived');
+    } else if (result == 'job' || result == null) {
+      setState(() {});
+    }
+  }
 
-    final mark = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: ctx.colors.bg,
-        title: Text(
-          s.navArrive,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w800,
-            color: ctx.colors.navy,
-          ),
-        ),
-        content: Text(
-          s.navArrivedBody,
-          style: TextStyle(fontFamily: 'Urbanist', color: ctx.colors.navy),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(s.navNotYet),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 44),
-              backgroundColor: kFigmaOrange,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(s.windowActionArrived),
-          ),
-        ],
-      ),
-    );
-    if (mark == true) await _setStep('arrived');
+  /// 0 accepted, 1 on the way, 2 arrived, 3 resolved.
+  int get _stepIndex => _state == 'resolved'
+      ? 3
+      : switch (_step) {
+          'arrived' => 2,
+          'on_the_way' => 1,
+          _ => 0,
+        };
+
+  /// I'm on the way: the step, then straight into Navigate.
+  Future<void> _onTheWay() async {
+    if (_step == null) await _setStep('on_the_way');
+    if (mounted) await _navigate();
   }
 
   Future<void> _setStep(String step) async {
@@ -814,46 +809,24 @@ class _DispatchWindowState extends State<DispatchWindow>
   }
 
   Future<void> _resolve() async {
-    final done = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      builder: (_) => _ResolveSheet(ticket: widget.ticket),
+    final done = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => _ResolveSheet(ticket: widget.ticket)),
     );
-    if (done == null || !mounted) return;
+    if (done == null || done == 'false' || !mounted) return;
     _changed = true;
     if (done == 'queued') {
       _savedOffline();
       return;
     }
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: ctx.colors.bg,
-        title: Text(
-          ctx.ts.windowResolveSent(widget.ticket.trackingId),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w800,
-            color: ctx.colors.navy,
-          ),
-        ),
-        actions: [
-          Center(
-            child: _Pill(
-              label: ctx.ts.dispatchBack,
-              colour: ctx.colors.navy,
-              onTap: () => Navigator.of(ctx).pop(),
-            ),
-          ),
-        ],
-      ),
+    await showDDialog(
+      context,
+      title: context.ts.windowResolveSent(widget.ticket.trackingId),
+      body: context.ts.windowAwaitingApproval,
+      primary: context.ts.dispatchBack,
+      icon: Icons.task_alt_rounded,
+      iconColor: DColors.greenVivid,
     );
-    if (mounted) Navigator.of(context).pop(true);
+    if (mounted) await _load();
   }
 
   /// Asks the resident for more details (0065's
@@ -923,9 +896,15 @@ class _DispatchWindowState extends State<DispatchWindow>
 
   // ---------- layout --------------------------------------------
 
+  // Branch D (Ace's "On the job"): the map with the route and Navigate on
+  // top while the tanod is on the way; once arrived the page turns to the
+  // dispatch (ON SITE) — the map folds into a small "Navigate again" card
+  // for a return visit. The vivid steps, one big next-step button, the
+  // escalation link, the case folded, the thread, the composer pinned.
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
+    final d = context.d;
+    final onsite = _stepIndex >= 2;
     // One fixed height, clipped. Navigation is its own page
     // (dispatch_nav.dart) with its own full-size map: MapLibre's view did
     // not survive being resized in place.
@@ -935,13 +914,22 @@ class _DispatchWindowState extends State<DispatchWindow>
         if (!didPop) Navigator.of(context).pop(_changed);
       },
       child: Scaffold(
-        backgroundColor: c.bg,
+        backgroundColor: d.bg,
         body: Column(
           children: [
-            SizedBox(
-              height: MediaQuery.sizeOf(context).height * 0.34,
-              child: ClipRect(child: _mapArea()),
-            ),
+            if (!onsite)
+              SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.30,
+                child: ClipRect(child: _mapArea()),
+              )
+            else
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+                  child: Align(alignment: Alignment.centerLeft, child: DBack(onTap: () => Navigator.of(context).pop(_changed))),
+                ),
+              ),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -949,16 +937,22 @@ class _DispatchWindowState extends State<DispatchWindow>
                       onRefresh: _load,
                       child: ListView(
                         controller: _scroll,
-                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
                         children: [
                           _topBar(),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           _stepper(),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           if (_open) _stepActions(),
+                          if (_open && onsite && _casePoint != null) ...[
+                            const SizedBox(height: 12),
+                            _againCard(),
+                          ],
                           const SizedBox(height: 14),
                           _caseCard(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 18),
+                          Text(context.tr('UPDATES', 'MGA UPDATE'), style: DType.label(d.muted)),
+                          const SizedBox(height: 8),
                           ..._thread(),
                         ],
                       ),
@@ -967,11 +961,7 @@ class _DispatchWindowState extends State<DispatchWindow>
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
-                child: Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: _red),
-                ),
+                child: Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
               ),
             _open ? _composer() : _closedBar(),
           ],
@@ -981,7 +971,7 @@ class _DispatchWindowState extends State<DispatchWindow>
   }
 
   Widget _mapArea() {
-    final c = context.colors;
+    final d = context.d;
     final to = _casePoint;
     final line = _routeLine;
     return Stack(
@@ -989,12 +979,9 @@ class _DispatchWindowState extends State<DispatchWindow>
         Positioned.fill(
           child: to == null
               ? Container(
-                  color: c.field,
+                  color: d.field,
                   alignment: Alignment.center,
-                  child: Text(
-                    context.ts.dispatchNoLocation,
-                    style: TextStyle(fontSize: 12, color: c.muted),
-                  ),
+                  child: Text(context.ts.dispatchNoLocation, style: DType.body(d.muted, size: 12.5)),
                 )
               : BrgyMap(
                   controller: _mapCtl,
@@ -1003,309 +990,110 @@ class _DispatchWindowState extends State<DispatchWindow>
                   pins: [BrgyMapPin(id: 'case', point: to)],
                   route: _route,
                   accuracyCentre: _me,
-                  accuracyMetres: _me == null
-                      ? null
-                      : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
-                  attributionBottom: 52,
+                  accuracyMetres: _me == null ? null : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
+                  attributionBottom: 60,
                 ),
         ),
         Positioned(
           left: 12,
           top: MediaQuery.paddingOf(context).top + 8,
-          child: _roundButton(
-            Icons.arrow_back,
-            () => Navigator.of(context).pop(_changed),
-          ),
+          child: DBack(onImage: true, onTap: () => Navigator.of(context).pop(_changed)),
         ),
         if (to != null)
           Positioned(
             left: 12,
             right: 12,
             bottom: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (line != null || _routing || _routeNote != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.bg,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: kFigmaShadow,
-                    ),
-                    child: Text(
-                      line ??
-                          (_routing
-                              ? context.ts.dispatchFindingYou
-                              : _routeNote!),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12.5,
-                        color: c.navy,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: _chip(
-                        Icons.navigation,
-                        _navStarting
-                            ? context.ts.dispatchFindingYou
-                            : context.ts.navNavigate,
-                        kFigmaOrange,
-                        _navStarting || !_open ? null : _navigate,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _chip(
-                        Icons.map_outlined,
-                        context.ts.dispatchOpenMaps,
-                        c.navy,
-                        () => _openMaps(to),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _roundButton(IconData icon, VoidCallback onTap) => Material(
-    color: context.colors.bg,
-    shape: const CircleBorder(),
-    elevation: 3,
-    child: InkWell(
-      customBorder: const CircleBorder(),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(9),
-        child: Icon(icon, color: context.colors.navy, size: 22),
-      ),
-    ),
-  );
-
-  Widget _chip(
-    IconData icon,
-    String label,
-    Color colour,
-    VoidCallback? onTap,
-  ) => Material(
-    color: colour,
-    borderRadius: BorderRadius.circular(20),
-    elevation: 3,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: colour == kFigmaOrange ? Colors.white : context.colors.bg,
-            ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.5,
-                  color: colour == kFigmaOrange
-                      ? Colors.white
-                      : context.colors.bg,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  /// Ticket number, subject and street.
-  Widget _topBar() {
-    final c = context.colors;
-    final near = _report?['location_label'] as String?;
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 0072: the admin's target date has passed.
-              if (_open &&
-                  widget.ticket.dueAt != null &&
-                  widget.ticket.dueAt!.isBefore(DateTime.now()))
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (line != null || _routing || _routeNote != null) ...[
                 Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
-                    color: _red,
+                    color: d.card,
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .18), blurRadius: 10, offset: const Offset(0, 4))],
                   ),
-                  child: Text(
-                    context.ts.ticketOverdue,
-                    style: const TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: Text(line ?? (_routing ? context.ts.dispatchFindingYou : _routeNote!),
+                      maxLines: 2, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 12.5, w: FontWeight.w700)),
                 ),
-              Text(
-                context.ts.dispatchTicketNumber(widget.ticket.trackingId),
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  fontSize: 22,
-                  color: c.navy,
-                ),
-              ),
-              Text(
-                widget.ticket.subject,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: c.navy,
-                ),
-              ),
-              if (near != null && near.isNotEmpty)
-                Text(
-                  context.ts.dispatchNear(near),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontSize: 12.5,
-                    color: c.muted,
+                const SizedBox(height: 8),
+              ],
+              Row(children: [
+                Expanded(
+                  child: _MapPill(
+                    icon: Icons.navigation_rounded,
+                    label: _navStarting ? context.ts.dispatchFindingYou : context.ts.navNavigate,
+                    orange: true,
+                    onTap: _navStarting || !_open ? null : _navigate,
                   ),
                 ),
-            ],
+                const SizedBox(width: 8),
+                Expanded(child: _MapPill(icon: Icons.map_outlined, label: context.ts.dispatchOpenMaps, onTap: () => _openMaps(to))),
+              ]),
+            ]),
           ),
-        ),
       ],
     );
   }
 
-  /// Accepted → On the way → Arrived → Resolved.
+  /// The ON THE JOB / ON SITE / DONE label, the subject, ticket and street.
+  Widget _topBar() {
+    final d = context.d;
+    final near = _report?['location_label'] as String?;
+    final i = _stepIndex;
+    final green = d.dark ? const Color(0xFF5FD68A) : DColors.green;
+    final label = i >= 3
+        ? context.tr('DONE', 'TAPOS NA')
+        : i >= 2
+            ? context.tr('ON SITE', 'NASA LUGAR')
+            : context.tr('ON THE JOB', 'NASA TRABAHO');
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: green, boxShadow: [BoxShadow(color: green.withValues(alpha: .25), spreadRadius: 4)]),
+        ),
+        const SizedBox(width: 9),
+        Text(label, style: DType.label(green)),
+        const Spacer(),
+        // 0072: the admin's target date has passed.
+        if (_open && widget.ticket.dueAt != null && widget.ticket.dueAt!.isBefore(DateTime.now()))
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(color: DColors.red, borderRadius: BorderRadius.circular(99)),
+            child: Text(context.ts.ticketOverdue, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 12, color: Colors.white)),
+          ),
+      ]),
+      const SizedBox(height: 6),
+      Text(widget.ticket.subject, style: DType.h1(d.ink).copyWith(fontSize: 24)),
+      const SizedBox(height: 3),
+      Text.rich(TextSpan(children: [
+        TextSpan(text: widget.ticket.trackingId, style: DType.mono(d.link, size: 13)),
+        if (near != null && near.isNotEmpty) TextSpan(text: '  ·  ${context.ts.dispatchNear(near)}', style: DType.body(d.muted, size: 13)),
+      ])),
+    ]);
+  }
+
+  /// Accepted → On the way → Arrived → Resolved, in their vivid colours.
   Widget _stepper() {
     final s = context.ts;
-    final c = context.colors;
-    final at = _state == 'resolved'
-        ? 3
-        : switch (_step) {
-            'arrived' => 2,
-            'on_the_way' => 1,
-            _ => 0,
-          };
-    final labels = [
-      s.windowStepAccepted,
-      s.windowStepOnTheWay,
-      s.windowStepArrived,
-      s.windowStepResolved,
-    ];
-    return Row(
-      children: [
-        for (var i = 0; i < 4; i++) ...[
-          Expanded(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 3,
-                        color: i == 0
-                            ? Colors.transparent
-                            : (i <= at
-                                  ? kFigmaOrange
-                                  : c.muted.withValues(alpha: 0.3)),
-                      ),
-                    ),
-                    Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: i <= at ? kFigmaOrange : c.bg,
-                        border: Border.all(
-                          color: i <= at
-                              ? kFigmaOrange
-                              : c.muted.withValues(alpha: 0.5),
-                          width: 2,
-                        ),
-                      ),
-                      child: i <= at
-                          ? const Icon(
-                              Icons.check,
-                              size: 12,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    Expanded(
-                      child: Container(
-                        height: 3,
-                        color: i == 3
-                            ? Colors.transparent
-                            : (i < at
-                                  ? kFigmaOrange
-                                  : c.muted.withValues(alpha: 0.3)),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  labels[i],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: i == at ? FontWeight.w800 : FontWeight.w600,
-                    fontSize: 11.5,
-                    color: i <= at ? c.navy : c.muted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
+    final waitingApproval = _state == 'resolved' && _reportStatus != null && _reportStatus != 'resolved' && _reportStatus != 'closed';
+    return DSteps(
+      step: _stepIndex,
+      labels: [s.windowStepAccepted, s.windowStepOnTheWay, s.windowStepArrived, s.windowStepResolved],
+      captions: [null, null, null, if (waitingApproval) context.tr('Awaiting approval', 'Hinihintay ang pag-apruba')],
     );
   }
 
-  /// The next step, and Resolve — allowed at any step.
+  /// One big next-step button and Resolve (allowed at any step), then the
+  /// escalation link. On the way, the button resumes Navigate; I've
+  /// arrived comes from the Navigate sheet once the GPS sees arrival, and
+  /// a small "already there" link covers a phone without a fix.
   Widget _stepActions() {
     final s = context.ts;
-    final next = switch (_step) {
-      null => ('on_the_way', s.windowActionOnTheWay),
-      'on_the_way' => ('arrived', s.windowActionArrived),
-      _ => null,
-    };
+    final d = context.d;
+    final i = _stepIndex;
     final esc = _escalation;
     final escNote = esc == null
         ? null
@@ -1314,101 +1102,80 @@ class _DispatchWindowState extends State<DispatchWindow>
             'denied' => s.escDenied((esc['decision_note'] as String?) ?? ''),
             _ => null,
           };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _stepButtons(next),
-        const SizedBox(height: 6),
-        if (escNote != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(escNote,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.5,
-                  color: esc?['status'] == 'denied' ? _red : context.colors.navy,
-                )),
-          ),
-        if (esc == null || esc['status'] != 'pending')
-          TextButton.icon(
-            onPressed: _requestEscalation,
-            icon: const Icon(Icons.outbound_outlined, size: 18),
-            label: Text(s.escButton),
-            style: TextButton.styleFrom(foregroundColor: _red),
-          ),
-      ],
-    );
-  }
-
-  Widget _stepButtons((String, String)? next) {
-    final s = context.ts;
-    return Row(
-      children: [
-        if (next != null) ...[
+    Widget main;
+    if (i == 0) {
+      main = Row(children: [
+        Expanded(flex: 4, child: DButton(s.windowActionOnTheWay, busy: _stepping || _navStarting, onTap: _onTheWay, expand: true, height: 54)),
+        const SizedBox(width: 8),
+        Expanded(flex: 3, child: DButton(s.windowResolve, kind: DButtonKind.greenLine, onTap: _resolve, expand: true, height: 54)),
+      ]);
+    } else if (i == 1) {
+      main = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
           Expanded(
-            child: _wideButton(
-              label: next.$2,
-              colour: kFigmaOrange,
-              busy: _stepping,
-              onTap: () => _setStep(next.$1),
-            ),
+            flex: 4,
+            child: DButton(context.tr('Navigate', 'Mag-navigate'),
+                icon: Icons.navigation_rounded, busy: _navStarting, onTap: _casePoint == null ? null : _navigate, expand: true, height: 54),
           ),
-          const SizedBox(width: 10),
-        ],
-        Expanded(
-          child: _wideButton(
-            label: s.windowResolve,
-            colour: _green,
-            filled: next == null,
-            onTap: _resolve,
+          const SizedBox(width: 8),
+          Expanded(flex: 3, child: DButton(s.windowResolve, kind: DButtonKind.greenLine, onTap: _resolve, expand: true, height: 54)),
+        ]),
+        TextButton(
+          onPressed: _stepping ? null : () => _setStep('arrived'),
+          child: Text(context.tr('Already there? Mark I’ve arrived', 'Nandito ka na? Markahan ang Nandito na ako'),
+              style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+        ),
+      ]);
+    } else {
+      main = DButton(context.tr('Resolve · add proof', 'Iresolba · maglagay ng patunay'), onTap: _resolve, expand: true, height: 58);
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      main,
+      if (escNote != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(escNote,
+              textAlign: TextAlign.center,
+              style: DType.body(esc?['status'] == 'denied' ? DColors.red : d.ink2, size: 12.5, w: FontWeight.w700)),
+        ),
+      if (esc == null || esc['status'] != 'pending')
+        Center(
+          child: TextButton.icon(
+            onPressed: _requestEscalation,
+            icon: const Icon(Icons.north_east_rounded, size: 17),
+            label: Text(s.escButton, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 14)),
+            style: TextButton.styleFrom(foregroundColor: d.dark ? const Color(0xFFFF8A8A) : DColors.red),
           ),
         ),
-      ],
-    );
+    ]);
   }
 
-  Widget _wideButton({
-    required String label,
-    required Color colour,
-    required VoidCallback onTap,
-    bool filled = true,
-    bool busy = false,
-  }) => SizedBox(
-    height: 46,
-    child: Material(
-      color: filled ? colour : Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(23),
-        side: BorderSide(color: colour, width: 2),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(23),
-        onTap: busy ? null : onTap,
-        child: Center(
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: filled ? Colors.white : colour,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: filled ? Colors.white : colour,
-                  ),
-                ),
+  /// On site: the place, and Navigate again for a return visit.
+  Widget _againCard() {
+    final d = context.d;
+    final near = _report?['location_label'] as String?;
+    return DSheet(
+      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+      child: Row(children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: DColors.orange.withValues(alpha: .16)),
+          child: const Icon(Icons.place_outlined, color: Color(0xFFB26A00), size: 21),
         ),
-      ),
-    ),
-  );
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(near != null && near.isNotEmpty ? context.ts.dispatchNear(near) : widget.ticket.trackingId,
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 14, w: FontWeight.w800)),
+            Text(context.tr('Coming back another day? Navigate again.', 'Babalik sa ibang araw? Mag-navigate ulit.'),
+                style: DType.body(d.muted, size: 11.5)),
+          ]),
+        ),
+        DButton(context.tr('Navigate again', 'Mag-navigate ulit'), kind: DButtonKind.line, small: true, busy: _navStarting, onTap: _navigate),
+      ]),
+    );
+  }
 
   /// The complaint itself, folded until asked for.
   Widget _caseCard() {
@@ -1418,15 +1185,15 @@ class _DispatchWindowState extends State<DispatchWindow>
         _detailRequest != null && _detailRequest!['responded_at'] == null;
     return Container(
       decoration: BoxDecoration(
-        color: c.field,
-        border: Border.all(color: c.navy),
-        borderRadius: BorderRadius.circular(20),
+        color: context.d.card,
+        border: Border.all(color: context.d.line, width: 1.2),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             onTap: () => setState(() => _caseOpen = !_caseOpen),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
@@ -2059,202 +1826,234 @@ class _ResolveSheetState extends State<_ResolveSheet> {
     }
   }
 
+  // Branch D: Resolve is its own screen (Ace, 4 Oct) — back to the job at
+  // the top and at the bottom, nothing lost. Photos (optional: a tanod who
+  // moved an obstruction has nothing to photograph), one video, the report,
+  // then Submit for approval (0073: the admin approves the resolution).
   @override
   Widget build(BuildContext context) {
     final s = context.ts;
-    final c = context.colors;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(30, 14, 30, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: c.muted.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                s.windowResolveTitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  fontSize: 26,
-                  height: 1,
-                  color: c.navy,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                s.windowResolveBody,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontSize: 13.5,
-                  color: c.navy,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _InputBox(
-                label: s.dispatchProvideReportLabel,
-                colour: c.navy,
-                controller: _update,
-                hint: s.dispatchInputHint,
-                maxLength: 300,
-                enabled: !_busy,
-                onChanged: (_) => setState(() => _error = null),
-              ),
-              const SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  s.dispatchPhotoEvidenceLabel,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: c.navy,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (var i = 0; i < _photos.length; i++)
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(25),
-                            child: Image.file(
-                              _photos[i],
-                              width: 107,
-                              height: 107,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: -6,
-                            right: -6,
-                            child: GestureDetector(
-                              onTap: _busy
-                                  ? null
-                                  : () => setState(() => _photos.removeAt(i)),
-                              child: CircleAvatar(
-                                radius: 10,
-                                backgroundColor: c.navy,
-                                child: Icon(Icons.close, size: 14, color: c.bg),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    // Optional. A tanod who moved an obstruction or spoke
-                    // to a neighbour has nothing to photograph.
-                    if (_photos.length < 3)
-                      _AttachTile(
-                        icon: Icons.add,
-                        label: s.dispatchAttachMedia,
-                        limit: s.dispatchMaxPhotoSize,
-                        onTap: _busy ? null : () => _add(video: false),
-                      ),
-                    if (_video != null)
-                      Container(
-                        width: 138,
-                        height: 107,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: c.field,
-                          border: Border.all(color: c.navy),
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.videocam, color: c.navy, size: 20),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                ),
-                                child: Text(
-                                  s.dispatchVideoAttached,
-                                  style: TextStyle(
-                                    fontFamily: 'Urbanist',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                    color: c.navy,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            InkWell(
-                              onTap: _busy
-                                  ? null
-                                  : () => setState(() => _video = null),
-                              customBorder: const CircleBorder(),
-                              child: Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: c.navy,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      _AttachTile(
-                        icon: Icons.videocam,
-                        label: s.dispatchAttachVideo,
-                        limit: s.dispatchMaxVideoSize,
-                        onTap: _busy ? null : () => _add(video: true),
-                      ),
-                  ],
-                ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: _red),
-                ),
-              ],
-              const SizedBox(height: 24),
-              _Pill(
-                label: s.windowResolve,
-                colour: _green,
-                width: 200,
-                height: 50,
-                fontSize: 16,
-                busy: _busy,
-                onTap: _busy ? null : _submit,
-              ),
-              const SizedBox(height: 10),
-              _Pill(
-                label: s.dispatchCancel,
-                colour: c.navy,
-                filled: false,
-                width: 200,
-                height: 50,
-                fontSize: 16,
-                onTap: _busy ? null : () => Navigator.of(context).pop(false),
-              ),
-            ],
+    final d = context.d;
+    final green = DColors.greenVivid;
+    Widget label(String t, [String? sub]) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(t, style: DType.body(d.ink, size: 15, w: FontWeight.w800)),
+            if (sub != null) Text(sub, style: DType.body(d.muted, size: 12)),
+          ]),
+        );
+    Widget tile({required IconData icon, required String text, required String limit, VoidCallback? onTap}) => InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: DottedBox(
+            color: d.line,
+            child: Container(
+              width: 104,
+              height: 104,
+              decoration: BoxDecoration(color: d.field, borderRadius: BorderRadius.circular(14)),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(icon, color: d.muted, size: 26),
+                const SizedBox(height: 4),
+                Text(text, textAlign: TextAlign.center, style: DType.body(d.muted, size: 11.5, w: FontWeight.w700)),
+                Text(limit, style: DType.body(d.muted, size: 10)),
+              ]),
+            ),
           ),
+        );
+
+    return PopScope(
+      canPop: !_busy,
+      child: Scaffold(
+        backgroundColor: d.bg,
+        body: SafeArea(
+          child: Column(children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 6, 18, 20),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.chevron_left_rounded, color: d.ink2, size: 26),
+                      label: Text(context.tr('On the job', 'Nasa trabaho'), style: DType.body(d.ink2, size: 14, w: FontWeight.w800)),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    ),
+                  ),
+                  Text(context.tr('RESOLVE', 'IRESOLBA'), style: DType.label(green)),
+                  const SizedBox(height: 4),
+                  Text(widget.ticket.subject, style: DType.h1(d.ink).copyWith(fontSize: 24)),
+                  Text(widget.ticket.trackingId, style: DType.mono(d.muted, size: 13)),
+                  const SizedBox(height: 6),
+                  Text(s.windowResolveBody, style: DType.body(d.ink2, size: 13.5)),
+                  const SizedBox(height: 20),
+                  label(s.dispatchPhotoEvidenceLabel, s.dispatchMaxPhotoSize),
+                  Wrap(spacing: 10, runSpacing: 10, children: [
+                    for (var i = 0; i < _photos.length; i++)
+                      Stack(clipBehavior: Clip.none, children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.file(_photos[i], width: 104, height: 104, fit: BoxFit.cover),
+                        ),
+                        Positioned(
+                          top: 5,
+                          right: 5,
+                          child: GestureDetector(
+                            onTap: _busy ? null : () => setState(() => _photos.removeAt(i)),
+                            child: const CircleAvatar(radius: 12, backgroundColor: Color(0x99000000), child: Icon(Icons.close_rounded, size: 15, color: Colors.white)),
+                          ),
+                        ),
+                      ]),
+                    if (_photos.length < 3)
+                      tile(icon: Icons.add_a_photo_outlined, text: s.dispatchAttachMedia, limit: '', onTap: _busy ? null : () => _add(video: false)),
+                  ]),
+                  const SizedBox(height: 18),
+                  label(context.tr('Video', 'Video'), s.dispatchMaxVideoSize),
+                  InkWell(
+                    onTap: _busy ? null : (_video == null ? () => _add(video: true) : null),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      height: 54,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: d.field,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: _video != null ? green : d.line, width: 1.6),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.videocam_outlined, color: _video != null ? green : d.muted),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(_video != null ? s.dispatchVideoAttached : s.dispatchAttachVideo,
+                              style: DType.body(_video != null ? d.ink : d.muted, size: 14, w: FontWeight.w700)),
+                        ),
+                        if (_video != null)
+                          IconButton(
+                            onPressed: _busy ? null : () => setState(() => _video = null),
+                            icon: Icon(Icons.close_rounded, color: d.muted, size: 20),
+                          ),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  label(s.dispatchProvideReportLabel, context.tr('What you found and what you did', 'Ano ang nakita at ginawa mo')),
+                  TextField(
+                    controller: _update,
+                    enabled: !_busy,
+                    maxLength: 300,
+                    minLines: 4,
+                    maxLines: 8,
+                    onChanged: (_) => setState(() => _error = null),
+                    style: DType.body(d.ink, size: 14.5),
+                    decoration: InputDecoration(
+                      hintText: s.dispatchInputHint,
+                      hintStyle: DType.body(d.muted, size: 14),
+                      filled: true,
+                      fillColor: d.field,
+                      contentPadding: const EdgeInsets.all(14),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: green, width: 2)),
+                    ),
+                  ),
+                  Text(
+                    context.tr('The barangay approves your report before the case closes. No signal? It saves on this phone and sends by itself.',
+                        'Inaaprubahan ng barangay ang ulat bago isara ang kaso. Walang signal? Mase-save ito at kusang ipapadala.'),
+                    style: DType.body(d.muted, size: 12),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 10),
+                    Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
+                  ],
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.fromLTRB(18, 12, 18, 12 + MediaQuery.viewInsetsOf(context).bottom * 0),
+              decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+              child: Row(children: [
+                Expanded(flex: 2, child: DButton(context.tr('Back', 'Bumalik'), kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 4,
+                  child: DButton(context.tr('Submit for approval', 'Ipasa para aprubahan'), kind: DButtonKind.green, expand: true, busy: _busy, onTap: _busy ? null : _submit),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// A dashed edge around an empty attach tile.
+class DottedBox extends StatelessWidget {
+  const DottedBox({super.key, required this.child, required this.color});
+
+  final Widget child;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(foregroundPainter: _Dash(color), child: child);
+}
+
+class _Dash extends CustomPainter {
+  _Dash(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final path = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)));
+    for (final m in path.computeMetrics()) {
+      for (var t = 0.0; t < m.length; t += 10) {
+        canvas.drawPath(m.extractPath(t, t + 5), p);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Dash old) => old.color != color;
+}
+
+
+/// Navigate / Open in Maps over the job's map.
+class _MapPill extends StatelessWidget {
+  const _MapPill({required this.icon, required this.label, required this.onTap, this.orange = false});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool orange;
+
+  @override
+  Widget build(BuildContext context) {
+    const ink = Color(0xFF141B34);
+    return Material(
+      color: orange ? DColors.orange : Colors.white,
+      borderRadius: BorderRadius.circular(99),
+      elevation: 4,
+      shadowColor: Colors.black38,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(99),
+        onTap: onTap,
+        child: SizedBox(
+          height: 44,
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, size: 17, color: ink),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 14, color: ink)),
+            ),
+          ]),
         ),
       ),
     );

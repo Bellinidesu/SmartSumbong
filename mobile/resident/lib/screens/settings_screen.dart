@@ -19,6 +19,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../i18n.dart';
+import '../d/d_theme.dart';
+import '../d/d_ui.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
 import '../tanod/tanod_strings.dart';
@@ -145,70 +147,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Figma LOG OUT (2260:2478): a 300x200 navy card, radius 50, 2px
     // #252525 edge, the title orange at 24/700, the question 16/500, and
     // 106x40 Cancel / Log Out pills 13 apart; the page fades to 30%.
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierColor: context.colors.bg.withValues(alpha: 0.7),
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          width: 300,
-          constraints: const BoxConstraints(minHeight: 200),
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 29),
-          decoration: BoxDecoration(
-            color: context.colors.navy,
-            borderRadius: BorderRadius.circular(50),
-            border: Border.all(color: const Color(0xFF252525), width: 2),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                s.settingsLogOut,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 24,
-                  height: 21 / 24,
-                  color: Color(0xFFFF9800),
-                ),
-              ),
-              const SizedBox(height: 31),
-              Text(
-                s.settingsLogOutConfirmBody,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                  height: 15 / 16,
-                  color: context.colors.bg,
-                ),
-              ),
-              const SizedBox(height: 31),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _DialogPill(
-                    label: s.settingsCancel,
-                    filled: false,
-                    onTap: () => Navigator.of(context).pop(false),
-                  ),
-                  const SizedBox(width: 13),
-                  _DialogPill(
-                    label: s.settingsLogOut,
-                    filled: true,
-                    onTap: () => Navigator.of(context).pop(true),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    final confirmed = await showDDialog(
+      context,
+      title: s.settingsLogOut,
+      body: s.settingsLogOutConfirmBody,
+      primary: s.settingsLogOut,
+      secondary: s.settingsCancel,
+      icon: Icons.logout_rounded,
     );
     if (confirmed != true) return;
 
@@ -253,206 +198,140 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Figma SETTINGS (2212:186): the title 28/800 50 from the top of the
-  // screen, the 111 avatar 24 under it at 44 in, the name 20/700 18 to
-  // its right over the 100x25 Edit Profile pill, then the rows from 277 on
-  // a 66 pitch — icon at 54, label at 123, chevron 58 from the right.
+  // Branch D: the preview's Settings — a role-colour profile card (photo
+  // or initials, name, masked number, Edit Profile), then the rows in two
+  // white cards with round icon wells. Appearance carries its day/night
+  // switch and Languages its EN/PH flags right on the row; the row itself
+  // still opens the full page.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final d = context.d;
     // One Settings for both roles (branch C): a tanod gets the tanod nav
     // bar and Extra Administrative Services; a resident gets notification
     // preferences and Delete Account (a tanod retires instead).
     final tanod = AppRoleController.instance.value == AppRole.tanod;
 
-    return Scaffold(
-      bottomNavigationBar: tanod
-          ? const TanodNavBar(current: TanodTab.settings)
-          : const ResidentNavBar(current: ResidentTab.settings),
-      body: SafeArea(
-        bottom: false,
-        child: ListView(
-          padding: EdgeInsets.only(
-              top: (50 - MediaQuery.paddingOf(context).top).clamp(8.0, 50.0),
-              bottom: 24),
-          children: [
-            Center(
-              child: Text(
-                s.settingsTitle,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  fontSize: 28,
-                  height: 43.68 / 28,
-                  color: context.colors.navy,
+    return DPage(
+      bottomBar: tanod ? const TanodNavBar(current: TanodTab.settings) : const ResidentNavBar(current: ResidentTab.settings),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        children: [
+          Text(s.settingsTitle, style: DType.h1(d.accent).copyWith(fontSize: 30)),
+          const SizedBox(height: 16),
+          DCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Container(
+                width: 74,
+                height: 74,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: Colors.white.withValues(alpha: .6), width: 3),
+                  image: _avatarUrl != null
+                      ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 300)), fit: BoxFit.cover)
+                      : null,
                 ),
+                alignment: Alignment.center,
+                child: _avatarUrl != null
+                    ? null
+                    : Text(_initials(_name),
+                        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 26, color: d.card2)),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            Padding(
-              padding: const EdgeInsets.only(left: 44, right: 30),
-              child: Row(
-                children: [
-                  Container(
-                    width: 111,
-                    height: 111,
-                    decoration: BoxDecoration(
-                      color: context.colors.navy,
-                      shape: BoxShape.circle,
-                      // Same pattern as Edit Profile's avatar circle: a saved
-                      // avatar_url paints as the circle's own background image,
-                      // and only an unset avatar falls back to the initials
-                      // text below. Previously this row never even read
-                      // avatar_url, so a resident who set a photo on Edit
-                      // Profile still saw blank initials the moment they came
-                      // back here.
-                      image: _avatarUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(cloudinarySized(_avatarUrl!, width: 420)),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: _avatarUrl != null
-                        ? null
-                        : Text(
-                            _initials(_name),
-                            style: TextStyle(
-                              fontFamily: 'Urbanist',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 36,
-                              color: context.colors.bg,
-                            ),
-                          ),
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _name ?? '\u2014',
-                          style: TextStyle(
-                            fontFamily: 'Urbanist',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                            height: 1.4,
-                            letterSpacing: -0.5,
-                            color: context.colors.navy,
-                          ),
-                        ),
-                        // The number line as LOG OUT's backdrop draws it.
-                        if (_mobile != null)
-                          Text(
-                            _mask(_mobile!),
-                            style: TextStyle(
-                              fontFamily: 'Urbanist',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                              height: 21.84 / 14,
-                              color: context.colors.navy,
-                            ),
-                          ),
-                        const SizedBox(height: 6),
-                        _EditProfilePill(
-                          label: s.settingsEditProfile,
-                          onTap: () => Navigator.of(context)
-                              .pushNamed('/edit-profile')
-                              .then((_) => _load()),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(_name ?? '—', style: DType.h3(Colors.white).copyWith(fontSize: 18.5)),
+                  if (_mobile != null) Text(_mask(_mobile!), style: DType.body(Colors.white.withValues(alpha: .8), size: 13)),
+                  const SizedBox(height: 10),
+                  DButton(s.settingsEditProfile,
+                      small: true,
+                      kind: DButtonKind.white,
+                      height: 34,
+                      onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load())),
+                ]),
               ),
-            ),
-            const SizedBox(height: 28),
-
-            _SettingsRow(
-              asset: 'assets/images/settings-personal.png',
+            ]),
+          ),
+          const SizedBox(height: 18),
+          _Group(children: [
+            _Row(
+              icon: Icons.person_outline_rounded,
               label: s.settingsPersonalInfo,
-              onTap: () => Navigator.of(context)
-                  .pushNamed('/edit-profile')
-                  .then((_) => _load()),
+              onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load()),
             ),
-            _SettingsRow(
-              asset: 'assets/images/settings-languages.png',
+            _Row(
+              icon: Icons.translate_rounded,
               label: s.settingsLanguages,
               onTap: () => Navigator.of(context).pushNamed('/languages'),
+              trailing: const _LangFlags(),
             ),
-            _SettingsRow(
+            _Row(
               icon: Icons.dark_mode_outlined,
               label: s.settingsAppearance,
               onTap: () => Navigator.of(context).pushNamed('/appearance'),
+              trailing: const _DayNight(),
             ),
-            _SettingsToggleRow(
-              icon: Icons.fingerprint,
+            _Row(
+              icon: Icons.fingerprint_rounded,
               label: s.settingsBiometricUnlock,
-              value: _biometricEnabled,
-              busy: _biometricBusy,
-              onChanged: _onBiometricToggle,
+              trailing: _biometricBusy
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
+                  : Switch(value: _biometricEnabled, activeThumbColor: Colors.white, activeTrackColor: DColors.greenVivid, onChanged: _onBiometricToggle),
             ),
             if (!tanod)
-            _SettingsRow(
-              icon: Icons.notifications_none,
-              label: s.settingsNotificationPrefs,
-              onTap: () =>
-                  Navigator.of(context).pushNamed('/notification-preferences'),
-            ),
-            _SettingsRow(
+              _Row(
+                icon: Icons.notifications_none_rounded,
+                label: s.settingsNotificationPrefs,
+                onTap: () => Navigator.of(context).pushNamed('/notification-preferences'),
+              ),
+          ]),
+          const SizedBox(height: 14),
+          _Group(children: [
+            if (tanod)
+              _Row(
+                icon: Icons.admin_panel_settings_outlined,
+                label: context.ts.settingsExtraAdminServices,
+                onTap: () => Navigator.of(context).pushNamed('/t/extra-admin-services'),
+              ),
+            _Row(
               icon: Icons.privacy_tip_outlined,
               label: s.termsPrivacyTitle,
               onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
             ),
-            _SettingsRow(
-              asset: 'assets/images/settings-facebook.png',
+            _Row(
+              icon: Icons.facebook_rounded,
               label: s.settingsFacebook,
               onTap: () async {
                 final uri = Uri.parse(_facebookUrl);
-                if (!await launchUrl(uri,
-                    mode: LaunchMode.externalApplication)) {
+                if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(s.settingsFacebookError)),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.settingsFacebookError)));
                 }
               },
             ),
-            if (tanod)
-              _SettingsRow(
-                icon: Icons.admin_panel_settings_outlined,
-                label: context.ts.settingsExtraAdminServices,
-                onTap: () =>
-                    Navigator.of(context).pushNamed('/t/extra-admin-services'),
-              ),
             if (!tanod)
-            _SettingsRow(
-              icon: Icons.delete_outline,
-              label: s.settingsDeleteAccount,
-              showChevron: false,
-              color: const Color(0xFFDC2626),
-              busy: _deletingAccount,
-              onTap: _deletingAccount ? null : _deleteAccount,
-            ),
-            _SettingsRow(
-              asset: 'assets/images/settings-logout.png',
+              _Row(
+                icon: Icons.delete_outline_rounded,
+                label: s.settingsDeleteAccount,
+                danger: true,
+                busy: _deletingAccount,
+                onTap: _deletingAccount ? null : _deleteAccount,
+              ),
+            _Row(
+              icon: Icons.logout_rounded,
               label: s.settingsLogOut,
-              showChevron: false,
+              danger: true,
+              busy: _busy,
               onTap: _busy ? null : _logOut,
             ),
-            if (_version != null) ...[
-              const SizedBox(height: 24),
-              Center(
-                child: Text(
-                  'SmartSumbong Resident • v$_version',
-                  style: TextStyle(fontSize: 11, color: context.colors.muted),
-                ),
-              ),
-            ],
+          ]),
+          if (_version != null) ...[
+            const SizedBox(height: 22),
+            Center(child: Text('SmartSumbong • v$_version', style: DType.body(d.muted, size: 11.5))),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -461,270 +340,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (name == null || name.trim().isEmpty) return '?';
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) return parts.first.characters.first.toUpperCase();
-    return (parts.first.characters.first + parts.last.characters.first)
-        .toUpperCase();
+    return (parts.first.characters.first + parts.last.characters.first).toUpperCase();
   }
 
   /// Shown on a screen someone might hold up in a barangay hall.
   static String _mask(String mobile) {
     if (mobile.length < 4) return mobile;
-    return '${mobile.substring(0, 3)} \u2022\u2022\u2022\u2022\u2022\u2022 '
+    return '${mobile.substring(0, 3)} •••••• '
         '${mobile.substring(mobile.length - 4)}';
   }
 }
 
-/// Same row shape as [_SettingsRow], but for a plain on/off setting
-/// rather than a link to another screen -- a Switch in place of the
-/// chevron, and no [onTap] on the row itself, so a stray tap on the
-/// label doesn't silently flip the switch a Figma frame never drew.
-/// Not itself a Figma frame, same as the Terms & Privacy row above it --
-/// there is nowhere in the design this setting was ever specified.
-class _SettingsToggleRow extends StatelessWidget {
-  const _SettingsToggleRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    this.busy = false,
-  });
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) Divider(height: 1, thickness: 1, indent: 64, color: d.line),
+          children[i],
+        ],
+      ]),
+    );
+  }
+}
+
+class _Row extends StatelessWidget {
+  const _Row({required this.icon, required this.label, this.onTap, this.trailing, this.danger = false, this.busy = false});
 
   final IconData icon;
   final String label;
-  final bool value;
-  final bool busy;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: _rowPitch),
-      padding: const EdgeInsets.only(left: 54, right: 44),
-      child: Row(
-        children: [
-          _RowIcon(icon: icon, colour: context.colors.navy),
-          const SizedBox(width: _labelGap),
-          Expanded(
-            child: Text(label, style: _rowLabel(context.colors.navy)),
-          ),
-          if (busy)
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: context.colors.navy),
-            )
-          else
-            Semantics(
-              label: label,
-              child: FigmaSwitch(value: value, onChanged: onChanged),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The frame's rows sit 40 apart at 26 tall; each row's tap target is the
-/// whole 66 pitch.
-const double _rowPitch = 66;
-
-/// Label at 123 with the 28-wide icon box at 54.
-const double _labelGap = 41;
-
-TextStyle _rowLabel(Color colour) => TextStyle(
-      fontFamily: 'Urbanist',
-      fontWeight: FontWeight.w600,
-      fontSize: 16,
-      height: 1.15,
-      color: colour,
-    );
-
-/// A Figma icon where the frame drew one, otherwise the Material icon in
-/// the same 28x26 box.
-class _RowIcon extends StatelessWidget {
-  const _RowIcon({this.icon, this.asset, required this.colour});
-
-  final IconData? icon;
-  final String? asset;
-  final Color colour;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 28,
-        height: 26,
-        child: Center(
-          child: asset != null
-              ? Image.asset(asset!, scale: 4, color: colour)
-              : Icon(icon, color: colour, size: 24),
-        ),
-      );
-}
-
-/// The frame's 100x25 orange pill: 1px #F3F3F3 edge, 14/700 label and the
-/// y5 / blur 5 shadow at 30%. Grows for the longer Filipino label.
-class _EditProfilePill extends StatelessWidget {
-  const _EditProfilePill({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  // Its own button node, so a screen reader reaches it apart from the
-  // name and number beside it.
-  @override
-  Widget build(BuildContext context) => Semantics(
-        container: true,
-        button: true,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minWidth: 100),
-            height: 25,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF9800),
-              borderRadius: BorderRadius.circular(50),
-              border: Border.all(color: context.colors.bg),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x4D121212),
-                  blurRadius: 3.5,
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
-            // widthFactor keeps the pill hugging its label instead of
-            // stretching to the column's width.
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  height: 1,
-                  color: context.colors.bg,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-}
-
-/// The Log Out dialog's 106x40 pills with the frame's y5 / blur 5 shadow:
-/// Cancel outlined on navy, Log Out filled light.
-class _DialogPill extends StatelessWidget {
-  const _DialogPill({
-    required this.label,
-    required this.onTap,
-    required this.filled,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(50),
-    );
-    const size = Size(106, 40);
-    const text = TextStyle(
-      fontFamily: 'Urbanist',
-      fontWeight: FontWeight.w700,
-      fontSize: 16,
-    );
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(50),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x4D121212),
-            blurRadius: 3.5,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: filled
-          ? FilledButton(
-              onPressed: onTap,
-              style: FilledButton.styleFrom(
-                backgroundColor: context.colors.bg,
-                foregroundColor: context.colors.navy,
-                fixedSize: size,
-                minimumSize: size,
-                elevation: 0,
-                padding: EdgeInsets.zero,
-                shape: shape,
-                textStyle: text,
-              ),
-              child: Text(label),
-            )
-          : OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.bg,
-                backgroundColor: context.colors.navy,
-                side: BorderSide(color: context.colors.bg),
-                fixedSize: size,
-                minimumSize: size,
-                padding: EdgeInsets.zero,
-                shape: shape,
-                textStyle: text,
-              ),
-              child: Text(label),
-            ),
-    );
-  }
-}
-
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
-    this.icon,
-    this.asset,
-    required this.label,
-    required this.onTap,
-    this.showChevron = true,
-    this.color,
-    this.busy = false,
-  });
-
-  final IconData? icon;
-  final String? asset;
-  final String label;
   final VoidCallback? onTap;
-  final bool showChevron;
-  final Color? color;
+  final Widget? trailing;
+  final bool danger;
   final bool busy;
 
   @override
   Widget build(BuildContext context) {
-    final tint = color ?? context.colors.navy;
+    final d = context.d;
+    final red = d.dark ? const Color(0xFFFF8A8A) : const Color(0xFFDC2626);
     return InkWell(
-      onTap: busy ? null : onTap,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Row(children: [
+          DWell(icon, size: 40, color: danger ? red : d.link, tint: danger ? red.withValues(alpha: .1) : null),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: DType.body(danger ? red : d.ink, size: 15, w: FontWeight.w700))),
+          if (busy)
+            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2))
+          else if (trailing != null)
+            trailing!
+          else if (!danger)
+            Icon(Icons.chevron_right_rounded, color: d.muted),
+        ]),
+      ),
+    );
+  }
+}
+
+/// The day/night switch on the Appearance row: light or dark straight
+/// away; "follow the phone" stays on the Appearance page.
+class _DayNight extends StatelessWidget {
+  const _DayNight();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = context.isDark;
+    return GestureDetector(
+      onTap: () => AppThemeScope.controllerOf(context).set(dark ? ThemeMode.light : ThemeMode.dark),
       child: Container(
-        constraints: const BoxConstraints(minHeight: _rowPitch),
-        padding: const EdgeInsets.only(left: 54, right: 58),
-        child: Row(
-          children: [
-            _RowIcon(icon: icon, asset: asset, colour: tint),
-            const SizedBox(width: _labelGap),
-            Expanded(child: Text(label, style: _rowLabel(tint))),
-            if (busy)
-              SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: tint),
-              )
-            else if (showChevron)
-              Image.asset('assets/images/settings-chevron.png',
-                  scale: 4, color: tint),
-          ],
+        width: 56,
+        height: 30,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: dark ? const Color(0xFF22305E) : const Color(0xFFDCE6FA)),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 200),
+          alignment: dark ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: dark ? const Color(0xFF0E1322) : Colors.white),
+            child: Icon(dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded, size: 15, color: dark ? const Color(0xFFFFD27A) : DColors.orange),
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _LangFlags extends StatelessWidget {
+  const _LangFlags();
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final lang = AppLocaleScope.of(context);
+    Widget f(AppLocale l, String e) {
+      final on = lang == l;
+      return GestureDetector(
+        onTap: () => AppLocaleScope.controllerOf(context).set(l),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(99),
+            color: on ? d.card : Colors.transparent,
+            boxShadow: on ? [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 5)] : null,
+          ),
+          child: Opacity(opacity: on ? 1 : .55, child: Text(e, style: const TextStyle(fontSize: 16))),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: d.field, border: Border.all(color: d.line)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [f(AppLocale.en, '🇺🇸'), f(AppLocale.fil, '🇵🇭')]),
     );
   }
 }
