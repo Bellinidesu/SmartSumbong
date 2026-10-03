@@ -1,0 +1,159 @@
+/*
+ * SmartSumbong portal — the finishing touches from the preview (3 Oct 2026),
+ * loaded by every page (layout.php) and the four signed-out pages:
+ *
+ *   day/night switch        the theme toggle, a sun that becomes a moon
+ *   language flags          EN / PH
+ *   contour texture         the mobile app's Figma "Noise & Texture" lines,
+ *                           faint, fading out by half the panel
+ *   map switches            Heatmap (thermal bloom), Flood zones · Project
+ *                           NOAH (rising water), Dim outside 183 (boundary)
+ *   map legend box          a dock button that opens the legend
+ *   flood watch             live rain against PAGASA warnings and NOAH zones
+ *
+ * The page always carries data-theme (theme_head() sets it), so dark rules
+ * key off :root[data-theme="dark"] only.
+ */
+
+/* ── Day/night switch ── */
+.dn { --dn-w: 52px; --dn-h: 28px; --dn-k: 22px; --dn-night: 0; --dn-knob: #FFC83D; --dn-glow: rgba(255,200,61,.35);
+  --dn-travel: calc(var(--dn-w) - var(--dn-k) - 6px);
+  position: relative; flex: none; display: block; width: var(--dn-w); height: var(--dn-h); border-radius: 99px; overflow: hidden; isolation: isolate;
+  background: linear-gradient(180deg, #8ED0FF, #4C9EF0); box-shadow: inset 0 1px 3px rgba(0,20,60,.35), 0 0 0 1.5px rgba(255,255,255,.55); }
+:root[data-theme="dark"] .dn { --dn-night: 1; --dn-knob: #E6E9F4; --dn-glow: rgba(200,210,255,.18); }
+.dn::before { content: ""; position: absolute; inset: 0; z-index: 0; opacity: var(--dn-night); transition: opacity .45s ease;
+  background:
+    radial-gradient(1px 1px at 22% 30%, #fff 99%, transparent), radial-gradient(1px 1px at 38% 68%, #fff 99%, transparent),
+    radial-gradient(1.4px 1.4px at 14% 62%, #fff 99%, transparent), radial-gradient(1px 1px at 48% 24%, #fff 99%, transparent),
+    radial-gradient(1.2px 1.2px at 30% 46%, #dfe6ff 99%, transparent),
+    linear-gradient(180deg, #0B1540, #24306E); }
+.dn::after { content: ""; position: absolute; z-index: 0; right: 6px; bottom: 5px; width: 18px; height: 8px; border-radius: 99px; background: #fff;
+  box-shadow: -7px 3px 0 -1px #fff, 5px -3px 0 -1px rgba(255,255,255,.9); opacity: calc(1 - var(--dn-night));
+  transform: translateY(calc(var(--dn-night) * 12px)); transition: opacity .35s, transform .45s ease; }
+.dn i { position: absolute; z-index: 1; top: 3px; left: 3px; width: var(--dn-k); height: var(--dn-k); border-radius: 50%; background: var(--dn-knob);
+  transform: translateX(calc(var(--dn-night) * var(--dn-travel))) rotate(calc(var(--dn-night) * 200deg));
+  box-shadow: 0 0 0 4px var(--dn-glow), 0 2px 4px rgba(0,0,0,.25); transition: transform .5s cubic-bezier(.5,1.4,.5,1), background .45s, box-shadow .45s; }
+.dn i::after { content: ""; position: absolute; inset: 0; border-radius: 50%; opacity: var(--dn-night); transition: opacity .45s;
+  background: radial-gradient(circle at 34% 36%, #C3C9DC 0 16%, transparent 17%), radial-gradient(circle at 64% 62%, #C3C9DC 0 11%, transparent 12%),
+              radial-gradient(circle at 62% 28%, #C9CEDF 0 7%, transparent 8%); }
+.dn-lg { --dn-w: 64px; --dn-h: 34px; --dn-k: 28px; }
+button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i { box-shadow: 0 0 0 6px var(--dn-glow), 0 2px 4px rgba(0,0,0,.25); }
+.dn-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* In the sidebar the switch replaces the plain one, and the moon icon beside the label goes. */
+.p-side-toggle .p-left > svg { display: none; }
+.p-side-toggle .p-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-side-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* On the sign-in pages the switch stands alone. */
+.prefs .pref-theme.pref-dn { padding: 0; min-height: 0; border: 0; border-radius: 99px; background: transparent; box-shadow: 0 6px 16px rgba(0,30,90,.28); }
+.prefs .pref-theme.pref-dn:hover { background: transparent; }
+.prefs .pref-theme.pref-dn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* ── Language flags ── */
+.flag { width: 20px; height: 14px; flex: none; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.18); overflow: hidden; display: block; }
+.p-seg.pref-lang button, .prefs .pref-lang button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; letter-spacing: .06em; font-weight: 700; }
+.pref-lang button:not(.p-on):not([aria-pressed="true"]) .flag { opacity: .7; filter: saturate(.7); transition: opacity .2s, filter .2s; }
+.pref-lang button:hover .flag { opacity: 1; filter: none; }
+.prefs .pref-lang button { min-width: 64px; }
+
+/* ── Contour texture (sidebar, page, sign-in rail) ── */
+.p-sidebar, .p-main, .login-rail { isolation: isolate; }
+.p-main, .login-rail { position: relative; }
+.p-sidebar::before, .p-main::before, .login-rail::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  -webkit-mask: url("../img/texture-contours.png") 0 0 / 560px 560px repeat, var(--tx-fade);
+  mask: url("../img/texture-contours.png") 0 0 / 560px 560px repeat, var(--tx-fade);
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
+.p-sidebar::before { background: #fff; opacity: .14; --tx-fade: linear-gradient(to top, #000 0%, rgba(0,0,0,.55) 25%, transparent 50%); }
+.p-main::before { background: var(--p-ink); opacity: .07; --tx-fade: linear-gradient(200deg, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%); }
+.login-rail::before { background: #00308F; opacity: .10; --tx-fade: linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%); }
+
+/* ── Map switches: a 36px button with a small scene that comes alive when on ── */
+.map-sw { position: relative; flex: 0 0 auto; width: max-content; max-width: 100%; height: 36px; padding: 0 14px 0 11px; border-radius: 8px; overflow: hidden; color: #fff;
+  display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13.5px; box-shadow: 0 4px 12px rgba(0,0,0,.2); filter: saturate(.55); transition: filter .3s; user-select: none; }
+.p-row > .map-sw { flex: 0 0 auto; }
+.map-sw input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.map-sw:has(input:checked) { filter: none; }
+.map-sw:hover { filter: saturate(.8); }
+.map-sw:has(input:checked):hover { filter: brightness(1.06); }
+.map-sw:has(input:focus-visible) { outline: 2px solid var(--p-orange, #FF9800); outline-offset: 2px; }
+.map-sw .scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.map-sw b, .map-sw > i { position: relative; z-index: 1; }
+.map-sw b { font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
+.map-sw b em { font-style: normal; font-weight: 500; opacity: .85; }
+.map-sw > i { width: 16px; height: 16px; border-radius: 4px; border: 2px solid rgba(255,255,255,.75); display: grid; place-items: center; flex: none; }
+.map-sw:has(input:checked) > i { background: #fff; border-color: #fff; }
+.map-sw:has(input:checked) > i::after { content: ""; width: 7px; height: 4px; border: solid var(--tick, #0B57C4); border-width: 0 0 2.4px 2.4px; transform: translateY(-1px) rotate(-45deg); }
+
+/* Heatmap: thermal bloom */
+.map-sw--heat { background: #2B2026; --tick: #C2410C; }
+.map-sw--heat .scene span { position: absolute; border-radius: 50%; filter: blur(7px); transform: scale(.25); opacity: .55; transition: transform .6s cubic-bezier(.4,1.3,.5,1), opacity .4s; }
+.map-sw--heat .scene span:nth-child(1) { width: 70px; height: 70px; left: 2%; top: 40%; background: #F93535; }
+.map-sw--heat .scene span:nth-child(2) { width: 56px; height: 56px; left: 34%; top: 30%; background: #FF9800; }
+.map-sw--heat .scene span:nth-child(3) { width: 64px; height: 64px; left: 60%; top: 46%; background: #FACC15; }
+.map-sw--heat .scene span:nth-child(4) { width: 48px; height: 48px; left: 80%; top: 6%; background: #F97316; }
+.map-sw--heat:has(input:checked) .scene span { transform: scale(1); opacity: .95; animation: swBreathe 3.2s ease-in-out infinite; }
+.map-sw--heat:has(input:checked) .scene span:nth-child(2) { animation-delay: .6s; }
+.map-sw--heat:has(input:checked) .scene span:nth-child(3) { animation-delay: 1.2s; }
+.map-sw--heat:has(input:checked) .scene span:nth-child(4) { animation-delay: 1.8s; }
+@keyframes swBreathe { 50% { transform: scale(1.18); } }
+.map-sw--heat:has(input:checked) b { text-shadow: 0 1px 3px rgba(0,0,0,.45); }
+
+/* Flood zones · Project NOAH: NOAH's charcoal sky over a blue wave that rises */
+.map-sw--noah { background: #333438; }
+.map-sw--noah .wave { position: absolute; left: 0; bottom: 0; width: 200%; height: 100%; transform: translateY(80%); transition: transform .6s cubic-bezier(.4,1.3,.5,1); }
+.map-sw--noah:has(input:checked) .wave { transform: translateY(0); animation: swDrift 6s linear infinite; }
+@keyframes swDrift { to { transform: translate(-50%, 0); } }
+
+/* Dim outside 183: the boundary marches round and the outside goes dark */
+.map-sw--dim { background: #3B4D7E; --tick: #00308F; }
+.map-sw--dim .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-sw--dim .dim { fill: #0B1540; opacity: 0; transition: opacity .5s; }
+.map-sw--dim .edge { fill: none; stroke: #8DB2FF; stroke-width: 1.6; stroke-dasharray: 5 4; opacity: 0; transition: opacity .4s; }
+.map-sw--dim:has(input:checked) .dim { opacity: .75; }
+.map-sw--dim:has(input:checked) .edge { opacity: 1; animation: swMarch 1.2s linear infinite; }
+@keyframes swMarch { to { stroke-dashoffset: -18; } }
+
+/* ── Map legend: a dock button that opens a card beside it ── */
+#s-spatial .p-map-legend.lg-card { left: auto; right: 70px; bottom: 112px; width: 260px; padding: 14px 16px; gap: 7px; transform-origin: bottom right; animation: lgIn .18s ease-out; z-index: 4; }
+@keyframes lgIn { from { opacity: 0; transform: scale(.94) translateY(6px); } to { opacity: 1; transform: none; } }
+.lg-card h3 { margin: 0 0 2px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--p-muted); font-weight: 700; }
+#s-spatial .p-map-legend #lg-flood { display: grid; gap: 7px; }
+#s-spatial .p-map-legend #lg-flood[hidden], #s-spatial .p-map-legend #lg-risk[hidden] { display: none; }
+.lg-card .lg-sep { height: 1px; background: var(--p-line); margin: 6px 0 4px; }
+.lg-card i.lg-sw { width: 14px; height: 10px; border-radius: 3px; flex: none; }
+.p-map-dock button[aria-expanded="true"] { color: var(--p-orange); border-color: var(--p-orange); }
+
+/* Incidents list sits under the flood watch chip, clear of the dock. */
+@media (min-width: 981px) { #s-spatial .p-map-stats { top: 84px; right: 70px; max-height: calc(100% - 100px); } }
+
+/* ── Flood watch ── */
+.fw { position: absolute; z-index: 4; top: 16px; right: 16px; width: min(310px, calc(100% - 32px)); display: grid; justify-items: end; gap: 8px; --fw: #9AA1AB; }
+.fw-chip { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 10px; border-radius: 14px; border: 1px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);
+  box-shadow: 0 2px 6px rgba(20,27,52,.12), 0 10px 30px rgba(20,27,52,.14); text-align: left; font: inherit; cursor: pointer; }
+.fw-txt { display: grid; line-height: 1.15; }
+.fw-txt b { font-size: 13px; }
+.fw-txt small { font-size: 12px; color: var(--p-muted); }
+.fw-car { color: var(--p-muted); transition: transform .2s; }
+.fw-chip[aria-expanded="true"] .fw-car { transform: rotate(180deg); }
+.fw-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--fw); box-shadow: 0 0 0 4px color-mix(in srgb, var(--fw) 22%, transparent); }
+.fw[data-live="1"] .fw-dot { animation: fwPulse 2s ease-in-out infinite; }
+@keyframes fwPulse { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--fw) 8%, transparent); } }
+.fw-card { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);
+  box-shadow: 0 2px 6px rgba(20,27,52,.12), 0 10px 30px rgba(20,27,52,.14); font-size: 13px; display: grid; gap: 10px; }
+.fw-level { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--fw) 14%, var(--p-surface)); border: 1px solid color-mix(in srgb, var(--fw) 40%, transparent); }
+.fw-level b { display: block; font-size: 14px; }
+.fw-level small { color: var(--p-ink-2); }
+.fw-rain { font: 700 22px/1 Inter, sans-serif; font-variant-numeric: tabular-nums; margin-left: auto; text-align: right; }
+.fw-rain small { display: block; font: 500 11px Urbanist, sans-serif; color: var(--p-muted); }
+.fw-row { display: flex; justify-content: space-between; gap: 10px; color: var(--p-ink-2); }
+.fw-row b { color: var(--p-ink); font-variant-numeric: tabular-nums; text-align: right; }
+.fw-src { margin: 0; font-size: 11.5px; color: var(--p-muted); }
+.fw-alert { position: absolute; z-index: 5; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px;
+  color: #fff; font-weight: 600; font-size: 13.5px; background: var(--fw); box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: calc(100% - 32px); }
+@media (max-width: 980px) { .fw { top: auto; bottom: 16px; right: 70px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .dn i, .dn::before, .dn::after, .map-sw .scene span, .map-sw .wave, .map-sw .dim, .map-sw .edge, #s-spatial .p-map-legend.lg-card { transition: none; animation: none !important; }
+  .fw[data-live="1"] .fw-dot { animation: none; }
+}

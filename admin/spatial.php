@@ -71,9 +71,10 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <button type="button" class="p-btn p-btn-primary p-btn-sm p-apply" id="f-apply"><?= e(t('Apply', 'Ilapat')) ?></button>
     </div>
     <div class="p-row">
-      <label class="p-pill-select p-tog"><input type="checkbox" id="f-heat"> <?= e(t('Heatmap', 'Heatmap')) ?></label>
+      <label class="map-sw map-sw--heat"><input type="checkbox" id="f-heat"><span class="scene" aria-hidden="true"><span></span><span></span><span></span><span></span></span><i aria-hidden="true"></i><b><?= e(t('Heatmap', 'Heatmap')) ?></b></label>
+      <label class="map-sw map-sw--noah" title="<?= e(t('Project NOAH flood hazard map (UP NOAH Center)', 'Mapa ng panganib sa baha ng Project NOAH')) ?>"><input type="checkbox" id="f-flood"><svg class="wave" viewBox="0 0 400 44" preserveAspectRatio="none" aria-hidden="true"><path d="M0 6 C40 1 60 1 100 6 S160 11 200 6 S260 1 300 6 S360 11 400 6 V44 H0Z" fill="#1A73E8"/><path d="M0 6 C40 1 60 1 100 6 S160 11 200 6 S260 1 300 6 S360 11 400 6" fill="none" stroke="#fff" stroke-width="2.5"/></svg><i aria-hidden="true"></i><b><em><?= e(t('Flood zones ·', 'Bahaing lugar ·')) ?></em> Project NOAH</b></label>
       <?php if (HOTSPOTS_ENABLED): ?><label class="p-pill-select p-tog"><input type="checkbox" id="f-hotspots"> <?= e(t('Hotspots', 'Mga Hotspot')) ?></label><?php endif; ?>
-      <label class="p-pill-select p-tog"><input type="checkbox" id="f-fog" checked> <?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></label>
+      <label class="map-sw map-sw--dim"><input type="checkbox" id="f-fog" checked><span class="scene" aria-hidden="true"><svg viewBox="0 0 180 36" preserveAspectRatio="none"><path class="dim" fill-rule="evenodd" d="M0 0H180V36H0Z M54 4 L132 2 L150 14 L140 32 L84 34 L62 26 Z"/><path class="edge" d="M54 4 L132 2 L150 14 L140 32 L84 34 L62 26 Z"/></svg></span><i aria-hidden="true"></i><b><?= e(t('Dim outside 183', 'Padilimin sa labas ng 183')) ?></b></label>
     </div>
   </div>
 
@@ -98,11 +99,28 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
   </aside>
   <?php endif; ?>
 
-  <div class="p-map-legend" id="map-legend">
+  <div class="p-map-legend lg-card" id="map-legend" hidden>
+    <h3><?= e(t('Complaint type', 'Uri ng sumbong')) ?></h3>
     <?php foreach (category_colours() as $c => $hex): ?>
       <div><span class="p-lg p-lg-circle" style="--c:<?= e($hex) ?>"></span><?= e(category_label($c)) ?></div>
     <?php endforeach; ?>
+    <div id="lg-flood" hidden>
+      <div class="lg-sep"></div>
+      <h3><?= e(t('Flood zones · Project NOAH', 'Bahaing lugar · Project NOAH')) ?></h3>
+      <div><i class="lg-sw" style="background:#dc2626"></i><?= e(t('High flood hazard', 'Mataas na panganib sa baha')) ?></div>
+      <div><i class="lg-sw" style="background:#f97316"></i><?= e(t('Medium flood hazard', 'Katamtamang panganib sa baha')) ?></div>
+      <div><i class="lg-sw" style="background:#facc15"></i><?= e(t('Low flood hazard', 'Mababang panganib sa baha')) ?></div>
+      <div><i class="lg-sw" style="background:#8b5cf6"></i><?= e(t('Storm surge (worst case)', 'Daluyong (pinakamalala)')) ?></div>
+      <div id="lg-risk" hidden><svg width="14" height="14" viewBox="-8 -8 16 16" aria-hidden="true"><circle r="6" fill="none" stroke="#0EA5E9" stroke-width="2.5"/></svg><?= e(t('Open complaint in a zone at risk now', 'Bukas na sumbong sa lugar na delikado ngayon')) ?></div>
+    </div>
     <p class="p-legend-count" id="map-count"></p>
+  </div>
+
+  <!-- Flood watch (3 Oct 2026): live rain over Barangay 183 read against
+       PAGASA's rainfall warnings, with Project NOAH's flood zones. -->
+  <div class="fw" id="fw">
+    <button type="button" class="fw-chip" id="fw-chip" aria-expanded="false" aria-controls="fw-card"><span class="fw-dot"></span><span class="fw-txt"><b><?= e(t('Flood watch', 'Bantay-baha')) ?></b><small id="fw-sum"><?= e(t('Connecting…', 'Kumokonekta…')) ?></small></span><svg class="fw-car" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="fw-card" id="fw-card" hidden></div>
   </div>
 
   <div class="p-map-dock">
@@ -110,6 +128,8 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="p-dock-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>" aria-label="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+    <button class="p-dock-btn" id="legend-toggle" type="button" aria-expanded="false" aria-controls="map-legend" title="<?= e(t('Legend', 'Alamat')) ?>" aria-label="<?= e(t('Legend', 'Alamat')) ?>">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="7" r="2"/><circle cx="6" cy="17" r="2"/><path d="M11 7h9M11 17h9"/></svg></button>
     <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
       <?= p_icon('i-map', 18) ?><span class="p-cnt" id="pin-count">0</span></button>
     <?php if (HOTSPOTS_ENABLED): ?>
@@ -272,6 +292,7 @@ mapFollowTheme(map);
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
+let hazards = null;
 const point = (lng, lat, props) => ({ type: 'Feature', properties: props || {},
                                       geometry: { type: 'Point', coordinates: [lng, lat] } });
 
@@ -289,6 +310,14 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
   map.addLayer({ id: 'outline', type: 'line', source: 'fog', filter: ['==', ['get', 'role'], 'outline'],
                  paint: { 'line-color': '#14181d', 'line-width': 2, 'line-opacity': .9 } });
   map.setFilter('fog', ['==', ['get', 'role'], 'fog']);
+
+  // Project NOAH's flood and storm-surge zones (map-theme.js), off until
+  // the switch or a rain warning turns them on; and a ring for each open
+  // complaint inside a zone at risk under the current warning.
+  hazards = window.mapHazards ? window.mapHazards(map, { hidden: true }) : null;
+  map.addSource('risk', { type: 'geojson', data: EMPTY });
+  map.addLayer({ id: 'risk', type: 'circle', source: 'risk',
+    paint: { 'circle-radius': 20, 'circle-color': 'rgba(14,165,233,0)', 'circle-stroke-color': '#0EA5E9', 'circle-stroke-width': 3 } });
 
   // Leaflet.heat's own default ramp (blue, lime, red), so the heat reads
   // the way it always has.
@@ -358,6 +387,8 @@ function setPinsSource(want) {
     paint: { 'text-color': '#fff' } });
   map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: ['!', ['has', 'point_count']],
     layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  // The flood-risk rings go round pins and clusters alike, so they sit on top.
+  if (map.getLayer('risk')) map.moveLayer('risk');
 }
 
 let all = [], rings = [];
@@ -488,6 +519,8 @@ async function draw() {
   map.getSource('heat').setData(heatOn
     ? { type: 'FeatureCollection', features: rows.map(r => point(r.longitude, r.latitude)) } : EMPTY);
   map.setLayoutProperty('heat', 'visibility', heatOn ? 'visible' : 'none');
+
+  fwRisk();
 
   const badge = document.getElementById('incident-toggle');
   document.getElementById('pin-count').textContent = rows.length;
@@ -629,8 +662,29 @@ const toggle = document.getElementById('incident-toggle');
 const side   = document.getElementById('map-side');
 toggle.addEventListener('click', () => {
   const open = side.hasAttribute('hidden');
+  if (open) mapDrawer('incidents');
   open ? side.removeAttribute('hidden') : side.setAttribute('hidden', '');
   toggle.setAttribute('aria-expanded', String(open));
+});
+
+// The legend, the incidents list and the flood watch card share the right
+// side of the map, so opening one closes the others.
+function mapDrawer(which) {
+  if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
+  if (which !== 'legend') { document.getElementById('map-legend').hidden = true; document.getElementById('legend-toggle').setAttribute('aria-expanded', 'false'); }
+  if (which !== 'flood') { document.getElementById('fw-card').hidden = true; document.getElementById('fw-chip').setAttribute('aria-expanded', 'false'); }
+}
+document.getElementById('legend-toggle').addEventListener('click', () => {
+  const lg = document.getElementById('map-legend'), open = lg.hidden;
+  if (open) mapDrawer('legend');
+  lg.hidden = !open;
+  document.getElementById('legend-toggle').setAttribute('aria-expanded', String(open));
+});
+document.getElementById('fw-chip').addEventListener('click', () => {
+  const c = document.getElementById('fw-card'), open = c.hidden;
+  if (open) mapDrawer('flood');
+  c.hidden = !open;
+  document.getElementById('fw-chip').setAttribute('aria-expanded', String(open));
 });
 
 // Tuning aid, off unless asked for: load spatial.php?bounds=1 and the
@@ -659,6 +713,126 @@ document.getElementById('f-apply').addEventListener('click', () => {
   draw();
   loadHotspots();
 });
+
+document.getElementById('f-flood').addEventListener('change', e => { FW.auto = false; floodLayer(); fwRender(); });
+
+// ---- flood watch -----------------------------------------------------
+// Project NOAH publishes hazard maps, not live readings, so the live part
+// is the rain: every 10 minutes the browser asks Open-Meteo (free, no key)
+// how much fell on Barangay 183 in the last hour, and reads it against
+// PAGASA's rainfall warnings — Yellow 7.5–15 mm/h, Orange 15–30, Red over
+// 30. When a warning is up the NOAH zones turn on by themselves, the zones
+// that flood at that rain are brought forward, and each open complaint
+// inside them is ringed. If the rain source can't be reached the chip says
+// so and the zones stay as the admin set them.
+const FWL = [
+  { en: 'No rain warning', fil: 'Walang babala sa ulan', col: '#22c55e', short: '',
+    note: ['Flood zones stay as you set them.', 'Nananatili ang mga bahaing lugar ayon sa setting mo.'] },
+  { en: 'Yellow rainfall warning', fil: 'Dilaw na babala sa ulan', col: '#eab308', short: 'Yellow',
+    note: ['Flooding possible in high-hazard areas.', 'Posibleng bumaha sa mga lugar na mataas ang panganib.'] },
+  { en: 'Orange rainfall warning', fil: 'Kahel na babala sa ulan', col: '#f97316', short: 'Orange',
+    note: ['Flooding threatening in high and medium-hazard areas.', 'Banta ng baha sa mataas at katamtamang panganib.'] },
+  { en: 'Red rainfall warning', fil: 'Pulang babala sa ulan', col: '#dc2626', short: 'Red',
+    note: ['Serious flooding expected in every flood zone.', 'Inaasahan ang malubhang baha sa lahat ng bahaing lugar.'] },
+];
+const FW = { online: null, mm: null, level: 0, at: null, auto: false, risk: [] };
+const OPEN_STATUSES = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
+const fwLevel = mm => mm >= 30 ? 3 : mm >= 15 ? 2 : mm >= 7.5 ? 1 : 0;
+
+async function fwRead() {
+  const [lng, lat] = RESIDENTIAL_CENTRE;
+  try {
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng +
+      '&minutely_15=precipitation&past_minutely_15=4&forecast_minutely_15=0&timezone=Asia%2FManila', { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    const q = (await res.json()).minutely_15.precipitation.filter(v => v != null);
+    if (!q.length) throw new Error('no readings');
+    FW.mm = q.reduce((a, v) => a + v, 0);   // the last four quarter-hours: mm in the past hour
+    FW.online = true;
+  } catch (e) {
+    FW.online = false; FW.mm = null;
+  }
+  FW.at = new Date();
+  const was = FW.level;
+  FW.level = FW.online ? fwLevel(FW.mm) : 0;
+  const flood = document.getElementById('f-flood');
+  if (FW.level > 0 && !flood.checked) { flood.checked = true; FW.auto = true; }
+  if (FW.level === 0 && FW.auto) { flood.checked = false; FW.auto = false; }
+  floodLayer();
+  await fwRisk();
+  if (FW.level > was) fwAlert();
+  fwRender();
+}
+
+// The NOAH layer as the switch and the warning have it.
+async function floodLayer() {
+  await mapReady;
+  const on = document.getElementById('f-flood').checked;
+  if (hazards) hazards.show(on);
+  document.getElementById('lg-flood').hidden = !on;
+  if (map.getLayer('hazard-fill')) {
+    const min = 4 - FW.level;   // Yellow brings forward level 3, Orange 2+, Red all
+    map.setPaintProperty('hazard-fill', 'fill-opacity', FW.level > 0
+      ? ['case', ['all', ['==', ['get', 'hazard'], 'flood'], ['>=', ['get', 'level'], min]], 0.55, 0.2] : 0.38);
+  }
+}
+
+let riskSeq = 0;
+async function fwRisk() {
+  const seq = ++riskSeq;
+  const showRing = FW.level > 0 && document.getElementById('f-flood').checked;
+  document.getElementById('lg-risk').hidden = !showRing;
+  if (!FW.level || !window.hazardAt) { FW.risk = []; }
+  else {
+    const min = 4 - FW.level;
+    const open = visible().filter(r => OPEN_STATUSES.includes(r.status));
+    const levels = await Promise.all(open.map(r => window.hazardAt(+r.longitude, +r.latitude).catch(() => ({ flood: 0 }))));
+    if (seq !== riskSeq) return;
+    FW.risk = open.filter((r, i) => levels[i].flood >= min);
+  }
+  await mapReady;
+  map.getSource('risk').setData(showRing
+    ? { type: 'FeatureCollection', features: FW.risk.map(r => point(+r.longitude, +r.latitude)) } : EMPTY);
+  if (!document.getElementById('fw-card').hidden) fwRender();
+}
+
+function fwAlert() {
+  const L = FWL[FW.level], old = document.querySelector('#s-spatial .fw-alert');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'fw-alert'; el.setAttribute('role', 'status'); el.style.setProperty('--fw', L.col);
+  el.textContent = T(L.en, L.fil) + ': ' + T('flood zones turned on', 'binuksan ang mga bahaing lugar') + ' · ' +
+    FW.risk.length + T(FW.risk.length === 1 ? ' open complaint in a zone at risk' : ' open complaints in zones at risk', ' bukas na sumbong sa delikadong lugar');
+  document.getElementById('s-spatial').appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+
+function fwRender() {
+  const box = document.getElementById('fw'), L = FWL[FW.level];
+  box.style.setProperty('--fw', FW.online ? L.col : '#9AA1AB');
+  box.dataset.live = FW.online ? '1' : '0';
+  const t = FW.at ? FW.at.toLocaleTimeString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { hour: 'numeric', minute: '2-digit' }) : '—';
+  document.getElementById('fw-sum').textContent = FW.online === null ? T('Connecting…', 'Kumokonekta…')
+    : FW.online ? 'Live · ' + FW.mm.toFixed(1) + ' mm/h' + (FW.level ? ' · ' + L.short : '')
+    : T('Offline · retrying', 'Offline · sinusubukang muli');
+  const flood = document.getElementById('f-flood').checked;
+  document.getElementById('fw-card').innerHTML = (FW.online
+    ? '<div class="fw-level"><span class="fw-dot"></span><span><b>' + esc(T(L.en, L.fil)) + '</b><small>' + esc(T(L.note[0], L.note[1])) + '</small></span>' +
+      '<span class="fw-rain">' + FW.mm.toFixed(1) + '<small>mm/h</small></span></div>' +
+      '<div class="fw-row"><span>' + esc(T('Open complaints in zones at risk', 'Bukas na sumbong sa delikadong lugar')) + '</span><b>' + (FW.level ? FW.risk.length : '—') + '</b></div>' +
+      '<div class="fw-row"><span>' + esc(T('Flood zones on the map', 'Bahaing lugar sa mapa')) + '</span><b>' +
+        esc(flood ? (FW.auto ? T('On (turned on by the warning)', 'Bukas (dahil sa babala)') : T('On', 'Bukas')) : T('Off', 'Sarado')) + '</b></div>' +
+      '<div class="fw-row"><span>' + esc(T('Last checked', 'Huling tingin')) + '</span><b>' + esc(t) + '</b></div>'
+    : '<div class="fw-level"><span class="fw-dot"></span><span><b>' + esc(T('Flood data offline', 'Offline ang datos ng baha')) + '</b><small>' +
+      esc(T('The rain source can\u2019t be reached. Trying again in 10 minutes; flood zones stay as you set them.',
+            'Hindi maabot ang pinagkukunan ng ulan. Susubukan muli sa loob ng 10 minuto.')) + '</small></span></div>') +
+    '<p class="fw-src">' + esc(T('Rain: Open-Meteo, checked every 10 minutes, read against PAGASA rainfall warnings. Flood zones: Project NOAH 100-year flood map (UP NOAH Center).',
+                                 'Ulan: Open-Meteo, bawat 10 minuto, ayon sa babala ng PAGASA. Bahaing lugar: Project NOAH (UP NOAH Center).')) + '</p>';
+}
+
+fwRender();
+fwRead();
+setInterval(fwRead, 10 * 60 * 1000);
 
 document.getElementById('f-fog').addEventListener('change', async e => {
   await mapReady;

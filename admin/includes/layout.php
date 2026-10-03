@@ -77,6 +77,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
+<link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
 <script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?>">
@@ -96,11 +97,11 @@ window.ssAccessToken = function (initial) {
     </nav>
     <div class="p-side-foot">
       <button type="button" class="p-side-toggle" data-theme-toggle data-dark="<?= e(t('Dark Mode', 'Madilim na Tema')) ?>" data-light="<?= e(t('Dark Mode', 'Madilim na Tema')) ?>">
-        <span class="p-left"><?= p_icon('i-moon', 18) ?><span class="p-lbl" data-theme-label><?= e(t('Dark Mode', 'Madilim na Tema')) ?></span></span><span class="p-switch"></span>
+        <span class="p-left"><?= p_icon('i-moon', 18) ?><span class="p-lbl" data-theme-label><?= e(t('Dark Mode', 'Madilim na Tema')) ?></span></span><?= day_night_switch() ?>
       </button>
       <div class="p-seg pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
-        <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" class="<?= $en ? 'p-on' : '' ?>">English</button>
-        <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" class="<?= $en ? '' : 'p-on' ?>">Tagalog</button>
+        <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" class="<?= $en ? 'p-on' : '' ?>" aria-label="English" title="English"><?= lang_flag('us') ?><span>EN</span></button>
+        <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" class="<?= $en ? '' : 'p-on' ?>" aria-label="Tagalog" title="Tagalog"><?= lang_flag('ph') ?><span>PH</span></button>
       </div>
       <div class="p-side-user<?= $active === 'profile.php' ? ' p-active' : '' ?>" id="side-user">
         <a class="p-side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">

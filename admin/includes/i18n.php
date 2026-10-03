@@ -92,6 +92,33 @@ function theme_head(bool $fit = true): string
 }
 
 /**
+ * The language buttons' flags (3 Oct 2026): EN shows the US flag, PH the
+ * Philippine one. Inline SVG, so they need no sprite on the sign-in pages.
+ */
+function lang_flag(string $code): string
+{
+    if ($code === 'ph') {
+        return '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="10" fill="#0038A8"/><rect y="10" width="30" height="10" fill="#CE1126"/>'
+             . '<path fill="#fff" d="M0 0l17.32 10L0 20z"/><g fill="#FCD116"><circle cx="5.8" cy="10" r="2"/>'
+             . '<path stroke="#FCD116" stroke-width=".7" d="M5.8 6.4v1.3M5.8 12.3v1.3M2.2 10h1.3M8.1 10h1.3M3.25 7.45l.9.9M7.45 11.65l.9.9M3.25 12.55l.9-.9M7.45 8.35l.9-.9"/>'
+             . '<circle cx="1.7" cy="2.6" r=".85"/><circle cx="1.7" cy="17.4" r=".85"/><circle cx="14.4" cy="10" r=".85"/></g></svg>';
+    }
+    $stars = '';
+    foreach ([[2.2, 2], [5.2, 2], [8.2, 2], [11, 2], [3.7, 4.6], [6.7, 4.6], [9.7, 4.6], [2.2, 7.2], [5.2, 7.2], [8.2, 7.2], [11, 7.2], [3.7, 9.5], [6.7, 9.5], [9.7, 9.5]] as [$x, $y]) {
+        $stars .= '<circle cx="' . $x . '" cy="' . $y . '" r=".6"/>';
+    }
+    return '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#B22234"/>'
+         . '<path fill="#fff" d="M0 1.54h30v1.54H0zM0 4.62h30v1.54H0zM0 7.69h30v1.54H0zM0 10.77h30v1.54H0zM0 13.85h30v1.54H0zM0 16.92h30v1.54H0z"/>'
+         . '<rect width="12.5" height="10.77" fill="#3C3B6E"/><g fill="#fff">' . $stars . '</g></svg>';
+}
+
+/** The day/night switch drawn inside the theme toggle (flair.css). */
+function day_night_switch(string $extra = ''): string
+{
+    return '<span class="dn' . ($extra !== '' ? ' ' . $extra : '') . '" aria-hidden="true"><i></i></span>';
+}
+
+/**
  * The theme and language switches (sidebar, sign-in page). Theme is
  * stored in the browser; language in the ss-lang cookie, then the page
  * reloads so the server renders it in the new language.
@@ -99,20 +126,15 @@ function theme_head(bool $fit = true): string
 function prefs_switches(string $extraClass = ''): string
 {
     $en  = lang() === 'en';
-    $moon = '<svg class="pref-ic pref-ic--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
-          . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-    $sun  = '<svg class="pref-ic pref-ic--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
-          . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/>'
-          . '<path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
     ob_start(); ?>
 <div class="prefs <?= e($extraClass) ?>">
-  <button type="button" class="pref-theme" data-theme-toggle
+  <button type="button" class="pref-theme pref-dn" data-theme-toggle title="<?= e(t('Light / dark mode', 'Maliwanag / madilim na anyo')) ?>"
           data-dark="<?= e(t('Dark mode', 'Madilim na anyo')) ?>" data-light="<?= e(t('Light mode', 'Maliwanag na anyo')) ?>">
-    <?= $moon . $sun ?><span data-theme-label><?= e(t('Dark mode', 'Madilim na anyo')) ?></span>
+    <?= day_night_switch('dn-lg') ?><span class="dn-sr" data-theme-label><?= e(t('Dark mode', 'Madilim na anyo')) ?></span>
   </button>
   <div class="pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
-    <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>">English</button>
-    <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>">Tagalog</button>
+    <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" aria-label="English" title="English"><?= lang_flag('us') ?><span>EN</span></button>
+    <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" aria-label="Tagalog" title="Tagalog"><?= lang_flag('ph') ?><span>PH</span></button>
   </div>
 </div>
 <?= prefs_script() ?>
