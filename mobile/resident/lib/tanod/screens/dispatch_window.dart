@@ -147,21 +147,25 @@ mixin _Directions<T extends StatefulWidget> on State<T> {
       _routeNote = null;
     });
     try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
+      if (!kDemo) {
+        var perm = await Geolocator.checkPermission();
+        if (perm == LocationPermission.denied) {
+          perm = await Geolocator.requestPermission();
+        }
+        if (perm == LocationPermission.denied ||
+            perm == LocationPermission.deniedForever ||
+            !await Geolocator.isLocationServiceEnabled()) {
+          if (mounted) setState(() => _routeNote = s.dispatchLocationNeeded);
+          return;
+        }
       }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever ||
-          !await Geolocator.isLocationServiceEnabled()) {
-        if (mounted) setState(() => _routeNote = s.dispatchLocationNeeded);
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      ).timeout(const Duration(seconds: 15));
+      final pos = kDemo
+          ? demoPosition(to)
+          : await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.high,
+              ),
+            ).timeout(const Duration(seconds: 15));
       unawaited(DutyController.instance.keyMoment());
       final me = LatLng(pos.latitude, pos.longitude);
 
@@ -602,21 +606,25 @@ class _DispatchWindowState extends State<DispatchWindow>
     NavRoute route;
     Position pos;
     try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
+      if (!kDemo) {
+        var perm = await Geolocator.checkPermission();
+        if (perm == LocationPermission.denied) {
+          perm = await Geolocator.requestPermission();
+        }
+        if (perm == LocationPermission.denied ||
+            perm == LocationPermission.deniedForever ||
+            !await Geolocator.isLocationServiceEnabled()) {
+          if (mounted) setState(() => _error = s.dispatchLocationNeeded);
+          return;
+        }
       }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever ||
-          !await Geolocator.isLocationServiceEnabled()) {
-        if (mounted) setState(() => _error = s.dispatchLocationNeeded);
-        return;
-      }
-      pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      ).timeout(const Duration(seconds: 15));
+      pos = kDemo
+          ? demoPosition(to)
+          : await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.high,
+              ),
+            ).timeout(const Duration(seconds: 15));
       if (Geolocator.distanceBetween(
             pos.latitude,
             pos.longitude,

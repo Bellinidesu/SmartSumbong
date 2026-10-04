@@ -17,6 +17,7 @@
 // falls back to the last known spot, so dispatch keeps working on these
 // occasional fixes.
 
+import '../preview/demo.dart';
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
@@ -159,6 +160,11 @@ class DutyController extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
     }
     try {
+      // The Dart preview has no GPS: the location is shared by decree.
+      if (kDemo) {
+        note = LocationNote.shared;
+        return;
+      }
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();

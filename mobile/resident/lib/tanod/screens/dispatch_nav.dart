@@ -71,13 +71,16 @@ class _NavScreenState extends State<_NavScreen> {
         first?.instruction(_voice ?? context.ts) ??
             (_voice ?? context.ts).navStart,
       );
-      _posSub = Geolocator.getPositionStream(
-        locationSettings: AndroidSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 3,
-          intervalDuration: const Duration(seconds: 1),
-        ),
-      ).listen(_onPos, onError: (_) {});
+      _posSub = (kDemo
+              ? demoWalk(widget.route)
+              : Geolocator.getPositionStream(
+                  locationSettings: AndroidSettings(
+                    accuracy: LocationAccuracy.high,
+                    distanceFilter: 3,
+                    intervalDuration: const Duration(seconds: 1),
+                  ),
+                ))
+          .listen(_onPos, onError: (_) {});
     });
   }
 

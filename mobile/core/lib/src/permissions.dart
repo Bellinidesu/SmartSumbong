@@ -56,6 +56,10 @@ class PermissionGate {
   /// English below is used.
   static PermissionLabels Function(BuildContext context)? labels;
 
+  /// The Dart preview (a browser, dummy data) has no native permissions
+  /// to ask for; every ask is simply granted. False in the real apps.
+  static bool bypass = false;
+
   /// True only if the permission ends up granted (or, on iOS,
   /// [ph.PermissionStatus.limited] — partial photo-library access,
   /// which is enough to pick a photo). False for every other outcome,
@@ -67,6 +71,7 @@ class PermissionGate {
     required String title,
     required String rationale,
   }) async {
+    if (bypass) return true;
     final p = permission._underlying;
 
     final current = await p.status;

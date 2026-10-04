@@ -64,6 +64,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../d/d_categories.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
+import '../preview/demo.dart';
 import '../i18n.dart';
 import '../models/complaint_category.dart';
 import '../outbox.dart';
@@ -225,6 +226,17 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     });
 
     try {
+      if (kDemo) {
+        // The Dart preview has no GPS: a fix on 13th Street.
+        if (!mounted) return;
+        setState(() {
+          _pin = const LatLng(14.5281, 121.0149);
+          _accuracyMetres = 12;
+          _locating = false;
+        });
+        _map.move(_pin, 17);
+        return;
+      }
       if (!await Geolocator.isLocationServiceEnabled()) {
         _fallback(denied: true);
         return;
