@@ -14,39 +14,66 @@ extension DTr on BuildContext {
   String tr(String en, String fil) => AppLocaleScope.of(this) == AppLocale.fil ? fil : en;
 }
 
-/// The contour lines (the Figma "Noise & Texture"), tinted for the page.
-/// [full] runs them edge to edge at one strength (role picker, sign-in,
-/// Home); otherwise they fade up from the bottom, as on the inner pages.
-class DContour extends StatelessWidget {
-  const DContour({super.key, this.full = false, this.colors});
+/// The preview's contour (`--tex`): a 1024 px line texture tiled at
+/// [tile] logical px and tinted. [ContourKind.fade] is the inner pages
+/// (strongest at the bottom, gone by mid-screen), [full] the role picker
+/// and sign-in (even, .12), [home] the Homes (full height, .11, a touch
+/// stronger toward the bottom).
+enum ContourKind { fade, full, home }
 
-  final bool full;
+class DContourTile extends StatelessWidget {
+  const DContourTile({super.key, required this.color, this.tile = 420});
+
+  final Color color;
+  final double tile;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        'assets/images/contour.png',
+        width: double.infinity,
+        height: double.infinity,
+        repeat: ImageRepeat.repeat,
+        fit: BoxFit.none,
+        alignment: Alignment.topLeft,
+        scale: 1024 / tile,
+        color: color,
+        colorBlendMode: BlendMode.srcIn,
+        filterQuality: FilterQuality.medium,
+        excludeFromSemantics: true,
+      );
+}
+
+class DContour extends StatelessWidget {
+  const DContour({super.key, this.kind = ContourKind.fade, this.colors});
+
+  final ContourKind kind;
   final DColors? colors;
 
   @override
   Widget build(BuildContext context) {
     final d = colors ?? context.d;
-    Widget img = Image.asset(
-      'assets/images/texture.png',
-      fit: BoxFit.cover,
-      alignment: Alignment.topCenter,
-      color: d.contour.withValues(alpha: (d.contourAlpha * 1.6).clamp(0, 1)),
-      colorBlendMode: BlendMode.srcIn,
-      excludeFromSemantics: true,
-    );
-    if (!full) {
-      img = ShaderMask(
+    final alpha = switch (kind) {
+      ContourKind.full => .12,
+      ContourKind.home => d.dark ? d.contourAlpha : .11,
+      ContourKind.fade => d.contourAlpha,
+    };
+    Widget w = DContourTile(color: d.contour.withValues(alpha: alpha));
+    if (kind != ContourKind.full) {
+      final home = kind == ContourKind.home;
+      w = ShaderMask(
         blendMode: BlendMode.dstIn,
-        shaderCallback: (r) => const LinearGradient(
+        shaderCallback: (r) => LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [Colors.black, Color(0x80000000), Colors.transparent],
-          stops: [0, .3, .62],
+          colors: home
+              ? const [Colors.black, Color(0xBF000000), Color(0x73000000)]
+              : const [Colors.black, Color(0x80000000), Color(0x00000000)],
+          stops: home ? const [0, .5, 1] : const [0, .25, .55],
         ).createShader(r),
-        child: img,
+        child: w,
       );
     }
-    return Positioned.fill(child: IgnorePointer(child: img));
+    return Positioned.fill(child: IgnorePointer(child: w));
   }
 }
 
@@ -57,6 +84,7 @@ class DPage extends StatelessWidget {
     required this.child,
     this.bottomBar,
     this.fullContour = false,
+    this.homeContour = false,
     this.colors,
     this.contour = true,
   });
@@ -64,6 +92,7 @@ class DPage extends StatelessWidget {
   final Widget child;
   final Widget? bottomBar;
   final bool fullContour;
+  final bool homeContour;
   final bool contour;
   final DColors? colors;
 
@@ -74,15 +103,16 @@ class DPage extends StatelessWidget {
       backgroundColor: d.bg,
       bottomNavigationBar: bottomBar,
       body: Stack(children: [
-        if (contour) DContour(full: fullContour, colors: d),
+        if (contour)
+          DContour(kind: homeContour ? ContourKind.home : (fullContour ? ContourKind.full : ContourKind.fade), colors: d),
         SafeArea(bottom: bottomBar == null, child: child),
       ]),
     );
   }
 }
 
-/// The role-colour card (navy for residents, ink for tanods) with an
-/// extremely faint contour — the preview's `.navycard`.
+/// The role-colour card (`.navycard`): the gradient, radius 22, and a
+/// contour so faint ([texAlpha], .018) it is only felt.
 class DCard extends StatelessWidget {
   const DCard({
     super.key,
@@ -92,6 +122,7 @@ class DCard extends StatelessWidget {
     this.glow,
     this.radius = 22,
     this.onTap,
+    this.texAlpha = .018,
   });
 
   final Widget child;
@@ -102,6 +133,7 @@ class DCard extends StatelessWidget {
   final Color? glow;
   final double radius;
   final VoidCallback? onTap;
+  final double texAlpha;
 
   @override
   Widget build(BuildContext context) {
@@ -111,35 +143,19 @@ class DCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: r,
-        boxShadow: [
-          if (glow != null) BoxShadow(color: glow!.withValues(alpha: d.dark ? .32 : .26), blurRadius: 26, spreadRadius: -2, offset: const Offset(0, 8)),
-          BoxShadow(color: Colors.black.withValues(alpha: d.dark ? .35 : .14), blurRadius: 14, offset: const Offset(0, 6)),
-        ],
+        boxShadow: glow == null ? null : [BoxShadow(color: glow!.withValues(alpha: .32), blurRadius: 12, spreadRadius: 1)],
       ),
       child: Material(
         borderRadius: r,
         clipBehavior: Clip.antiAlias,
         color: Colors.transparent,
         child: Ink(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: g),
-          ),
+          decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: g)),
           child: InkWell(
             onTap: onTap,
             child: Stack(children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Image.asset('assets/images/texture.png',
-                      fit: BoxFit.cover,
-                      color: Colors.white.withValues(alpha: .06),
-                      colorBlendMode: BlendMode.srcIn,
-                      excludeFromSemantics: true),
-                ),
-              ),
-              Padding(
-                padding: padding,
-                child: DefaultTextStyle.merge(style: const TextStyle(color: Colors.white), child: child),
-              ),
+              Positioned.fill(child: IgnorePointer(child: DContourTile(color: Colors.white.withValues(alpha: texAlpha), tile: 300))),
+              Padding(padding: padding, child: DefaultTextStyle.merge(style: const TextStyle(color: Colors.white), child: child)),
             ]),
           ),
         ),
@@ -164,7 +180,7 @@ class DSheet extends StatelessWidget {
     final r = BorderRadius.circular(radius);
     return Material(
       color: d.card,
-      shape: RoundedRectangleBorder(borderRadius: r, side: BorderSide(color: borderColor ?? d.line, width: 1.2)),
+      shape: RoundedRectangleBorder(borderRadius: r, side: BorderSide(color: borderColor ?? d.line, width: 1)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
     );
@@ -173,6 +189,8 @@ class DSheet extends StatelessWidget {
 
 enum DButtonKind { orange, white, accent, ghost, green, greenLine, danger, line }
 
+/// The preview's `.btn`: 44 high, radius 12, 15/800; `.sm` is 34, 10,
+/// 13.5. Orange carries its soft glow.
 class DButton extends StatelessWidget {
   const DButton(
     this.label, {
@@ -201,24 +219,25 @@ class DButton extends StatelessWidget {
     final (Color bg, Color fg, Color? side) = switch (kind) {
       DButtonKind.orange => (DColors.orange, const Color(0xFF141B34), null),
       DButtonKind.white => (Colors.white, d.tanod ? const Color(0xFF14181D) : DColors.brandNavy, null),
-      DButtonKind.accent => (d.accent, d.bg, null),
+      DButtonKind.accent => (d.btn, Colors.white, null),
       DButtonKind.ghost => (Colors.transparent, d.ink, d.line),
       DButtonKind.green => (DColors.greenVivid, Colors.white, null),
       DButtonKind.greenLine => (Colors.transparent, d.dark ? const Color(0xFF5FD68A) : DColors.green, d.dark ? const Color(0xFF3DBE6E) : DColors.green),
-      DButtonKind.danger => (Colors.transparent, d.dark ? const Color(0xFFFF8A8A) : DColors.red, d.dark ? const Color(0xFF8E3A3A) : const Color(0xFFE7B4B4)),
+      DButtonKind.danger => (Colors.transparent, const Color(0xFFC62828), const Color(0xFFE7B4B4)),
       DButtonKind.line => (Colors.transparent, d.link, d.link),
     };
-    final h = height ?? (small ? 38.0 : 50.0);
+    final h = height ?? (small ? 34.0 : 44.0);
+    final rad = small ? 10.0 : 12.0;
     final glow = kind == DButtonKind.orange || kind == DButtonKind.green;
     final child = busy
         ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: fg))
         : Row(mainAxisSize: MainAxisSize.min, children: [
-            if (icon != null) ...[Icon(icon, size: small ? 16 : 18, color: fg), const SizedBox(width: 7)],
+            if (icon != null) ...[Icon(icon, size: small ? 16 : 18, color: fg), const SizedBox(width: 8)],
             Flexible(
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: small ? 14 : 16, color: fg)),
+                  style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: small ? 13.5 : 15, color: fg)),
             ),
           ]);
     return Opacity(
@@ -227,16 +246,14 @@ class DButton extends StatelessWidget {
         height: h,
         width: expand ? double.infinity : null,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(small ? 11 : 14),
-          boxShadow: glow && onTap != null
-              ? [BoxShadow(color: bg.withValues(alpha: .32), blurRadius: 16, offset: const Offset(0, 6))]
-              : null,
+          borderRadius: BorderRadius.circular(rad),
+          boxShadow: glow && onTap != null ? [BoxShadow(color: bg.withValues(alpha: .3), blurRadius: 16, offset: const Offset(0, 6))] : null,
         ),
         child: Material(
           color: bg,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(small ? 11 : 14),
-            side: side == null ? BorderSide.none : BorderSide(color: side, width: kind == DButtonKind.ghost ? 1.5 : 2),
+            borderRadius: BorderRadius.circular(rad),
+            side: side == null ? BorderSide.none : BorderSide(color: side, width: 1.5),
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -449,10 +466,10 @@ class DHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: DType.h1(d.accent)),
+      Text(title, style: DType.h1(d.ink)),
       if (lead != null) ...[
         const SizedBox(height: 6),
-        Text(lead!, style: DType.body(d.muted, size: 14)),
+        Text(lead!, style: DType.body(d.ink2, size: 13.5)),
       ],
     ]);
   }
@@ -504,14 +521,10 @@ class DBell extends StatelessWidget {
         customBorder: const CircleBorder(),
         child: Stack(clipBehavior: Clip.none, children: [
           Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: d.accent,
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .18), blurRadius: 8, offset: const Offset(0, 3))],
-            ),
-            child: Center(child: Image.asset('assets/images/icon-bell.png', width: 22, height: 22, color: d.bg)),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: d.btn),
+            child: Center(child: Image.asset('assets/images/icon-bell.png', width: 22, height: 22, color: Colors.white)),
           ),
           if (unread > 0)
             Positioned(

@@ -130,31 +130,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     // No back button and no gesture out. Signing out is the only other
     // way off this screen, and it is offered explicitly below.
-    // Branch D: the full contour behind, the form or the success on one
-    // centred white card.
-    final d = context.d;
+    // Branch D, 1:1 with the preview's Change password: the h2, the lead
+    // line, one bordered box of two fields (UPPERCASE label, the note
+    // under the field, wide letter-spaced dots), and Save password.
     return PopScope(
       canPop: false,
       child: DPage(
-        fullContour: true,
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 380),
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                decoration: BoxDecoration(
-                  color: d.card,
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(color: d.line),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: d.dark ? .35 : .08), blurRadius: 24, offset: const Offset(0, 10))],
-                ),
-                child: _done ? _success(s) : _form(s),
-              ),
-            ),
-          ),
+          child: _done
+              ? Center(child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(22, 24, 22, 24), child: _success(s)))
+              : _form(s),
         ),
       ),
     );
@@ -200,112 +186,71 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Widget _form(Strings s) {
+    final d = context.d;
     final newBad = _errorOn == 'new' || _errorOn == 'both';
     final confirmBad = _errorOn == 'both';
-    return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 74,
-                  height: 74,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: DColors.orange.withValues(alpha: .15)),
-                  child: const Icon(Icons.lock_reset_rounded, size: 38, color: DColors.orange),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                s.changePasswordTitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  fontSize: 30,
-                  height: 46.8 / 30,
-                  color: context.colors.navy,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                s.changePasswordBody,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  height: 1.35,
-                  color: context.colors.navy,
-                ),
-              ),
-              const SizedBox(height: 21),
-
-              _Field(
-                label: s.changePasswordNewLabel,
-                hint: s.changePasswordNewHint,
-                note: newBad ? _error! : s.changePasswordNewNote,
-                bad: newBad,
-                controller: _password,
-                enabled: !_busy,
-                obscure: _obscure,
-                onToggleObscure: () => setState(() => _obscure = !_obscure),
-                onChanged: () => setState(() {
-                  _error = null;
-                  _errorOn = null;
-                }),
-              ),
-              const SizedBox(height: 29),
-              _Field(
-                label: s.changePasswordConfirmLabel,
-                hint: s.changePasswordConfirmHint,
-                note: confirmBad ? _error! : s.changePasswordConfirmNote,
-                bad: confirmBad,
-                controller: _confirm,
-                enabled: !_busy,
-                obscure: _obscure,
-                onSubmitted: _busy ? null : _submit,
-                onChanged: () => setState(() {
-                  _error = null;
-                  _errorOn = null;
-                }),
-              ),
-
-              if (_error != null && _errorOn == null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 12, height: 1.35, color: context.colors.hint),
-                ),
-              ],
-              const SizedBox(height: 34),
-
-              DButton(s.changePasswordSave, expand: true, busy: _busy, onTap: _busy ? null : _submit),
-              const SizedBox(height: 12),
-
-              Center(
-                child: TextButton(
-                  onPressed: _busy ? null : _signOut,
-                  style: TextButton.styleFrom(
-                    foregroundColor: context.colors.navy,
-                    textStyle: const TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                  child: Text(s.changePasswordSignOutInstead),
-                ),
-              ),
-            ],
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
+      children: [
+        Text(s.changePasswordTitle, style: DType.h2(d.ink).copyWith(fontSize: 22)),
+        const SizedBox(height: 14),
+        Text(s.changePasswordBody, style: DType.body(d.ink2, size: 13.5)),
+        const SizedBox(height: 14),
+        Container(
+          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: [
+            _Field(
+              first: true,
+              label: s.changePasswordNewLabel,
+              hint: s.changePasswordNewHint,
+              note: newBad ? _error! : s.changePasswordNewNote,
+              bad: newBad,
+              controller: _password,
+              enabled: !_busy,
+              obscure: _obscure,
+              onToggleObscure: () => setState(() => _obscure = !_obscure),
+              onChanged: () => setState(() {
+                _error = null;
+                _errorOn = null;
+              }),
+            ),
+            _Field(
+              label: s.changePasswordConfirmLabel,
+              hint: s.changePasswordConfirmHint,
+              note: confirmBad ? _error! : s.changePasswordConfirmNote,
+              bad: confirmBad,
+              controller: _confirm,
+              enabled: !_busy,
+              obscure: _obscure,
+              onSubmitted: _busy ? null : _submit,
+              onChanged: () => setState(() {
+                _error = null;
+                _errorOn = null;
+              }),
+            ),
+          ]),
+        ),
+        if (_error != null && _errorOn == null) ...[
+          const SizedBox(height: 10),
+          Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
+        ],
+        const SizedBox(height: 14),
+        DButton(s.changePasswordSave, expand: true, busy: _busy, onTap: _busy ? null : _submit),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton(
+            onPressed: _busy ? null : _signOut,
+            child: Text(s.changePasswordSignOutInstead, style: DType.body(d.link, size: 14, w: FontWeight.w700).copyWith(decoration: TextDecoration.underline)),
+          ),
+        ),
+      ],
     );
   }
 }
 
-/// A labelled field as the frame draws it: the 16/700 label 6 in, the
-/// 44-tall field (1px edge, radius 50), and the 10/400 red note 21 in
-/// under it. [bad] turns the edge and hint red too.
+/// `.box .f`: UPPERCASE label, the field, the note under it (red when
+/// this is the one in error).
 class _Field extends StatelessWidget {
   const _Field({
     required this.label,
@@ -318,6 +263,7 @@ class _Field extends StatelessWidget {
     required this.onChanged,
     this.onToggleObscure,
     this.onSubmitted,
+    this.first = false,
   });
 
   final String label;
@@ -330,89 +276,49 @@ class _Field extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback? onToggleObscure;
   final VoidCallback? onSubmitted;
+  final bool first;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final edge = bad ? c.hint : c.navy;
-    OutlineInputBorder border(double w) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(50),
-          borderSide: BorderSide(color: edge, width: w),
-        );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 6),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              height: 23 / 16,
-              color: c.navy,
+    final d = context.d;
+    final red = d.dark ? const Color(0xFFFF8A8A) : DColors.red;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(border: first ? null : Border(top: BorderSide(color: d.line))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(label.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: .66, color: bad ? red : d.muted)),
+        const SizedBox(height: 4),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              enabled: enabled,
+              obscureText: obscure,
+              onChanged: (_) => onChanged(),
+              onSubmitted: onSubmitted == null ? null : (_) => onSubmitted!(),
+              style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: obscure ? 1.5 : 0, color: d.ink),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 15, color: d.muted, fontStyle: FontStyle.normal),
+                isDense: true,
+                filled: false,
+                contentPadding: const EdgeInsets.symmetric(vertical: 2),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+              ),
             ),
           ),
-        ),
-        TextField(
-          controller: controller,
-          enabled: enabled,
-          obscureText: obscure,
-          onChanged: (_) => onChanged(),
-          onSubmitted: onSubmitted == null ? null : (_) => onSubmitted!(),
-          style: TextStyle(
-            fontFamily: 'Urbanist',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            color: c.navy,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w400,
-              fontStyle: FontStyle.italic,
-              fontSize: 13,
-              color: bad ? c.hint : c.navy,
+          if (onToggleObscure != null)
+            GestureDetector(
+              onTap: onToggleObscure,
+              child: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20, color: d.muted),
             ),
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 21, vertical: 12),
-            enabledBorder: border(1),
-            focusedBorder: border(2),
-            disabledBorder: border(1),
-            suffixIconConstraints:
-                const BoxConstraints.tightFor(width: 44, height: 44),
-            suffixIcon: onToggleObscure == null
-                ? null
-                : IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      obscure
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      size: 20,
-                      color: c.navy,
-                    ),
-                    onPressed: onToggleObscure,
-                  ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 21),
-          child: Text(
-            note,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w400,
-              fontSize: 10,
-              height: 15.6 / 10,
-              color: c.hint,
-            ),
-          ),
-        ),
-      ],
+        ]),
+        const SizedBox(height: 2),
+        Text(note, style: TextStyle(fontFamily: 'Urbanist', fontSize: 11.5, color: bad ? red : d.muted)),
+      ]),
     );
   }
 }

@@ -259,7 +259,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
     final waiting = [for (final t in _incoming) if (t.awaitingResponse) t];
     final working = [for (final t in _incoming) if (!t.awaitingResponse) t];
     return DPage(
-      fullContour: true,
+      homeContour: true,
       bottomBar: const TanodNavBar(current: TanodTab.home),
       child: RefreshIndicator(
         onRefresh: () async {

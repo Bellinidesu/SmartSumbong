@@ -112,23 +112,25 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
         _ => kind,
       };
 
-  // No frame of its own: laid out as the translated settings pickers
-  // (LANGUAGES) — the title 28/800 at 50, the 16/600 rows with the
-  // design's switch on a 66 pitch, and the 150x45 Back pill.
-  // Branch D: back, the heading, then the kinds of notice in one white
-  // card, each with its switch (on = the push is allowed).
+  // Branch D, 1:1 with the preview's Notification Preferences: back and
+  // the h2, the lead line, one bordered box of rows — a coloured 34 px
+  // icon square, the label, the green sliding toggle.
   @override
   Widget build(BuildContext context) {
     final d = context.d;
     final s = context.s;
     return DPage(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+        padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
         children: [
-          const Align(alignment: Alignment.centerLeft, child: DBack()),
-          const SizedBox(height: 12),
-          DHeading(s.notifPrefsTitle, lead: s.notifPrefsSubtitle),
-          const SizedBox(height: 18),
+          Row(children: [
+            const DBack(),
+            const SizedBox(width: 10),
+            Expanded(child: Text(s.notifPrefsTitle, style: DType.h2(d.ink).copyWith(fontSize: 22))),
+          ]),
+          const SizedBox(height: 14),
+          Text(s.notifPrefsSubtitle, style: DType.body(d.ink2, size: 13.5)),
+          const SizedBox(height: 14),
           if (_loading)
             Padding(padding: const EdgeInsets.only(top: 40), child: Center(child: CircularProgressIndicator(color: d.accent)))
           else if (_error != null)
@@ -139,10 +141,12 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
           else
             Container(
               decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+              clipBehavior: Clip.antiAlias,
               child: Column(children: [
                 for (var i = 0; i < _mutableKinds.length; i++) ...[
-                  if (i > 0) Divider(height: 1, thickness: 1, indent: 16, color: d.line),
+                  if (i > 0) Divider(height: 1, thickness: 1, color: d.line),
                   _PrefRow(
+                    kind: _mutableKinds[i],
                     label: _label(s, _mutableKinds[i]),
                     // A row shows ON when the push is allowed — "muted" is
                     // the stored, negative concept, but a switch reads as
@@ -161,29 +165,71 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
 }
 
 class _PrefRow extends StatelessWidget {
-  const _PrefRow({required this.label, required this.value, required this.busy, required this.onChanged});
+  const _PrefRow({required this.kind, required this.label, required this.value, required this.busy, required this.onChanged});
 
+  final String kind;
   final String label;
   final bool value;
   final bool busy;
   final ValueChanged<bool> onChanged;
 
+  static (Color, IconData) _look(String k) => switch (k) {
+        'status_change' => (const Color(0xFF00308F), Icons.description_outlined),
+        'assignment' => (const Color(0xFF356CF9), Icons.person_outline_rounded),
+        'reroute' => (const Color(0xFF0F9D9A), Icons.swap_horiz_rounded),
+        'sla_warning' => (const Color(0xFFF59E0B), Icons.timer_outlined),
+        'escalation' => (const Color(0xFF8B5CF6), Icons.north_east_rounded),
+        _ => (const Color(0xFF0EA5E9), Icons.notifications_none_rounded),
+      };
+
   @override
   Widget build(BuildContext context) {
     final d = context.d;
+    final (col, icon) = _look(kind);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 10, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       child: Row(children: [
-        Expanded(child: Text(label, style: DType.body(d.ink, size: 15, w: FontWeight.w700))),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(color: col, borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, size: 19, color: Colors.white),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Text(label, style: DType.body(d.ink, size: 14.5, w: FontWeight.w600).copyWith(height: 1.25))),
         const SizedBox(width: 12),
         if (busy)
-          const SizedBox(width: 48, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))))
+          const SizedBox(width: 46, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))))
         else
-          Semantics(
-            label: label,
-            child: Switch(value: value, activeThumbColor: Colors.white, activeTrackColor: DColors.greenVivid, onChanged: onChanged),
-          ),
+          Semantics(label: label, toggled: value, child: _Tog(on: value, onTap: () => onChanged(!value))),
       ]),
     );
   }
+}
+
+/// `.tog`: 46x28, grey, green when on, a 22 px white knob.
+class _Tog extends StatelessWidget {
+  const _Tog({required this.on, required this.onTap});
+
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 46,
+          height: 28,
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(color: on ? const Color(0xFF1F8A45) : const Color(0xFFC8CEDB), borderRadius: BorderRadius.circular(99)),
+          alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white, boxShadow: [BoxShadow(color: Color(0x40000000), blurRadius: 3, offset: Offset(0, 1))]),
+          ),
+        ),
+      );
 }

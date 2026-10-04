@@ -327,10 +327,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // 139 avatar 20 under it with its 25 camera badge, the fields at 35 in
   // on a 20 gap in the frame's order, and BACK / SAVE 150x45 pills 44
   // under the last one.
-  // Branch D: Edit Profile as the preview has it — back and the heading,
-  // the round photo with its camera badge, the fields in one white card
-  // (name, phone and password locked behind a request; email and address
-  // editable), Back / Save pinned at the bottom.
+  // Branch D, 1:1 with the preview's Personal Information: the back
+  // button and h2, the 96 px gradient avatar with its orange camera, one
+  // bordered box of rows (UPPERCASE label with its note on the right, the
+  // value, a link under the locked ones), then Back and Save side by side.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
@@ -352,121 +352,89 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: DPage(
         child: _loading
             ? Center(child: CircularProgressIndicator(color: d.accent))
-            : Column(children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-                    children: [
-                      const Align(alignment: Alignment.centerLeft, child: DBack()),
-                      const SizedBox(height: 12),
-                      DHeading(s.editProfileTitle),
-                      const SizedBox(height: 18),
-                      Center(
-                        child: GestureDetector(
-                          onTap: _saving ? null : _pickAvatar,
-                          child: Stack(clipBehavior: Clip.none, children: [
-                            Container(
-                              width: 124,
-                              height: 124,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [d.card1, d.card2]),
-                                border: Border.all(color: d.card, width: 4),
-                                boxShadow: [BoxShadow(color: d.card1.withValues(alpha: .35), blurRadius: 18, offset: const Offset(0, 8))],
-                                image: _newAvatar != null
-                                    ? DecorationImage(image: FileImage(_newAvatar!), fit: BoxFit.cover)
-                                    : (_avatarUrl != null ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 420)), fit: BoxFit.cover) : null),
-                              ),
-                              alignment: Alignment.center,
-                              child: (_newAvatar != null || _avatarUrl != null)
-                                  ? (_uploadingAvatar ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) : null)
-                                  : Text(_SettingsInitials.of(_name),
-                                      style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 40, color: Colors.white)),
-                            ),
-                            // The only hint the circle can be tapped.
-                            Positioned(
-                              right: 4,
-                              bottom: 4,
-                              child: Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: DColors.orange,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: d.card, width: 3),
-                                ),
-                                child: const Icon(Icons.photo_camera_rounded, size: 17, color: Color(0xFF141B34)),
-                              ),
-                            ),
-                          ]),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      if (_banner != null) ...[
-                        DSheet(
-                          borderColor: DColors.red.withValues(alpha: .5),
-                          child: Text(_banner!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-                        decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          _LockedField(
-                            label: s.editProfileNameLabel,
-                            value: _name ?? '',
-                            note: s.editProfileNameNote,
-                            onTap: () => _requestChange('full_name', s.editProfileNameWord),
-                          ),
-                          const SizedBox(height: 18),
-                          _EditableField(
-                            label: s.editProfileEmailLabel,
-                            controller: _email,
-                            hint: s.editProfileEmailHint,
-                            note: s.editProfileOptional,
-                            error: _emailError,
-                            enabled: !_saving,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 18),
-                          _LockedField(
-                            label: s.editProfilePhoneLabel,
-                            value: _mobile ?? '',
-                            note: s.editProfilePhoneNote,
-                            onTap: () => _requestChange('mobile_number', s.editProfilePhoneWord),
-                          ),
-                          const SizedBox(height: 18),
-                          _LockedField(
-                            label: s.editProfilePasswordLabel,
-                            value: '•' * 10,
-                            note: s.editProfilePasswordChange,
-                            onTap: _changePassword,
-                          ),
-                          const SizedBox(height: 18),
-                          _EditableField(
-                            label: s.editProfileAddressLabel,
-                            controller: _address,
-                            hint: s.editProfileAddressHint,
-                            note: s.editProfileOptional,
-                            enabled: !_saving,
-                            keyboardType: TextInputType.streetAddress,
-                          ),
-                        ]),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-                  child: Row(children: [
-                    Expanded(flex: 2, child: DButton(s.editProfileBack, kind: DButtonKind.ghost, expand: true, onTap: _saving ? null : () => Navigator.of(context).maybePop())),
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
+                children: [
+                  Row(children: [
+                    const DBack(),
                     const SizedBox(width: 10),
-                    Expanded(flex: 3, child: DButton(s.editProfileSave, expand: true, busy: _saving, onTap: (_saving || !_dirty) ? null : _save)),
+                    Expanded(child: Text(s.editProfileTitle, style: DType.h2(d.ink).copyWith(fontSize: 22))),
                   ]),
-                ),
-              ]),
+                  const SizedBox(height: 14),
+                  Center(
+                    child: GestureDetector(
+                      onTap: _saving ? null : _pickAvatar,
+                      child: Stack(clipBehavior: Clip.none, children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(begin: Alignment(-.5, -1), end: Alignment(.5, 1), colors: [Color(0xFF0A3BA0), Color(0xFF00236A)]),
+                            image: _newAvatar != null
+                                ? DecorationImage(image: FileImage(_newAvatar!), fit: BoxFit.cover)
+                                : (_avatarUrl != null ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 420)), fit: BoxFit.cover) : null),
+                          ),
+                          alignment: Alignment.center,
+                          child: (_newAvatar != null || _avatarUrl != null)
+                              ? (_uploadingAvatar ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) : null)
+                              : Text(_SettingsInitials.of(_name), style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 32, color: Colors.white)),
+                        ),
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(color: DColors.orange, shape: BoxShape.circle, border: Border.all(color: d.bg, width: 3)),
+                            child: const Icon(Icons.photo_camera_rounded, size: 16, color: Colors.white),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (_banner != null) ...[
+                    DSheet(
+                      borderColor: DColors.red.withValues(alpha: .5),
+                      child: Text(_banner!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  Container(
+                    decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(children: [
+                      _LockedField(first: true, label: s.editProfileNameLabel, value: _name ?? '', note: s.editProfileNameNote, onTap: () => _requestChange('full_name', s.editProfileNameWord)),
+                      _EditableField(
+                        label: s.editProfileEmailLabel,
+                        controller: _email,
+                        hint: s.editProfileEmailHint,
+                        note: s.editProfileOptional,
+                        error: _emailError,
+                        enabled: !_saving,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      _LockedField(label: s.editProfilePhoneLabel, value: _mobile ?? '', note: s.editProfilePhoneNote, onTap: () => _requestChange('mobile_number', s.editProfilePhoneWord)),
+                      _EditableField(
+                        label: s.editProfileAddressLabel,
+                        controller: _address,
+                        hint: s.editProfileAddressHint,
+                        note: s.editProfileOptional,
+                        enabled: !_saving,
+                        keyboardType: TextInputType.streetAddress,
+                      ),
+                      _LockedField(label: s.editProfilePasswordLabel, value: '•' * 10, note: s.editProfilePasswordChange, onTap: _changePassword),
+                    ]),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(children: [
+                    Expanded(child: DButton(s.editProfileBack, kind: DButtonKind.ghost, expand: true, onTap: _saving ? null : () => Navigator.of(context).maybePop())),
+                    const SizedBox(width: 10),
+                    Expanded(child: DButton(s.editProfileSave, expand: true, busy: _saving, onTap: (_saving || !_dirty) ? null : _save)),
+                  ]),
+                ],
+              ),
       ),
     );
   }
@@ -482,21 +450,7 @@ abstract class _SettingsInitials {
   }
 }
 
-/// The frame's field label (16/700) and value (14/500).
-TextStyle _fieldLabel(BuildContext context) => TextStyle(
-      fontFamily: 'Urbanist',
-      fontWeight: FontWeight.w700,
-      fontSize: 16,
-      height: 14 / 16,
-      color: context.colors.navy,
-    );
 
-TextStyle _fieldValue(Color colour) => TextStyle(
-      fontFamily: 'Urbanist',
-      fontWeight: FontWeight.w500,
-      fontSize: 14,
-      color: colour,
-    );
 
 /// The y5 / blur 5 shadow at 30% the frame puts under BACK and SAVE.
 class _PageShadow extends StatelessWidget {
@@ -520,6 +474,36 @@ class _PageShadow extends StatelessWidget {
       );
 }
 
+/// `.box .f`: a row inside the bordered box — the UPPERCASE label (11,
+/// muted) with its note on the right, then the value 15/600.
+class _FRow extends StatelessWidget {
+  const _FRow({required this.label, this.em, required this.child, this.below, this.first = false});
+
+  final String label;
+  final String? em;
+  final Widget child;
+  final Widget? below;
+  final bool first;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(border: first ? null : Border(top: BorderSide(color: d.line))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Expanded(child: Text(label.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: .66, color: d.muted))),
+          if (em != null && em!.isNotEmpty) Text(em!, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
+        ]),
+        const SizedBox(height: 4),
+        child,
+        if (below != null) below!,
+      ]),
+    );
+  }
+}
+
 class _EditableField extends StatelessWidget {
   const _EditableField({
     required this.label,
@@ -541,57 +525,36 @@ class _EditableField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 11),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(label, style: _fieldLabel(context)),
-              if (note != null) ...[
-                const SizedBox(width: 8),
-                Text(note!,
-                    style: TextStyle(fontSize: 10, color: context.colors.muted)),
-              ],
-            ],
-          ),
+    final d = context.d;
+    return _FRow(
+      label: label,
+      em: note,
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        keyboardType: keyboardType,
+        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15, color: d.ink),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 15, color: d.muted, fontStyle: FontStyle.normal),
+          isDense: true,
+          filled: false,
+          contentPadding: const EdgeInsets.symmetric(vertical: 2),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
         ),
-        TextField(
-          controller: controller,
-          enabled: enabled,
-          keyboardType: keyboardType,
-          style: _fieldValue(context.colors.navy),
-          // 44 tall with the value 15 in, as the frame's fields.
-          decoration: InputDecoration(
-            hintText: hint,
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-          ),
-        ),
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 20, top: 4),
-            child: Text(error!,
-                style: TextStyle(color: context.colors.hint, fontSize: 11)),
-          ),
-      ],
+      ),
+      below: error == null ? null : Padding(padding: const EdgeInsets.only(top: 4), child: Text(error!, style: TextStyle(fontFamily: 'Urbanist', fontSize: 11.5, fontWeight: FontWeight.w700, color: d.dark ? const Color(0xFFFF8A8A) : DColors.red))),
     );
   }
 }
 
-/// Shown but not typed into. Tapping opens the request or the password
-/// dialog — a field the resident cannot edit should still be a way to
-/// start changing it, not a dead end.
 class _LockedField extends StatelessWidget {
-  const _LockedField({
-    required this.label,
-    required this.value,
-    required this.note,
-    required this.onTap,
-  });
+  const _LockedField({required this.label, required this.value, required this.note, required this.onTap, this.first = false});
+
+  final bool first;
 
   final String label;
   final String value;
@@ -600,43 +563,22 @@ class _LockedField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 11),
-          child: Text(label, style: _fieldLabel(context)),
-        ),
-        InkWell(
+    final d = context.d;
+    return _FRow(
+      first: first,
+      label: label,
+      child: Text(value, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15, height: 1.3, color: d.ink2)),
+      below: Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(50),
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              color: context.colors.bg,
-              border: Border.all(color: context.colors.muted),
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    value,
-                    style: _fieldValue(context.colors.muted),
-                  ),
-                ),
-                Text(note,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: context.colors.navy,
-                      decoration: TextDecoration.underline,
-                    )),
-              ],
-            ),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 2),
+            child: Text(note, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 13, color: d.link)),
           ),
         ),
-      ],
+      ),
     );
   }
 }

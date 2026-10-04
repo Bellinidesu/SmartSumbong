@@ -61,11 +61,13 @@ class TermsPrivacyScreen extends StatelessWidget {
     ];
     return DPage(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+        padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
         children: [
-          const Align(alignment: Alignment.centerLeft, child: DBack()),
-          const SizedBox(height: 12),
-          DHeading(s.termsPrivacyTitle),
+          Row(children: [
+            const DBack(),
+            const SizedBox(width: 10),
+            Expanded(child: Text(s.termsPrivacyTitle, style: DType.h2(context.d.ink).copyWith(fontSize: 22))),
+          ]),
           const SizedBox(height: 14),
           const _DraftBanner(),
           const SizedBox(height: 14),
@@ -96,34 +98,36 @@ class _AccState extends State<_Acc> {
   @override
   Widget build(BuildContext context) {
     final d = context.d;
+    // `.acc`: radius 16, the number in a 26 px rounded square tinted with
+    // the role colour, the chevron turning as it opens.
     return DSheet(
       padding: EdgeInsets.zero,
       onTap: () => setState(() => _open = !_open),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
             Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: d.field, border: Border.all(color: d.line)),
-              child: Center(child: Text('${widget.n}', style: DType.mono(d.link, size: 13))),
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Color.alphaBlend(d.link.withValues(alpha: .12), d.card)),
+              child: Center(child: Text('${widget.n}', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, color: d.link))),
             ),
             const SizedBox(width: 12),
             Expanded(child: Text(widget.title, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800))),
             AnimatedRotation(
               turns: _open ? .25 : 0,
-              duration: const Duration(milliseconds: 180),
-              child: Icon(Icons.chevron_right_rounded, color: d.muted),
+              duration: const Duration(milliseconds: 200),
+              child: Text('›', style: TextStyle(fontSize: 20, height: 1, color: d.muted)),
             ),
           ]),
-          if (_open)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(40, 8, 6, 2),
-              child: Text(widget.body, style: DType.body(d.ink2, size: 13.5)),
-            ),
-        ]),
-      ),
+        ),
+        if (_open)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(52, 0, 14, 14),
+            child: Text(widget.body, style: DType.body(d.ink2, size: 13).copyWith(height: 1.5)),
+          ),
+      ]),
     );
   }
 }
@@ -134,21 +138,15 @@ class _DraftBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: DColors.orange.withValues(alpha: 0.12),
-        border: Border.all(color: DColors.orange),
-        borderRadius: BorderRadius.circular(25),
+        color: Color.alphaBlend(const Color(0xFFF59E0B).withValues(alpha: .12), context.d.card),
+        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: .35)),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
         context.s.termsPrivacyDraftBanner,
-        style: TextStyle(
-          fontFamily: 'Urbanist',
-          fontWeight: FontWeight.w500,
-          fontSize: 13,
-          height: 1.4,
-          color: context.colors.navy,
-        ),
+        style: DType.body(context.d.ink2, size: 12.5).copyWith(height: 1.45),
       ),
     );
   }

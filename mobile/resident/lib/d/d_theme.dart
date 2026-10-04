@@ -77,6 +77,10 @@ class DColors {
   final Color contour;
   final double contourAlpha;
 
+  /// The solid role-colour button (the preview's plain `.btn`): brand
+  /// navy for residents, ink for tanods — the same in day and night.
+  Color get btn => tanod ? (dark ? card1 : const Color(0xFF14181D)) : const Color(0xFF00308F);
+
   static const orange = Color(0xFFFF9800);
   static const orangeDeep = Color(0xFFE07400);
   static const green = Color(0xFF1F8A45);
@@ -107,7 +111,7 @@ class DColors {
     bar: Color(0xFF00308F),
     barFg: Color(0xFFF3F3F3),
     contour: Color(0xFF00308F),
-    contourAlpha: .10,
+    contourAlpha: .09,
   );
 
   static const residentDark = DColors(
@@ -191,7 +195,7 @@ extension DContext on BuildContext {
 /// Type helpers: Urbanist for words, Inter for numbers and small caps.
 abstract final class DType {
   static TextStyle h1(Color c) => TextStyle(
-      fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 26, height: 1.15, color: c);
+      fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 26, height: 1.15, letterSpacing: -.26, color: c);
   static TextStyle h2(Color c) => TextStyle(
       fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 20, height: 1.2, color: c);
   static TextStyle h3(Color c) => TextStyle(

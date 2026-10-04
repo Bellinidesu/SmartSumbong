@@ -27,7 +27,7 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
-import '../d/d_prefs.dart';
+import '../d/d_switches.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../widgets/figma_ui.dart';

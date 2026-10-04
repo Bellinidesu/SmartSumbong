@@ -13,7 +13,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../d/d_prefs.dart';
+import '../d/d_switches.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../i18n.dart';

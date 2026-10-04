@@ -302,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final s = context.s;
     final d = context.d;
     return DPage(
-      fullContour: true,
+      homeContour: true,
       bottomBar: const ResidentNavBar(current: ResidentTab.home),
       child: RefreshIndicator(
         onRefresh: () async {

@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../i18n.dart';
 import '../d/d_theme.dart';
+import '../d/d_switches.dart';
 import '../d/d_ui.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
@@ -198,11 +199,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Branch D: the preview's Settings — a role-colour profile card (photo
-  // or initials, name, masked number, Edit Profile), then the rows in two
-  // white cards with round icon wells. Appearance carries its day/night
-  // switch and Languages its EN/PH flags right on the row; the row itself
-  // still opens the full page.
+  // Branch D, 1:1 with the preview's Settings: the h1, the role-colour
+  // profile card (64 px white avatar, name, number, Edit Profile), then
+  // one bordered list — icon, label, chevron — with the EN/PH flags on
+  // the Languages row and the sun/moon switch on Appearance, Log Out in
+  // red, and Delete Account as a ghost button under it.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
@@ -211,98 +212,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // bar and Extra Administrative Services; a resident gets notification
     // preferences and Delete Account (a tanod retires instead).
     final tanod = AppRoleController.instance.value == AppRole.tanod;
-
+    final red = const Color(0xFFC62828);
     return DPage(
       bottomBar: tanod ? const TanodNavBar(current: TanodTab.settings) : const ResidentNavBar(current: ResidentTab.settings),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
         children: [
-          Text(s.settingsTitle, style: DType.h1(d.accent).copyWith(fontSize: 30)),
-          const SizedBox(height: 16),
+          Text(s.settingsTitle, style: DType.h1(d.ink)),
+          const SizedBox(height: 14),
           DCard(
             padding: const EdgeInsets.all(16),
             child: Row(children: [
               Container(
-                width: 74,
-                height: 74,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white,
-                  border: Border.all(color: Colors.white.withValues(alpha: .6), width: 3),
-                  image: _avatarUrl != null
-                      ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 300)), fit: BoxFit.cover)
-                      : null,
+                  image: _avatarUrl != null ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 300)), fit: BoxFit.cover) : null,
                 ),
                 alignment: Alignment.center,
                 child: _avatarUrl != null
                     ? null
                     : Text(_initials(_name),
-                        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 26, color: d.card2)),
+                        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 22, color: d.tanod ? const Color(0xFF14181D) : DColors.brandNavy)),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_name ?? '—', style: DType.h3(Colors.white).copyWith(fontSize: 18.5)),
-                  if (_mobile != null) Text(_mask(_mobile!), style: DType.body(Colors.white.withValues(alpha: .8), size: 13)),
-                  const SizedBox(height: 10),
-                  DButton(s.settingsEditProfile,
-                      small: true,
-                      kind: DButtonKind.white,
-                      height: 34,
-                      onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load())),
+                  Text(_name ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
+                  if (_mobile != null)
+                    Text(_mask(_mobile!), style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white.withValues(alpha: .8))),
                 ]),
               ),
+              DButton(s.settingsEditProfile, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load())),
             ]),
           ),
-          const SizedBox(height: 18),
-          _Group(children: [
-            _Row(
-              icon: Icons.person_outline_rounded,
-              label: s.settingsPersonalInfo,
-              onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load()),
-            ),
-            _Row(
-              icon: Icons.translate_rounded,
-              label: s.settingsLanguages,
-              onTap: () => Navigator.of(context).pushNamed('/languages'),
-              trailing: const _LangFlags(),
-            ),
-            _Row(
-              icon: Icons.dark_mode_outlined,
-              label: s.settingsAppearance,
-              onTap: () => Navigator.of(context).pushNamed('/appearance'),
-              trailing: const _DayNight(),
-            ),
+          const SizedBox(height: 14),
+          _List(children: [
+            _Row(icon: Icons.person_outline_rounded, label: s.settingsPersonalInfo, onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load()), chevron: true),
+            _Row(icon: Icons.language_rounded, label: s.settingsLanguages, onTap: () => Navigator.of(context).pushNamed('/languages'), trailing: const DFlags()),
+            _Row(icon: Icons.contrast_rounded, label: s.settingsAppearance, onTap: () => Navigator.of(context).pushNamed('/appearance'), trailing: const DDayNight()),
             _Row(
               icon: Icons.fingerprint_rounded,
               label: s.settingsBiometricUnlock,
+              onTap: _biometricBusy ? null : () => _onBiometricToggle(!_biometricEnabled),
               trailing: _biometricBusy
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
-                  : Switch(value: _biometricEnabled, activeThumbColor: Colors.white, activeTrackColor: DColors.greenVivid, onChanged: _onBiometricToggle),
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2))
+                  : _OnPill(on: _biometricEnabled),
             ),
             if (!tanod)
-              _Row(
-                icon: Icons.notifications_none_rounded,
-                label: s.settingsNotificationPrefs,
-                onTap: () => Navigator.of(context).pushNamed('/notification-preferences'),
-              ),
-          ]),
-          const SizedBox(height: 14),
-          _Group(children: [
+              _Row(icon: Icons.notifications_none_rounded, label: s.settingsNotificationPrefs, onTap: () => Navigator.of(context).pushNamed('/notification-preferences'), chevron: true),
             if (tanod)
-              _Row(
-                icon: Icons.admin_panel_settings_outlined,
-                label: context.ts.settingsExtraAdminServices,
-                onTap: () => Navigator.of(context).pushNamed('/t/extra-admin-services'),
-              ),
-            _Row(
-              icon: Icons.privacy_tip_outlined,
-              label: s.termsPrivacyTitle,
-              onTap: () => Navigator.of(context).pushNamed('/terms-privacy'),
-            ),
+              _Row(icon: Icons.admin_panel_settings_outlined, label: context.ts.settingsExtraAdminServices, onTap: () => Navigator.of(context).pushNamed('/t/extra-admin-services'), chevron: true),
+            _Row(icon: Icons.privacy_tip_outlined, label: s.termsPrivacyTitle, onTap: () => Navigator.of(context).pushNamed('/terms-privacy'), chevron: true),
             _Row(
               icon: Icons.facebook_rounded,
               label: s.settingsFacebook,
+              chevron: true,
               onTap: () async {
                 final uri = Uri.parse(_facebookUrl);
                 if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -311,24 +278,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
               },
             ),
-            if (!tanod)
-              _Row(
-                icon: Icons.delete_outline_rounded,
-                label: s.settingsDeleteAccount,
-                danger: true,
-                busy: _deletingAccount,
-                onTap: _deletingAccount ? null : _deleteAccount,
-              ),
-            _Row(
-              icon: Icons.logout_rounded,
-              label: s.settingsLogOut,
-              danger: true,
-              busy: _busy,
-              onTap: _busy ? null : _logOut,
-            ),
+            _Row(icon: Icons.logout_rounded, label: s.settingsLogOut, labelColor: red, busy: _busy, onTap: _busy ? null : _logOut),
           ]),
+          if (!tanod) ...[
+            const SizedBox(height: 14),
+            _DeleteButton(label: s.settingsDeleteAccount, busy: _deletingAccount, onTap: _deletingAccount ? null : _deleteAccount),
+          ],
           if (_version != null) ...[
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
             Center(child: Text('SmartSumbong • v$_version', style: DType.body(d.muted, size: 11.5))),
           ],
         ],
@@ -351,8 +308,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-class _Group extends StatelessWidget {
-  const _Group({required this.children});
+/// `.list`: radius 18, hairline border, rows divided by lines.
+class _List extends StatelessWidget {
+  const _List({required this.children});
 
   final List<Widget> children;
 
@@ -364,7 +322,7 @@ class _Group extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) Divider(height: 1, thickness: 1, indent: 64, color: d.line),
+          if (i > 0) Divider(height: 1, thickness: 1, color: d.line),
           children[i],
         ],
       ]),
@@ -372,98 +330,83 @@ class _Group extends StatelessWidget {
   }
 }
 
+/// A row: a bare 20 px icon, the label 14.5/600, then a chevron, a pill,
+/// the flags or the switch.
 class _Row extends StatelessWidget {
-  const _Row({required this.icon, required this.label, this.onTap, this.trailing, this.danger = false, this.busy = false});
+  const _Row({required this.icon, required this.label, this.onTap, this.trailing, this.chevron = false, this.labelColor, this.busy = false});
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
   final Widget? trailing;
-  final bool danger;
+  final bool chevron;
+  final Color? labelColor;
   final bool busy;
 
   @override
   Widget build(BuildContext context) {
     final d = context.d;
-    final red = d.dark ? const Color(0xFFFF8A8A) : const Color(0xFFDC2626);
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         child: Row(children: [
-          DWell(icon, size: 40, color: danger ? red : d.link, tint: danger ? red.withValues(alpha: .1) : null),
+          Icon(icon, size: 20, color: d.link),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: DType.body(danger ? red : d.ink, size: 15, w: FontWeight.w700))),
+          Expanded(child: Text(label, style: DType.body(labelColor ?? d.ink, size: 14.5, w: FontWeight.w600).copyWith(height: 1.25))),
           if (busy)
-            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2))
+            const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2))
           else if (trailing != null)
             trailing!
-          else if (!danger)
-            Icon(Icons.chevron_right_rounded, color: d.muted),
+          else if (chevron)
+            Text('›', style: TextStyle(fontSize: 20, height: 1, color: d.muted)),
         ]),
       ),
     );
   }
 }
 
-/// The day/night switch on the Appearance row: light or dark straight
-/// away; "follow the phone" stays on the Appearance page.
-class _DayNight extends StatelessWidget {
-  const _DayNight();
+/// The preview's green On pill (grey when off).
+class _OnPill extends StatelessWidget {
+  const _OnPill({required this.on});
 
-  @override
-  Widget build(BuildContext context) {
-    final dark = context.isDark;
-    return GestureDetector(
-      onTap: () => AppThemeScope.controllerOf(context).set(dark ? ThemeMode.light : ThemeMode.dark),
-      child: Container(
-        width: 56,
-        height: 30,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: dark ? const Color(0xFF22305E) : const Color(0xFFDCE6FA)),
-        child: AnimatedAlign(
-          duration: const Duration(milliseconds: 200),
-          alignment: dark ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: dark ? const Color(0xFF0E1322) : Colors.white),
-            child: Icon(dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded, size: 15, color: dark ? const Color(0xFFFFD27A) : DColors.orange),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LangFlags extends StatelessWidget {
-  const _LangFlags();
+  final bool on;
 
   @override
   Widget build(BuildContext context) {
     final d = context.d;
-    final lang = AppLocaleScope.of(context);
-    Widget f(AppLocale l, String e) {
-      final on = lang == l;
-      return GestureDetector(
-        onTap: () => AppLocaleScope.controllerOf(context).set(l),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(99),
-            color: on ? d.card : Colors.transparent,
-            boxShadow: on ? [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 5)] : null,
-          ),
-          child: Opacity(opacity: on ? 1 : .55, child: Text(e, style: const TextStyle(fontSize: 16))),
-        ),
-      );
-    }
-
+    final c = on ? const Color(0xFF1F8A45) : d.muted;
     return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: d.field, border: Border.all(color: d.line)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [f(AppLocale.en, '🇺🇸'), f(AppLocale.fil, '🇵🇭')]),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(color: Color.alphaBlend(c.withValues(alpha: .14), d.card), borderRadius: BorderRadius.circular(99)),
+      child: Text(on ? context.tr('On', 'Naka-on') : context.tr('Off', 'Naka-off'), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, color: on ? (d.dark ? const Color(0xFF5FD68A) : c) : c)),
+    );
+  }
+}
+
+/// `.btn.ghost` in red: Delete Account.
+class _DeleteButton extends StatelessWidget {
+  const _DeleteButton({required this.label, required this.onTap, this.busy = false});
+
+  final String label;
+  final VoidCallback? onTap;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: d.line, width: 1.5)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Center(
+          child: busy
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2))
+              : Text(label, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFFC62828))),
+        ),
+      ),
     );
   }
 }
