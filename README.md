@@ -99,7 +99,7 @@ admin/                   PHP admin portal
 mobile/core/             shared Flutter package (auth, media upload, push, …)
 mobile/resident/         the SmartSumbong app — residents, and tanods under
                          lib/tanod/ (dispatch window, navigation, outbox)
-supabase/migrations/     0001–0079, applied in order (see docs/schema.md)
+supabase/migrations/     0001–0083, applied in order (see docs/schema.md)
 supabase/functions/      Edge Functions: delete-account, send-dispatch-push
 supabase/seed.sql        SLA guide hours (placeholders) + boundary
 docs/schema.md           tables, functions by actor, rules, use-case coverage

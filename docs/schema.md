@@ -1,7 +1,7 @@
 # SmartSumbong — Schema Reference
 
-Mirrors `supabase/migrations/` (0001–0074, all applied to the live project as
-of 30 September 2026). If the manuscript's Data Dictionary and this file
+Mirrors `supabase/migrations/` (0001–0083, all applied to the live project as
+of 5 October 2026). If the manuscript's Data Dictionary and this file
 disagree, one of them is wrong — fix both in the same sitting.
 
 Actor naming is **`tanod`** throughout, per the panel revision.
@@ -15,7 +15,7 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 | `users` | Accounts, role, verification, suspension, retirement, duty status, last known location | 0001 |
 | `reports` | Complaints: category, place (`geom`), status, admin-set `due_at`, referral (`referred_to`…), follow-ups, resolution awaiting approval, `is_public` | 0001 |
 | `report_media` | Resident photos and video | 0001 |
-| `status_logs` | Append-only, hash-chained audit trail (0015) | 0001 |
+| `status_logs` | Append-only, hash-chained audit trail (0015); one writer per complaint, checked with `verify_report_trail` (0082) | 0001 |
 | `feedback` | Post-resolution rating and comment | 0001 |
 | `attendance` | Tanod duty logging | 0001 |
 | `notifications` | In-app alerts, pushed to phones (`is_read`) | 0001 |
@@ -123,6 +123,7 @@ reports are counted.
   `referred_to` set.
 - **No live tracking.** A tanod's location is taken at key moments only (going
   on duty, returning to the app, each dispatch step, navigation start).
+- **Photos stay in their folder** (0083): complaint photos in `reports/`, tanod proof in `dispatch/`, the barangay's in `barangay/`.
 - **Soft delete only.** `reports.deleted_at`, never `DELETE`.
 - **`geom` is generated** from `latitude`/`longitude`.
 
