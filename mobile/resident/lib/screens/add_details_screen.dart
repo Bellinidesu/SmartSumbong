@@ -241,92 +241,72 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
     );
   }
 
+  // Branch D, 1:1 with the preview's Add details: a blue card with the
+  // label, the report and a close; the ask; the tanod's question in amber;
+  // the text box with its counter; the dashed attach tile; the
+  // acknowledgement; Back and Submit.
   Widget _form() {
     final s = context.s;
-    final c = context.colors;
-    final navy = c.navy;
+    final d = context.d;
     final created = widget.createdAt?.toLocal();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Align(alignment: Alignment.centerLeft, child: DBack()),
-          const SizedBox(height: 12),
-          DCard(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.addDetailsHeader(_head),
-                  style: const TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w800,
-                    fontSize: 28,
-                    height: 30 / 28,
-                    color: Color(0xFFF3F3F3),
-                  ),
-                ),
-                if (created != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    s.addDetailsDateSubmitted(
-                        '${s.monthFull(created.month)} ${created.day}, '
-                        '${created.year}'),
-                    style: const TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                      height: 15 / 12,
-                      color: Color(0xFFF3F3F3),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 33),
-
-          Text(
-            s.addDetailsInstruction,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              height: 18 / 16,
-              color: navy,
-            ),
-          ),
-          const SizedBox(height: 12),
-          // The tanod's own question, in the design's orange-edged card.
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: kFigmaOrange.withValues(alpha: 0.12),
-              border: Border.all(color: kFigmaOrange),
               borderRadius: BorderRadius.circular(20),
+              gradient: const RadialGradient(center: Alignment(-.6, -.8), radius: 1.4, colors: [Color(0xFF7FA2FF), Color(0xFF356CF9), Color(0xFF1C47B8)], stops: [0, .6, 1]),
             ),
-            child: Text.rich(
-              TextSpan(children: [
-                TextSpan(
-                  text: s.addDetailsQuestionLabel,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+            child: Stack(children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 34),
+                  child: Text(context.tr('ADD DETAILS', 'MAGDAGDAG NG DETALYE'),
+                      style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 1.05, color: Colors.white70)),
                 ),
-                TextSpan(text: widget.question),
+                const SizedBox(height: 2),
+                Text(widget.subject, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 19, height: 1.25, color: Colors.white)),
+                const SizedBox(height: 2),
+                Text(
+                  '${widget.trackingId}${created == null ? '' : ' · ${s.addDetailsDateSubmitted('${s.monthFull(created.month)} ${created.day}, ${created.year}')}'}',
+                  style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white),
+                ),
               ]),
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                height: 1.35,
-                color: navy,
+              Positioned(
+                right: -6,
+                top: -6,
+                child: GestureDetector(
+                  onTap: _busy ? null : () => Navigator.of(context).maybePop(),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x4D000000)),
+                    child: const Icon(Icons.close_rounded, size: 17, color: Colors.white),
+                  ),
+                ),
               ),
-            ),
+            ]),
           ),
-          const SizedBox(height: 20),
-
+          const SizedBox(height: 12),
+          Text(s.addDetailsInstruction, style: DType.body(d.ink2, size: 13.5).copyWith(height: 1.45)),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(const Color(0xFFF59E0B).withValues(alpha: .12), d.card),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: .35)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.addDetailsQuestionLabel.trim(), style: DType.body(d.muted, size: 12, w: FontWeight.w800)),
+              Text(widget.question, style: DType.body(d.ink, size: 13.5).copyWith(height: 1.45)),
+            ]),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _details,
             enabled: !_busy,
@@ -335,45 +315,28 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
             maxLength: 500,
             textCapitalization: TextCapitalization.sentences,
             onChanged: (_) => setState(() => _error = null),
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
-              color: navy,
-            ),
+            style: DType.body(d.ink, size: 14),
+            buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
+                Text('$currentLength/${maxLength ?? 500}', style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
             decoration: InputDecoration(
               hintText: s.addDetailsHint,
-              hintStyle: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w400,
-                fontSize: 12,
-                color: navy,
-              ),
-              contentPadding: const EdgeInsets.fromLTRB(17, 12, 17, 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide(color: navy),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide(color: navy),
-              ),
+              hintStyle: DType.body(d.muted, size: 14),
+              filled: true,
+              fillColor: d.card,
+              contentPadding: const EdgeInsets.all(12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.link)),
             ),
           ),
-          const SizedBox(height: 14),
-
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
             child: _photo == null
                 ? _AttachTile(onTap: _busy ? null : _addPhoto)
-                : _PhotoChip(
-                    photo: _photo!,
-                    onRemove: _busy ? null : () => setState(() => _photo = null),
-                  ),
+                : _PhotoChip(photo: _photo!, onRemove: _busy ? null : () => setState(() => _photo = null)),
           ),
-          const SizedBox(height: 30),
-
-          // The frame's acknowledgement: a 12px box, the 12/400 line.
+          const SizedBox(height: 12),
           InkWell(
             onTap: _busy
                 ? null
@@ -381,82 +344,34 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
                       _acknowledged = !_acknowledged;
                       _error = null;
                     }),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  checked: _acknowledged,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    margin: const EdgeInsets.only(top: 4, right: 4),
-                    decoration: BoxDecoration(
-                      color: c.field,
-                      border: Border.all(color: navy),
-                    ),
-                    child: _acknowledged
-                        ? Icon(Icons.check, size: 10, color: navy)
-                        : null,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Semantics(
+                checked: _acknowledged,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  margin: const EdgeInsets.only(top: 1, right: 8),
+                  decoration: BoxDecoration(
+                    color: _acknowledged ? d.btn : d.card,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: _acknowledged ? d.btn : d.muted, width: 1.5),
                   ),
+                  child: _acknowledged ? const Icon(Icons.check_rounded, size: 14, color: Colors.white) : null,
                 ),
-                Expanded(
-                  child: Text(
-                    s.reportDetailsAcknowledgement,
-                    style: TextStyle(
-                      fontFamily: 'Urbanist',
-                      fontWeight: FontWeight.w400,
-                      fontSize: 12,
-                      height: 18.72 / 12,
-                      color: navy,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+              Expanded(child: Text(s.reportDetailsAcknowledgement, style: DType.body(d.ink2, size: 12.5).copyWith(height: 1.4))),
+            ]),
           ),
-
           if (_error != null) ...[
             const SizedBox(height: 10),
-            Text(_error!,
-                style: TextStyle(color: c.hint, fontSize: 12, height: 1.35)),
+            Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
           ],
-          const SizedBox(height: 27),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 150),
-                  child: FigmaPill(
-                    style: FigmaPillStyle.light,
-                    height: 45,
-                    onPressed:
-                        _busy ? null : () => Navigator.of(context).maybePop(),
-                    child: Text(s.reportsDialogBack),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 150),
-                  child: FigmaPill(
-                    height: 45,
-                    onPressed: _busy ? null : _submit,
-                    child: _busy
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: c.bg),
-                          )
-                        : Text(s.reportsSubmit),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: DButton(s.reportsDialogBack, kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).maybePop())),
+            const SizedBox(width: 10),
+            Expanded(child: DButton(s.reportsSubmit, expand: true, busy: _busy, onTap: _busy ? null : _submit)),
+          ]),
         ],
       ),
     );
@@ -471,49 +386,25 @@ class _AttachTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
+    final d = context.d;
     final s = context.s;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(25),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        width: 174,
-        height: 128,
-        decoration: BoxDecoration(
-          color: c.field,
-          borderRadius: BorderRadius.circular(25),
-        ),
+        width: 164,
+        height: 120,
+        decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14)),
         child: CustomPaint(
-          painter: _Dashed(color: c.navy),
-          child: Row(
+          painter: _Dashed(color: d.line.withValues(alpha: 1), radius: 14),
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/images/icon-attach.png',
-                  width: 20, height: 20, color: c.navy),
-              const SizedBox(width: 8),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.reportsAttachMedia,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        height: 14 / 12,
-                        color: c.navy,
-                      )),
-                  Text(s.reportsMaxPhotoSize,
-                      style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontWeight: FontWeight.w400,
-                        fontStyle: FontStyle.italic,
-                        fontSize: 10,
-                        height: 1,
-                        color: c.navy,
-                      )),
-                ],
-              ),
+              Icon(Icons.image_outlined, size: 28, color: d.link),
+              const SizedBox(height: 6),
+              Text(s.reportsAttachMedia, style: DType.body(d.link, size: 12, w: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(s.reportsMaxPhotoSize, style: DType.body(d.muted, size: 10.5)),
             ],
           ),
         ),
@@ -531,30 +422,17 @@ class _PhotoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
+    final d = context.d;
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: c.field,
-        border: Border.all(color: c.navy),
-        borderRadius: BorderRadius.circular(25),
-      ),
+      decoration: BoxDecoration(color: d.card, border: Border.all(color: d.line), borderRadius: BorderRadius.circular(14)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Image.file(photo, width: 56, height: 56, fit: BoxFit.cover),
-          ),
+          ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(photo, width: 56, height: 56, fit: BoxFit.cover)),
           const SizedBox(width: 10),
-          Text(
-            context.s.reportsPhotoAttachedNote,
-            style: TextStyle(fontSize: 12, color: c.navy),
-          ),
-          IconButton(
-            icon: Icon(Icons.cancel, color: c.navy),
-            onPressed: onRemove,
-          ),
+          Text(context.s.reportsPhotoAttachedNote, style: DType.body(d.ink2, size: 12)),
+          IconButton(icon: Icon(Icons.cancel, color: d.muted), onPressed: onRemove),
         ],
       ),
     );
@@ -562,9 +440,10 @@ class _PhotoChip extends StatelessWidget {
 }
 
 class _Dashed extends CustomPainter {
-  const _Dashed({required this.color});
+  const _Dashed({required this.color, this.radius = 25});
 
   final Color color;
+  final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -575,7 +454,7 @@ class _Dashed extends CustomPainter {
     final path = Path()
       ..addRRect(RRect.fromRectAndRadius(
         (Offset.zero & size).deflate(0.5),
-        const Radius.circular(25),
+        Radius.circular(radius),
       ));
     for (final metric in path.computeMetrics()) {
       var d = 0.0;
@@ -590,5 +469,5 @@ class _Dashed extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _Dashed oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _Dashed oldDelegate) => oldDelegate.color != color || oldDelegate.radius != radius;
 }

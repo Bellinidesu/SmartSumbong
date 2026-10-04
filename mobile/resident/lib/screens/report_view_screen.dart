@@ -88,6 +88,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../d/d_categories.dart';
 import '../d/d_theme.dart';
+import '../d/flood_watch.dart';
 import '../d/d_ui.dart';
 import '../models/complaint_category.dart';
 import '../i18n.dart';
@@ -128,6 +129,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   /// screen still reads like those frames at a glance (note bubble only)
   /// -- expanding is one tap on the centered toggle below the bubble.
   bool _timelineExpanded = false;
+  bool _mediaOpen = false;
+  bool _reasonsOpen = false;
+  bool _busyAct = false;
 
   RealtimeChannel? _liveChannel;
   Timer? _liveDebounce;
@@ -495,51 +499,172 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         ? (const Color(0xFF8B5CF6), context.tr('Escalated', 'In-escalate'))
         : (_statusColour(status), s.reportStatusLabel(status.wire));
 
-    Widget toggle() => _TimelineToggle(
-          expanded: _timelineExpanded,
-          label: _timelineExpanded ? s.reportViewHideTimeline : s.reportViewShowTimeline,
-          onTap: () => setState(() => _timelineExpanded = !_timelineExpanded),
+    final due = DateTime.tryParse(r['due_at'] as String? ?? '')?.toLocal();
+    final overdue = status.isOngoing && due != null && due.isBefore(DateTime.now()) && !referred;
+    String dueText(DateTime t) {
+      final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
+      return '${s.monthFull(t.month)} ${t.day}, ${t.year}, $h:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'AM' : 'PM'}';
+    }
+
+    final followedAt = DateTime.tryParse(r['followed_up_at'] as String? ?? '');
+    final followedToday = followedAt != null && DateTime.now().difference(followedAt).inHours < 24;
+    final finished = status.isFinished;
+    final remark = (latestEntry?['remark'] as String?)?.trim();
+    final author = latestEntry?['author_label'] as String?;
+    final hasRemark = remark != null && remark.isNotEmpty;
+    final remarkText = hasRemark ? (author != null ? '$author: $remark' : remark) : null;
+    final reopened = (r['reopened_count'] as num?)?.toInt() ?? 0;
+    final askingDetails = _detailRequest != null && widget.uploader != null;
+    const amber = Color(0xFFF59E0B);
+    const green = Color(0xFF1F8A45);
+
+    // One tinted note per situation, the way the preview draws them: a
+    // dot, a bold title, the words under it.
+    final notes = <Widget>[];
+    if (overdue) {
+      notes.add(_RNote(
+        colour: const Color(0xFFE5383B),
+        title: s.caseOverdue,
+        body: s.caseOverdueBody(dueText(due)),
+        action: followedToday ? null : (s.followUpButton, () => _followUp(r)),
+        foot: followedToday ? s.followUpToday : null,
+      ));
+    }
+    if (askingDetails) {
+      notes.add(_RNote(colour: amber, title: s.reportViewDetailsNeeded, body: '“${_detailRequest!['message'] as String? ?? ''}”'));
+    } else if (referred && status.isOngoing) {
+      notes.add(_RNote(
+        colour: const Color(0xFF8B5CF6),
+        title: context.tr('Escalated to the ${r['referred_to']}', 'In-escalate sa ${r['referred_to']}'),
+        body: (r['referral_note'] as String?)?.isNotEmpty == true ? r['referral_note'] as String : s.caseReferredBody,
+      ));
+    } else if (status == ReportStatus.rejected) {
+      notes.add(_RNote(colour: const Color(0xFFC62828), title: context.tr('Not accepted', 'Hindi tinanggap'), body: remarkText ?? s.reportViewRejected));
+    } else if (status == ReportStatus.cancelled) {
+      notes.add(_RNote(
+        colour: const Color(0xFF9AA1AB),
+        title: context.tr('Cancelled', 'Kinansela'),
+        body: context.tr('You cancelled this report. A cancelled case can’t be opened again.', 'Kinansela mo ang ulat na ito.'),
+      ));
+    } else if (finished) {
+      notes.add(_RNote(
+        colour: green,
+        title: context.tr('Resolved', 'Naayos na'),
+        body: remarkText ?? (_proof.isNotEmpty ? s.reportViewResolvedWithProof : s.reportViewResolvedNoProof),
+        action: _proof.isNotEmpty ? (s.reportViewViewPhoto, () => _openPhoto(_proof, 0)) : null,
+        foot: reopened > 0 ? (reopened == 1 ? s.reportViewReopenedOnce : s.reportViewReopenedTimes(reopened)) : null,
+      ));
+    } else if (showsNote) {
+      final fallback = status == ReportStatus.assigned || status == ReportStatus.inProgress || status == ReportStatus.offlineInvestigation ? s.reportViewAssigned : null;
+      final text = remarkText ?? fallback;
+      if (text != null) notes.add(_RNote(colour: stCol, title: stLabel, body: text));
+    }
+
+    final hasMedia = (lat != null && lng != null) || _photos.isNotEmpty;
+    final cancelled = status == ReportStatus.cancelled;
+    Widget ask() => DButton(
+          context.tr('Ask the barangay', 'Magtanong sa barangay'),
+          kind: DButtonKind.line,
+          icon: Icons.chat_bubble_outline_rounded,
+          expand: true,
+          onTap: () => ReportMessagesScreen.open(
+            context,
+            ReportMessagesScreen(
+              reportId: widget.reportId,
+              trackingId: r['tracking_id'] as String? ?? '',
+              subject: r['subject'] as String? ?? '',
+              category: ComplaintCategory.parse(r['category'] as String?),
+              canWrite: status != ReportStatus.cancelled && status != ReportStatus.archived,
+            ),
+          ),
         );
+
+    final actions = <Widget>[];
+    if (finished) {
+      if (_feedback == null) {
+        actions.add(_RateCard(reportId: widget.reportId, onSaved: _load));
+      } else {
+        actions.add(Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+          child: _FeedbackCard(feedback: _feedback, onRate: _openFeedback),
+        ));
+      }
+      actions.add(ask());
+      if (status.canRequestReopen) {
+        actions.add(DButton(context.tr('Reopen this report', 'Buksan muli ang ulat'), kind: DButtonKind.line, expand: true, onTap: () => setState(() => _reasonsOpen = !_reasonsOpen)));
+        if (_reasonsOpen) {
+          actions.add(_ReasonPanel(
+            title: context.tr('Why are you reopening it?', 'Bakit mo ito binubuksan muli?'),
+            options: [
+              context.tr('The problem came back', 'Bumalik ang problema'),
+              context.tr('The proof photo doesn’t match', 'Hindi tugma ang litrato'),
+              context.tr('Other', 'Iba pa'),
+            ],
+            busy: _busyAct,
+            onBack: () => setState(() => _reasonsOpen = false),
+            onConfirm: (why) => _sendRequest('request_reopen', why, '${r['tracking_id']} — ${context.tr('your reopen request was sent.', 'naipadala ang iyong hiling na buksan muli.')}'),
+          ));
+        }
+      }
+    } else if (status == ReportStatus.rejected) {
+      actions.add(ask());
+      if (status.canRequestAppeal) {
+        actions.add(DButton(context.tr('Appeal this decision', 'Umapela'), kind: DButtonKind.line, expand: true, onTap: () => setState(() => _reasonsOpen = !_reasonsOpen)));
+        if (_reasonsOpen) {
+          actions.add(_ReasonPanel(
+            title: context.tr('Why are you appealing?', 'Bakit ka umaapela?'),
+            options: [
+              context.tr('I think the decision was a mistake', 'Sa tingin ko ay mali ang desisyon'),
+              context.tr('I have more information', 'May dagdag akong impormasyon'),
+              context.tr('Other', 'Iba pa'),
+            ],
+            busy: _busyAct,
+            onBack: () => setState(() => _reasonsOpen = false),
+            onConfirm: (why) => _sendRequest('request_appeal', why, '${r['tracking_id']} — ${context.tr('your appeal was sent.', 'naipadala ang iyong apela.')}'),
+          ));
+        }
+      }
+    } else if (!cancelled) {
+      if (askingDetails) {
+        actions.add(DButton(
+          s.reportsMenuAddDetails,
+          expand: true,
+          onTap: () async {
+            final sent = await AddDetailsScreen.open(
+              context,
+              AddDetailsScreen(
+                requestId: _detailRequest!['id'] as String,
+                trackingId: r['tracking_id'] as String? ?? '',
+                subject: r['subject'] as String? ?? '',
+                statusLabel: context.s.reportStatusLabel(status.wire),
+                createdAt: createdAt,
+                question: _detailRequest!['message'] as String? ?? '',
+                uploader: widget.uploader!,
+              ),
+            );
+            if (sent && mounted) _load();
+          },
+        ));
+      }
+      actions.add(ask());
+      if (status.canCancel && !referred) {
+        actions.add(DButton(context.tr('Cancel this report', 'Kanselahin ang ulat'), kind: DButtonKind.danger, expand: true, onTap: () => _cancel(r)));
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // The tanod is waiting on more details (0065): their question and
-        // the way to answer, above everything else.
-        if (_detailRequest != null && widget.uploader != null) ...[
-          _DetailsNeededCard(
-            question: _detailRequest!['message'] as String? ?? '',
-            onAnswer: () async {
-              final sent = await AddDetailsScreen.open(
-                context,
-                AddDetailsScreen(
-                  requestId: _detailRequest!['id'] as String,
-                  trackingId: r['tracking_id'] as String? ?? '',
-                  subject: r['subject'] as String? ?? '',
-                  statusLabel: context.s.reportStatusLabel(status.wire),
-                  createdAt: DateTime.tryParse(r['created_at'] as String? ?? ''),
-                  question: _detailRequest!['message'] as String? ?? '',
-                  uploader: widget.uploader!,
-                ),
-              );
-              if (sent && mounted) _load();
-            },
-          ),
-          const SizedBox(height: 14),
-        ],
         Text(r['subject'] as String? ?? '', style: DType.body(d.ink, size: 19, w: FontWeight.w800).copyWith(height: 1.25)),
         const SizedBox(height: 10),
-        Row(children: [
-          Expanded(
-            child: Text.rich(TextSpan(children: [
-              TextSpan(text: r['tracking_id'] as String? ?? '', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
-              TextSpan(text: ' · ', style: DType.body(d.muted, size: 13)),
-              WidgetSpan(alignment: PlaceholderAlignment.middle, child: Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 6), decoration: BoxDecoration(shape: BoxShape.circle, color: stCol))),
-              TextSpan(text: stLabel, style: DType.body(d.ink, size: 13, w: FontWeight.w700)),
-            ])),
-          ),
-          if (status.canCancel) _CardMenu(onCancel: () => _cancel(r)),
-        ]),
+        Text.rich(TextSpan(children: [
+          TextSpan(text: r['tracking_id'] as String? ?? '', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+          TextSpan(text: ' · ', style: DType.body(d.muted, size: 13)),
+          WidgetSpan(alignment: PlaceholderAlignment.middle, child: Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 6), decoration: BoxDecoration(shape: BoxShape.circle, color: stCol))),
+          TextSpan(text: stLabel, style: DType.body(d.ink, size: 13, w: FontWeight.w700)),
+        ])),
         const SizedBox(height: 10),
         Column(children: [
           if (lat != null && lng != null)
@@ -550,10 +675,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             title: _hasTanod(status) ? context.tr('A tanod is assigned', 'May naka-assign na tanod') : context.tr('No tanod assigned yet', 'Wala pang tanod'),
             sub: _hasTanod(status) ? context.tr('Assigned to your report', 'Naka-assign sa iyong report') : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
           ),
+          if (lat != null && lng != null) _FloodRow(lat: lat, lng: lng),
+          if (status.isOngoing && due != null && !overdue && !referred) DRow(icon: Icons.schedule_rounded, title: s.caseExpectedTitle, sub: dueText(due)),
           if (r['is_anonymous'] == true) DRow(icon: Icons.visibility_off_outlined, title: s.reportViewAnonymous),
         ]),
         const SizedBox(height: 10),
         Text(r['description'] as String? ?? '', style: DType.body(d.ink2, size: 14, w: FontWeight.w400).copyWith(height: 1.5)),
+        for (final n in notes) ...[const SizedBox(height: 10), n],
         const SizedBox(height: 10),
         DStepList(
           labels: _short(status, referred)
@@ -570,77 +698,64 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           colour: col0,
           subs: createdAt == null ? const {} : {0: _ReportCard._formatDate(s, createdAt)},
         ),
-        if (lat != null && lng != null) ...[
+        // The map and the photos, folded away: the preview's page has
+        // neither, so they open from here rather than push the page down.
+        if (hasMedia) ...[
           const SizedBox(height: 14),
-          _MiniMap(point: LatLng(lat, lng)),
+          _Drop(
+            icon: Icons.photo_library_outlined,
+            title: context.tr('Location & photos', 'Lokasyon at mga larawan'),
+            open: _mediaOpen,
+            onTap: () => setState(() => _mediaOpen = !_mediaOpen),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (lat != null && lng != null) _MiniMap(point: LatLng(lat, lng)),
+              if (lat != null && lng != null && _photos.isNotEmpty) const SizedBox(height: 12),
+              if (_photos.isNotEmpty) _MediaCarousel(photos: _photos, onViewPhoto: (i) => _openPhoto(_photos, i)),
+            ]),
+          ),
         ],
-        if (_photos.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          _MediaCarousel(photos: _photos, onViewPhoto: (i) => _openPhoto(_photos, i)),
-        ],
-        const SizedBox(height: 16),
-        // 0072: when the barangay expects it done, Overdue and Follow up
-        // once that passes, where it was referred, and the question
-        // thread with the barangay.
-        _CaseDeskCard(
-          status: status,
-          dueAt: DateTime.tryParse(r['due_at'] as String? ?? ''),
-          referredTo: r['referred_to'] as String?,
-          referralNote: r['referral_note'] as String?,
-          followedUpAt: DateTime.tryParse(r['followed_up_at'] as String? ?? ''),
-          onFollowUp: () => _followUp(r),
-          onAsk: () => ReportMessagesScreen.open(
-            context,
-            ReportMessagesScreen(
-              reportId: widget.reportId,
-              trackingId: r['tracking_id'] as String? ?? '',
-              subject: r['subject'] as String? ?? '',
-              category: ComplaintCategory.parse(r['category'] as String?),
-              canWrite: status != ReportStatus.cancelled && status != ReportStatus.archived,
-            ),
+        const SizedBox(height: 10),
+        _Drop(
+          icon: Icons.timeline_rounded,
+          title: _timelineExpanded ? s.reportViewHideTimeline : s.reportViewShowTimeline,
+          open: _timelineExpanded,
+          onTap: () => setState(() => _timelineExpanded = !_timelineExpanded),
+          child: _Timeline(
+            entries: _timeline,
+            submittedAt: createdAt,
+            upcomingWire: status.isOngoing
+                ? (status == ReportStatus.pendingReview || status == ReportStatus.validated ? 'assigned' : 'resolved')
+                : null,
           ),
         ),
-        const SizedBox(height: 12),
-        if (showsNote)
-          _StatusNoteBubble(
-            status: status,
-            latestEntry: latestEntry,
-            hasProof: _proof.isNotEmpty,
-            proofPhotoUrl: _proof.isNotEmpty ? _proof.first.url : null,
-            onViewProof: () => _openPhoto(_proof, 0),
-            reopenedCount: (r['reopened_count'] as num?)?.toInt() ?? 0,
-            toggle: toggle(),
-          )
-        else
-          Center(child: toggle()),
-        if (_timelineExpanded) ...[
-          const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
-            child: _Timeline(
-              entries: _timeline,
-              submittedAt: createdAt,
-              upcomingWire: status.isOngoing
-                  ? (status == ReportStatus.pendingReview || status == ReportStatus.validated ? 'assigned' : 'resolved')
-                  : null,
-            ),
-          ),
-        ],
-        // Feedback closes the loop — RLS only allows the insert on a
-        // resolved or closed report.
-        if (status.isFinished) ...[
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
-            child: _FeedbackCard(feedback: _feedback, onRate: _openFeedback),
-          ),
+        if (actions.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          for (var i = 0; i < actions.length; i++) ...[if (i > 0) const SizedBox(height: 8), actions[i]],
         ],
       ]),
     );
+  }
+
+  /// Reopen or appeal: a request to the barangay, never a decision — the
+  /// report keeps its status until an administrator acts on it.
+  Future<void> _sendRequest(String fn, String reason, String done) async {
+    final s = context.s;
+    setState(() => _busyAct = true);
+    try {
+      await Supabase.instance.client.rpc(fn, params: {'p_report': widget.reportId, 'p_reason': reason});
+      if (!mounted) return;
+      setState(() => _reasonsOpen = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
+      await _load();
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.reportsErrorGeneric)));
+    } finally {
+      if (mounted) setState(() => _busyAct = false);
+    }
   }
 
   static bool _hasTanod(ReportStatus s) =>
@@ -2683,6 +2798,303 @@ class _DetailsNeededCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+// ---------- Branch D report page pieces ----------
+
+/// The preview's `.rnote`: a tinted card, a dot, a bold title and the
+/// words under it; optionally one underlined action and a small foot line.
+class _RNote extends StatelessWidget {
+  const _RNote({required this.colour, required this.title, required this.body, this.action, this.foot});
+
+  final Color colour;
+  final String title;
+  final String body;
+  final (String, VoidCallback)? action;
+  final String? foot;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(colour.withValues(alpha: .10), d.card),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colour.withValues(alpha: .35)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(width: 10, height: 10, margin: const EdgeInsets.only(top: 4), decoration: BoxDecoration(shape: BoxShape.circle, color: colour)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: DType.body(d.ink, size: 13, w: FontWeight.w800).copyWith(height: 1.35)),
+            Text(body, style: DType.body(d.ink2, size: 12.5).copyWith(height: 1.45)),
+            if (action != null)
+              GestureDetector(
+                onTap: action!.$2,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 2),
+                  child: Text(action!.$1, style: DType.body(d.link, size: 12.5, w: FontWeight.w800).copyWith(decoration: TextDecoration.underline)),
+                ),
+              ),
+            if (foot != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(foot!, style: DType.body(d.muted, size: 11.5))),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+/// A folded section: a bordered row with a chevron that opens its content.
+class _Drop extends StatelessWidget {
+  const _Drop({required this.icon, required this.title, required this.open, required this.onTap, required this.child});
+
+  final IconData icon;
+  final String title;
+  final bool open;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(children: [
+              Icon(icon, size: 20, color: d.link),
+              const SizedBox(width: 12),
+              Expanded(child: Text(title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w700))),
+              Icon(open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: d.muted),
+            ]),
+          ),
+        ),
+        if (open) Padding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 14), child: child),
+      ]),
+    );
+  }
+}
+
+/// The Project NOAH flood row: the level at the report's pin.
+class _FloodRow extends StatefulWidget {
+  const _FloodRow({required this.lat, required this.lng});
+
+  final double lat;
+  final double lng;
+
+  @override
+  State<_FloodRow> createState() => _FloodRowState();
+}
+
+class _FloodRowState extends State<_FloodRow> {
+  late final Future<int> _level = FloodHazard.levelAt(widget.lat, widget.lng);
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<int>(
+        future: _level,
+        builder: (_, snap) {
+          if (!snap.hasData) return const SizedBox.shrink();
+          final title = switch (snap.data!) {
+            3 => context.tr('High flood hazard', 'Mataas na panganib sa baha'),
+            2 => context.tr('Medium flood hazard', 'Katamtamang panganib sa baha'),
+            1 => context.tr('Low flood hazard', 'Mababang panganib sa baha'),
+            _ => context.tr('Outside the flood zones', 'Labas sa mga flood zone'),
+          };
+          return DRow(icon: Icons.waves_rounded, title: title, sub: 'Project NOAH 100-year flood map');
+        },
+      );
+}
+
+/// "How did we do?": stars, a few words, Send feedback — the same insert
+/// the old sheet made, now on the page.
+class _RateCard extends StatefulWidget {
+  const _RateCard({required this.reportId, required this.onSaved});
+
+  final String reportId;
+  final Future<void> Function() onSaved;
+
+  @override
+  State<_RateCard> createState() => _RateCardState();
+}
+
+class _RateCardState extends State<_RateCard> {
+  final _comment = TextEditingController();
+  int _rating = 0;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _comment.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final s = context.s;
+    if (_rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.reportViewRatingRequired)));
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final client = Supabase.instance.client;
+      final comment = _comment.text.trim();
+      await client.from('feedback').insert({
+        'report_id': widget.reportId,
+        'resident_id': client.auth.currentUser!.id,
+        'rating': _rating,
+        'comment': comment.isEmpty ? null : comment,
+      });
+      if (!mounted) return;
+      await widget.onSaved();
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      final m = e.message.toLowerCase();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(m.contains('duplicate') || m.contains('unique')
+              ? s.reportViewFeedbackDuplicate
+              : m.contains('policy') || m.contains('row-level')
+                  ? s.reportViewFeedbackNotFinished
+                  : s.reportViewFeedbackFailed)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.reportViewFeedbackFailed)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      child: Column(children: [
+        Text(context.s.reportViewHowDidWeDo, style: DType.body(d.dark ? Colors.white : DColors.brandNavy, size: 16, w: FontWeight.w800)),
+        const SizedBox(height: 8),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          for (var i = 1; i <= 5; i++)
+            GestureDetector(
+              onTap: () => setState(() => _rating = i),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Icon(Icons.star_rounded, size: 34, color: i <= _rating ? const Color(0xFFFF9800) : d.line),
+              ),
+            ),
+        ]),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _comment,
+          minLines: 2,
+          maxLines: 4,
+          maxLength: 500,
+          style: DType.body(d.ink, size: 13.5),
+          decoration: InputDecoration(
+            counterText: '',
+            hintText: context.tr('Tell us more (optional)', 'Sabihin pa (opsyonal)'),
+            hintStyle: DType.body(d.muted, size: 13.5),
+            filled: true,
+            fillColor: d.card2,
+            contentPadding: const EdgeInsets.all(10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: d.line)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: d.line)),
+          ),
+        ),
+        const SizedBox(height: 10),
+        DButton(context.tr('Send feedback', 'Ipadala'), busy: _saving, onTap: _saving ? null : _send),
+      ]),
+    );
+  }
+}
+
+/// The reopen / appeal reasons: a few choices, Other with a line of its
+/// own, then Back and Confirm.
+class _ReasonPanel extends StatefulWidget {
+  const _ReasonPanel({required this.title, required this.options, required this.busy, required this.onBack, required this.onConfirm});
+
+  final String title;
+  final List<String> options;
+  final bool busy;
+  final VoidCallback onBack;
+  final void Function(String reason) onConfirm;
+
+  @override
+  State<_ReasonPanel> createState() => _ReasonPanelState();
+}
+
+class _ReasonPanelState extends State<_ReasonPanel> {
+  int _pick = 0;
+  final _other = TextEditingController();
+
+  @override
+  void dispose() {
+    _other.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final last = _pick == widget.options.length - 1;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(widget.title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
+        const SizedBox(height: 6),
+        for (var i = 0; i < widget.options.length; i++)
+          InkWell(
+            onTap: () => setState(() => _pick = i),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(children: [
+                Icon(_pick == i ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, size: 20, color: _pick == i ? d.link : d.muted),
+                const SizedBox(width: 10),
+                Expanded(child: Text(widget.options[i], style: DType.body(d.ink, size: 13.5))),
+              ]),
+            ),
+          ),
+        if (last)
+          TextField(
+            controller: _other,
+            maxLength: 300,
+            style: DType.body(d.ink, size: 13.5),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: context.tr('Tell us why', 'Sabihin kung bakit'),
+              hintStyle: DType.body(d.muted, size: 13.5),
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: d.line)),
+            ),
+          ),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: DButton(context.tr('Back', 'Bumalik'), small: true, kind: DButtonKind.ghost, expand: true, onTap: widget.onBack)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: DButton(
+              context.tr('Confirm', 'Kumpirmahin'),
+              small: true,
+              expand: true,
+              busy: widget.busy,
+              onTap: widget.busy || (last && _other.text.trim().isEmpty)
+                  ? null
+                  : () => widget.onConfirm(last ? _other.text.trim() : widget.options[_pick]),
+            ),
+          ),
+        ]),
+      ]),
     );
   }
 }
