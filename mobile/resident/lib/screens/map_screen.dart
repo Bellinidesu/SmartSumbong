@@ -325,8 +325,10 @@ class _MapScreenState extends State<MapScreen> {
                     point: p.point,
                     muted: !p.mine,
                     glyph: categoryGlyph(p.category ?? ComplaintCategory.other),
-                    statusColour: reportStatusColour(p.status),
-                    catColour: categoryColour(p.category ?? ComplaintCategory.other),
+                    // as on the portal's Spatial Distribution: the pin is the
+                    // complaint-type colour; the status is the corner dot
+                    bodyColour: categoryColour(p.category ?? ComplaintCategory.other),
+                    dotColour: reportStatusColour(p.status),
                     pulse: p.mine && (p.status == ReportStatus.inProgress || p.status == ReportStatus.assigned || p.status == ReportStatus.offlineInvestigation),
                   ),
             ],
@@ -401,6 +403,17 @@ class _MapScreenState extends State<MapScreen> {
                   Text(_showReports ? s.mapReportsSpotted : s.mapWantToSeeReports, style: DType.body(d.ink, size: 16, w: FontWeight.w800).copyWith(height: 1.2)),
                   const SizedBox(height: 2),
                   Text(_showReports ? s.mapCardBodyShowing : s.mapCardBodyHidden, style: DType.body(d.muted, size: 12.5).copyWith(height: 1.35)),
+                  if (_showReports && pins.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 10, runSpacing: 4, children: [
+                      for (final c in {for (final p in pins) p.category ?? ComplaintCategory.other})
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: categoryColour(c))),
+                          const SizedBox(width: 5),
+                          Text(c.label, style: DType.body(d.muted, size: 11.5)),
+                        ]),
+                    ]),
+                  ],
                   if (_hazards) ...[
                     const SizedBox(height: 6),
                     Wrap(spacing: 10, runSpacing: 4, children: [

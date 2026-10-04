@@ -63,8 +63,8 @@ class BrgyMapPin {
     this.alert = false,
     this.muted = false,
     this.glyph,
-    this.statusColour,
-    this.catColour,
+    this.bodyColour,
+    this.dotColour,
     this.pulse = false,
   });
 
@@ -73,16 +73,17 @@ class BrgyMapPin {
   final bool alert;
   final bool muted;
 
-  /// A status badge (Ace's pick, 5 Oct): a round badge in [statusColour]
-  /// with the category's [glyph] inside and a dot in [catColour] on its
-  /// shoulder; [pulse] adds a soft halo (a report in progress). Without a
-  /// [glyph] the pin is the design's tilted one.
+  /// A map badge (Ace's pick, 5 Oct): round, in [bodyColour] — the
+  /// portal's complaint-type colour — with the category's [glyph] inside
+  /// and a dot in [dotColour] (the status) on its shoulder; [pulse] adds a
+  /// soft halo (a report in progress). Without a [glyph] the pin is the
+  /// design's tilted one.
   final IconData? glyph;
-  final Color? statusColour;
-  final Color? catColour;
+  final Color? bodyColour;
+  final Color? dotColour;
   final bool pulse;
 
-  bool get isBadge => glyph != null && statusColour != null;
+  bool get isBadge => glyph != null && bodyColour != null;
 
   @override
   bool operator ==(Object other) =>
@@ -92,12 +93,12 @@ class BrgyMapPin {
       other.alert == alert &&
       other.muted == muted &&
       other.glyph == glyph &&
-      other.statusColour == statusColour &&
-      other.catColour == catColour &&
+      other.bodyColour == bodyColour &&
+      other.dotColour == dotColour &&
       other.pulse == pulse;
 
   @override
-  int get hashCode => Object.hash(id, point, alert, muted, glyph, statusColour, catColour, pulse);
+  int get hashCode => Object.hash(id, point, alert, muted, glyph, bodyColour, dotColour, pulse);
 }
 
 /// Moves a [BrgyMap]'s camera. A move asked for before the map is ready
@@ -724,7 +725,7 @@ class _BrgyMapState extends State<BrgyMap> {
   }
 
   static String _badgeKey(BrgyMapPin p) =>
-      'b${p.statusColour!.toARGB32()}-${p.catColour?.toARGB32()}-${p.glyph!.codePoint}-${p.muted ? 1 : 0}-${p.pulse ? 1 : 0}';
+      'b${p.bodyColour!.toARGB32()}-${p.dotColour?.toARGB32()}-${p.glyph!.codePoint}-${p.muted ? 1 : 0}-${p.pulse ? 1 : 0}';
 
   /// A report's status badge: round, the status colour, the category glyph
   /// inside, a dot in the category colour on its shoulder, a soft halo
@@ -735,12 +736,12 @@ class _BrgyMapState extends State<BrgyMap> {
     final rec = ui.PictureRecorder();
     final canvas = Canvas(rec)..scale(dpr);
     const c = Offset(30, 34);
-    final status = p.statusColour!;
+    final status = p.bodyColour!;
     if (p.muted) {
       canvas.saveLayer(Offset.zero & size, Paint()..color = const Color(0xB3FFFFFF));
       canvas.drawCircle(c, 16.5, Paint()..color = Colors.white);
       canvas.drawCircle(c, 16.5, Paint()..style = PaintingStyle.stroke..strokeWidth = 2.4..color = status);
-      _glyph(canvas, p.glyph!, c, 17, p.catColour ?? status);
+      _glyph(canvas, p.glyph!, c, 17, status);
       canvas.restore();
       return _toPng(rec, size, dpr);
     }
@@ -751,7 +752,7 @@ class _BrgyMapState extends State<BrgyMap> {
     _glyph(canvas, p.glyph!, c, 17, Colors.white);
     final dot = c + const Offset(11, 11);
     canvas.drawCircle(dot, 6.5, Paint()..color = Colors.white);
-    canvas.drawCircle(dot, 4.5, Paint()..color = p.catColour ?? status);
+    canvas.drawCircle(dot, 4.5, Paint()..color = p.dotColour ?? status);
     return _toPng(rec, size, dpr);
   }
 
