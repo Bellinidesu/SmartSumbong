@@ -355,6 +355,11 @@ function cloudinary_upload_files(string $field, int $max = 6): array
         if (!isset($allowed[$mime])) {
             throw new SupabaseError(t('Only JPEG, PNG or WebP photos can be attached.', 'JPEG, PNG o WebP na larawan lamang ang maaaring ilakip.'));
         }
+        // Location and camera data out before it leaves the server, the
+        // way the app strips them on the phone.
+        strip_photo_metadata($f['tmp_name'][$i], $mime);
+        $bytes = (int) filesize($f['tmp_name'][$i]);
+
         $uuid = sprintf('%s-%s-4%s-%s%s-%s',
             bin2hex(random_bytes(4)), bin2hex(random_bytes(2)), substr(bin2hex(random_bytes(2)), 1),
             dechex(8 + random_int(0, 3)), substr(bin2hex(random_bytes(2)), 1), bin2hex(random_bytes(6)));
@@ -385,4 +390,89 @@ function cloudinary_upload_files(string $field, int $max = 6): array
         ];
     }
     return $out;
+}
+
+/**
+ * Removes embedded metadata (EXIF, including GPS, XMP, comments) from a
+ * JPEG, PNG or WebP file in place, without re-encoding the picture. Pure
+ * PHP: the portal's image has no GD or Imagick. Leaves the file untouched
+ * if it does not parse as expected.
+ */
+function strip_photo_metadata(string $path, string $mime): void
+{
+    $data = @file_get_contents($path);
+    if (!is_string($data) || $data === '') {
+        return;
+    }
+    $out = null;
+
+    if ($mime === 'image/jpeg' && substr($data, 0, 2) === "\xFF\xD8") {
+        // Copy every segment except APP1..APP15 (EXIF, XMP, maker notes)
+        // and COM; APP0 (JFIF) stays. Stop parsing at Start of Scan.
+        $out = "\xFF\xD8";
+        $i = 2;
+        $n = strlen($data);
+        while ($i + 4 <= $n && $data[$i] === "\xFF") {
+            $marker = ord($data[$i + 1]);
+            if ($marker === 0xDA) {
+                $out .= substr($data, $i);
+                $i = $n;
+                break;
+            }
+            $len = (ord($data[$i + 2]) << 8) | ord($data[$i + 3]);
+            if ($len < 2 || $i + 2 + $len > $n) {
+                return; // malformed: leave it
+            }
+            $drop = ($marker >= 0xE1 && $marker <= 0xEF) || $marker === 0xFE;
+            if (!$drop) {
+                $out .= substr($data, $i, 2 + $len);
+            }
+            $i += 2 + $len;
+        }
+        if ($i < $n) {
+            return;
+        }
+    } elseif ($mime === 'image/png' && substr($data, 0, 8) === "\x89PNG\r\n\x1a\n") {
+        // Drop the text and EXIF chunks; every other chunk is copied.
+        $out = substr($data, 0, 8);
+        $i = 8;
+        $n = strlen($data);
+        while ($i + 12 <= $n) {
+            $len  = unpack('N', substr($data, $i, 4))[1];
+            $type = substr($data, $i + 4, 4);
+            if ($i + 12 + $len > $n) {
+                return;
+            }
+            if (!in_array($type, ['eXIf', 'tEXt', 'zTXt', 'iTXt'], true)) {
+                $out .= substr($data, $i, 12 + $len);
+            }
+            $i += 12 + $len;
+        }
+    } elseif ($mime === 'image/webp' && substr($data, 0, 4) === 'RIFF' && substr($data, 8, 4) === 'WEBP') {
+        // Drop the EXIF and XMP chunks and clear their flags in VP8X.
+        $body = '';
+        $i = 12;
+        $n = strlen($data);
+        while ($i + 8 <= $n) {
+            $type = substr($data, $i, 4);
+            $len  = unpack('V', substr($data, $i + 4, 4))[1];
+            $size = 8 + $len + ($len & 1);
+            if ($i + 8 + $len > $n) {
+                return;
+            }
+            $chunk = substr($data, $i, $size);
+            if ($type === 'VP8X' && strlen($chunk) >= 9) {
+                $chunk[8] = chr(ord($chunk[8]) & ~0x0C);
+            }
+            if ($type !== 'EXIF' && $type !== 'XMP ') {
+                $body .= $chunk;
+            }
+            $i += $size;
+        }
+        $out = 'RIFF' . pack('V', 4 + strlen($body)) . 'WEBP' . $body;
+    }
+
+    if (is_string($out) && $out !== $data) {
+        file_put_contents($path, $out);
+    }
 }
