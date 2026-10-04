@@ -46,7 +46,7 @@ class _NavScreenState extends State<_NavScreen> {
   bool _follow = true;
   bool _muted = false;
   bool _rerouting = false;
-  bool _done = false;
+  final bool _done = false;
 
   /// Within 25 m of the complaint: I've arrived turns on.
   bool _arrived = false;

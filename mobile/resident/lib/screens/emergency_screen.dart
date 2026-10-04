@@ -384,11 +384,11 @@ Future<void> _confirmThenDial(BuildContext context, HotlineNumber number) async 
 
 /// A card's soft halo that breathes (`glowRed` / `glowFire`, 3 s).
 class _Breathe extends StatefulWidget {
-  const _Breathe({required this.color, required this.child, this.radius = 22});
+  const _Breathe({required this.color, required this.child});
 
   final Color color;
   final Widget child;
-  final double radius;
+  final double radius = 22;
 
   @override
   State<_Breathe> createState() => _BreatheState();
@@ -557,12 +557,20 @@ class _SlideToCallState extends State<_SlideToCall> with SingleTickerProviderSta
   static const _knob = 46.0;
   static const _inset = 4.0;
 
-  late final AnimationController _back = AnimationController(vsync: this, duration: const Duration(milliseconds: 250))
-    ..addListener(() => setState(() => _dx = _from * (1 - _back.value)));
+  late final AnimationController _back;
 
   double _dx = 0;
   double _from = 0;
   bool _firing = false;
+
+  // Made here, not lazily: a controller first touched in dispose() would
+  // ask a dead element for its ticker.
+  @override
+  void initState() {
+    super.initState();
+    _back = AnimationController(vsync: this, duration: const Duration(milliseconds: 250))
+      ..addListener(() => setState(() => _dx = _from * (1 - _back.value)));
+  }
 
   @override
   void dispose() {

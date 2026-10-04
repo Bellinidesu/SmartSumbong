@@ -901,10 +901,7 @@ class _Pill extends StatelessWidget {
     required this.onTap,
     this.filled = true,
     this.width = 112,
-    this.height = 37,
-    this.radius = 50,
     this.fontSize = 14,
-    this.busy = false,
   });
 
   final String label;
@@ -912,10 +909,9 @@ class _Pill extends StatelessWidget {
   final VoidCallback? onTap;
   final bool filled;
   final double width;
-  final double height;
-  final double radius;
+  final double height = 37;
+  final double radius = 50;
   final double fontSize;
-  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -952,13 +948,7 @@ class _Pill extends StatelessWidget {
               fontSize: fontSize,
             ),
           ),
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: fg),
-                )
-              : Text(label, textAlign: TextAlign.center),
+          child: Text(label, textAlign: TextAlign.center),
         ),
       ),
     );

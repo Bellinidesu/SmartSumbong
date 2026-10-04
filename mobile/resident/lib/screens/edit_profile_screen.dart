@@ -715,17 +715,11 @@ class _ProfileDialog extends StatelessWidget {
     required this.title,
     required this.primaryLabel,
     required this.onPrimary,
-    this.body,
-    this.secondaryLabel,
-    this.onSecondary,
   });
 
   final String title;
-  final String? body;
   final String primaryLabel;
   final VoidCallback onPrimary;
-  final String? secondaryLabel;
-  final VoidCallback? onSecondary;
 
   static const _orange = Color(0xFFFF9800);
 
@@ -735,15 +729,13 @@ class _ProfileDialog extends StatelessWidget {
   // gaps open to 32, as in "Changes Saved.".
   @override
   Widget build(BuildContext context) {
-    final hasBody = body != null;
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         width: 300,
-        padding: EdgeInsets.fromLTRB(
-            20, hasBody ? 30 : 40, 20, hasBody ? 29 : 25),
+        padding: const EdgeInsets.fromLTRB(20, 40, 20, 25),
         decoration: BoxDecoration(
           color: context.colors.navy,
           borderRadius: BorderRadius.circular(50),
@@ -763,32 +755,10 @@ class _ProfileDialog extends StatelessWidget {
                 color: _orange,
               ),
             ),
-            if (hasBody) ...[
-              const SizedBox(height: 23),
-              Text(
-                body!,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                  height: 15 / 16,
-                  color: context.colors.bg,
-                ),
-              ),
-            ],
-            SizedBox(height: hasBody ? 23 : 32),
+            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (secondaryLabel != null) ...[
-                  _Pill(
-                    label: secondaryLabel!,
-                    onTap: onSecondary!,
-                    filled: false,
-                  ),
-                  const SizedBox(width: 13),
-                ],
                 _Pill(label: primaryLabel, onTap: onPrimary, filled: true),
               ],
             ),
