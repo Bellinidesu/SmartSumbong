@@ -56,6 +56,20 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
   final _fieldErrors = <String, String>{};
 
+  /// The number last signed in with (kept only while Remember me is on),
+  /// so it is already there next time. The password is the phone's own
+  /// password manager's to remember — see the autofill hints below.
+  static const _lastMobileKey = 'last_mobile';
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      final last = prefs.getString(_lastMobileKey);
+      if (mounted && last != null && _mobile.text.isEmpty) setState(() => _mobile.text = last);
+    }).catchError((_) {});
+  }
+
   @override
   void dispose() {
     _mobile.dispose();
@@ -94,12 +108,20 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(rememberMeKey, _remember);
+        if (_remember) {
+          await prefs.setString(_lastMobileKey, _mobile.text.trim());
+        } else {
+          await prefs.remove(_lastMobileKey);
+        }
       } catch (_) {
         // Storage unavailable: the session persists, which is the
         // existing behaviour and the safer default of the two.
       }
 
       if (!mounted) return;
+      // Tells the phone this sign-in worked, so its password manager offers
+      // to save the number and password (only when Remember me is on).
+      TextInput.finishAutofillContext(shouldSave: _remember);
       // Back to the gate, which decides where this account belongs:
       // pending, verified, rejected or suspended. Login does not need to
       // know, and duplicating that decision here would be a second place
@@ -168,8 +190,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 boxShadow: [BoxShadow(color: d.card1.withValues(alpha: .35), blurRadius: 26, offset: const Offset(0, 12))],
               ),
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              child: AutofillGroup(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 _DField(
+                  autofill: const [AutofillHints.username],
                   label: s.loginPhoneLabel,
                   hint: s.loginPhoneHint,
                   controller: _mobile,
@@ -180,6 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
                 _DField(
+                  autofill: const [AutofillHints.password],
                   label: s.loginPasswordLabel,
                   hint: s.loginPasswordHint,
                   controller: _password,
@@ -236,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     expand: true,
                     onTap: _busy ? null : () => Navigator.of(context).pushNamedAndRemoveUntil('/roles', (_) => false)),
                 const SizedBox(height: 4),
-              ]),
+              ])),
             ),
             const SizedBox(height: 14),
             Center(
@@ -303,8 +327,10 @@ class _DField extends StatelessWidget {
     this.onToggleObscure,
     this.keyboardType,
     this.inputFormatters,
+    this.autofill,
   });
 
+  final Iterable<String>? autofill;
   final String label;
   final String hint;
   final TextEditingController controller;
@@ -330,6 +356,7 @@ class _DField extends StatelessWidget {
         obscureText: obscure,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
+        autofillHints: autofill,
         style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15.5, color: Color(0xFF141B34)),
         decoration: InputDecoration(
           hintText: hint,

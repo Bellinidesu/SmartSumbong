@@ -78,6 +78,11 @@ class _LaunchGateState extends State<LaunchGate> {
     // returning residents, and the login screen carries a Sign Up link
     // for the ones who are not.
     if (widget.auth.session == null) {
+      // The cold start is over once this screen has run with no session:
+      // the sign-in that follows comes back here, and must not be taken
+      // for a fresh launch — that signed out, straight after signing in,
+      // anyone who had left Remember me unticked.
+      _isColdStart = false;
       // First launch on this handset: introduce the app before asking
       // anyone to sign in. Only checked when there is no session — an
       // account already signed in has necessarily been past this.
