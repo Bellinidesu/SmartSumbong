@@ -17,7 +17,6 @@ import '../tanod_strings.dart';
 import '../../theme.dart';
 import '../../d/d_theme.dart';
 import '../../d/d_ui.dart';
-import '../../widgets/figma_ui.dart';
 import '../widgets/tanod_nav_bar.dart';
 
 /// Which half of Activity History a past dispatch belongs to.
@@ -165,7 +164,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         onRefresh: _load,
         color: d.accent,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
           children: [
             DHeading(s.homeActivityHistory,
                 lead: context.tr('Everything you responded to or missed in the past 7 days.',
@@ -280,79 +279,71 @@ class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
     final shown = _filter == null ? widget.entries : widget.entries.where((a) => a.kind == _filter).toList();
     final responded = widget.entries.where((a) => a.kind == ActivityKind.responded).length;
     final missed = widget.entries.where((a) => a.kind == ActivityKind.missed).length;
-    Widget stat(String n, String label, Color c) => Expanded(
+    final num = d.dark ? Colors.white : d.link;
+    // `.hstats`: three cards, the figure in Inter 800 20.
+    Widget stat(String n, String label) => Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
             child: Column(children: [
-              Text(n, style: DType.mono(c, size: 22)),
-              Text(label, style: DType.body(d.muted, size: 11.5)),
+              Text(n, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 20, color: num)),
+              Text(label, style: DType.body(d.muted, size: 11.5, w: FontWeight.w400)),
             ]),
           ),
         );
+    // `.seg`: pill chips, the chosen one in the role colour.
     Widget seg(String label, ActivityKind? k) {
       final on = _filter == k;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => setState(() => _filter = k),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(vertical: 9),
-            decoration: BoxDecoration(
-              color: on ? d.accent : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(label,
-                textAlign: TextAlign.center,
-                style: DType.body(on ? d.bg : d.ink2, size: 13.5, w: FontWeight.w800)),
-          ),
+      return GestureDetector(
+        onTap: () => setState(() => _filter = k),
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: on ? d.btn : d.card, borderRadius: BorderRadius.circular(99), border: Border.all(color: on ? d.btn : d.line)),
+          child: Text(label, style: DType.body(on ? Colors.white : d.ink2, size: 12.5, w: FontWeight.w700)),
         ),
       );
     }
 
+    final body = <Widget>[];
+    String? lastDay;
+    for (final a in shown) {
+      final day = a.at == null ? '' : _date(context, a.at);
+      if (day != lastDay) {
+        lastDay = day;
+        body.add(Padding(
+          padding: const EdgeInsets.only(top: 2, bottom: 2),
+          child: Text(day.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: .99, color: d.muted)),
+        ));
+      }
+      body.add(_ActivityRow(entry: a));
+    }
+
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        stat('${widget.entries.length}', s.homeTabAll, d.ink),
+        stat('${widget.entries.length}', s.homeTabAll),
         const SizedBox(width: 8),
-        stat('$responded', s.homeTabResponded, d.dark ? const Color(0xFF5FD68A) : DColors.green),
+        stat('$responded', s.homeTabResponded),
         const SizedBox(width: 8),
-        stat('$missed', s.homeTabMissed, d.dark ? const Color(0xFFFF8A8A) : DColors.red),
+        stat('$missed', s.homeTabMissed),
       ]),
       const SizedBox(height: 14),
-      Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: d.field, borderRadius: BorderRadius.circular(13), border: Border.all(color: d.line)),
-        child: Row(children: [
-          seg(s.homeTabAll, null),
-          seg(s.homeTabResponded, ActivityKind.responded),
-          seg(s.homeTabMissed, ActivityKind.missed),
-        ]),
-      ),
-      const SizedBox(height: 12),
+      Wrap(spacing: 6, runSpacing: 6, children: [seg(s.homeTabAll, null), seg(s.homeTabResponded, ActivityKind.responded), seg(s.homeTabMissed, ActivityKind.missed)]),
+      const SizedBox(height: 14),
       if (widget.loading)
         const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: CircularProgressIndicator()))
       else if (shown.isEmpty)
-        DSheet(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
-          child: Text(s.homeAlertHistoryEmpty, textAlign: TextAlign.center, style: DType.body(d.muted, size: 13)),
-        )
+        Text(s.homeAlertHistoryEmpty, style: DType.body(d.ink2, size: 13.5).copyWith(height: 1.45))
       else
-        for (final a in shown) ...[
-          Container(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
-            child: _ActivityRow(entry: a),
-          ),
-          const SizedBox(height: 10),
-        ],
+        ...[for (final w in body) Padding(padding: const EdgeInsets.only(bottom: 10), child: w)],
     ]);
   }
 }
 
-/// A responded entry expands to show the field report text and any
-/// attached photo/video — the "activity" this card is now named for.
-/// A missed entry has nothing to expand into (nothing was ever
-/// submitted), so it stays a single row, same as before.
+/// `.hrow`: a 6 px strip, the subject 14.5/800 with the ticket under it,
+/// and on the right the pill and the time. A responded row opens to the
+/// field report and its proof.
 class _ActivityRow extends StatefulWidget {
   const _ActivityRow({required this.entry});
 
@@ -367,119 +358,71 @@ class _ActivityRowState extends State<_ActivityRow> {
 
   @override
   Widget build(BuildContext context) {
+    final d = context.d;
     final entry = widget.entry;
     final responded = entry.kind == ActivityKind.responded;
-    final colour = responded ? _green : kFigmaRed;
-    final expandable =
-        responded && (entry.reportText.isNotEmpty || entry.media.isNotEmpty);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: expandable ? () => setState(() => _open = !_open) : null,
-            child: Row(
-              children: [
-                // Not handsets. The frame draws phone icons, which made
-                // sense when these rows were imagined as calls — but
-                // they are dispatch outcomes: accepted or resolved
-                // against expired. Nobody phoned anyone, and an icon
-                // that says otherwise is a small lie repeated on every
-                // row.
+    final colour = responded ? const Color(0xFF1F8A45) : const Color(0xFFC62828);
+    final expandable = responded && (entry.reportText.isNotEmpty || entry.media.isNotEmpty);
+    final dash = entry.who.indexOf(' — ');
+    final subject = dash >= 0 ? entry.who.substring(dash + 3) : entry.who;
+    final pillFg = d.dark ? Color.lerp(colour, Colors.white, .35)! : colour;
+    return Container(
+      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(width: 6, color: colour),
+          Expanded(
+            child: InkWell(
+              onTap: expandable ? () => setState(() => _open = !_open) : null,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Icon(
-                    responded
-                        ? Icons.check_circle_outline
-                        : Icons.cancel_outlined,
-                    size: 19,
-                    color: colour,
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.who,
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          height: 21.84 / 14,
-                          color: context.colors.navy,
-                        ),
+                  padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                  child: Row(children: [
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(subject, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800).copyWith(height: 1.25)),
+                        const SizedBox(height: 3),
+                        Text(entry.trackingId, style: DType.body(d.muted, size: 12, w: FontWeight.w400)),
+                      ]),
+                    ),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                        decoration: BoxDecoration(color: Color.alphaBlend(colour.withValues(alpha: .14), d.card), borderRadius: BorderRadius.circular(99)),
+                        child: Text(responded ? context.ts.homeTabResponded : context.ts.homeTabMissed, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, color: pillFg)),
                       ),
+                      const SizedBox(height: 4),
+                      Text(_time(entry.at), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
+                    ]),
+                  ]),
+                ),
+                if (_open && expandable)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(
-                        _date(context, entry.at),
-                        style: TextStyle(
-                          fontFamily: 'Urbanist',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 10,
-                          height: 1.2,
-                          color: context.colors.navy,
-                        ),
+                        entry.reportText.isEmpty ? context.ts.homeActivityNoText : '${context.ts.homeActivityFieldReportLabel}“${entry.reportText}”',
+                        style: DType.body(d.ink2, size: 12.5, w: FontWeight.w400).copyWith(height: 1.4, fontStyle: entry.reportText.isEmpty ? FontStyle.italic : FontStyle.normal),
                       ),
-                    ],
+                      if (entry.media.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 52,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: entry.media.length,
+                            separatorBuilder: (_, _) => const SizedBox(width: 8),
+                            itemBuilder: (_, i) => _ActivityThumb(item: entry.media[i]),
+                          ),
+                        ),
+                      ],
+                    ]),
                   ),
-                ),
-                Text(
-                  _time(entry.at),
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 10,
-                    color: context.colors.navy,
-                  ),
-                ),
-                if (expandable) ...[
-                  const SizedBox(width: 4),
-                  Icon(_open ? Icons.expand_less : Icons.expand_more,
-                      size: 18, color: context.colors.muted),
-                ],
-              ],
+              ]),
             ),
           ),
-
-          if (_open && expandable)
-            Padding(
-              padding: const EdgeInsets.only(left: 59, top: 4, right: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.reportText.isEmpty
-                        ? context.ts.homeActivityNoText
-                        : '${context.ts.homeActivityFieldReportLabel}'
-                            '“${entry.reportText}”',
-                    style: TextStyle(
-                        fontSize: 11.5,
-                        height: 1.4,
-                        fontStyle: entry.reportText.isEmpty
-                            ? FontStyle.italic
-                            : FontStyle.normal,
-                        color: context.colors.navy),
-                  ),
-                  if (entry.media.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 52,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: entry.media.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 8),
-                        itemBuilder: (_, i) =>
-                            _ActivityThumb(item: entry.media[i]),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-        ],
+        ]),
       ),
     );
   }
@@ -549,7 +492,5 @@ class _ActivityThumb extends StatelessWidget {
 
 // ---------- shared bits ----------------------------------------
 
-/// The frame's green (#058F00): View Details, Responded.
-const _green = Color(0xFF058F00);
 
 

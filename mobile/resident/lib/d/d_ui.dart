@@ -202,6 +202,8 @@ class DButton extends StatelessWidget {
     this.expand = false,
     this.height,
     this.busy = false,
+    this.radius,
+    this.fontSize,
   });
 
   final String label;
@@ -212,6 +214,8 @@ class DButton extends StatelessWidget {
   final bool expand;
   final double? height;
   final bool busy;
+  final double? radius;
+  final double? fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +231,7 @@ class DButton extends StatelessWidget {
       DButtonKind.line => (Colors.transparent, d.link, d.link),
     };
     final h = height ?? (small ? 34.0 : 44.0);
-    final rad = small ? 10.0 : 12.0;
+    final rad = radius ?? (small ? 10.0 : 12.0);
     final glow = kind == DButtonKind.orange || kind == DButtonKind.green;
     final child = busy
         ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: fg))
@@ -237,7 +241,7 @@ class DButton extends StatelessWidget {
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: small ? 13.5 : 15, color: fg)),
+                  style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: fontSize ?? (small ? 13.5 : 15), color: fg)),
             ),
           ]);
     return Opacity(
@@ -390,7 +394,8 @@ class DWell extends StatelessWidget {
   }
 }
 
-/// An icon, a line and an optional second line (the report's detail rows).
+/// `.rows li`: a 20 px icon, the line 13.5, an optional second line 12 in
+/// muted, 9 px above and below, a hairline under it.
 class DRow extends StatelessWidget {
   const DRow({super.key, required this.icon, required this.title, this.sub, this.trailing, this.onTap, this.divider = true});
 
@@ -407,21 +412,127 @@ class DRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: divider ? BoxDecoration(border: Border(bottom: BorderSide(color: d.line))) : null,
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(icon, size: 20, color: d.link),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: DType.body(d.ink, size: 14, w: FontWeight.w600)),
-              if (sub != null) Text(sub!, style: DType.body(d.muted, size: 12)),
+              Text(title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w400).copyWith(height: 1.3)),
+              if (sub != null) Text(sub!, style: DType.body(d.muted, size: 12, w: FontWeight.w400).copyWith(height: 1.3)),
             ]),
           ),
           if (trailing != null) trailing!,
         ]),
       ),
     );
+  }
+}
+
+/// `.shero`: the category colour as a radial wash — light at the top
+/// left, the colour in the middle, a darker corner — with the contour at
+/// .045 over it. Children (the chip, the back and close buttons) go in a
+/// stack on top.
+class DHero extends StatelessWidget {
+  const DHero({super.key, required this.colour, required this.height, this.radius = 0, this.children = const []});
+
+  final Color colour;
+  final double height;
+  final double radius;
+  final List<Widget> children;
+
+  static BoxDecoration decoration(Color cs) => BoxDecoration(
+        gradient: RadialGradient(
+          center: const Alignment(-.6, -.8),
+          radius: 1.2,
+          colors: [Color.lerp(Colors.white, cs, .55)!, cs, Color.lerp(Colors.black, cs, .7)!],
+          stops: const [0, .6, 1],
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: height,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Stack(children: [
+            Positioned.fill(child: DecoratedBox(decoration: decoration(colour))),
+            Positioned.fill(child: IgnorePointer(child: DContourTile(color: Colors.white.withValues(alpha: .045), tile: 300))),
+            ...children,
+          ]),
+        ),
+      );
+}
+
+/// The category chip on a hero: Inter 700 11 on a dark glass pill.
+class DHeroChip extends StatelessWidget {
+  const DHeroChip(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), borderRadius: BorderRadius.circular(99)),
+        child: Text(text, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, color: Colors.white)),
+      );
+}
+
+/// A round dark-glass button on a hero (back, share, close).
+class DHeroButton extends StatelessWidget {
+  const DHeroButton({super.key, required this.icon, required this.onTap, this.size = 36});
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), shape: BoxShape.circle),
+          child: Icon(icon, size: size * .56, color: Colors.white),
+        ),
+      );
+}
+
+/// `ol.steps`: a vertical list whose dots and joining line fill with the
+/// category colour as far as the case has got. [subs] sit under a label.
+class DStepList extends StatelessWidget {
+  const DStepList({super.key, required this.labels, required this.on, required this.colour, this.subs = const {}});
+
+  final List<String> labels;
+  final int on;
+  final Color colour;
+  final Map<int, String> subs;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Column(children: [
+      for (var i = 0; i < labels.length; i++)
+        Stack(children: [
+          if (i < labels.length - 1) Positioned(left: 8, top: 16, bottom: 0, width: 2, child: ColoredBox(color: i < on ? colour : d.line)),
+          Positioned(
+            left: 3,
+            top: 3,
+            child: Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: i < on ? colour : d.card, border: Border.all(color: i < on ? colour : d.line, width: 2))),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 24, bottom: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(labels[i], style: DType.body(i < on ? d.ink : d.muted, size: 13.5, w: i < on ? FontWeight.w700 : FontWeight.w400).copyWith(height: 1.3)),
+                if (subs[i] != null) Text(subs[i]!, style: DType.body(d.muted, size: 11.5).copyWith(height: 1.3)),
+              ]),
+            ),
+          ),
+        ]),
+    ]);
   }
 }
 
@@ -439,17 +550,17 @@ class DNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         color: Color.alphaBlend(DColors.orange.withValues(alpha: .12), d.card),
-        border: Border.all(color: DColors.orange.withValues(alpha: .38)),
+        border: Border.all(color: DColors.orange.withValues(alpha: .35)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w800))),
+          Expanded(child: Text(title, style: DType.body(d.ink, size: 13, w: FontWeight.w700).copyWith(height: 1.45))),
           if (time != null) Text(time!, style: DType.mono(d.muted, size: 11)),
         ]),
-        const SizedBox(height: 3),
-        Text(body, style: DType.body(d.ink, size: 14)),
+        const SizedBox(height: 2),
+        Text(body, style: DType.body(d.ink, size: 13, w: FontWeight.w400).copyWith(height: 1.45)),
       ]),
     );
   }

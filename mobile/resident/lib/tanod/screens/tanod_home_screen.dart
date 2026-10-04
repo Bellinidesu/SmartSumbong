@@ -270,26 +270,26 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
-            SizedBox(
-              height: 168,
-              child: Stack(children: [
-                Positioned.fill(
-                  top: 30,
-                  child: Center(
-                    child: Image.asset('assets/images/home-wordmark.png', width: 250, fit: BoxFit.contain, semanticLabel: 'SmartSumbong'),
-                  ),
+            Stack(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 44, 0, 14),
+                child: Center(
+                  child: Image.asset('assets/images/home-wordmark-trim.png',
+                      width: (MediaQuery.sizeOf(context).width - 40) * .7 < 250 ? (MediaQuery.sizeOf(context).width - 40) * .7 : 250,
+                      semanticLabel: 'SmartSumbong',
+                      filterQuality: FilterQuality.medium),
                 ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: DBell(unread: 0, onTap: () => Navigator.of(context).pushNamed('/t/notifications')),
-                ),
-              ]),
+              ),
+              Positioned(top: 0, right: 0, child: DBell(unread: 0, onTap: () => Navigator.of(context).pushNamed('/t/notifications'))),
+            ]),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(_loading || _firstName == null ? s.homeWelcome : s.homeWelcomeName(_firstName!), style: DType.h1(d.ink).copyWith(letterSpacing: 0, height: 1.2)),
             ),
-            Text(_loading || _firstName == null ? s.homeWelcome : s.homeWelcomeName(_firstName!), style: DType.h1(d.ink)),
-            const SizedBox(height: 2),
-            Text(s.homeHowAreYou, style: DType.body(d.muted)),
-            const SizedBox(height: 16),
+            Text(s.homeHowAreYou, style: DType.body(d.muted, size: 14).copyWith(height: 1.3)),
+            const SizedBox(height: 14),
+            const _LocCard(),
             DFloodCard(reading: _flood),
             const SizedBox(height: 14),
             if (_error != null) ...[
@@ -317,6 +317,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                 ],
               if (waiting.isEmpty) const SizedBox(height: 14),
               DCard(
+                padding: const EdgeInsets.all(18),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(context.tr('Your assigned reports', 'Mga naka-assign sa iyo'), style: DType.h3(Colors.white).copyWith(fontSize: 19)),
                   const SizedBox(height: 6),
@@ -383,6 +384,7 @@ class _IncomingCardState extends State<_IncomingCard> with SingleTickerProviderS
     }
     return DCard(
       onTap: widget.onOpen,
+      padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           FadeTransition(
@@ -397,16 +399,53 @@ class _IncomingCardState extends State<_IncomingCard> with SingleTickerProviderS
         const SizedBox(height: 2),
         Text(t.trackingId, style: DType.mono(Colors.white.withValues(alpha: .8), size: 12.5)),
         if (clock != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(children: [
             Text(context.tr('Accept within', 'Tanggapin sa loob ng'), style: DType.body(Colors.white.withValues(alpha: .85), size: 13)),
             const Spacer(),
-            Text(clock, style: DType.mono(left!.inMinutes < 2 ? const Color(0xFFFFB4A8) : Colors.white, size: 20)),
+            Text(clock, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 22, color: left!.inMinutes < 2 ? const Color(0xFFFFB4A8) : Colors.white)),
           ]),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         DButton(context.ts.homeViewDetails, small: true, onTap: widget.onOpen),
       ]),
+    );
+  }
+}
+
+
+/// `.loc`: the green "location shared" note, shown while the tanod is on
+/// duty and the phone has shared its place.
+class _LocCard extends StatelessWidget {
+  const _LocCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final duty = DutyController.instance;
+    return ListenableBuilder(
+      listenable: duty,
+      builder: (context, _) {
+        final d = context.d;
+        final on = duty.status == DutyState.onDuty && (duty.note == LocationNote.shared || duty.note == LocationNote.sharing);
+        if (!on) return const SizedBox.shrink();
+        const g = Color(0xFF1F8A45);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(g.withValues(alpha: .12), d.card),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: g.withValues(alpha: .3)),
+            ),
+            child: Row(children: [
+              Container(width: 9, height: 9, decoration: BoxDecoration(shape: BoxShape.circle, color: g, boxShadow: [BoxShadow(color: g.withValues(alpha: .2), spreadRadius: 4)])),
+              const SizedBox(width: 14),
+              Expanded(child: Text(context.tr('Location shared. You can be sent nearby complaints.', 'Naibahagi ang lokasyon. Maaari kang padalhan ng malapit na sumbong.'), style: DType.body(d.ink2, size: 12.5, w: FontWeight.w400).copyWith(height: 1.35))),
+            ]),
+          ),
+        );
+      },
     );
   }
 }

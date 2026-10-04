@@ -11,7 +11,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_categories.dart';
 import '../d/d_theme.dart';
+import '../models/complaint_category.dart';
 import '../d/d_ui.dart';
 import '../i18n.dart';
 
@@ -22,7 +24,11 @@ class ReportMessagesScreen extends StatefulWidget {
     required this.trackingId,
     required this.subject,
     this.canWrite = true,
+    this.category,
   });
+
+  /// The case's category, for the dot beside the ticket.
+  final ComplaintCategory? category;
 
   final String reportId;
   final String trackingId;
@@ -132,87 +138,113 @@ class _ReportMessagesScreenState extends State<ReportMessagesScreen> {
     return '${context.s.monthFull(d.month).substring(0, 3)} ${d.day}, $hm';
   }
 
-  // Branch D: back and the case at the top, the thread as bubbles (yours
-  // in the role colour on the right, the barangay's white on the left with
-  // its name in orange), the composer pinned with an orange send.
+  // Branch D, 1:1 with the preview's Ask the barangay: the header (a 36 px
+  // back button, the 17/800 title, a dot in the case's colour and the
+  // ticket), the day label, bubbles (yours the blue gradient on the right
+  // with a square corner, the barangay's a white card with its seal and
+  // name) and the composer — a 44 px pill and an orange send.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final d = context.d;
+    final dotCol = widget.category == null ? DColors.brandNavy : categoryColour(widget.category!);
+    final msgs = _messages;
+    final children = <Widget>[];
+    String? lastDay;
+    final now = DateTime.now();
+    for (final m in msgs) {
+      final at = DateTime.tryParse(m['created_at'] as String? ?? '')?.toLocal();
+      if (at != null) {
+        final key = '${at.year}-${at.month}-${at.day}';
+        if (key != lastDay) {
+          lastDay = key;
+          final isToday = at.year == now.year && at.month == now.month && at.day == now.day;
+          children.add(Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text((isToday ? context.tr('Today', 'Ngayon') : '${s.monthAbbr(at.month)} ${at.day}').toUpperCase(),
+                  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 10.5, letterSpacing: .84, color: d.muted)),
+            ),
+          ));
+        }
+      }
+      final mine = m['from_barangay'] != true;
+      final fg = mine ? Colors.white : d.ink;
+      children.add(Align(
+        alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          constraints: BoxConstraints(maxWidth: (MediaQuery.sizeOf(context).width - 28) * .8),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            gradient: mine ? LinearGradient(begin: const Alignment(-.5, -1), end: const Alignment(.5, 1), colors: d.tanod ? [d.card1, d.card2] : const [Color(0xFF0A3BA0), Color(0xFF00308F)]) : null,
+            color: mine ? null : d.card,
+            border: mine ? null : Border.all(color: d.line),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(18),
+              topRight: const Radius.circular(18),
+              bottomLeft: Radius.circular(mine ? 18 : 6),
+              bottomRight: Radius.circular(mine ? 6 : 18),
+            ),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (!mine)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  ClipOval(child: Image.asset('assets/images/brgy-183-seal.png', width: 16, height: 16)),
+                  const SizedBox(width: 6),
+                  Text(s.messagesBarangay, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 12, color: d.link)),
+                ]),
+              ),
+            Text(m['body'] as String? ?? '', style: DType.body(fg, size: 14, w: FontWeight.w400).copyWith(height: 1.4)),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(_time(m['created_at'] as String?), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 10.5, color: fg.withValues(alpha: .7))),
+            ),
+          ]),
+        ),
+      ));
+      children.add(const SizedBox(height: 10));
+    }
+
     return Scaffold(
       backgroundColor: d.bg,
       body: Stack(children: [
         const DContour(),
         SafeArea(
           child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 10),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: d.line))),
               child: Row(children: [
-                const DBack(),
-                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).maybePop(),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(color: d.card, shape: BoxShape.circle, border: Border.all(color: d.line)),
+                    child: Icon(Icons.chevron_left_rounded, size: 24, color: d.ink),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(s.messagesTitle, style: DType.h3(d.accent).copyWith(fontSize: 18)),
-                    Text('${widget.trackingId} · ${widget.subject}',
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12.5)),
+                    Text(s.messagesTitle, style: DType.body(d.ink, size: 17, w: FontWeight.w800).copyWith(height: 1.2)),
+                    Row(children: [
+                      Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: dotCol)),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text('${widget.trackingId} · ${widget.subject}', maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.muted, size: 12))),
+                    ]),
                   ]),
                 ),
               ]),
             ),
-            Divider(height: 1, color: d.line),
             Expanded(
               child: _loading
                   ? Center(child: CircularProgressIndicator(color: d.accent))
-                  : _messages.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              const DWell(Icons.forum_outlined, size: 64),
-                              const SizedBox(height: 12),
-                              Text(s.messagesEmpty, textAlign: TextAlign.center, style: DType.body(d.muted, size: 14)),
-                            ]),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scroll,
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                          itemCount: _messages.length,
-                          itemBuilder: (_, i) {
-                            final m = _messages[i];
-                            final mine = m['from_barangay'] != true;
-                            final fg = mine ? Colors.white : d.ink;
-                            return Align(
-                              alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-                              child: Container(
-                                constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                padding: const EdgeInsets.fromLTRB(14, 9, 14, 8),
-                                decoration: BoxDecoration(
-                                  color: mine ? (d.tanod ? d.card1 : DColors.brandNavy) : d.card,
-                                  border: mine ? null : Border.all(color: d.line),
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(18),
-                                    topRight: const Radius.circular(18),
-                                    bottomLeft: Radius.circular(mine ? 18 : 4),
-                                    bottomRight: Radius.circular(mine ? 4 : 18),
-                                  ),
-                                ),
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  if (!mine)
-                                    Text(s.messagesBarangay,
-                                        style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 11.5, color: Color(0xFFE07400))),
-                                  Text(m['body'] as String? ?? '', style: DType.body(fg, size: 14.5)),
-                                  const SizedBox(height: 3),
-                                  Align(
-                                    alignment: Alignment.bottomRight,
-                                    child: Text(_time(m['created_at'] as String?), style: DType.body(fg.withValues(alpha: .7), size: 10.5)),
-                                  ),
-                                ]),
-                              ),
-                            );
-                          },
-                        ),
+                  : msgs.isEmpty
+                      ? Center(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), child: Text(s.messagesEmpty, textAlign: TextAlign.center, style: DType.body(d.muted, size: 13).copyWith(height: 1.45))))
+                      : ListView(controller: _scroll, padding: const EdgeInsets.all(14), children: children),
             ),
             if (_error != null)
               Padding(
@@ -221,48 +253,43 @@ class _ReportMessagesScreenState extends State<ReportMessagesScreen> {
               ),
             if (widget.canWrite)
               Container(
-                decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
-                padding: const EdgeInsets.fromLTRB(12, 8, 10, 10),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                decoration: BoxDecoration(color: d.bg, border: Border(top: BorderSide(color: d.line))),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Row(children: [
                   Expanded(
-                    child: TextField(
-                      controller: _text,
-                      enabled: !_sending,
-                      minLines: 1,
-                      maxLines: 4,
-                      maxLength: 1000,
-                      textCapitalization: TextCapitalization.sentences,
-                      style: DType.body(d.ink, size: 14.5),
-                      decoration: InputDecoration(
-                        hintText: s.messagesHint,
-                        hintStyle: DType.body(d.muted, size: 14),
-                        counterText: '',
-                        isDense: true,
-                        filled: true,
-                        fillColor: d.field,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide(color: d.line)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide(color: d.line)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: const BorderSide(color: DColors.orange, width: 1.6)),
+                    child: SizedBox(
+                      height: 44,
+                      child: TextField(
+                        controller: _text,
+                        enabled: !_sending,
+                        maxLength: 1000,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: DType.body(d.ink, size: 14, w: FontWeight.w400),
+                        decoration: InputDecoration(
+                          hintText: s.messagesHint,
+                          hintStyle: DType.body(d.muted, size: 14, w: FontWeight.w400),
+                          counterText: '',
+                          isDense: true,
+                          filled: true,
+                          fillColor: d.card,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: BorderSide(color: d.line)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: BorderSide(color: d.line)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: BorderSide(color: d.btn)),
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Material(
-                    color: DColors.orange,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: _sending ? null : _send,
-                      child: SizedBox(
-                        width: 46,
-                        height: 46,
-                        child: Center(
-                          child: _sending
-                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF141B34)))
-                              : const Icon(Icons.send_rounded, color: Color(0xFF141B34), size: 21),
-                        ),
-                      ),
+                  GestureDetector(
+                    onTap: _sending ? null : _send,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: DColors.orange, boxShadow: [BoxShadow(color: Color(0x4DFF9800), blurRadius: 12, offset: Offset(0, 4))]),
+                      child: _sending
+                          ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
+                          : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                     ),
                   ),
                 ]),

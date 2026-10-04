@@ -193,45 +193,17 @@ class _MapScreenState extends State<MapScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: 8),
           Container(width: 40, height: 5, decoration: BoxDecoration(color: d.line, borderRadius: BorderRadius.circular(5))),
-          Container(
-            margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-            height: 110,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: RadialGradient(
-                center: const Alignment(-.6, -.8),
-                radius: 1.3,
-                colors: [Color.lerp(col, Colors.white, .55)!, col, Color.lerp(col, Colors.black, .3)!],
-                stops: const [0, .6, 1],
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            child: DHero(
+              colour: col,
+              height: 110,
+              radius: 18,
+              children: [
+                if (cat != null) Positioned(left: 12, bottom: 10, child: DHeroChip(cat.label)),
+                Positioned(right: 8, top: 8, child: DHeroButton(icon: Icons.close_rounded, size: 30, onTap: () => Navigator.of(ctx).pop())),
+              ],
             ),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(children: [
-              Positioned.fill(child: DContourTile(color: Colors.white.withValues(alpha: .045), tile: 300)),
-              if (cat != null)
-                Positioned(
-                  left: 12,
-                  bottom: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), borderRadius: BorderRadius.circular(99)),
-                    child: Text(cat.label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, color: Colors.white)),
-                  ),
-                ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: GestureDetector(
-                  onTap: () => Navigator.of(ctx).pop(),
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), shape: BoxShape.circle),
-                    child: const Icon(Icons.close_rounded, size: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-            ]),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),

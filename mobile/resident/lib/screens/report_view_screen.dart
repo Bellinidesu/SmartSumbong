@@ -427,52 +427,14 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         color: d.accent,
         child: CustomScrollView(slivers: [
           SliverToBoxAdapter(
-            child: SizedBox(
+            child: DHero(
+              colour: r == null ? d.card2 : col,
               height: 170 + MediaQuery.paddingOf(context).top,
-              child: Stack(children: [
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: r == null
-                            ? [d.card1, d.card2]
-                            : [Color.lerp(col, Colors.white, .12)!, col, Color.lerp(col, Colors.black, .28)!],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Image.asset('assets/images/texture.png',
-                      fit: BoxFit.cover, color: Colors.white.withValues(alpha: .14), colorBlendMode: BlendMode.srcIn),
-                ),
-                Positioned(left: 12, top: MediaQuery.paddingOf(context).top + 8, child: const DBack(onImage: true)),
-                if (r != null)
-                  Positioned(
-                    right: 12,
-                    top: MediaQuery.paddingOf(context).top + 8,
-                    child: Material(
-                      color: Colors.black.withValues(alpha: .38),
-                      shape: const CircleBorder(),
-                      child: IconButton(
-                        tooltip: s.reportViewShare,
-                        onPressed: _share,
-                        icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
-                      ),
-                    ),
-                  ),
-                if (r != null)
-                  Positioned(
-                    left: 16,
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), borderRadius: BorderRadius.circular(99)),
-                      child: Text(cat.label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
-                    ),
-                  ),
-              ]),
+              children: [
+                Positioned(left: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.chevron_left_rounded, onTap: () => Navigator.of(context).maybePop())),
+                if (r != null) Positioned(right: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.ios_share_rounded, onTap: _share)),
+                if (r != null) Positioned(left: 12, bottom: 10, child: DHeroChip(cat.label)),
+              ],
             ),
           ),
           SliverToBoxAdapter(child: _body(s)),
@@ -527,6 +489,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     }
 
     final createdAt = DateTime.tryParse(r['created_at'] as String? ?? '');
+    final col0 = categoryColour(ComplaintCategory.parse(r['category'] as String?));
     final referred = (r['referred_to'] as String?)?.isNotEmpty ?? false;
     final (Color stCol, String stLabel) = referred && status.isOngoing
         ? (const Color(0xFF8B5CF6), context.tr('Escalated', 'In-escalate'))
@@ -564,41 +527,49 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           ),
           const SizedBox(height: 14),
         ],
+        Text(r['subject'] as String? ?? '', style: DType.body(d.ink, size: 19, w: FontWeight.w800).copyWith(height: 1.25)),
+        const SizedBox(height: 10),
         Row(children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: stCol.withValues(alpha: .14),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(color: stCol.withValues(alpha: .45)),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: stCol)),
-              const SizedBox(width: 6),
-              Text(stLabel, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, color: d.dark ? Color.lerp(stCol, Colors.white, .35) : stCol)),
-            ]),
+          Expanded(
+            child: Text.rich(TextSpan(children: [
+              TextSpan(text: r['tracking_id'] as String? ?? '', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+              TextSpan(text: ' · ', style: DType.body(d.muted, size: 13)),
+              WidgetSpan(alignment: PlaceholderAlignment.middle, child: Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 6), decoration: BoxDecoration(shape: BoxShape.circle, color: stCol))),
+              TextSpan(text: stLabel, style: DType.body(d.ink, size: 13, w: FontWeight.w700)),
+            ])),
           ),
-          const Spacer(),
           if (status.canCancel) _CardMenu(onCancel: () => _cancel(r)),
         ]),
         const SizedBox(height: 10),
-        Text(r['subject'] as String? ?? '', style: DType.h1(d.ink).copyWith(fontSize: 24)),
-        const SizedBox(height: 3),
-        Text.rich(TextSpan(children: [
-          TextSpan(text: r['tracking_id'] as String? ?? '', style: DType.mono(d.link, size: 13)),
-          if (createdAt != null)
-            TextSpan(text: '  ·  ${s.reportsSubmittedOn(_ReportCard._formatDate(s, createdAt))}', style: DType.body(d.muted, size: 13)),
-        ])),
-        const SizedBox(height: 10),
-        if (lat != null && lng != null)
+        Column(children: [
+          if (lat != null && lng != null)
+            DRow(icon: Icons.place_outlined, title: (r['location_label'] as String?)?.isNotEmpty == true ? r['location_label'] as String : 'Barangay 183', sub: 'Barangay 183, Zone 20, Villamor, Pasay City'),
+          if (createdAt != null) DRow(icon: Icons.calendar_today_outlined, title: s.reportsSubmittedOn(_ReportCard._formatDate(s, createdAt))),
           DRow(
-            icon: Icons.place_outlined,
-            title: (r['location_label'] as String?)?.isNotEmpty == true ? r['location_label'] as String : 'Barangay 183',
-            sub: context.tr('Pinned on the map below', 'Naka-pin sa mapa sa ibaba'),
+            icon: Icons.shield_outlined,
+            title: _hasTanod(status) ? context.tr('A tanod is assigned', 'May naka-assign na tanod') : context.tr('No tanod assigned yet', 'Wala pang tanod'),
+            sub: _hasTanod(status) ? context.tr('Assigned to your report', 'Naka-assign sa iyong report') : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
           ),
-        if (r['is_anonymous'] == true) DRow(icon: Icons.visibility_off_outlined, title: s.reportViewAnonymous),
-        const SizedBox(height: 12),
-        Text(r['description'] as String? ?? '', style: DType.body(d.ink2, size: 14.5)),
+          if (r['is_anonymous'] == true) DRow(icon: Icons.visibility_off_outlined, title: s.reportViewAnonymous),
+        ]),
+        const SizedBox(height: 10),
+        Text(r['description'] as String? ?? '', style: DType.body(d.ink2, size: 14, w: FontWeight.w400).copyWith(height: 1.5)),
+        const SizedBox(height: 10),
+        DStepList(
+          labels: _short(status, referred)
+              ? [context.tr('Filed', 'Naisampa'), referred && status.isOngoing ? context.tr('Escalated to the ${r['referred_to']}', 'In-escalate sa ${r['referred_to']}') : stLabel]
+              : [context.tr('Filed', 'Naisampa'), context.tr('Validated', 'Napatunayan'), context.tr('Tanod dispatched', 'Na-dispatch ang tanod'), context.tr('Resolved', 'Nalutas')],
+          on: _short(status, referred)
+              ? 2
+              : switch (status) {
+                  ReportStatus.pendingReview => 1,
+                  ReportStatus.validated => 2,
+                  ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => 3,
+                  _ => 4,
+                },
+          colour: col0,
+          subs: createdAt == null ? const {} : {0: _ReportCard._formatDate(s, createdAt)},
+        ),
         if (lat != null && lng != null) ...[
           const SizedBox(height: 14),
           _MiniMap(point: LatLng(lat, lng)),
@@ -624,6 +595,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               reportId: widget.reportId,
               trackingId: r['tracking_id'] as String? ?? '',
               subject: r['subject'] as String? ?? '',
+              category: ComplaintCategory.parse(r['category'] as String?),
               canWrite: status != ReportStatus.cancelled && status != ReportStatus.archived,
             ),
           ),
@@ -670,6 +642,11 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       ]),
     );
   }
+
+  static bool _hasTanod(ReportStatus s) =>
+      s == ReportStatus.assigned || s == ReportStatus.inProgress || s == ReportStatus.offlineInvestigation || s == ReportStatus.resolved || s == ReportStatus.closed || s == ReportStatus.archived;
+
+  static bool _short(ReportStatus s, bool referred) => s == ReportStatus.rejected || s == ReportStatus.cancelled || (referred && s.isOngoing);
 
   static Color _statusColour(ReportStatus s) => switch (s) {
         ReportStatus.pendingReview || ReportStatus.validated => const Color(0xFFF59E0B),

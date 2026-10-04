@@ -925,7 +925,7 @@ class _DispatchWindowState extends State<DispatchWindow>
           children: [
             if (!onsite)
               SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.30,
+                height: 230,
                 child: ClipRect(child: _mapArea()),
               )
             else
@@ -1072,7 +1072,7 @@ class _DispatchWindowState extends State<DispatchWindow>
           ),
       ]),
       const SizedBox(height: 6),
-      Text(widget.ticket.subject, style: DType.h1(d.ink).copyWith(fontSize: 24)),
+      Text(widget.ticket.subject, style: DType.body(d.ink, size: 22, w: FontWeight.w800).copyWith(height: 1.2)),
       const SizedBox(height: 3),
       Text.rich(TextSpan(children: [
         TextSpan(text: widget.ticket.trackingId, style: DType.mono(d.link, size: 13)),
@@ -1111,20 +1111,20 @@ class _DispatchWindowState extends State<DispatchWindow>
     Widget main;
     if (i == 0) {
       main = Row(children: [
-        Expanded(flex: 4, child: DButton(s.windowActionOnTheWay, busy: _stepping || _navStarting, onTap: _onTheWay, expand: true, height: 54)),
+        Expanded(flex: 27, child: DButton(s.windowActionOnTheWay, busy: _stepping || _navStarting, onTap: _onTheWay, expand: true, height: 52, radius: 14, fontSize: 16)),
         const SizedBox(width: 8),
-        Expanded(flex: 3, child: DButton(s.windowResolve, kind: DButtonKind.greenLine, onTap: _resolve, expand: true, height: 54)),
+        Expanded(flex: 20, child: DButton(s.windowResolve, kind: DButtonKind.greenLine, onTap: _resolve, expand: true, height: 52, radius: 14, fontSize: 16)),
       ]);
     } else if (i == 1) {
       main = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           Expanded(
-            flex: 4,
+            flex: 27,
             child: DButton(context.tr('Navigate', 'Mag-navigate'),
-                icon: Icons.navigation_rounded, busy: _navStarting, onTap: _casePoint == null ? null : _navigate, expand: true, height: 54),
+                icon: Icons.navigation_rounded, busy: _navStarting, onTap: _casePoint == null ? null : _navigate, expand: true, height: 52, radius: 14, fontSize: 16),
           ),
           const SizedBox(width: 8),
-          Expanded(flex: 3, child: DButton(s.windowResolve, kind: DButtonKind.greenLine, onTap: _resolve, expand: true, height: 54)),
+          Expanded(flex: 20, child: DButton(s.windowResolve, kind: DButtonKind.greenLine, onTap: _resolve, expand: true, height: 52, radius: 14, fontSize: 16)),
         ]),
         TextButton(
           onPressed: _stepping ? null : () => _setStep('arrived'),
@@ -1133,7 +1133,7 @@ class _DispatchWindowState extends State<DispatchWindow>
         ),
       ]);
     } else {
-      main = DButton(context.tr('Resolve · add proof', 'Iresolba · maglagay ng patunay'), onTap: _resolve, expand: true, height: 58);
+      main = DButton(context.tr('Resolve · add proof', 'Iresolba · maglagay ng patunay'), onTap: _resolve, expand: true, height: 58, radius: 14, fontSize: 17);
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       main,
@@ -1521,7 +1521,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                 child: InkWell(
                   customBorder: const CircleBorder(),
                   onTap: _sending || _pics.length >= 3 ? null : _addPic,
-                  child: SizedBox(width: 46, height: 46, child: Icon(Icons.photo_camera_outlined, color: d.link)),
+                  child: SizedBox(width: 44, height: 44, child: Icon(Icons.photo_camera_outlined, color: d.link)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1557,8 +1557,8 @@ class _DispatchWindowState extends State<DispatchWindow>
                   customBorder: const CircleBorder(),
                   onTap: _sending ? null : _send,
                   child: SizedBox(
-                    width: 46,
-                    height: 46,
+                    width: 44,
+                    height: 44,
                     child: Center(
                       child: _sending
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF141B34)))
@@ -1962,7 +1962,7 @@ class _MapPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
         onTap: onTap,
         child: SizedBox(
-          height: 44,
+          height: 42,
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(icon, size: 17, color: ink),
             const SizedBox(width: 6),
@@ -1970,7 +1970,7 @@ class _MapPill extends StatelessWidget {
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 14, color: ink)),
+                  style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 13.5, color: ink)),
             ),
           ]),
         ),

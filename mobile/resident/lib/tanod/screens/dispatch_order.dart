@@ -308,41 +308,18 @@ class _DispatchOrderState extends State<_DispatchOrder>
         body: Column(children: [
           Expanded(
             child: ListView(padding: EdgeInsets.zero, children: [
-              // the category header
-              SizedBox(
+              // the category header (`.shero`, 170)
+              DHero(
+                colour: col,
                 height: 170 + MediaQuery.paddingOf(context).top,
-                child: Stack(children: [
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color.lerp(col, Colors.white, .12)!, col, Color.lerp(col, Colors.black, .28)!],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Image.asset('assets/images/texture.png',
-                        fit: BoxFit.cover, color: Colors.white.withValues(alpha: .14), colorBlendMode: BlendMode.srcIn),
-                  ),
+                children: [
                   Positioned(
                     left: 12,
-                    top: MediaQuery.paddingOf(context).top + 8,
-                    child: DBack(onImage: true, onTap: order ? _close : () => setState(() => _pane = _Pane.order)),
+                    top: MediaQuery.paddingOf(context).top + 10,
+                    child: DHeroButton(icon: Icons.chevron_left_rounded, onTap: order ? _close : () => setState(() => _pane = _Pane.order)),
                   ),
-                  if (_report != null)
-                    Positioned(
-                      left: 16,
-                      bottom: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), borderRadius: BorderRadius.circular(99)),
-                        child: Text(cat.label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11.5, color: Colors.white)),
-                      ),
-                    ),
-                ]),
+                  if (_report != null) Positioned(left: 12, bottom: 10, child: DHeroChip(cat.label)),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
@@ -372,9 +349,9 @@ class _DispatchOrderState extends State<_DispatchOrder>
     final d = context.d;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(context.tr('DISPATCH ORDER', 'DISPATCH ORDER'), style: DType.label(d.muted)),
-      const SizedBox(height: 4),
-      Text(widget.ticket.subject, style: DType.h1(d.ink).copyWith(fontSize: 24)),
-      const SizedBox(height: 3),
+      const SizedBox(height: 10),
+      Text(widget.ticket.subject, style: DType.body(d.ink, size: 19, w: FontWeight.w800).copyWith(height: 1.25)),
+      const SizedBox(height: 10),
       Text.rich(TextSpan(children: [
         TextSpan(text: widget.ticket.trackingId, style: DType.mono(d.link, size: 13)),
         TextSpan(text: '  ·  ${context.ts.dispatchSubmittedOn(_date(_report?['created_at'] as String?))}', style: DType.body(d.muted, size: 13)),
@@ -405,9 +382,9 @@ class _DispatchOrderState extends State<_DispatchOrder>
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Column(children: [
-                DWell(icon, size: 46),
+                DWell(icon, size: 42),
                 const SizedBox(height: 6),
-                Text(label, textAlign: TextAlign.center, style: DType.body(d.link, size: 12.5, w: FontWeight.w800)),
+                Text(label, textAlign: TextAlign.center, style: DType.body(d.link, size: 12, w: FontWeight.w700)),
               ]),
             ),
           ),
@@ -431,9 +408,9 @@ class _DispatchOrderState extends State<_DispatchOrder>
       // is_admin()`, so a tanod cannot read the filer's row at all.
       DRow(icon: Icons.person_outline_rounded, title: '${context.ts.dispatchComplainantLabel}${context.ts.reportsFilerAnonymous}'),
       DRow(icon: Icons.event_outlined, title: '${context.ts.reportsDeadlineLabel}${_deadlineOf(widget.ticket.dueAt)}'),
-      const SizedBox(height: 12),
-      Text('“${widget.ticket.description}”', style: DType.body(d.ink2, size: 14.5)),
-      const SizedBox(height: 14),
+      const SizedBox(height: 10),
+      Text('“${widget.ticket.description}”', style: DType.body(d.ink2, size: 14, w: FontWeight.w400).copyWith(height: 1.5)),
+      const SizedBox(height: 10),
       DNote(
         title: context.ts.dispatchAdminDirectivesTitle,
         body: instructions.isEmpty ? context.ts.dispatchNoDirectives : instructions,
@@ -613,18 +590,19 @@ class _DispatchOrderState extends State<_DispatchOrder>
     final near = _report?['location_label'] as String?;
     final instructions = widget.ticket.instructions?.trim() ?? '';
     Widget step(int n, Color c, String title, String sub) => DSheet(
+          radius: 14,
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           child: Row(children: [
             Container(
-              width: 32,
-              height: 32,
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(shape: BoxShape.circle, color: c),
-              child: Center(child: Text('$n', style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 15, color: Colors.white))),
+              child: Center(child: Text('$n', style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 14, color: Colors.white))),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: DType.body(d.ink, size: 15.5, w: FontWeight.w800)),
+                Text(title, style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
                 Text(sub, style: DType.body(d.muted, size: 12.5)),
               ]),
             ),
@@ -714,9 +692,9 @@ class _DispatchOrderState extends State<_DispatchOrder>
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
                 child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  DButton(s.windowActionOnTheWay, expand: true, height: 56, onTap: () => _toWindow(startOnTheWay: true)),
+                  DButton(s.windowActionOnTheWay, expand: true, height: 54, radius: 16, fontSize: 17, onTap: () => _toWindow(startOnTheWay: true)),
                   const SizedBox(height: 8),
-                  DButton(context.tr('Not yet · open the job', 'Hindi pa · buksan ang trabaho'), kind: DButtonKind.ghost, expand: true, height: 46, onTap: _toWindow),
+                  DButton(context.tr('Not yet · open the job', 'Hindi pa · buksan ang trabaho'), kind: DButtonKind.ghost, expand: true, height: 46, radius: 16, onTap: _toWindow),
                 ]),
               ),
             ),
@@ -1092,8 +1070,8 @@ class _AcceptedTickState extends State<_AcceptedTick> with TickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 110,
-      height: 110,
+      width: 104,
+      height: 104,
       child: AnimatedBuilder(
         animation: Listenable.merge([_pop, _ripple]),
         builder: (_, _) {
@@ -1116,8 +1094,8 @@ class _AcceptedTickState extends State<_AcceptedTick> with TickerProviderStateMi
               child: Transform.scale(
                 scale: p,
                 child: Container(
-                  width: 78,
-                  height: 78,
+                  width: 76,
+                  height: 76,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white,

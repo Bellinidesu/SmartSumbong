@@ -421,10 +421,10 @@ class _NavScreenState extends State<_NavScreen> {
                                 ),
                                 child: Text(mainLabel, style: DType.body(d.muted, size: 16, w: FontWeight.w800)),
                               )
-                            : _Pulse(on: _arrived && step < 2, child: DButton(mainLabel, onTap: mainTap, expand: true)),
+                            : _Pulse(on: _arrived && step < 2, child: DButton(mainLabel, onTap: mainTap, expand: true, height: 52, radius: 14, fontSize: 16)),
                       ),
                       const SizedBox(width: 8),
-                      DButton(context.tr('Exit', 'Lumabas'), kind: DButtonKind.danger, onTap: () => Navigator.of(context).pop()),
+                      DButton(context.tr('Exit', 'Lumabas'), kind: DButtonKind.danger, height: 52, radius: 14, fontSize: 16, onTap: () => Navigator.of(context).pop()),
                     ]),
                   ]),
                 ),
