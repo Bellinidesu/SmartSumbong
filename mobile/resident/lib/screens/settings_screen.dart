@@ -223,26 +223,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
           DCard(
             padding: const EdgeInsets.all(16),
             child: Row(children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  image: _avatarUrl != null ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 300)), fit: BoxFit.cover) : null,
+              // A green ring and a tick: the account is verified (an
+              // unverified one never reaches Settings).
+              Stack(clipBehavior: Clip.none, children: [
+                Container(
+                  width: 68,
+                  height: 68,
+                  padding: const EdgeInsets.all(2.5),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF3DDC84)),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      image: _avatarUrl != null ? DecorationImage(image: NetworkImage(cloudinarySized(_avatarUrl!, width: 300)), fit: BoxFit.cover) : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: _avatarUrl != null
+                        ? null
+                        : Text(_initials(_name),
+                            style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 22, color: d.tanod ? const Color(0xFF14181D) : DColors.brandNavy)),
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: _avatarUrl != null
-                    ? null
-                    : Text(_initials(_name),
-                        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 22, color: d.tanod ? const Color(0xFF14181D) : DColors.brandNavy)),
-              ),
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF1F8A45), border: Border.all(color: Colors.white, width: 2)),
+                    child: const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+                  ),
+                ),
+              ]),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(_name ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
                   if (_mobile != null)
-                    Text(_mask(_mobile!), style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white.withValues(alpha: .8))),
+                    Text('${_mask(_mobile!)} · ${tanod ? context.tr('Verified tanod', 'Beripikadong tanod') : context.tr('Verified resident', 'Beripikadong residente')}', style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white.withValues(alpha: .8))),
                 ]),
               ),
               DButton(s.settingsEditProfile, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load())),
@@ -252,7 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _List(children: [
             _Row(icon: Icons.person_outline_rounded, label: s.settingsPersonalInfo, onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load()), chevron: true),
             _Row(icon: Icons.language_rounded, label: s.settingsLanguages, onTap: () => Navigator.of(context).pushNamed('/languages'), trailing: const DFlags()),
-            _Row(icon: Icons.contrast_rounded, label: s.settingsAppearance, onTap: () => Navigator.of(context).pushNamed('/appearance'), trailing: const DDayNight()),
+            _Row(icon: Icons.dark_mode_outlined, label: s.settingsAppearance, onTap: () => Navigator.of(context).pushNamed('/appearance'), trailing: const DDayNight()),
             _Row(
               icon: Icons.fingerprint_rounded,
               label: s.settingsBiometricUnlock,
@@ -264,8 +282,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (!tanod)
               _Row(icon: Icons.notifications_none_rounded, label: s.settingsNotificationPrefs, onTap: () => Navigator.of(context).pushNamed('/notification-preferences'), chevron: true),
             if (tanod)
-              _Row(icon: Icons.admin_panel_settings_outlined, label: context.ts.settingsExtraAdminServices, onTap: () => Navigator.of(context).pushNamed('/t/extra-admin-services'), chevron: true),
-            _Row(icon: Icons.privacy_tip_outlined, label: s.termsPrivacyTitle, onTap: () => Navigator.of(context).pushNamed('/terms-privacy'), chevron: true),
+              _Row(icon: Icons.work_outline_rounded, label: context.ts.settingsExtraAdminServices, onTap: () => Navigator.of(context).pushNamed('/t/extra-admin-services'), chevron: true),
+            _Row(icon: Icons.shield_outlined, label: s.termsPrivacyTitle, onTap: () => Navigator.of(context).pushNamed('/terms-privacy'), chevron: true),
             _Row(
               icon: Icons.facebook_rounded,
               label: s.settingsFacebook,

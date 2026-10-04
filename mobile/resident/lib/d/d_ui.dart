@@ -204,11 +204,13 @@ class DButton extends StatelessWidget {
     this.busy = false,
     this.radius,
     this.fontSize,
+    this.textColour,
   });
 
   final String label;
   final VoidCallback? onTap;
   final DButtonKind kind;
+  final Color? textColour;
   final bool small;
   final IconData? icon;
   final bool expand;
@@ -220,7 +222,7 @@ class DButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = context.d;
-    final (Color bg, Color fg, Color? side) = switch (kind) {
+    final (Color bg, Color fg0, Color? side) = switch (kind) {
       DButtonKind.orange => (DColors.orange, const Color(0xFF141B34), null),
       DButtonKind.white => (Colors.white, d.tanod ? const Color(0xFF14181D) : DColors.brandNavy, null),
       DButtonKind.accent => (d.btn, Colors.white, null),
@@ -230,6 +232,7 @@ class DButton extends StatelessWidget {
       DButtonKind.danger => (Colors.transparent, const Color(0xFFC62828), const Color(0xFFE7B4B4)),
       DButtonKind.line => (Colors.transparent, d.link, d.link),
     };
+    final fg = textColour ?? fg0;
     final h = height ?? (small ? 34.0 : 44.0);
     final rad = radius ?? (small ? 10.0 : 12.0);
     final glow = kind == DButtonKind.orange || kind == DButtonKind.green;

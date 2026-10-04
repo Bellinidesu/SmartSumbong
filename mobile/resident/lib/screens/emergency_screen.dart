@@ -606,7 +606,6 @@ class _SlideToCallState extends State<_SlideToCall> with SingleTickerProviderSta
             height: 54,
             color: Colors.white.withValues(alpha: .95),
             child: Stack(alignment: Alignment.centerLeft, children: [
-              Positioned(left: 0, top: 0, bottom: 0, width: _dx + _knob + _inset, child: ColoredBox(color: const Color(0xFF1F8A45).withValues(alpha: .18))),
               Center(
                 child: Opacity(
                   opacity: 1 - progress,

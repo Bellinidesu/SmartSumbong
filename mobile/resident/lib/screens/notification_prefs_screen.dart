@@ -30,11 +30,11 @@ class NotificationPrefsScreen extends StatefulWidget {
 /// The mutable notification_kind values, in the order shown. 'verification'
 /// is intentionally not here — see the file header and 0044's own comment.
 const _mutableKinds = [
+  'status_change',
   'assignment',
   'reroute',
-  'status_change',
-  'escalation',
   'sla_warning',
+  'escalation',
 ];
 
 class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
@@ -174,10 +174,10 @@ class _PrefRow extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   static (Color, IconData) _look(String k) => switch (k) {
-        'status_change' => (const Color(0xFF00308F), Icons.description_outlined),
-        'assignment' => (const Color(0xFF356CF9), Icons.person_outline_rounded),
-        'reroute' => (const Color(0xFF0F9D9A), Icons.swap_horiz_rounded),
-        'sla_warning' => (const Color(0xFFF59E0B), Icons.timer_outlined),
+        'status_change' => (const Color(0xFF00308F), Icons.check_circle_outline_rounded),
+        'assignment' => (const Color(0xFF356CF9), Icons.shield_outlined),
+        'reroute' => (const Color(0xFF0F9D9A), Icons.repeat_rounded),
+        'sla_warning' => (const Color(0xFFF59E0B), Icons.schedule_rounded),
         'escalation' => (const Color(0xFF8B5CF6), Icons.north_east_rounded),
         _ => (const Color(0xFF0EA5E9), Icons.notifications_none_rounded),
       };

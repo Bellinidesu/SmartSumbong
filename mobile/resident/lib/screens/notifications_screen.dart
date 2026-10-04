@@ -36,7 +36,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../d/d_categories.dart';
 import '../d/d_theme.dart';
+import '../models/complaint_category.dart';
 import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../theme.dart';
@@ -90,6 +92,8 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification>? _items;
+  // report id -> (tracking id, category), for each row's report chip
+  Map<String, (String, ComplaintCategory)> _reports = {};
   String? _error;
 
   RealtimeChannel? _liveChannel;
@@ -152,9 +156,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .limit(100);
 
       if (!mounted) return;
-      setState(() => _items = [
-            for (final r in rows) AppNotification.fromRow(r),
-          ]);
+      final list = [for (final r in rows) AppNotification.fromRow(r)];
+      final ids = {for (final n in list) if (n.reportId != null) n.reportId!}.toList();
+      final reports = <String, (String, ComplaintCategory)>{};
+      if (ids.isNotEmpty) {
+        try {
+          final rr = await client.from('reports').select('id, tracking_id, category').inFilter('id', ids);
+          for (final r in rr) {
+            reports[r['id'] as String] = (r['tracking_id'] as String? ?? '', ComplaintCategory.parse(r['category'] as String?));
+          }
+        } catch (_) {}
+      }
+      if (!mounted) return;
+      setState(() {
+        _items = list;
+        _reports = reports;
+      });
 
       // Clear the badge. Failing here is not worth telling the resident
       // about — the notifications are on screen either way.
@@ -196,9 +213,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return GestureDetector(
         onTap: () => setState(() => _filter = k),
         child: Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(color: on ? d.btn : d.card, borderRadius: BorderRadius.circular(99), border: Border.all(color: on ? d.btn : d.line)),
           child: Text(label, style: DType.body(on ? Colors.white : d.ink2, size: 12.5, w: FontWeight.w700)),
         ),
@@ -227,7 +242,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
               clipBehavior: Clip.antiAlias,
               child: Column(children: [
-                for (var i = 0; i < list.length; i++) _NotificationRow(item: list[i], first: i == 0),
+                for (var i = 0; i < list.length; i++) _NotificationRow(item: list[i], first: i == 0, report: list[i].reportId == null ? null : _reports[list[i].reportId]),
               ]),
             ),
             const SizedBox(height: 12),
@@ -288,30 +303,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 }
 
 class _NotificationRow extends StatelessWidget {
-  const _NotificationRow({required this.item, this.first = false});
+  const _NotificationRow({required this.item, this.first = false, this.report});
 
   final AppNotification item;
   final bool first;
+  final (String, ComplaintCategory)? report;
 
-  static (Color, IconData) _look(String k) {
-    if (k.contains('escalat')) return (const Color(0xFF8B5CF6), Icons.north_east_rounded);
-    if (k.contains('sla') || k.contains('deadline')) return (const Color(0xFFF59E0B), Icons.timer_outlined);
-    if (k.contains('reroute')) return (const Color(0xFF0F9D9A), Icons.swap_horiz_rounded);
-    if (k.contains('assign') || k.contains('dispatch')) return (const Color(0xFF356CF9), Icons.directions_walk_rounded);
-    if (k.contains('message') || k.contains('detail')) return (const Color(0xFF00308F), Icons.chat_bubble_outline_rounded);
-    if (k.contains('flood')) return (const Color(0xFF0EA5E9), Icons.water_rounded);
-    if (k.contains('resolv') || k.contains('complet') || k.contains('accept')) return (const Color(0xFF1F8A45), Icons.task_alt_rounded);
-    return (const Color(0xFF00308F), Icons.description_outlined);
+  /// What the notice is, read from its words first and its kind second:
+  /// the title, the tile colour and its glyph.
+  static (String, Color, IconData) _look(AppNotification n) {
+    final m = n.message.toLowerCase();
+    final k = n.kind;
+    if (k.contains('escalat')) return ('Escalation alert', const Color(0xFF8B5CF6), Icons.north_east_rounded);
+    if (k.contains('sla') || k.contains('deadline')) return ('Response time warning', const Color(0xFFF59E0B), Icons.timer_outlined);
+    if (k.contains('verif')) return ('Account verification', const Color(0xFF1F8A45), Icons.verified_user_outlined);
+    if (m.contains('on the way')) return ('A tanod is on the way', const Color(0xFF0F9D9A), Icons.arrow_forward_rounded);
+    if (m.contains('arrived')) return ('The tanod has arrived', const Color(0xFF7BA428), Icons.place_outlined);
+    if (m.contains('dispatched') || k.contains('assign') || k.contains('dispatch')) return ('A tanod is on your report', const Color(0xFF356CF9), Icons.shield_outlined);
+    if (m.contains('reassign') || k.contains('reroute')) return ('Report reassigned', const Color(0xFF0F9D9A), Icons.swap_horiz_rounded);
+    if (m.contains('expected resolution') || m.contains('target')) return ('Target date set', const Color(0xFFF59E0B), Icons.schedule_rounded);
+    if (m.contains('resolved') || m.contains('completed')) return ('Your report was resolved', const Color(0xFF1F8A45), Icons.task_alt_rounded);
+    if (m.contains('accepted')) return ('Your report was accepted', const Color(0xFF00308F), Icons.check_rounded);
+    if (k.contains('message') || k.contains('detail') || m.contains('message')) return ('New message from the barangay', const Color(0xFF8B5CF6), Icons.chat_bubble_outline_rounded);
+    if (k.contains('flood') || m.contains('flood') || m.contains('rain')) return ('Flood watch', const Color(0xFF0EA5E9), Icons.water_rounded);
+    return ('Report update', const Color(0xFF00308F), Icons.description_outlined);
   }
 
   @override
   Widget build(BuildContext context) {
     final d = context.d;
-    final (col, icon) = _look(item.kind);
+    final (title, col, icon) = _look(item);
     final unread = !item.isRead;
     // A resident opens the complaint; a tanod's notifications are about
     // dispatches, which open from the tanod home (one app since branch C).
     final opens = item.reportId != null && AppRoleController.instance.value != AppRole.tanod;
+    final track = report?.$1.isNotEmpty == true ? report!.$1 : RegExp(r'BRG-\d{4}-\d{4}').firstMatch(item.message)?.group(0);
     return InkWell(
       onTap: opens ? () => Navigator.of(context).pushNamed('/report', arguments: item.reportId) : null,
       child: Container(
@@ -331,22 +357,42 @@ class _NotificationRow extends StatelessWidget {
               child: Icon(icon, size: 21, color: Colors.white),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(item.message, style: DType.body(d.ink, size: 14, w: unread ? FontWeight.w800 : FontWeight.w600).copyWith(height: 1.3))),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: DType.body(d.ink, size: 14, w: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(item.message, style: DType.body(d.muted, size: 12.5).copyWith(height: 1.3)),
+                if (track != null) ...[
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    if (report != null) ...[
+                      Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: categoryColour(report!.$2))),
+                      const SizedBox(width: 5),
+                    ],
+                    Flexible(
+                      child: Text(report == null ? track : '$track · ${report!.$2.label}',
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink2, size: 11.5, w: FontWeight.w700)),
+                    ),
+                  ]),
+                ],
+              ]),
+            ),
             const SizedBox(width: 12),
-            Text(_ago(context.s, item.createdAt), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
+            Text(_when(context.s, item.createdAt), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
           ]),
         ]),
       ),
     );
   }
 
-  static String _ago(Strings s, DateTime utc) {
-    final d = DateTime.now().difference(utc.toLocal());
-    if (d.inMinutes < 1) return s.notificationsJustNow;
-    if (d.inMinutes < 60) return s.notificationsMinutesAgo(d.inMinutes);
-    if (d.inHours < 24) return s.notificationsHoursAgo(d.inHours);
-    if (d.inDays < 7) return s.notificationsDaysAgo(d.inDays);
+  /// Today: the clock time; before today: the date.
+  static String _when(Strings s, DateTime utc) {
     final l = utc.toLocal();
+    final now = DateTime.now();
+    if (l.year == now.year && l.month == now.month && l.day == now.day) {
+      final h = l.hour % 12 == 0 ? 12 : l.hour % 12;
+      return '$h:${l.minute.toString().padLeft(2, '0')} ${l.hour < 12 ? 'AM' : 'PM'}';
+    }
     return '${s.monthAbbr(l.month)} ${l.day}';
   }
 }
