@@ -491,11 +491,16 @@ class _NoahChip extends StatelessWidget {
                       offset: Offset(0, on ? 0 : .8),
                       duration: const Duration(milliseconds: 600),
                       curve: const Cubic(.4, 1.3, .5, 1),
-                      child: OverflowBox(
-                        alignment: Alignment.centerLeft,
-                        minWidth: 0,
-                        maxWidth: double.infinity,
-                        child: FractionallySizedBox(widthFactor: 2, heightFactor: 1, alignment: Alignment.centerLeft, child: CustomPaint(painter: _WavePainter())),
+                      // 200% wide like the preview's svg: an infinite
+                      // OverflowBox gives the painter no size, so the wave
+                      // never drew on the phone.
+                      child: LayoutBuilder(
+                        builder: (_, c) => OverflowBox(
+                          alignment: Alignment.centerLeft,
+                          minWidth: c.maxWidth * 2,
+                          maxWidth: c.maxWidth * 2,
+                          child: const SizedBox.expand(child: CustomPaint(painter: _WavePainter())),
+                        ),
                       ),
                     ),
                   ),
