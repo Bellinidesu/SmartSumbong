@@ -293,14 +293,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return full.trim().split(RegExp(r'\s+')).first;
   }
 
-  // Branch D: the preview's Home in the C app's layout — the bell at the
-  // top right, the trimmed wordmark centred, the greeting, the live flood
-  // watch, then the three role-colour cards. The contour runs the whole
-  // height of the page.
+  // Branch D, 1:1 with the preview's Home (in the C app's layout): the
+  // bell alone at the top right, the trimmed wordmark centred (250 px, at
+  // most 70% of the width) with 44 above and 14 below, the greeting, the
+  // flood watch, then the three cards on a 14 gap. The contour runs the
+  // page's full height.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final d = context.d;
+    final w = MediaQuery.sizeOf(context).width;
     return DPage(
       homeContour: true,
       bottomBar: const ResidentNavBar(current: ResidentTab.home),
@@ -311,67 +313,56 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         },
         color: d.accent,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
           children: [
-            SizedBox(
-              height: 168,
-              child: Stack(children: [
-                Positioned.fill(
-                  top: 30,
-                  child: Center(
-                    child: Image.asset('assets/images/home-wordmark.png',
-                        width: 250, fit: BoxFit.contain, semanticLabel: 'SmartSumbong'),
-                  ),
+            Stack(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 44, 0, 14),
+                child: Center(
+                  child: Image.asset('assets/images/home-wordmark-trim.png',
+                      width: (w - 40) * .7 < 250 ? (w - 40) * .7 : 250, semanticLabel: 'SmartSumbong', filterQuality: FilterQuality.medium),
                 ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: DBell(unread: _unread, onTap: () => Navigator.of(context).pushNamed('/notifications')),
-                ),
-              ]),
+              ),
+              Positioned(top: 0, right: 0, child: DBell(unread: _unread, onTap: () => Navigator.of(context).pushNamed('/notifications'))),
+            ]),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(_loading || _firstName == null ? s.homeWelcomeGeneric : s.homeWelcomeNamed(_firstName!),
+                  style: DType.h1(d.ink).copyWith(letterSpacing: 0, height: 1.2)),
             ),
-            Text(
-              _loading || _firstName == null ? s.homeWelcomeGeneric : s.homeWelcomeNamed(_firstName!),
-              style: DType.h1(d.ink),
-            ),
-            const SizedBox(height: 2),
-            Text(s.homeSubtitle, style: DType.body(d.muted)),
-            const SizedBox(height: 16),
+            Text(s.homeSubtitle, style: DType.body(d.muted, size: 14).copyWith(height: 1.3)),
+            const SizedBox(height: 14),
             DFloodCard(reading: _flood, onTap: () => Navigator.of(context).pushReplacementNamed('/map')),
             const SizedBox(height: 14),
             DCard(
               gradient: const [Color(0xFFC62828), Color(0xFF8E1B1B)],
-              glow: const Color(0xFFE53935),
+              padding: const EdgeInsets.all(18),
               child: _CardBody(
                 title: s.homeEmergencyTitle,
                 body: s.homeEmergencyBody,
-                actions: [
-                  DButton(s.homeEmergencyLabel, small: true, kind: DButtonKind.white,
-                      onTap: () => Navigator.of(context).pushReplacementNamed('/emergency')),
-                ],
+                actions: [DButton(s.homeEmergencyLabel, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushReplacementNamed('/emergency'))],
               ),
             ),
             const SizedBox(height: 14),
             DCard(
+              padding: const EdgeInsets.all(18),
               child: _CardBody(
                 title: s.homeReportTitle,
                 body: s.homeReportBody,
                 actions: [
                   DButton(s.homeReportIssue, small: true, onTap: () => Navigator.of(context).pushNamed('/submit-report')),
-                  DButton(s.homeViewReports, small: true, kind: DButtonKind.white,
-                      onTap: () => Navigator.of(context).pushReplacementNamed('/reports')),
+                  DButton(s.homeViewReports, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushReplacementNamed('/reports')),
                 ],
               ),
             ),
             const SizedBox(height: 14),
             DCard(
+              padding: const EdgeInsets.all(18),
               child: _CardBody(
                 title: s.homeMapTitle,
                 body: s.homeMapBody,
-                actions: [
-                  DButton(s.homeViewMap, small: true, kind: DButtonKind.white,
-                      onTap: () => Navigator.of(context).pushReplacementNamed('/map')),
-                ],
+                actions: [DButton(s.homeViewMap, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushReplacementNamed('/map'))],
               ),
             ),
           ],
@@ -391,9 +382,9 @@ class _CardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: DType.h3(Colors.white).copyWith(fontSize: 19)),
-      const SizedBox(height: 6),
-      Text(body, style: DType.body(Colors.white.withValues(alpha: .86), size: 13)),
+      Text(title, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 19, height: 1.25, color: Colors.white)),
+      const SizedBox(height: 8),
+      Text(body, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 13, height: 1.4, color: Colors.white.withValues(alpha: .85))),
       const SizedBox(height: 14),
       Wrap(spacing: 8, runSpacing: 8, children: actions),
     ]);

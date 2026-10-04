@@ -212,10 +212,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     }
   }
 
-  // Branch D: the preview's Emergency — gradient cards with a soft glow of
-  // their own colour (911 red, fire orange, the barangay navy), slide to
-  // call on the labelled numbers, and the link groups as cards that open
-  // over the page. The contour fades up from the bottom.
+  // Branch D, 1:1 with the preview's Emergency, the layout as the live app
+  // has it: the centred heading, then 911 and the fire station as
+  // red/orange gradient cards with their own breathing glow and a swipe
+  // to call, the barangay's numbers on the blue card as white pill rows
+  // (copy and a green call button), and Police / Pasay City as cards that
+  // open over the page.
   @override
   Widget build(BuildContext context) {
     return DPage(
@@ -258,22 +260,24 @@ class HotlineGroupScreen extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+            padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
             child: DCard(
-              glow: const Color(0xFF3B6BD8),
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              gradient: _blue(context.d.dark),
+              glow: const Color(0xFF0048C8),
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text(group.name, textAlign: TextAlign.center, style: DType.h2(Colors.white)),
-                const SizedBox(height: 14),
+                Text(group.name, textAlign: TextAlign.center, style: DType.h3(Colors.white).copyWith(fontSize: 16)),
+                const SizedBox(height: 10),
                 for (final g in sections) ...[
-                  if (sections.length > 1) ...[
-                    Text(g.name.toUpperCase(), style: DType.label(Colors.white.withValues(alpha: .75))),
-                    const SizedBox(height: 8),
-                  ],
-                  for (final n in g.numbers) ...[
-                    _NumberRow(number: n),
-                    const SizedBox(height: 8),
-                  ],
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: .1), borderRadius: BorderRadius.circular(14)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      if (sections.length > 1)
+                        Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 6), child: Text(g.name, style: DType.body(Colors.white, size: 13.5, w: FontWeight.w800))),
+                      for (final n in g.numbers) ...[_NumberRow(number: n), if (n != g.numbers.last) const SizedBox(height: 6)],
+                    ]),
+                  ),
                   const SizedBox(height: 8),
                 ],
                 DButton(context.s.emergencyBack, kind: DButtonKind.white, expand: true, onTap: () => Navigator.of(context).pop()),
@@ -285,6 +289,8 @@ class HotlineGroupScreen extends StatelessWidget {
     );
   }
 }
+
+List<Color> _blue(bool dark) => dark ? const [Color(0xFF1A2E6E), Color(0xFF13235A), Color(0xFF0A1640)] : const [Color(0xFF0A3BA0), Color(0xFF00308F), Color(0xFF001F63)];
 
 class _HotlineList extends StatelessWidget {
   const _HotlineList({required this.groups, required this.error, required this.stale});
@@ -316,29 +322,29 @@ class _HotlineList extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
       children: [
-        Text(s.emergencyNeedHelp, style: DType.h1(d.accent).copyWith(fontSize: 30)),
-        const SizedBox(height: 6),
-        Text(s.emergencyInstructions, style: DType.body(d.muted, size: 14.5)),
-        const SizedBox(height: 20),
+        Text(s.emergencyNeedHelp, textAlign: TextAlign.center, style: DType.h1(d.dark ? Colors.white : DColors.brandNavy).copyWith(fontSize: 28, letterSpacing: 0)),
+        const SizedBox(height: 4),
+        Text(s.emergencyInstructions, textAlign: TextAlign.center, style: DType.body(d.ink2, size: 14).copyWith(height: 1.4)),
+        const SizedBox(height: 12),
         if (error != null) ...[
           DSheet(
             borderColor: DColors.red.withValues(alpha: .5),
             child: Text(error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
         ],
         if (stale)
           Padding(
-            padding: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.only(bottom: 12),
             child: Row(children: [
               Icon(Icons.cloud_off_rounded, size: 16, color: d.muted),
               const SizedBox(width: 8),
               Expanded(child: Text(s.emergencyStaleNote, style: DType.body(d.muted, size: 12))),
             ]),
           ),
-        for (final c in cards) ...[c, const SizedBox(height: 16)],
+        for (final c in cards) ...[c, const SizedBox(height: 12)],
       ],
     );
   }
@@ -376,8 +382,46 @@ Future<void> _confirmThenDial(BuildContext context, HotlineNumber number) async 
   await _dial(context, number);
 }
 
-/// The barangay's own numbers: a navy card with a soft blue glow, each
-/// number a white row with copy and a green call button.
+/// A card's soft halo that breathes (`glowRed` / `glowFire`, 3 s).
+class _Breathe extends StatefulWidget {
+  const _Breathe({required this.color, required this.child, this.radius = 22});
+
+  final Color color;
+  final Widget child;
+  final double radius;
+
+  @override
+  State<_Breathe> createState() => _BreatheState();
+}
+
+class _BreatheState extends State<_Breathe> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _c,
+        builder: (_, child) {
+          final t = Curves.easeInOut.transform(_c.value);
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(widget.radius),
+              boxShadow: [BoxShadow(color: widget.color.withValues(alpha: .32 + .10 * t), blurRadius: 12 + 4 * t, spreadRadius: 1 + t)],
+            ),
+            child: child,
+          );
+        },
+        child: widget.child,
+      );
+}
+
+/// The barangay's own numbers (`.hl`): the blue card, its title centred,
+/// each number a white pill row.
 class _GroupCard extends StatelessWidget {
   const _GroupCard({required this.name, required this.numbers});
 
@@ -387,10 +431,12 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DCard(
-      glow: const Color(0xFF3B6BD8),
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+      gradient: _blue(context.d.dark),
+      glow: const Color(0xFF0048C8),
+      padding: const EdgeInsets.all(14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Padding(padding: const EdgeInsets.only(left: 4, bottom: 10), child: Text(name, style: DType.h3(Colors.white))),
+        Text(name, textAlign: TextAlign.center, style: DType.h3(Colors.white).copyWith(fontSize: 16)),
+        const SizedBox(height: 10),
         for (final n in numbers) ...[
           _NumberRow(number: n),
           if (n != numbers.last) const SizedBox(height: 8),
@@ -400,6 +446,8 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
+/// `.num`: a white pill (dark: #22305E) — the number in Inter 16/700, its
+/// carrier under it, copy, and a 38 px green call button.
 class _NumberRow extends StatelessWidget {
   const _NumberRow({required this.number});
 
@@ -407,23 +455,24 @@ class _NumberRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const ink = Color(0xFF141B34);
+    final dark = context.d.dark;
+    final fg = dark ? Colors.white : const Color(0xFF00308F);
     return Container(
-      constraints: const BoxConstraints(minHeight: 54),
-      padding: const EdgeInsets.fromLTRB(16, 4, 6, 4),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+      decoration: BoxDecoration(color: dark ? const Color(0xFF22305E) : Colors.white, borderRadius: BorderRadius.circular(99)),
       child: Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(number.number, style: DType.mono(ink, size: 15.5)),
-            if (number.carrier != null) Text(number.carrier!, style: DType.body(const Color(0xFF6E7489), size: 11.5)),
+            Text(number.number, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: .16, color: fg)),
+            if (number.carrier != null) Text(number.carrier!, style: TextStyle(fontFamily: 'Urbanist', fontSize: 11.5, color: dark ? const Color(0xFF9096AB) : const Color(0xFF6E7489))),
           ]),
         ),
-        IconButton(
-          onPressed: () => _copy(context, number),
-          icon: const Icon(Icons.content_copy_rounded, size: 19, color: Color(0xFF00308F)),
-          tooltip: context.s.emergencyCopyNumberTooltip,
+        InkWell(
+          onTap: () => _copy(context, number),
+          customBorder: const CircleBorder(),
+          child: SizedBox(width: 34, height: 34, child: Icon(Icons.content_copy_rounded, size: 18, color: fg)),
         ),
+        const SizedBox(width: 4),
         Semantics(
           button: true,
           label: context.s.emergencyCallPrompt(number.number),
@@ -432,14 +481,10 @@ class _NumberRow extends StatelessWidget {
             onTap: () => _confirmThenDial(context, number),
             customBorder: const CircleBorder(),
             child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: DColors.greenVivid,
-                boxShadow: [BoxShadow(color: DColors.greenVivid.withValues(alpha: .4), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: const Icon(Icons.call_rounded, color: Colors.white, size: 20),
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF1F8A45), boxShadow: [BoxShadow(color: Color(0x591F8A45), blurRadius: 8, offset: Offset(0, 3))]),
+              child: const Icon(Icons.call_rounded, color: Colors.white, size: 19),
             ),
           ),
         ),
@@ -448,8 +493,9 @@ class _NumberRow extends StatelessWidget {
   }
 }
 
-/// A labelled number on its own (911, the fire station): a gradient card
-/// in its own colour with a soft glow, copy at the right, slide to call.
+/// A labelled number on its own (911, the fire station): `.sos` — a
+/// 150° gradient, the label and number on the left, copy on the right in
+/// a 36 px rounded square, and the swipe to call.
 class _SlideCard extends StatelessWidget {
   const _SlideCard({required this.number});
 
@@ -459,44 +505,48 @@ class _SlideCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = number.label!.toLowerCase();
     final fire = l.contains('fire') || l.contains('sunog') || l.contains('bfp');
-    final grad = fire ? const [Color(0xFFFF8A1F), Color(0xFFD9480F)] : const [Color(0xFFE53935), Color(0xFF8E1B1B)];
-    return DCard(
-      gradient: grad,
-      glow: grad[0],
-      padding: const EdgeInsets.fromLTRB(18, 14, 8, 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(number.label!, style: DType.h3(Colors.white).copyWith(fontSize: 18)),
-              Text(number.number, style: DType.mono(Colors.white.withValues(alpha: .85), size: 13)),
-            ]),
-          ),
-          IconButton(
-            onPressed: () => _copy(context, number),
-            icon: const Icon(Icons.content_copy_rounded, size: 19, color: Colors.white),
-            tooltip: context.s.emergencyCopyNumberTooltip,
-          ),
+    final grad = fire ? const [Color(0xFFFF9A3D), Color(0xFFEF6C00), Color(0xFFB23C00)] : const [Color(0xFFF05454), Color(0xFFD32F2F), Color(0xFF8E1B1B)];
+    return _Breathe(
+      color: fire ? const Color(0xFFEF6C00) : const Color(0xFFE53935),
+      child: DCard(
+        gradient: grad,
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(number.label!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white)),
+                Text(number.number, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
+              ]),
+            ),
+            InkWell(
+              onTap: () => _copy(context, number),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.content_copy_rounded, size: 18, color: Colors.white),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          _SlideToCall(number: number, fire: fire, icon: fire ? Icons.local_fire_department_rounded : Icons.call_rounded),
         ]),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.only(right: 10),
-          child: _SlideToCall(number: number, tint: grad[1], icon: fire ? Icons.local_fire_department_rounded : Icons.call_rounded),
-        ),
-      ]),
+      ),
     );
   }
 }
 
-/// Slide to call: drag the white knob to the far end and it dials — the
-/// slide is itself the confirmation, which is the point of it on an
-/// emergency line. Let go early and it springs back. A screen reader's
+/// `.slide`: a 54 px white track, the label centred with a "›››" after
+/// it, and a 46 px knob (green; red on the fire card) that dials when it
+/// reaches the end. Let go early and it springs back. A screen reader's
 /// double-tap asks to confirm, then dials.
 class _SlideToCall extends StatefulWidget {
-  const _SlideToCall({required this.number, required this.tint, required this.icon});
+  const _SlideToCall({required this.number, required this.fire, required this.icon});
 
   final HotlineNumber number;
-  final Color tint;
+  final bool fire;
   final IconData icon;
 
   @override
@@ -504,10 +554,10 @@ class _SlideToCall extends StatefulWidget {
 }
 
 class _SlideToCallState extends State<_SlideToCall> with SingleTickerProviderStateMixin {
-  static const _knob = 44.0;
+  static const _knob = 46.0;
   static const _inset = 4.0;
 
-  late final AnimationController _back = AnimationController(vsync: this, duration: const Duration(milliseconds: 220))
+  late final AnimationController _back = AnimationController(vsync: this, duration: const Duration(milliseconds: 250))
     ..addListener(() => setState(() => _dx = _from * (1 - _back.value)));
 
   double _dx = 0;
@@ -541,6 +591,7 @@ class _SlideToCallState extends State<_SlideToCall> with SingleTickerProviderSta
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final txt = widget.fire ? const Color(0xFFB23C00) : const Color(0xFF8E1B1B);
     return LayoutBuilder(builder: (context, box) {
       final max = box.maxWidth - _knob - _inset * 2;
       final progress = max <= 0 ? 0.0 : (_dx / max).clamp(0.0, 1.0);
@@ -549,55 +600,50 @@ class _SlideToCallState extends State<_SlideToCall> with SingleTickerProviderSta
         label: s.emergencyCallPrompt(widget.number.label ?? widget.number.number),
         excludeSemantics: true,
         onTap: () => _confirmThenDial(context, widget.number),
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: .18), borderRadius: BorderRadius.circular(99)),
-          child: Stack(alignment: Alignment.centerLeft, children: [
-            // the run behind the knob fills as it slides
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: _dx + _knob + _inset * 2,
-              child: DecoratedBox(decoration: BoxDecoration(color: Colors.white.withValues(alpha: .22), borderRadius: BorderRadius.circular(99))),
-            ),
-            Center(
-              child: Opacity(
-                opacity: 1 - progress,
-                child: Text(s.emergencySlideToCall,
-                    style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 14, color: Colors.white)),
-              ),
-            ),
-            Positioned(
-              right: 16,
-              child: Opacity(opacity: 1 - progress, child: const Icon(Icons.keyboard_double_arrow_right_rounded, size: 20, color: Colors.white70)),
-            ),
-            Positioned(
-              left: _inset + _dx,
-              child: GestureDetector(
-                onHorizontalDragStart: (_) => _back.stop(),
-                onHorizontalDragUpdate: (d) => setState(() => _dx = (_dx + d.delta.dx).clamp(0.0, max)),
-                onHorizontalDragEnd: (_) => _release(max),
-                child: Container(
-                  width: _knob,
-                  height: _knob,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .2), blurRadius: 8, offset: const Offset(0, 3))],
-                  ),
-                  child: Icon(widget.icon, color: widget.tint, size: 22),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(99),
+          child: Container(
+            height: 54,
+            color: Colors.white.withValues(alpha: .95),
+            child: Stack(alignment: Alignment.centerLeft, children: [
+              Positioned(left: 0, top: 0, bottom: 0, width: _dx + _knob + _inset, child: ColoredBox(color: const Color(0xFF1F8A45).withValues(alpha: .18))),
+              Center(
+                child: Opacity(
+                  opacity: 1 - progress,
+                  child: Text.rich(TextSpan(children: [
+                    TextSpan(text: s.emergencySlideToCall, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: .28, color: txt)),
+                    TextSpan(text: '  ›››', style: TextStyle(fontSize: 14, letterSpacing: 2, color: txt.withValues(alpha: .5))),
+                  ])),
                 ),
               ),
-            ),
-          ]),
+              Positioned(
+                left: _inset + _dx,
+                child: GestureDetector(
+                  onHorizontalDragStart: (_) => _back.stop(),
+                  onHorizontalDragUpdate: (d) => setState(() => _dx = (_dx + d.delta.dx).clamp(0.0, max)),
+                  onHorizontalDragEnd: (_) => _release(max),
+                  child: Container(
+                    width: _knob,
+                    height: _knob,
+                    decoration: BoxDecoration(
+                      color: widget.fire ? const Color(0xFFE53935) : const Color(0xFF1F8A45),
+                      shape: BoxShape.circle,
+                      boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 8, offset: Offset(0, 3))],
+                    ),
+                    child: Icon(widget.icon, color: Colors.white, size: 21),
+                  ),
+                ),
+              ),
+            ]),
+          ),
         ),
       );
     });
   }
 }
 
-/// Police and Pasay City: a navy card that opens the group over the page.
+/// `.grp`: Police and Pasay City — the blue card as one tappable row, the
+/// icon, the name 15.5/800 and a chevron, opening the group over the page.
 class _LinkRow extends StatelessWidget {
   const _LinkRow({required this.group});
 
@@ -607,18 +653,16 @@ class _LinkRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final police = group.name.toLowerCase().contains('police');
     return DCard(
+      gradient: _blue(context.d.dark),
+      glow: const Color(0xFF0048C8),
+      radius: 20,
       onTap: () => Navigator.of(context).push(HotlineGroupScreen.route(group)),
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      padding: const EdgeInsets.all(16),
       child: Row(children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: .15)),
-          child: Icon(police ? Icons.local_police_rounded : Icons.phone_in_talk_rounded, color: Colors.white, size: 21),
-        ),
+        Icon(police ? Icons.local_police_outlined : Icons.phone_in_talk_outlined, color: Colors.white, size: 22),
         const SizedBox(width: 12),
-        Expanded(child: Text(group.name, style: DType.h3(Colors.white).copyWith(fontSize: 16))),
-        const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 26),
+        Expanded(child: Text(group.name, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 15.5, color: Colors.white))),
+        const Text('›', style: TextStyle(fontSize: 22, height: 1, color: Colors.white)),
       ]),
     );
   }

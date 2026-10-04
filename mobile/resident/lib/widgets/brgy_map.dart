@@ -91,6 +91,8 @@ class BrgyMapController {
   // only the moves a person made.
   bool _programmatic = false;
 
+  void zoomBy(double d) => _apply(ml.CameraUpdate.zoomBy(d));
+
   void move(ll.LatLng p, double zoom) =>
       _apply(ml.CameraUpdate.newLatLngZoom(_ml(p), _mlZoom(zoom)));
 

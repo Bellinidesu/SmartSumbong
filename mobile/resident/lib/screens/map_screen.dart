@@ -25,9 +25,11 @@ import '../models/complaint_category.dart';
 import '../theme.dart';
 import '../widgets/brgy_map.dart';
 import '../d/d_theme.dart';
+import '../d/d_categories.dart';
 import '../d/d_ui.dart';
+import '../d/flood_watch.dart';
 import '../widgets/resident_nav_bar.dart';
-import 'reports_screen.dart' show ReportStatus;
+import 'reports_screen.dart' show ReportStatus, reportStatusColour;
 
 class _Pin {
   const _Pin({
@@ -36,6 +38,7 @@ class _Pin {
     required this.trackingId,
     required this.subject,
     required this.status,
+    this.category,
     this.mine = true,
   });
 
@@ -46,6 +49,7 @@ class _Pin {
   /// For someone else's published incident, its category.
   final String subject;
   final ReportStatus status;
+  final ComplaintCategory? category;
 
   /// False for an incident the barangay published (0073): category and
   /// status only, no link to the report.
@@ -65,6 +69,16 @@ class _MapScreenState extends State<MapScreen> {
   // The barangay's centre, bounds, boundary outline and fog now live in
   // widgets/brgy_map.dart, shared with the other maps.
   final _map = BrgyMapController();
+
+  FloodReading? _flood;
+
+  @override
+  void initState() {
+    super.initState();
+    FloodReading.read().then((r) {
+      if (mounted) setState(() => _flood = r);
+    });
+  }
 
   bool _showReports = false;
   bool _hazards = false;
@@ -91,7 +105,7 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final rows = await client
           .from('reports')
-          .select('id, tracking_id, subject, status, latitude, longitude')
+          .select('id, tracking_id, subject, status, category, latitude, longitude')
           .eq('resident_id', uid)
           .isFilter('deleted_at', null);
 
@@ -115,6 +129,7 @@ class _MapScreenState extends State<MapScreen> {
           trackingId: '',
           subject: ComplaintCategory.parse(r['category'] as String?).label,
           status: ReportStatus.parse(r['status'] as String?),
+          category: ComplaintCategory.parse(r['category'] as String?),
           mine: false,
         ));
       }
@@ -128,6 +143,7 @@ class _MapScreenState extends State<MapScreen> {
           trackingId: r['tracking_id'] as String? ?? '',
           subject: r['subject'] as String? ?? '',
           status: ReportStatus.parse(r['status'] as String?),
+          category: ComplaintCategory.parse(r['category'] as String?),
         ));
       }
 
@@ -158,51 +174,109 @@ class _MapScreenState extends State<MapScreen> {
           if (withinBrgyBounds(p.point)) p.point,
       ]);
 
+  // The Google Maps-style sheet (`.sheet`): a grip, the category colour as
+  // a 110 px hero with its chip and a close button, then the subject, the
+  // ticket and the status, and View report.
   void _openPin(_Pin p) {
     final d = context.d;
     final s = context.s;
+    final cat = p.category;
+    final col = cat == null ? DColors.brandNavy : categoryColour(cat);
+    final st = reportStatusColour(p.status);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: d.card,
-      showDragHandle: true,
+      barrierColor: Colors.black.withValues(alpha: .25),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: DColors.orange.withValues(alpha: .14), borderRadius: BorderRadius.circular(99)),
-              child: Text(s.reportStatusLabel(p.status.wire),
-                  style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFFB26A00))),
-            ),
-            const SizedBox(width: 8),
-            if (p.mine) Text(p.trackingId, style: DType.mono(d.link, size: 12.5)),
-          ]),
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: 8),
-          Text(p.subject, style: DType.h2(d.ink)),
-          const SizedBox(height: 14),
-          if (p.mine)
-            DButton(s.mapViewReport, expand: true, onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/report', arguments: p.id);
-            })
-          else
-            Text(s.mapPublishedNote, style: DType.body(d.muted, size: 13)),
+          Container(width: 40, height: 5, decoration: BoxDecoration(color: d.line, borderRadius: BorderRadius.circular(5))),
+          Container(
+            margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            height: 110,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: RadialGradient(
+                center: const Alignment(-.6, -.8),
+                radius: 1.3,
+                colors: [Color.lerp(col, Colors.white, .55)!, col, Color.lerp(col, Colors.black, .3)!],
+                stops: const [0, .6, 1],
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(children: [
+              Positioned.fill(child: DContourTile(color: Colors.white.withValues(alpha: .045), tile: 300)),
+              if (cat != null)
+                Positioned(
+                  left: 12,
+                  bottom: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), borderRadius: BorderRadius.circular(99)),
+                    child: Text(cat.label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, color: Colors.white)),
+                  ),
+                ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(ctx).pop(),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: .35), shape: BoxShape.circle),
+                    child: const Icon(Icons.close_rounded, size: 18, color: Colors.white),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text(p.subject, style: DType.h3(d.ink).copyWith(fontSize: 19)),
+              const SizedBox(height: 10),
+              Row(children: [
+                if (p.mine) ...[Text(p.trackingId, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)), const SizedBox(width: 10)],
+                Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: st)),
+                const SizedBox(width: 6),
+                Text(s.reportStatusLabel(p.status.wire), style: DType.body(d.ink, size: 13.5, w: FontWeight.w700)),
+              ]),
+              const SizedBox(height: 14),
+              if (p.mine)
+                DButton(s.mapViewReport, expand: true, onTap: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pushNamed('/report', arguments: p.id);
+                })
+              else
+                Text(s.mapPublishedNote, style: DType.body(d.muted, size: 13)),
+            ]),
+          ),
         ]),
       ),
     );
   }
 
-  // Branch D (go list: the Map): the real map of Barangay 183 edge to
-  // edge, in the app's day or night colours; a floating title card with
-  // the two switches — your reports (the eye) and Project NOAH's flood
-  // hazard — and a sheet like Google Maps' when a pin is tapped.
+  // Branch D, 1:1 with the preview's Map: the real map edge to edge; a
+  // title card with the live rain; the Project NOAH chip; zoom buttons;
+  // and the eye card at the bottom with its orange button.
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final d = context.d;
     final pins = _pins ?? const <_Pin>[];
+    final fr = _flood;
+    final fcol = fr == null || !fr.online ? d.muted : const [Color(0xFF22C55E), Color(0xFFEAB308), Color(0xFFF97316), Color(0xFFDC2626)][fr.level];
+    Widget dock(Widget child, VoidCallback onTap) => Material(
+          color: d.card,
+          elevation: 3,
+          shadowColor: Colors.black38,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13), side: BorderSide(color: d.line)),
+          child: InkWell(borderRadius: BorderRadius.circular(13), onTap: onTap, child: SizedBox(width: 42, height: 42, child: Center(child: child))),
+        );
+    Widget dockText(String t) => Text(t, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 16, color: d.ink));
     return Scaffold(
       backgroundColor: d.bg,
       bottomNavigationBar: const ResidentNavBar(current: ResidentTab.map),
@@ -213,16 +287,11 @@ class _MapScreenState extends State<MapScreen> {
             boundary: true,
             hazards: _hazards,
             restrictToBarangay: true,
-            attributionBottom: 12,
+            attributionBottom: 96,
             pins: [
               if (_showReports)
                 for (final p in pins)
-                  BrgyMapPin(
-                    id: p.id,
-                    point: p.point,
-                    muted: !p.mine,
-                    alert: p.mine && p.status.labelColour(context) != context.colors.bg,
-                  ),
+                  BrgyMapPin(id: p.id, point: p.point, muted: !p.mine, alert: p.mine && p.status.labelColour(context) != context.colors.bg),
             ],
             onPinTap: (id) {
               for (final p in pins) {
@@ -232,60 +301,94 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
         if (_loading)
-          Positioned.fill(
-            child: Container(
-              color: Colors.black.withValues(alpha: .2),
-              alignment: Alignment.center,
-              child: const CircularProgressIndicator(color: Colors.white),
-            ),
-          ),
+          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .2), alignment: Alignment.center, child: const CircularProgressIndicator(color: Colors.white))),
+        // the title card and the NOAH chip
         Positioned(
-          left: 14,
-          right: 14,
-          top: MediaQuery.paddingOf(context).top + 10,
+          left: 12,
+          right: 12,
+          top: MediaQuery.paddingOf(context).top + 8,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x26000000), blurRadius: 18, offset: Offset(0, 6))]),
+              child: Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(s.mapTitle, style: DType.body(d.ink, size: 16, w: FontWeight.w800).copyWith(height: 1.2)),
+                    Text(context.tr('Your reports and flood zones', 'Ang iyong reports at bahaing lugar'), style: DType.body(d.muted, size: 12).copyWith(height: 1.25)),
+                  ]),
+                ),
+                if (fr != null && fr.online)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: fcol, boxShadow: [BoxShadow(color: fcol.withValues(alpha: .2), spreadRadius: 5)])),
+                      const SizedBox(width: 12),
+                      Text('${fr.mm!.toStringAsFixed(1)} mm/h', style: DType.body(d.ink, size: 12.5, w: FontWeight.w800)),
+                    ]),
+                  ),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            _NoahChip(on: _hazards, label: '${s.mapHazardToggle} · Project NOAH', onTap: () => setState(() => _hazards = !_hazards)),
+          ]),
+        ),
+        // zoom buttons
+        Positioned(
+          right: 12,
+          bottom: 138 + (_hazards ? 26 : 0),
+          child: Column(children: [
+            dock(dockText('+'), () => _map.zoomBy(1)),
+            const SizedBox(height: 8),
+            dock(dockText('−'), () => _map.zoomBy(-1)),
+            const SizedBox(height: 8),
+            dock(dockText('◎'), () => _map.move(brgyCentre, 16)),
+          ]),
+        ),
+        // the eye card
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 14,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: d.card.withValues(alpha: .96),
+              color: d.card,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: d.line),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 16, offset: const Offset(0, 6))],
+              boxShadow: const [BoxShadow(color: Color(0x2E000000), blurRadius: 24, offset: Offset(0, 8))],
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.mapTitle, style: DType.h3(d.accent).copyWith(fontSize: 18)),
-              Text(_showReports ? s.mapCardBodyShowing : s.mapCardBodyHidden, style: DType.body(d.muted, size: 12.5)),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                  child: _Switch(
-                    on: _showReports,
-                    icon: _showReports ? Icons.visibility_rounded : Icons.visibility_off_rounded,
-                    label: context.tr('My reports', 'Aking mga ulat'),
-                    colour: DColors.orange,
-                    onTap: _toggle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _Switch(
-                    on: _hazards,
-                    icon: Icons.water_rounded,
-                    label: s.mapHazardToggle,
-                    colour: const Color(0xFF0891B2),
-                    onTap: () => setState(() => _hazards = !_hazards),
-                  ),
-                ),
-              ]),
-              if (_hazards) ...[
-                const SizedBox(height: 10),
-                Row(children: [
-                  _swatch(const Color(0xFFFACC15), s.mapHazardLow, d),
-                  _swatch(const Color(0xFFF97316), s.mapHazardMedium, d),
-                  _swatch(const Color(0xFFDC2626), s.mapHazardHigh, d),
-                  const Spacer(),
-                  Text(s.mapHazardSource, style: DType.body(d.muted, size: 10.5)),
+            child: Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(_showReports ? s.mapReportsSpotted : s.mapWantToSeeReports, style: DType.body(d.ink, size: 16, w: FontWeight.w800).copyWith(height: 1.2)),
+                  const SizedBox(height: 2),
+                  Text(_showReports ? s.mapCardBodyShowing : s.mapCardBodyHidden, style: DType.body(d.muted, size: 12.5).copyWith(height: 1.35)),
+                  if (_hazards) ...[
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 10, runSpacing: 4, children: [
+                      _swatch(const Color(0xFFFACC15), s.mapHazardLow, d),
+                      _swatch(const Color(0xFFF97316), s.mapHazardMedium, d),
+                      _swatch(const Color(0xFFDC2626), s.mapHazardHigh, d),
+                      Text(s.mapHazardSource, style: DType.body(d.muted, size: 11.5)),
+                    ]),
+                  ],
                 ]),
-              ],
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: _toggle,
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _showReports ? d.btn : DColors.orange,
+                    boxShadow: [BoxShadow(color: const Color(0xFFFF9800).withValues(alpha: .35), blurRadius: 14, offset: const Offset(0, 6))],
+                  ),
+                  child: Icon(_showReports ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: Colors.white, size: 24),
+                ),
+              ),
             ]),
           ),
         ),
@@ -293,53 +396,58 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _swatch(Color c, String label, DColors d) => Padding(
-        padding: const EdgeInsets.only(right: 10),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 11, height: 11, decoration: BoxDecoration(color: c.withValues(alpha: .85), borderRadius: BorderRadius.circular(3))),
-          const SizedBox(width: 4),
-          Text(label, style: DType.body(d.ink2, size: 11.5, w: FontWeight.w700)),
-        ]),
-      );
+  Widget _swatch(Color c, String label, DColors d) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 12, height: 8, decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 4),
+        Text(label, style: DType.body(d.muted, size: 11.5)),
+      ]);
 }
 
-/// A switch chip: an icon, a label and a small sliding toggle.
-class _Switch extends StatelessWidget {
-  const _Switch({required this.on, required this.icon, required this.label, required this.colour, required this.onTap});
+/// `.msw .noah`: a 32 px chip — the dark grey with a white checkbox, the
+/// water rising in it when on, dimmed when off.
+class _NoahChip extends StatelessWidget {
+  const _NoahChip({required this.on, required this.label, required this.onTap});
 
   final bool on;
-  final IconData icon;
   final String label;
-  final Color colour;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final d = context.d;
-    return Material(
-      color: on ? colour.withValues(alpha: .14) : d.field,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: on ? colour.withValues(alpha: .6) : d.line)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+  Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-          child: Row(children: [
-            Icon(icon, size: 18, color: on ? colour : d.muted),
-            const SizedBox(width: 7),
-            Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink, size: 13, w: FontWeight.w800))),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 30,
-              height: 18,
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: on ? colour : d.line),
-              alignment: on ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(width: 14, height: 14, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
-            ),
-          ]),
+        child: Opacity(
+          opacity: on ? 1 : .8,
+          child: Container(
+            height: 32,
+            padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(9), boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4))]),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(alignment: Alignment.centerLeft, children: [
+              Positioned.fill(
+                child: Stack(children: [
+                  const ColoredBox(color: Color(0xFF333438), child: SizedBox.expand()),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOutBack,
+                    left: 0,
+                    right: 0,
+                    bottom: on ? 0 : -26,
+                    height: 26,
+                    child: const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF2A7BD6), Color(0xFF14509A)]))),
+                  ),
+                ]),
+              ),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(color: on ? Colors.white : null, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white.withValues(alpha: .8), width: 2)),
+                ),
+                const SizedBox(width: 7),
+                Text(label, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 12.5, color: Colors.white)),
+              ]),
+            ]),
+          ),
         ),
-      ),
-    );
-  }
+      );
 }

@@ -178,113 +178,165 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   // title 28/800 50 from the top of the screen, the list 43 under it at
   // 43 margins, and Back as the frames' 150x45 pill — at the bottom under
   // a list, directly under the message when there is nothing to show.
-  // Branch D: the preview's Notifications — back and the heading, then
-  // each notice as a card with an icon for its kind, unread ones marked
-  // with a dot and bold text, urgent ones (escalation, overdue) in red.
+  // Branch D, 1:1 with the preview's Notifications: back, the 24/800
+  // heading and Mark all as read; the All / Unread / My reports chips;
+  // then Today and Earlier, each a bordered list of rows — a coloured
+  // 40 px icon square, the notice, the time — unread ones tinted with a
+  // red dot at the left.
+  String _filter = 'all';
+
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final d = context.d;
+    final items = _items;
+    final unread = items?.where((n) => !n.isRead).length ?? 0;
+    Widget chip(String k, String label) {
+      final on = _filter == k;
+      return GestureDetector(
+        onTap: () => setState(() => _filter = k),
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: on ? d.btn : d.card, borderRadius: BorderRadius.circular(99), border: Border.all(color: on ? d.btn : d.line)),
+          child: Text(label, style: DType.body(on ? Colors.white : d.ink2, size: 12.5, w: FontWeight.w700)),
+        ),
+      );
+    }
+
+    bool shown(AppNotification n) => switch (_filter) {
+          'unread' => !n.isRead,
+          'reports' => n.reportId != null,
+          _ => true,
+        };
+    final now = DateTime.now();
+    bool today(AppNotification n) {
+      final l = n.createdAt.toLocal();
+      return l.year == now.year && l.month == now.month && l.day == now.day;
+    }
+
+    Widget group(String title, List<AppNotification> list) => list.isEmpty
+        ? const SizedBox.shrink()
+        : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 12),
+              child: Text(title.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11.5, letterSpacing: 1.04, color: d.muted)),
+            ),
+            Container(
+              decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+              clipBehavior: Clip.antiAlias,
+              child: Column(children: [
+                for (var i = 0; i < list.length; i++) _NotificationRow(item: list[i], first: i == 0),
+              ]),
+            ),
+            const SizedBox(height: 12),
+          ]);
+
+    final visible = (items ?? const <AppNotification>[]).where(shown).toList();
     return DPage(
       child: RefreshIndicator(
         onRefresh: _load,
         color: d.accent,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
           children: [
-            const Align(alignment: Alignment.centerLeft, child: DBack()),
+            Row(children: [
+              const DBack(),
+              const SizedBox(width: 10),
+              Expanded(child: Text(s.notificationsTitle, style: DType.h2(d.ink).copyWith(fontSize: 24))),
+              if (unread > 0)
+                GestureDetector(
+                  onTap: () => setState(() => _items = [
+                        for (final n in _items!)
+                          AppNotification(id: n.id, kind: n.kind, message: n.message, isRead: true, createdAt: n.createdAt, reportId: n.reportId),
+                      ]),
+                  child: Text(context.tr('Mark all as read', 'Basahin lahat'), style: DType.body(d.link, size: 13, w: FontWeight.w700)),
+                ),
+            ]),
             const SizedBox(height: 12),
-            DHeading(s.notificationsTitle),
-            const SizedBox(height: 16),
-            ..._body(s),
+            if (_error != null)
+              DSheet(
+                borderColor: DColors.red.withValues(alpha: .5),
+                child: Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
+              )
+            else if (items == null)
+              Padding(padding: const EdgeInsets.only(top: 60), child: Center(child: CircularProgressIndicator(color: d.accent)))
+            else ...[
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                chip('all', context.tr('All', 'Lahat')),
+                chip('unread', context.tr('Unread', 'Hindi pa nababasa') + (unread > 0 ? ' · $unread' : '')),
+                chip('reports', context.tr('My reports', 'Aking reports')),
+              ]),
+              const SizedBox(height: 12),
+              if (visible.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 10),
+                  child: Text(items.isEmpty ? s.notificationsEmptyTitle : context.tr('You’re all caught up.', 'Wala nang bago.'),
+                      textAlign: TextAlign.center, style: DType.body(d.muted, size: 14)),
+                )
+              else ...[
+                group(context.tr('Today', 'Ngayon'), [for (final n in visible) if (today(n)) n]),
+                group(context.tr('Earlier', 'Mas maaga'), [for (final n in visible) if (!today(n)) n]),
+              ],
+            ],
           ],
         ),
       ),
     );
   }
-
-  List<Widget> _body(Strings s) {
-    final d = context.d;
-    if (_error != null) {
-      return [
-        DSheet(
-          borderColor: DColors.red.withValues(alpha: .5),
-          child: Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
-        ),
-      ];
-    }
-    if (_items == null) {
-      return [Padding(padding: const EdgeInsets.only(top: 60), child: Center(child: CircularProgressIndicator(color: d.accent)))];
-    }
-    if (_items!.isEmpty) {
-      return [
-        const SizedBox(height: 80),
-        Center(
-          child: Container(
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: d.field, border: Border.all(color: d.line)),
-            child: Center(child: Image.asset('assets/images/empty-notifications.png', width: 40, height: 40, color: d.link)),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(s.notificationsEmptyTitle, textAlign: TextAlign.center, style: DType.h2(d.ink)),
-        const SizedBox(height: 4),
-        Text(s.notificationsEmptyBody, textAlign: TextAlign.center, style: DType.body(d.muted, size: 14.5)),
-      ];
-    }
-    return [
-      for (final n in _items!) ...[
-        _NotificationRow(item: n),
-        const SizedBox(height: 10),
-      ],
-    ];
-  }
 }
 
 class _NotificationRow extends StatelessWidget {
-  const _NotificationRow({required this.item});
+  const _NotificationRow({required this.item, this.first = false});
 
   final AppNotification item;
+  final bool first;
+
+  static (Color, IconData) _look(String k) {
+    if (k.contains('escalat')) return (const Color(0xFF8B5CF6), Icons.north_east_rounded);
+    if (k.contains('sla') || k.contains('deadline')) return (const Color(0xFFF59E0B), Icons.timer_outlined);
+    if (k.contains('reroute')) return (const Color(0xFF0F9D9A), Icons.swap_horiz_rounded);
+    if (k.contains('assign') || k.contains('dispatch')) return (const Color(0xFF356CF9), Icons.directions_walk_rounded);
+    if (k.contains('message') || k.contains('detail')) return (const Color(0xFF00308F), Icons.chat_bubble_outline_rounded);
+    if (k.contains('flood')) return (const Color(0xFF0EA5E9), Icons.water_rounded);
+    if (k.contains('resolv') || k.contains('complet') || k.contains('accept')) return (const Color(0xFF1F8A45), Icons.task_alt_rounded);
+    return (const Color(0xFF00308F), Icons.description_outlined);
+  }
 
   @override
   Widget build(BuildContext context) {
     final d = context.d;
+    final (col, icon) = _look(item.kind);
     final unread = !item.isRead;
-    final red = d.dark ? const Color(0xFFFF8A8A) : DColors.red;
-    final (IconData icon, Color tint) = item.isUrgent
-        ? (Icons.warning_amber_rounded, red)
-        : switch (item.kind) {
-            final k when k.contains('resolv') || k.contains('complet') => (Icons.task_alt_rounded, d.dark ? const Color(0xFF5FD68A) : DColors.green),
-            final k when k.contains('dispatch') || k.contains('assign') => (Icons.directions_walk_rounded, DColors.orange),
-            final k when k.contains('detail') || k.contains('message') => (Icons.chat_bubble_outline_rounded, d.link),
-            _ => (Icons.notifications_none_rounded, d.link),
-          };
     // A resident opens the complaint; a tanod's notifications are about
     // dispatches, which open from the tanod home (one app since branch C).
     final opens = item.reportId != null && AppRoleController.instance.value != AppRole.tanod;
-    return DSheet(
-      padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
-      borderColor: unread ? tint.withValues(alpha: .45) : null,
+    return InkWell(
       onTap: opens ? () => Navigator.of(context).pushNamed('/report', arguments: item.reportId) : null,
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        DWell(icon, size: 40, color: tint, tint: tint.withValues(alpha: .12)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(item.message, style: DType.body(item.isUrgent ? red : d.ink, size: 14.5, w: unread ? FontWeight.w800 : FontWeight.w500)),
-            const SizedBox(height: 3),
-            Text(_ago(context.s, item.createdAt), style: DType.body(d.muted, size: 12)),
-          ]),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: unread ? Color.alphaBlend(d.link.withValues(alpha: .06), d.card) : null,
+          border: first ? null : Border(top: BorderSide(color: d.line)),
         ),
-        if (unread)
-          Container(
-            margin: const EdgeInsets.only(top: 4, left: 8),
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: tint),
-          ),
-      ]),
+        child: Stack(clipBehavior: Clip.none, children: [
+          if (unread)
+            Positioned(left: -10, top: 0, bottom: 0, child: Center(child: Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE5383B))))),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: item.isUrgent ? const Color(0xFFE5383B) : col, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, size: 21, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(item.message, style: DType.body(d.ink, size: 14, w: unread ? FontWeight.w800 : FontWeight.w600).copyWith(height: 1.3))),
+            const SizedBox(width: 12),
+            Text(_ago(context.s, item.createdAt), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
+          ]),
+        ]),
+      ),
     );
   }
 
