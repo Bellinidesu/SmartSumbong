@@ -96,6 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $db->rpc('set_resolution_target', [
                         'p_report' => $id,
                         'p_due'    => $iso,
+                        // 0079: moving an existing date later is an
+                        // extension and needs a reason.
+                        'p_reason' => trim((string) ($_POST['target_reason'] ?? '')) ?: null,
                     ]);
 
                     $db->rpc('admin_dispatch', [
@@ -156,8 +159,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'p_report' => $id,
                         'p_status' => (string) ($_POST['status'] ?? ''),
                         'p_remark' => trim((string) ($_POST['remark'] ?? '')) ?: null,
+                        // 0079 (Rose): proof photos with the status, most of
+                        // all when the barangay resolves it itself.
+                        'p_media'  => cloudinary_upload_files('photos'),
                     ]);
                     $flash = t('Status updated. The resident has been told.', 'Na-update ang katayuan. Nasabihan na ang residente.');
+                    break;
+
+                // 0079 (Rose) — an update, photos and/or a target date from
+                // the barangay, with no tanod needed.
+                case 'barangay_update':
+                    $body   = trim((string) ($_POST['body'] ?? ''));
+                    $target = trim((string) ($_POST['target'] ?? ''));
+                    $photos = cloudinary_upload_files('photos');
+                    if ($body === '' && !$photos && $target === '') {
+                        throw new SupabaseError(t('Write an update, attach a photo or set a target date.', 'Sumulat ng update, maglakip ng larawan, o magtakda ng target na petsa.'));
+                    }
+                    // The date first: if the extension is refused, nothing
+                    // else has been posted.
+                    if ($target !== '') {
+                        $iso = (new DateTimeImmutable($target, new DateTimeZone('Asia/Manila')))
+                            ->format(DateTimeInterface::ATOM);
+                        $db->rpc('set_resolution_target', [
+                            'p_report' => $id,
+                            'p_due'    => $iso,
+                            'p_reason' => trim((string) ($_POST['target_reason'] ?? '')) ?: null,
+                        ]);
+                    }
+                    if ($body !== '' || $photos) {
+                        $db->rpc('admin_barangay_update', [
+                            'p_report' => $id,
+                            'p_body'   => $body !== '' ? $body : null,
+                            'p_media'  => $photos,
+                        ]);
+                    }
+                    $flash = t('Posted. The resident has been told.', 'Naipost na. Nasabihan na ang residente.');
+                    break;
+
+                // 0079 (Rose) — the extensions are used up: the case goes to
+                // a higher official and any tanod on it stands down.
+                case 'hand_up':
+                    $official = trim((string) ($_POST['official'] ?? ''));
+                    if ($official === 'other') {
+                        $official = trim((string) ($_POST['official_other'] ?? ''));
+                    }
+                    $db->rpc('hand_to_higher_official', [
+                        'p_report'   => $id,
+                        'p_official' => $official,
+                        'p_note'     => trim((string) ($_POST['note'] ?? '')) ?: null,
+                    ]);
+                    $flash = t('Handed to the official. The resident has been told.', 'Naipasa na sa opisyal. Nasabihan na ang residente.');
                     break;
 
                 // 0073 — Manage Escalation Request.
@@ -256,6 +307,9 @@ $proof = [];
 $proofCount = 0;
 $thread = [];      // dispatch id => dispatch_updates rows (0069)
 $messages = [];    // the resident's question thread (0072)
+$evidence = [];    // the barangay's own photos (0079)
+$extUsed = 0;      // target-date extensions since the last hand-up (0079)
+$extCap = 2;
 $escRequest = null; // a tanod's pending escalation request (0073)
 $threadMedia = []; // update id => its photos
 
@@ -274,6 +328,7 @@ try {
                       . 'referred_to,referral_note,referred_at,followed_up_at,follow_up_count,'
                       . 'resolution_submitted_at,resolution_returned_reason,is_public,'
                       . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
+                      . 'higher_official,higher_official_note,handed_up_at,'
                       . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
             'id'         => 'eq.' . $id,
             'deleted_at' => 'is.null',
@@ -416,6 +471,15 @@ if ($report && !$error) {
         $second['abuse'] = ['rpc/resident_abuse_reports', ['p_user' => $report['resident']['id']], true];
     }
 
+    // 0079: the barangay's photos, and how many extensions are left.
+    $second['evidence'] = ['report_evidence', [
+        'select'    => 'id,kind,media_url,bytes,created_at',
+        'report_id' => 'eq.' . $id,
+        'order'     => 'created_at.asc',
+    ], true];
+    $second['ext'] = ['rpc/extensions_used', ['p_report' => $id], true];
+    $second['ops'] = ['operational_settings', ['select' => 'max_deadline_extensions', 'limit' => '1'], true];
+
     // Only when nobody is on the case already. One round trip saved on
     // every screen that will not show it.
     if ($canAssign || $active) {
@@ -445,6 +509,15 @@ if ($report && !$error) {
             foreach ((array) $got['thread'] as $u) {
                 $thread[$u['dispatch_id']][] = $u;
             }
+        }
+        if (isset($got['evidence']) && !$got['evidence'] instanceof SupabaseError) {
+            $evidence = (array) $got['evidence'];
+        }
+        if (isset($got['ext']) && !$got['ext'] instanceof SupabaseError) {
+            $extUsed = (int) (is_array($got['ext']) ? ($got['ext'][0] ?? 0) : $got['ext']);
+        }
+        if (isset($got['ops']) && !$got['ops'] instanceof SupabaseError && isset($got['ops'][0]['max_deadline_extensions'])) {
+            $extCap = (int) $got['ops'][0]['max_deadline_extensions'];
         }
         if (isset($got['abuse']) && !$got['abuse'] instanceof SupabaseError) {
             $abuseHistory = (array) $got['abuse'];
@@ -612,6 +685,20 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </div>
       <?php endif; ?>
     </div>
+
+    <?php if ($evidence): ?>
+      <div class="p-sec">
+        <p class="p-eyebrow"><?= e(t("Barangay's Photos", 'Mga Larawan ng Barangay')) ?></p>
+        <div class="p-media">
+          <?php foreach ($evidence as $m): ?>
+            <a class="p-media-thumb" href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
+              <img src="<?= e($m['media_url']) ?>" alt="<?= e($m['kind'] === 'resolution' ? t('Resolution proof', 'Patunay ng resolusyon') : t('Barangay update photo', 'Larawan ng update ng barangay')) ?>" loading="lazy">
+              <span class="p-media-size"><?= e($m['kind'] === 'resolution' ? t('Resolution', 'Resolusyon') : t('Update', 'Update')) ?> · <?= e(byte_size((int) $m['bytes'])) ?></span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <?php
     // Only dispatches that were actually resolved carry a field
@@ -972,6 +1059,13 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <?php endif; ?>
           </p>
         </div>
+        <?php if (!empty($report['due_at'])): ?>
+          <div class="p-cfield">
+            <label class="p-flabel" for="target-reason"><?= e(t('Reason, if you move the date later', 'Dahilan, kung iuurong ang petsa')) ?></label>
+            <input class="p-input-plain" type="text" id="target-reason" name="target_reason" maxlength="300">
+            <p class="p-hint" style="margin:6px 0 0"><?= e(sprintf(t('Extensions used: %d of %d.', 'Nagamit na extension: %d sa %d.'), $extUsed, $extCap)) ?></p>
+          </div>
+        <?php endif; ?>
 
         <?php $anyActive = (bool) array_filter($roster, fn($t) => !empty($t['assignable']) && !empty($t['location_fresh'])); ?>
         <?php if (!$anyActive): ?>
@@ -1157,7 +1251,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php // 0073 — Update Resolution Status. ?>
       <details class="p-fix">
         <summary><?= e(t('Update status', 'I-update ang katayuan')) ?></summary>
-        <form method="post" class="p-ctl-stack">
+        <form method="post" class="p-ctl-stack" enctype="multipart/form-data">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="set_status">
           <div class="p-cfield">
@@ -1173,9 +1267,98 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <label class="p-flabel" for="set-remark"><?= e(t('Remark — the resident sees this', 'Tala — makikita ito ng residente')) ?></label>
             <textarea class="p-note" id="set-remark" name="remark" rows="2" maxlength="300"></textarea>
           </div>
+          <div class="p-cfield">
+            <label class="p-flabel" for="set-photos"><?= e(t('Proof photos (optional, up to 6) — the resident sees these', 'Mga larawang patunay (opsyonal, hanggang 6) — makikita ito ng residente')) ?></label>
+            <input class="p-input-plain" type="file" id="set-photos" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
+          </div>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Update status', 'I-update ang katayuan')) ?></button>
         </form>
       </details>
+    <?php endif; ?>
+
+    <?php $openCase = in_array($status, ['validated', 'assigned', 'in_progress', 'offline_investigation'], true) && empty($report['referred_to']); ?>
+    <?php if (!empty($report['higher_official'])): ?>
+      <div class="p-esc-card">
+        <p class="p-eyebrow" style="margin:0"><?= e(t('Handled by', 'Hawak ni')) ?></p>
+        <p class="p-assigned-name"><?= e($report['higher_official']) ?></p>
+        <p class="p-kv-line"><?= e(long_datetime($report['handed_up_at'])) ?></p>
+        <?php if (!empty($report['higher_official_note'])): ?>
+          <p class="p-quote"><?= e($report['higher_official_note']) ?></p>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if ($openCase): ?>
+      <?php // 0079 (Rose) — an update, photos or a target date, no tanod needed. ?>
+      <details class="p-fix">
+        <summary><?= e(t('Post an update', 'Mag-post ng update')) ?></summary>
+        <form method="post" class="p-ctl-stack" enctype="multipart/form-data">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="barangay_update">
+          <div class="p-cfield">
+            <label class="p-flabel" for="upd-body"><?= e(t('Update — the resident sees this', 'Update — makikita ito ng residente')) ?></label>
+            <textarea class="p-note" id="upd-body" name="body" rows="2" maxlength="500"
+                      placeholder="<?= e(t('e.g. The barangay talked to the store owner; the sidewalk will be cleared by Friday.', 'hal. Nakausap ng barangay ang may-ari ng tindahan; malilinis ang bangketa sa Biyernes.')) ?>"></textarea>
+          </div>
+          <div class="p-cfield">
+            <label class="p-flabel" for="upd-photos"><?= e(t('Photos (optional, up to 6)', 'Mga larawan (opsyonal, hanggang 6)')) ?></label>
+            <input class="p-input-plain" type="file" id="upd-photos" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
+          </div>
+          <div class="p-cfield">
+            <label class="p-flabel" for="upd-target"><?= e(t('Target date (optional)', 'Target na petsa (opsyonal)')) ?></label>
+            <input class="p-input-plain" type="datetime-local" id="upd-target" name="target"
+                   min="<?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d\TH:i')) ?>">
+            <p class="p-hint" style="margin:6px 0 0">
+              <?php if (!empty($report['due_at'])): ?>
+                <?= e(t('Currently due', 'Kasalukuyang takdang oras:')) ?> <?= e(long_datetime($report['due_at'])) ?>.
+                <?= e(sprintf(t('Extensions used: %d of %d.', 'Nagamit na extension: %d sa %d.'), $extUsed, $extCap)) ?>
+              <?php else: ?>
+                <?= e(t('No target date yet. The resident is told the one you set.', 'Wala pang target na petsa. Sasabihin sa residente ang itatakda mo.')) ?>
+              <?php endif; ?>
+            </p>
+          </div>
+          <?php if (!empty($report['due_at'])): ?>
+            <div class="p-cfield">
+              <label class="p-flabel" for="upd-reason"><?= e(t('Reason, if you move the date later', 'Dahilan, kung iuurong ang petsa')) ?></label>
+              <input class="p-input-plain" type="text" id="upd-reason" name="target_reason" maxlength="300">
+            </div>
+          <?php endif; ?>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Post', 'I-post')) ?></button>
+        </form>
+      </details>
+
+      <?php if ($extUsed >= $extCap && !empty($report['due_at'])): ?>
+        <?php // 0079 (Rose) — no extensions left: hand it to a higher official. ?>
+        <details class="p-fix" open>
+          <summary><?= e(t('Hand to a higher official', 'Ipasa sa mas mataas na opisyal')) ?></summary>
+          <form method="post" class="p-ctl-stack">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="hand_up">
+            <p class="p-ctl-note"><?= e(sprintf(t('The target date has been extended %d of %d times. It cannot move again; hand the case to an official instead.', 'Naiurong na ang target na petsa nang %d sa %d beses. Hindi na ito maiuurong; ipasa ang kaso sa isang opisyal.'), $extUsed, $extCap)) ?></p>
+            <div class="p-cfield">
+              <label class="p-flabel" for="hand-official"><?= e(t('Hand to', 'Ipasa kay')) ?></label>
+              <select class="p-input-plain" id="hand-official" name="official" required data-office>
+                <option value=""><?= e(t('Choose an official', 'Pumili ng opisyal')) ?></option>
+                <option value="Punong Barangay"><?= e(t('Punong Barangay', 'Punong Barangay')) ?></option>
+                <option value="Barangay Kagawad (Peace and Order)"><?= e(t('Barangay Kagawad (Peace and Order)', 'Barangay Kagawad (Kapayapaan at Kaayusan)')) ?></option>
+                <option value="Barangay Kagawad"><?= e(t('Barangay Kagawad (another committee)', 'Barangay Kagawad (ibang komite)')) ?></option>
+                <option value="Barangay Secretary"><?= e(t('Barangay Secretary', 'Kalihim ng Barangay')) ?></option>
+                <option value="other"><?= e(t('Another official…', 'Ibang opisyal…')) ?></option>
+              </select>
+            </div>
+            <div class="p-cfield" hidden>
+              <label class="p-flabel" for="hand-official-other"><?= e(t('Name or position', 'Pangalan o posisyon')) ?></label>
+              <input class="p-input-plain" type="text" id="hand-official-other" name="official_other" maxlength="80">
+            </div>
+            <div class="p-cfield">
+              <label class="p-flabel" for="hand-note"><?= e(t('Note — the resident sees this', 'Tala — makikita ito ng residente')) ?></label>
+              <textarea class="p-note" id="hand-note" name="note" rows="2" maxlength="300"></textarea>
+            </div>
+            <p class="p-ctl-note"><?= e(t('Any tanod on the case is stood down. The case stays open under the official, with a fresh set of extensions.', 'Ititigil ang sinumang tanod sa kaso. Mananatiling bukas ang kaso sa ilalim ng opisyal, na may bagong bilang ng extension.')) ?></p>
+            <button class="p-btn p-btn-danger-solid p-btn-sm" type="submit"><?= e(t('Hand over', 'Ipasa')) ?></button>
+          </form>
+        </details>
+      <?php endif; ?>
     <?php endif; ?>
 
     <?php if (!in_array($status, ['rejected', 'cancelled'], true)): ?>

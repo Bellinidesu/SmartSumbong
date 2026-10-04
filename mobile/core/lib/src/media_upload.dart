@@ -100,6 +100,8 @@ import 'dart:io';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
@@ -161,7 +163,15 @@ class MediaUploader {
     http.Client? client,
     ImagePicker? picker,
   })  : _client = client ?? http.Client(),
-        _picker = picker ?? ImagePicker();
+        _picker = picker ?? ImagePicker() {
+    // The system photo picker rather than ACTION_GET_CONTENT: on older
+    // Android (Martin's Oppo A12, Android 9) the latter opens the file
+    // browser instead of the photos. Android 9-12 get the picker from
+    // Google Play services (the manifest's ModuleDependencies entry);
+    // where it is missing, androidx falls back to the document picker.
+    final platform = ImagePickerPlatform.instance;
+    if (platform is ImagePickerAndroid) platform.useAndroidPhotoPicker = true;
+  }
 
   final String cloudName;
   final String uploadPreset;

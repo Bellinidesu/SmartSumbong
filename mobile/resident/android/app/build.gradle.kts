@@ -41,6 +41,10 @@ kotlin {
 dependencies {
     // Backs the core library desugaring flag above.
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // AppCompat themes: the fingerprint prompt (local_auth / androidx.biometric)
+    // misbehaves on older Android (Martin's Oppo A12, Android 9) under a
+    // plain android:Theme.
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }
 flutter {
     source = "../.."

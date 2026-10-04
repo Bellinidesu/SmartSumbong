@@ -8,7 +8,7 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 
 ---
 
-## Tables (23)
+## Tables (24)
 
 | Table | Purpose | Since |
 |---|---|---|
@@ -34,6 +34,7 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 | `dispatch_updates` | The dispatch window's thread: tanod notes, admin replies, steps | 0069 |
 | `report_messages` | "Ask the barangay": a complaint's resident ↔ barangay thread | 0072 |
 | `escalation_requests` | A tanod's request to escalate, and the admin's decision | 0073 |
+| `report_evidence` | Photos the barangay attaches from the portal: with an update, or when it resolves | 0079 |
 
 Removed: `tanod_locations` (live tracking history, dropped in 0072), the
 public transparency functions (0043 → removed). `emergency_alerts` was never
@@ -53,10 +54,12 @@ status, the audit trail and the notification move in one transaction. Most are
 |---|---|---|
 | `review_report(report, decision, remark, abusive)` | 0040 | Validate / Reject Report |
 | `admin_dispatch(report, tanod, instructions)` | 0071 | Assign a tanod — requires a target date and instructions |
-| `set_resolution_target(report, due)` | 0071 | Set the target date; the resident is told it |
+| `set_resolution_target(report, due, reason)` | 0079 | Set the target date; the resident is told it. Moving it later is an extension: needs a reason, recorded in `sla_extensions`, capped by `max_deadline_extensions` (2) |
+| `hand_to_higher_official(report, official, note)` | 0079 | Once the extensions are used up: hand the case to a barangay official; any tanod stands down; a fresh allowance starts |
+| `admin_barangay_update(report, body, media)` | 0079 | An update with photos to the timeline and the resident, no tanod needed |
 | `admin_reroute_dispatch(dispatch, reason, to)` | 0070 | Move a live dispatch to a tanod or back to the system |
 | `approve_resolution(report)` / `reject_resolution(report, reason)` | 0073 | Approve the tanod's resolution, or return it |
-| `admin_set_status(report, status, remark)` | 0073 | In Progress / Offline Investigation / Resolved |
+| `admin_set_status(report, status, remark, media)` | 0079 | In Progress / Offline Investigation / Resolved, with proof photos |
 | `refer_report(report, office, note)` | 0073 | Escalate to an outside office (closes the case here) |
 | `approve_escalation` / `deny_escalation` | 0073 | Decide a tanod's escalation request |
 | `set_report_public(report, public)` | 0073 | Show on residents' map |
@@ -109,6 +112,7 @@ reports are counted.
 - **Every dispatch is the admin's** (0070). Nothing is dispatched at filing.
   The system only re-offers a job when a tanod hands it back, does not accept
   in time, or retires (`redispatch_report` → `auto_dispatch`).
+- **Extensions are capped** (0079). The date can move later only `max_deadline_extensions` times, each with a reason; then the case goes to a higher official.
 - **The admin sets the deadline** (0071). No date exists until the admin
   assigns; the category's `resolution_hours` is only a guide on the form.
 - **A resolution waits for approval** (0073). `submit_field_report` finishes

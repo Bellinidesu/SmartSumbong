@@ -129,6 +129,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   /// -- expanding is one tap on the centered toggle below the bubble.
   bool _timelineExpanded = false;
   bool _mediaOpen = false;
+  List<({String url, String kind})> _evidence = const [];
+  String? _official;
+  String? _officialNote;
   bool _reasonsOpen = false;
   bool _busyAct = false;
 
@@ -359,7 +362,38 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         } catch (_) {}
       }
 
-      await Future.wait([detail(), _loadTimelineAuthors()]);
+      // 0079: the barangay's own photos and the official the case was
+      // handed to. Separate and optional, so an older database (or a
+      // failure here) never blanks the report.
+      Future<void> barangay() async {
+        try {
+          final ev = await client
+              .from('report_evidence')
+              .select('kind, media_url, mime_type')
+              .eq('report_id', widget.reportId)
+              .order('created_at');
+          if (mounted) {
+            setState(() => _evidence = [
+                  for (final m in ev) (url: m['media_url'] as String, kind: m['kind'] as String? ?? 'update'),
+                ]);
+          }
+        } catch (_) {}
+        try {
+          final o = await client
+              .from('reports')
+              .select('higher_official, higher_official_note')
+              .eq('id', widget.reportId)
+              .maybeSingle();
+          if (mounted && o != null) {
+            setState(() {
+              _official = o['higher_official'] as String?;
+              _officialNote = o['higher_official_note'] as String?;
+            });
+          }
+        } catch (_) {}
+      }
+
+      await Future.wait([detail(), _loadTimelineAuthors(), barangay()]);
     } catch (_) {
       if (!mounted) return;
       // No signal, but the saved copy is on screen: keep it (the offline
@@ -549,8 +583,12 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       notes.add(_RNote(
         colour: green,
         title: context.tr('Resolved', 'Naayos na'),
-        body: remarkText ?? (_proof.isNotEmpty ? s.reportViewResolvedWithProof : s.reportViewResolvedNoProof),
-        action: _proof.isNotEmpty ? (s.reportViewViewPhoto, () => _openPhoto(_proof, 0)) : null,
+        body: remarkText ?? (_proof.isNotEmpty || _evidence.any((e) => e.kind == 'resolution') ? s.reportViewResolvedWithProof : s.reportViewResolvedNoProof),
+        action: _proof.isNotEmpty
+            ? (s.reportViewViewPhoto, () => _openPhoto(_proof, 0))
+            : _evidence.any((e) => e.kind == 'resolution')
+                ? (s.reportViewViewPhoto, () => _openPhoto([for (final e in _evidence) if (e.kind == 'resolution') (url: e.url, isVideo: false)], 0))
+                : null,
         foot: reopened > 0 ? (reopened == 1 ? s.reportViewReopenedOnce : s.reportViewReopenedTimes(reopened)) : null,
       ));
     } else if (showsNote) {
@@ -559,7 +597,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       if (text != null) notes.add(_RNote(colour: stCol, title: stLabel, body: text));
     }
 
-    final hasMedia = (lat != null && lng != null) || _photos.isNotEmpty;
+    final barangayPhotos = [for (final e in _evidence) (url: e.url, isVideo: false)];
+    final hasMedia = (lat != null && lng != null) || _photos.isNotEmpty || barangayPhotos.isNotEmpty;
     final cancelled = status == ReportStatus.cancelled;
     Widget ask() => DButton(
           context.tr('Ask the barangay', 'Magtanong sa barangay'),
@@ -674,6 +713,12 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             title: _hasTanod(status) ? context.tr('A tanod is assigned', 'May naka-assign na tanod') : context.tr('No tanod assigned yet', 'Wala pang tanod'),
             sub: _hasTanod(status) ? context.tr('Assigned to your report', 'Naka-assign sa iyong report') : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
           ),
+          if (_official != null)
+            DRow(
+              icon: Icons.account_balance_outlined,
+              title: context.tr('Handled by $_official', 'Hawak ni $_official'),
+              sub: (_officialNote?.isNotEmpty ?? false) ? _officialNote : context.tr('Handed up by the barangay', 'Ipinasa ng barangay'),
+            ),
           if (lat != null && lng != null) _FloodRow(lat: lat, lng: lng),
           if (status.isOngoing && due != null && !overdue && !referred) DRow(icon: Icons.schedule_rounded, title: s.caseExpectedTitle, sub: dueText(due)),
           if (r['is_anonymous'] == true) DRow(icon: Icons.visibility_off_outlined, title: s.reportViewAnonymous),
@@ -710,6 +755,12 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               if (lat != null && lng != null) _MiniMap(point: LatLng(lat, lng)),
               if (lat != null && lng != null && _photos.isNotEmpty) const SizedBox(height: 12),
               if (_photos.isNotEmpty) _MediaCarousel(photos: _photos, onViewPhoto: (i) => _openPhoto(_photos, i)),
+              if (barangayPhotos.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(context.tr("The barangay's photos", 'Mga larawan ng barangay'), style: DType.body(d.muted, size: 12, w: FontWeight.w800)),
+                const SizedBox(height: 6),
+                _MediaCarousel(photos: barangayPhotos, onViewPhoto: (i) => _openPhoto(barangayPhotos, i)),
+              ],
             ]),
           ),
         ],

@@ -321,3 +321,68 @@ final class Supabase
         return $this->request('POST', "/rest/v1/rpc/{$fn}", $args);
     }
 }
+
+/**
+ * Uploads the photos in $_FILES[$field] (an <input type="file" multiple>)
+ * to the barangay's Cloudinary folder and returns them in the shape the
+ * evidence functions take: media_url, mime_type, bytes (0079). No photos
+ * chosen returns []. The URL shape is pinned in the database by
+ * is_barangay_media_url(); the two must change together.
+ */
+function cloudinary_upload_files(string $field, int $max = 6): array
+{
+    $f = $_FILES[$field] ?? null;
+    if (!$f || !is_array($f['name'])) {
+        return [];
+    }
+    $out = [];
+    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    foreach ($f['name'] as $i => $name) {
+        if (($f['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        if (count($out) >= $max) {
+            throw new SupabaseError(t("Attach at most {$max} photos.", "Hanggang {$max} larawan lamang."));
+        }
+        if ($f['error'][$i] !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'][$i])) {
+            throw new SupabaseError(t('A photo could not be uploaded. Try again.', 'Hindi ma-upload ang isang larawan. Subukan muli.'));
+        }
+        $bytes = (int) $f['size'][$i];
+        if ($bytes <= 0 || $bytes > 10 * 1024 * 1024) {
+            throw new SupabaseError(t('Each photo must be under 10 MB.', 'Dapat mas mababa sa 10 MB ang bawat larawan.'));
+        }
+        $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name'][$i]);
+        if (!isset($allowed[$mime])) {
+            throw new SupabaseError(t('Only JPEG, PNG or WebP photos can be attached.', 'JPEG, PNG o WebP na larawan lamang ang maaaring ilakip.'));
+        }
+        $uuid = sprintf('%s-%s-4%s-%s%s-%s',
+            bin2hex(random_bytes(4)), bin2hex(random_bytes(2)), substr(bin2hex(random_bytes(2)), 1),
+            dechex(8 + random_int(0, 3)), substr(bin2hex(random_bytes(2)), 1), bin2hex(random_bytes(6)));
+
+        $ch = curl_init('https://api.cloudinary.com/v1_1/' . rawurlencode(cloudinary_cloud()) . '/image/upload');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 60,
+            CURLOPT_POSTFIELDS     => [
+                'upload_preset' => cloudinary_preset(),
+                'public_id'     => 'barangay/' . $uuid,
+                'source'        => 'smartsumbong-portal',
+                'file'          => new CURLFile($f['tmp_name'][$i], $mime, 'photo.' . $allowed[$mime]),
+            ],
+        ]);
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+        $json = is_string($body) ? json_decode($body, true) : null;
+        if ($code !== 200 || !is_array($json) || empty($json['secure_url'])) {
+            throw new SupabaseError(t('The photo service did not accept a photo. Try again.', 'Hindi tinanggap ng serbisyo ng larawan ang isang larawan. Subukan muli.'));
+        }
+        $out[] = [
+            'media_url' => (string) $json['secure_url'],
+            'mime_type' => $mime,
+            'bytes'     => (int) ($json['bytes'] ?? $bytes),
+        ];
+    }
+    return $out;
+}

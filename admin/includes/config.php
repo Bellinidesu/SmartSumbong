@@ -43,6 +43,14 @@ const SESSION_KEY = 'smartsumbong_admin';
  * key would bypass them and must never appear here.
  */
 function supabase_url(): string { return rtrim(env('SUPABASE_URL'), '/'); }
+
+/**
+ * Cloudinary, for the photos an admin attaches (0079). The cloud name and
+ * the unsigned preset are public (the app ships both inside its APK), so
+ * they have defaults; an environment variable overrides either.
+ */
+function cloudinary_cloud(): string { return env('CLOUDINARY_CLOUD_NAME', 'nwb2kryl'); }
+function cloudinary_preset(): string { return env('CLOUDINARY_UPLOAD_PRESET', 'smartsumbong_unsigned'); }
 /**
  * Supabase renamed the client-side key from "anon" to "publishable".
  * Accept either name so an older .env keeps working — the portal never
