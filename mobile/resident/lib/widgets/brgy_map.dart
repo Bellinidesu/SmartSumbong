@@ -62,6 +62,10 @@ class BrgyMapPin {
     required this.point,
     this.alert = false,
     this.muted = false,
+    this.glyph,
+    this.statusColour,
+    this.catColour,
+    this.pulse = false,
   });
 
   final String id;
@@ -69,16 +73,31 @@ class BrgyMapPin {
   final bool alert;
   final bool muted;
 
+  /// A status badge (Ace's pick, 5 Oct): a round badge in [statusColour]
+  /// with the category's [glyph] inside and a dot in [catColour] on its
+  /// shoulder; [pulse] adds a soft halo (a report in progress). Without a
+  /// [glyph] the pin is the design's tilted one.
+  final IconData? glyph;
+  final Color? statusColour;
+  final Color? catColour;
+  final bool pulse;
+
+  bool get isBadge => glyph != null && statusColour != null;
+
   @override
   bool operator ==(Object other) =>
       other is BrgyMapPin &&
       other.id == id &&
       other.point == point &&
       other.alert == alert &&
-      other.muted == muted;
+      other.muted == muted &&
+      other.glyph == glyph &&
+      other.statusColour == statusColour &&
+      other.catColour == catColour &&
+      other.pulse == pulse;
 
   @override
-  int get hashCode => Object.hash(id, point, alert, muted);
+  int get hashCode => Object.hash(id, point, alert, muted, glyph, statusColour, catColour, pulse);
 }
 
 /// Moves a [BrgyMap]'s camera. A move asked for before the map is ready
@@ -219,6 +238,7 @@ class _BrgyMapState extends State<BrgyMap> {
   static Future<List<List<ll.LatLng>>>? _rings;
 
   ml.MapLibreMapController? _map;
+  final _images = <String>{};
   bool _styleReady = false;
   String? _style;
   bool? _styleDark;
@@ -258,7 +278,7 @@ class _BrgyMapState extends State<BrgyMap> {
     _map = map;
     widget.controller?._attach(map);
     map.onFeatureTapped.add((point, latLng, id, layerId, annotation) {
-      if (layerId == 'pins') widget.onPinTap?.call(id);
+      if (layerId == 'pins' || layerId == 'badges') widget.onPinTap?.call(id);
     });
   }
 
@@ -336,7 +356,23 @@ class _BrgyMapState extends State<BrgyMap> {
       await map.addGeoJsonSource('pins', _empty, promoteId: 'id');
       await map.addSymbolLayer(
         'pins',
+        'badges',
+        const ml.SymbolLayerProperties(
+          iconImage: ['get', 'badge'],
+          iconSize: 1,
+          iconAnchor: 'bottom',
+          // the badge is drawn with room for its halo under it
+          iconOffset: [0, 8],
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+        ),
+        filter: ['has', 'badge'],
+        enableInteraction: widget.onPinTap != null,
+      );
+      await map.addSymbolLayer(
         'pins',
+        'pins',
+        filter: ['!', ['has', 'badge']],
         ml.SymbolLayerProperties(
           iconImage: [
             'case',
@@ -419,20 +455,23 @@ class _BrgyMapState extends State<BrgyMap> {
       final data = jsonDecode(
           await rootBundle.loadString('assets/map/landmarks.geojson'));
       await map.addGeoJsonSource('landmarks', data as Map<String, dynamic>);
-      await map.addCircleLayer(
+      // Icon badges (Ace's pick, 5 Oct), in the portal's group colours.
+      for (final g in _landmarkLook.entries) {
+        await map.addImage('lm-${g.key}', await _landmarkPng(g.value.$1, g.value.$2, MediaQuery.devicePixelRatioOf(context)));
+      }
+      await map.addImage('lm-other', await _landmarkPng(Icons.place_rounded, const Color(0xFF64748B), MediaQuery.devicePixelRatioOf(context)));
+      await map.addSymbolLayer(
         'landmarks',
-        'landmarks-dot',
-        const ml.CircleLayerProperties(
-          circleRadius: ['interpolate', ['linear'], ['zoom'], 14, 3.5, 18, 7],
-          circleColor: [
+        'landmarks-badge',
+        ml.SymbolLayerProperties(
+          iconImage: [
             'match', ['get', 'group'],
-            'hall', '#FF9800', 'school', '#7C3AED', 'worship', '#0891B2',
-            'safety', '#DC2626', 'health', '#16A34A', 'park', '#65A30D',
-            'shop', '#DB2777', 'transport', '#475569', 'military', '#57534E',
-            'government', '#1D4ED8', '#64748B',
+            for (final k in _landmarkLook.keys) ...[k, 'lm-$k'],
+            'lm-other',
           ],
-          circleStrokeColor: '#FFFFFF',
-          circleStrokeWidth: 1.5,
+          iconSize: const ['interpolate', ['linear'], ['zoom'], 14, 0.62, 18, 1.0],
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
         ),
         enableInteraction: false,
       );
@@ -443,7 +482,7 @@ class _BrgyMapState extends State<BrgyMap> {
           textField: ['get', 'name'],
           textFont: const ['Noto Sans Bold'],
           textSize: const ['interpolate', ['linear'], ['zoom'], 15.5, 10.5, 18, 13],
-          textOffset: const [0, 0.9],
+          textOffset: const [0, 1.55],
           textAnchor: 'top',
           textMaxWidth: 9,
           textOptional: true,
@@ -521,6 +560,14 @@ class _BrgyMapState extends State<BrgyMap> {
   Future<void> _setPins() async {
     final map = _map;
     if (map == null || !_styleReady) return;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    for (final p in widget.pins) {
+      if (!p.isBadge) continue;
+      final key = _badgeKey(p);
+      if (_images.add(key)) {
+        await map.addImage(key, await _badgePng(p, dpr));
+      }
+    }
     await map.setGeoJsonSource('pins', {
       'type': 'FeatureCollection',
       'features': [
@@ -528,7 +575,12 @@ class _BrgyMapState extends State<BrgyMap> {
           {
             'type': 'Feature',
             'id': p.id,
-            'properties': {'id': p.id, 'alert': p.alert, 'muted': p.muted},
+            'properties': {
+              'id': p.id,
+              'alert': p.alert,
+              'muted': p.muted,
+              if (p.isBadge) 'badge': _badgeKey(p),
+            },
             'geometry': {
               'type': 'Point',
               'coordinates': [p.point.longitude, p.point.latitude],
@@ -624,6 +676,83 @@ class _BrgyMapState extends State<BrgyMap> {
           c.latitude + dLat * math.sin(2 * math.pi * i / 64),
         ],
     ];
+  }
+
+  /// The portal's landmark colours (admin/assets/js/map-theme.js) and a
+  /// glyph for each group.
+  static const _landmarkLook = <String, (IconData, Color)>{
+    'hall': (Icons.account_balance_rounded, Color(0xFFFF9800)),
+    'school': (Icons.school_rounded, Color(0xFF7C3AED)),
+    'worship': (Icons.church_rounded, Color(0xFF0891B2)),
+    'safety': (Icons.local_police_rounded, Color(0xFFDC2626)),
+    'health': (Icons.local_hospital_rounded, Color(0xFF16A34A)),
+    'park': (Icons.park_rounded, Color(0xFF65A30D)),
+    'shop': (Icons.shopping_basket_rounded, Color(0xFFDB2777)),
+    'transport': (Icons.directions_bus_rounded, Color(0xFF475569)),
+    'military': (Icons.shield_rounded, Color(0xFF57534E)),
+    'government': (Icons.gavel_rounded, Color(0xFF1D4ED8)),
+  };
+
+  static void _glyph(Canvas canvas, IconData icon, Offset c, double size, Color colour) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(fontFamily: icon.fontFamily, package: icon.fontPackage, fontSize: size, color: colour),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  static Future<Uint8List> _toPng(ui.PictureRecorder rec, Size size, double dpr) async {
+    final img = await rec.endRecording().toImage((size.width * dpr).ceil(), (size.height * dpr).ceil());
+    return (await img.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+  }
+
+  /// A landmark: a 24 px circle in the group's colour, a white edge, the
+  /// glyph in white.
+  static Future<Uint8List> _landmarkPng(IconData icon, Color colour, double dpr) async {
+    const size = Size(28, 28);
+    final rec = ui.PictureRecorder();
+    final canvas = Canvas(rec)..scale(dpr);
+    const c = Offset(14, 14);
+    canvas.drawCircle(c, 12.5, Paint()..color = const Color(0x33000000));
+    canvas.drawCircle(c, 12, Paint()..color = Colors.white);
+    canvas.drawCircle(c, 10, Paint()..color = colour);
+    _glyph(canvas, icon, c, 13, Colors.white);
+    return _toPng(rec, size, dpr);
+  }
+
+  static String _badgeKey(BrgyMapPin p) =>
+      'b${p.statusColour!.toARGB32()}-${p.catColour?.toARGB32()}-${p.glyph!.codePoint}-${p.muted ? 1 : 0}-${p.pulse ? 1 : 0}';
+
+  /// A report's status badge: round, the status colour, the category glyph
+  /// inside, a dot in the category colour on its shoulder, a soft halo
+  /// when it is in progress; a barangay-published one is faded and
+  /// hollow. Bottom of the badge sits 8 px above the image's foot.
+  static Future<Uint8List> _badgePng(BrgyMapPin p, double dpr) async {
+    const size = Size(60, 60);
+    final rec = ui.PictureRecorder();
+    final canvas = Canvas(rec)..scale(dpr);
+    const c = Offset(30, 34);
+    final status = p.statusColour!;
+    if (p.muted) {
+      canvas.saveLayer(Offset.zero & size, Paint()..color = const Color(0xB3FFFFFF));
+      canvas.drawCircle(c, 16.5, Paint()..color = Colors.white);
+      canvas.drawCircle(c, 16.5, Paint()..style = PaintingStyle.stroke..strokeWidth = 2.4..color = status);
+      _glyph(canvas, p.glyph!, c, 17, p.catColour ?? status);
+      canvas.restore();
+      return _toPng(rec, size, dpr);
+    }
+    if (p.pulse) canvas.drawCircle(c, 24, Paint()..color = status.withValues(alpha: .24));
+    canvas.drawCircle(c + const Offset(0, 1.5), 16.5, Paint()..color = const Color(0x33000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    canvas.drawCircle(c, 16.5, Paint()..color = Colors.white);
+    canvas.drawCircle(c, 13.5, Paint()..color = status);
+    _glyph(canvas, p.glyph!, c, 17, Colors.white);
+    final dot = c + const Offset(11, 11);
+    canvas.drawCircle(dot, 6.5, Paint()..color = Colors.white);
+    canvas.drawCircle(dot, 4.5, Paint()..color = p.catColour ?? status);
+    return _toPng(rec, size, dpr);
   }
 
   /// The design's tilted pin, drawn once per colour as a map image.

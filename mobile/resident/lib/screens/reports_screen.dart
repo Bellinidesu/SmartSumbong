@@ -2861,3 +2861,34 @@ class _RequestSentPage extends StatelessWidget {
     );
   }
 }
+
+
+/// The case's steps for the report page and the map's sheet: Filed,
+/// Validated, Tanod dispatched, Resolved — or, for a rejected, cancelled
+/// or escalated case, Filed and where it ended. [on] is how many are done.
+({List<String> labels, int on}) reportSteps(BuildContext context, ReportStatus status, {String? office}) {
+  final referred = office != null && office.isNotEmpty && status.isOngoing;
+  if (status == ReportStatus.rejected || status == ReportStatus.cancelled || referred) {
+    return (
+      labels: [
+        context.tr('Filed', 'Naisampa'),
+        referred ? context.tr('Escalated to the $office', 'In-escalate sa $office') : context.s.reportStatusLabel(status.wire),
+      ],
+      on: 2,
+    );
+  }
+  return (
+    labels: [
+      context.tr('Filed', 'Naisampa'),
+      context.tr('Validated', 'Napatunayan'),
+      context.tr('Tanod dispatched', 'Na-dispatch ang tanod'),
+      context.tr('Resolved', 'Nalutas'),
+    ],
+    on: switch (status) {
+      ReportStatus.pendingReview => 1,
+      ReportStatus.validated => 2,
+      ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => 3,
+      _ => 4,
+    },
+  );
+}

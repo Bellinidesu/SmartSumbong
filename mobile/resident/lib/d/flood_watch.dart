@@ -9,6 +9,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 
 import '../i18n.dart';
@@ -100,5 +101,54 @@ class DFloodCard extends StatelessWidget {
         ],
       ]),
     );
+  }
+}
+
+
+/// The Project NOAH 100-year flood level at a point — 0 outside the
+/// zones, 1 low, 2 medium, 3 high — read from the same hazard file the
+/// map draws (assets/map/hazards.geojson).
+class FloodHazard {
+  static List<(int, List<List<List<double>>>)>? _zones;
+
+  static Future<List<(int, List<List<List<double>>>)>> _load() async {
+    if (_zones != null) return _zones!;
+    final data = jsonDecode(await rootBundle.loadString('assets/map/hazards.geojson')) as Map;
+    final out = <(int, List<List<List<double>>>)>[];
+    for (final f in (data['features'] as List)) {
+      final props = f['properties'] as Map;
+      if (props['hazard'] != 'flood') continue;
+      final g = f['geometry'] as Map;
+      final polys = g['type'] == 'Polygon' ? [g['coordinates'] as List] : (g['coordinates'] as List).cast<List>();
+      for (final poly in polys) {
+        out.add((
+          (props['level'] as num).toInt(),
+          [
+            for (final ring in poly)
+              [for (final c in (ring as List)) [(c[0] as num).toDouble(), (c[1] as num).toDouble()]],
+          ],
+        ));
+      }
+    }
+    return _zones = out;
+  }
+
+  static bool _inRing(double x, double y, List<List<double>> ring) {
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      final xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  static Future<int> levelAt(double lat, double lng) async {
+    var best = 0;
+    for (final (level, rings) in await _load()) {
+      if (level <= best) continue;
+      // inside the outer ring and not in a hole
+      if (_inRing(lng, lat, rings.first) && !rings.skip(1).any((h) => _inRing(lng, lat, h))) best = level;
+    }
+    return best;
   }
 }

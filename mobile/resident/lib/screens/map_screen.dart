@@ -16,20 +16,19 @@
 // where it is aggregated and behind a login.
 
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../i18n.dart';
 import '../models/complaint_category.dart';
-import '../theme.dart';
 import '../widgets/brgy_map.dart';
 import '../d/d_theme.dart';
 import '../d/d_categories.dart';
 import '../d/d_ui.dart';
 import '../d/flood_watch.dart';
 import '../widgets/resident_nav_bar.dart';
-import 'reports_screen.dart' show ReportStatus, reportStatusColour;
+import 'reports_screen.dart' show ReportStatus, reportStatusColour, reportSteps;
 
 class _Pin {
   const _Pin({
@@ -39,6 +38,9 @@ class _Pin {
     required this.subject,
     required this.status,
     this.category,
+    this.createdAt,
+    this.locationLabel,
+    this.referredTo,
     this.mine = true,
   });
 
@@ -50,6 +52,9 @@ class _Pin {
   final String subject;
   final ReportStatus status;
   final ComplaintCategory? category;
+  final DateTime? createdAt;
+  final String? locationLabel;
+  final String? referredTo;
 
   /// False for an incident the barangay published (0073): category and
   /// status only, no link to the report.
@@ -105,7 +110,7 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final rows = await client
           .from('reports')
-          .select('id, tracking_id, subject, status, category, latitude, longitude')
+          .select('id, tracking_id, subject, status, category, created_at, location_label, referred_to, latitude, longitude')
           .eq('resident_id', uid)
           .isFilter('deleted_at', null);
 
@@ -144,6 +149,9 @@ class _MapScreenState extends State<MapScreen> {
           subject: r['subject'] as String? ?? '',
           status: ReportStatus.parse(r['status'] as String?),
           category: ComplaintCategory.parse(r['category'] as String?),
+          createdAt: DateTime.tryParse(r['created_at'] as String? ?? ''),
+          locationLabel: r['location_label'] as String?,
+          referredTo: r['referred_to'] as String?,
         ));
       }
 
@@ -188,6 +196,8 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: d.card,
       barrierColor: Colors.black.withValues(alpha: .25),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .78),
       builder: (ctx) => SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -205,26 +215,73 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(p.subject, style: DType.h3(d.ink).copyWith(fontSize: 19)),
-              const SizedBox(height: 10),
-              Row(children: [
-                if (p.mine) ...[Text(p.trackingId, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)), const SizedBox(width: 10)],
-                Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: st)),
-                const SizedBox(width: 6),
-                Text(s.reportStatusLabel(p.status.wire), style: DType.body(d.ink, size: 13.5, w: FontWeight.w700)),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text(p.subject, style: DType.body(d.ink, size: 19, w: FontWeight.w800).copyWith(height: 1.25)),
+                const SizedBox(height: 10),
+                Text.rich(TextSpan(children: [
+                  if (p.mine) ...[
+                    TextSpan(text: p.trackingId, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+                    TextSpan(text: ' \u00B7 ', style: DType.body(d.muted, size: 13)),
+                  ],
+                  WidgetSpan(alignment: PlaceholderAlignment.middle, child: Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 6), decoration: BoxDecoration(shape: BoxShape.circle, color: st))),
+                  TextSpan(text: s.reportStatusLabel(p.status.wire), style: DType.body(d.ink, size: 13, w: FontWeight.w700)),
+                ])),
+                const SizedBox(height: 10),
+                FutureBuilder<int>(
+                  future: FloodHazard.levelAt(p.point.latitude, p.point.longitude),
+                  builder: (context, snap) {
+                    final lvl = snap.data ?? 0;
+                    final flood = !snap.hasData
+                        ? '\u2026'
+                        : switch (lvl) {
+                            3 => context.tr('High flood hazard', 'Mataas na panganib ng baha'),
+                            2 => context.tr('Medium flood hazard', 'Katamtamang panganib ng baha'),
+                            1 => context.tr('Low flood hazard', 'Mababang panganib ng baha'),
+                            _ => context.tr('Outside the flood zones', 'Labas sa mga bahaing lugar'),
+                          };
+                    return Column(children: [
+                      if (p.mine)
+                        DRow(icon: Icons.place_outlined, title: (p.locationLabel?.isNotEmpty ?? false) ? p.locationLabel! : 'Barangay 183', sub: 'Barangay 183, Zone 20, Villamor, Pasay City'),
+                      if (p.mine && p.createdAt != null) DRow(icon: Icons.calendar_today_outlined, title: s.reportsSubmittedOn('${s.monthFull(p.createdAt!.toLocal().month)} ${p.createdAt!.toLocal().day}, ${p.createdAt!.toLocal().year}')),
+                      if (p.mine)
+                        DRow(
+                          icon: Icons.shield_outlined,
+                          title: p.status.index >= ReportStatus.assigned.index && p.status != ReportStatus.rejected && p.status != ReportStatus.cancelled
+                              ? context.tr('A tanod is assigned', 'May naka-assign na tanod')
+                              : context.tr('No tanod assigned yet', 'Wala pang tanod'),
+                          sub: p.status.index >= ReportStatus.assigned.index && p.status != ReportStatus.rejected && p.status != ReportStatus.cancelled
+                              ? context.tr('Assigned to your report', 'Naka-assign sa iyong report')
+                              : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
+                        ),
+                      DRow(icon: Icons.water_rounded, title: flood, sub: 'Project NOAH 100-year flood map'),
+                    ]);
+                  },
+                ),
+                if (p.mine) ...[
+                  const SizedBox(height: 10),
+                  Builder(builder: (context) {
+                    final steps = reportSteps(context, p.status, office: p.referredTo);
+                    return DStepList(
+                      labels: steps.labels,
+                      on: steps.on,
+                      colour: col,
+                      subs: p.createdAt == null ? const {} : {0: '${s.monthFull(p.createdAt!.toLocal().month)} ${p.createdAt!.toLocal().day}, ${p.createdAt!.toLocal().year}'},
+                    );
+                  }),
+                  const SizedBox(height: 4),
+                  DButton(context.tr('Open this report', 'Buksan ang report'), expand: true, onTap: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).pushNamed('/report', arguments: p.id);
+                  }),
+                ] else ...[
+                  const SizedBox(height: 4),
+                  Text(s.mapPublishedNote, style: DType.body(d.muted, size: 13)),
+                ],
               ]),
-              const SizedBox(height: 14),
-              if (p.mine)
-                DButton(s.mapViewReport, expand: true, onTap: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pushNamed('/report', arguments: p.id);
-                })
-              else
-                Text(s.mapPublishedNote, style: DType.body(d.muted, size: 13)),
-            ]),
+            ),
           ),
         ]),
       ),
@@ -263,7 +320,15 @@ class _MapScreenState extends State<MapScreen> {
             pins: [
               if (_showReports)
                 for (final p in pins)
-                  BrgyMapPin(id: p.id, point: p.point, muted: !p.mine, alert: p.mine && p.status.labelColour(context) != context.colors.bg),
+                  BrgyMapPin(
+                    id: p.id,
+                    point: p.point,
+                    muted: !p.mine,
+                    glyph: categoryGlyph(p.category ?? ComplaintCategory.other),
+                    statusColour: reportStatusColour(p.status),
+                    catColour: categoryColour(p.category ?? ComplaintCategory.other),
+                    pulse: p.mine && (p.status == ReportStatus.inProgress || p.status == ReportStatus.assigned || p.status == ReportStatus.offlineInvestigation),
+                  ),
             ],
             onPinTap: (id) {
               for (final p in pins) {
@@ -375,8 +440,10 @@ class _MapScreenState extends State<MapScreen> {
       ]);
 }
 
-/// `.msw .noah`: a 32 px chip — the dark grey with a white checkbox, the
-/// water rising in it when on, dimmed when off.
+/// `.msw .noah`, 1:1 with the preview: a 32 px chip on #333438 with a
+/// white checkbox; ticked, the blue wave rises through it (translateY 80%
+/// to 0, .6 s, cubic-bezier(.4,1.3,.5,1)); unticked it is desaturated to
+/// .55 like the preview's `filter: saturate(.55)`.
 class _NoahChip extends StatelessWidget {
   const _NoahChip({required this.on, required this.label, required this.onTap});
 
@@ -384,11 +451,19 @@ class _NoahChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
+  static const _sat = .55;
+  static const _desat = ColorFilter.matrix(<double>[
+    0.213 + 0.787 * _sat, 0.715 - 0.715 * _sat, 0.072 - 0.072 * _sat, 0, 0,
+    0.213 - 0.213 * _sat, 0.715 + 0.285 * _sat, 0.072 - 0.072 * _sat, 0, 0,
+    0.213 - 0.213 * _sat, 0.715 - 0.715 * _sat, 0.072 + 0.928 * _sat, 0, 0,
+    0, 0, 0, 1, 0,
+  ]);
+
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
-        child: Opacity(
-          opacity: on ? 1 : .8,
+        child: ColorFiltered(
+          colorFilter: on ? const ColorFilter.mode(Colors.transparent, BlendMode.dst) : _desat,
           child: Container(
             height: 32,
             padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
@@ -397,15 +472,19 @@ class _NoahChip extends StatelessWidget {
             child: Stack(alignment: Alignment.centerLeft, children: [
               Positioned.fill(
                 child: Stack(children: [
-                  const ColoredBox(color: Color(0xFF333438), child: SizedBox.expand()),
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeOutBack,
-                    left: 0,
-                    right: 0,
-                    bottom: on ? 0 : -26,
-                    height: 26,
-                    child: const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF2A7BD6), Color(0xFF14509A)]))),
+                  const Positioned.fill(child: ColoredBox(color: Color(0xFF333438))),
+                  Positioned.fill(
+                    child: AnimatedSlide(
+                      offset: Offset(0, on ? 0 : .8),
+                      duration: const Duration(milliseconds: 600),
+                      curve: const Cubic(.4, 1.3, .5, 1),
+                      child: OverflowBox(
+                        alignment: Alignment.centerLeft,
+                        minWidth: 0,
+                        maxWidth: double.infinity,
+                        child: FractionallySizedBox(widthFactor: 2, heightFactor: 1, alignment: Alignment.centerLeft, child: CustomPaint(painter: _WavePainter())),
+                      ),
+                    ),
                   ),
                 ]),
               ),
@@ -422,4 +501,30 @@ class _NoahChip extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// The preview's wave: viewBox 400x44 stretched to fill, #1A73E8 below the
+/// crest and a 2.5 white line along it.
+class _WavePainter extends CustomPainter {
+  const _WavePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.scale(size.width / 400, size.height / 44);
+    final crest = Path()
+      ..moveTo(0, 6)
+      ..cubicTo(40, 1, 60, 1, 100, 6)
+      ..cubicTo(140, 11, 160, 11, 200, 6)
+      ..cubicTo(240, 1, 260, 1, 300, 6)
+      ..cubicTo(340, 11, 360, 11, 400, 6);
+    final fill = Path.from(crest)
+      ..lineTo(400, 44)
+      ..lineTo(0, 44)
+      ..close();
+    canvas.drawPath(fill, Paint()..color = const Color(0xFF1A73E8));
+    canvas.drawPath(crest, Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(_WavePainter old) => false;
 }

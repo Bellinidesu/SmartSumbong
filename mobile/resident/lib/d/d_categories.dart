@@ -15,3 +15,15 @@ Color categoryColour(ComplaintCategory c) => switch (c) {
       ComplaintCategory.peaceOrderNuisance => const Color(0xFFE0609A),
       ComplaintCategory.other => const Color(0xFF0F9D9A),
     };
+
+/// The glyph a category wears on its map badge.
+IconData categoryGlyph(ComplaintCategory c) => switch (c) {
+      ComplaintCategory.streetObstruction => Icons.local_parking_rounded,
+      ComplaintCategory.publicSafetyInfrastructure => Icons.construction_rounded,
+      ComplaintCategory.environmentalWasteHazard => Icons.water_drop_rounded,
+      ComplaintCategory.animalWelfare => Icons.pets_rounded,
+      ComplaintCategory.trafficViolation => Icons.traffic_rounded,
+      ComplaintCategory.barangayService => Icons.account_balance_rounded,
+      ComplaintCategory.peaceOrderNuisance => Icons.volume_up_rounded,
+      ComplaintCategory.other => Icons.more_horiz_rounded,
+    };
