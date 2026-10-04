@@ -50,6 +50,12 @@ class DemoBackend extends http.BaseClient {
   // ───────── http ─────────
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final r = await _handle(request);
+    // postgrest reads response.request, which a hand-built response lacks
+    return http.StreamedResponse(r.stream, r.statusCode, contentLength: r.contentLength, request: request, headers: r.headers, reasonPhrase: r.reasonPhrase);
+  }
+
+  Future<http.StreamedResponse> _handle(http.BaseRequest request) async {
     final body = request is http.Request ? request.body : '';
     dynamic data;
     try {
