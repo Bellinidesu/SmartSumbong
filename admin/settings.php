@@ -32,18 +32,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
     } else {
         try {
+            // Rose (6 Oct 2026): nobody but the new admin sees a password.
+            // The account is made with a random one nobody is shown, and
+            // the admin's own email gets a link to choose theirs.
+            $who = trim((string) ($_POST['email'] ?? ''));
             if ($_POST['action'] === 'add_admin') {
-                $temp = (string) $db->rpc('create_admin_account', [
-                    'p_email'     => trim((string) ($_POST['email'] ?? '')),
+                $db->rpc('create_admin_account', [
+                    'p_email'     => $who,
                     'p_full_name' => trim((string) ($_POST['full_name'] ?? '')),
                     'p_mobile'    => trim((string) ($_POST['mobile'] ?? '')),
                 ]);
-                $who = trim((string) ($_POST['email'] ?? ''));
-            } else {
-                $temp = (string) $db->rpc('reset_admin_password', ['p_user' => (string) ($_POST['user'] ?? '')]);
-                $who = trim((string) ($_POST['email'] ?? ''));
             }
-            $_SESSION['st_flash'] = ['level' => 'ok', 'who' => $who, 'temp' => $temp];
+            $secure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+            Supabase::recover($who, ($secure ? 'https://' : 'http://') . $_SERVER['HTTP_HOST']
+                . dirname($_SERVER['SCRIPT_NAME']) . '/reset-password.php');
+            $_SESSION['st_flash'] = ['level' => 'ok', 'who' => $who, 'new' => $_POST['action'] === 'add_admin'];
         } catch (SupabaseError $ex) {
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
@@ -167,9 +171,8 @@ try {
 <section class="st-pane" data-pane="admins" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'ok'): ?>
     <div class="p-flash p-flash--ok" role="status">
-      <?= e(t('Temporary password for', 'Pansamantalang password para kay')) ?> <b><?= e($stFlash['who']) ?></b>:
-      <b style="font-family:monospace;font-size:1.15em;letter-spacing:.06em"><?= e($stFlash['temp']) ?></b>
-      — <?= e(t('give it to them in person. It is shown only once; they must change it when they first sign in.', 'ibigay nang personal. Isang beses lang itong ipapakita; kailangan nilang palitan ito sa unang pag-sign in.')) ?>
+      <?= e(!empty($stFlash['new']) ? t('Account created. A link to set a password was emailed to', 'Nagawa ang account. Naipadala ang link para magtakda ng password sa') : t('A link to set a new password was emailed to', 'Naipadala ang link para magtakda ng bagong password sa')) ?>
+      <b><?= e($stFlash['who']) ?></b>. <?= e(t('Only they can see it.', 'Sila lang ang makakakita nito.')) ?>
     </div>
   <?php elseif ($stFlash): ?>
     <div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div>
@@ -183,12 +186,12 @@ try {
         <td><?= e((string) ($a['email'] ?? '')) ?></td>
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
         <td><?php if ($a['id'] !== $admin['id']): ?>
-          <form method="post" onsubmit="return confirm('<?= e(t('Issue a new temporary password? Their current password stops working.', 'Magbigay ng bagong pansamantalang password? Hindi na gagana ang kasalukuyan nilang password.')) ?>')">
+          <form method="post" onsubmit="return confirm('<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>')">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="reset_admin">
             <input type="hidden" name="user" value="<?= e($a['id']) ?>">
             <input type="hidden" name="email" value="<?= e((string) ($a['email'] ?? '')) ?>">
-            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('New temporary password', 'Bagong pansamantalang password')) ?></button>
+            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Email a password link', 'I-email ang link ng password')) ?></button>
           </form>
         <?php endif; ?></td>
       </tr>
@@ -197,7 +200,7 @@ try {
   </table></div></div>
   <div class="p-card p-card-pad" style="margin-top:12px">
     <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
-    <p class="p-hint"><?= e(t('The new administrator gets an account with a temporary password, shown here once. They must choose their own the first time they sign in.', 'Ang bagong administrator ay bibigyan ng account na may pansamantalang password na isang beses lang ipapakita rito. Kailangan nilang pumili ng sarili sa unang pag-sign in.')) ?></p>
+    <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
     <form method="post" style="display:grid;gap:8px;max-width:420px">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <input type="hidden" name="action" value="add_admin">

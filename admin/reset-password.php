@@ -170,7 +170,15 @@ require_once __DIR__ . '/includes/auth.php';
           throw new Error(data.msg || data.error_description || data.message || T('Could not set your new password.', 'Hindi naitakda ang bagong password.'));
         });
       }
-      window.location.replace('login.php?reset=1');
+      // Rose (6 Oct 2026): an account issued from Settings is flagged to
+      // change its password; choosing one here is that change.
+      return fetch(SUPABASE_URL + '/rest/v1/rpc/clear_password_change_flag', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: '{}',
+      }).catch(function () {}).then(function () {
+        window.location.replace('login.php?reset=1');
+      });
     }).catch(function (err) {
       btn.disabled = false;
       btn.textContent = T('Save password', 'I-save ang password');
