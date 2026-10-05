@@ -1031,7 +1031,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
     <div id="ss-also" hidden></div>
     <?php if ($handlerLog): ?>
-      <ul class="p-hint" style="margin:0;padding-left:18px">
+      <ul class="ss-hist">
         <?php foreach ($handlerLog as $h): ?>
           <li><?= e($h['admin']['full_name'] ?? '') ?> <?= e(match ($h['action']) {
               'take' => t('took the case', 'kinuha ang kaso'),

@@ -185,7 +185,7 @@ try {
         <td><?= e($a['full_name']) ?><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
         <td><?= e((string) ($a['email'] ?? '')) ?></td>
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
-        <td><?php if ($a['id'] !== $admin['id']): ?>
+        <td class="p-right"><?php if ($a['id'] !== $admin['id']): ?>
           <form method="post" onsubmit="return confirm('<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>')">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="reset_admin">
@@ -198,10 +198,10 @@ try {
     <?php endforeach; ?>
     </tbody>
   </table></div></div>
-  <div class="p-card p-card-pad" style="margin-top:12px">
+  <div class="p-card p-card-pad ss-addadmin">
     <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
     <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
-    <form method="post" style="display:grid;gap:8px;max-width:420px">
+    <form method="post" class="ss-form">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <input type="hidden" name="action" value="add_admin">
       <input class="p-input-plain" name="full_name" required maxlength="120" placeholder="<?= e(t('Last name, First name', 'Apelyido, Pangalan')) ?>">

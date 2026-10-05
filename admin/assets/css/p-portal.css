@@ -259,3 +259,42 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-feed li.ss-mine { background: var(--p-sky-bg); }
 .ss-feed .ss-case { display: block; font-weight: 700; font-size: 13px; color: var(--p-link); margin-top: 2px; text-decoration: none; }
 .ss-feed .ss-time { display: block; color: var(--p-ink-3, var(--ink-soft)); font-size: 12.5px; margin-top: 2px; }
+
+/* 0087+ — the new screens on the portal's rhythm: 16px card gaps, 12px
+   radii, one segmented control style, no one-off inline spacing. */
+.ss-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--p-surface-2); border: 1px solid var(--p-line); margin-left: auto; }
+.ss-seg a { padding: 6px 12px; border-radius: 9px; font-weight: 700; font-size: 13px; color: var(--p-ink-2); text-decoration: none; white-space: nowrap; }
+.ss-seg a:hover { color: var(--p-ink); }
+.ss-seg a.p-on { background: var(--p-surface); color: var(--p-ink); box-shadow: var(--p-shadow-sm); }
+.ss-seg-block { margin: 0 0 16px; }
+.p-band .ss-seg { flex: none; }
+@media (max-width: 720px) { .p-band .ss-seg { margin-left: 0; width: 100%; overflow-x: auto; } }
+
+.ss-handler { gap: 12px; }
+.ss-handler form { margin: 0; }
+.ss-handler b { display: block; line-height: 1.3; }
+.ss-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; border-top: 1px solid var(--p-line); padding-top: 10px; }
+.ss-hist li { position: relative; padding-left: 14px; font-size: 12.5px; line-height: 1.45; color: var(--p-ink-2); }
+.ss-hist li::before { content: ""; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--p-line-2, var(--p-line)); }
+#ss-also { padding: 8px 12px; border-radius: 12px; background: var(--p-surface-2); }
+
+.ss-teamcard, .ss-requests { margin-bottom: 16px; }
+.ss-team-foot { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--p-line); }
+#ss-team .ss-who { padding: 10px 12px; border-radius: 12px; background: var(--p-surface-2); border: 1px solid var(--p-line); }
+.ss-feed { gap: 6px; }
+.ss-feed li { border: 1px solid transparent; }
+.ss-feed li + li { border-top-color: var(--p-line); border-radius: 0; }
+.ss-feed li.ss-mine { border-radius: 12px; border-color: transparent; }
+
+.ss-addadmin { margin-top: 16px; }
+.ss-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; align-items: end; max-width: 760px; }
+.ss-form button { justify-self: start; }
+.p-t td.p-right form { display: inline-flex; margin: 0; }
+
+.ss-req { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; align-items: start; padding: 14px 0; border-top: 1px solid var(--p-line); }
+.ss-req:first-child { border-top: 0; padding-top: 4px; }
+.ss-req > .p-chip { justify-self: start; }
+.ss-req-img { width: 120px; height: 80px; object-fit: cover; border-radius: 12px; border: 1px solid var(--p-line); display: block; }
+.ss-req-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.ss-req-actions .p-input-plain { flex: 1; min-width: 200px; }
+@media (max-width: 560px) { .ss-req { grid-template-columns: 1fr; } }

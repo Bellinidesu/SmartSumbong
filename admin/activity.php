@@ -98,17 +98,17 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
 
 <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
 
-<div class="p-card p-card-pad" style="margin-bottom:16px">
+<div class="p-card p-card-pad ss-teamcard">
   <p class="p-eyebrow"><?= e(t('Team now', 'Ang team ngayon')) ?></p>
   <div id="ss-team"><span class="p-hint"><?= e(t('Checking who is online…', 'Tinitingnan kung sino ang online…')) ?></span></div>
-  <p class="p-hint" style="margin:12px 0 0"><?= e(sprintf(t('You are handling %d case(s).', 'May hawak kang %d kaso.'), $myCases)) ?>
+  <p class="p-hint ss-team-foot"><?= e(sprintf(t('You are handling %d case(s).', 'May hawak kang %d kaso.'), $myCases)) ?>
     <a href="cases.php?who=mine"><?= e(t('See them', 'Tingnan')) ?></a></p>
 </div>
 
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-  <a class="p-chip<?= $show === '' ? ' p-on' : '' ?>" href="activity.php"><?= e(t('Everything', 'Lahat')) ?></a>
-  <a class="p-chip<?= $show === 'mine' ? ' p-on' : '' ?>" href="activity.php?show=mine"><?= e(t('My cases', 'Aking mga kaso')) ?> · <?= (int) $mineCount ?></a>
-  <a class="p-chip<?= $show === 'peers' ? ' p-on' : '' ?>" href="activity.php?show=peers"><?= e(t("Peers' cases", 'Mga kaso ng iba')) ?></a>
+<div class="ss-seg ss-seg-block" role="group">
+  <a class="<?= $show === '' ? ' p-on' : '' ?>" href="activity.php"><?= e(t('Everything', 'Lahat')) ?></a>
+  <a class="<?= $show === 'mine' ? ' p-on' : '' ?>" href="activity.php?show=mine"><?= e(t('My cases', 'Aking mga kaso')) ?> · <?= (int) $mineCount ?></a>
+  <a class="<?= $show === 'peers' ? ' p-on' : '' ?>" href="activity.php?show=peers"><?= e(t("Peers' cases", 'Mga kaso ng iba')) ?></a>
 </div>
 
 <div class="p-card p-card-pad">

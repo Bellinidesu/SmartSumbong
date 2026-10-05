@@ -294,13 +294,13 @@ function render_account_screen(string $role): void
     } catch (SupabaseError $e) { $requests = []; }
     ?>
     <?php if ($requests): ?>
-      <div class="p-card p-card-pad" style="margin-bottom:16px">
+      <div class="p-card p-card-pad ss-requests">
         <p class="p-eyebrow"><?= e(t('Requests waiting', 'Mga naghihintay na kahilingan')) ?> · <?= count($requests) ?></p>
         <div style="display:grid;gap:12px">
         <?php foreach ($requests as $r): ?>
-          <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;border-top:1px solid var(--p-line);padding-top:12px">
+          <div class="ss-req">
             <?php if ($r['kind'] === 'id_document'): ?>
-              <a href="<?= e($r['id_image_url']) ?>" target="_blank" rel="noopener"><img src="<?= e($r['id_image_url']) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" style="width:120px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--p-line)"></a>
+              <a href="<?= e($r['id_image_url']) ?>" target="_blank" rel="noopener"><img src="<?= e($r['id_image_url']) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" class="ss-req-img"></a>
             <?php else: ?>
               <span class="p-chip"><?= e(t('Name', 'Pangalan')) ?></span>
             <?php endif; ?>
@@ -311,11 +311,11 @@ function render_account_screen(string $role): void
                   ? e(t('Change name to', 'Palitan ang pangalan sa')) . ' <b>' . e(display_name($r['new_full_name'])) . '</b>'
                   : e(t('New ID photo', 'Bagong litrato ng ID')) . ' (' . e(str_replace('_', ' ', (string) $r['id_type'])) . ')' ?></p>
               <?php if (!empty($r['reason'])): ?><p class="p-quote" style="margin:4px 0 0"><?= e($r['reason']) ?></p><?php endif; ?>
-              <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+              <form method="post" class="ss-req-actions">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="profile_request">
                 <input type="hidden" name="request" value="<?= e($r['id']) ?>">
-                <input class="p-input-plain" name="note" maxlength="300" placeholder="<?= e(t('Reason (needed to decline)', 'Dahilan (kailangan kung tatanggihan)')) ?>" style="flex:1;min-width:180px">
+                <input class="p-input-plain" name="note" maxlength="300" placeholder="<?= e(t('Reason (needed to decline)', 'Dahilan (kailangan kung tatanggihan)')) ?>">
                 <button class="p-btn p-btn-success p-btn-sm" type="submit" name="decision" value="approve"><?= e(t('Approve', 'Aprubahan')) ?></button>
                 <button class="p-btn p-btn-danger-soft p-btn-sm" type="submit" name="decision" value="decline"><?= e(t('Decline', 'Tanggihan')) ?></button>
               </form>

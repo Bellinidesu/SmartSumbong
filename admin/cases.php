@@ -269,9 +269,11 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
      href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
     <?= e(t('Needs attention', 'Kailangang asikasuhin')) ?> <span class="p-chip-num<?= $atc > 0 ? ' p-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
   </a>
-  <?php foreach (['' => t('All handlers', 'Lahat ng humahawak'), 'mine' => t('Mine', 'Akin'), 'unclaimed' => t('Unclaimed', 'Wala pang humahawak'), 'others' => t("Others'", 'Sa iba')] as $wk => $wl): ?>
-    <a class="p-chip p-chip-band<?= $who === $wk ? ' p-on' : '' ?>" href="?<?= e(http_build_query(array_filter(['who' => $wk, 'view' => $view, 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>"><?= e($wl) ?></a>
+  <div class="ss-seg" role="group" aria-label="<?= e(t('Handler', 'Humahawak')) ?>">
+  <?php foreach (['' => t('All', 'Lahat'), 'mine' => t('Mine', 'Akin'), 'unclaimed' => t('Unclaimed', 'Wala pa'), 'others' => t("Others'", 'Sa iba')] as $wk => $wl): ?>
+    <a class="<?= $who === $wk ? 'p-on' : '' ?>" href="?<?= e(http_build_query(array_filter(['who' => $wk, 'view' => $view, 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>"><?= e($wl) ?></a>
   <?php endforeach; ?>
+  </div>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
     <input type="search" name="q" placeholder="<?= e(t('Search name, ID or category', 'Hanapin ang pangalan, ID o kategorya')) ?>" value="<?= e($search) ?>" aria-label="<?= e(t('Search reports', 'Maghanap sa mga ulat')) ?>">
