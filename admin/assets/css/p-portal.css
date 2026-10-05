@@ -298,3 +298,18 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-req-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
 .ss-req-actions .p-input-plain { flex: 1; min-width: 200px; }
 @media (max-width: 560px) { .ss-req { grid-template-columns: 1fr; } }
+
+/* Settings → Administrators: online now (Rose, 7 Oct) */
+.ss-online { color: var(--p-ink-3); font-size: 13px; white-space: nowrap; }
+.ss-online .ss-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--p-line-2); margin-right: 8px; vertical-align: 1px; }
+.ss-online.ss-is-on { color: var(--p-green); font-weight: 600; }
+.ss-online.ss-is-on .ss-dot { background: var(--p-green); box-shadow: 0 0 0 3px var(--p-green-bg); }
+
+/* Edit Profile: photo control */
+.ss-photo { display: flex; gap: 16px; align-items: center; padding: 4px 0 8px; }
+.ss-photo-img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; flex: none; border: 1px solid var(--p-line); }
+.ss-photo-ini { display: grid; place-items: center; background: var(--p-blue-50); color: var(--p-blue-800); font-weight: 800; font-size: 22px; }
+.ss-photo-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ss-photo-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 6px; }
+.ss-photo-actions .p-btn { cursor: pointer; }
+.ss-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }

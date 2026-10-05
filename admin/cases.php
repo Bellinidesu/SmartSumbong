@@ -52,7 +52,9 @@ $category = (string) ($_GET['category'] ?? '');
 $month    = (string) ($_GET['month'] ?? '');
 $view     = (string) ($_GET['view'] ?? '');
 // 0087: whose cases — mine, unclaimed, or other admins'.
-$who      = in_array($_GET['who'] ?? '', ['mine', 'unclaimed', 'others'], true) ? (string) $_GET['who'] : '';
+// Rose (7 Oct): filter by who handles the case — nobody yet, or an admin.
+$who      = (string) ($_GET['who'] ?? '');
+if ($who !== '' && $who !== 'unclaimed' && !preg_match('/^[0-9a-f-]{36}$/i', $who)) { $who = ''; }
 // The Notification panel's own search and order (Rose, 27 Sep 2026: both
 // were only drawn, never read).
 $nSearch  = trim((string) ($_GET['nq'] ?? ''));
@@ -109,12 +111,10 @@ try {
     if ($filter !== '') {
         $query['status'] = 'in.(' . implode(',', STATUS_GROUPS[$filter]) . ')';
     }
-    if ($who === 'mine') {
-        $query['handler_id'] = 'eq.' . $admin['id'];
-    } elseif ($who === 'unclaimed') {
+    if ($who === 'unclaimed') {
         $query['handler_id'] = 'is.null';
-    } elseif ($who === 'others') {
-        $query['and'] = '(handler_id.not.is.null,handler_id.neq.' . $admin['id'] . ')';
+    } elseif ($who !== '') {
+        $query['handler_id'] = 'eq.' . $who;
     }
     if ($category !== '') {
         $query['category'] = 'eq.' . $category;
@@ -269,11 +269,6 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
      href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
     <?= e(t('Needs attention', 'Kailangang asikasuhin')) ?> <span class="p-chip-num<?= $atc > 0 ? ' p-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
   </a>
-  <div class="ss-seg" role="group" aria-label="<?= e(t('Handler', 'Humahawak')) ?>">
-  <?php foreach (['' => t('All', 'Lahat'), 'mine' => t('Mine', 'Akin'), 'unclaimed' => t('Unclaimed', 'Wala pa'), 'others' => t("Others'", 'Sa iba')] as $wk => $wl): ?>
-    <a class="<?= $who === $wk ? 'p-on' : '' ?>" href="?<?= e(http_build_query(array_filter(['who' => $wk, 'view' => $view, 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>"><?= e($wl) ?></a>
-  <?php endforeach; ?>
-  </div>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
     <input type="search" name="q" placeholder="<?= e(t('Search name, ID or category', 'Hanapin ang pangalan, ID o kategorya')) ?>" value="<?= e($search) ?>" aria-label="<?= e(t('Search reports', 'Maghanap sa mga ulat')) ?>">
@@ -281,6 +276,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     <input type="hidden" name="category" value="<?= e($category) ?>">
     <input type="hidden" name="month" value="<?= e($month) ?>">
     <input type="hidden" name="sort" value="<?= e($_GET['sort'] ?? 'newest') ?>">
+    <input type="hidden" name="who" value="<?= e($who) ?>">
   </form>
   <span class="p-spacer"></span>
   <form method="get">
@@ -292,6 +288,18 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
         <option value=""><?= e(t('All', 'Lahat')) ?></option>
         <?php foreach (CATEGORIES as $c): ?>
           <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
+        <?php endforeach; ?>
+      </select></label>
+    <?php
+      $adminList = [];
+      try { $adminList = $db->select('users', ['select' => 'id,full_name', 'role' => 'eq.admin', 'order' => 'full_name.asc']); } catch (SupabaseError $e) {}
+    ?>
+    <label class="p-pill-select"><span class="p-lbl"><?= e(t('Handled by', 'Hawak ni')) ?></span>
+      <select name="who" onchange="this.form.submit()">
+        <option value=""><?= e(t('Anyone', 'Kahit sino')) ?></option>
+        <option value="unclaimed" <?= $who === 'unclaimed' ? 'selected' : '' ?>><?= e(t('Nobody yet', 'Wala pa')) ?></option>
+        <?php foreach ($adminList as $ad): ?>
+          <option value="<?= e($ad['id']) ?>" <?= $who === $ad['id'] ? 'selected' : '' ?>><?= e($ad['id'] === $admin['id'] ? t('You', 'Ikaw') : display_name($ad['full_name'])) ?></option>
         <?php endforeach; ?>
       </select></label>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
@@ -538,9 +546,8 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       .limit(100);
     if (STATUS) q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
     if (CATEGORY) q = q.eq('category', CATEGORY);
-    if (WHO === 'mine') q = q.eq('handler_id', ADMIN_ID);
     if (WHO === 'unclaimed') q = q.is('handler_id', null);
-    if (WHO === 'others') q = q.not('handler_id', 'is', null).neq('handler_id', ADMIN_ID);
+    else if (WHO) q = q.eq('handler_id', WHO);
     if (MONTH_FROM) q = q.gte('created_at', MONTH_FROM).lt('created_at', MONTH_TO);
     if (SEARCH) {
       const needle = SEARCH.replace(/[,()"\\*]/g, ' ');   // mirrors the PHP above

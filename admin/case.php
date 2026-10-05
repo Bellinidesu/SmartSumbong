@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $act = (string) ($_POST['action'] ?? '');
             // 0087 (D): an action from a page that is out of date is held
             // back, and the admin is shown what changed first.
-            if (!in_array($act, ['take_case', 'release_case', 'take_over'], true) && isset($_POST['v'])) {
+            if (!in_array($act, ['take_over'], true) && isset($_POST['v'])) {
                 $now = $db->select('reports', ['select' => 'version', 'id' => 'eq.' . $id, 'limit' => '1']);
                 if ($now && (string) $now[0]['version'] !== (string) $_POST['v']) {
                     $last = $db->select('status_logs', [
@@ -61,16 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             switch ($act) {
                 // 0087: taking, releasing and taking over a case.
-                case 'take_case':
-                    $db->rpc('take_case', ['p_report' => $id]);
-                    $flash = t('This case is yours now.', 'Iyo na ang kasong ito.');
-                    break;
-
-                case 'release_case':
-                    $db->rpc('release_case', ['p_report' => $id]);
-                    $flash = t('Released. Any administrator can take it now.', 'Binitawan na. Maaari na itong kunin ng ibang administrator.');
-                    break;
-
                 case 'take_over':
                     $db->rpc('take_over_case', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);
                     $flash = t('You took over this case. The previous handler has been told.', 'Kinuha mo na ang kasong ito. Nasabihan na ang dating humahawak.');
@@ -1008,15 +998,11 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
     <?php // 0087: who handles this case. ?>
     <?php if ($hid === ''): ?>
-      <div class="ss-handler"><div><b><?= e(t('Nobody is handling this case', 'Walang humahawak sa kasong ito')) ?></b><br><span class="p-hint"><?= e(t('Take it, or act on it and it becomes yours.', 'Kunin ito, o kumilos dito at magiging iyo ito.')) ?></span></div></div>
-      <form method="post" data-keep><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="take_case">
-        <button class="p-btn p-btn-orange p-btn-block" type="submit"><?= e(t('Take this case', 'Kunin ang kasong ito')) ?></button></form>
+      <div class="ss-handler"><div><b><?= e(t('Nobody is handling this case yet', 'Wala pang humahawak sa kasong ito')) ?></b><span class="p-hint"><?= e(t('Accepting it, or any action on it, makes it yours.', 'Kapag tinanggap mo ito o kumilos ka rito, ikaw na ang hahawak.')) ?></span></div></div>
     <?php elseif ($mine): ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><br><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div>
-        <form method="post" data-keep><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="release_case">
-          <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Release', 'Bitawan')) ?></button></form></div>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
     <?php else: ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e($hName) ?></b><br><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e($hName) ?></b><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
       <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
       <details class="p-fix" data-keep-details>
         <summary><?= e(t('Take over', 'Kunin')) ?></summary>

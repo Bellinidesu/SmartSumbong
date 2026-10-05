@@ -70,6 +70,14 @@
           }).join('')
         : '';
     }
+    var byAdmin = {};
+    members.forEach(function (m) { var e = byAdmin[m.id] || (byAdmin[m.id] = []); if (m.tracking) e.push(m.tracking); });
+    document.querySelectorAll('.ss-online[data-admin]').forEach(function (td) {
+      var on = byAdmin.hasOwnProperty(td.getAttribute('data-admin'));
+      var open = on ? byAdmin[td.getAttribute('data-admin')].filter(function (v, i, a) { return a.indexOf(v) === i; }) : [];
+      td.classList.toggle('ss-is-on', on);
+      td.innerHTML = '<span class="ss-dot"></span>' + esc(on ? (open.length ? cfg.labels.on + ' ' + open.join(', ') : cfg.labels.online) : cfg.labels.offline);
+    });
     var team = document.getElementById('ss-team');
     if (team) {
       var seen = {};

@@ -230,11 +230,28 @@ $initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? 
       <form method="post" id="profile-form" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="profile">
-        <label class="p-field" for="avatar"><span><?= e(t('Profile photo', 'Larawan sa profile')) ?></span><div class="p-input"><input type="file" id="avatar" name="avatar[]" accept="image/jpeg,image/png,image/webp"></div></label>
-        <?php if (!empty($me['avatar_url'])): ?>
-          <label class="p-check" style="margin:-4px 0 10px"><input type="checkbox" name="remove_avatar" value="1"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
-        <?php endif; ?>
-        <p class="p-hint" style="margin:-4px 0 12px"><?= e(t('Other admins see it. Residents never do; your replies show as Barangay.', 'Makikita ito ng ibang admin. Hindi ito makikita ng mga residente; "Barangay" ang lalabas sa iyong mga sagot.')) ?></p>
+        <div class="ss-photo">
+          <?php if (!empty($me['avatar_url'])): ?><img class="ss-photo-img" src="<?= e($me['avatar_url']) ?>" alt="" id="ss-photo-preview">
+          <?php else: ?><span class="ss-photo-img ss-photo-ini" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
+          <div class="ss-photo-body">
+            <b><?= e(t('Profile photo', 'Larawan sa profile')) ?></b>
+            <span class="p-hint"><?= e(t('Other admins see it. Residents never do; your replies show as Barangay.', 'Makikita ito ng ibang admin. Hindi ito makikita ng mga residente; "Barangay" ang lalabas sa iyong mga sagot.')) ?></span>
+            <div class="ss-photo-actions">
+              <label class="p-btn" for="avatar"><?= p_icon('i-cam', 16) ?><?= e(t('Change photo', 'Palitan ang larawan')) ?></label>
+              <input class="ss-file" type="file" id="avatar" name="avatar[]" accept="image/jpeg,image/png,image/webp">
+              <?php if (!empty($me['avatar_url'])): ?>
+                <label class="p-check"><input type="checkbox" name="remove_avatar" value="1"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+        <script>
+        document.getElementById('avatar').addEventListener('change', function (e) {
+          var f = e.target.files && e.target.files[0]; if (!f) return;
+          var p = document.getElementById('ss-photo-preview'), img = document.createElement('img');
+          img.className = 'ss-photo-img'; img.id = 'ss-photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f); p.replaceWith(img);
+        });
+        </script>
         <label class="p-field" for="full_name"><span><?= e(t('Full name', 'Buong pangalan')) ?></span><div class="p-input"><input type="text" id="full_name" name="full_name" required maxlength="120" value="<?= e($me['full_name']) ?>"></div></label>
         <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
           <label class="p-field" for="mobile_number"><span><?= e(t('Mobile number', 'Mobile number')) ?></span>

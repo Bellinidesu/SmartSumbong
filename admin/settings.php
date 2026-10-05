@@ -178,13 +178,14 @@ try {
     <div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div>
   <?php endif; ?>
   <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t">
-    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th><th></th></tr></thead>
+    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Account', 'Account')) ?></th><th><?= e(t('Online now', 'Online ngayon')) ?></th><th></th></tr></thead>
     <tbody>
     <?php foreach ($admins as $a): ?>
       <tr>
-        <td><?= e($a['full_name']) ?><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
+        <td><span class="ss-who"><?= admin_chip($a['id'], (string) $a['full_name'], 28) ?><?= e(display_name($a['full_name'])) ?></span><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
         <td><?= e((string) ($a['email'] ?? '')) ?></td>
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
+        <td class="ss-online" data-admin="<?= e($a['id']) ?>"><span class="ss-dot"></span><?= e(t('Offline', 'Offline')) ?></td>
         <td class="p-right"><?php if ($a['id'] !== $admin['id']): ?>
           <form method="post" onsubmit="return confirm('<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>')">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

@@ -14,7 +14,6 @@ function nav_items(): array
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
-        ['activity.php',   t('Activity', 'Aktibidad'),                        'i-clock'],
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
         ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'i-brief'],
@@ -283,6 +282,7 @@ window.SS_PRESENCE = <?= json_encode([
         'you'      => t('You', 'Ikaw'),
         'on'       => t('Has open:', 'Bukas:'),
         'online'   => t('Online', 'Online'),
+        'offline'  => t('Offline', 'Offline'),
         'nobody'   => t('Nobody else is online.', 'Walang ibang online.'),
     ],
 ], JSON_UNESCAPED_UNICODE) ?>;
