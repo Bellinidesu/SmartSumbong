@@ -31,6 +31,7 @@ import '../d/d_switches.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../widgets/figma_ui.dart';
+import 'forgot_password_screen.dart';
 
 /// Whether this handset should keep the session across app launches.
 /// Read by the launch gate, written here. Absent means remember, which
@@ -285,31 +286,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Rose's design: Forgot Password → Verify OTP → Reset Password →
+  // Success, by SMS through Semaphore (0085, forgot_password_screen.dart).
+  // The counter reset (0028) is named on that screen for anyone with no
+  // load or signal.
   void _forgotPassword() {
-    // Rose's design resets by OTP to the phone (2077:16 -> 2143:282 ->
-    // 2077:17 -> 2143:205). That needs Semaphore, which is not
-    // configured.
-    //
-    // What exists instead is admin_reset_password (0028): the barangay
-    // checks an ID at the counter, the same inspection that approved the
-    // account, and issues a temporary password the resident must then
-    // change. So this dialog is not an apology for a missing feature —
-    // it is the instruction for the route that works.
-    //
-    // No "request a reset" button here on purpose. It would need an
-    // endpoint taking a phone number, which is the enumeration surface
-    // 0021 removed, and it would tell the admin nothing they will not
-    // learn when the person walks in.
-    final s = context.s;
-    showFigmaDialog<void>(
-      context,
-      builder: (context) => FigmaDialog(
-        title: s.loginForgotDialogTitle,
-        body: s.loginForgotDialogBody,
-        primaryLabel: s.loginDialogOk,
-        onPrimary: () => Navigator.of(context).pop(),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ForgotPasswordScreen(mobile: _mobile.text.trim()),
+    ));
   }
 
 }
