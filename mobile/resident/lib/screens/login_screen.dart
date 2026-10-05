@@ -288,12 +288,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Rose's design: Forgot Password → Verify OTP → Reset Password →
   // Success, by SMS through Semaphore (0085, forgot_password_screen.dart).
-  // The counter reset (0028) is named on that screen for anyone with no
-  // load or signal.
+  // Switched off until the Semaphore account has credits (kSmsResetEnabled);
+  // until then this shows the counter-reset route (0028), which always works.
   void _forgotPassword() {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ForgotPasswordScreen(mobile: _mobile.text.trim()),
-    ));
+    if (kSmsResetEnabled) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ForgotPasswordScreen(mobile: _mobile.text.trim()),
+      ));
+      return;
+    }
+    final s = context.s;
+    showFigmaDialog<void>(
+      context,
+      builder: (context) => FigmaDialog(
+        title: s.loginForgotDialogTitle,
+        body: s.loginForgotDialogBody,
+        primaryLabel: s.loginDialogOk,
+        onPrimary: () => Navigator.of(context).pop(),
+      ),
+    );
   }
 
 }

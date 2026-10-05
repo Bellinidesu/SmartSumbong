@@ -13,6 +13,11 @@ import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../i18n.dart';
 
+/// SMS reset is built but needs Semaphore credits. Off: "Forgot password?"
+/// shows the counter-reset instructions instead. Turn on once the account
+/// is approved and topped up (5 Oct 2026: approval pending, no credits).
+const bool kSmsResetEnabled = false;
+
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key, this.mobile});
 
