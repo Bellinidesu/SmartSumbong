@@ -14,8 +14,8 @@ const termsSections = <(String, String)>[
   ),
   (
     'Scope of Service & Emergency Disclaimer',
-    '• Civic Hotline Service: SmartSumbong serves as a local incident reporting and hotline dispatch interface for connecting Residents and Barangay Administration.\n\n'
-        '• Not A Primary Emergency Line: SmartSumbong is exclusively a reporting and dispatch tool, and it is NOT a substitute for primary national emergency hotlines (e.g., 911, PNP, or BFP).\n\n'
+    '• Civic Reporting Service: SmartSumbong serves as a local complaint reporting platform connecting Residents and the Barangay Administration, with a directory of emergency hotlines.\n\n'
+        '• Not An Emergency Service: SmartSumbong is exclusively a complaint reporting tool and does not handle emergency response. It is NOT a substitute for primary national emergency hotlines (e.g., 911, PNP, or BFP).\n\n'
         '• Municipal & Local Hotlines Directory: For incidents outside local Barangay jurisdiction, SmartSumbong provides a directory of local municipal and city-level emergency hotlines.\n\n'
         '• Out-of-Jurisdiction Disclaimer: While SmartSumbong supplies verified local emergency contact directories, the Platform is thereby not responsible for the availability, response time, or dispatch decisions of third-party city services or neighboring municipal agencies.\n\n'
         '• No Guarantee of Physical Response: Response times depend on local officer availability, internet connectivity, and community resources.'
@@ -26,7 +26,7 @@ const termsSections = <(String, String)>[
         '1. Residents: Must provide authentic personal identity and contact details during account creation. Accounts are personal and non-transferable.\n\n'
         '2. Barangay Tanod: Access is strictly restricted to verified local personnel operating under official barangay authority and duty schedules.\n\n'
         '3. Barangay Administrators: Authorized to manage incident logs, user permissions, role assignments, and report verifications. Admin privileges must strictly adhere to authorized duty parameters.\n\n'
-        '4. Identity Verification & Account Approval: To protect the platform against false dispatches and maintain community safety, registering an account requires submitting a valid government-issued ID (such as a Barangay ID) and an on-the-spot verification selfie. Submitted registrations remain pending until reviewed and approved by an authorized Barangay Administrator. Accounts with unverified, missing, or mismatched identity details will be rejected.'
+        '4. Identity Verification & Account Approval: To protect the platform against false dispatches and maintain community safety, registering an account requires submitting a valid government-issued ID (such as a Barangay ID). Residents also submit an on-the-spot verification selfie; for Barangay Tanods the selfie is optional. Submitted registrations remain pending until reviewed and approved by an authorized Barangay Administrator. Accounts with unverified, missing, or mismatched identity details will be rejected.'
   ),
   (
     'Prohibited Acts & Legal Compliance',
@@ -45,7 +45,7 @@ const termsSections = <(String, String)>[
   ),
   (
     'User Content & Evidence License',
-    'By submitting incident reports, photos, audio/video recordings, or location tags to the Platform:\n\n'
+    'By submitting incident reports, photos, video recordings, or location tags to the Platform:\n\n'
         '• You warrant that you have the right to submit such media and that it accurately depicts the reported event.\n\n'
         '• You grant SmartSumbong and authorized Barangay Administrators a non-exclusive, royalty-free license to store, process, and display submitted content strictly for incident verification, dispatch, and official record-keeping.'
   ),
@@ -90,10 +90,10 @@ const privacySections = <(String, String)>[
     'Personal Data We Collect',
     'We collect only data necessary for identity verification and incident reporting.\n\n'
         'a. User Identity & Contact Information: Full name, local home/barangay address, phone number, and email address (collected during account registration).\n\n'
-        'b. Geolocation Data: Precise GPS coordinates when submitting an incident report or tracking active responder dispatch.\n\n'
-        'c. Report Media & Evidence: Photos, videos, audio recordings, or text descriptions submitted as evidence for an incident log or complaint.\n\n'
+        'b. Geolocation Data: Precise GPS coordinates when submitting an incident report. For Barangay Tanods, location is recorded only at key moments of a dispatch (going on duty, setting out, arriving); it is not tracked continuously and no location history is kept.\n\n'
+        'c. Report Media & Evidence: Photos, videos, or text descriptions submitted as evidence for an incident log or complaint. Location and camera data embedded in photos are removed before upload.\n\n'
         'd. Role & Privilege Data: Official designation, ID verification, and duty status (for Barangay Tanods and System Administrators).\n\n'
-        'e. System Log & Technical Data: IP address, device model, operating system version, and system interaction logs for auditing and security purposes.'
+        'e. System Logs: A tamper-evident record of every status change and account change, and the record of failed sign-in attempts used to lock out repeated guessing, kept for auditing and security purposes.'
   ),
   (
     'Legal Basis & Purpose of Processing',
@@ -108,7 +108,7 @@ const privacySections = <(String, String)>[
     'Verification Media & Sensitive Personal Data',
     'We collect photo uploads of your government ID (e.g., Barangay ID) and a verification selfie strictly for identity validation and fraud prevention.\n\n'
         '• Access Controls: These images are accessible exclusively to authorized Barangay System Administrators for account verification and are never made visible to other users, or the public.\n\n'
-        '• Legal Basis: Processing of verification media is conducted in strict compliance with Republic Act No. 10173 (Data Privacy Act of 2012) to ensure public safety and prevent malicious misuse of emergency dispatch facilities.'
+        '• Legal Basis: Processing of verification media is conducted in strict compliance with Republic Act No. 10173 (Data Privacy Act of 2012) to ensure public safety and prevent malicious misuse of the complaint reporting and dispatch system.'
   ),
   (
     'Data Sharing & Third-Party Disclosures',
@@ -119,7 +119,7 @@ const privacySections = <(String, String)>[
   ),
   (
     'Data Protection, Security & Retention',
-    '• Security Measures: We implement physical, technical, and organizational security controls, including data encryption in transit and at rest, restricted access control, and multi-factor authentication for administrative tools to protect data against unauthorized access, alteration, or breach.\n\n'
+    '• Security Measures: We implement physical, technical, and organizational security controls, including data encryption in transit and at rest, role-based access control enforced by the database itself, login lockout after repeated failed attempts, and a separate password-protected portal for administrators, to protect data against unauthorized access, alteration, or breach.\n\n'
         '• Retention Period: Personal data and incident logs are retained only as long as necessary to fulfill the operational purpose of the Student Developers\' project capstone lifecycle, after which data is securely deleted or anonymized in accordance with National Privacy Commission standards.'
   ),
   (
