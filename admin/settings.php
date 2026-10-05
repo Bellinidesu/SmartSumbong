@@ -24,6 +24,34 @@ require_once __DIR__ . '/includes/layout.php';
 $admin = require_admin();
 $db    = db();
 
+// 0084 (Rose): add an administrator, or issue one a new temporary
+// password. The password is shown once, here, and never stored by the portal.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['add_admin', 'reset_admin'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            if ($_POST['action'] === 'add_admin') {
+                $temp = (string) $db->rpc('create_admin_account', [
+                    'p_email'     => trim((string) ($_POST['email'] ?? '')),
+                    'p_full_name' => trim((string) ($_POST['full_name'] ?? '')),
+                    'p_mobile'    => trim((string) ($_POST['mobile'] ?? '')),
+                ]);
+                $who = trim((string) ($_POST['email'] ?? ''));
+            } else {
+                $temp = (string) $db->rpc('reset_admin_password', ['p_user' => (string) ($_POST['user'] ?? '')]);
+                $who = trim((string) ($_POST['email'] ?? ''));
+            }
+            $_SESSION['st_flash'] = ['level' => 'ok', 'who' => $who, 'temp' => $temp];
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#admins');
+    exit;
+}
+
 // The plan each service is on. These are the free tiers the barangay
 // started on; change them here if an account is upgraded.
 const PLAN_TIERS = ['supabase' => 'Free', 'cloudinary' => 'Free', 'render' => 'Free'];
@@ -125,6 +153,8 @@ layout_head(t('Settings', 'Mga Setting'), 'settings.php');
 <?php
 // Rose (5 Oct 2026): every administrator, and whether they still hold a
 // temporary password. Adding one from here comes with the account service.
+$stFlash = $_SESSION['st_flash'] ?? null;
+unset($_SESSION['st_flash']);
 $admins = [];
 try {
     $admins = $db->select('users', [
@@ -135,27 +165,47 @@ try {
 } catch (SupabaseError $e) { $admins = []; }
 ?>
 <section class="st-pane" data-pane="admins" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'ok'): ?>
+    <div class="p-flash p-flash--ok" role="status">
+      <?= e(t('Temporary password for', 'Pansamantalang password para kay')) ?> <b><?= e($stFlash['who']) ?></b>:
+      <b style="font-family:monospace;font-size:1.15em;letter-spacing:.06em"><?= e($stFlash['temp']) ?></b>
+      — <?= e(t('give it to them in person. It is shown only once; they must change it when they first sign in.', 'ibigay nang personal. Isang beses lang itong ipapakita; kailangan nilang palitan ito sa unang pag-sign in.')) ?>
+    </div>
+  <?php elseif ($stFlash): ?>
+    <div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div>
+  <?php endif; ?>
   <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t">
-    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>
+    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th><th></th></tr></thead>
     <tbody>
     <?php foreach ($admins as $a): ?>
       <tr>
         <td><?= e($a['full_name']) ?><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
         <td><?= e((string) ($a['email'] ?? '')) ?></td>
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
+        <td><?php if ($a['id'] !== $admin['id']): ?>
+          <form method="post" onsubmit="return confirm('<?= e(t('Issue a new temporary password? Their current password stops working.', 'Magbigay ng bagong pansamantalang password? Hindi na gagana ang kasalukuyan nilang password.')) ?>')">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="reset_admin">
+            <input type="hidden" name="user" value="<?= e($a['id']) ?>">
+            <input type="hidden" name="email" value="<?= e((string) ($a['email'] ?? '')) ?>">
+            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('New temporary password', 'Bagong pansamantalang password')) ?></button>
+          </form>
+        <?php endif; ?></td>
       </tr>
     <?php endforeach; ?>
     </tbody>
   </table></div></div>
   <div class="p-card p-card-pad" style="margin-top:12px">
     <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
-    <p class="p-hint"><?= e(t('A new administrator gets an account with a temporary password and must choose their own the first time they sign in. Adding accounts from this page is coming next; until then the system administrator issues them.', 'Ang bagong administrator ay bibigyan ng account na may pansamantalang password at kailangang pumili ng sarili sa unang pag-sign in. Susunod pa ang pagdaragdag ng account mula rito; sa ngayon, ang system administrator ang nagbibigay nito.')) ?></p>
-    <fieldset disabled style="border:0;padding:0;margin:0;display:grid;gap:8px;max-width:420px">
-      <input class="p-input-plain" placeholder="<?= e(t('Last name, First name', 'Apelyido, Pangalan')) ?>">
-      <input class="p-input-plain" placeholder="<?= e(t('Email address', 'Email address')) ?>">
-      <input class="p-input-plain" placeholder="09XXXXXXXXX">
-      <button class="p-btn p-btn-primary p-btn-sm" type="button"><?= e(t('Create account', 'Gumawa ng account')) ?></button>
-    </fieldset>
+    <p class="p-hint"><?= e(t('The new administrator gets an account with a temporary password, shown here once. They must choose their own the first time they sign in.', 'Ang bagong administrator ay bibigyan ng account na may pansamantalang password na isang beses lang ipapakita rito. Kailangan nilang pumili ng sarili sa unang pag-sign in.')) ?></p>
+    <form method="post" style="display:grid;gap:8px;max-width:420px">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <input type="hidden" name="action" value="add_admin">
+      <input class="p-input-plain" name="full_name" required maxlength="120" placeholder="<?= e(t('Last name, First name', 'Apelyido, Pangalan')) ?>">
+      <input class="p-input-plain" name="email" type="email" required maxlength="160" placeholder="<?= e(t('Email address', 'Email address')) ?>">
+      <input class="p-input-plain" name="mobile" required pattern="09[0-9]{9}" placeholder="09XXXXXXXXX">
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Create account', 'Gumawa ng account')) ?></button>
+    </form>
   </div>
 </section>
 
@@ -315,5 +365,9 @@ try {
   $('st-check').addEventListener('click', () => { check(); usage(); });
   check(); usage();
 })();
+</script>
+<script>
+// Back on the Administrators tab after adding or resetting.
+if (location.hash === '#admins') { var b = document.querySelector('.st-tabs [data-st="admins"]'); if (b) b.click(); }
 </script>
 <?php layout_foot(); ?>
