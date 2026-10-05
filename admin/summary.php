@@ -321,7 +321,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= !empty($r['is_anonymous'])
                   ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
-                  : e($r['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></td>
+                  : e(name_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></td>
           <td><?= e(category_label($r['category'])) ?></td>
           <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
               <?php else: ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
@@ -370,7 +370,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <?php endif; ?>
       <?php foreach ($dispatches as $d): ?>
         <tr>
-          <td><b><?= e($d['tanod']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></b></td>
+          <td><b><?= e(name_or($d['tanod']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></td>
           <td><span class="p-mono-id"><?= e($d['report']['tracking_id'] ?? '—') ?></span></td>
           <td class="p-num"><?= e(long_datetime($d['assigned_at'])) ?></td>
           <td class="p-num"><?= $d['accepted_at'] ? e(long_datetime($d['accepted_at'])) : '<span class="p-over">' . e(t('Not accepted', 'Hindi tinanggap')) . '</span>' ?></td>
@@ -410,7 +410,7 @@ foreach ($logs as $l) {
           <ul class="p-tl-change">
             <?php foreach ($list as $l): ?>
               <li><span class="p-w"><?= e(long_datetime($l['created_at'])) ?></span><b><?= e(timeline_title($l)) ?><?php if (($l['repeat'] ?? 1) > 1): ?> <span class="p-sub">× <?= (int) $l['repeat'] ?></span><?php endif; ?></b>
-                <span class="p-by"><?= !empty($l['is_system']) ? e(t('System', 'System')) : e($l['by']['full_name'] ?? t('Barangay staff', 'Kawani ng barangay')) ?></span>
+                <span class="p-by"><?= !empty($l['is_system']) ? e(t('System', 'System')) : e(name_or($l['by']['full_name'] ?? null, t('Barangay staff', 'Kawani ng barangay'))) ?></span>
                 <?php if (!empty($l['remark'])): ?><span class="p-rm"><?= e($l['remark']) ?></span><?php endif; ?></li>
             <?php endforeach; ?>
           </ul>

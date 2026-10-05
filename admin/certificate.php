@@ -117,7 +117,7 @@ foreach (CERT_REASONS as $key => $r) {
     }
 }
 $ticked  = isset($_GET['r']) ? array_values(array_intersect((array) $_GET['r'], array_keys(CERT_REASONS))) : $suggested;
-$name    = trim((string) ($_GET['name'] ?? ($report['resident']['full_name'] ?? '')));
+$name    = trim((string) ($_GET['name'] ?? display_name($report['resident']['full_name'] ?? '')));
 $address = trim((string) ($_GET['address'] ?? ($report['resident']['address'] ?? '')));
 $by      = trim((string) ($_GET['by'] ?? $name));
 try {
@@ -290,7 +290,7 @@ $when  = fn(string $iso) => (new DateTimeImmutable($iso))->setTimezone($tzM)->fo
         <?php foreach ($history as $h):
           $printed = str_starts_with((string) ($h['remark'] ?? ''), CERT_PRINT_REMARK);
           $what = $printed ? 'Certificate printed' : ($h['old_status'] === null ? 'Filed' : status_label((string) $h['new_status'])); ?>
-          <li class="<?= $printed ? 'cd-print' : '' ?>"><span><b><?= e($what) ?></b><?= !empty($h['by']['full_name']) ? ' by ' . e($h['by']['full_name']) : '' ?>
+          <li class="<?= $printed ? 'cd-print' : '' ?>"><span><b><?= e($what) ?></b><?= !empty($h['by']['full_name']) ? ' by ' . e(display_name($h['by']['full_name'])) : '' ?>
             <?php if (!$printed && !empty($h['remark'])): ?><br><?= e(mb_strimwidth((string) $h['remark'], 0, 90, '…')) ?><?php endif; ?>
             <br><?= e($when((string) $h['created_at'])) ?></span></li>
         <?php endforeach; ?>
@@ -303,7 +303,7 @@ $when  = fn(string $iso) => (new DateTimeImmutable($iso))->setTimezone($tzM)->fo
 <script>
 (function () {
   var REASONS = <?= json_encode(array_map(fn($k, $r) => [$k, $short[$k], $r['office'], $r['lead']], array_keys(CERT_REASONS), CERT_REASONS), JSON_UNESCAPED_UNICODE) ?>;
-  var CSRF = <?= json_encode(csrf_token()) ?>, ADMIN = <?= json_encode($admin['full_name'] ?? 'Admin') ?>;
+  var CSRF = <?= json_encode(csrf_token()) ?>, ADMIN = <?= json_encode(name_or($admin['full_name'] ?? null, 'Admin')) ?>;
   var EMPTY = { name: '[User Full Name]', address: '[Address]', by: 'Name of Requestor' };
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };

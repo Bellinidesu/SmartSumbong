@@ -35,7 +35,7 @@ layout_head('Log out', 'logout.php');
   <div class="p-modal" role="dialog" aria-labelledby="lo-t">
     <div class="p-m-ico" style="background:var(--p-blue-50);color:var(--p-link)"><?= p_icon('i-out', 26) ?></div>
     <h3 id="lo-t"><?= e(t('Log out?', 'Mag-log out?')) ?></h3>
-    <p><?= e(t('You are signed in as ', 'Naka-sign in ka bilang ')) ?><b><?= e($admin['full_name']) ?></b>. <?= e(t('Any complaint you left open will still be there when you come back.', 'Nandito pa rin ang anumang sumbong na iniwan mong bukas pagbalik mo.')) ?></p>
+    <p><?= e(t('You are signed in as ', 'Naka-sign in ka bilang ')) ?><b><?= e(display_name($admin['full_name'])) ?></b>. <?= e(t('Any complaint you left open will still be there when you come back.', 'Nandito pa rin ang anumang sumbong na iniwan mong bukas pagbalik mo.')) ?></p>
     <form method="post" class="p-actions">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <a class="p-btn p-btn-ghost" href="dashboard.php"><?= e(t('Stay signed in', 'Manatiling naka-sign in')) ?></a>

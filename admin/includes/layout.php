@@ -51,6 +51,8 @@ function layout_head(string $title, string $active = ''): void
 // it was loaded with; this hands supabase-js a fresh one from token.php
 // before that runs out, so realtime and the polls keep working on a page
 // left open for hours. Pass it as createClient's accessToken option.
+// Names are stored "Last, First"; people read them First Last (Rose). Same as display_name().
+window.ssName = function (n) { n = String(n == null ? '' : n); var c = n.indexOf(','); return c > 0 ? n.slice(c + 1).trim() + ' ' + n.slice(0, c).trim() : n; };
 window.ssAccessToken = function (initial) {
   var token = initial, fetchedAt = Date.now(), pending = null;
   function renew() {
@@ -107,7 +109,7 @@ window.ssAccessToken = function (initial) {
       <div class="p-side-user<?= $active === 'profile.php' ? ' p-active' : '' ?>" id="side-user">
         <a class="p-side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
           <?= admin_avatar_html($admin) ?>
-          <div class="p-who"><b><?= e($admin['full_name'] ?? t('Administrator', 'Tagapangasiwa')) ?></b><small><?= e(t('Edit profile', 'I-edit ang profile')) ?></small></div>
+          <div class="p-who"><b><?= e(name_or($admin['full_name'] ?? null, t('Administrator', 'Tagapangasiwa'))) ?></b><small><?= e(t('Edit profile', 'I-edit ang profile')) ?></small></div>
         </a>
         <button type="button" title="<?= e(t('Log out', 'Mag-log out')) ?>" aria-label="<?= e(t('Log out', 'Mag-log out')) ?>" data-p-open="p-m-logout"><?= p_icon('i-out', 18) ?></button>
       </div>
@@ -225,7 +227,7 @@ function open_complaint_count(): int
 /** Two letters for the admin card: first and last word of the name. */
 function admin_initials(string $name): string
 {
-    $w = preg_split('/\s+/', trim($name)) ?: [];
+    $w = preg_split('/\s+/', trim(display_name($name))) ?: [];
     $w = array_values(array_filter($w, fn($x) => $x !== ''));
     if (!$w) return 'A';
     $a = mb_substr($w[0], 0, 1);
@@ -273,7 +275,7 @@ window.SS_PRESENCE = <?= json_encode([
     'url'      => supabase_url(),
     'key'      => supabase_key(),
     'token'    => access_token(),
-    'me'       => ['id' => $me['id'], 'name' => $me['full_name'] ?? ''],
+    'me'       => ['id' => $me['id'], 'name' => display_name($me['full_name'] ?? '')],
     'report'   => $GLOBALS['ss_case']['id'] ?? null,
     'tracking' => $GLOBALS['ss_case']['tracking'] ?? null,
     'page'     => basename($_SERVER['SCRIPT_NAME'] ?? ''),
@@ -765,7 +767,7 @@ function admin_colour(string $id): string
 function admin_chip(string $id, string $name, int $size = 24): string
 {
     return '<span class="ss-av" style="width:' . $size . 'px;height:' . $size . 'px;font-size:' . max(9, intdiv($size, 3)) . 'px;background:'
-        . admin_colour($id) . '" title="' . e($name) . '">' . e(admin_initials($name)) . '</span>';
+        . admin_colour($id) . '" title="' . e(display_name($name)) . '">' . e(admin_initials($name)) . '</span>';
 }
 
 /** 0087: the Handler cell of the case list. */
@@ -779,6 +781,13 @@ function handler_cell(array $r, string $me): string
 }
 
 /** "Besarra, Rose" -> "Rose Besarra" (0088); anything else unchanged. */
+/** display_name(), or $fallback when there is no name. */
+function name_or(?string $name, string $fallback): string
+{
+    $n = display_name($name);
+    return $n !== '' ? $n : $fallback;
+}
+
 function display_name(?string $name): string
 {
     $name = (string) $name;

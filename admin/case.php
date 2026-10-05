@@ -750,7 +750,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php foreach ($resolved as $d): ?>
           <?php $shots = $proof[$d['id']] ?? []; ?>
           <p class="p-meta-line">
-            <?= e($d['tanod']['full_name'] ?? t('Barangay tanod', 'Tanod ng barangay')) ?>
+            <?= e(name_or($d['tanod']['full_name'] ?? null, t('Barangay tanod', 'Tanod ng barangay'))) ?>
             <?php if (!empty($d['resolved_at'])): ?>
               &middot; <?= e(long_datetime($d['resolved_at'])) ?>
             <?php endif; ?>
@@ -785,7 +785,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <div class="p-card p-meta-strip">
     <div><small><?= e(t('Resident', 'Residente')) ?></small><b><?= !empty($report['is_anonymous'])
               ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
-              : e($report['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></b></div>
+              : e(name_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></div>
     <div><small><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></small><b class="p-num"><?= e($report['tracking_id']) ?></b></div>
     <div><small><?= e(t('Category', 'Kategorya')) ?></small><b><?= e(category_label($report['category'])) ?></b></div>
     <div><small><?= e(t('Filed', 'Naisampa')) ?></small><b class="p-num"><?= e(short_date($report['created_at'])) ?></b></div>
@@ -849,7 +849,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <small class="p-tl-who">
             <?= !empty($l['is_system'])
                 ? e(t('System', 'System'))
-                : e($l['by']['full_name'] ?? t('Barangay staff', 'Kawani ng barangay')) ?>
+                : e(name_or($l['by']['full_name'] ?? null, t('Barangay staff', 'Kawani ng barangay'))) ?>
           </small>
         </li>
       <?php endforeach; ?>
@@ -1019,7 +1019,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php if ($handlerLog): ?>
       <ul class="ss-hist">
         <?php foreach ($handlerLog as $h): ?>
-          <li><?= e($h['admin']['full_name'] ?? '') ?> <?= e(match ($h['action']) {
+          <li><?= e(name_or($h['admin']['full_name'] ?? null, '')) ?> <?= e(match ($h['action']) {
               'take' => t('took the case', 'kinuha ang kaso'),
               'release' => t('released it', 'binitawan ito'),
               default => t('took over from', 'kinuha mula kay') . ' ' . ($h['prev']['full_name'] ?? ''),
@@ -1092,7 +1092,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
               <span class="p-who">
-                <?= e($t['full_name']) ?>
+                <?= e(display_name($t['full_name'])) ?>
                 <?php if ($ok && $t['metres'] !== null): ?>
                   <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
                     <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
@@ -1184,7 +1184,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php if ($active): ?>
         <div class="p-tanod-card">
           <p class="p-eyebrow" style="margin:0"><?= e(t('Currently with', 'Kasalukuyang hawak ni')) ?></p>
-          <p class="p-assigned-name"><?= e($active['tanod']['full_name'] ?? t('Unknown tanod', 'Hindi kilalang tanod')) ?></p>
+          <p class="p-assigned-name"><?= e(name_or($active['tanod']['full_name'] ?? null, t('Unknown tanod', 'Hindi kilalang tanod'))) ?></p>
           <p class="p-kv-line">
             <?= e(status_label($active['state'])) ?>
             &middot; <?= e(t('assigned', 'na-assign')) ?> <?= e(relative_time($active['assigned_at'])) ?>
@@ -1222,7 +1222,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                 <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
                   <input type="radio" name="to" value="<?= e($t['tanod_id']) ?>" <?= $ok ? '' : 'disabled' ?>>
                   <span class="p-who">
-                    <?= e($t['full_name']) ?>
+                    <?= e(display_name($t['full_name'])) ?>
                     <?php if ($ok && $t['metres'] !== null): ?>
                       <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
                         <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?>
@@ -1286,7 +1286,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <div class="p-req-card">
         <p class="p-eyebrow" style="margin:0"><?= e(t('Escalation request', 'Hiling na i-escalate')) ?></p>
         <p class="p-kv-line">
-          <?= e($escRequest['requester']['full_name'] ?? t('Tanod', 'Tanod')) ?> &middot; <?= e(relative_time($escRequest['created_at'])) ?>
+          <?= e(name_or($escRequest['requester']['full_name'] ?? null, t('Tanod', 'Tanod'))) ?> &middot; <?= e(relative_time($escRequest['created_at'])) ?>
         </p>
         <p class="p-quote"><?= nl2br(e($escRequest['reason'])) ?></p>
         <details class="p-fix" open>

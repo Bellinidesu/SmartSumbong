@@ -257,7 +257,7 @@ function render_retirement_queue(): void
             <?php foreach ($candidates as $c): ?>
               <label class="p-tanod-opt">
                 <input type="radio" name="successor" value="<?= e($c['id']) ?>" required>
-                <span class="p-who"><?= e($c['full_name']) ?>
+                <span class="p-who"><?= e(display_name($c['full_name'])) ?>
                   <small><?= e($c['email']) ?></small></span>
                 <span class="p-status-dot p-on-c"><?= e(mb_strtoupper(status_label((string) $c['role']))) ?></span>
                 <span class="p-pick"><?= e(t('Appoint', 'Italaga')) ?></span>
@@ -505,7 +505,7 @@ function render_retirement_queue(): void
         }
         tbody.innerHTML = shown.map(function (r) {
           return '<tr>' +
-            '<td><b>' + escapeHtml(r.full_name) + '</b></td>' +
+            '<td><b>' + escapeHtml(window.ssName(r.full_name)) + '</b></td>' +
             '<td class="p-num">' + escapeHtml(longDatetime(r.requested_at)) + '</td>' +
             '<td>' + statusPill(r.status) + '</td>' +
             '<td>' + decisionCell(r) + '</td>' +

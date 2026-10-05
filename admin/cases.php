@@ -251,7 +251,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     <div class="p-notif p-unread">
       <span class="p-n-ico" style="background:var(--p-violet-bg);color:var(--p-violet-fg)"><?= p_icon('i-up', 18) ?></span>
       <div><div><span class="p-mono-id"><?= e($x['report']['tracking_id'] ?? '') ?></span> &middot; <?= e(category_label((string) ($x['report']['category'] ?? ''))) ?>
-          &middot; <b><?= e($x['requester']['full_name'] ?? t('Tanod', 'Tanod')) ?>:</b> <?= e($x['reason']) ?></div>
+          &middot; <b><?= e(name_or($x['requester']['full_name'] ?? null, t('Tanod', 'Tanod'))) ?>:</b> <?= e($x['reason']) ?></div>
         <div class="p-when"><?= e(relative_time($x['created_at'])) ?><?php if (!empty($x['suggested_office'])): ?> &middot; <?= e(t('suggests ', 'mungkahi: ')) . e($x['suggested_office']) ?><?php endif; ?></div></div>
       <?php if (!empty($x['report']['id'])): ?>
         <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
@@ -343,7 +343,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
             <?php if (!empty($r['is_anonymous'])): ?>
               <span class="p-anon"><?= e(t('Anonymous', 'Hindi nagpakilala')) ?></span>
             <?php else: ?>
-              <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e($r['resident']['full_name'] ?? t('Unknown', 'Hindi kilala')) ?></span></div>
+              <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e(name_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></span></div>
             <?php endif; ?>
           </td>
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
@@ -410,7 +410,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
   const WHO        = <?= json_encode($who) ?>;
   function handlerCell(r) {
     if (!r.handler_id) return '<span class="p-sub">' + T('Nobody yet', 'Wala pa') + '</span>';
-    const nm = r.handler_id === ADMIN_ID ? T('You', 'Ikaw') : ((r.handler && r.handler.full_name) || '');
+    const nm = r.handler_id === ADMIN_ID ? T('You', 'Ikaw') : window.ssName((r.handler && r.handler.full_name) || '');
     return '<span class="ss-who">' + window.ssAvatar(r.handler_id, (r.handler && r.handler.full_name) || '', 24) + escapeHtml(nm) + '</span>';
   }
   const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
@@ -475,7 +475,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       return;
     }
     tbody.innerHTML = filtered.map(r => {
-      const nm = (r.resident && r.resident.full_name) || T('Unknown', 'Hindi kilala');
+      const nm = window.ssName(r.resident && r.resident.full_name) || T('Unknown', 'Hindi kilala');
       const ini = String(nm).trim().split(/\s+/).filter(Boolean);
       const who = r.is_anonymous
         ? '<span class="p-anon">' + T('Anonymous', 'Hindi nagpakilala') + '</span>'
