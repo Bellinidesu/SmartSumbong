@@ -54,5 +54,12 @@ declare(strict_types=1);
     </div>
     <footer>Capstone project &middot; Group 12 &middot; Barangay 183, Pasay City</footer>
   </div>
+<script>
+// A password-reset link can land here when Supabase falls back to the site
+// address; the recovery key is in the URL fragment, so pass it on.
+if (/(^|[#&])type=recovery(&|$)/.test(location.hash)) {
+  location.replace('admin/reset-password.php' + location.hash);
+}
+</script>
 </body>
 </html>
