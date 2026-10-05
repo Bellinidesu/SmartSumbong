@@ -27,7 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = t('Enter the email address you sign in with.', 'Ilagay ang email address na ginagamit mo sa pag-sign in.');
         } else {
-            $redirectTo = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://')
+            // Render ends TLS at its proxy, so PHP sees plain http; the
+            // forwarded header says what the browser actually used.
+            $secure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+            $redirectTo = ($secure ? 'https://' : 'http://')
                         . $_SERVER['HTTP_HOST']
                         . dirname($_SERVER['SCRIPT_NAME']) . '/reset-password.php';
             try {
