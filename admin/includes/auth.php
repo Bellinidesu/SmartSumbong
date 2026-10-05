@@ -54,7 +54,7 @@ function attempt_login(string $email, string $password): void
 
     $client  = new Supabase($token);
     $profile = $client->select('users', [
-        'select' => 'id,full_name,email,role,verification_status,is_suspended',
+        'select' => 'id,full_name,email,role,verification_status,is_suspended,must_change_password',
         'id'     => 'eq.' . ($session['user']['id'] ?? ''),
         'limit'  => '1',
     ]);
@@ -86,6 +86,9 @@ function attempt_login(string $email, string $password): void
         'id'            => $me['id'],
         'full_name'     => $me['full_name'],
         'email'         => $me['email'],
+        // Rose (5 Oct 2026): an account issued with a temporary password
+        // must choose its own before anything else (change-password.php).
+        'must_change'   => !empty($me['must_change_password']),
     ];
 }
 
@@ -126,6 +129,11 @@ function require_admin(): array
 
     if (!$admin) {
         header('Location: login.php?expired=1');
+        exit;
+    }
+    if (!empty($admin['must_change']) && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'change-password.php'
+        && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'logout.php') {
+        header('Location: change-password.php');
         exit;
     }
     return $admin;

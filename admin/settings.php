@@ -119,7 +119,45 @@ layout_head(t('Settings', 'Mga Setting'), 'settings.php');
 <div class="p-seg-mini st-tabs" role="tablist" aria-label="<?= e(t('Settings sections', 'Mga bahagi ng setting')) ?>">
   <button type="button" class="p-on" role="tab" data-st="status"><?= e(t('System status', 'Kalagayan ng sistema')) ?></button>
   <button type="button" role="tab" data-st="usage"><?= e(t('Plan and usage', 'Plano at paggamit')) ?></button>
+  <button type="button" role="tab" data-st="admins"><?= e(t('Administrators', 'Mga Administrator')) ?></button>
 </div>
+
+<?php
+// Rose (5 Oct 2026): every administrator, and whether they still hold a
+// temporary password. Adding one from here comes with the account service.
+$admins = [];
+try {
+    $admins = $db->select('users', [
+        'select' => 'id,full_name,email,must_change_password,is_suspended,created_at',
+        'role'   => 'eq.admin',
+        'order'  => 'created_at.asc',
+    ]);
+} catch (SupabaseError $e) { $admins = []; }
+?>
+<section class="st-pane" data-pane="admins" hidden>
+  <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t">
+    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>
+    <tbody>
+    <?php foreach ($admins as $a): ?>
+      <tr>
+        <td><?= e($a['full_name']) ?><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
+        <td><?= e((string) ($a['email'] ?? '')) ?></td>
+        <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div></div>
+  <div class="p-card p-card-pad" style="margin-top:12px">
+    <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
+    <p class="p-hint"><?= e(t('A new administrator gets an account with a temporary password and must choose their own the first time they sign in. Adding accounts from this page is coming next; until then the system administrator issues them.', 'Ang bagong administrator ay bibigyan ng account na may pansamantalang password at kailangang pumili ng sarili sa unang pag-sign in. Susunod pa ang pagdaragdag ng account mula rito; sa ngayon, ang system administrator ang nagbibigay nito.')) ?></p>
+    <fieldset disabled style="border:0;padding:0;margin:0;display:grid;gap:8px;max-width:420px">
+      <input class="p-input-plain" placeholder="<?= e(t('Last name, First name', 'Apelyido, Pangalan')) ?>">
+      <input class="p-input-plain" placeholder="<?= e(t('Email address', 'Email address')) ?>">
+      <input class="p-input-plain" placeholder="09XXXXXXXXX">
+      <button class="p-btn p-btn-primary p-btn-sm" type="button"><?= e(t('Create account', 'Gumawa ng account')) ?></button>
+    </fieldset>
+  </div>
+</section>
 
 <section class="st-pane" data-pane="status">
   <div class="st-banner" id="st-banner"></div>
