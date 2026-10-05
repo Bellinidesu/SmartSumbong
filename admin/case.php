@@ -1052,7 +1052,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
              Accept (Rose, 27 Sep 2026 — Accept did nothing). -->
         <button class="p-btn p-btn-primary p-btn-block" type="submit" name="action" value="accept" formnovalidate>
           <?= p_icon('i-check', 18) ?>
-          <?= e(t('Validate Report', 'I-validate ang Ulat')) ?>
+          <?= e(t('Accept Report', 'Tanggapin ang Ulat')) ?>
         </button>
 
         <button class="p-btn p-btn-danger-soft p-btn-block" type="button" id="deny-toggle" aria-expanded="false"

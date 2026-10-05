@@ -305,10 +305,10 @@ function render_account_screen(string $role): void
               <span class="p-chip"><?= e(t('Name', 'Pangalan')) ?></span>
             <?php endif; ?>
             <div style="min-width:0">
-              <b><?= e($r['who']['full_name'] ?? '') ?></b>
+              <b><?= e(display_name($r['who']['full_name'] ?? '')) ?></b>
               <span class="p-hint"> · <?= e((string) ($r['who']['mobile_number'] ?? '')) ?> · <?= e(long_datetime($r['created_at'])) ?></span>
               <p style="margin:4px 0 0"><?= $r['kind'] === 'full_name'
-                  ? e(t('Change name to', 'Palitan ang pangalan sa')) . ' <b>' . e($r['new_full_name']) . '</b>'
+                  ? e(t('Change name to', 'Palitan ang pangalan sa')) . ' <b>' . e(display_name($r['new_full_name'])) . '</b>'
                   : e(t('New ID photo', 'Bagong litrato ng ID')) . ' (' . e(str_replace('_', ' ', (string) $r['id_type'])) . ')' ?></p>
               <?php if (!empty($r['reason'])): ?><p class="p-quote" style="margin:4px 0 0"><?= e($r['reason']) ?></p><?php endif; ?>
               <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">

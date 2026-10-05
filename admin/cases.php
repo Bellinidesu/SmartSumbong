@@ -153,7 +153,7 @@ try {
     // Unread by default; a search looks through read ones too, since
     // what an admin searches for is usually something already seen.
     $nq = [
-        'select'  => 'id,kind,message,created_at,is_read,report_id',
+        'select'  => 'id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role)',
         'user_id' => 'eq.' . $admin['id'],
         'order'   => 'created_at.' . ($nSort === 'oldest' ? 'asc' : 'desc'),
         'limit'   => $nSearch !== '' ? '50' : '20',
@@ -233,6 +233,9 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       <div><div><span class="p-unread-dot"></span><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
       <?php if (!empty($n['report_id'])): ?>
         <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+      <?php elseif (!empty($n['subject_user_id'])): ?>
+        <?php // 0088 (Rose): a profile request opens that person's profile. ?>
+        <a class="p-btn p-btn-sm p-btn-orange" href="<?= ($n['subject']['role'] ?? '') === 'tanod' ? 'personnel.php' : 'residents.php' ?>?id=<?= e($n['subject_user_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
       <?php else: ?><span></span><?php endif; ?>
     </div>
   <?php endforeach; ?>
@@ -511,7 +514,10 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     }
     list.innerHTML = rows.map(n => {
       const review = n.report_id
-        ? '<a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=' + encodeURIComponent(n.report_id) + '">' + T('Review', 'Suriin') + '</a>' : '<span></span>';
+        ? '<a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=' + encodeURIComponent(n.report_id) + '">' + T('Review', 'Suriin') + '</a>'
+        : n.subject_user_id
+          ? '<a class="p-btn p-btn-sm p-btn-orange" href="' + ((n.subject && n.subject.role) === 'tanod' ? 'personnel.php' : 'residents.php') + '?id=' + encodeURIComponent(n.subject_user_id) + '">' + T('Review', 'Suriin') + '</a>'
+          : '<span></span>';
       return '<div class="p-notif p-unread">' +
         '<span class="p-n-ico"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg></span>' +
         '<div><div><span class="p-unread-dot"></span><b>' + escapeHtml(n.message) + '</b></div>' +
@@ -546,7 +552,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
 
   async function loadNotifications() {
     let nq = sb.from('notifications')
-      .select('id,kind,message,created_at,is_read,report_id')
+      .select('id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role)')
       .eq('user_id', ADMIN_ID)
       .order('created_at', { ascending: N_OLDEST })
       .limit(N_SEARCH ? 50 : 20);

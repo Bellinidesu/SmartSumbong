@@ -322,7 +322,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _requestChange(String field, String label) async {
     final s = context.s;
-    final value = await showFigmaDialog<String>(
+    final value = field == 'full_name'
+        // Rose (6 Oct 2026): first name and last name, not "Last, First".
+        // Stored as "Last, First" (0032), the form the ID check uses.
+        ? await showFigmaDialog<String>(context, builder: (_) => const _NameRequestDialog())
+        : await showFigmaDialog<String>(
       context,
       builder: (_) => _RequestDialog(
         title: s.editProfileChangeFieldTitle(label),
@@ -646,6 +650,52 @@ class _LockedField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A name change as First name + Last name; returns "Last, First".
+class _NameRequestDialog extends StatefulWidget {
+  const _NameRequestDialog();
+
+  @override
+  State<_NameRequestDialog> createState() => _NameRequestDialogState();
+}
+
+class _NameRequestDialogState extends State<_NameRequestDialog> {
+  final _first = TextEditingController();
+  final _last = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _first.dispose();
+    _last.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FigmaDialog(
+      title: context.tr('Change your name', 'Palitan ang pangalan'),
+      body: context.tr('Write it as it appears on your ID. The barangay checks it before it changes.', 'Isulat ayon sa nakalagay sa iyong ID. Titingnan ito ng barangay bago palitan.'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        FigmaDialogField(controller: _first, hint: context.tr('First name', 'Pangalan'), autofocus: true, keyboardType: TextInputType.name),
+        const SizedBox(height: 10),
+        FigmaDialogField(controller: _last, hint: context.tr('Last name', 'Apelyido'), keyboardType: TextInputType.name),
+        if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: const TextStyle(color: Color(0xFFFF8A8A), fontSize: 12.5, fontWeight: FontWeight.w700))),
+      ]),
+      secondaryLabel: context.s.editProfileCancel,
+      onSecondary: () => Navigator.of(context).pop(),
+      primaryLabel: context.s.editProfileSendRequest,
+      onPrimary: () {
+        final f = _first.text.trim(), l = _last.text.trim();
+        if (f.isEmpty || l.isEmpty) {
+          setState(() => _error = context.tr('Enter both your first name and last name.', 'Ilagay ang pangalan at apelyido.'));
+          return;
+        }
+        Navigator.of(context).pop('$l, $f');
+      },
     );
   }
 }

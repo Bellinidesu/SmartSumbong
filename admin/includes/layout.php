@@ -777,3 +777,11 @@ function handler_cell(array $r, string $me): string
     $name = (string) ($r['handler']['full_name'] ?? '');
     return '<span class="ss-who">' . admin_chip((string) $r['handler_id'], $name) . e($r['handler_id'] === $me ? t('You', 'Ikaw') : $name) . '</span>';
 }
+
+/** "Besarra, Rose" -> "Rose Besarra" (0088); anything else unchanged. */
+function display_name(?string $name): string
+{
+    $name = (string) $name;
+    $c = strpos($name, ',');
+    return $c > 0 ? trim(substr($name, $c + 1)) . ' ' . trim(substr($name, 0, $c)) : $name;
+}
