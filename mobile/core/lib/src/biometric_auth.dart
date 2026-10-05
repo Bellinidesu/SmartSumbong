@@ -34,8 +34,48 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// start demanding a prompt nobody turned on.
 const biometricUnlockKey = 'biometric_unlock_enabled';
 
+/// What this phone can do for biometric unlock (Martin, 6 Oct 2026): the
+/// Settings row greys out and says why when the answer is not [ready].
+enum BiometricState {
+  /// A fingerprint or face is set up and the app can use it.
+  ready,
+
+  /// The phone has a sensor, but nothing is set up in its own Settings.
+  notEnrolled,
+
+  /// No sensor the app can use (or face unlock that Android rates too weak).
+  noHardware,
+
+  /// The phone or its Android version cannot do it, or has no screen lock.
+  unsupported,
+}
+
+class BiometricStatus {
+  const BiometricStatus(this.state, {this.fingerprint = false, this.face = false});
+  final BiometricState state;
+  final bool fingerprint;
+  final bool face;
+}
+
 class BiometricAuthService {
   final _auth = LocalAuthentication();
+
+  /// Reads what the phone offers without prompting. Never throws.
+  Future<BiometricStatus> status() async {
+    try {
+      if (!await _auth.isDeviceSupported()) return const BiometricStatus(BiometricState.unsupported);
+      if (!await _auth.canCheckBiometrics) return const BiometricStatus(BiometricState.noHardware);
+      final types = await _auth.getAvailableBiometrics();
+      if (types.isEmpty) return const BiometricStatus(BiometricState.notEnrolled);
+      final face = types.contains(BiometricType.face);
+      // Android reports "strong"/"weak" rather than naming the sensor;
+      // a strong one on a phone is almost always the fingerprint reader.
+      final finger = types.contains(BiometricType.fingerprint) || types.contains(BiometricType.strong);
+      return BiometricStatus(BiometricState.ready, fingerprint: finger || !face, face: face);
+    } catch (_) {
+      return const BiometricStatus(BiometricState.unsupported);
+    }
+  }
 
   /// True only when the phone both supports biometrics and already has at
   /// least one fingerprint or face enrolled in its own OS settings.

@@ -1,6 +1,6 @@
 # SmartSumbong — Schema Reference
 
-Mirrors `supabase/migrations/` (0001–0083, all applied to the live project as
+Mirrors `supabase/migrations/` (0001–0086, all applied to the live project as
 of 5 October 2026). If the manuscript's Data Dictionary and this file
 disagree, one of them is wrong — fix both in the same sitting.
 
@@ -8,7 +8,7 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 
 ---
 
-## Tables (24)
+## Tables (26)
 
 | Table | Purpose | Since |
 |---|---|---|
@@ -34,6 +34,8 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 | `dispatch_updates` | The dispatch window's thread: tanod notes, admin replies, steps | 0069 |
 | `report_messages` | "Ask the barangay": a complaint's resident ↔ barangay thread | 0072 |
 | `escalation_requests` | A tanod's request to escalate, and the admin's decision | 0073 |
+| `password_otps` | SMS reset codes, hashed (0085; sending is switched off until Semaphore credits) | 0085 |
+| `profile_requests` | A resident's or tanod's name change or new ID photo, and the admin's decision | 0086 |
 | `report_evidence` | Photos the barangay attaches from the portal: with an update, or when it resolves | 0079 |
 
 Removed: `tanod_locations` (live tracking history, dropped in 0072), the

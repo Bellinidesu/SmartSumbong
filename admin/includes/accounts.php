@@ -62,6 +62,19 @@ function render_account_screen(string $role): void
                     $action = '';   // falls through to "Unknown action."
                 }
                 switch ($action) {
+                    // 0086 (Martin): a name change or a new ID photo.
+                    case 'profile_request':
+                        $approve = ($_POST['decision'] ?? '') === 'approve';
+                        $db->rpc('decide_profile_request', [
+                            'p_request' => (string) ($_POST['request'] ?? ''),
+                            'p_approve' => $approve,
+                            'p_note'    => trim((string) ($_POST['note'] ?? '')) ?: null,
+                        ]);
+                        $flash = $approve
+                            ? t('Approved. They have been told.', 'Naaprubahan. Nasabihan na sila.')
+                            : t('Declined. They have been told why.', 'Tinanggihan. Nasabihan na sila kung bakit.');
+                        break;
+
                     case 'approve':
                         $db->rpc('verify_user_account', [
                             'p_user' => $target, 'p_decision' => 'approve',
@@ -265,6 +278,52 @@ function render_account_screen(string $role): void
     <?php endif; ?>
     <?php if ($error): ?>
       <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
+    <?php endif; ?>
+
+    <?php
+    // 0086 (Martin): name changes and new ID photos waiting for a decision.
+    $requests = [];
+    try {
+        $requests = $db->select('profile_requests', [
+            'select' => 'id,kind,new_full_name,id_type,id_image_url,reason,created_at,'
+                      . 'who:users!profile_requests_user_id_fkey(full_name,mobile_number,role)',
+            'status' => 'eq.pending',
+            'order'  => 'created_at.asc',
+        ]);
+        $requests = array_values(array_filter($requests, fn($r) => ($r['who']['role'] ?? '') === ($isTanod ? 'tanod' : 'resident')));
+    } catch (SupabaseError $e) { $requests = []; }
+    ?>
+    <?php if ($requests): ?>
+      <div class="p-card p-card-pad" style="margin-bottom:16px">
+        <p class="p-eyebrow"><?= e(t('Requests waiting', 'Mga naghihintay na kahilingan')) ?> · <?= count($requests) ?></p>
+        <div style="display:grid;gap:12px">
+        <?php foreach ($requests as $r): ?>
+          <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;border-top:1px solid var(--p-line);padding-top:12px">
+            <?php if ($r['kind'] === 'id_document'): ?>
+              <a href="<?= e($r['id_image_url']) ?>" target="_blank" rel="noopener"><img src="<?= e($r['id_image_url']) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" style="width:120px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--p-line)"></a>
+            <?php else: ?>
+              <span class="p-chip"><?= e(t('Name', 'Pangalan')) ?></span>
+            <?php endif; ?>
+            <div style="min-width:0">
+              <b><?= e($r['who']['full_name'] ?? '') ?></b>
+              <span class="p-hint"> · <?= e((string) ($r['who']['mobile_number'] ?? '')) ?> · <?= e(long_datetime($r['created_at'])) ?></span>
+              <p style="margin:4px 0 0"><?= $r['kind'] === 'full_name'
+                  ? e(t('Change name to', 'Palitan ang pangalan sa')) . ' <b>' . e($r['new_full_name']) . '</b>'
+                  : e(t('New ID photo', 'Bagong litrato ng ID')) . ' (' . e(str_replace('_', ' ', (string) $r['id_type'])) . ')' ?></p>
+              <?php if (!empty($r['reason'])): ?><p class="p-quote" style="margin:4px 0 0"><?= e($r['reason']) ?></p><?php endif; ?>
+              <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="action" value="profile_request">
+                <input type="hidden" name="request" value="<?= e($r['id']) ?>">
+                <input class="p-input-plain" name="note" maxlength="300" placeholder="<?= e(t('Reason (needed to decline)', 'Dahilan (kailangan kung tatanggihan)')) ?>" style="flex:1;min-width:180px">
+                <button class="p-btn p-btn-success p-btn-sm" type="submit" name="decision" value="approve"><?= e(t('Approve', 'Aprubahan')) ?></button>
+                <button class="p-btn p-btn-danger-soft p-btn-sm" type="submit" name="decision" value="decline"><?= e(t('Decline', 'Tanggihan')) ?></button>
+              </form>
+            </div>
+          </div>
+        <?php endforeach; ?>
+        </div>
+      </div>
     <?php endif; ?>
 
     <!-- Always rendered so the polling below can show it as accounts age past the window. -->

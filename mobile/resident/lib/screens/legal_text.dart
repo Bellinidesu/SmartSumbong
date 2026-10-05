@@ -41,7 +41,8 @@ const termsSections = <(String, String)>[
     'Data Privacy Act of 2012 (RA 10173): SmartSumbong processes personal information strictly in compliance with Republic Act No. 10173 (Data Privacy Act) and National Privacy Commission (NPC) regulations.\n\n'
         'Personal Information Controller (PIC): The Barangay Administration serves as the Personal Information Controller (PIC) responsible for civic data oversight, while the SmartSumbong System serves as the software processor.\n\n'
         'Purpose of Processing: Personal data, geolocation tags, and report media are processed strictly for user identity verification and complaint processing.\n\n'
-        'Data Rights & Retention: Users retain rights to access, correct, or request the deletion of their personal information in accordance with RA 10173, subject to legal and statutory audit requirements for public safety records.'
+        'Data Rights & Retention: Users retain rights to access, correct, or request the deletion of their personal information in accordance with RA 10173, subject to legal and statutory audit requirements for public safety records.\n\n'
+        'Biometric Unlock: Fingerprint and face unlock are optional conveniences handled entirely by your device. By turning them on, you allow the app to ask your device to verify you; no fingerprint or face data is collected, stored, or transmitted by SmartSumbong.'
   ),
   (
     'User Content & Evidence License',
@@ -93,7 +94,8 @@ const privacySections = <(String, String)>[
         'b. Geolocation Data: Precise GPS coordinates when submitting an incident report. For Barangay Tanods, location is recorded only at key moments of a dispatch (going on duty, setting out, arriving); it is not tracked continuously and no location history is kept.\n\n'
         'c. Report Media & Evidence: Photos, videos, or text descriptions submitted as evidence for an incident log or complaint. Location and camera data embedded in photos are removed before upload.\n\n'
         'd. Role & Privilege Data: Official designation, ID verification, and duty status (for Barangay Tanods and System Administrators).\n\n'
-        'e. System Logs: A tamper-evident record of every status change and account change, and the record of failed sign-in attempts used to lock out repeated guessing, kept for auditing and security purposes.'
+        'e. System Logs: A tamper-evident record of every status change and account change, and the record of failed sign-in attempts used to lock out repeated guessing, kept for auditing and security purposes.\n\n'
+        'f. Fingerprint and Face Unlock (optional): If you turn on fingerprint or face unlock, your phone\'s own operating system checks your fingerprint or face. SmartSumbong never receives, stores, or sends your fingerprint, face, or any biometric data; the app only learns whether the check passed. You can turn it off at any time in Settings, and your password always works.'
   ),
   (
     'Legal Basis & Purpose of Processing',

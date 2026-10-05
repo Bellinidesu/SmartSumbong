@@ -254,6 +254,72 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  /// Martin (6 Oct 2026, 0086): a fresh photo of a valid ID, for the
+  /// barangay to approve on the portal before it replaces the one on file.
+  Future<void> _sendNewId() async {
+    final tanod = AppRoleController.instance.value == AppRole.tanod;
+    final types = <(String, String)>[
+      if (tanod) ('barangay_appointment', context.tr('Barangay appointment', 'Barangay appointment')),
+      ('philsys', 'PhilSys (National ID)'),
+      ('barangay_id', 'Barangay ID'),
+      ('drivers_license', context.tr("Driver's license", 'Lisensya sa pagmamaneho')),
+      ('passport', context.tr('Passport', 'Pasaporte')),
+      ('postal_id', 'Postal ID'),
+    ];
+    final type = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: context.d.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+            child: Text(context.tr('Which ID is it?', 'Anong ID ito?'), style: DType.body(context.d.ink, size: 16, w: FontWeight.w800)),
+          ),
+          for (final t in types)
+            ListTile(title: Text(t.$2, style: DType.body(context.d.ink, size: 14.5)), onTap: () => Navigator.of(ctx).pop(t.$1)),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+    if (type == null || !mounted) return;
+    final source = await _chooseSource(context);
+    if (source == null || !mounted) return;
+    final granted = await PermissionGate.ensure(
+      context,
+      permission: source == ImageSource.camera ? AppPermission.camera : AppPermission.photos,
+      title: context.s.editProfileCameraAccessTitle,
+      rationale: context.s.editProfileCameraAccessRationale,
+    );
+    if (!granted || !mounted) return;
+    setState(() {
+      _banner = null;
+      _saving = true;
+    });
+    try {
+      final f = await widget.uploader.pick(source: source);
+      if (f == null) return;
+      final up = await widget.uploader.upload(f, kind: MediaKind.identityCard);
+      await Supabase.instance.client.rpc('request_id_reupload', params: {
+        'p_id_type': type,
+        'p_id_image_url': up.mediaUrl,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.tr('Sent. The barangay will check it and let you know.', 'Naipadala. Titingnan ito ng barangay at sasabihan ka.')),
+        backgroundColor: context.colors.navy,
+      ));
+    } on MediaUploadException catch (e) {
+      if (mounted) setState(() => _banner = e.message);
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => _banner = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _banner = context.tr('The ID could not be sent. Try again.', 'Hindi naipadala ang ID. Subukan muli.'));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _requestChange(String field, String label) async {
     final s = context.s;
     final value = await showFigmaDialog<String>(
@@ -425,6 +491,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         keyboardType: TextInputType.streetAddress,
                       ),
                       _LockedField(label: s.editProfilePasswordLabel, value: '•' * 10, note: s.editProfilePasswordChange, onTap: _changePassword),
+                      _LockedField(label: context.tr('Valid ID', 'Valid ID'), value: context.tr('On file with the barangay', 'Nasa barangay na'), note: context.tr('Send a new photo', 'Magpadala ng bagong litrato'), onTap: _sendNewId),
                     ]),
                   ),
                   const SizedBox(height: 14),

@@ -51,6 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _biometrics = BiometricAuthService();
   bool _biometricEnabled = false;
   bool _biometricBusy = false;
+  BiometricStatus? _bio;
 
   bool _deletingAccount = false;
 
@@ -64,8 +65,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadBiometricSetting() async {
     final enabled = await BiometricAuthService.enabled();
+    final bio = await _biometrics.status();
     if (!mounted) return;
-    setState(() => _biometricEnabled = enabled);
+    setState(() {
+      _bio = bio;
+      // A setting left on from before (or a sensor since removed) cannot
+      // stay on when the phone can no longer do it.
+      _biometricEnabled = enabled && bio.state == BiometricState.ready;
+    });
   }
 
   /// Turning it on asks for an actual fingerprint/face scan before the
@@ -107,6 +114,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } finally {
       if (mounted) setState(() => _biometricBusy = false);
     }
+  }
+
+  /// The line under the row: what was found, or why it cannot be used.
+  String? _bioReason(BuildContext context) {
+    final b = _bio;
+    if (b == null) return null;
+    switch (b.state) {
+      case BiometricState.ready:
+        final what = [if (b.fingerprint) context.tr('fingerprint', 'fingerprint'), if (b.face) context.tr('face', 'mukha')].join(context.tr(' and ', ' at '));
+        return context.tr('Uses your phone\'s $what', 'Gamit ang $what ng iyong telepono');
+      case BiometricState.notEnrolled:
+        return context.tr('Set up a fingerprint or face in your phone\'s Settings first', 'Mag-set up muna ng fingerprint o mukha sa Settings ng telepono');
+      case BiometricState.noHardware:
+        return context.tr('This phone has no fingerprint or face sensor the app can use', 'Walang fingerprint o face sensor ang teleponong ito na magagamit ng app');
+      case BiometricState.unsupported:
+        return context.tr('Not available on this phone', 'Hindi available sa teleponong ito');
+    }
+  }
+
+  void _explainBiometric() {
+    final b = _bio;
+    if (b == null) return;
+    final body = switch (b.state) {
+      BiometricState.notEnrolled => context.tr(
+          'Your phone has a sensor, but no fingerprint or face is saved yet. Open your phone\'s Settings → Security (or Biometrics), add a fingerprint, then come back and turn this on.',
+          'May sensor ang iyong telepono pero wala pang naka-save na fingerprint o mukha. Buksan ang Settings → Security (o Biometrics) ng telepono, magdagdag ng fingerprint, saka bumalik dito.'),
+      BiometricState.noHardware => context.tr(
+          'This phone has no fingerprint reader the app can use. Some phones\' face unlock only uses the front camera, which Android does not trust for apps, so it cannot be used here either. You can still sign in with your password.',
+          'Walang fingerprint reader ang teleponong ito na magagamit ng app. Ang face unlock ng ilang telepono ay gumagamit lang ng front camera, na hindi pinagkakatiwalaan ng Android para sa mga app. Makakapag-sign in ka pa rin gamit ang password.'),
+      _ => context.tr(
+          'This phone or its Android version cannot use fingerprint or face unlock for apps, or it has no screen lock set. You can still sign in with your password.',
+          'Hindi magagamit ng teleponong ito o ng bersyon ng Android nito ang fingerprint o face unlock para sa mga app, o wala itong screen lock. Makakapag-sign in ka pa rin gamit ang password.'),
+    };
+    showDDialog(context, title: context.tr('Why this is greyed out', 'Bakit ito naka-grey'), body: body, primary: context.tr('OK', 'OK'), icon: Icons.fingerprint_rounded);
   }
 
   // Useful now that builds are shared and installed manually rather than
@@ -266,24 +307,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               DButton(s.settingsEditProfile, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load())),
             ]),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
+          _Heading(context.tr('Account & preferences', 'Account at mga kagustuhan')),
           _List(children: [
             _Row(icon: Icons.person_outline_rounded, label: s.settingsPersonalInfo, onTap: () => Navigator.of(context).pushNamed('/edit-profile').then((_) => _load()), chevron: true),
             _Row(icon: Icons.language_rounded, label: s.settingsLanguages, onTap: () => Navigator.of(context).pushNamed('/languages'), trailing: const DFlags()),
             _Row(icon: Icons.dark_mode_outlined, label: s.settingsAppearance, onTap: () => Navigator.of(context).pushNamed('/appearance'), trailing: const DDayNight()),
-            _Row(
-              icon: Icons.fingerprint_rounded,
-              label: s.settingsBiometricUnlock,
-              onTap: _biometricBusy ? null : () => _onBiometricToggle(!_biometricEnabled),
-              trailing: _biometricBusy
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2))
-                  : _OnPill(on: _biometricEnabled),
-            ),
             if (!tanod)
               _Row(icon: Icons.notifications_none_rounded, label: s.settingsNotificationPrefs, onTap: () => Navigator.of(context).pushNamed('/notification-preferences'), chevron: true),
             if (tanod)
               _Row(icon: Icons.work_outline_rounded, label: context.ts.settingsExtraAdminServices, onTap: () => Navigator.of(context).pushNamed('/t/extra-admin-services'), chevron: true),
-            _Row(icon: Icons.shield_outlined, label: s.termsPrivacyTitle, onTap: () => Navigator.of(context).pushNamed('/terms-privacy'), chevron: true),
             _Row(
               icon: Icons.facebook_rounded,
               label: s.settingsFacebook,
@@ -296,6 +329,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
               },
             ),
+          ]),
+          const SizedBox(height: 18),
+          _Heading(context.tr('Security & privacy', 'Seguridad at privacy')),
+          _List(children: [
+            _Row(
+              icon: Icons.fingerprint_rounded,
+              label: s.settingsBiometricUnlock,
+              sub: _bioReason(context),
+              dim: _bio != null && _bio!.state != BiometricState.ready,
+              onTap: _biometricBusy
+                  ? null
+                  : (_bio != null && _bio!.state != BiometricState.ready)
+                      ? _explainBiometric
+                      : () => _onBiometricToggle(!_biometricEnabled),
+              trailing: _biometricBusy
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2))
+                  : _OnPill(on: _biometricEnabled),
+            ),
+            _Row(icon: Icons.shield_outlined, label: s.termsPrivacyTitle, onTap: () => Navigator.of(context).pushNamed('/terms-privacy'), chevron: true),
             _Row(icon: Icons.logout_rounded, label: s.settingsLogOut, labelColor: red, busy: _busy, onTap: _busy ? null : _logOut),
           ]),
           if (!tanod) ...[
@@ -351,10 +403,12 @@ class _List extends StatelessWidget {
 /// A row: a bare 20 px icon, the label 14.5/600, then a chevron, a pill,
 /// the flags or the switch.
 class _Row extends StatelessWidget {
-  const _Row({required this.icon, required this.label, this.onTap, this.trailing, this.chevron = false, this.labelColor, this.busy = false});
+  const _Row({required this.icon, required this.label, this.onTap, this.trailing, this.chevron = false, this.labelColor, this.busy = false, this.sub, this.dim = false});
 
   final IconData icon;
   final String label;
+  final String? sub;
+  final bool dim;
   final VoidCallback? onTap;
   final Widget? trailing;
   final bool chevron;
@@ -371,11 +425,16 @@ class _Row extends StatelessWidget {
         child: Row(children: [
           Icon(icon, size: 20, color: d.link),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: DType.body(labelColor ?? d.ink, size: 14.5, w: FontWeight.w600).copyWith(height: 1.25))),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: DType.body(dim ? d.muted : (labelColor ?? d.ink), size: 14.5, w: FontWeight.w600).copyWith(height: 1.25)),
+              if (sub != null) Padding(padding: const EdgeInsets.only(top: 2), child: Text(sub!, style: DType.body(d.muted, size: 12).copyWith(height: 1.3))),
+            ]),
+          ),
           if (busy)
             const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2))
           else if (trailing != null)
-            trailing!
+            Opacity(opacity: dim ? .4 : 1, child: trailing!)
           else if (chevron)
             Text('›', style: TextStyle(fontSize: 20, height: 1, color: d.muted)),
         ]),
@@ -546,4 +605,16 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       destructive: true,
     );
   }
+}
+
+/// A small label over a group of Settings rows (Martin, 6 Oct 2026).
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+        child: Text(text.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11.5, letterSpacing: 1.04, color: context.d.muted)),
+      );
 }
