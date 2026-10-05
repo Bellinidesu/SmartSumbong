@@ -31,33 +31,45 @@
 // Play listing still needs to host this (or the barangay's revision of
 // it) somewhere reachable by URL and paste that URL into Play Console.
 
+import 'legal_text.dart';
 import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 
-class TermsPrivacyScreen extends StatelessWidget {
+class TermsPrivacyScreen extends StatefulWidget {
   const TermsPrivacyScreen({super.key});
 
-  // No frame of its own: set like the translated pages — the title
-  // 28/800 at 50 (no app bar; the pill at the foot and the system back
-  // both return), 16/700 headings over 14/500 text, and the 150x45 Back.
-  // Branch D: back, the heading, the draft note, then the eight sections
-  // as numbered cards that open one at a time.
+  @override
+  State<TermsPrivacyScreen> createState() => _TermsPrivacyScreenState();
+}
+
+// The team's final Terms and Conditions and Privacy Policy (legal_text.dart),
+// one tab each, every section a numbered card that opens on tap.
+class _TermsPrivacyScreenState extends State<TermsPrivacyScreen> {
+  bool _privacy = false;
+
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final sections = [
-      (s.termsPrivacySection1Title, s.termsPrivacySection1Body),
-      (s.termsPrivacySection2Title, s.termsPrivacySection2Body),
-      (s.termsPrivacySection3Title, s.termsPrivacySection3Body),
-      (s.termsPrivacySection4Title, s.termsPrivacySection4Body),
-      (s.termsPrivacySection5Title, s.termsPrivacySection5Body),
-      (s.termsPrivacySection6Title, s.termsPrivacySection6Body),
-      (s.termsPrivacySection7Title, s.termsPrivacySection7Body),
-      (s.termsPrivacySection8Title, s.termsPrivacySection8Body),
-    ];
+    final d = context.d;
+    final sections = _privacy ? privacySections : termsSections;
+    Widget tab(String label, bool privacy) {
+      final on = _privacy == privacy;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _privacy = privacy),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: on ? d.btn : d.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: on ? d.btn : d.line)),
+            child: Text(label, textAlign: TextAlign.center, style: DType.body(on ? Colors.white : d.ink2, size: 13.5, w: FontWeight.w700)),
+          ),
+        ),
+      );
+    }
+
     return DPage(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
@@ -65,13 +77,19 @@ class TermsPrivacyScreen extends StatelessWidget {
           Row(children: [
             const DBack(),
             const SizedBox(width: 10),
-            Expanded(child: Text(s.termsPrivacyTitle, style: DType.h2(context.d.ink).copyWith(fontSize: 22))),
+            Expanded(child: Text(s.termsPrivacyTitle, style: DType.h2(d.ink).copyWith(fontSize: 22))),
           ]),
           const SizedBox(height: 14),
-          const _DraftBanner(),
-          const SizedBox(height: 14),
+          Row(children: [
+            tab('Terms and Conditions', false),
+            const SizedBox(width: 8),
+            tab('Privacy Policy', true),
+          ]),
+          const SizedBox(height: 10),
+          Text(legalEffective, style: DType.body(d.muted, size: 12.5, w: FontWeight.w600)),
+          const SizedBox(height: 10),
           for (var i = 0; i < sections.length; i++) ...[
-            _Acc(n: i + 1, title: sections[i].$1, body: sections[i].$2),
+            _Acc(key: ValueKey('${_privacy}_$i'), n: i + 1, title: sections[i].$1, body: sections[i].$2),
             const SizedBox(height: 8),
           ],
         ],
@@ -81,7 +99,7 @@ class TermsPrivacyScreen extends StatelessWidget {
 }
 
 class _Acc extends StatefulWidget {
-  const _Acc({required this.n, required this.title, required this.body});
+  const _Acc({super.key, required this.n, required this.title, required this.body});
 
   final int n;
   final String title;
@@ -130,24 +148,3 @@ class _AccState extends State<_Acc> {
     );
   }
 }
-
-class _DraftBanner extends StatelessWidget {
-  const _DraftBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Color.alphaBlend(const Color(0xFFF59E0B).withValues(alpha: .12), context.d.card),
-        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: .35)),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        context.s.termsPrivacyDraftBanner,
-        style: DType.body(context.d.ink2, size: 12.5).copyWith(height: 1.45),
-      ),
-    );
-  }
-}
-
