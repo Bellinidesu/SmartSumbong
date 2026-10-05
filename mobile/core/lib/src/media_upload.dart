@@ -97,6 +97,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -249,11 +250,18 @@ class MediaUploader {
   /// stripped of metadata. The returned file is a temporary copy — the
   /// resident's original in their gallery is untouched.
   Future<File?> pick({ImageSource source = ImageSource.gallery}) async {
-    final picked = await _picker.pickImage(
-      source: source,
-      requestFullMetadata: false, // do not ask iOS for location metadata
-    );
-    return picked == null ? null : _sanitise(File(picked.path));
+    final XFile? picked;
+    try {
+      picked = await _picker.pickImage(
+        source: source,
+        requestFullMetadata: false, // do not ask iOS for location metadata
+      );
+    } on PlatformException catch (e) {
+      throw MediaUploadException(
+        '${source == ImageSource.camera ? 'The camera' : 'The gallery'} could not open (${e.code}). Try again, or use the ${source == ImageSource.camera ? 'gallery' : 'camera'}.',
+      );
+    }
+    return picked == null ? null : _sanitiseOrExplain(File(picked.path));
   }
 
   Future<List<File>> pickMultiple({int limit = 5}) async {
@@ -261,7 +269,23 @@ class MediaUploader {
       requestFullMetadata: false,
       limit: limit,
     );
-    return [for (final x in picked) await _sanitise(File(x.path))];
+    return [for (final x in picked) await _sanitiseOrExplain(File(x.path))];
+  }
+
+  /// [_sanitise], but a photo that cannot be read or re-encoded (an
+  /// unusual format, a cloud-only file on an older phone) says so instead
+  /// of failing silently: every caller already shows a MediaUploadException.
+  Future<File> _sanitiseOrExplain(File input) async {
+    try {
+      return await _sanitise(input);
+    } on MediaUploadException {
+      rethrow;
+    } catch (_) {
+      throw MediaUploadException(
+        'That photo could not be used. Try another photo, or take one with the camera.',
+        isRetryable: false,
+      );
+    }
   }
 
   /// Pick one video. Unlike [pick], the returned file is NOT re-encoded

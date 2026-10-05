@@ -29,6 +29,8 @@
 // gallery read needing READ_EXTERNAL_STORAGE) and is harmless to check
 // on newer versions, where it simply reports already-granted.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
@@ -72,6 +74,12 @@ class PermissionGate {
     required String rationale,
   }) async {
     if (bypass) return true;
+    // Choosing from the gallery needs no permission on Android: the system
+    // picker (or the document picker on older phones) hands back only what
+    // the person picks. Asking anyway broke the gallery on Android 9-12
+    // (Martin's Oppo A12), where the photos check can answer "denied"
+    // without ever showing a dialog, so the picker never opened.
+    if (permission == AppPermission.photos && Platform.isAndroid) return true;
     final p = permission._underlying;
 
     final current = await p.status;
