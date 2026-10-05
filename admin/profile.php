@@ -77,10 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // current password or a bad mobile number changes nothing.
             $patch = null;
             if ($doDetails) {
-                $name   = trim((string) ($_POST['full_name'] ?? ''));
+                // Rose: asked as First / Last name, stored "Last, First" like the app.
+                $first  = trim((string) ($_POST['first_name'] ?? ''));
+                $last   = trim((string) ($_POST['last_name'] ?? ''));
+                $name   = isset($_POST['first_name'])
+                    ? ($last !== '' ? $last . ', ' . $first : $first)
+                    : trim((string) ($_POST['full_name'] ?? ''));
                 $mobile = trim((string) ($_POST['mobile_number'] ?? ''));
 
-                if (mb_strlen($name) < 2) {
+                if (mb_strlen($name) < 2 || (isset($_POST['first_name']) && $first === '')) {
                     throw new SupabaseError(t('Please enter your full name.', 'Ilagay ang iyong buong pangalan.'));
                 }
                 // Stored as +639XXXXXXXXX (0021), which is what the field
@@ -212,107 +217,123 @@ layout_head(t('Edit Profile', 'I-edit ang Profile'), 'profile.php');
 <?php endif; ?>
 
 <?php
-$parts    = preg_split('/\s+/', trim((string) $me['full_name'])) ?: [];
+$shown    = display_name($me['full_name']);
+$parts    = preg_split('/\s+/', trim($shown)) ?: [];
 $initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
+$comma    = strpos((string) $me['full_name'], ',');
+$firstVal = $comma > 0 ? trim(substr($me['full_name'], $comma + 1)) : (string) $me['full_name'];
+$lastVal  = $comma > 0 ? trim(substr($me['full_name'], 0, $comma)) : '';
+$change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit=1#' . $field . '">' . e(t('Change', 'Palitan')) . '</a>';
 ?>
-<div class="p-profile-grid">
-  <div class="p-card p-card-pad">
-    <p class="p-eyebrow"><?= e(t('Profile', 'Profile')) ?></p>
-    <?php if (!$editing): ?>
-      <label class="p-field" for="pf_name"><span><?= e(t('Full name', 'Buong pangalan')) ?></span><div class="p-input"><input id="pf_name" type="text" value="<?= e($me['full_name']) ?>" readonly></div></label>
-      <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
-        <label class="p-field" for="pf_mobile"><span><?= e(t('Mobile number', 'Mobile number')) ?></span><div class="p-input"><input id="pf_mobile" type="text" value="<?= e($me['mobile_number']) ?>" readonly></div></label>
-        <label class="p-field" for="pf_email"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input id="pf_email" type="text" value="<?= e($me['email']) ?>" readonly></div></label>
+<!-- Ace (7 Oct): banner header (idea A) over settings rows (idea B). -->
+<section class="p-card ss-pf-head">
+  <div class="ss-pf-banner" aria-hidden="true"></div>
+  <div class="ss-pf-id">
+    <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" src="<?= e($me['avatar_url']) ?>" alt="" id="ss-photo-preview">
+    <?php else: ?><span class="ss-pf-av ss-pf-ini" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
+    <div class="ss-pf-who">
+      <h2><?= e($shown) ?></h2>
+      <div class="p-badges">
+        <span class="p-badge p-b-progress"><?= e(status_label($me['role'])) ?></span>
+        <span class="p-badge p-b-done"><?= e(status_label($me['verification_status'])) ?></span>
       </div>
-      <label class="p-field" for="pf_pw" style="margin:0"><span><?= e(t('Password', 'Password')) ?></span><div class="p-input"><input id="pf_pw" type="password" value="************" readonly aria-describedby="pf_pw_hint"></div>
-        <small class="p-hint" id="pf_pw_hint"><?= e(t('Change it with Edit profile.', 'Palitan ito sa I-edit ang profile.')) ?></small></label>
-    <?php else: ?>
-      <form method="post" id="profile-form" enctype="multipart/form-data">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="action" value="profile">
-        <div class="ss-photo">
-          <?php if (!empty($me['avatar_url'])): ?><img class="ss-photo-img" src="<?= e($me['avatar_url']) ?>" alt="" id="ss-photo-preview">
-          <?php else: ?><span class="ss-photo-img ss-photo-ini" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
-          <div class="ss-photo-body">
-            <b><?= e(t('Profile photo', 'Larawan sa profile')) ?></b>
-            <span class="p-hint"><?= e(t('Other admins see it. Residents never do; your replies show as Barangay.', 'Makikita ito ng ibang admin. Hindi ito makikita ng mga residente; "Barangay" ang lalabas sa iyong mga sagot.')) ?></span>
-            <div class="ss-photo-actions">
-              <label class="p-btn" for="avatar"><?= p_icon('i-cam', 16) ?><?= e(t('Change photo', 'Palitan ang larawan')) ?></label>
-              <input class="ss-file" type="file" id="avatar" name="avatar[]" accept="image/jpeg,image/png,image/webp">
-              <?php if (!empty($me['avatar_url'])): ?>
-                <label class="p-check"><input type="checkbox" name="remove_avatar" value="1"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
-              <?php endif; ?>
-            </div>
-          </div>
-        </div>
-        <script>
-        document.getElementById('avatar').addEventListener('change', function (e) {
-          var f = e.target.files && e.target.files[0]; if (!f) return;
-          var p = document.getElementById('ss-photo-preview'), img = document.createElement('img');
-          img.className = 'ss-photo-img'; img.id = 'ss-photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f); p.replaceWith(img);
-        });
-        </script>
-        <label class="p-field" for="full_name"><span><?= e(t('Full name', 'Buong pangalan')) ?></span><div class="p-input"><input type="text" id="full_name" name="full_name" required maxlength="120" value="<?= e($me['full_name']) ?>"></div></label>
-        <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
-          <label class="p-field" for="mobile_number"><span><?= e(t('Mobile number', 'Mobile number')) ?></span>
-            <?php if ($mobileLocked): ?>
-              <!-- Sent unchanged, so the server still sees the same number. -->
-              <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" readonly value="<?= e($me['mobile_number']) ?>"></div>
-              <small class="p-hint"><?= e(t('This is how you sign in to the Smart Sumbong app, so it cannot be changed here.', 'Ito ang ginagamit mo sa pag-sign in sa Smart Sumbong app, kaya hindi ito mapapalitan dito.')) ?></small>
-            <?php else: ?>
-              <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" required pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>"></div>
-              <small class="p-hint"><?= e(t('Eleven digits, starting 09.', 'Labing-isang digit, nagsisimula sa 09.')) ?></small>
-            <?php endif; ?></label>
-          <label class="p-field" for="email_ro"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled></div>
-            <small class="p-hint"><?= e(t('This is your sign-in identity and cannot be changed here.', 'Ito ang iyong pagkakakilanlan sa pag-sign in at hindi mapapalitan dito.')) ?></small></label>
-        </div>
-        <p class="p-hint" style="margin:6px 0 12px"><?= e(t('To change your password, fill in all three boxes below. Leave them empty to keep it.', 'Para palitan ang password, punan ang tatlong kahon sa ibaba. Iwanang blangko para panatilihin ito.')) ?></p>
-        <label class="p-field" for="current_password"><span><?= e(t('Current password', 'Kasalukuyang password')) ?></span><div class="p-input"><input type="password" id="current_password" name="current_password" autocomplete="current-password"></div></label>
-        <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
-          <label class="p-field" for="new_password"><span><?= e(t('New password', 'Bagong password')) ?></span><div class="p-input"><input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password"></div>
-            <!-- Guidance, not a gate: the rule is eight characters. -->
-            <div class="p-pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
-            <small class="p-hint" id="pw-note"><?= e(t('At least 8 characters.', 'Hindi bababa sa 8 karakter.')) ?></small></label>
-          <label class="p-field" for="confirm_password"><span><?= e(t('Repeat new password', 'Ulitin ang bagong password')) ?></span><div class="p-input"><input type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password"></div></label>
-        </div>
-        <div class="p-row-between" style="justify-content:flex-end;gap:10px;margin-top:6px">
-          <button type="button" class="p-btn p-btn-ghost" id="profile-cancel"><?= e(t('Cancel', 'Kanselahin')) ?></button>
-          <button type="submit" class="p-btn p-btn-primary"><?= e(t('Save changes', 'I-save ang mga pagbabago')) ?></button>
-        </div>
-      </form>
+    </div>
+    <div class="ss-pf-act">
+      <?php if (!$editing): ?>
+        <a class="p-btn p-btn-orange" href="profile.php?edit=1"><?= p_icon('i-gear', 16) ?><?= e(t('Edit profile', 'I-edit ang profile')) ?></a>
+      <?php else: ?>
+        <label class="p-btn" for="avatar"><?= p_icon('i-cam', 16) ?><?= e(t('Change photo', 'Palitan ang larawan')) ?></label>
+        <input class="ss-file" type="file" id="avatar" name="avatar[]" form="profile-form" accept="image/jpeg,image/png,image/webp">
+        <?php if (!empty($me['avatar_url'])): ?>
+          <label class="p-check"><input type="checkbox" name="remove_avatar" value="1" form="profile-form"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
+        <?php endif; ?>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
 
-      <div class="p-scrim" id="confirm-save"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cs-t">
-        <div class="p-m-ico" style="background:var(--p-green-bg);color:var(--p-green)"><?= p_icon('i-check', 26) ?></div>
-        <h3 id="cs-t"><?= e(t('Save changes?', 'I-save ang mga pagbabago?')) ?></h3><p><?= e(t('Your profile will be updated right away.', 'Maa-update agad ang iyong profile.')) ?></p>
-        <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><button type="button" class="p-btn p-btn-primary" id="confirm-save-ok"><?= e(t('Save', 'I-save')) ?></button></div></div></div>
-      <div class="p-scrim" id="confirm-cancel"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cc-t">
-        <div class="p-m-ico" style="background:var(--p-red-bg);color:var(--p-red)"><?= p_icon('i-x', 26) ?></div>
-        <h3 id="cc-t"><?= e(t('Discard changes?', 'Itapon ang mga pagbabago?')) ?></h3><p><?= e(t('Anything you changed will be lost.', 'Mawawala ang anumang binago mo.')) ?></p>
-        <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><a class="p-btn p-btn-danger-soft" href="profile.php"><?= e(t('Discard', 'Itapon')) ?></a></div></div></div>
-    <?php endif; ?>
+<?php if (!$editing): ?>
+  <p class="p-eyebrow ss-pf-sec"><?= e(t('Your details', 'Iyong mga detalye')) ?></p>
+  <div class="p-card ss-pf-rows">
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Full name', 'Buong pangalan')) ?></span><span class="ss-pf-v"><?= e($shown) ?></span><?= $change('first_name') ?></div>
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Mobile number', 'Mobile number')) ?></span>
+      <span class="ss-pf-v p-num"><?= e($me['mobile_number']) ?><?php if ($mobileLocked): ?><small><?= e(t('You sign in to the app with it, so it stays as is.', 'Ito ang pang-sign in mo sa app, kaya hindi ito pinapalitan.')) ?></small><?php endif; ?></span>
+      <?= $mobileLocked ? '<span></span>' : $change('mobile_number') ?></div>
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Email', 'Email')) ?></span>
+      <span class="ss-pf-v"><?= e($me['email']) ?><small><?= e(t('Your sign-in, and where password links are sent.', 'Ang iyong pang-sign in, at dito ipinapadala ang password link.')) ?></small></span><span></span></div>
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Password', 'Password')) ?></span><span class="ss-pf-v">••••••••</span><?= $change('current_password') ?></div>
   </div>
 
-  <aside class="p-card p-card-pad p-profile-side">
-    <?php if (!empty($me['avatar_url'])): ?>
-      <img class="p-avatar-lg" src="<?= e($me['avatar_url']) ?>" alt="">
-    <?php else: ?>
-      <div class="p-avatar-lg" aria-hidden="true"><?= e($initials) ?></div>
-    <?php endif; ?>
-    <div><b style="font-size:18px"><?= e($me['full_name']) ?></b><div class="p-hint"><?= e($me['email']) ?></div></div>
-    <div class="p-badges" style="justify-content:center">
-      <span class="p-badge p-b-progress"><?= e(status_label($me['role'])) ?></span>
-      <span class="p-badge p-b-done"><?= e(status_label($me['verification_status'])) ?></span>
-    </div>
-    <?php if (!$editing): ?>
-      <a class="p-btn p-btn-ghost" href="profile.php?edit=1"><?= p_icon('i-gear', 16) ?><?= e(t('Edit profile', 'I-edit ang profile')) ?></a>
-    <?php endif; ?>
-    <div class="p-sep"></div>
-    <div class="p-kv"><span><?= e(t('Account created', 'Ginawa ang account')) ?></span><b><?= e(long_datetime($me['created_at'])) ?></b></div>
+  <p class="p-eyebrow ss-pf-sec"><?= e(t('Account', 'Account')) ?></p>
+  <div class="p-card ss-pf-rows">
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Role', 'Tungkulin')) ?></span><span class="ss-pf-v"><?= e(t('Barangay administrator', 'Administrador ng barangay')) ?></span><span></span></div>
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Account created', 'Ginawa ang account')) ?></span><span class="ss-pf-v p-num"><?= e(long_datetime($me['created_at'])) ?></span><span></span></div>
     <?php if ($lastSeen): ?>
-      <div class="p-kv"><span><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><b><?= e(long_datetime($lastSeen)) ?></b></div>
+      <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><span class="ss-pf-v p-num"><?= e(long_datetime($lastSeen)) ?></span><span></span></div>
     <?php endif; ?>
-  </aside>
-</div>
+  </div>
+<?php else: ?>
+  <form method="post" id="profile-form" enctype="multipart/form-data" class="p-card p-card-pad ss-pf-form">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+    <input type="hidden" name="action" value="profile">
+    <p class="p-eyebrow"><?= e(t('Your details', 'Iyong mga detalye')) ?></p>
+    <div class="ss-pf-2">
+      <label class="p-field" for="first_name"><span><?= e(t('First name', 'Pangalan')) ?></span><div class="p-input"><input type="text" id="first_name" name="first_name" required maxlength="60" value="<?= e($firstVal) ?>"></div></label>
+      <label class="p-field" for="last_name"><span><?= e(t('Last name', 'Apelyido')) ?></span><div class="p-input"><input type="text" id="last_name" name="last_name" maxlength="60" value="<?= e($lastVal) ?>"></div></label>
+    </div>
+    <div class="ss-pf-2">
+      <label class="p-field" for="mobile_number"><span><?= e(t('Mobile number', 'Mobile number')) ?></span>
+        <?php if ($mobileLocked): ?>
+          <!-- Sent unchanged, so the server still sees the same number. -->
+          <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" readonly value="<?= e($me['mobile_number']) ?>"></div>
+          <small class="p-hint"><?= e(t('This is how you sign in to the Smart Sumbong app, so it cannot be changed here.', 'Ito ang ginagamit mo sa pag-sign in sa Smart Sumbong app, kaya hindi ito mapapalitan dito.')) ?></small>
+        <?php else: ?>
+          <div class="p-input"><input type="tel" id="mobile_number" name="mobile_number" required pattern="(09|\+639)[0-9]{9}" value="<?= e($me['mobile_number']) ?>"></div>
+          <small class="p-hint"><?= e(t('Eleven digits, starting 09.', 'Labing-isang digit, nagsisimula sa 09.')) ?></small>
+        <?php endif; ?></label>
+      <label class="p-field" for="email_ro"><span><?= e(t('Email', 'Email')) ?></span><div class="p-input"><input type="email" id="email_ro" value="<?= e($me['email']) ?>" disabled></div>
+        <small class="p-hint"><?= e(t('This is your sign-in identity and cannot be changed here.', 'Ito ang iyong pagkakakilanlan sa pag-sign in at hindi mapapalitan dito.')) ?></small></label>
+    </div>
+
+    <p class="p-eyebrow ss-pf-sec2"><?= e(t('Password', 'Password')) ?></p>
+    <p class="p-hint" style="margin:-4px 0 12px"><?= e(t('To change your password, fill in all three boxes. Leave them empty to keep it.', 'Para palitan ang password, punan ang tatlong kahon. Iwanang blangko para panatilihin ito.')) ?></p>
+    <div class="ss-pf-3">
+      <label class="p-field" for="current_password"><span><?= e(t('Current password', 'Kasalukuyang password')) ?></span><div class="p-input"><input type="password" id="current_password" name="current_password" autocomplete="current-password"></div></label>
+      <label class="p-field" for="new_password"><span><?= e(t('New password', 'Bagong password')) ?></span><div class="p-input"><input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password"></div>
+        <!-- Guidance, not a gate: the rule is eight characters. -->
+        <div class="p-pw-meter" aria-hidden="true"><span id="pw-bar"></span></div>
+        <small class="p-hint" id="pw-note"><?= e(t('At least 8 characters.', 'Hindi bababa sa 8 karakter.')) ?></small></label>
+      <label class="p-field" for="confirm_password"><span><?= e(t('Repeat new password', 'Ulitin ang bagong password')) ?></span><div class="p-input"><input type="password" id="confirm_password" name="confirm_password" minlength="8" autocomplete="new-password"></div></label>
+    </div>
+    <div class="ss-pf-foot">
+      <button type="button" class="p-btn p-btn-ghost" id="profile-cancel"><?= e(t('Cancel', 'Kanselahin')) ?></button>
+      <button type="submit" class="p-btn p-btn-primary"><?= e(t('Save changes', 'I-save ang mga pagbabago')) ?></button>
+    </div>
+  </form>
+
+  <div class="p-scrim" id="confirm-save"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cs-t">
+    <div class="p-m-ico" style="background:var(--p-green-bg);color:var(--p-green)"><?= p_icon('i-check', 26) ?></div>
+    <h3 id="cs-t"><?= e(t('Save changes?', 'I-save ang mga pagbabago?')) ?></h3><p><?= e(t('Your profile will be updated right away.', 'Maa-update agad ang iyong profile.')) ?></p>
+    <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><button type="button" class="p-btn p-btn-primary" id="confirm-save-ok"><?= e(t('Save', 'I-save')) ?></button></div></div></div>
+  <div class="p-scrim" id="confirm-cancel"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="cc-t">
+    <div class="p-m-ico" style="background:var(--p-red-bg);color:var(--p-red)"><?= p_icon('i-x', 26) ?></div>
+    <h3 id="cc-t"><?= e(t('Discard changes?', 'Itapon ang mga pagbabago?')) ?></h3><p><?= e(t('Anything you changed will be lost.', 'Mawawala ang anumang binago mo.')) ?></p>
+    <div class="p-actions"><button type="button" class="p-btn p-btn-ghost" data-p-close><?= e(t('Keep editing', 'Ituloy ang pag-edit')) ?></button><a class="p-btn p-btn-danger-soft" href="profile.php"><?= e(t('Discard', 'Itapon')) ?></a></div></div></div>
+
+  <script>
+  // A picked photo shows in the banner straight away; a "Change" link from
+  // the details rows lands with that box focused.
+  document.getElementById('avatar').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    var p = document.getElementById('ss-photo-preview'), img = document.createElement('img');
+    img.className = 'ss-pf-av'; img.id = 'ss-photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f); p.replaceWith(img);
+  });
+  (function () {
+    var box = location.hash && document.getElementById(location.hash.slice(1));
+    if (box && box.focus) { box.focus(); box.scrollIntoView({ block: 'center' }); }
+  })();
+  </script>
+<?php endif; ?>
 
 <script>
 (function () {
@@ -333,7 +354,7 @@ $initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? 
   var start = new FormData(form);
   document.getElementById('profile-cancel').addEventListener('click', function () {
     var changed = false;
-    new FormData(form).forEach(function (v, k) { if (start.get(k) !== v) changed = true; });
+    new FormData(form).forEach(function (v, k) { if (v instanceof File ? v.size > 0 : start.get(k) !== v) changed = true; });
     if (changed) window.pOpen('confirm-cancel'); else location.href = 'profile.php';
   });
   // A password change needs all three boxes: any one filled makes the other two required.
