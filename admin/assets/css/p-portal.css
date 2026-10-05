@@ -310,17 +310,20 @@ a.p-btn-pdf2 { text-decoration: none; }
 /* Edit Profile (7 Oct): banner header over settings rows */
 .ss-pf-head { overflow: hidden; padding: 0; }
 .ss-pf-banner { height: 116px; position: relative; background: linear-gradient(120deg, var(--p-side-a), var(--p-side-b)); }
-.ss-pf-banner::after { content: ""; position: absolute; inset: 0; opacity: .22;
-  background: repeating-radial-gradient(circle at 82% 130%, transparent 0 18px, rgba(255,255,255,.55) 19px 20px); }
-.ss-pf-id { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; padding: 0 24px 20px; margin-top: -52px; position: relative; }
+.ss-pf-banner::after { content: ""; position: absolute; inset: 0; opacity: .18;
+  background: repeating-radial-gradient(circle at 88% 85%, transparent 0 22px, rgba(255,255,255,.6) 23px 24px); }
+.ss-pf-id { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; padding: 0 24px 20px; margin-top: -52px; position: relative; }
 .ss-pf-av { width: 104px; height: 104px; border-radius: 50%; object-fit: cover; flex: none; border: 4px solid var(--p-surface); background: var(--p-surface); }
 .ss-pf-ini { display: grid; place-items: center; background: var(--p-blue-50); color: var(--p-blue); font-size: 34px; font-weight: 800; }
 :root[data-theme="dark"] .ss-pf-ini { color: #8DB2FF; }
-.ss-pf-who { flex: 1; min-width: 200px; display: grid; gap: 8px; padding-bottom: 4px; }
+.ss-pf-who { flex: 1; min-width: 200px; display: grid; gap: 8px; padding-top: 64px; }
 .ss-pf-who h2 { margin: 0; font-size: 24px; font-weight: 800; line-height: 1.15; }
 .ss-pf-who .p-badges { display: flex; gap: 6px; flex-wrap: wrap; }
-.ss-pf-act { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding-bottom: 4px; }
+.ss-pf-act { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding-top: 68px; }
 .ss-pf-act .p-btn { cursor: pointer; }
+.ss-pf-act label.p-btn { background: var(--p-surface); border: 1px solid var(--p-line-2); color: var(--p-ink); }
+.ss-pf-act label.p-btn:hover { border-color: var(--p-blue); }
+.ss-pf-dots { letter-spacing: .18em; font-size: 18px; line-height: 1; }
 .ss-pf-sec { margin: 24px 0 10px; }
 .ss-pf-rows { padding: 0; }
 .ss-pf-row { display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 16px 24px; border-top: 1px solid var(--p-line); }
@@ -340,3 +343,21 @@ a.p-btn-pdf2 { text-decoration: none; }
   .ss-pf-row { grid-template-columns: minmax(0, 1fr) auto; }
   .ss-pf-l { grid-column: 1 / -1; }
 }
+
+/* Sweep (7 Oct): Case Reports filters as one even row under the search */
+.p-band > form.ss-band-filters { flex: 1 1 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.p-band > form.ss-band-filters .p-pill-select { width: 100%; min-width: 0; }
+.p-band > form.ss-band-filters select, .p-band > form.ss-band-filters input[type=month] { min-width: 0; width: 100%; }
+@media (max-width: 900px) { .p-band > form.ss-band-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Names stay on one or two lines instead of one word per line */
+.p-t .p-person > span:last-child { min-width: 150px; }
+/* Case mini map: place label top-left, clear of the map credit */
+.p-minimap .p-tag { top: 10px; bottom: auto; }
+/* Settings → add an administrator: four even boxes, button under them */
+.ss-addadmin .ss-form { max-width: none; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ss-addadmin .ss-form button { grid-column: 1; }
+@media (max-width: 900px) { .ss-addadmin .ss-form { grid-template-columns: 1fr 1fr; } }
+.ss-cases-t .p-person > span:last-child { min-width: 110px; }
+.ss-cases-t td:nth-child(3) { min-width: 170px; }
+.ss-cases-t .p-badge { white-space: normal; }
+.p-pill-select .p-lbl { white-space: nowrap; }

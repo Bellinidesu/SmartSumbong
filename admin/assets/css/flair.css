@@ -266,8 +266,9 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
    The Villamor photo through deep navy with a warm streetlight glow, a navy
    logo strip with the contour lines, the logos as they are, and an orange
    Login button on the dark card. */
-:root[data-theme="dark"] .login-rail { background: #0E1630; }
-:root[data-theme="dark"] .login-rail::before { background: #8DB2FF; opacity: .12; }
+/* The rail logos are blue-lettered; they need a light ground in dark mode too (sweep 7 Oct). */
+:root[data-theme="dark"] .login-rail { background: #E9EDF6; }
+:root[data-theme="dark"] .login-rail::before { background: #00308F; opacity: .10; }
 :root[data-theme="dark"] .login-panel { background: #0B1540; }
 :root[data-theme="dark"] .login-panel-bg { opacity: .55; filter: saturate(.7) brightness(.8); }
 :root[data-theme="dark"] .login-panel::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;

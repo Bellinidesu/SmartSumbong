@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             if ($_POST['action'] === 'add_admin') {
                 $db->rpc('create_admin_account', [
                     'p_email'     => $who,
-                    'p_full_name' => trim((string) ($_POST['full_name'] ?? '')),
+                    'p_full_name' => trim((string) ($_POST['last_name'] ?? '')) . ', ' . trim((string) ($_POST['first_name'] ?? '')),
                     'p_mobile'    => trim((string) ($_POST['mobile'] ?? '')),
                 ]);
             }
@@ -205,7 +205,8 @@ try {
     <form method="post" class="ss-form">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <input type="hidden" name="action" value="add_admin">
-      <input class="p-input-plain" name="full_name" required maxlength="120" placeholder="<?= e(t('Last name, First name', 'Apelyido, Pangalan')) ?>">
+      <input class="p-input-plain" name="first_name" required maxlength="60" placeholder="<?= e(t('First name', 'Pangalan')) ?>" aria-label="<?= e(t('First name', 'Pangalan')) ?>">
+      <input class="p-input-plain" name="last_name" required maxlength="60" placeholder="<?= e(t('Last name', 'Apelyido')) ?>" aria-label="<?= e(t('Last name', 'Apelyido')) ?>">
       <input class="p-input-plain" name="email" type="email" required maxlength="160" placeholder="<?= e(t('Email address', 'Email address')) ?>">
       <input class="p-input-plain" name="mobile" required pattern="09[0-9]{9}" placeholder="09XXXXXXXXX">
       <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Create account', 'Gumawa ng account')) ?></button>

@@ -257,19 +257,19 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
   <div class="p-card ss-pf-rows">
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Full name', 'Buong pangalan')) ?></span><span class="ss-pf-v"><?= e($shown) ?></span><?= $change('first_name') ?></div>
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Mobile number', 'Mobile number')) ?></span>
-      <span class="ss-pf-v p-num"><?= e($me['mobile_number']) ?><?php if ($mobileLocked): ?><small><?= e(t('You sign in to the app with it, so it stays as is.', 'Ito ang pang-sign in mo sa app, kaya hindi ito pinapalitan.')) ?></small><?php endif; ?></span>
+      <span class="ss-pf-v"><?= e(preg_replace('/^\+63(\d{3})(\d{3})(\d{4})$/', '0$1 $2 $3', (string) $me['mobile_number'])) ?><?php if ($mobileLocked): ?><small><?= e(t('You sign in to the app with it, so it stays as is.', 'Ito ang pang-sign in mo sa app, kaya hindi ito pinapalitan.')) ?></small><?php endif; ?></span>
       <?= $mobileLocked ? '<span></span>' : $change('mobile_number') ?></div>
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Email', 'Email')) ?></span>
       <span class="ss-pf-v"><?= e($me['email']) ?><small><?= e(t('Your sign-in, and where password links are sent.', 'Ang iyong pang-sign in, at dito ipinapadala ang password link.')) ?></small></span><span></span></div>
-    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Password', 'Password')) ?></span><span class="ss-pf-v">••••••••</span><?= $change('current_password') ?></div>
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Password', 'Password')) ?></span><span class="ss-pf-v ss-pf-dots">••••••••</span><?= $change('current_password') ?></div>
   </div>
 
   <p class="p-eyebrow ss-pf-sec"><?= e(t('Account', 'Account')) ?></p>
   <div class="p-card ss-pf-rows">
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Role', 'Tungkulin')) ?></span><span class="ss-pf-v"><?= e(t('Barangay administrator', 'Administrador ng barangay')) ?></span><span></span></div>
-    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Account created', 'Ginawa ang account')) ?></span><span class="ss-pf-v p-num"><?= e(long_datetime($me['created_at'])) ?></span><span></span></div>
+    <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Account created', 'Ginawa ang account')) ?></span><span class="ss-pf-v"><?= e(long_datetime($me['created_at'])) ?></span><span></span></div>
     <?php if ($lastSeen): ?>
-      <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><span class="ss-pf-v p-num"><?= e(long_datetime($lastSeen)) ?></span><span></span></div>
+      <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><span class="ss-pf-v"><?= e(long_datetime($lastSeen)) ?></span><span></span></div>
     <?php endif; ?>
   </div>
 <?php else: ?>

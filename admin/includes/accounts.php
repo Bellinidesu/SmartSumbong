@@ -465,7 +465,7 @@ function render_account_screen(string $role): void
       // file exactly, so a live refresh shows the same picture (or the
       // same initials fallback) a reload would.
       function initials(name) {
-        var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        var parts = window.ssName(name || '').trim().split(/\s+/).filter(Boolean);
         if (!parts.length) return '?';
         var first = parts[0].charAt(0);
         var last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
@@ -844,7 +844,7 @@ function account_avatar_html(?string $url, string $name, string $size = 'sm'): s
 
 function account_initials(string $name): string
 {
-    $parts = array_values(array_filter(preg_split('/\s+/', trim($name)) ?: []));
+    $parts = array_values(array_filter(preg_split('/\s+/', trim(display_name($name))) ?: []));
     if (!$parts) return '?';
     $first = mb_substr($parts[0], 0, 1);
     $last  = count($parts) > 1 ? mb_substr($parts[count($parts) - 1], 0, 1) : '';

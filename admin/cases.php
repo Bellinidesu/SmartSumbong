@@ -279,7 +279,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     <input type="hidden" name="who" value="<?= e($who) ?>">
   </form>
   <span class="p-spacer"></span>
-  <form method="get">
+  <form method="get" class="ss-band-filters">
     <input type="hidden" name="q" value="<?= e($search) ?>">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Filter by month', 'Salain ayon sa buwan')) ?></span>
       <input type="month" name="month" value="<?= e($month) ?>" onchange="this.form.submit()"></label>
@@ -318,7 +318,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
 </div>
 
 <div class="p-card p-table-card"><div class="p-tscroll">
-  <table class="p-t">
+  <table class="p-t ss-cases-t">
     <thead><tr>
       <th scope="col"><?= e(t('Resident', 'Residente')) ?></th>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
