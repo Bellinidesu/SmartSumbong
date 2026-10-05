@@ -100,6 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ])[0]['mobile_number'] ?? null;
 
                 $patch = ['full_name' => $name];
+                // Ace (6 Oct 2026): an admin's own photo. Shown on the portal
+                // only; residents always see "Barangay" in chat.
+                if (!empty($_POST['remove_avatar'])) {
+                    $patch['avatar_url'] = null;
+                } elseif ($pic = cloudinary_upload_files('avatar', 1, 'selfies')) {
+                    $patch['avatar_url'] = $pic[0]['media_url'];
+                }
                 if ($mobile !== $stored) {
                     $byPhone = signs_in_by_phone($db);
                     if ($byPhone === null) {
@@ -131,6 +138,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($patch !== null) {
                 $db->update('users', ['id' => 'eq.' . $admin['id']], $patch);
                 $_SESSION[SESSION_KEY]['full_name'] = $patch['full_name'];
+                if (array_key_exists('avatar_url', $patch)) {
+                    $_SESSION[SESSION_KEY]['avatar_url'] = $patch['avatar_url'];
+                }
             }
             if ($doPassword) {
                 $db->updateAuthUser(['password' => $new]);
@@ -217,9 +227,14 @@ $initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? 
       <label class="p-field" for="pf_pw" style="margin:0"><span><?= e(t('Password', 'Password')) ?></span><div class="p-input"><input id="pf_pw" type="password" value="************" readonly aria-describedby="pf_pw_hint"></div>
         <small class="p-hint" id="pf_pw_hint"><?= e(t('Change it with Edit profile.', 'Palitan ito sa I-edit ang profile.')) ?></small></label>
     <?php else: ?>
-      <form method="post" id="profile-form">
+      <form method="post" id="profile-form" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="profile">
+        <label class="p-field" for="avatar"><span><?= e(t('Profile photo', 'Larawan sa profile')) ?></span><div class="p-input"><input type="file" id="avatar" name="avatar[]" accept="image/jpeg,image/png,image/webp"></div></label>
+        <?php if (!empty($me['avatar_url'])): ?>
+          <label class="p-check" style="margin:-4px 0 10px"><input type="checkbox" name="remove_avatar" value="1"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
+        <?php endif; ?>
+        <p class="p-hint" style="margin:-4px 0 12px"><?= e(t('Other admins see it. Residents never do; your replies show as Barangay.', 'Makikita ito ng ibang admin. Hindi ito makikita ng mga residente; "Barangay" ang lalabas sa iyong mga sagot.')) ?></p>
         <label class="p-field" for="full_name"><span><?= e(t('Full name', 'Buong pangalan')) ?></span><div class="p-input"><input type="text" id="full_name" name="full_name" required maxlength="120" value="<?= e($me['full_name']) ?>"></div></label>
         <div class="p-grid" style="grid-template-columns:1fr 1fr;gap:14px">
           <label class="p-field" for="mobile_number"><span><?= e(t('Mobile number', 'Mobile number')) ?></span>

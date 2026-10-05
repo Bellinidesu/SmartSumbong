@@ -329,7 +329,7 @@ final class Supabase
  * chosen returns []. The URL shape is pinned in the database by
  * is_barangay_media_url(); the two must change together.
  */
-function cloudinary_upload_files(string $field, int $max = 6): array
+function cloudinary_upload_files(string $field, int $max = 6, string $folder = 'barangay'): array
 {
     $f = $_FILES[$field] ?? null;
     if (!$f || !is_array($f['name'])) {
@@ -371,7 +371,7 @@ function cloudinary_upload_files(string $field, int $max = 6): array
             CURLOPT_TIMEOUT        => 60,
             CURLOPT_POSTFIELDS     => [
                 'upload_preset' => cloudinary_preset(),
-                'public_id'     => 'barangay/' . $uuid,
+                'public_id'     => $folder . '/' . $uuid,
                 'source'        => 'smartsumbong-portal',
                 'file'          => new CURLFile($f['tmp_name'][$i], $mime, 'photo.' . $allowed[$mime]),
             ],
