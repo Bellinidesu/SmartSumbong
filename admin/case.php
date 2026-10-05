@@ -40,7 +40,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $level = 'error';
     } else {
         try {
-            switch ($_POST['action'] ?? '') {
+            $act = (string) ($_POST['action'] ?? '');
+            // 0087 (D): an action from a page that is out of date is held
+            // back, and the admin is shown what changed first.
+            if (!in_array($act, ['take_case', 'release_case', 'take_over'], true) && isset($_POST['v'])) {
+                $now = $db->select('reports', ['select' => 'version', 'id' => 'eq.' . $id, 'limit' => '1']);
+                if ($now && (string) $now[0]['version'] !== (string) $_POST['v']) {
+                    $last = $db->select('status_logs', [
+                        'select'    => 'remark,created_at,by:users!status_logs_changed_by_fkey(full_name)',
+                        'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '1',
+                    ]);
+                    $who  = $last[0]['by']['full_name'] ?? t('Someone', 'May isang tao');
+                    $what = trim((string) ($last[0]['remark'] ?? ''));
+                    $_SESSION['flash'] = ['level' => 'warn', 'text' => sprintf(
+                        t('This case changed while you were looking: %s%s. Nothing you pressed was sent; here is the latest.', 'Nagbago ang kasong ito habang tinitingnan mo: %s%s. Walang naipadala sa pinindot mo; narito ang pinakabago.'),
+                        $who, $what !== '' ? ' — ' . $what : '')];
+                    header('Location: case.php?id=' . urlencode($id));
+                    exit;
+                }
+            }
+            switch ($act) {
+                // 0087: taking, releasing and taking over a case.
+                case 'take_case':
+                    $db->rpc('take_case', ['p_report' => $id]);
+                    $flash = t('This case is yours now.', 'Iyo na ang kasong ito.');
+                    break;
+
+                case 'release_case':
+                    $db->rpc('release_case', ['p_report' => $id]);
+                    $flash = t('Released. Any administrator can take it now.', 'Binitawan na. Maaari na itong kunin ng ibang administrator.');
+                    break;
+
+                case 'take_over':
+                    $db->rpc('take_over_case', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);
+                    $flash = t('You took over this case. The previous handler has been told.', 'Kinuha mo na ang kasong ito. Nasabihan na ang dating humahawak.');
+                    break;
+
                 case 'accept':
                     $db->rpc('review_report', [
                         'p_report'   => $id,
@@ -308,6 +343,7 @@ $proofCount = 0;
 $thread = [];      // dispatch id => dispatch_updates rows (0069)
 $messages = [];    // the resident's question thread (0072)
 $evidence = [];    // the barangay's own photos (0079)
+$handlerLog = [];  // takes, releases and take-overs (0087)
 $extUsed = 0;      // target-date extensions since the last hand-up (0079)
 $extCap = 2;
 $escRequest = null; // a tanod's pending escalation request (0073)
@@ -329,6 +365,7 @@ try {
                       . 'resolution_submitted_at,resolution_returned_reason,is_public,'
                       . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
                       . 'higher_official,higher_official_note,handed_up_at,'
+                      . 'handler_id,handled_since,version,handler:users!reports_handler_id_fkey(id,full_name),'
                       . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
             'id'         => 'eq.' . $id,
             'deleted_at' => 'is.null',
@@ -478,6 +515,10 @@ if ($report && !$error) {
         'order'     => 'created_at.asc',
     ], true];
     $second['ext'] = ['rpc/extensions_used', ['p_report' => $id], true];
+    $second['handlers'] = ['case_handler_log', [
+        'select'    => 'action,reason,created_at,admin:users!case_handler_log_admin_id_fkey(id,full_name),prev:users!case_handler_log_previous_id_fkey(full_name)',
+        'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '4',
+    ], true];
     $second['ops'] = ['operational_settings', ['select' => 'max_deadline_extensions', 'limit' => '1'], true];
 
     // Only when nobody is on the case already. One round trip saved on
@@ -509,6 +550,9 @@ if ($report && !$error) {
             foreach ((array) $got['thread'] as $u) {
                 $thread[$u['dispatch_id']][] = $u;
             }
+        }
+        if (isset($got['handlers']) && !$got['handlers'] instanceof SupabaseError) {
+            $handlerLog = (array) $got['handlers'];
         }
         if (isset($got['evidence']) && !$got['evidence'] instanceof SupabaseError) {
             $evidence = (array) $got['evidence'];
@@ -952,8 +996,51 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   </div>
 
   <!-- ---------- admin controls ---------- -->
-  <aside class="p-card p-controls">
+  <?php
+    $hid     = (string) ($report['handler_id'] ?? '');
+    $mine    = $hid !== '' && $hid === $admin['id'];
+    $theirs  = $hid !== '' && !$mine;
+    $hName   = (string) ($report['handler']['full_name'] ?? '');
+    $GLOBALS['ss_case'] = ['id' => $id, 'tracking' => $report['tracking_id']];
+  ?>
+  <aside class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?>">
     <p class="p-eyebrow"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
+
+    <?php // 0087: who handles this case. ?>
+    <?php if ($hid === ''): ?>
+      <div class="ss-handler"><div><b><?= e(t('Nobody is handling this case', 'Walang humahawak sa kasong ito')) ?></b><br><span class="p-hint"><?= e(t('Take it, or act on it and it becomes yours.', 'Kunin ito, o kumilos dito at magiging iyo ito.')) ?></span></div></div>
+      <form method="post" data-keep><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="take_case">
+        <button class="p-btn p-btn-orange p-btn-block" type="submit"><?= e(t('Take this case', 'Kunin ang kasong ito')) ?></button></form>
+    <?php elseif ($mine): ?>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><br><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div>
+        <form method="post" data-keep><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="release_case">
+          <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Release', 'Bitawan')) ?></button></form></div>
+    <?php else: ?>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e($hName) ?></b><br><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
+      <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
+      <details class="p-fix" data-keep-details>
+        <summary><?= e(t('Take over', 'Kunin')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="take_over">
+          <div class="p-cfield"><label class="p-flabel" for="to-reason"><?= e(sprintf(t('Reason — %s sees it', 'Dahilan — makikita ni %s'), $hName)) ?></label>
+            <input class="p-input-plain" id="to-reason" name="reason" required minlength="3" maxlength="300" placeholder="<?= e(t('e.g. Rose is off shift today.', 'hal. Wala si Rose ngayong araw.')) ?>"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Take over', 'Kunin')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
+    <div id="ss-also" hidden></div>
+    <?php if ($handlerLog): ?>
+      <ul class="p-hint" style="margin:0;padding-left:18px">
+        <?php foreach ($handlerLog as $h): ?>
+          <li><?= e($h['admin']['full_name'] ?? '') ?> <?= e(match ($h['action']) {
+              'take' => t('took the case', 'kinuha ang kaso'),
+              'release' => t('released it', 'binitawan ito'),
+              default => t('took over from', 'kinuha mula kay') . ' ' . ($h['prev']['full_name'] ?? ''),
+          }) ?> · <?= e(long_datetime($h['created_at'])) ?><?= !empty($h['reason']) ? ' — “' . e($h['reason']) . '”' : '' ?></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
 
     <?php if ($canJudge): ?>
       <form method="post" class="p-ctl-stack" id="review-form">
@@ -1422,6 +1509,12 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
 </div>
 
+<script>
+// 0087 (D): every form on this page says which version of the case it saw.
+document.querySelectorAll('form[method="post"]').forEach(function (f) {
+  var v = document.createElement('input'); v.type = 'hidden'; v.name = 'v'; v.value = <?= json_encode((string) ($report['version'] ?? '0')) ?>; f.appendChild(v);
+});
+</script>
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
 <script src="assets/js/map-theme.js"></script>

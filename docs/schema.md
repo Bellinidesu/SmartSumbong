@@ -1,6 +1,6 @@
 # SmartSumbong — Schema Reference
 
-Mirrors `supabase/migrations/` (0001–0086, all applied to the live project as
+Mirrors `supabase/migrations/` (0001–0087, all applied to the live project as
 of 5 October 2026). If the manuscript's Data Dictionary and this file
 disagree, one of them is wrong — fix both in the same sitting.
 
@@ -8,7 +8,7 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 
 ---
 
-## Tables (26)
+## Tables (27)
 
 | Table | Purpose | Since |
 |---|---|---|
@@ -35,6 +35,7 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 | `report_messages` | "Ask the barangay": a complaint's resident ↔ barangay thread | 0072 |
 | `escalation_requests` | A tanod's request to escalate, and the admin's decision | 0073 |
 | `password_otps` | SMS reset codes, hashed (0085; sending is switched off until Semaphore credits) | 0085 |
+| `case_handler_log` | Admins taking, releasing and taking over cases (Activity page) | 0087 |
 | `profile_requests` | A resident's or tanod's name change or new ID photo, and the admin's decision | 0086 |
 | `report_evidence` | Photos the barangay attaches from the portal: with an update, or when it resolves | 0079 |
 
@@ -114,6 +115,7 @@ reports are counted.
 - **Every dispatch is the admin's** (0070). Nothing is dispatched at filing.
   The system only re-offers a job when a tanod hands it back, does not accept
   in time, or retires (`redispatch_report` → `auto_dispatch`).
+- **One handler per case** (0087). The first admin to act on a case (or Take this case) handles it; only the handler can act until they release it or another admin takes it over with a reason. Enforced by triggers on everything an admin action writes; residents, tanods and the scheduled jobs are untouched. `reports.version` lets the portal stop an action from a stale page.
 - **Extensions are capped** (0079). The date can move later only `max_deadline_extensions` times, each with a reason; then the case goes to a higher official.
 - **The admin sets the deadline** (0071). No date exists until the admin
   assigns; the category's `resolution_hours` is only a guide on the form.

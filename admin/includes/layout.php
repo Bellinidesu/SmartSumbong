@@ -14,6 +14,7 @@ function nav_items(): array
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
+        ['activity.php',   t('Activity', 'Aktibidad'),                        'i-clock'],
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
         ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'i-brief'],
@@ -266,6 +267,28 @@ function layout_foot(): void
     ?>
   </main>
 </div>
+<?php if ($me = current_admin()): ?>
+<script>
+// 0087: who is online and which case each admin has open (presence.js).
+window.SS_PRESENCE = <?= json_encode([
+    'url'      => supabase_url(),
+    'key'      => supabase_key(),
+    'token'    => access_token(),
+    'me'       => ['id' => $me['id'], 'name' => $me['full_name'] ?? ''],
+    'report'   => $GLOBALS['ss_case']['id'] ?? null,
+    'tracking' => $GLOBALS['ss_case']['tracking'] ?? null,
+    'page'     => basename($_SERVER['SCRIPT_NAME'] ?? ''),
+    'labels'   => [
+        'alsoHere' => t('Also here now:', 'Narito rin ngayon:'),
+        'you'      => t('You', 'Ikaw'),
+        'on'       => t('Has open:', 'Bukas:'),
+        'online'   => t('Online', 'Online'),
+        'nobody'   => t('Nobody else is online.', 'Walang ibang online.'),
+    ],
+], JSON_UNESCAPED_UNICODE) ?>;
+</script>
+<script src="assets/js/presence.js?v=<?= e(asset_version('../js/presence.js')) ?>" defer></script>
+<?php endif; ?>
 <?php if (current_admin()): ?>
 <div class="p-scrim" id="p-m-logout"><div class="p-modal" role="dialog" aria-modal="true" aria-labelledby="p-ml-t">
   <div class="p-m-ico" style="background:var(--p-blue-50);color:var(--p-link)"><?= p_icon('i-out', 26) ?></div>
@@ -727,4 +750,30 @@ function relative_time(?string $iso): string
     if ($mins < 60)   return t("{$mins} min ago", "{$mins} minutong nakalipas");
     if ($mins < 1440) return t(floor($mins / 60) . ' hr ago', floor($mins / 60) . ' oras na nakalipas');
     return $then->setTimezone(new DateTimeZone('Asia/Manila'))->format(t('M j \a\t g:i A', 'M j, g:i A'));
+}
+
+/** 0087: the colour an admin's initials sit on, stable per account. */
+function admin_colour(string $id): string
+{
+    // The same hash as presence.js, so a face is the same colour everywhere.
+    $palette = ['#C2185B', '#00308F', '#2E7D32', '#6A1B9A', '#E65100', '#00838F', '#AD1457', '#283593'];
+    $h = 0;
+    foreach (str_split($id) as $c) { $h = ($h * 31 + ord($c)) & 0xFFFFFFFF; }
+    return $palette[$h % count($palette)];
+}
+
+function admin_chip(string $id, string $name, int $size = 24): string
+{
+    return '<span class="ss-av" style="width:' . $size . 'px;height:' . $size . 'px;font-size:' . max(9, intdiv($size, 3)) . 'px;background:'
+        . admin_colour($id) . '" title="' . e($name) . '">' . e(admin_initials($name)) . '</span>';
+}
+
+/** 0087: the Handler cell of the case list. */
+function handler_cell(array $r, string $me): string
+{
+    if (empty($r['handler_id'])) {
+        return '<span class="p-sub">' . e(t('Nobody yet', 'Wala pa')) . '</span>';
+    }
+    $name = (string) ($r['handler']['full_name'] ?? '');
+    return '<span class="ss-who">' . admin_chip((string) $r['handler_id'], $name) . e($r['handler_id'] === $me ? t('You', 'Ikaw') : $name) . '</span>';
 }

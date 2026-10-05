@@ -51,6 +51,8 @@ $filter   = (string) ($_GET['status'] ?? '');
 $category = (string) ($_GET['category'] ?? '');
 $month    = (string) ($_GET['month'] ?? '');
 $view     = (string) ($_GET['view'] ?? '');
+// 0087: whose cases — mine, unclaimed, or other admins'.
+$who      = in_array($_GET['who'] ?? '', ['mine', 'unclaimed', 'others'], true) ? (string) $_GET['who'] : '';
 // The Notification panel's own search and order (Rose, 27 Sep 2026: both
 // were only drawn, never read).
 $nSearch  = trim((string) ($_GET['nq'] ?? ''));
@@ -98,13 +100,21 @@ try {
     $query = [
         'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
                   . 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,followed_up_at,resolution_submitted_at,'
-                  . 'resident:users!reports_resident_id_fkey(full_name)',
+                  . 'resident:users!reports_resident_id_fkey(full_name),'
+                  . 'handler_id,handler:users!reports_handler_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'order'      => $sort,
         'limit'      => '100',
     ];
     if ($filter !== '') {
         $query['status'] = 'in.(' . implode(',', STATUS_GROUPS[$filter]) . ')';
+    }
+    if ($who === 'mine') {
+        $query['handler_id'] = 'eq.' . $admin['id'];
+    } elseif ($who === 'unclaimed') {
+        $query['handler_id'] = 'is.null';
+    } elseif ($who === 'others') {
+        $query['and'] = '(handler_id.not.is.null,handler_id.neq.' . $admin['id'] . ')';
     }
     if ($category !== '') {
         $query['category'] = 'eq.' . $category;
@@ -256,6 +266,9 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
      href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
     <?= e(t('Needs attention', 'Kailangang asikasuhin')) ?> <span class="p-chip-num<?= $atc > 0 ? ' p-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
   </a>
+  <?php foreach (['' => t('All handlers', 'Lahat ng humahawak'), 'mine' => t('Mine', 'Akin'), 'unclaimed' => t('Unclaimed', 'Wala pang humahawak'), 'others' => t("Others'", 'Sa iba')] as $wk => $wl): ?>
+    <a class="p-chip p-chip-band<?= $who === $wk ? ' p-on' : '' ?>" href="?<?= e(http_build_query(array_filter(['who' => $wk, 'view' => $view, 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>"><?= e($wl) ?></a>
+  <?php endforeach; ?>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
     <input type="search" name="q" placeholder="<?= e(t('Search name, ID or category', 'Hanapin ang pangalan, ID o kategorya')) ?>" value="<?= e($search) ?>" aria-label="<?= e(t('Search reports', 'Maghanap sa mga ulat')) ?>">
@@ -299,11 +312,13 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
+      <th scope="col"><?= e(t('Handler', 'Humahawak')) ?></th>
+      <th scope="col"><?= e(t('Open now', 'Bukas ngayon')) ?></th>
       <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
     </tr></thead>
     <tbody id="reports-tbody">
       <?php if (!$reports): ?>
-        <tr><td colspan="6" class="p-empty">
+        <tr><td colspan="8" class="p-empty">
           <?= $search !== '' || $filter !== '' || $category !== '' || $month !== ''
               ? e(t('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.'))
               : e(t('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) ?>
@@ -330,6 +345,8 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
             <?php if (!empty($r['appealed_at'])): ?><span class="p-badge p-b-pending" title="<?= e(t('Reinstated on appeal', 'Ibinalik dahil sa apela')) ?>"><?= e(t('Appealed', 'Inapela')) ?></span><?php endif; ?>
           </div></td>
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
+          <td><?= handler_cell($r, $admin['id']) ?></td>
+          <td class="ss-open" data-report="<?= e($r['id']) ?>"></td>
           <td class="p-right"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a></td>
         </tr>
       <?php endforeach; ?>
@@ -377,6 +394,12 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
   const N_SEARCH   = <?= json_encode($nSearch) ?>;
   const N_OLDEST   = <?= json_encode($nSort === 'oldest') ?>;
   const VIEW       = <?= json_encode($view) ?>;
+  const WHO        = <?= json_encode($who) ?>;
+  function handlerCell(r) {
+    if (!r.handler_id) return '<span class="p-sub">' + T('Nobody yet', 'Wala pa') + '</span>';
+    const nm = r.handler_id === ADMIN_ID ? T('You', 'Ikaw') : ((r.handler && r.handler.full_name) || '');
+    return '<span class="ss-who">' + window.ssAvatar(r.handler_id, (r.handler && r.handler.full_name) || '', 24) + escapeHtml(nm) + '</span>';
+  }
   const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
 
   function escapeHtml(s) {
@@ -432,7 +455,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
 
     const tbody = document.getElementById('reports-tbody');
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="p-empty">' +
+      tbody.innerHTML = '<tr><td colspan="8" class="p-empty">' +
         (SEARCH || STATUS || CATEGORY || MONTH_FROM ? T('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.')
                                                     : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) +
         '</td></tr>';
@@ -468,6 +491,8 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
         '<td><div class="p-badges"><span class="p-badge p-b-' + statusClass(r.status) + '">' +
           escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</div></td>' +
         '<td class="p-num">' + shortDate(r.created_at) + '</td>' +
+        '<td>' + handlerCell(r) + '</td>' +
+        '<td class="ss-open" data-report="' + escapeHtml(r.id) + '"></td>' +
         '<td class="p-right"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=' +
           encodeURIComponent(r.id) + '">' + T('Review', 'Suriin') + '</a></td>' +
         '</tr>';
@@ -499,12 +524,15 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     let q = sb.from('reports')
       .select('id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
         + 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,followed_up_at,resolution_submitted_at,'
-        + 'resident:users!reports_resident_id_fkey(full_name)')
+        + 'resident:users!reports_resident_id_fkey(full_name),handler_id,handler:users!reports_handler_id_fkey(full_name)')
       .is('deleted_at', null)
       .order(SORT_COL, { ascending: SORT_ASC })
       .limit(100);
     if (STATUS) q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
     if (CATEGORY) q = q.eq('category', CATEGORY);
+    if (WHO === 'mine') q = q.eq('handler_id', ADMIN_ID);
+    if (WHO === 'unclaimed') q = q.is('handler_id', null);
+    if (WHO === 'others') q = q.not('handler_id', 'is', null).neq('handler_id', ADMIN_ID);
     if (MONTH_FROM) q = q.gte('created_at', MONTH_FROM).lt('created_at', MONTH_TO);
     if (SEARCH) {
       const needle = SEARCH.replace(/[,()"\\*]/g, ' ');   // mirrors the PHP above
@@ -513,6 +541,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     const { data, error } = await q;
     if (error) return; // stale view is safer than a half-rendered one
     renderReports(data || []);
+    if (window.ssPaintOpen) window.ssPaintOpen();
   }
 
   async function loadNotifications() {

@@ -238,3 +238,24 @@ a.p-btn-pdf2 { text-decoration: none; }
 @media (max-width: 1100px) { .p-case-grid { grid-template-columns: 1fr; } }
 .p-logout-page { min-height: calc(100vh - 80px); display: grid; place-items: center; }
 .p-legend-count { margin: 4px 0 0; padding-top: 6px; border-top: 1px solid var(--p-line); color: var(--p-muted); font-size: 12px; }
+
+/* 0087 — case handlers and who is online */
+.ss-av { border-radius: 50%; color: #fff; display: inline-grid; place-items: center; font-family: Inter, sans-serif; font-weight: 800; flex: none; vertical-align: middle; }
+.ss-av.ss-live { box-shadow: 0 0 0 2px var(--p-surface), 0 0 0 4px #1F8A45; }
+.ss-who { display: inline-flex; gap: 8px; align-items: center; font-weight: 700; }
+.ss-who small { font-weight: 500; color: var(--p-ink-3, var(--ink-soft)); }
+.ss-stack { display: inline-flex; padding-left: 4px; }
+.ss-stack .ss-av + .ss-av { margin-left: -6px; }
+#ss-also { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--p-ink-2); }
+#ss-also[hidden] { display: none; }
+#ss-team { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.ss-handler { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--p-surface-2); border: 1px solid var(--p-line); }
+.ss-handler > div { flex: 1; min-width: 0; }
+.ss-locked { font-size: 13.5px; color: var(--p-ink-2); background: var(--p-amber-bg); border-radius: 12px; padding: 10px 12px; }
+.p-controls.ss-readonly form:not([data-keep]) { opacity: .45; pointer-events: none; }
+.p-controls.ss-readonly details.p-fix:not([data-keep-details]) > summary { opacity: .45; pointer-events: none; }
+.ss-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ss-feed li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; }
+.ss-feed li.ss-mine { background: var(--p-sky-bg); }
+.ss-feed .ss-case { display: block; font-weight: 700; font-size: 13px; color: var(--p-link); margin-top: 2px; text-decoration: none; }
+.ss-feed .ss-time { display: block; color: var(--p-ink-3, var(--ink-soft)); font-size: 12.5px; margin-top: 2px; }
