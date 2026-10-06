@@ -627,7 +627,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 <div class="p-topbar">
   <a class="p-back" href="cases.php" aria-label="<?= e(t('Back to case reports', 'Bumalik sa mga sumbong')) ?>"><?= p_icon('i-back', 18) ?><?= e(t('Case Reports', 'Mga Sumbong')) ?></a>
   <span class="p-crumb">/ <?= e($report['tracking_id']) ?></span>
-  <span class="p-live" id="live-badge" title="<?= e(t('Watching this case for new activity', 'Binabantayan ang bagong aktibidad sa kasong ito')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>
+  <span class="p-live" id="live-badge" title="<?= e(t('Watching this case for new activity', 'Binabantayan ang bagong aktibidad sa kasong ito')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>  <span class="p-spacer"></span>
+  <?php // Rose (7 Oct 2026): this case on the barangay's letterhead, to print or save as PDF. ?>
+  <a class="p-btn p-btn-ghost" href="complaint-print.php?id=<?= e($id) ?>" target="_blank" rel="noopener"><?= p_icon('i-dl', 16) ?><?= e(t('Print complaint', 'I-print ang sumbong')) ?></a>
 </div>
 
 <div class="p-case-grid">
