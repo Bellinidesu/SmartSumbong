@@ -58,6 +58,7 @@ RewriteRule ^ - [F]
 </IfModule>
 AddType font/woff2 .woff2
 AddType image/webp .webp
+AddType application/manifest+json .webmanifest
 AddType application/geo+json .geojson
 <IfModule mod_expires.c>
     # Our own CSS/JS carry ?v=<file time>, so each deploy changes their URL;
@@ -84,6 +85,7 @@ AddType application/geo+json .geojson
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
     Header always unset X-Powered-By

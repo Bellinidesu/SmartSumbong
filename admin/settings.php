@@ -214,8 +214,26 @@ try {
   </div>
 </section>
 
+<?php
+// 0096 (industry pass 5): the database pings the portal every 10 minutes
+// and keeps score.
+$up = null;
+try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
+$upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';
+?>
 <section class="st-pane" data-pane="status">
   <div class="st-banner" id="st-banner"></div>
+  <?php if (is_array($up)): ?>
+  <div class="p-card p-card-pad st-uptime">
+    <p class="p-eyebrow"><?= e(t('Portal uptime', 'Uptime ng portal')) ?></p>
+    <div class="st-uptime-tiles">
+      <div class="st-uptime-tile"><b><?= e($upPct((int) $up['day_ok'], (int) $up['day_checks'])) ?></b><span><?= e(sprintf(t('Last 24 hours · %d checks', 'Nakaraang 24 oras · %d pagsusuri'), (int) $up['day_checks'])) ?></span></div>
+      <div class="st-uptime-tile"><b><?= e($upPct((int) $up['week_ok'], (int) $up['week_checks'])) ?></b><span><?= e(sprintf(t('Last 7 days · %d checks', 'Nakaraang 7 araw · %d pagsusuri'), (int) $up['week_checks'])) ?></span></div>
+      <div class="st-uptime-tile<?= $up['last_ok'] === false ? ' st-down' : '' ?>"><b><?= e($up['last_at'] ? ($up['last_ok'] ? t('Answering', 'Sumasagot') : t('Not answering', 'Hindi sumasagot')) : '—') ?></b><span><?= e($up['last_at'] ? t('Last check ', 'Huling pagsusuri ') . relative_time($up['last_at']) : t('No checks yet', 'Wala pang pagsusuri')) ?></span></div>
+    </div>
+    <p class="st-note"><?= e(t('The database asks the portal for a tiny page every 10 minutes, which also keeps the free server from going to sleep.', 'Tuwing 10 minuto, humihingi ang database ng maliit na pahina sa portal; pinipigilan din nito ang pagtulog ng libreng server.')) ?></p>
+  </div>
+  <?php endif; ?>
   <div class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the portal connects', 'Paano kumokonekta ang portal')) ?></p><div id="st-map"></div></div>
   <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t st-table">
     <thead><tr><th><?= e(t('Service', 'Serbisyo')) ?></th><th><?= e(t('Where it runs', 'Saan tumatakbo')) ?></th><th class="p-right"><?= e(t('Response', 'Tugon')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>

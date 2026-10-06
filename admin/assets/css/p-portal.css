@@ -361,3 +361,14 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-cases-t td:nth-child(3) { min-width: 170px; }
 .ss-cases-t .p-badge { white-space: normal; }
 .p-pill-select .p-lbl { white-space: nowrap; }
+
+/* Settings → System status: portal uptime (0096) */
+.st-uptime { display: grid; gap: 12px; margin-bottom: 18px; }
+.st-uptime .p-eyebrow { margin: 0; }
+.st-uptime-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.st-uptime-tile { border: 1px solid var(--p-line); background: var(--p-surface-2); border-radius: 12px; padding: 14px 16px; display: grid; gap: 2px; }
+.st-uptime-tile b { font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--p-green); }
+.st-uptime-tile span { font-size: 13px; color: var(--p-muted); }
+.st-uptime-tile.st-down b { color: var(--p-red); }
+.st-uptime .st-note { margin: 0; }
+@media (max-width: 760px) { .st-uptime-tiles { grid-template-columns: 1fr; } }
