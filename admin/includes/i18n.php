@@ -133,8 +133,8 @@ function prefs_switches(string $extraClass = ''): string
     <?= day_night_switch('dn-lg') ?><span class="dn-sr" data-theme-label><?= e(t('Dark mode', 'Madilim na anyo')) ?></span>
   </button>
   <div class="pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
-    <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" aria-label="English" title="English"><?= lang_flag('us') ?><span>EN</span></button>
-    <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" aria-label="Tagalog" title="Tagalog"><?= lang_flag('ph') ?><span>PH</span></button>
+    <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" aria-label="EN English" title="English"><?= lang_flag('us') ?><span>EN</span></button>
+    <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" aria-label="PH Tagalog" title="Tagalog"><?= lang_flag('ph') ?><span>PH</span></button>
   </div>
 </div>
 <?= prefs_script() ?>

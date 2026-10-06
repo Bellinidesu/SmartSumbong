@@ -18,7 +18,9 @@ function session_start_once(): void
         session_set_cookie_params([
             'httponly' => true,
             'samesite' => 'Lax',
-            'secure'   => !empty($_SERVER['HTTPS']),
+            // Render terminates HTTPS at its proxy, so PHP itself sees plain
+            // HTTP; the proxy says so in X-Forwarded-Proto.
+            'secure'   => !empty($_SERVER['HTTPS']) || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https',
         ]);
         session_start();
     }

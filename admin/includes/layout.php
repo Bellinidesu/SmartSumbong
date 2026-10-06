@@ -75,7 +75,7 @@ window.ssAccessToken = function (initial) {
 };
 </script>
 <title><?= e($title) ?> — Smart Sumbong | Barangay 183</title>
-<link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
+<link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
 <meta name="theme-color" content="#00308F">
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
@@ -88,7 +88,7 @@ window.ssAccessToken = function (initial) {
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
   <aside class="p-sidebar">
-    <a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.png" alt="Smart Sumbong"></a>
+    <a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a>
     <nav class="p-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
@@ -104,8 +104,8 @@ window.ssAccessToken = function (initial) {
         <span class="p-left"><?= p_icon('i-moon', 18) ?><span class="p-lbl" data-theme-label><?= e(t('Dark Mode', 'Madilim na Tema')) ?></span></span><?= day_night_switch() ?>
       </button>
       <div class="p-seg pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
-        <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" class="<?= $en ? 'p-on' : '' ?>" aria-label="English" title="English"><?= lang_flag('us') ?><span>EN</span></button>
-        <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" class="<?= $en ? '' : 'p-on' ?>" aria-label="Tagalog" title="Tagalog"><?= lang_flag('ph') ?><span>PH</span></button>
+        <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" class="<?= $en ? 'p-on' : '' ?>" aria-label="EN English" title="English"><?= lang_flag('us') ?><span>EN</span></button>
+        <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" class="<?= $en ? '' : 'p-on' ?>" aria-label="PH Tagalog" title="Tagalog"><?= lang_flag('ph') ?><span>PH</span></button>
       </div>
       <div class="p-side-user<?= $active === 'profile.php' ? ' p-active' : '' ?>" id="side-user">
         <a class="p-side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">

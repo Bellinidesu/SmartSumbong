@@ -22,7 +22,7 @@ function doc_head(string $title, bool $desk = false): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title) ?> — Barangay 183</title>
-<link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
+<link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <?= theme_head(false) ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -66,14 +66,14 @@ function doc_head(string $title, bool $desk = false): void
     :root[data-theme="dark"] { --d-bg: #0E1322; --d-tex: #8DB2FF; --d-shadow: 0 2px 6px rgba(0,0,0,.4), 0 18px 50px rgba(0,0,0,.5); color-scheme: dark; }
     body { background: var(--d-bg); position: relative; isolation: isolate; min-height: 100vh; }
     body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--d-tex); opacity: .08;
-      -webkit-mask: url("assets/img/texture-contours.png") 0 0 / 560px 560px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 30%, transparent 60%);
-      mask: url("assets/img/texture-contours.png") 0 0 / 560px 560px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 30%, transparent 60%);
+      -webkit-mask: url("assets/img/texture-contours.webp") 0 0 / 560px 560px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 30%, transparent 60%);
+      mask: url("assets/img/texture-contours.webp") 0 0 / 560px 560px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 30%, transparent 60%);
       -webkit-mask-composite: source-in; mask-composite: intersect; }
     .doc-toolbar { position: sticky; top: 12px; margin: 12px auto 0; max-width: min(1180px, calc(100% - 24px)); border-radius: 18px; padding: 12px 16px; gap: 10px 12px;
       background: linear-gradient(135deg, #00308F, #00236A); box-shadow: 0 10px 30px rgba(0,30,90,.28); font: 600 14px Urbanist, "Segoe UI", Arial, sans-serif;
       overflow: hidden; isolation: isolate; }
     .doc-toolbar::before { content: ""; position: absolute; inset: 0; z-index: -1; background: #fff; opacity: .13;
-      -webkit-mask: url("assets/img/texture-contours.png") 0 0 / 420px 420px repeat; mask: url("assets/img/texture-contours.png") 0 0 / 420px 420px repeat; }
+      -webkit-mask: url("assets/img/texture-contours.webp") 0 0 / 420px 420px repeat; mask: url("assets/img/texture-contours.webp") 0 0 / 420px 420px repeat; }
     .doc-toolbar > a { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 99px; background: rgba(255,255,255,.12); text-decoration: none; font-weight: 700; }
     .doc-toolbar > a:hover { background: rgba(255,255,255,.2); }
     .doc-toolbar label { gap: 8px; color: rgba(255,255,255,.85); }

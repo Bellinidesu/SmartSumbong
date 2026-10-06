@@ -19,8 +19,9 @@ require_once __DIR__ . '/includes/layout.php';
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Smart Sumbong: Barangay 183 Villamor, Pasay City complaint management portal for barangay staff.">
 <title><?= e(t('Request access', 'Humiling ng access')) ?> — Smart Sumbong | Barangay 183</title>
-<link rel="icon" type="image/png" href="assets/img/brgy-183-seal.png">
+<link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/auth.css?v=<?= e(asset_version('auth.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
@@ -32,23 +33,24 @@ require_once __DIR__ . '/includes/layout.php';
 <div class="login-split">
   <aside class="login-rail">
     <?php foreach ([
-        ['brgy-183-seal.png',   'Barangay 183 Zone 20, Villamor, Pasay City'],
-        ['bagong-pilipinas.png','Bagong Pilipinas'],
-        ['bagong-villamor.png', 'Barangay 183 Bagong Villamor'],
+        ['brgy-183-seal.webp',   'Barangay 183 Zone 20, Villamor, Pasay City'],
+        ['bagong-pilipinas.webp','Bagong Pilipinas'],
+        ['bagong-villamor.webp', 'Barangay 183 Bagong Villamor'],
     ] as [$file, $alt]): ?>
       <?php if (is_file(__DIR__ . '/assets/img/' . $file)): ?>
-        <img class="rail-logo" src="assets/img/<?= e($file) ?>" alt="<?= e($alt) ?>">
+        <?php [$iw, $ih] = getimagesize(__DIR__ . '/assets/img/' . $file) ?: [0, 0]; ?>
+        <img class="rail-logo" src="assets/img/<?= e($file) ?>" width="<?= (int) $iw ?>" height="<?= (int) $ih ?>" alt="<?= e($alt) ?>">
       <?php endif; ?>
     <?php endforeach; ?>
   </aside>
 
   <section class="login-panel">
     <?= prefs_switches('prefs--login') ?>
-    <?php if (is_file(__DIR__ . '/assets/img/villamor-street.jpg')): ?>
-      <img class="login-panel-bg" src="assets/img/villamor-street.jpg" alt="" aria-hidden="true">
+    <?php if (is_file(__DIR__ . '/assets/img/villamor-street.webp')): ?>
+      <img class="login-panel-bg" src="assets/img/villamor-street.webp" width="926" height="986" alt="" aria-hidden="true">
     <?php endif; ?>
-    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.png')): ?>
-      <img class="login-wordmark" src="assets/img/logo-wordmark.png" alt="Smart Sumbong">
+    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.webp')): ?>
+      <img class="login-wordmark" src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong">
     <?php endif; ?>
 
     <div class="login-card access-card">

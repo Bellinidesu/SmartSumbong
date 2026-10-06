@@ -26,10 +26,12 @@ require_once __DIR__ . '/includes/auth.php';
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Smart Sumbong: Barangay 183 Villamor, Pasay City complaint management portal for barangay staff.">
 <title><?= e(t('Set a new password', 'Magtakda ng bagong password')) ?> — Smart Sumbong</title>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/auth.css?v=<?= e(asset_version('auth.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 </head>
 <body class="login-body">
 
@@ -37,12 +39,13 @@ require_once __DIR__ . '/includes/auth.php';
 
   <aside class="login-rail">
     <?php foreach ([
-        ['brgy-183-seal.png',   'Barangay 183 Zone 20, Villamor, Pasay City'],
-        ['bagong-pilipinas.png','Bagong Pilipinas'],
-        ['bagong-villamor.png', 'Barangay 183 Bagong Villamor'],
+        ['brgy-183-seal.webp',   'Barangay 183 Zone 20, Villamor, Pasay City'],
+        ['bagong-pilipinas.webp','Bagong Pilipinas'],
+        ['bagong-villamor.webp', 'Barangay 183 Bagong Villamor'],
     ] as [$file, $alt]): ?>
       <?php if (is_file(__DIR__ . '/assets/img/' . $file)): ?>
-        <img class="rail-logo" src="assets/img/<?= e($file) ?>" alt="<?= e($alt) ?>">
+        <?php [$iw, $ih] = getimagesize(__DIR__ . '/assets/img/' . $file) ?: [0, 0]; ?>
+        <img class="rail-logo" src="assets/img/<?= e($file) ?>" width="<?= (int) $iw ?>" height="<?= (int) $ih ?>" alt="<?= e($alt) ?>">
       <?php else: ?>
         <div class="rail-logo rail-logo--missing" role="img" aria-label="<?= e($alt) ?>"><?= e($alt) ?></div>
       <?php endif; ?>
@@ -53,16 +56,16 @@ require_once __DIR__ . '/includes/auth.php';
     <?= prefs_switches('prefs--login') ?>
     <?php
     $bg = null;
-    foreach (['villamor-street.jpg', 'villamor-street.png'] as $candidate) {
+    foreach (['villamor-street.webp', 'villamor-street.jpg'] as $candidate) {
         if (is_file(__DIR__ . '/assets/img/' . $candidate)) { $bg = $candidate; break; }
     }
     ?>
     <?php if ($bg): ?>
-      <img class="login-panel-bg" src="assets/img/<?= e($bg) ?>" alt="" aria-hidden="true">
+      <img class="login-panel-bg" src="assets/img/<?= e($bg) ?>" width="926" height="986" alt="" aria-hidden="true" fetchpriority="high">
     <?php endif; ?>
 
-    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.png')): ?>
-      <img class="login-wordmark" src="assets/img/logo-wordmark.png" alt="Smart Sumbong">
+    <?php if (is_file(__DIR__ . '/assets/img/logo-wordmark.webp')): ?>
+      <img class="login-wordmark" src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong">
     <?php else: ?>
       <div class="login-wordmark login-wordmark--missing">Smart<br>Sumbong</div>
     <?php endif; ?>

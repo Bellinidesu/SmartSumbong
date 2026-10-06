@@ -35,9 +35,14 @@ RewriteEngine On
 # is an empty string here.)
 RewriteRule ^$ index.php [L]
 
+# Browsers ask for /favicon.ico on their own; answer with the seal instead
+# of the 403 below (it showed as a console error in Lighthouse, 7 Oct 2026).
+RewriteRule ^favicon\.ico$ admin/assets/img/favicon-64.png [L]
+
 # Block everything except the two things this project actually serves.
 RewriteCond %{REQUEST_URI} !^/admin/
 RewriteCond %{REQUEST_URI} !^/index\.php$
+RewriteCond %{REQUEST_URI} !^/favicon\.ico$
 RewriteRule ^ - [F]
 
 # ---------- Speed (7 Oct 2026) ----------
@@ -47,18 +52,35 @@ RewriteRule ^ - [F]
     AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript text/javascript application/json application/geo+json image/svg+xml
 </IfModule>
 AddType font/woff2 .woff2
+AddType image/webp .webp
 AddType application/geo+json .geojson
 <IfModule mod_expires.c>
     # Our own CSS/JS carry ?v=<file time>, so each deploy changes their URL;
     # vendor files, fonts and logos rarely change at all.
     ExpiresActive On
-    ExpiresByType text/css "access plus 30 days"
-    ExpiresByType application/javascript "access plus 30 days"
-    ExpiresByType text/javascript "access plus 30 days"
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
     ExpiresByType font/woff "access plus 1 year"
-    ExpiresByType image/png "access plus 30 days"
-    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
     ExpiresByType image/svg+xml "access plus 30 days"
     ExpiresByType application/geo+json "access plus 7 days"
+</IfModule>
+
+# ---------- Security headers (7 Oct 2026) ----------
+# The usual set for a signed-in web app: HTTPS only, no MIME sniffing, no
+# framing by other sites, no full URLs leaked to other sites, no camera or
+# microphone. (A full Content-Security-Policy is left for after the defense:
+# the maps, fonts and inline scripts need a careful allowlist.)
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
 </IfModule>

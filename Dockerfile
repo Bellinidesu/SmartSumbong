@@ -28,7 +28,7 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 # Speed (7 Oct 2026): OPcache (built into PHP 8.5) keeps compiled PHP in memory. The image never
 # changes after it is built, so there is no need to re-check files on disk.
-RUN { echo 'opcache.enable=1'; echo 'opcache.memory_consumption=64'; echo 'opcache.max_accelerated_files=4000';       echo 'opcache.validate_timestamps=0'; echo 'opcache.interned_strings_buffer=8'; } > "$PHP_INI_DIR/conf.d/zz-opcache.ini"
+RUN { echo 'opcache.enable=1'; echo 'opcache.memory_consumption=64'; echo 'opcache.max_accelerated_files=4000';       echo 'opcache.validate_timestamps=0'; echo 'opcache.interned_strings_buffer=8'; echo 'expose_php=Off'; } > "$PHP_INI_DIR/conf.d/zz-opcache.ini"
 
 WORKDIR /var/www/html
 

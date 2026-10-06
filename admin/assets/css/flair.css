@@ -61,8 +61,8 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .p-sidebar, .p-main, .login-rail { isolation: isolate; }
 .p-main, .login-rail { position: relative; }
 .p-sidebar::before, .p-main::before, .login-rail::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  -webkit-mask: url("../img/texture-contours.png") 0 0 / 560px 560px repeat, var(--tx-fade);
-  mask: url("../img/texture-contours.png") 0 0 / 560px 560px repeat, var(--tx-fade);
+  -webkit-mask: url("../img/texture-contours.webp") 0 0 / 560px 560px repeat, var(--tx-fade);
+  mask: url("../img/texture-contours.webp") 0 0 / 560px 560px repeat, var(--tx-fade);
   -webkit-mask-composite: source-in; mask-composite: intersect; }
 .p-sidebar::before { background: #fff; opacity: .14; --tx-fade: linear-gradient(to top, #000 0%, rgba(0,0,0,.55) 25%, transparent 50%); }
 .p-main::before { background: var(--p-ink); opacity: .07; --tx-fade: linear-gradient(200deg, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%); }
@@ -207,7 +207,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
   background: radial-gradient(120% 90% at 20% 10%, color-mix(in srgb, var(--cs) 55%, #fff), var(--cs) 60%, color-mix(in srgb, var(--cs) 70%, #000)); }
 :root[data-theme="dark"] .cs-hero { background: radial-gradient(120% 90% at 20% 10%, var(--cs), color-mix(in srgb, var(--cs) 70%, #0B1020) 65%, #0B1020); }
 .cs-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: #fff; opacity: .22;
-  -webkit-mask: url("../img/texture-contours.png") 0 0 / 360px 360px repeat; mask: url("../img/texture-contours.png") 0 0 / 360px 360px repeat; }
+  -webkit-mask: url("../img/texture-contours.webp") 0 0 / 360px 360px repeat; mask: url("../img/texture-contours.webp") 0 0 / 360px 360px repeat; }
 .cs-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; opacity: 0; transition: opacity .3s; }
 .cs-hero.has-photo .cs-photo { opacity: 1; }
 .cs-hero.has-photo .cs-mark { display: none; }
@@ -246,8 +246,8 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .cs-sheet, #s-spatial .p-map-search { isolation: isolate; }
 .cs-sheet::before, #s-spatial .p-map-search::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit;
   background: var(--p-ink); opacity: .07;
-  -webkit-mask: url("../img/texture-contours.png") 0 0 / 420px 420px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%);
-  mask: url("../img/texture-contours.png") 0 0 / 420px 420px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%);
+  -webkit-mask: url("../img/texture-contours.webp") 0 0 / 420px 420px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%);
+  mask: url("../img/texture-contours.webp") 0 0 / 420px 420px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 25%, transparent 50%);
   -webkit-mask-composite: source-in; mask-composite: intersect; }
 #s-spatial .p-map-search::before { -webkit-mask-size: 360px 360px, auto; mask-size: 360px 360px, auto; }
 /* The panel stays put and only its middle scrolls, so the texture holds to the panel's lower half. */
