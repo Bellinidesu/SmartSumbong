@@ -12,7 +12,8 @@
 
 declare(strict_types=1);
 
-function doc_head(string $title): void
+/** $desk: the document-desk editor layout (assets/css/doc-desk.css). */
+function doc_head(string $title, bool $desk = false): void
 {
     force_lang('en');
     ?><!DOCTYPE html>
@@ -88,6 +89,7 @@ function doc_head(string $title): void
     .doc-page { margin: 28px auto 48px; border-radius: 4px; box-shadow: var(--d-shadow); }
   }
 </style>
+<?php if ($desk): ?><link href="assets/css/doc-desk.css?v=<?= e(asset_version('doc-desk.css')) ?>" rel="stylesheet"><?php endif; ?>
 </head>
 <body>
 <?php

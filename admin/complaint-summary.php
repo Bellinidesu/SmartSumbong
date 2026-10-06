@@ -166,16 +166,23 @@ foreach ($now as $c) {
     foreach ($sum as $f => $_) { $sum[$f] += $c[$f]; }
 }
 
-doc_head('Barangay Complaint Summary');
+doc_head('Barangay Complaint Summary', true);
+$pct   = fn(array $c) => $c['received'] ? (int) round($c['resolved'] / $c['received'] * 100) . '%' : '—';
+$psum  = ['received' => 0, 'resolved' => 0];
+foreach ($prev as $c) { $psum['received'] += $c['received']; $psum['resolved'] += $c['resolved']; }
+$dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / ($d['on'] + $d['off']) * 100) . '%' : '—';
 ?>
-<form class="doc-toolbar" method="get">
-  <a href="summary.php">&larr; Report Summary</a>
-  <label>Month <input type="month" name="month" value="<?= e($monthParam) ?>"></label>
-  <label>Requested by <input type="text" name="by" value="<?= e($by) ?>" size="24"></label>
-  <button type="submit" formaction="complaint-summary.php" style="background:#fff;color:#00308f">Update</button>
-  <span class="spacer"></span>
-  <button type="button" onclick="window.print()">Print / Save as PDF</button>
-</form>
+<header class="cd-bar">
+  <a class="cd-back" href="summary.php">&lsaquo; Report Summary</a>
+  <span class="cd-crumb"><a href="summary.php">Report Summary</a> &rsaquo; <b>Barangay Complaint Summary</b></span>
+  <span class="cd-sp"></span>
+  <span class="cd-state ok" id="cd-state"><?= e($monthName . ' ' . $year) ?></span>
+  <button class="cd-btn" id="cd-print" type="button">Print / Save as PDF</button>
+</header>
+
+<div class="cd-work">
+  <section class="cd-desk" id="cd-desk" aria-label="Complaint summary">
+    <div class="cd-stage"><div class="cd-wrap cd-flow">
 
 <div class="doc-page">
   <?php doc_letterhead(); ?>
@@ -314,5 +321,62 @@ doc_head('Barangay Complaint Summary');
 
   <?php doc_requested_by($by); ?>
 </div>
+    </div></div>
+    <div class="cd-tools" role="toolbar" aria-label="Zoom">
+      <button type="button" id="cd-zo" aria-label="Zoom out">&minus;</button><span class="cd-z" id="cd-zl">100%</span><button type="button" id="cd-zi" aria-label="Zoom in">+</button>
+      <span class="cd-sep"></span><button type="button" id="cd-zf">Fit page</button><button type="button" id="cd-zw">Fit width</button><span class="cd-sep"></span><span>Letter</span>
+    </div>
+  </section>
+
+  <aside class="cd-insp" aria-label="Summary details">
+    <div class="cd-sec"><h2>Ready to print <span class="cd-count wait" id="cd-cnt"></span></h2><div class="cd-chk" id="cd-chk"></div></div>
+    <form class="cd-sec" method="get" id="cd-form"><h2>Report</h2>
+      <div class="cd-field"><label for="f-month">Month</label><input id="f-month" name="month" type="month" value="<?= e($monthParam) ?>" max="<?= e((new DateTimeImmutable('now', $tz))->format('Y-m')) ?>"></div>
+      <div class="cd-field"><label for="f-by">Requested by</label><input id="f-by" name="by" value="<?= e($by) ?>" autocomplete="off"></div>
+    </form>
+    <?php if (!$error): ?>
+    <div class="cd-sec"><h2><?= e($monthName) ?> at a glance</h2>
+      <div class="cd-tiles">
+        <div class="cd-tile"><b><?= $sum['received'] ?></b><span>Received</span></div>
+        <div class="cd-tile"><b><?= e($pct($sum)) ?></b><span>Resolved (<?= $sum['resolved'] ?>)</span></div>
+        <div class="cd-tile"><b><?= $sum['overdue'] ?></b><span>Overdue</span></div>
+        <div class="cd-tile"><b><?= $sum['escalated'] ?></b><span>Escalated</span></div>
+      </div>
+    </div>
+    <div class="cd-sec"><h2>Compared with <?= e($prevName) ?></h2>
+      <div class="cd-row"><span>Received</span><b class="prev"><?= $psum['received'] ?></b><span class="cd-arrow">&rarr;</span><b><?= $sum['received'] ?></b></div>
+      <div class="cd-row"><span>Resolution rate</span><b class="prev"><?= e($pct($psum)) ?></b><span class="cd-arrow">&rarr;</span><b><?= e($pct($sum)) ?></b></div>
+      <div class="cd-row"><span>Tanod on duty</span><b class="prev"><?= e($dutyPct($duty['prev'])) ?></b><span class="cd-arrow">&rarr;</span><b><?= e($dutyPct($duty['now'])) ?></b></div>
+    </div>
+    <?php endif; ?>
+  </aside>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  // Month reloads the figures; Requested by fills in live.
+  $('f-month').addEventListener('change', function () { if ($('f-month').value) $('cd-form').submit(); });
+  function render() {
+    var by = $('f-by').value.trim();
+    document.querySelectorAll('.req .fill').forEach(function (el) { el.textContent = by || 'Name of Requestor'; el.classList.toggle('cd-empty', !by); });
+    var checks = [['Report month', !!$('f-month').value], ['Requested by', !!by]];
+    var done = checks.filter(function (c) { return c[1]; }).length, ready = done === checks.length;
+    $('cd-chk').innerHTML = checks.map(function (c) { return '<div class="' + (c[1] ? 'y' : 'n') + '"><i>' + (c[1] ? '&#10003;' : '') + '</i>' + c[0] + '</div>'; }).join('');
+    $('cd-cnt').textContent = done + ' of ' + checks.length; $('cd-cnt').className = 'cd-count ' + (ready ? 'ok' : 'wait');
+    $('cd-print').disabled = !ready;
+  }
+  $('f-by').addEventListener('input', render);
+  $('cd-print').onclick = function () { window.print(); };
+
+  var z = 1, inch = 96;
+  function setZ(v) { z = Math.max(.4, Math.min(1.6, Math.round(v * 100) / 100)); document.documentElement.style.setProperty('--z', z); $('cd-zl').textContent = Math.round(z * 100) + '%'; }
+  $('cd-zi').onclick = function () { setZ(z + .1); }; $('cd-zo').onclick = function () { setZ(z - .1); };
+  $('cd-zf').onclick = function () { var d = $('cd-desk'); setZ(Math.min((d.clientWidth - 48) / (8.5 * inch), (d.clientHeight - 64) / (11 * inch))); };
+  $('cd-zw').onclick = function () { setZ(Math.min(1, ($('cd-desk').clientWidth - 48) / (8.5 * inch))); };
+  render();
+  requestAnimationFrame(function () { $('cd-zw').click(); });
+})();
+</script>
 </body>
 </html>
