@@ -50,7 +50,7 @@ jobs:
               --symmetric --cipher-algo AES256 -o "out/smartsumbong-$stamp.tgz.gpg" dump.tgz
           rm -f roles.sql schema.sql data.sql dump.tgz
           ls -la out
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: smartsumbong-backup
           path: out/
