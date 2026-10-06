@@ -128,7 +128,7 @@ class BrgyMapController {
 
   /// Frames [points] with [padding] around them; one point is shown at
   /// zoom 17.
-  void fit(List<ll.LatLng> points, {double padding = 48}) {
+  void fit(List<ll.LatLng> points, {double padding = 48, double? top, double? bottom}) {
     if (points.isEmpty) return;
     if (points.length == 1) return move(points.first, 17);
     final lats = points.map((p) => p.latitude);
@@ -139,9 +139,9 @@ class BrgyMapController {
         northeast: ml.LatLng(lats.reduce(math.max), lngs.reduce(math.max)),
       ),
       left: padding,
-      top: padding,
+      top: top ?? padding,
       right: padding,
-      bottom: padding,
+      bottom: bottom ?? padding,
     ));
   }
 
