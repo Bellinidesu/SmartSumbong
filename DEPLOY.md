@@ -1,5 +1,10 @@
 # Deploying SmartSumbong
 
+> **Current setup (October 2026): see [docs/OPERATIONS.md](docs/OPERATIONS.md).**
+> The portal now runs on Render in Singapore (smartsumbong-ph) and deploys
+> automatically after CI passes. The notes below are the original first-time
+> setup and are kept for reference.
+
 Three parts, deployed separately:
 
 | Part | Where it runs | How it updates |
