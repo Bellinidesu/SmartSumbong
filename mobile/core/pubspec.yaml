@@ -20,7 +20,7 @@ dependencies:
   flutter_image_compress: ^2.4.0
   path_provider: ^2.1.4
   supabase_flutter: ^2.8.0
-  permission_handler: ^11.3.1
+  permission_handler: ">=11.3.1 <14.0.0"
 
   # Push notifications (FCM) + the local-notification display FCM itself
   # does not do while the app is in the foreground.
