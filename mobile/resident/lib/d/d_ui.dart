@@ -632,6 +632,7 @@ class DBell extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Semantics(
+      container: true,
       button: true,
       label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
       child: InkWell(
@@ -784,4 +785,41 @@ class DOptionsPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The app's on/off toggle: green when on, grey when off, a white knob.
+/// One look everywhere (Notification Preferences, the anonymous switch).
+class DToggle extends StatelessWidget {
+  const DToggle({super.key, required this.on, required this.onTap, this.label});
+
+  final bool on;
+  final VoidCallback? onTap;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        toggled: on,
+        label: label,
+        enabled: onTap != null,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Opacity(
+            opacity: onTap == null ? .5 : 1,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 46,
+              height: 28,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(color: on ? const Color(0xFF1F8A45) : const Color(0xFFC8CEDB), borderRadius: BorderRadius.circular(99)),
+              alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white, boxShadow: [BoxShadow(color: Color(0x40000000), blurRadius: 3, offset: Offset(0, 1))]),
+              ),
+            ),
+          ),
+        ),
+      );
 }

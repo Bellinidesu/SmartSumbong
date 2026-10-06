@@ -178,6 +178,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final unread = [
         for (final n in _items!) if (!n.isRead) n.id,
       ];
+      // Marked read on the server (the bell clears), but they keep their
+      // "new" look on screen until the resident leaves, so they can see
+      // which ones arrived since last time.
       if (unread.isNotEmpty) {
         try {
           await client
@@ -316,7 +319,15 @@ class _NotificationRow extends StatelessWidget {
     final k = n.kind;
     if (k.contains('escalat')) return ('Escalation alert', const Color(0xFF8B5CF6), Icons.north_east_rounded);
     if (k.contains('sla') || k.contains('deadline')) return ('Response time warning', const Color(0xFFF59E0B), Icons.timer_outlined);
-    if (k.contains('verif')) return ('Account verification', const Color(0xFF1F8A45), Icons.verified_user_outlined);
+    if (k.contains('verif')) {
+      // The account kind covers bad news too: say what happened, in the
+      // colour that fits it.
+      if (m.contains('suspend')) return ('Account suspended', const Color(0xFFD92D2D), Icons.block_rounded);
+      if (m.contains('reinstat')) return ('Account reinstated', const Color(0xFF1F8A45), Icons.verified_user_outlined);
+      if (m.contains('reject') || m.contains('not approved') || m.contains('declined')) return ('Verification not approved', const Color(0xFFD92D2D), Icons.gpp_bad_outlined);
+      if (m.contains('retire')) return ('Account retired', const Color(0xFF6E7489), Icons.logout_rounded);
+      return ('Account verification', const Color(0xFF1F8A45), Icons.verified_user_outlined);
+    }
     if (m.contains('on the way')) return ('A tanod is on the way', const Color(0xFF0F9D9A), Icons.arrow_forward_rounded);
     if (m.contains('arrived')) return ('The tanod has arrived', const Color(0xFF7BA428), Icons.place_outlined);
     if (m.contains('dispatched') || k.contains('assign') || k.contains('dispatch')) return ('A tanod is on your report', const Color(0xFF356CF9), Icons.shield_outlined);
