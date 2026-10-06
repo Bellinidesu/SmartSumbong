@@ -422,25 +422,25 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           params: {'p_report_id': widget.reportId});
       if (!mounted) return;
       final labels = <String, String>{};
+      // 0099: the note as a resident should read it (no tanod names,
+      // distances or system jargon).
+      final remarks = <String, String?>{};
       for (final row in rows as List) {
         final id = row['status_log_id'] as String?;
         if (id == null) continue;
-        final isSystem = row['is_system'] as bool? ?? false;
-        final name = (row['author_name'] as String?)?.trim();
-        if (isSystem) {
-          labels[id] = 'SYSTEM';
-        } else if (name != null && name.isNotEmpty) {
-          labels[id] = 'TANOD ${casualName(name).toUpperCase()}';
-        }
+        if ((row as Map).containsKey('resident_remark')) remarks[id] = row['resident_remark'] as String?;
+        final label = bylineFor(row);
+        if (label != null) labels[id] = label;
       }
-      if (labels.isEmpty) return;
+      if (labels.isEmpty && remarks.isEmpty) return;
       setState(() {
         _timeline = [
           for (final entry in _timeline)
-            if (labels.containsKey(entry['id']))
-              {...entry, 'author_label': labels[entry['id']]}
-            else
-              entry,
+            {
+              ...entry,
+              if (labels.containsKey(entry['id'])) 'author_label': labels[entry['id']],
+              if (remarks.containsKey(entry['id'])) 'remark': remarks[entry['id']],
+            },
         ];
       });
     } catch (_) {
@@ -2354,4 +2354,16 @@ class _ReasonPanelState extends State<_ReasonPanel> {
 String _fmtDate(Strings s, DateTime utc) {
   final d = utc.toLocal();
   return '${s.monthFull(d.month)} ${d.day}, ${d.year}';
+}
+
+/// Who wrote a timeline entry, as the resident reads it: "BARANGAY" for
+/// anything an administrator did (residents see the barangay as one body,
+/// as in the chat), `"TANOD <NAME>"` for a tanod, "SYSTEM" for the system.
+String? bylineFor(Map row) {
+  if (row['is_system'] as bool? ?? false) return 'SYSTEM';
+  final role = row['author_role'] as String?;
+  final name = (row['author_name'] as String?)?.trim();
+  if (role == 'admin' || name == 'Barangay') return 'BARANGAY';
+  if (name == null || name.isEmpty) return null;
+  return 'TANOD ${casualName(name).toUpperCase()}';
 }
