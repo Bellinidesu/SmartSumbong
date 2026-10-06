@@ -211,16 +211,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
 
                 // 0073 — Update Resolution Status.
+                // Rose (7 Oct 2026): Update status and Post an update are one
+                // form — new status (or none), remark, proof photos, and an
+                // optional target date with its reason.
                 case 'set_status':
-                    $db->rpc('admin_set_status', [
-                        'p_report' => $id,
-                        'p_status' => (string) ($_POST['status'] ?? ''),
-                        'p_remark' => trim((string) ($_POST['remark'] ?? '')) ?: null,
-                        // 0079 (Rose): proof photos with the status, most of
-                        // all when the barangay resolves it itself.
-                        'p_media'  => cloudinary_upload_files('photos'),
-                    ]);
-                    $flash = t('Status updated. The resident has been told.', 'Na-update ang katayuan. Nasabihan na ang residente.');
+                    $newStatus = (string) ($_POST['status'] ?? '');
+                    $remark    = trim((string) ($_POST['remark'] ?? ''));
+                    $target    = trim((string) ($_POST['target'] ?? ''));
+                    $photos    = cloudinary_upload_files('photos');
+                    if ($newStatus === '' && $remark === '' && !$photos && $target === '') {
+                        throw new SupabaseError(t('Choose a new status, write a remark, attach a photo or set a target date.', 'Pumili ng bagong katayuan, sumulat ng tala, maglakip ng larawan, o magtakda ng target na petsa.'));
+                    }
+                    // The date first: if the extension is refused, nothing else is posted.
+                    if ($target !== '') {
+                        $db->rpc('set_resolution_target', [
+                            'p_report' => $id,
+                            'p_due'    => (new DateTimeImmutable($target, new DateTimeZone('Asia/Manila')))->format(DateTimeInterface::ATOM),
+                            'p_reason' => trim((string) ($_POST['target_reason'] ?? '')) ?: null,
+                        ]);
+                    }
+                    if ($newStatus !== '') {
+                        $db->rpc('admin_set_status', [
+                            'p_report' => $id,
+                            'p_status' => $newStatus,
+                            'p_remark' => $remark !== '' ? $remark : null,
+                            'p_media'  => $photos,
+                        ]);
+                    } elseif ($remark !== '' || $photos) {
+                        $db->rpc('admin_barangay_update', [
+                            'p_report' => $id,
+                            'p_body'   => $remark !== '' ? $remark : null,
+                            'p_media'  => $photos,
+                        ]);
+                    }
+                    $flash = t('Updated. The resident has been told.', 'Na-update. Nasabihan na ang residente.');
                     break;
 
                 // 0079 (Rose) — an update, photos and/or a target date from
@@ -1364,7 +1388,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
     <?php if (in_array($status, ['validated', 'assigned', 'in_progress', 'offline_investigation'], true)
               && empty($report['resolution_submitted_at'])): ?>
-      <?php // 0073 — Update Resolution Status. ?>
+      <?php // 0073 + 0079, one form (Rose, 7 Oct 2026). ?>
       <details class="p-fix">
         <summary><?= e(t('Update status', 'I-update ang katayuan')) ?></summary>
         <form method="post" class="p-ctl-stack" enctype="multipart/form-data">
@@ -1372,7 +1396,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <input type="hidden" name="action" value="set_status">
           <div class="p-cfield">
             <label class="p-flabel" for="set-status"><?= e(t('New status', 'Bagong katayuan')) ?></label>
-            <select class="p-input-plain" id="set-status" name="status" required>
+            <select class="p-input-plain" id="set-status" name="status">
+              <option value=""><?= e(t('No change — just post an update', 'Walang pagbabago — mag-post lang ng update')) ?></option>
               <?php foreach (['in_progress', 'offline_investigation', 'resolved'] as $opt): ?>
                 <?php if ($opt === $status) continue; ?>
                 <option value="<?= e($opt) ?>"><?= e($opt === 'resolved' ? t('Resolved/Completed', 'Nalutas/Nakumpleto') : status_label($opt)) ?></option>
@@ -1381,12 +1406,34 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           </div>
           <div class="p-cfield">
             <label class="p-flabel" for="set-remark"><?= e(t('Remark — the resident sees this', 'Tala — makikita ito ng residente')) ?></label>
-            <textarea class="p-note" id="set-remark" name="remark" rows="2" maxlength="300"></textarea>
+            <textarea class="p-note" id="set-remark" name="remark" rows="2" maxlength="500"
+                      placeholder="<?= e(t('e.g. The barangay talked to the store owner; the sidewalk will be cleared by Friday.', 'hal. Nakausap ng barangay ang may-ari ng tindahan; malilinis ang bangketa sa Biyernes.')) ?>"></textarea>
           </div>
           <div class="p-cfield">
             <label class="p-flabel" for="set-photos"><?= e(t('Proof photos (optional, up to 6) — the resident sees these', 'Mga larawang patunay (opsyonal, hanggang 6) — makikita ito ng residente')) ?></label>
             <input class="p-input-plain" type="file" id="set-photos" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
           </div>
+          <?php if (empty($report['referred_to'])): ?>
+          <div class="p-cfield">
+            <label class="p-flabel" for="set-target"><?= e(t('Target date (optional)', 'Target na petsa (opsyonal)')) ?></label>
+            <input class="p-input-plain" type="datetime-local" id="set-target" name="target"
+                   min="<?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d\TH:i')) ?>">
+            <p class="p-hint" style="margin:6px 0 0">
+              <?php if (!empty($report['due_at'])): ?>
+                <?= e(t('Currently due', 'Kasalukuyang takdang oras:')) ?> <?= e(long_datetime($report['due_at'])) ?>.
+                <?= e(sprintf(t('Extensions used: %d of %d.', 'Nagamit na extension: %d sa %d.'), $extUsed, $extCap)) ?>
+              <?php else: ?>
+                <?= e(t('No target date yet. The resident is told the one you set.', 'Wala pang target na petsa. Sasabihin sa residente ang itatakda mo.')) ?>
+              <?php endif; ?>
+            </p>
+          </div>
+          <?php if (!empty($report['due_at'])): ?>
+            <div class="p-cfield">
+              <label class="p-flabel" for="set-reason"><?= e(t('Reason (optional), required if you move the date later', 'Dahilan (opsyonal), kailangan kung iuurong ang petsa')) ?></label>
+              <input class="p-input-plain" type="text" id="set-reason" name="target_reason" maxlength="300">
+            </div>
+          <?php endif; ?>
+          <?php endif; ?>
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Update status', 'I-update ang katayuan')) ?></button>
         </form>
       </details>
@@ -1405,43 +1452,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
 
     <?php if ($openCase): ?>
-      <?php // 0079 (Rose) — an update, photos or a target date, no tanod needed. ?>
-      <details class="p-fix">
-        <summary><?= e(t('Post an update', 'Mag-post ng update')) ?></summary>
-        <form method="post" class="p-ctl-stack" enctype="multipart/form-data">
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="action" value="barangay_update">
-          <div class="p-cfield">
-            <label class="p-flabel" for="upd-body"><?= e(t('Update — the resident sees this', 'Update — makikita ito ng residente')) ?></label>
-            <textarea class="p-note" id="upd-body" name="body" rows="2" maxlength="500"
-                      placeholder="<?= e(t('e.g. The barangay talked to the store owner; the sidewalk will be cleared by Friday.', 'hal. Nakausap ng barangay ang may-ari ng tindahan; malilinis ang bangketa sa Biyernes.')) ?>"></textarea>
-          </div>
-          <div class="p-cfield">
-            <label class="p-flabel" for="upd-photos"><?= e(t('Photos (optional, up to 6)', 'Mga larawan (opsyonal, hanggang 6)')) ?></label>
-            <input class="p-input-plain" type="file" id="upd-photos" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
-          </div>
-          <div class="p-cfield">
-            <label class="p-flabel" for="upd-target"><?= e(t('Target date (optional)', 'Target na petsa (opsyonal)')) ?></label>
-            <input class="p-input-plain" type="datetime-local" id="upd-target" name="target"
-                   min="<?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d\TH:i')) ?>">
-            <p class="p-hint" style="margin:6px 0 0">
-              <?php if (!empty($report['due_at'])): ?>
-                <?= e(t('Currently due', 'Kasalukuyang takdang oras:')) ?> <?= e(long_datetime($report['due_at'])) ?>.
-                <?= e(sprintf(t('Extensions used: %d of %d.', 'Nagamit na extension: %d sa %d.'), $extUsed, $extCap)) ?>
-              <?php else: ?>
-                <?= e(t('No target date yet. The resident is told the one you set.', 'Wala pang target na petsa. Sasabihin sa residente ang itatakda mo.')) ?>
-              <?php endif; ?>
-            </p>
-          </div>
-          <?php if (!empty($report['due_at'])): ?>
-            <div class="p-cfield">
-              <label class="p-flabel" for="upd-reason"><?= e(t('Reason, if you move the date later', 'Dahilan, kung iuurong ang petsa')) ?></label>
-              <input class="p-input-plain" type="text" id="upd-reason" name="target_reason" maxlength="300">
-            </div>
-          <?php endif; ?>
-          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Post', 'I-post')) ?></button>
-        </form>
-      </details>
+      <?php // "Post an update" is now part of Update status (Rose, 7 Oct 2026). ?>
 
       <?php if ($extUsed >= $extCap && !empty($report['due_at'])): ?>
         <?php // 0079 (Rose) — no extensions left: hand it to a higher official. ?>

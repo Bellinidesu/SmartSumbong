@@ -62,7 +62,9 @@ $nSort    = ($_GET['nsort'] ?? 'newest') === 'oldest' ? 'oldest' : 'newest';
 
 if (!in_array($category, CATEGORIES, true)) { $category = ''; }
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
-if (!isset(STATUS_GROUPS[$filter])) { $filter = ''; }
+// Rose (7 Oct 2026): Overdue and Escalated sit in the same Status menu.
+const OPEN_STATES = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
+if (!isset(STATUS_GROUPS[$filter]) && !in_array($filter, ['overdue', 'escalated'], true)) { $filter = ''; }
 
 // Clicking a column heading sorts by it; clicking the same one again
 // reverses. PostgREST cannot order by an embedded resident name, so that
@@ -102,14 +104,21 @@ try {
     // join happens in the database, not in a second round trip.
     $query = [
         'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
-                  . 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,followed_up_at,resolution_submitted_at,'
+                  . 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
                   . 'resident:users!reports_resident_id_fkey(full_name),'
                   . 'handler_id,handler:users!reports_handler_id_fkey(full_name)',
         'deleted_at' => 'is.null',
         'order'      => $sort,
         'limit'      => '100',
     ];
-    if ($filter !== '') {
+    $and = [];
+    if ($filter === 'overdue') {
+        $query['status'] = 'in.(' . implode(',', OPEN_STATES) . ')';
+        $query['due_at'] = 'lt.' . gmdate('Y-m-d\TH:i:s\Z');
+    } elseif ($filter === 'escalated') {
+        // To an outside office, or handed up to a higher official inside the barangay.
+        $and[] = 'or(referred_to.not.is.null,higher_official.not.is.null)';
+    } elseif ($filter !== '') {
         $query['status'] = 'in.(' . implode(',', STATUS_GROUPS[$filter]) . ')';
     }
     if ($who === 'unclaimed') {
@@ -124,8 +133,11 @@ try {
         $mtz   = new DateTimeZone('Asia/Manila');
         $start = DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', $mtz);
         $end   = $start->modify('first day of next month');
-        $query['and'] = "(created_at.gte.{$start->format(DateTimeInterface::ATOM)},"
-                       . "created_at.lt.{$end->format(DateTimeInterface::ATOM)})";
+        $and[] = "created_at.gte.{$start->format(DateTimeInterface::ATOM)}";
+        $and[] = "created_at.lt.{$end->format(DateTimeInterface::ATOM)}";
+    }
+    if ($and) {
+        $query['and'] = '(' . implode(',', $and) . ')';
     }
     if ($search !== '') {
         // Match either the tracking id or the subject line. Commas,
@@ -313,6 +325,8 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
             'in_progress'  => t('In Progress', 'Isinasagawa'),
             'resolved'     => t('Resolved/Completed', 'Nalutas/Nakumpleto'),
             'rejected'     => t('Rejected', 'Tinanggihan'),
+            'overdue'      => t('Overdue', 'Lampas na sa takdang oras'),
+            'escalated'    => t('Escalated', 'In-escalate'),
         ] as $s => $lbl): ?>
           <option value="<?= e($s) ?>" <?= $filter === $s ? 'selected' : '' ?>><?= e($lbl) ?></option>
         <?php endforeach; ?>
@@ -355,6 +369,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
             <span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?></span>
             <?php if (report_is_overdue($r)): ?><span class="p-badge p-b-denied"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span><?php endif; ?>
             <?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['referred_to']) ?></span><?php endif; ?>
+            <?php if (!empty($r['higher_official'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['higher_official']) ?></span><?php endif; ?>
             <?php if (!empty($r['resolution_submitted_at'])): ?><span class="p-badge p-b-pending"><?= e(t('Awaiting approval', 'Naghihintay ng pag-apruba')) ?></span><?php endif; ?>
             <?php if (!empty($r['followed_up_at']) && !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?><span class="p-badge p-b-pending"><?= e(t('Followed up', 'Nag-follow up')) ?></span><?php endif; ?>
             <?php if (($r['reopened_count'] ?? 0) > 0): ?><span class="p-badge p-b-pending"><?= e(t('Reopened', 'Binuksang muli')) ?> <?= (int) $r['reopened_count'] ?>&times;</span><?php endif; ?>
@@ -403,6 +418,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
   // Mirrors the STATUS_GROUPS constant in this same file exactly, so a
   // live refresh applies the same grouped filter a reload would.
   const STATUS_GROUPS = <?= json_encode(STATUS_GROUPS) ?>;
+  const OPEN_STATES = <?= json_encode(OPEN_STATES) ?>;
   const CATEGORY   = <?= json_encode($category) ?>;
   const MONTH_FROM = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->format(DateTimeInterface::ATOM) : null) ?>;
   const MONTH_TO   = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->modify('first day of next month')->format(DateTimeInterface::ATOM) : null) ?>;
@@ -491,6 +507,8 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
           ? '<span class="p-badge p-b-denied">' + T('Overdue', 'Lampas na sa takdang oras') + '</span>' : '') +
         (r.referred_to
           ? '<span class="p-badge p-b-violet">' + T('Escalated to ', 'In-escalate sa ') + escapeHtml(r.referred_to) + '</span>' : '') +
+        (r.higher_official
+          ? '<span class="p-badge p-b-violet">' + T('Escalated to ', 'In-escalate sa ') + escapeHtml(r.higher_official) + '</span>' : '') +
         (r.resolution_submitted_at
           ? '<span class="p-badge p-b-pending">' + T('Awaiting approval', 'Naghihintay ng pag-apruba') + '</span>' : '') +
         (open && r.followed_up_at
@@ -542,12 +560,14 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
   async function loadReports() {
     let q = sb.from('reports')
       .select('id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
-        + 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,followed_up_at,resolution_submitted_at,'
+        + 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
         + 'resident:users!reports_resident_id_fkey(full_name),handler_id,handler:users!reports_handler_id_fkey(full_name)')
       .is('deleted_at', null)
       .order(SORT_COL, { ascending: SORT_ASC })
       .limit(100);
-    if (STATUS) q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
+    if (STATUS === 'overdue') q = q.in('status', OPEN_STATES).lt('due_at', new Date().toISOString());
+    else if (STATUS === 'escalated' && !SEARCH) q = q.or('referred_to.not.is.null,higher_official.not.is.null');
+    else if (STATUS && STATUS !== 'escalated') q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
     if (CATEGORY) q = q.eq('category', CATEGORY);
     if (WHO === 'unclaimed') q = q.is('handler_id', null);
     else if (WHO) q = q.eq('handler_id', WHO);
@@ -558,7 +578,10 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     }
     const { data, error } = await q;
     if (error) return; // stale view is safer than a half-rendered one
-    renderReports(data || []);
+    // Escalated with a search: the search already uses the one "or", so
+    // the escalated rows are picked here instead.
+    const rows = (STATUS === 'escalated' && SEARCH) ? (data || []).filter(r => r.referred_to || r.higher_official) : (data || []);
+    renderReports(rows);
     if (window.ssPaintOpen) window.ssPaintOpen();
   }
 
