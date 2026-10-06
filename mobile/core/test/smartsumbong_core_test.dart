@@ -3,6 +3,7 @@
 // in, and how photos are asked for. Each one mirrors something on the
 // server, so a change on one side without the other fails here first.
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
@@ -72,6 +73,35 @@ void main() {
       expect(isVideoMime('video/mp4'), isTrue);
       expect(isVideoMime('image/jpeg'), isFalse);
       expect(isVideoMime(null), isFalse);
+    });
+  });
+
+  group('SavedLogins (one set per role)', () {
+    setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+
+    test('resident and tanod keep their own number and password', () async {
+      await SavedLogins.write('resident', '0917 111 1111', 'resident-pass');
+      await SavedLogins.write('tanod', '0918 222 2222', 'tanod-pass');
+      final r = await SavedLogins.read('resident');
+      final t = await SavedLogins.read('tanod');
+      expect((r!.mobile, r.password), ('0917 111 1111', 'resident-pass'));
+      expect((t!.mobile, t.password), ('0918 222 2222', 'tanod-pass'));
+    });
+
+    test('forgetting one role leaves the other', () async {
+      await SavedLogins.write('resident', '0917 111 1111', 'a');
+      await SavedLogins.write('tanod', '0918 222 2222', 'b');
+      await SavedLogins.forget('tanod');
+      expect(await SavedLogins.read('tanod'), isNull);
+      expect((await SavedLogins.read('resident'))!.password, 'a');
+    });
+
+    test('a password change follows only the same number', () async {
+      await SavedLogins.write('resident', '0917 111 1111', 'old');
+      await SavedLogins.updatePassword('resident', '+639171111111', 'new');
+      expect((await SavedLogins.read('resident'))!.password, 'new');
+      await SavedLogins.updatePassword('resident', '+639999999999', 'other');
+      expect((await SavedLogins.read('resident'))!.password, 'new');
     });
   });
 }

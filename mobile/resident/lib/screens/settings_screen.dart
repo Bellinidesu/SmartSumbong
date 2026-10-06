@@ -227,6 +227,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _deletingAccount = true);
     try {
       await Supabase.instance.client.functions.invoke('delete-account');
+      await SavedLogins.forget(AppRoleController.instance.value == AppRole.tanod ? 'tanod' : 'resident');
       await widget.auth.signOut();
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);

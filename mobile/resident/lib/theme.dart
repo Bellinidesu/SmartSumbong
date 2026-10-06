@@ -172,6 +172,27 @@ class AppRoleController extends ValueNotifier<AppRole> {
     } catch (_) {}
   }
 
+  /// The role of the account that last signed in on this phone. Unlike
+  /// [value], signing out does not reset it: the login opened after a
+  /// tanod signs out is the tanod's, with the tanod's saved details.
+  static const lastSignedInKey = 'last_signed_in_role';
+
+  Future<void> rememberSignedIn(AppRole role) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(lastSignedInKey, role.name);
+    } catch (_) {}
+  }
+
+  static Future<AppRole> lastSignedIn() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(lastSignedInKey) == 'tanod' ? AppRole.tanod : AppRole.resident;
+    } catch (_) {
+      return AppRole.resident;
+    }
+  }
+
   Future<void> set(AppRole role) async {
     value = role;
     try {

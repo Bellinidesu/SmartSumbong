@@ -51,7 +51,7 @@ class RolePickerScreen extends StatelessWidget {
                       glow: const [Color(0xFF6FA2FF), Color(0xFF1A4FC4)],
                       foreground: Colors.white,
                       dark: d.dark,
-                      onTap: () => Navigator.of(context).pushNamed('/login'),
+                      onTap: () => Navigator.of(context).pushNamed('/login', arguments: 'resident'),
                     ),
                   ),
                   const SizedBox(width: 16),

@@ -57,18 +57,52 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
   final _fieldErrors = <String, String>{};
 
-  /// The number last signed in with (kept only while Remember me is on),
-  /// so it is already there next time. The password is the phone's own
-  /// password manager's to remember — see the autofill hints below.
+  /// The number last signed in with, from before details were kept per
+  /// role; read once as the resident's, so an existing install keeps it.
   static const _lastMobileKey = 'last_mobile';
 
+  /// 'resident' or 'tanod': which login this is (the route's argument).
+  String _role = 'resident';
+  bool _filled = false;
+
   @override
-  void initState() {
-    super.initState();
-    SharedPreferences.getInstance().then((prefs) {
-      final last = prefs.getString(_lastMobileKey);
-      if (mounted && last != null && _mobile.text.isEmpty) setState(() => _mobile.text = last);
-    }).catchError((_) {});
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_filled) return;
+    _filled = true;
+    // The role picker says which login this is; anywhere else (signing
+    // out, an expired session) it is the role last used on this phone.
+    final arg = ModalRoute.of(context)?.settings.arguments;
+    if (arg == 'tanod' || arg == 'resident') {
+      _role = arg as String;
+      _fill();
+    } else {
+      AppRoleController.lastSignedIn().then((r) {
+        if (!mounted) return;
+        setState(() => _role = r == AppRole.tanod ? 'tanod' : 'resident');
+        _fill();
+      });
+    }
+  }
+
+  /// Each role shows its own remembered number and password (Ace, 6 Oct):
+  /// log out of the tanod side and the resident login has the resident's.
+  Future<void> _fill() async {
+    final saved = await SavedLogins.read(_role);
+    if (!mounted || _mobile.text.isNotEmpty) return;
+    if (saved != null) {
+      setState(() {
+        _mobile.text = saved.mobile;
+        _password.text = saved.password;
+      });
+      return;
+    }
+    if (_role == 'resident') {
+      try {
+        final last = (await SharedPreferences.getInstance()).getString(_lastMobileKey);
+        if (mounted && last != null && _mobile.text.isEmpty) setState(() => _mobile.text = last);
+      } catch (_) {}
+    }
   }
 
   @override
@@ -109,10 +143,11 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(rememberMeKey, _remember);
+        await prefs.remove(_lastMobileKey);
         if (_remember) {
-          await prefs.setString(_lastMobileKey, _mobile.text.trim());
+          await SavedLogins.write(_role, _mobile.text.trim(), _password.text);
         } else {
-          await prefs.remove(_lastMobileKey);
+          await SavedLogins.forget(_role);
         }
       } catch (_) {
         // Storage unavailable: the session persists, which is the
@@ -161,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final tanod = ModalRoute.of(context)?.settings.arguments == 'tanod';
+    final tanod = _role == 'tanod';
     final d = tanod ? (context.isDark ? DColors.tanodDark : DColors.tanodLight) : context.dResident;
     final cardText = Colors.white;
     return DPage(

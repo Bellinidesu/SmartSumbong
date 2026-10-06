@@ -81,6 +81,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     try {
       await widget.auth.changePassword(_password.text);
+      final email = widget.auth.user?.email ?? '';
+      if (email.contains('@')) {
+        await SavedLogins.updatePassword(
+            AppRoleController.instance.value == AppRole.tanod ? 'tanod' : 'resident', '+${email.split('@').first}', _password.text);
+      }
       if (!mounted) return;
       setState(() {
         _busy = false;

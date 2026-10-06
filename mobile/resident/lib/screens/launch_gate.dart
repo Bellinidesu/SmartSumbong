@@ -144,6 +144,7 @@ class _LaunchGateState extends State<LaunchGate> {
         last['role'] is String) {
       final tanod = last['role'] == 'tanod';
       await AppRoleController.instance.set(tanod ? AppRole.tanod : AppRole.resident);
+      await AppRoleController.instance.rememberSignedIn(tanod ? AppRole.tanod : AppRole.resident);
       _go(tanod ? '/t/home' : '/home');
       return;
     }
@@ -159,6 +160,7 @@ class _LaunchGateState extends State<LaunchGate> {
       final role = got[1] as String?;
       final tanod = role == 'tanod';
       await AppRoleController.instance.set(tanod ? AppRole.tanod : AppRole.resident);
+      await AppRoleController.instance.rememberSignedIn(tanod ? AppRole.tanod : AppRole.resident);
       unawaited(JsonCache.write(gateCacheKey, {
         'verified': s.status == VerificationState.verified,
         'suspended': s.isSuspended,
