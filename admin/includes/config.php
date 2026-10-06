@@ -32,6 +32,14 @@ function env(string $key, ?string $default = null): string
     return (string) $value;
 }
 
+// Moving hosts (7 Oct 2026): set PORTAL_MOVED_TO=https://new-host on the
+// old service and every page answers with a permanent redirect to the same
+// path there, so old links and bookmarks keep working. Unset, nothing happens.
+if (PHP_SAPI !== 'cli' && ($movedTo = getenv('PORTAL_MOVED_TO')) && preg_match('#^https://[a-z0-9.-]+$#i', $movedTo)) {
+    header('Location: ' . $movedTo . ($_SERVER['REQUEST_URI'] ?? '/'), true, 301);
+    exit;
+}
+
 const BRGY_NAME   = 'Barangay 183';
 const BRGY_CITY   = 'Pasay City';
 const SESSION_KEY = 'smartsumbong_admin';
