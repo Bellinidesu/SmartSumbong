@@ -321,7 +321,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= !empty($r['is_anonymous'])
                   ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
-                  : e(name_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></td>
+                  : e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></td>
           <td><?= e(category_label($r['category'])) ?></td>
           <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
               <?php else: ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
@@ -370,7 +370,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <?php endif; ?>
       <?php foreach ($dispatches as $d): ?>
         <tr>
-          <td><b><?= e(name_or($d['tanod']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></td>
+          <td><b><?= e(formal_or($d['tanod']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></td>
           <td><span class="p-mono-id"><?= e($d['report']['tracking_id'] ?? '—') ?></span></td>
           <td class="p-num"><?= e(long_datetime($d['assigned_at'])) ?></td>
           <td class="p-num"><?= $d['accepted_at'] ? e(long_datetime($d['accepted_at'])) : '<span class="p-over">' . e(t('Not accepted', 'Hindi tinanggap')) . '</span>' ?></td>

@@ -182,7 +182,7 @@ try {
     <tbody>
     <?php foreach ($admins as $a): ?>
       <tr>
-        <td><span class="ss-who"><?= admin_chip($a['id'], (string) $a['full_name'], 28) ?><?= e(display_name($a['full_name'])) ?></span><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
+        <td><span class="ss-who"><?= admin_chip($a['id'], (string) $a['full_name'], 28) ?><?= e(formal_name($a['full_name'])) ?></span><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
         <td><?= e((string) ($a['email'] ?? '')) ?></td>
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
         <td class="ss-online" data-admin="<?= e($a['id']) ?>"><span class="ss-dot"></span><?= e(t('Offline', 'Offline')) ?></td>

@@ -61,6 +61,7 @@ import '../d/d_categories.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../i18n.dart';
+import 'report_view_screen.dart' show bylineFor;
 import '../location_lookup.dart';
 import '../models/complaint_category.dart';
 import '../theme.dart';
@@ -491,12 +492,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
       for (final row in rows as List) {
         final id = row['report_id'] as String?;
         if (id == null) continue;
-        final isSystem = row['is_system'] as bool? ?? false;
-        final name = (row['author_name'] as String?)?.trim();
-        if (isSystem) {
-          authors[id] = 'SYSTEM';
-        } else if (name != null && name.isNotEmpty) {
-          authors[id] = 'TANOD ${name.toUpperCase()}';
+        final label = bylineFor(row as Map);
+        if (label != null) authors[id] = label;
+        if (row.containsKey('resident_remark')) {
+          final r = (row['resident_remark'] as String?)?.trim();
+          if (r != null && r.isNotEmpty) _resolutionNotes = {..._resolutionNotes, id: r};
         }
       }
       setState(() => _resolutionAuthors = authors);
@@ -1220,10 +1220,10 @@ class _LocationLabelState extends State<_LocationLabel> {
           children: [
             Icon(Icons.location_on_outlined, size: 12, color: colour),
             const SizedBox(width: 3),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 110),
+            Flexible(
               child: Text(
                 name,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 11, color: colour),
               ),

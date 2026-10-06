@@ -658,7 +658,7 @@ function showDetail(r) {
   // Who has it, the first photo, and the flood level, filled in as they arrive.
   sb.from('dispatches').select('state,assigned_at,tanod:users!dispatches_tanod_id_fkey(full_name)').eq('report_id', r.id).order('assigned_at', { ascending: false }).limit(1)
     .then(({ data }) => { if (csFor !== r.id) return; const d = data && data[0], box = document.getElementById('cs-tanod'); if (!box) return;
-      box.innerHTML = d && d.tanod ? esc(window.ssName(d.tanod.full_name)) + '<small>' + esc(label(d.state)) + ' · ' + esc(fmtDate(d.assigned_at) || '') + '</small>'
+      box.innerHTML = d && d.tanod ? esc(String(d.tanod.full_name || '').trim()) + '<small>' + esc(label(d.state)) + ' · ' + esc(fmtDate(d.assigned_at) || '') + '</small>'
         : esc(T('No tanod assigned yet', 'Wala pang naka-assign na tanod')) + '<small>' + esc(T('Dispatch from the case', 'I-dispatch mula sa kaso')) + '</small>'; });
   sb.from('report_media').select('media_url').eq('report_id', r.id).limit(1)
     .then(({ data }) => { if (csFor !== r.id || !data || !data[0]) return; const h = document.getElementById('cs-hero'); if (!h) return;

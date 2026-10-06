@@ -111,6 +111,9 @@ class ReportViewScreen extends StatefulWidget {
 }
 
 class _ReportViewScreenState extends State<ReportViewScreen> {
+  /// Once the coloured header has scrolled away, the status bar gets the
+  /// page colour behind it, so the clock never sits on top of the text.
+  final _pastHero = ValueNotifier<bool>(false);
   Map<String, dynamic>? _report;
   List<({String url, bool isVideo})> _photos = const [];
   List<({String url, bool isVideo})> _proof = const [];
@@ -146,6 +149,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
   @override
   void dispose() {
+    _pastHero.dispose();
     _liveDebounce?.cancel();
     if (_liveChannel != null) {
       Supabase.instance.client.removeChannel(_liveChannel!);
@@ -418,25 +422,25 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           params: {'p_report_id': widget.reportId});
       if (!mounted) return;
       final labels = <String, String>{};
+      // 0099: the note as a resident should read it (no tanod names,
+      // distances or system jargon).
+      final remarks = <String, String?>{};
       for (final row in rows as List) {
         final id = row['status_log_id'] as String?;
         if (id == null) continue;
-        final isSystem = row['is_system'] as bool? ?? false;
-        final name = (row['author_name'] as String?)?.trim();
-        if (isSystem) {
-          labels[id] = 'SYSTEM';
-        } else if (name != null && name.isNotEmpty) {
-          labels[id] = 'TANOD ${name.toUpperCase()}';
-        }
+        if ((row as Map).containsKey('resident_remark')) remarks[id] = row['resident_remark'] as String?;
+        final label = bylineFor(row);
+        if (label != null) labels[id] = label;
       }
-      if (labels.isEmpty) return;
+      if (labels.isEmpty && remarks.isEmpty) return;
       setState(() {
         _timeline = [
           for (final entry in _timeline)
-            if (labels.containsKey(entry['id']))
-              {...entry, 'author_label': labels[entry['id']]}
-            else
-              entry,
+            {
+              ...entry,
+              if (labels.containsKey(entry['id'])) 'author_label': labels[entry['id']],
+              if (remarks.containsKey(entry['id'])) 'remark': remarks[entry['id']],
+            },
         ];
       });
     } catch (_) {
@@ -456,9 +460,16 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final r = _report;
     final cat = ComplaintCategory.parse(r?['category'] as String?);
     final col = categoryColour(cat);
+    final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
       backgroundColor: d.bg,
-      body: RefreshIndicator(
+      body: Stack(children: [
+        NotificationListener<ScrollNotification>(
+          onNotification: (n) {
+            if (n.depth == 0) _pastHero.value = n.metrics.pixels > 170 - 8;
+            return false;
+          },
+          child: RefreshIndicator(
         onRefresh: _load,
         color: d.accent,
         child: CustomScrollView(slivers: [
@@ -476,6 +487,24 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           SliverToBoxAdapter(child: _body(s)),
         ]),
       ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: top,
+          child: IgnorePointer(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _pastHero,
+              builder: (context, on, _) => AnimatedOpacity(
+                opacity: on ? 1 : 0,
+                duration: const Duration(milliseconds: 150),
+                child: ColoredBox(color: d.bg),
+              ),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -692,7 +721,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 32),
+      padding: EdgeInsets.fromLTRB(18, 16, 18, 32 + MediaQuery.viewPaddingOf(context).bottom),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(r['subject'] as String? ?? '', style: DType.body(d.ink, size: 19, w: FontWeight.w800).copyWith(height: 1.25)),
         const SizedBox(height: 10),
@@ -2325,4 +2354,16 @@ class _ReasonPanelState extends State<_ReasonPanel> {
 String _fmtDate(Strings s, DateTime utc) {
   final d = utc.toLocal();
   return '${s.monthFull(d.month)} ${d.day}, ${d.year}';
+}
+
+/// Who wrote a timeline entry, as the resident reads it: "BARANGAY" for
+/// anything an administrator did (residents see the barangay as one body,
+/// as in the chat), `"TANOD <NAME>"` for a tanod, "SYSTEM" for the system.
+String? bylineFor(Map row) {
+  if (row['is_system'] as bool? ?? false) return 'SYSTEM';
+  final role = row['author_role'] as String?;
+  final name = (row['author_name'] as String?)?.trim();
+  if (role == 'admin' || name == 'Barangay') return 'BARANGAY';
+  if (name == null || name.isEmpty) return null;
+  return 'TANOD ${casualName(name).toUpperCase()}';
 }

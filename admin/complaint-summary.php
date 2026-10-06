@@ -37,7 +37,7 @@ if (!preg_match('/^\d{4}-\d{2}$/', $monthParam)) {
 $start     = new DateTimeImmutable($monthParam . '-01 00:00:00', $tz);
 $end       = $start->modify('first day of next month');
 $prevStart = $start->modify('first day of last month');
-$by        = trim((string) ($_GET['by'] ?? display_name($admin['full_name'] ?? '')));
+$by        = trim((string) ($_GET['by'] ?? formal_name($admin['full_name'] ?? '')));
 
 // The form's own names and order; "Others" catches anything outside the seven.
 const FORM_CATEGORIES = [

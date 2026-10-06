@@ -390,10 +390,10 @@ class _DField extends StatelessWidget {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         autofillHints: autofill,
-        style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15.5, color: Color(0xFF141B34)),
+        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: obscure ? 20 : 15.5, letterSpacing: obscure ? 2 : 0, color: const Color(0xFF141B34)),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 14.5, color: Color(0xFF8A90A3), fontStyle: FontStyle.normal),
+          hintStyle: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 14.5, letterSpacing: 0, color: Color(0xFF8A90A3), fontStyle: FontStyle.normal),
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

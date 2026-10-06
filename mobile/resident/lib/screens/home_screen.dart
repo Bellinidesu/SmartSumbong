@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       if (!mounted) return;
       setState(() {
-        _firstName = _firstNameOf(profile['full_name'] as String?);
+        _firstName = _casualNameOrNull(profile['full_name'] as String?);
         _unread = unread;
         _loading = false;
       });
@@ -288,9 +288,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
   }
 
-  static String? _firstNameOf(String? full) {
-    if (full == null || full.trim().isEmpty) return null;
-    return full.trim().split(RegExp(r'\s+')).first;
+  static String? _casualNameOrNull(String? full) {
+    return casualNameOrNull(full);
   }
 
   // Branch D, 1:1 with the preview's Home (in the C app's layout): the

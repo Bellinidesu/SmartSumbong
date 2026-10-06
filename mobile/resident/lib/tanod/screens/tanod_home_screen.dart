@@ -190,12 +190,12 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       if (!mounted) return;
       final name = (me['full_name'] as String? ?? '').trim();
       unawaited(JsonCache.write('home', {
-        'first_name': name.isEmpty ? null : name.split(' ').first,
+        'first_name': casualNameOrNull(name),
         'open': open,
       }));
       setState(() {
         _error = null;
-        _firstName = name.isEmpty ? null : name.split(' ').first;
+        _firstName = casualNameOrNull(name);
         _incoming = [
           for (final r in open) Ticket.fromRow(r),
         ];
@@ -307,7 +307,12 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(context.tr('INCOMING DISPATCH', 'PAPASOK NA DISPATCH'), style: DType.label(Colors.white.withValues(alpha: .8))),
                     const SizedBox(height: 8),
-                    Text(s.homeIncomingEmpty, style: DType.body(Colors.white.withValues(alpha: .9), size: 13.5)),
+                    ListenableBuilder(
+                      listenable: DutyController.instance,
+                      builder: (context, _) => Text(
+                          DutyController.instance.status == DutyState.onDuty ? s.homeIncomingWaiting : s.homeIncomingEmpty,
+                          style: DType.body(Colors.white.withValues(alpha: .9), size: 13.5)),
+                    ),
                   ]),
                 )
               else

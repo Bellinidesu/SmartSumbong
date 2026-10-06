@@ -68,7 +68,7 @@ function layout_head(string $title, string $active = ''): void
 // Whether a purok boundaries file exists (map-theme.js skips the request if not).
 window.SS_ZONES = <?= is_file(__DIR__ . '/../assets/map/zones.geojson') ? 'true' : 'false' ?>;
 window.ssThumb = function (u, w, sq) { u = String(u || ''); return /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) ? u.replace('/image/upload/', '/image/upload/' + (sq ? 'c_fill,g_face,w_' + w + ',h_' + w : 'c_limit,w_' + w) + ',q_auto,f_auto/') : u; };
-// Names are stored "Last, First"; people read them First Last (Rose). Same as display_name().
+// Casual name ("Ace Lediac") from the stored formal one ("Lediac, Ace"). Same as display_name().
 window.ssName = function (n) { n = String(n == null ? '' : n); var c = n.indexOf(','); return c > 0 ? n.slice(c + 1).trim() + ' ' + n.slice(0, c).trim() : n; };
 // The live connections' token (27 Sep 2026). A page starts with the one
 // it was loaded with; this hands supabase-js a fresh one from token.php
@@ -811,6 +811,23 @@ function cld_thumb(?string $url, int $w, bool $square = false): string
     if (!preg_match('#^https://res\.cloudinary\.com/[^/]+/image/upload/#', $url)) return $url;
     $t = $square ? "c_fill,g_face,w_$w,h_$w" : "c_limit,w_$w";
     return preg_replace('#/image/upload/#', "/image/upload/$t,q_auto,f_auto/", $url, 1);
+}
+
+/**
+ * How a name is written (Ace, 7 Oct 2026), same in the app:
+ *   formal — records, profiles, lists, documents: "Lediac, Ace" (as stored) — formal_name()
+ *   casual — greetings, bylines, chips, sentences: "Ace Lediac" — display_name()
+ */
+function formal_name(?string $name): string
+{
+    return trim((string) $name);
+}
+
+/** formal_name(), or $fallback when there is no name. */
+function formal_or(?string $name, string $fallback): string
+{
+    $n = formal_name($name);
+    return $n !== '' ? $n : $fallback;
 }
 
 /** display_name(), or $fallback when there is no name. */
