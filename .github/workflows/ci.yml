@@ -85,7 +85,7 @@ jobs:
           else
             echo "::warning::Add SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD to run the database checks."
           fi
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         if: steps.have.outputs.yes
         with:
           version: latest
