@@ -180,7 +180,7 @@ class _MapScreenState extends State<MapScreen> {
   void _fitTo(List<_Pin> pins) => _map.fit([
         for (final p in pins)
           if (withinBrgyBounds(p.point)) p.point,
-      ]);
+      ], top: MediaQuery.paddingOf(context).top + 150, bottom: 300);
 
   // The Google Maps-style sheet (`.sheet`): a grip, the category colour as
   // a 110 px hero with its chip and a close button, then the subject, the
@@ -372,24 +372,21 @@ class _MapScreenState extends State<MapScreen> {
             _NoahChip(on: _hazards, label: '${s.mapHazardToggle} · Project NOAH', onTap: () => setState(() => _hazards = !_hazards)),
           ]),
         ),
-        // zoom buttons
+        // the zoom buttons, stacked on the eye card so it never covers them
         Positioned(
+          left: 12,
           right: 12,
-          bottom: 138 + (_hazards ? 26 : 0),
-          child: Column(children: [
+          bottom: 14,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
+          Column(children: [
             dock(dockText('+'), () => _map.zoomBy(1)),
             const SizedBox(height: 8),
             dock(dockText('−'), () => _map.zoomBy(-1)),
             const SizedBox(height: 8),
             dock(dockText('◎'), () => _map.move(brgyCentre, 16)),
           ]),
-        ),
-        // the eye card
-        Positioned(
-          left: 12,
-          right: 12,
-          bottom: 14,
-          child: Container(
+          const SizedBox(height: 12),
+          Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: d.card,
@@ -405,14 +402,18 @@ class _MapScreenState extends State<MapScreen> {
                   Text(_showReports ? s.mapCardBodyShowing : s.mapCardBodyHidden, style: DType.body(d.muted, size: 12.5).copyWith(height: 1.35)),
                   if (_showReports && pins.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Wrap(spacing: 10, runSpacing: 4, children: [
+                    // two even columns, so the dots line up down the card
+                    LayoutBuilder(builder: (context, box) => Wrap(spacing: 10, runSpacing: 4, children: [
                       for (final c in {for (final p in pins) p.category ?? ComplaintCategory.other})
-                        Row(mainAxisSize: MainAxisSize.min, children: [
-                          Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: categoryColour(c))),
-                          const SizedBox(width: 5),
-                          Text(c.label, style: DType.body(d.muted, size: 11.5)),
-                        ]),
-                    ]),
+                        SizedBox(
+                          width: (box.maxWidth - 10) / 2,
+                          child: Row(children: [
+                            Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: categoryColour(c))),
+                            const SizedBox(width: 5),
+                            Expanded(child: Text(c.label, maxLines: 2, style: DType.body(d.muted, size: 11.5))),
+                          ]),
+                        ),
+                    ])),
                   ],
                   if (_hazards) ...[
                     const SizedBox(height: 6),
@@ -441,6 +442,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ]),
           ),
+          ]),
         ),
       ]),
     );
