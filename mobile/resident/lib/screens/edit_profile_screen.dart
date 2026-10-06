@@ -47,6 +47,7 @@ import '../d/d_ui.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
+import 'forgot_password_screen.dart' show kSmsResetEnabled;
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key, required this.auth, required this.uploader});
@@ -178,6 +179,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() => _emailError = context.s.editProfileEmailInvalid);
       return;
     }
+    // Rose (7 Oct 2026): every change to an account is confirmed first.
+    if (!await _confirm(
+      context.tr('Save your changes?', 'I-save ang mga pagbabago?'),
+      context.tr('Your profile will be updated right away.', 'Maa-update agad ang iyong profile.'),
+      context.tr('Save', 'I-save'),
+      preview: _newAvatar == null ? null : Image.file(_newAvatar!, fit: BoxFit.cover, width: 160, height: 160),
+    )) {
+      return;
+    }
 
     setState(() {
       _saving = true;
@@ -299,6 +309,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final f = await widget.uploader.pick(source: source);
       if (f == null) return;
+      if (!mounted) return;
+      // Rose (7 Oct 2026): a picked photo was sent on the spot. Ask first.
+      final send = await _confirm(
+        context.tr('Send this ID to the barangay?', 'Ipadala ang ID na ito sa barangay?'),
+        context.tr('The barangay checks it first. Your current ID stays on file until they approve the new one.', 'Titingnan muna ito ng barangay. Mananatili ang kasalukuyang ID hanggang aprubahan nila ang bago.'),
+        context.tr('Send', 'Ipadala'),
+        preview: Image.file(f, fit: BoxFit.cover, width: double.infinity),
+      );
+      if (!send) return;
       final up = await widget.uploader.upload(f, kind: MediaKind.identityCard);
       await Supabase.instance.client.rpc('request_id_reupload', params: {
         'p_id_type': type,
@@ -350,6 +369,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() => _banner = context.s.editProfileMobileInvalid);
       return;
     }
+    if (!mounted) return;
+    final shown = field == 'mobile_number' ? _localPhone(normalised) : normalised;
+    if (!await _confirm(
+      context.tr('Send this change?', 'Ipadala ang pagbabagong ito?'),
+      context.tr('$label: $shown. The barangay checks it before it changes.', '$label: $shown. Titingnan muna ito ng barangay bago palitan.'),
+      context.tr('Send request', 'Ipadala'),
+    )) {
+      return;
+    }
+    // Rose (7 Oct 2026): your own number needs no barangay approval, just
+    // a code to the new number. Off until Semaphore has credits.
+    if (field == 'mobile_number' && kSmsResetEnabled) {
+      await _changeMobileBySms(normalised);
+      return;
+    }
 
     try {
       await Supabase.instance.client.rpc('request_profile_change', params: {
@@ -369,12 +403,95 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<Map<String, dynamic>> _otp(Map<String, dynamic> body) async {
+    final failed = context.tr('Something went wrong. Try again.', 'May nangyaring mali. Subukan muli.');
+    final offline = context.tr('No connection. Try again.', 'Walang koneksyon. Subukan muli.');
+    try {
+      final r = await Supabase.instance.client.functions.invoke('password-otp', body: body);
+      return Map<String, dynamic>.from(r.data as Map);
+    } on FunctionException catch (e) {
+      final d = e.details;
+      if (d is Map && d['message'] is String) return {'ok': false, 'message': d['message']};
+      return {'ok': false, 'message': failed};
+    } catch (_) {
+      return {'ok': false, 'message': offline};
+    }
+  }
+
+  /// 0104: a code to the new number, then the number moves (sign-in too).
+  Future<void> _changeMobileBySms(String mobile) async {
+    setState(() {
+      _banner = null;
+      _saving = true;
+    });
+    final sent = await _otp({'action': 'mobile_send', 'mobile': mobile});
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (sent['ok'] != true) {
+      setState(() => _banner = sent['message'] as String?);
+      return;
+    }
+    final s = context.s;
+    final code = await showFigmaDialog<String>(
+      context,
+      builder: (_) => _RequestDialog(
+        title: context.tr('Enter the code', 'Ilagay ang code'),
+        prompt: sent['message'] as String? ?? '',
+        hint: '123456',
+        keyboardType: TextInputType.number,
+      ),
+    );
+    if (code == null || code.trim().isEmpty || !mounted) return;
+    setState(() => _saving = true);
+    final done = await _otp({'action': 'mobile_verify', 'code': code.trim()});
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (done['ok'] != true) {
+      setState(() => _banner = done['message'] as String?);
+      return;
+    }
+    final old = _mobile;
+    setState(() => _mobile = mobile);
+    // The remembered sign-in for this role follows the number.
+    final role = AppRoleController.instance.value == AppRole.tanod ? 'tanod' : 'resident';
+    final saved = await SavedLogins.read(role);
+    if (saved != null && old != null && AuthService.normaliseMobile(saved.mobile) == AuthService.normaliseMobile(old)) {
+      await SavedLogins.write(role, _localPhone(mobile).replaceAll(' ', ''), saved.password);
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(done['message'] as String? ?? s.editProfileRequestSent),
+      backgroundColor: context.colors.navy,
+    ));
+  }
+
+  /// One confirm step for every account change (Rose, 7 Oct 2026).
+  Future<bool> _confirm(String title, String body, String primary, {Widget? preview}) async {
+    final ok = await showDDialog(
+      context,
+      title: title,
+      body: body,
+      primary: primary,
+      secondary: context.tr('Cancel', 'Kanselahin'),
+      icon: preview == null ? Icons.help_outline_rounded : null,
+      preview: preview,
+    );
+    return ok == true;
+  }
+
   Future<void> _changePassword() async {
     final pair = await showFigmaDialog<String>(
       context,
       builder: (_) => const _PasswordDialog(),
     );
-    if (pair == null) return;
+    if (pair == null || !mounted) return;
+    if (!await _confirm(
+      context.tr('Change your password?', 'Palitan ang password?'),
+      context.tr('Use the new password the next time you sign in.', 'Gamitin ang bagong password sa susunod na pag-sign in.'),
+      context.tr('Change', 'Palitan'),
+    )) {
+      return;
+    }
 
     try {
       await Supabase.instance.client.auth

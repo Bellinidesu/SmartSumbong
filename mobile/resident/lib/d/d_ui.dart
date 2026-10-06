@@ -677,6 +677,7 @@ Future<bool?> showDDialog(
   DButtonKind primaryKind = DButtonKind.orange,
   IconData? icon,
   Color? iconColor,
+  Widget? preview,
 }) {
   return showDialog<bool>(
     context: context,
@@ -700,6 +701,10 @@ Future<bool?> showDDialog(
                 ),
               ),
               const SizedBox(height: 12),
+            ],
+            if (preview != null) ...[
+              ClipRRect(borderRadius: BorderRadius.circular(16), child: ConstrainedBox(constraints: const BoxConstraints(maxHeight: 200), child: preview)),
+              const SizedBox(height: 14),
             ],
             Text(title, textAlign: TextAlign.center, style: DType.h2(d.ink)),
             if (body != null) ...[

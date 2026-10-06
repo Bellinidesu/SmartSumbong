@@ -280,7 +280,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     <?php endif; ?>
   </div>
 <?php else: ?>
-  <form method="post" id="profile-form" enctype="multipart/form-data" class="p-card p-card-pad ss-pf-form">
+  <form method="post" id="profile-form" enctype="multipart/form-data" class="p-card p-card-pad ss-pf-form" data-native-confirm="<?= e(t('Save the changes to your account?', 'I-save ang mga pagbabago sa iyong account?')) ?>">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="action" value="profile">
     <p class="p-eyebrow"><?= e(t('Your details', 'Iyong mga detalye')) ?></p>

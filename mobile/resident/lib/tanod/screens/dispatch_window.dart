@@ -19,6 +19,15 @@ part of 'dispatch_order.dart';
 /// both back. The barangay's instructions and the step updates still show.
 const bool kTanodNavAndChat = false;
 
+/// Rose (7 Oct 2026): Resolve next to I'm on the way confused her, so the
+/// page shows one next step until the tanod has arrived. Switched off,
+/// not removed: true puts Resolve back beside the first two steps.
+const bool kResolveBeforeArrival = false;
+
+/// The orange Navigate pill on the map repeated the big Navigate button
+/// under it. Off: the map keeps Open in Maps only. True brings it back.
+const bool kMapNavigatePill = false;
+
 MediaUploader _proofUploader() => MediaUploader(
   cloudName: _cloudName,
   uploadPreset: _uploadPreset,
@@ -1037,18 +1046,24 @@ class _DispatchWindowState extends State<DispatchWindow>
                 ),
                 const SizedBox(height: 8),
               ],
-              Row(children: [
-                Expanded(
-                  child: _MapPill(
-                    icon: Icons.navigation_rounded,
-                    label: _navStarting ? context.ts.dispatchFindingYou : context.ts.navNavigate,
-                    orange: true,
-                    onTap: _navStarting || !_open ? null : _navigate,
+              if (kMapNavigatePill)
+                Row(children: [
+                  Expanded(
+                    child: _MapPill(
+                      icon: Icons.navigation_rounded,
+                      label: _navStarting ? context.ts.dispatchFindingYou : context.ts.navNavigate,
+                      orange: true,
+                      onTap: _navStarting || !_open ? null : _navigate,
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(child: _MapPill(icon: Icons.map_outlined, label: context.ts.dispatchOpenMaps, onTap: () => _openMaps(to))),
+                ])
+              else
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(width: 168, child: _MapPill(icon: Icons.map_outlined, label: context.ts.dispatchOpenMaps, onTap: () => _openMaps(to))),
                 ),
-                const SizedBox(width: 8),
-                Expanded(child: _MapPill(icon: Icons.map_outlined, label: context.ts.dispatchOpenMaps, onTap: () => _openMaps(to))),
-              ]),
             ]),
           ),
       ],
@@ -1122,7 +1137,23 @@ class _DispatchWindowState extends State<DispatchWindow>
             _ => null,
           };
     Widget main;
-    if (i == 0) {
+    final arrivedLink = TextButton(
+      onPressed: _stepping ? null : () => _setStep('arrived'),
+      child: Text(context.tr('Already there? Mark I’ve arrived', 'Nandito ka na? Markahan ang Nandito na ako'),
+          style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, color: d.link)),
+    );
+    if (i == 0 && !kResolveBeforeArrival) {
+      main = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        DButton(s.windowActionOnTheWay, busy: _stepping || _navStarting, onTap: _onTheWay, expand: true, height: 56, radius: 14, fontSize: 17),
+        arrivedLink,
+      ]);
+    } else if (i == 1 && !kResolveBeforeArrival) {
+      main = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        DButton(context.tr('Navigate', 'Mag-navigate'),
+            icon: Icons.navigation_rounded, busy: _navStarting, onTap: _casePoint == null ? null : _navigate, expand: true, height: 56, radius: 14, fontSize: 17),
+        arrivedLink,
+      ]);
+    } else if (i == 0) {
       main = Row(children: [
         Expanded(flex: 27, child: DButton(s.windowActionOnTheWay, busy: _stepping || _navStarting, onTap: _onTheWay, expand: true, height: 52, radius: 14, fontSize: 16)),
         const SizedBox(width: 8),
