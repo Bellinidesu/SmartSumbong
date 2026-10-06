@@ -10,11 +10,13 @@
 # PostgREST + GoTrue), so there is nothing to install beyond PHP + curl +
 # mbstring — no database driver, no composer, no build step.
 
-FROM php:8.3-apache
+# PHP 8.5 (7 Oct 2026), the version the portal is developed on. It also
+# keeps database connections open between page loads (supabase.php).
+FROM php:8.5-apache
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev \
-    && docker-php-ext-install curl mbstring opcache \
+    && docker-php-ext-install curl mbstring \
     && a2enmod rewrite expires headers deflate \
     && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
@@ -24,7 +26,7 @@ RUN apt-get update \
 # server's file paths. The image's own production ini logs them instead.
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Speed (7 Oct 2026): OPcache keeps compiled PHP in memory. The image never
+# Speed (7 Oct 2026): OPcache (built into PHP 8.5) keeps compiled PHP in memory. The image never
 # changes after it is built, so there is no need to re-check files on disk.
 RUN { echo 'opcache.enable=1'; echo 'opcache.memory_consumption=64'; echo 'opcache.max_accelerated_files=4000';       echo 'opcache.validate_timestamps=0'; echo 'opcache.interned_strings_buffer=8'; } > "$PHP_INI_DIR/conf.d/zz-opcache.ini"
 

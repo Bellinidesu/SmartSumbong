@@ -55,18 +55,23 @@ $error   = null;
 $metrics = null;
 
 try {
-    $metrics = $db->rpc('dashboard_metrics', [
-        'p_from'     => $month->format(DateTimeInterface::ATOM),
-        'p_to'       => $next->format(DateTimeInterface::ATOM),
-        'p_category' => $effCategory ?: null,
+    // This month and the previous one, fetched together (speed, 7 Oct).
+    // A number on its own says nothing — "31 complaints" is either a quiet
+    // month or a crisis depending on what last month was. The comparison
+    // is what a kapitan reads.
+    $both = $db->selectMany([
+        'now'  => ['rpc/dashboard_metrics', [
+            'p_from'     => $month->format(DateTimeInterface::ATOM),
+            'p_to'       => $next->format(DateTimeInterface::ATOM),
+            'p_category' => $effCategory ?: null,
+        ]],
+        'prev' => ['rpc/dashboard_metrics', [
+            'p_from' => $month->modify('-1 month')->format(DateTimeInterface::ATOM),
+            'p_to'   => $month->format(DateTimeInterface::ATOM),
+        ]],
     ]);
-    // Same call, previous month. A number on its own says nothing —
-    // "31 complaints" is either a quiet month or a crisis depending on
-    // what last month was. The comparison is what a kapitan reads.
-    $prev = $db->rpc('dashboard_metrics', [
-        'p_from' => $month->modify('-1 month')->format(DateTimeInterface::ATOM),
-        'p_to'   => $month->format(DateTimeInterface::ATOM),
-    ]);
+    $metrics = $both['now'];
+    $prev    = $both['prev'];
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }

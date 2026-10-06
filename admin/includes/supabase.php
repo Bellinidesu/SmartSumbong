@@ -12,6 +12,35 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 
+/**
+ * cURL options every database request shares (speed, 7 Oct 2026).
+ *
+ * The database is a long way from the portal, and opening a new secure
+ * connection costs several round trips before the first byte. One shared
+ * connection pool (with DNS and TLS sessions) means a page's calls, and on
+ * PHP 8.5 the next page's too, reuse the same open connection; HTTP/2 lets
+ * parallel calls travel over it together.
+ */
+function supabase_curl_opts(): array
+{
+    static $share = null;
+    if ($share === null) {
+        $what = [CURL_LOCK_DATA_DNS, CURL_LOCK_DATA_SSL_SESSION, CURL_LOCK_DATA_CONNECT];
+        if (function_exists('curl_share_init_persistent')) {
+            $share = curl_share_init_persistent($what);
+        } else {
+            $share = curl_share_init();
+            foreach ($what as $w) { curl_share_setopt($share, CURLSHOPT_SHARE, $w); }
+        }
+    }
+    return [
+        CURLOPT_SHARE         => $share,
+        CURLOPT_HTTP_VERSION  => CURL_HTTP_VERSION_2TLS,
+        CURLOPT_TCP_KEEPALIVE => 1,
+        CURLOPT_ENCODING      => '',
+    ];
+}
+
 class SupabaseError extends RuntimeException
 {
     public function __construct(string $message, public readonly int $status = 0)
@@ -42,6 +71,7 @@ final class Supabase
         }
 
         $ch = curl_init(supabase_url() . $path);
+        curl_setopt_array($ch, supabase_curl_opts());
         curl_setopt_array($ch, [
             CURLOPT_CUSTOMREQUEST  => $method,
             CURLOPT_RETURNTRANSFER => true,
@@ -199,6 +229,7 @@ final class Supabase
             $headers[] = 'Range: 0-0';
         }
         $mh = curl_multi_init();
+        curl_multi_setopt($mh, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
         $queue = $selects;
         $optional = array_map(fn($s) => !empty($s[2]), $selects);
         $running = [];   // (int) handle id => [key, handle]
@@ -212,6 +243,7 @@ final class Supabase
             if ($count) { $query['select'] = 'id'; }
             $qs = ($query && !$isRpc) ? '?' . http_build_query($query) : '';
             $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");
+            curl_setopt_array($ch, supabase_curl_opts());
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HEADER         => $count,
@@ -270,6 +302,7 @@ final class Supabase
         $qs = '?' . http_build_query($query);
 
         $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");
+        curl_setopt_array($ch, supabase_curl_opts());
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_NOBODY         => false,

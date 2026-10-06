@@ -41,11 +41,18 @@ $db    = db();
 function signs_in_by_phone(Supabase $db): ?bool
 {
     try {
-        $email = (string) ($db->authUser()['email'] ?? '');
+        $email = (string) (auth_user_once($db)['email'] ?? '');
     } catch (Throwable) {
         return null;
     }
     return $email === '' ? null : str_ends_with(strtolower($email), '@auth.smartsumbong.local');
+}
+
+/** The signed-in user from GoTrue, asked once per page (speed, 7 Oct). */
+function auth_user_once(Supabase $db): array
+{
+    static $u = null;
+    return $u ??= $db->authUser();
 }
 
 session_start_once();
@@ -195,7 +202,7 @@ try {
 // used by somebody else. Never worth failing the page over.
 $lastSeen = null;
 try {
-    $lastSeen = db()->authUser()['last_sign_in_at'] ?? null;
+    $lastSeen = auth_user_once($db)['last_sign_in_at'] ?? null;
 } catch (Throwable) {
 }
 // Locked unless positively known to be safe to change.

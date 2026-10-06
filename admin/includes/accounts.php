@@ -183,27 +183,41 @@ function render_account_screen(string $role): void
     $error    = null;
     $accounts = [];
 
+    // One round trip for the list, the tanods' latest cases and the waiting
+    // profile requests (speed, 7 Oct 2026); they used to follow one another.
+    $batch = [
+        'accounts' => ['rpc/account_directory', ['p_role' => $role]],
+        // 0086 (Martin): name changes and new ID photos waiting for a decision.
+        'requests' => ['profile_requests', [
+            'select' => 'id,kind,new_full_name,id_type,id_image_url,reason,created_at,'
+                      . 'who:users!profile_requests_user_id_fkey(full_name,mobile_number,role)',
+            'status' => 'eq.pending',
+            'order'  => 'created_at.asc',
+        ], true],
+    ];
+    if ($isTanod) {
+        // Figma TanodLists (branch B): "Latest Complaint Handled" — the
+        // complaint of each tanod's most recent dispatch. Newest first, so
+        // the first row seen per tanod is theirs.
+        $batch['latest'] = ['dispatches', [
+            'select' => 'tanod_id,report:reports!dispatches_report_id_fkey(tracking_id)',
+            'order'  => 'assigned_at.desc',
+            'limit'  => '1000',
+        ], true];
+    }
+    $got = [];
     try {
-        $accounts = $db->rpc('account_directory', ['p_role' => $role]);
+        $got = $db->selectMany($batch);
+        $accounts = (array) $got['accounts'];
     } catch (SupabaseError $ex) {
         $error = safe_error($ex);
     }
 
-    // Figma TanodLists (branch B): "Latest Complaint Handled" — the
-    // complaint of each tanod's most recent dispatch. Newest first, so
-    // the first row seen per tanod is theirs.
     $latestCase = [];
-    if ($isTanod && !$error) {
-        try {
-            foreach ($db->select('dispatches', [
-                'select' => 'tanod_id,report:reports!dispatches_report_id_fkey(tracking_id)',
-                'order'  => 'assigned_at.desc',
-                'limit'  => '1000',
-            ]) as $d) {
-                $latestCase[$d['tanod_id']] ??= $d['report']['tracking_id'] ?? null;
-            }
-        } catch (SupabaseError) {
-            // The column reads "None" rather than failing the list.
+    // The column reads "None" rather than failing the list.
+    if (isset($got['latest']) && is_array($got['latest'])) {
+        foreach ($got['latest'] as $d) {
+            $latestCase[$d['tanod_id']] ??= $d['report']['tracking_id'] ?? null;
         }
     }
 
@@ -281,17 +295,10 @@ function render_account_screen(string $role): void
     <?php endif; ?>
 
     <?php
-    // 0086 (Martin): name changes and new ID photos waiting for a decision.
-    $requests = [];
-    try {
-        $requests = $db->select('profile_requests', [
-            'select' => 'id,kind,new_full_name,id_type,id_image_url,reason,created_at,'
-                      . 'who:users!profile_requests_user_id_fkey(full_name,mobile_number,role)',
-            'status' => 'eq.pending',
-            'order'  => 'created_at.asc',
-        ]);
-        $requests = array_values(array_filter($requests, fn($r) => ($r['who']['role'] ?? '') === ($isTanod ? 'tanod' : 'resident')));
-    } catch (SupabaseError $e) { $requests = []; }
+    // 0086 (Martin): fetched with the list above.
+    $requests = isset($got['requests']) && is_array($got['requests'])
+        ? array_values(array_filter($got['requests'], fn($r) => ($r['who']['role'] ?? '') === ($isTanod ? 'tanod' : 'resident')))
+        : [];
     ?>
     <?php if ($requests): ?>
       <div class="p-card p-card-pad ss-requests">

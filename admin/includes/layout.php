@@ -90,7 +90,7 @@ window.ssAccessToken = function (initial) {
   <aside class="p-sidebar">
     <a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.png" alt="Smart Sumbong"></a>
     <nav class="p-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
-      <?php $live = open_complaint_count(); $counts = nav_counts(); $counts['spatial.php'] = $live; ?>
+      <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
         <?php $n = $counts[$href] ?? 0; ?>
         <a href="<?= e($href) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
@@ -209,22 +209,6 @@ function idle_timeout(): void
  * must never take a page down, so it swallows and returns zero — the
  * indicator simply does not appear.
  */
-function open_complaint_count(): int
-{
-    static $n = null;
-    if ($n !== null) return $n;
-
-    try {
-        $n = db()->count('reports', [
-            'deleted_at' => 'is.null',
-            'status'     => 'in.(pending_review,validated,assigned,in_progress,offline_investigation)',
-        ]);
-    } catch (Throwable) {
-        $n = 0;
-    }
-    return $n;
-}
-
 /** Two letters for the admin card: first and last word of the name. */
 function admin_initials(string $name): string
 {
@@ -239,8 +223,8 @@ function admin_initials(string $name): string
 /**
  * The red counts on the sidebar (refined design, 1 Oct 2026): complaints
  * waiting for review, residents waiting for verification, retirement
- * requests waiting for a decision. Kept in the session for a minute so a
- * page load is not three more round trips; any failure just hides a count.
+ * requests waiting for a decision, and open complaints on Spatial. Kept in
+ * the session for a minute; any failure just hides a count.
  *
  * @return array<string,int> keyed by nav href
  */
@@ -252,14 +236,20 @@ function nav_counts(): array
     if (is_array($cached) && ($cached['at'] ?? 0) > time() - 60) {
         return $memo = $cached['n'];
     }
-    $count = function (string $table, array $q): int {
-        try { return db()->count($table, $q); } catch (Throwable) { return 0; }
-    };
-    $memo = [
-        'cases.php'               => $count('reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review']),
-        'residents.php'           => $count('users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending']),
-        'retirement-requests.php' => $count('retirement_requests', ['status' => 'eq.pending']),
-    ];
+    // All four in one batch (speed, 7 Oct 2026): they used to be four calls
+    // one after another, the open-complaint count on every single page.
+    try {
+        $memo = db()->selectMany([
+            'cases.php'               => ['reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review'], true],
+            'residents.php'           => ['users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending'], true],
+            'retirement-requests.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
+            'spatial.php'             => ['reports', ['deleted_at' => 'is.null',
+                                           'status' => 'in.(pending_review,validated,assigned,in_progress,offline_investigation)'], true],
+        ], true);
+        $memo = array_map(fn($v) => is_int($v) ? $v : 0, $memo);
+    } catch (Throwable) {
+        $memo = [];
+    }
     $_SESSION['nav_counts'] = ['at' => time(), 'n' => $memo];
     return $memo;
 }

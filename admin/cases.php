@@ -95,6 +95,7 @@ $error = null;
 $reports = [];
 $notifications = [];
 $escalations = [];
+$adminList = [];
 
 try {
     // The embedded resident is a PostgREST foreign-key expansion; the
@@ -134,7 +135,40 @@ try {
         $needle = preg_replace('/[,()"\\\\*]/', ' ', $search);
         $query['or'] = "(tracking_id.ilike.*{$needle}*,subject.ilike.*{$needle}*)";
     }
-    $reports = $db->select('reports', $query);
+    // Built now, fetched below together with notifications, escalations
+    // and the admin list: one round trip instead of four (speed, 7 Oct).
+
+
+    // Unread by default; a search looks through read ones too, since
+    // what an admin searches for is usually something already seen.
+    $nq = [
+        'select'  => 'id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role)',
+        'user_id' => 'eq.' . $admin['id'],
+        'order'   => 'created_at.' . ($nSort === 'oldest' ? 'asc' : 'desc'),
+        'limit'   => $nSearch !== '' ? '50' : '20',
+    ];
+    if ($nSearch !== '') {
+        $nq['message'] = 'ilike.*' . preg_replace('/[,()"\\\\*]/', ' ', $nSearch) . '*';
+    } else {
+        $nq['is_read'] = 'is.false';
+    }
+    $got = $db->selectMany([
+        'reports'     => ['reports', $query],
+        'notes'       => ['notifications', $nq],
+        // 0073 — Manage Escalation Request: tanods' requests waiting on an admin.
+        'escalations' => ['escalation_requests', [
+            'select' => 'id,reason,suggested_office,created_at,'
+                      . 'report:reports!escalation_requests_report_id_fkey(id,tracking_id,category),'
+                      . 'requester:users!escalation_requests_requested_by_fkey(full_name)',
+            'status' => 'eq.pending',
+            'order'  => 'created_at.asc',
+        ], true],
+        'admins'      => ['users', ['select' => 'id,full_name', 'role' => 'eq.admin', 'order' => 'full_name.asc'], true],
+    ]);
+    $reports       = $got['reports'];
+    $notifications = $got['notes'];
+    $escalations   = $got['escalations'] instanceof SupabaseError ? [] : $got['escalations'];
+    $adminList     = $got['admins'] instanceof SupabaseError ? [] : $got['admins'];
 
     // "Needs attention" is the question an admin actually opens this page
     // with: what is late, what nobody has picked up, and what is still
@@ -150,33 +184,6 @@ try {
     }));
     if ($view === 'attention') { $reports = $attention; }
 
-    // Unread by default; a search looks through read ones too, since
-    // what an admin searches for is usually something already seen.
-    $nq = [
-        'select'  => 'id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role)',
-        'user_id' => 'eq.' . $admin['id'],
-        'order'   => 'created_at.' . ($nSort === 'oldest' ? 'asc' : 'desc'),
-        'limit'   => $nSearch !== '' ? '50' : '20',
-    ];
-    if ($nSearch !== '') {
-        $nq['message'] = 'ilike.*' . preg_replace('/[,()"\\\\*]/', ' ', $nSearch) . '*';
-    } else {
-        $nq['is_read'] = 'is.false';
-    }
-    $notifications = $db->select('notifications', $nq);
-
-    // 0073 — Manage Escalation Request: tanods' requests waiting on an admin.
-    try {
-        $escalations = $db->select('escalation_requests', [
-            'select' => 'id,reason,suggested_office,created_at,'
-                      . 'report:reports!escalation_requests_report_id_fkey(id,tracking_id,category),'
-                      . 'requester:users!escalation_requests_requested_by_fkey(full_name)',
-            'status' => 'eq.pending',
-            'order'  => 'created_at.asc',
-        ]);
-    } catch (SupabaseError) {
-        $escalations = [];
-    }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -290,10 +297,6 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
           <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select></label>
-    <?php
-      $adminList = [];
-      try { $adminList = $db->select('users', ['select' => 'id,full_name', 'role' => 'eq.admin', 'order' => 'full_name.asc']); } catch (SupabaseError $e) {}
-    ?>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Handled by', 'Hawak ni')) ?></span>
       <select name="who" onchange="this.form.submit()">
         <option value=""><?= e(t('Anyone', 'Kahit sino')) ?></option>
