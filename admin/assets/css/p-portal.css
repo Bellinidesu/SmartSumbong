@@ -372,3 +372,13 @@ a.p-btn-pdf2 { text-decoration: none; }
 .st-uptime-tile.st-down b { color: var(--p-red); }
 .st-uptime .st-note { margin: 0; }
 @media (max-width: 760px) { .st-uptime-tiles { grid-template-columns: 1fr; } }
+
+/* Settings → System status: recent errors (0097) */
+.st-errors { display: grid; gap: 10px; margin-bottom: 18px; }
+.st-errors .p-eyebrow, .st-errors .p-none-line { margin: 0; }
+.st-err-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.st-err-list li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid var(--p-line); }
+.st-err-list li:first-child { border-top: 0; }
+.st-err-list .p-badge { justify-self: start; }
+.st-err-list b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.st-err-list small { color: var(--p-muted); font-size: 12.5px; }

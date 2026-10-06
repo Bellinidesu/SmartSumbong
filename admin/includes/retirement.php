@@ -226,7 +226,7 @@ function render_retirement_queue(): void
         <form method="post" style="display:inline">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="action" value="cancel_handover"
-                  onclick="return confirm(<?= e(json_encode(t('Cancel the handover? Your successor keeps admin access either way.', 'Kanselahin ang handover? Mananatili ang admin access ng iyong kahalili alinman dito.'), JSON_UNESCAPED_UNICODE)) ?>)">
+                  data-native-confirm="<?= e(t('Cancel the handover? Your successor keeps admin access either way.', 'Kanselahin ang handover? Mananatili ang admin access ng iyong kahalili alinman dito.')) ?>">
             <?= e(t('Cancel handover', 'Kanselahin ang handover')) ?>
           </button>
         </form>

@@ -109,34 +109,96 @@ function asset_version(string $cssFile): string
 }
 
 /**
- * Content-Security-Policy (industry pass 3, 7 Oct 2026): the browser runs
- * scripts and loads data only from this site and the services the portal
- * really uses — Supabase (data, sign-in, live updates), Cloudinary
- * (photos), OpenFreeMap (map tiles), Open-Meteo (rain), Nominatim
- * (addresses) and Google Fonts (the printable documents). Anything else,
- * including a script injected into a page, is refused. Inline scripts and
- * handlers are still allowed: the pages use many, and moving them out is
- * after-defense work.
+ * Content-Security-Policy (industry passes 3 and 6, 7 Oct 2026). The
+ * browser runs only scripts this server put in the page: every <script>
+ * carries a random per-request nonce (added below, as the page is sent),
+ * so an injected script, inline or remote, is refused. Data, images and
+ * fonts load only from this site and the services the portal really uses:
+ * Supabase (data, sign-in, live updates), Cloudinary (photos),
+ * OpenFreeMap (map tiles), Open-Meteo (rain), Nominatim (addresses) and
+ * Google Fonts (the printable documents). Inline styles stay allowed.
  */
+function csp_nonce(): string
+{
+    static $n = null;
+    return $n ??= rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
+}
+
 function send_security_policy(): void
 {
     if (PHP_SAPI === 'cli' || headers_sent()) return;
     try { $sb = supabase_url(); } catch (Throwable) { $sb = ''; }
     $ws = preg_replace('#^http#', 'ws', $sb);
+    $nonce = csp_nonce();
     $policy = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
+        "script-src 'self' 'nonce-{$nonce}'",
+        "script-src-attr 'none'",
         "worker-src 'self' blob:",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' data: https://fonts.gstatic.com",
         "img-src 'self' data: blob: https://res.cloudinary.com https://tiles.openfreemap.org",
         "media-src 'self' blob: https://res.cloudinary.com",
         "connect-src 'self' {$sb} {$ws} https://tiles.openfreemap.org https://api.open-meteo.com https://nominatim.openstreetmap.org",
+        "manifest-src 'self'",
         "frame-ancestors 'self'",
         "base-uri 'self'",
         "form-action 'self'",
         "object-src 'none'",
+        "upgrade-insecure-requests",
     ];
     header('Content-Security-Policy: ' . implode('; ', $policy));
+    // Stamp the nonce on every <script> of an HTML page as it goes out.
+    ob_start(function (string $out) use ($nonce): string {
+        foreach (headers_list() as $h) {
+            if (stripos($h, 'content-type:') === 0 && stripos($h, 'text/html') === false) return $out;
+        }
+        return preg_replace('/<script\b(?![^>]*\bnonce=)/i', '<script nonce="' . $nonce . '"', $out) ?? $out;
+    });
 }
 send_security_policy();
+
+/**
+ * Error tracking (industry pass 6, 0097): an uncaught exception or fatal
+ * error is recorded in portal_errors (shown in Settings → System status),
+ * still written to the server log, and the visitor gets the friendly 500
+ * page instead of a blank one.
+ */
+function report_portal_error(string $message, string $detail = ''): void
+{
+    static $sent = 0;
+    if ($sent++ >= 3) return;
+    try {
+        $ch = curl_init(supabase_url() . '/rest/v1/rpc/log_portal_error');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3, CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_HTTPHEADER => ['apikey: ' . supabase_key(), 'Authorization: Bearer ' . supabase_key(), 'Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode([
+                'p_source' => 'server',
+                'p_page' => strtok((string) ($_SERVER['REQUEST_URI'] ?? '?'), '?'),
+                'p_message' => $message,
+                'p_detail' => $detail,
+            ]),
+        ]);
+        curl_exec($ch);
+    } catch (Throwable) {
+        // Recording must never be the thing that fails.
+    }
+}
+
+if (PHP_SAPI !== 'cli') {
+    set_exception_handler(function (Throwable $e): void {
+        error_log((string) $e);
+        report_portal_error(get_class($e) . ': ' . $e->getMessage(), basename($e->getFile()) . ':' . $e->getLine());
+        if (!headers_sent()) { http_response_code(500); }
+        while (ob_get_level() > 0) { ob_end_clean(); }
+        $_SERVER['REDIRECT_STATUS'] = 500;
+        include __DIR__ . '/../error.php';
+    });
+    register_shutdown_function(function (): void {
+        $e = error_get_last();
+        if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+            report_portal_error('Fatal: ' . $e['message'], basename($e['file']) . ':' . $e['line']);
+        }
+    });
+}

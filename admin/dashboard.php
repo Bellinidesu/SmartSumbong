@@ -134,7 +134,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <div class="p-dash-top">
   <form method="get">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></span>
-      <input type="month" id="month" name="month" value="<?= e($month->format('Y-m')) ?>" onchange="this.form.submit()"></label>
+      <input type="month" id="month" name="month" value="<?= e($month->format('Y-m')) ?>" data-autosubmit></label>
     <input type="hidden" name="eff_category" value="<?= e($effCategory) ?>">
   </form>
   <span class="p-spacer"></span>
@@ -182,7 +182,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <form method="get">
       <input type="hidden" name="month" value="<?= e($month->format('Y-m')) ?>">
       <label class="p-pill-select"><span class="p-sr"><?= e(t('Filter by category', 'Salain ayon sa kategorya')) ?></span>
-        <select name="eff_category" id="eff_category" onchange="this.form.submit()">
+        <select name="eff_category" id="eff_category" data-autosubmit>
           <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
           <?php foreach (CATEGORIES as $c): ?>
             <option value="<?= e($c) ?>" <?= $effCategory === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>

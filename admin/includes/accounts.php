@@ -361,7 +361,7 @@ function render_account_screen(string $role): void
       <form method="get">
         <input type="hidden" name="q" value="<?= e($search) ?>">
         <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
-          <select name="sort" onchange="this.form.submit()">
+          <select name="sort" data-autosubmit>
             <option value=""><?= e(t('All', 'Lahat')) ?></option>
             <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>><?= e(t('Pending', 'Nakabinbin')) ?></option>
             <option value="verified" <?= $statusFilter === 'verified' ? 'selected' : '' ?>><?= e(t('Verified', 'Beripikado')) ?></option>

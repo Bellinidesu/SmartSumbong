@@ -220,7 +220,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
     <input type="hidden" name="nq" value="<?= e($nSearch) ?>">
     <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Sort by', 'Ayusin ayon sa')) ?></span>
-      <select name="nsort" onchange="this.form.submit()">
+      <select name="nsort" data-autosubmit>
         <option value="newest" <?= $nSort === 'newest' ? 'selected' : '' ?>><?= e(t('Newest', 'Pinakabago')) ?></option>
         <option value="oldest" <?= $nSort === 'oldest' ? 'selected' : '' ?>><?= e(t('Oldest', 'Pinakaluma')) ?></option>
       </select></label>
@@ -289,16 +289,16 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
   <form method="get" class="ss-band-filters">
     <input type="hidden" name="q" value="<?= e($search) ?>">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Filter by month', 'Salain ayon sa buwan')) ?></span>
-      <input type="month" name="month" value="<?= e($month) ?>" onchange="this.form.submit()"></label>
+      <input type="month" name="month" value="<?= e($month) ?>" data-autosubmit></label>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Category', 'Kategorya')) ?></span>
-      <select name="category" onchange="this.form.submit()">
+      <select name="category" data-autosubmit>
         <option value=""><?= e(t('All', 'Lahat')) ?></option>
         <?php foreach (CATEGORIES as $c): ?>
           <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select></label>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Handled by', 'Hawak ni')) ?></span>
-      <select name="who" onchange="this.form.submit()">
+      <select name="who" data-autosubmit>
         <option value=""><?= e(t('Anyone', 'Kahit sino')) ?></option>
         <option value="unclaimed" <?= $who === 'unclaimed' ? 'selected' : '' ?>><?= e(t('Nobody yet', 'Wala pa')) ?></option>
         <?php foreach ($adminList as $ad): ?>
@@ -306,7 +306,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
         <?php endforeach; ?>
       </select></label>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
-      <select name="status" onchange="this.form.submit()">
+      <select name="status" data-autosubmit>
         <option value=""><?= e(t('All', 'Lahat')) ?></option>
         <?php foreach ([
             'under_review' => t('Under Review', 'Nirerepaso'),

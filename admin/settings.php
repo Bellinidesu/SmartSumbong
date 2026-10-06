@@ -187,7 +187,7 @@ try {
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
         <td class="ss-online" data-admin="<?= e($a['id']) ?>"><span class="ss-dot"></span><?= e(t('Offline', 'Offline')) ?></td>
         <td class="p-right"><?php if ($a['id'] !== $admin['id']): ?>
-          <form method="post" onsubmit="return confirm('<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>')">
+          <form method="post" data-native-confirm="<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="reset_admin">
             <input type="hidden" name="user" value="<?= e($a['id']) ?>">
@@ -219,6 +219,8 @@ try {
 // and keeps score.
 $up = null;
 try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
+$errs = null;
+try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5']); } catch (SupabaseError) {}
 $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';
 ?>
 <section class="st-pane" data-pane="status">
@@ -232,6 +234,21 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
       <div class="st-uptime-tile<?= $up['last_ok'] === false ? ' st-down' : '' ?>"><b><?= e($up['last_at'] ? ($up['last_ok'] ? t('Answering', 'Sumasagot') : t('Not answering', 'Hindi sumasagot')) : '—') ?></b><span><?= e($up['last_at'] ? t('Last check ', 'Huling pagsusuri ') . relative_time($up['last_at']) : t('No checks yet', 'Wala pang pagsusuri')) ?></span></div>
     </div>
     <p class="st-note"><?= e(t('The database asks the portal for a tiny page every 10 minutes, which also keeps the free server from going to sleep.', 'Tuwing 10 minuto, humihingi ang database ng maliit na pahina sa portal; pinipigilan din nito ang pagtulog ng libreng server.')) ?></p>
+  </div>
+  <?php endif; ?>
+  <?php if (is_array($errs)): ?>
+  <div class="p-card p-card-pad st-errors">
+    <p class="p-eyebrow"><?= e(t('Recent errors', 'Mga kamakailang error')) ?></p>
+    <?php if (!$errs): ?>
+      <p class="p-none-line"><?= e(t('No errors recorded. Anything that goes wrong on the portal, on the server or in a browser, is listed here.', 'Walang naitalang error. Dito lalabas ang anumang mali sa portal, sa server man o sa browser.')) ?></p>
+    <?php else: ?>
+      <ul class="st-err-list">
+        <?php foreach ($errs as $er): ?>
+          <li><span class="p-badge <?= $er['source'] === 'server' ? 'p-b-denied' : 'p-b-progress' ?>"><?= e($er['source'] === 'server' ? t('Server', 'Server') : t('Browser', 'Browser')) ?></span>
+            <div><b><?= e($er['message']) ?></b><small><?= e($er['page']) ?> · <?= e(sprintf(t('%d time(s)', '%d beses'), (int) $er['count'])) ?> · <?= e(relative_time($er['last_seen'])) ?></small></div></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
   <div class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the portal connects', 'Paano kumokonekta ang portal')) ?></p><div id="st-map"></div></div>

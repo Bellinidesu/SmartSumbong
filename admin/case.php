@@ -1480,7 +1480,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <form method="post" class="publish-toggle">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="set_public">
-        <label class="p-pub"><span><b><?= e(t("Show on residents' map", 'Ipakita sa mapa ng mga residente')) ?></b><small><?= e(t('Category and status only.', 'Kategorya at katayuan lamang.')) ?></small></span><input type="checkbox" role="switch" name="public" value="1" <?= !empty($report['is_public']) ? 'checked' : '' ?> onchange="this.form.submit()"></label>
+        <label class="p-pub"><span><b><?= e(t("Show on residents' map", 'Ipakita sa mapa ng mga residente')) ?></b><small><?= e(t('Category and status only.', 'Kategorya at katayuan lamang.')) ?></small></span><input type="checkbox" role="switch" name="public" value="1" <?= !empty($report['is_public']) ? 'checked' : '' ?> data-autosubmit></label>
       </form>
     <?php endif; ?>
 

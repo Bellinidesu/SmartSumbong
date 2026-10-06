@@ -17,6 +17,22 @@
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') window.pClose(); });
 
+  // Strict security policy (7 Oct 2026): no inline handlers. A select or
+  // date marked data-autosubmit sends its form when changed; a form or
+  // button marked data-native-confirm asks first with the browser's dialog.
+  document.addEventListener('change', function (e) {
+    var el = e.target.closest && e.target.closest('[data-autosubmit]');
+    if (el && el.form) el.form.submit();
+  });
+  document.addEventListener('submit', function (e) {
+    var m = e.target.getAttribute && e.target.getAttribute('data-native-confirm');
+    if (m && !window.confirm(m)) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button[data-native-confirm], a[data-native-confirm], input[data-native-confirm]');
+    if (b && !window.confirm(b.getAttribute('data-native-confirm'))) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+
   // Clickable table rows: <tr data-href="...">, links and buttons inside keep their own clicks.
   document.addEventListener('click', function (e) {
     var tr = e.target.closest('tr[data-href]');

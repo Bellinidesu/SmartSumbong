@@ -9,6 +9,8 @@
  * Nothing is stored; presence disappears when a tab closes.
  */
 (function () {
+  // Captured while this file runs: the page's script nonce (strict CSP).
+  var NONCE = document.currentScript && document.currentScript.nonce;
   var cfg = window.SS_PRESENCE;
   if (!cfg) return;
 
@@ -114,6 +116,7 @@
     start();
   } else {
     var s = document.createElement('script');
+    if (NONCE) s.nonce = NONCE;
     s.src = 'assets/vendor/supabase/supabase.js';
     s.onload = start;
     document.head.appendChild(s);

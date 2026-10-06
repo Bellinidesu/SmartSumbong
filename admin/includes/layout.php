@@ -47,6 +47,24 @@ function layout_head(string $title, string $active = ''): void
 <?= theme_head(false) ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
+// Error tracking (0097): this page's script errors are recorded for the
+// admins (Settings → System status), at most five per page load.
+(function () {
+  var left = 5, url = <?= json_encode(supabase_url() . '/rest/v1/rpc/log_portal_error') ?>, key = <?= json_encode(supabase_key()) ?>;
+  function send(msg, detail) {
+    if (left-- <= 0 || !msg) return;
+    try {
+      fetch(url, { method: 'POST', keepalive: true, headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_source: 'browser', p_page: location.pathname, p_message: String(msg).slice(0, 500), p_detail: detail ? String(detail).slice(0, 2000) : null }) }).catch(function () {});
+    } catch (e) {}
+  }
+  window.addEventListener('error', function (e) {
+    if (e.message) send(e.message, (e.filename || '').split('/').pop() + ':' + e.lineno + ':' + e.colno + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason; send('Unhandled: ' + (r && r.message ? r.message : r), r && r.stack);
+  });
+})();
 // Whether a purok boundaries file exists (map-theme.js skips the request if not).
 window.SS_ZONES = <?= is_file(__DIR__ . '/../assets/map/zones.geojson') ? 'true' : 'false' ?>;
 window.ssThumb = function (u, w, sq) { u = String(u || ''); return /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) ? u.replace('/image/upload/', '/image/upload/' + (sq ? 'c_fill,g_face,w_' + w + ',h_' + w : 'c_limit,w_' + w) + ',q_auto,f_auto/') : u; };
