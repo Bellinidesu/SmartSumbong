@@ -79,7 +79,6 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:share_plus/share_plus.dart';
@@ -404,7 +403,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   }
 
   /// Tags every row already in _timeline with an 'author_label' key --
-  /// "TANOD <NAME>" or "SYSTEM" -- via 0049's my_status_log_authors RPC,
+  /// `"TANOD <NAME>"` or "SYSTEM" -- via 0049's my_status_log_authors RPC,
   /// scoped to this one report. _StatusNoteBubble reads
   /// `timeline.last['author_label']` directly (30 Aug 2026 -- see that
   /// widget's own header for why it's the last entry, not every entry,

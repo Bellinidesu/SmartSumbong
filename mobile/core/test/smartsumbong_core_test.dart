@@ -1,3 +1,77 @@
-// TODO: MediaUploader tests. The interesting cases are the _pinnedUrl
-// regex (must stay in step with is_media_url() in migration 0017) and
-// the retry/no-retry split in upload().
+// Unit tests for the shared core: the rules that decide who a person is
+// (their mobile number and sign-in identity), what state their account is
+// in, and how photos are asked for. Each one mirrors something on the
+// server, so a change on one side without the other fails here first.
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:smartsumbong_core/smartsumbong_core.dart';
+
+void main() {
+  group('AuthService.normaliseMobile', () {
+    test('accepts every way people write a PH mobile number', () {
+      for (final typed in ['09171234567', '0917 123 4567', '0917-123-4567', '+639171234567', '639171234567', '9171234567', '+63 917 123 4567']) {
+        expect(AuthService.normaliseMobile(typed), '+639171234567', reason: typed);
+      }
+    });
+
+    test('refuses anything that is not a PH mobile number', () {
+      for (final typed in ['', '0917123456', '091712345678', '08171234567', '+649171234567', 'abc', '1234']) {
+        expect(AuthService.normaliseMobile(typed), isNull, reason: typed);
+      }
+    });
+  });
+
+  group('AuthService.authEmailFor', () {
+    test('matches public.auth_email_for() in migration 0021', () {
+      expect(AuthService.authEmailFor('+639171234567'), '639171234567@auth.smartsumbong.local');
+    });
+
+    test('is the same identity however the number was typed', () {
+      final a = AuthService.authEmailFor(AuthService.normaliseMobile('0917 123 4567')!);
+      final b = AuthService.authEmailFor(AuthService.normaliseMobile('+639171234567')!);
+      expect(a, b);
+    });
+  });
+
+  group('VerificationState.parse', () {
+    test('reads the database values', () {
+      expect(VerificationState.parse('verified'), VerificationState.verified);
+      expect(VerificationState.parse('rejected'), VerificationState.rejected);
+      expect(VerificationState.parse('pending'), VerificationState.pending);
+    });
+
+    test('treats anything unknown as pending, never as verified', () {
+      expect(VerificationState.parse(null), VerificationState.pending);
+      expect(VerificationState.parse('VERIFIED'), VerificationState.pending);
+      expect(VerificationState.parse('something-new'), VerificationState.pending);
+    });
+  });
+
+  group('cloudinarySized', () {
+    const original = 'https://res.cloudinary.com/nwb2kryl/image/upload/v1791212357/reports/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg';
+
+    test('asks Cloudinary for the shown width', () {
+      expect(cloudinarySized(original, width: 480),
+          'https://res.cloudinary.com/nwb2kryl/image/upload/c_limit,w_480,q_auto,f_auto/v1791212357/reports/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg');
+    });
+
+    test('leaves an already transformed URL alone', () {
+      final once = cloudinarySized(original, width: 480);
+      expect(cloudinarySized(once, width: 200), once);
+    });
+
+    test('leaves anything that is not a Cloudinary image alone', () {
+      for (final url in ['https://example.com/a.jpg', 'https://res.cloudinary.com/nwb2kryl/video/upload/v1/a.mp4', '']) {
+        expect(cloudinarySized(url, width: 300), url);
+      }
+    });
+  });
+
+  group('isVideoMime', () {
+    test('only video types are videos', () {
+      expect(isVideoMime('video/mp4'), isTrue);
+      expect(isVideoMime('image/jpeg'), isFalse);
+      expect(isVideoMime(null), isFalse);
+    });
+  });
+}

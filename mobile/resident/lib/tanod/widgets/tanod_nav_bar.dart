@@ -122,6 +122,8 @@ class _StatusButtonState extends State<_StatusButton> {
                     fit: BoxFit.scaleDown,
                     child: Text(label,
                         maxLines: 1,
+                        // Tab labels stay one size, so five fit evenly at any phone text size.
+                        textScaler: TextScaler.noScaling,
                         style: TextStyle(fontFamily: 'Urbanist', fontSize: 12.5, height: 1.2, fontWeight: FontWeight.w800, color: d.barFg)),
                   ),
                   const SizedBox(height: 12),

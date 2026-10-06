@@ -299,7 +299,7 @@ class _Field extends StatelessWidget {
               style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: obscure ? 1.5 : 0, color: d.ink),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 15, color: d.muted, fontStyle: FontStyle.normal),
+                hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 15, letterSpacing: 0, color: d.muted, fontStyle: FontStyle.normal),
                 isDense: true,
                 filled: false,
                 contentPadding: const EdgeInsets.symmetric(vertical: 2),

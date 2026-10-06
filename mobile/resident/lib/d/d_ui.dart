@@ -426,7 +426,7 @@ class DRow extends StatelessWidget {
               if (sub != null) Text(sub!, style: DType.body(d.muted, size: 12, w: FontWeight.w400).copyWith(height: 1.3)),
             ]),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ]),
       ),
     );
@@ -601,7 +601,11 @@ class DBack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = context.d;
-    return Material(
+    return Semantics(
+      button: true,
+      label: MaterialLocalizations.of(context).backButtonTooltip,
+      excludeSemantics: true,
+      child: Material(
       color: onImage ? Colors.black.withValues(alpha: .38) : d.card,
       shape: CircleBorder(side: onImage ? BorderSide.none : BorderSide(color: d.line)),
       child: InkWell(
@@ -613,7 +617,7 @@ class DBack extends StatelessWidget {
           child: Icon(Icons.chevron_left_rounded, size: 26, color: onImage ? Colors.white : d.ink),
         ),
       ),
-    );
+    ));
   }
 }
 

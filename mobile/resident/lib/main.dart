@@ -112,7 +112,7 @@ Future<void> main() async {
     // SharedPreferences -- see secure_session_storage.dart for why.
     await Supabase.initialize(
       url: _supabaseUrl,
-      anonKey: _supabaseAnonKey,
+      publishableKey: _supabaseAnonKey,
       authOptions: FlutterAuthClientOptions(
         localStorage: SecureLocalStorage(),
       ),

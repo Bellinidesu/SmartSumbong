@@ -800,9 +800,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
             child: SafeArea(
               top: false,
               child: Row(children: [
-                Expanded(flex: 2, child: DButton(s.reportDetailsBack, kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
+                Expanded(child: DButton(s.reportDetailsBack, kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
                 const SizedBox(width: 10),
-                Expanded(flex: 3, child: DButton(s.reportDetailsSubmit, expand: true, busy: _busy, onTap: _busy ? null : _submit)),
+                Expanded(child: DButton(s.reportDetailsSubmit, expand: true, busy: _busy, onTap: _busy ? null : _submit)),
               ]),
             ),
           ),

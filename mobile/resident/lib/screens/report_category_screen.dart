@@ -80,9 +80,9 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
           decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
           padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
           child: Row(children: [
-            Expanded(flex: 2, child: DButton(s.reportCategoryBack, kind: DButtonKind.ghost, expand: true, onTap: () => Navigator.of(context).pop())),
+            Expanded(child: DButton(s.reportCategoryBack, kind: DButtonKind.ghost, expand: true, onTap: () => Navigator.of(context).pop())),
             const SizedBox(width: 10),
-            Expanded(flex: 3, child: DButton(s.reportCategoryContinue, expand: true, onTap: _choice == null ? null : () => _choose(context, _choice!))),
+            Expanded(child: DButton(s.reportCategoryContinue, expand: true, onTap: _choice == null ? null : () => _choose(context, _choice!))),
           ]),
         ),
       ]),

@@ -126,7 +126,7 @@ class DFlags extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: const Color.fromRGBO(0, 48, 143, .88), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: const Color(0xFF00308F), borderRadius: BorderRadius.circular(10)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [btn(AppLocale.en, true, 'EN'), btn(AppLocale.fil, false, 'PH')]),
     );
   }

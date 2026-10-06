@@ -34,7 +34,7 @@ Future<void> main() async {
   final backend = DemoBackend(role: role == 'tanod' ? 'tanod' : 'resident');
   await Supabase.initialize(
     url: 'https://demo.supabase.co',
-    anonKey: 'demo',
+    publishableKey: 'demo',
     httpClient: backend,
     authOptions: FlutterAuthClientOptions(
       localStorage: DemoSessionStorage(role == 'none' ? null : jsonEncode(backend.sessionJson())),

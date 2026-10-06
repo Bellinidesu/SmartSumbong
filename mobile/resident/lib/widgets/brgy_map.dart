@@ -348,6 +348,7 @@ class _BrgyMapState extends State<BrgyMap> {
 
       // Navy on #FBFBFB on the light map; the pale ink on the dark field
       // on the navy night map, where navy would disappear.
+      if (!mounted) return;
       final c = context.colors;
       await map.addImage('pin-navy', await _pinPng(c.navy, c.field, dpr));
       await map.addImage(
@@ -456,11 +457,13 @@ class _BrgyMapState extends State<BrgyMap> {
       final data = jsonDecode(
           await rootBundle.loadString('assets/map/landmarks.geojson'));
       await map.addGeoJsonSource('landmarks', data as Map<String, dynamic>);
+      if (!mounted) return;
+      final dpr = MediaQuery.devicePixelRatioOf(context);
       // Icon badges (Ace's pick, 5 Oct), in the portal's group colours.
       for (final g in _landmarkLook.entries) {
-        await map.addImage('lm-${g.key}', await _landmarkPng(g.value.$1, g.value.$2, MediaQuery.devicePixelRatioOf(context)));
+        await map.addImage('lm-${g.key}', await _landmarkPng(g.value.$1, g.value.$2, dpr));
       }
-      await map.addImage('lm-other', await _landmarkPng(Icons.place_rounded, const Color(0xFF64748B), MediaQuery.devicePixelRatioOf(context)));
+      await map.addImage('lm-other', await _landmarkPng(Icons.place_rounded, const Color(0xFF64748B), dpr));
       await map.addSymbolLayer(
         'landmarks',
         'landmarks-badge',

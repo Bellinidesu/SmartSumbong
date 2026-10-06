@@ -168,6 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
       colors: d,
       fullContour: true,
       child: GestureDetector(
+        excludeFromSemantics: true,
         onTap: () => FocusScope.of(context).unfocus(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
@@ -371,6 +372,7 @@ class _DField extends StatelessWidget {
               ? null
               : IconButton(
                   onPressed: onToggleObscure,
+                  tooltip: obscure ? context.tr('Show password', 'Ipakita ang password') : context.tr('Hide password', 'Itago ang password'),
                   icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF6E7489)),
                 ),
         ),

@@ -467,10 +467,15 @@ class _NumberRow extends StatelessWidget {
             if (number.carrier != null) Text(number.carrier!, style: TextStyle(fontFamily: 'Urbanist', fontSize: 11.5, color: dark ? const Color(0xFF9096AB) : const Color(0xFF6E7489))),
           ]),
         ),
-        InkWell(
-          onTap: () => _copy(context, number),
-          customBorder: const CircleBorder(),
-          child: SizedBox(width: 34, height: 34, child: Icon(Icons.content_copy_rounded, size: 18, color: fg)),
+        Semantics(
+          button: true,
+          label: context.tr('Copy ${number.number}', 'Kopyahin ang ${number.number}'),
+          excludeSemantics: true,
+          child: InkWell(
+            onTap: () => _copy(context, number),
+            customBorder: const CircleBorder(),
+            child: SizedBox(width: 34, height: 34, child: Icon(Icons.content_copy_rounded, size: 18, color: fg)),
+          ),
         ),
         const SizedBox(width: 4),
         Semantics(
@@ -516,17 +521,23 @@ class _SlideCard extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(number.label!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white)),
-                Text(number.number, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
+                if (number.number.trim() != number.label!.trim())
+                  Text(number.number, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
               ]),
             ),
-            InkWell(
-              onTap: () => _copy(context, number),
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.content_copy_rounded, size: 18, color: Colors.white),
+            Semantics(
+              button: true,
+              label: context.tr('Copy ${number.number}', 'Kopyahin ang ${number.number}'),
+              excludeSemantics: true,
+              child: InkWell(
+                onTap: () => _copy(context, number),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.content_copy_rounded, size: 18, color: Colors.white),
+                ),
               ),
             ),
           ]),

@@ -181,9 +181,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
           child: Row(children: [
             // The first page has no Skip: there is nothing yet to skip past.
-            if (_index > 0) Expanded(flex: 2, child: DButton(context.s.onboardSkip, kind: DButtonKind.ghost, expand: true, onTap: _finish)),
+            if (_index > 0) Expanded(child: DButton(context.s.onboardSkip, kind: DButtonKind.ghost, expand: true, onTap: _finish)),
             if (_index > 0) const SizedBox(width: 10),
-            Expanded(flex: 3, child: DButton(last ? context.s.onboardStart : context.s.onboardNext, expand: true, onTap: _next)),
+            Expanded(child: DButton(last ? context.s.onboardStart : context.s.onboardNext, expand: true, onTap: _next)),
           ]),
         ),
       ]),

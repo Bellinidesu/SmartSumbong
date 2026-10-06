@@ -599,6 +599,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       colors: d,
       fullContour: true,
       child: GestureDetector(
+        excludeFromSemantics: true,
         onTap: () => FocusScope.of(context).unfocus(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 10, 18, 32),

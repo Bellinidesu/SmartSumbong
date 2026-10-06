@@ -117,6 +117,7 @@ class _LaunchGateState extends State<LaunchGate> {
       // this feature existed.
       if (await BiometricAuthService.enabled() &&
           await _biometrics.isAvailable()) {
+        if (!mounted) return;
         final unlocked =
             await _biometrics.authenticate(context.s.launchGateBiometricReason);
         if (!unlocked) {

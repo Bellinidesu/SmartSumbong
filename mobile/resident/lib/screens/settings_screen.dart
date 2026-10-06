@@ -299,7 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_name ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
+                  Text(_name ?? '—', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 17, color: Colors.white)),
                   if (_mobile != null)
                     Text('${_mask(_mobile!)} · ${tanod ? context.tr('Verified tanod', 'Beripikadong tanod') : context.tr('Verified resident', 'Beripikadong residente')}', style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white.withValues(alpha: .8))),
                 ]),
@@ -371,10 +371,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// Shown on a screen someone might hold up in a barangay hall.
+  /// Written the local way (0917 ••• 4567), like Edit Profile and the portal.
   static String _mask(String mobile) {
     if (mobile.length < 4) return mobile;
-    return '${mobile.substring(0, 3)} •••••• '
-        '${mobile.substring(mobile.length - 4)}';
+    final local = mobile.startsWith('+63') ? '0${mobile.substring(3)}' : mobile;
+    if (local.length < 8) return local;
+    return '${local.substring(0, 4)} ••• ${local.substring(local.length - 4)}';
   }
 }
 

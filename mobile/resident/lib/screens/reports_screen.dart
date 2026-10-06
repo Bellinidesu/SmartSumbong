@@ -186,7 +186,7 @@ class ReportSummary {
   final DateTime? closedAt;
 
   /// Added 29 Aug 2026, 1:1 pass — 0001 has no free-text address column
-  /// to put next to the mockup's "📍 <place>" footer line (see
+  /// to put next to the mockup's `"📍 <place>"` footer line (see
   /// location_lookup.dart's header for the full reasoning), so these
   /// feed a best-effort reverse-geocode lookup instead of a stored
   /// string. Null for a report with no pinned location.
@@ -254,7 +254,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   /// the N+1 this comment exists to avoid. See _loadResolutionNotes().
   Map<String, String> _resolutionNotes = const {};
 
-  /// report_id -> "TANOD <NAME>" or "SYSTEM", the byline for the entry
+  /// report_id -> `"TANOD <NAME>"` or "SYSTEM", the byline for the entry
   /// in _resolutionNotes. Added 29 Aug 2026, same round: a remark with
   /// no byline reads like an anonymous status line even though it's
   /// someone's own account of what they did. status_logs.remark never
@@ -477,7 +477,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     await _loadResolutionAuthors(ids);
   }
 
-  /// Who wrote each note in _resolutionNotes -- "TANOD <NAME>" or
+  /// Who wrote each note in _resolutionNotes -- `"TANOD <NAME>"` or
   /// "SYSTEM" -- via 0049's my_resolution_authors RPC. Kept as its own
   /// try/catch, separate from the remark fetch above: a byline the app
   /// can't resolve is a reason to show the remark bare, never a reason
@@ -1069,7 +1069,7 @@ class _ReportCard extends StatelessWidget {
   /// one exists (batch-fetched for the whole visible list).
   final String? resolutionNote;
 
-  /// "TANOD <NAME>" or "SYSTEM" — who wrote [resolutionNote] (0049).
+  /// `"TANOD <NAME>"` or "SYSTEM" — who wrote [resolutionNote] (0049).
   final String? resolutionAuthor;
 
   final VoidCallback? onCancel;
@@ -1162,7 +1162,7 @@ Color reportStatusColour(ReportStatus s) => switch (s) {
       ReportStatus.cancelled => const Color(0xFF9AA1AB),
     };
 
-/// The mockup's "📍 <place>" footer meta item, resolved from the
+/// The mockup's `"📍 <place>"` footer meta item, resolved from the
 /// report's coordinates via location_lookup.dart rather than a stored
 /// address string -- see that file's header for the full reasoning.
 /// Renders nothing (not a coordinate pair, not an error) while loading

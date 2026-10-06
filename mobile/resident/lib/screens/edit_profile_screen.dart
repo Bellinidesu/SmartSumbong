@@ -201,7 +201,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await Supabase.instance.client.from('users').update({
         'email': email.isEmpty ? null : email,
         'address': _address.text.trim().isEmpty ? null : _address.text.trim(),
-        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        'avatar_url': ?avatarUrl,
       }).eq('id', uid);
 
       if (!mounted) return;
@@ -485,7 +485,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         enabled: !_saving,
                         keyboardType: TextInputType.emailAddress,
                       ),
-                      _LockedField(label: s.editProfilePhoneLabel, value: _mobile ?? '', note: s.editProfilePhoneNote, onTap: () => _requestChange('mobile_number', s.editProfilePhoneWord)),
+                      _LockedField(label: s.editProfilePhoneLabel, value: _localPhone(_mobile), note: s.editProfilePhoneNote, onTap: () => _requestChange('mobile_number', s.editProfilePhoneWord)),
                       _EditableField(
                         label: s.editProfileAddressLabel,
                         controller: _address,
@@ -494,7 +494,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         enabled: !_saving,
                         keyboardType: TextInputType.streetAddress,
                       ),
-                      _LockedField(label: s.editProfilePasswordLabel, value: '•' * 10, note: s.editProfilePasswordChange, onTap: _changePassword),
+                      _LockedField(label: s.editProfilePasswordLabel, value: '•' * 8, dots: true, note: s.editProfilePasswordChange, onTap: _changePassword),
                       _LockedField(label: context.tr('Valid ID', 'Valid ID'), value: context.tr('On file with the barangay', 'Nasa barangay na'), note: context.tr('Send a new photo', 'Magpadala ng bagong litrato'), onTap: _sendNewId),
                     ]),
                   ),
@@ -548,11 +548,11 @@ class _PageShadow extends StatelessWidget {
 /// `.box .f`: a row inside the bordered box — the UPPERCASE label (11,
 /// muted) with its note on the right, then the value 15/600.
 class _FRow extends StatelessWidget {
-  const _FRow({required this.label, this.em, required this.child, this.below, this.first = false});
+  const _FRow({required this.label, this.em, required this.field, this.below, this.first = false});
 
   final String label;
   final String? em;
-  final Widget child;
+  final Widget field;
   final Widget? below;
   final bool first;
 
@@ -568,8 +568,8 @@ class _FRow extends StatelessWidget {
           if (em != null && em!.isNotEmpty) Text(em!, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
         ]),
         const SizedBox(height: 4),
-        child,
-        if (below != null) below!,
+        field,
+        ?below,
       ]),
     );
   }
@@ -600,7 +600,7 @@ class _EditableField extends StatelessWidget {
     return _FRow(
       label: label,
       em: note,
-      child: TextField(
+      field: TextField(
         controller: controller,
         enabled: enabled,
         keyboardType: keyboardType,
@@ -623,9 +623,11 @@ class _EditableField extends StatelessWidget {
 }
 
 class _LockedField extends StatelessWidget {
-  const _LockedField({required this.label, required this.value, required this.note, required this.onTap, this.first = false});
+  const _LockedField({required this.label, required this.value, required this.note, required this.onTap, this.first = false, this.dots = false});
 
   final bool first;
+  /// A masked value (the password): bigger, spaced dots.
+  final bool dots;
 
   final String label;
   final String value;
@@ -638,7 +640,7 @@ class _LockedField extends StatelessWidget {
     return _FRow(
       first: first,
       label: label,
-      child: Text(value, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15, height: 1.3, color: d.ink2)),
+      field: Text(value, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: dots ? 18 : 15, letterSpacing: dots ? 3 : 0, height: 1.3, color: d.ink2)),
       below: Align(
         alignment: Alignment.centerLeft,
         child: GestureDetector(
@@ -941,4 +943,11 @@ class _Pill extends StatelessWidget {
             ),
     );
   }
+}
+
+/// +639171234567 -> 0917 123 4567, the way people write their number
+/// (and how the portal shows it). Anything else is shown as stored.
+String _localPhone(String? stored) {
+  final m = RegExp(r'^\+63(\d{3})(\d{3})(\d{4})$').firstMatch(stored ?? '');
+  return m == null ? (stored ?? '') : '0${m[1]} ${m[2]} ${m[3]}';
 }

@@ -3,7 +3,8 @@
 #   portal    every PHP file parses, every portal script parses, and the
 #             portal actually starts: login page, sign-in redirect, ping,
 #             friendly 404, security headers and script nonces.
-#   mobile    flutter analyze on the shared core and the resident app.
+#   mobile    flutter analyze (no findings allowed) and the unit tests, for
+#             the shared core and the resident app.
 #   database  the 126 rolled-back checks in supabase/tests, against the
 #             real project. Needs two repository secrets (Settings ->
 #             Secrets and variables -> Actions): SUPABASE_ACCESS_TOKEN
@@ -62,12 +63,12 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Analyze core
+      - name: Core - analyze and test
         working-directory: mobile/core
-        run: flutter pub get && flutter analyze --no-fatal-infos
-      - name: Analyze resident app
+        run: flutter pub get && flutter analyze && flutter test
+      - name: Resident app - analyze and test
         working-directory: mobile/resident
-        run: flutter pub get && flutter analyze --no-fatal-infos
+        run: flutter pub get && flutter analyze && flutter test test/widget_test.dart
 
   database:
     runs-on: ubuntu-latest

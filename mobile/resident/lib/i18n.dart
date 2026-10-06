@@ -1721,8 +1721,8 @@ class Strings {
       _t('This is how you sign in', 'Ito ang ginagamit mo para mag-sign in');
   String get editProfilePasswordLabel => _t('Password', 'Password');
   String get editProfilePasswordChange => _t('Change', 'Palitan');
-  String get editProfileBack => _t('BACK', 'BUMALIK');
-  String get editProfileSave => _t('SAVE', 'I-SAVE');
+  String get editProfileBack => _t('Back', 'Bumalik');
+  String get editProfileSave => _t('Save', 'I-save');
   String get editProfileSendRequest =>
       _t('Send request', 'Ipadala ang kahilingan');
   String get editProfileChangePasswordTitle =>

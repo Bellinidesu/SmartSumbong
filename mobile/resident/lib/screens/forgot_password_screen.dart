@@ -49,15 +49,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<Map<String, dynamic>> _call(Map<String, dynamic> body) async {
+    // Worded now, while the screen is certainly still here.
+    final failed = context.tr('Something went wrong. Check your connection and try again.', 'May mali. Tingnan ang koneksyon at subukan muli.');
+    final offline = context.tr('No connection. Try again when you have signal.', 'Walang koneksyon. Subukan muli kapag may signal.');
     try {
       final r = await Supabase.instance.client.functions.invoke('password-otp', body: body);
       return Map<String, dynamic>.from(r.data as Map);
     } on FunctionException catch (e) {
       final d = e.details;
       if (d is Map && d['message'] is String) return {'ok': false, 'message': d['message']};
-      return {'ok': false, 'message': context.tr('Something went wrong. Check your connection and try again.', 'May mali. Tingnan ang koneksyon at subukan muli.')};
+      return {'ok': false, 'message': failed};
     } catch (_) {
-      return {'ok': false, 'message': context.tr('No connection. Try again when you have signal.', 'Walang koneksyon. Subukan muli kapag may signal.')};
+      return {'ok': false, 'message': offline};
     }
   }
 

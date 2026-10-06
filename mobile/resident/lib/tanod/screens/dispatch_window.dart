@@ -1899,7 +1899,7 @@ class _ResolveSheetState extends State<_ResolveSheet> {
               padding: EdgeInsets.fromLTRB(18, 12, 18, 12 + MediaQuery.viewInsetsOf(context).bottom * 0),
               decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
               child: Row(children: [
-                Expanded(flex: 2, child: DButton(context.tr('Back', 'Bumalik'), kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
+                Expanded(child: DButton(context.tr('Back', 'Bumalik'), kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
                 const SizedBox(width: 10),
                 Expanded(
                   flex: 4,
