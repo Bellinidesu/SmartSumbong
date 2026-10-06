@@ -40,7 +40,7 @@ jobs:
           fail=0
           while IFS= read -r f; do php -l "$f" > /dev/null || fail=1; done < <(git ls-files '*.php')
           exit $fail
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Portal scripts parse
