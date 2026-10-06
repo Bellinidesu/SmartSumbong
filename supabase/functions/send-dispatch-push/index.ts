@@ -169,6 +169,22 @@ async function getAccessToken(): Promise<string> {
 // kind. Fails open (returns false, i.e. "not muted") on any lookup
 // trouble: a fetch hiccup must never silently swallow a real
 // notification the recipient didn't ask to have suppressed.
+// The notification exactly as the database holds it (security fix, 7 Oct
+// 2026). The webhook's own copy is not trusted: anyone signed in can call
+// this function, and a made-up payload used to push any text to any
+// account. Now only a real, stored notification is ever sent, to its own
+// owner; a forged call can at most repeat one.
+async function storedNotification(id: unknown): Promise<NotificationRecord | null> {
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&select=id,user_id,report_id,kind,message`,
+    { headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` } },
+  );
+  if (!res.ok) throw new Error(`could not read notification ${id}: ${res.status}`);
+  const rows = (await res.json()) as NotificationRecord[];
+  return rows[0] ?? null;
+}
+
 async function isKindMuted(userId: string, kind: string): Promise<boolean> {
   try {
     const res = await fetch(
@@ -288,7 +304,10 @@ Deno.serve(async (req: Request) => {
       return new Response("ignored", { status: 200 });
     }
 
-    const record = payload.record;
+    const record = await storedNotification(payload.record?.id);
+    if (!record) {
+      return new Response("no such notification", { status: 200 });
+    }
 
     if (await isKindMuted(record.user_id, record.kind)) {
       // Still a real notification -- the row this webhook fired for
