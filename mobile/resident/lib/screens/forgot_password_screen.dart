@@ -11,7 +11,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
-import '../i18n.dart';
 
 /// SMS reset is built but needs Semaphore credits. Off: "Forgot password?"
 /// shows the counter-reset instructions instead. Turn on once the account
