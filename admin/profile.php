@@ -224,9 +224,9 @@ layout_head(t('Edit Profile', 'I-edit ang Profile'), 'profile.php');
 <?php endif; ?>
 
 <?php
-$shown    = display_name($me['full_name']);
+$shown    = formal_name($me['full_name']);  // a profile is a record: "Lediac, Ace"
 $parts    = preg_split('/\s+/', trim($shown)) ?: [];
-$initials = strtoupper(mb_substr($parts[0] ?? '?', 0, 1) . (count($parts) > 1 ? mb_substr(end($parts), 0, 1) : ''));
+$initials = admin_initials((string) $me['full_name']);
 $comma    = strpos((string) $me['full_name'], ',');
 $firstVal = $comma > 0 ? trim(substr($me['full_name'], $comma + 1)) : (string) $me['full_name'];
 $lastVal  = $comma > 0 ? trim(substr($me['full_name'], 0, $comma)) : '';

@@ -346,7 +346,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
             <?php if (!empty($r['is_anonymous'])): ?>
               <span class="p-anon"><?= e(t('Anonymous', 'Hindi nagpakilala')) ?></span>
             <?php else: ?>
-              <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e(name_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></span></div>
+              <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></span></div>
             <?php endif; ?>
           </td>
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
@@ -478,7 +478,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
       return;
     }
     tbody.innerHTML = filtered.map(r => {
-      const nm = window.ssName(r.resident && r.resident.full_name) || T('Unknown', 'Hindi kilala');
+      const nm = String((r.resident && r.resident.full_name) || '').trim() || T('Unknown', 'Hindi kilala');
       const ini = String(nm).trim().split(/\s+/).filter(Boolean);
       const who = r.is_anonymous
         ? '<span class="p-anon">' + T('Anonymous', 'Hindi nagpakilala') + '</span>'

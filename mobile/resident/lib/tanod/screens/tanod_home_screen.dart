@@ -190,12 +190,12 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
       if (!mounted) return;
       final name = (me['full_name'] as String? ?? '').trim();
       unawaited(JsonCache.write('home', {
-        'first_name': name.isEmpty ? null : name.split(' ').first,
+        'first_name': casualNameOrNull(name),
         'open': open,
       }));
       setState(() {
         _error = null;
-        _firstName = name.isEmpty ? null : name.split(' ').first;
+        _firstName = casualNameOrNull(name);
         _incoming = [
           for (final r in open) Ticket.fromRow(r),
         ];

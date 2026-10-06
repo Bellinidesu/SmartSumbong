@@ -426,7 +426,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         if (isSystem) {
           labels[id] = 'SYSTEM';
         } else if (name != null && name.isNotEmpty) {
-          labels[id] = 'TANOD ${name.toUpperCase()}';
+          labels[id] = 'TANOD ${casualName(name).toUpperCase()}';
         }
       }
       if (labels.isEmpty) return;

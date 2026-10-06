@@ -312,10 +312,10 @@ function render_account_screen(string $role): void
               <span class="p-chip"><?= e(t('Name', 'Pangalan')) ?></span>
             <?php endif; ?>
             <div style="min-width:0">
-              <b><?= e(display_name($r['who']['full_name'] ?? '')) ?></b>
+              <b><?= e(formal_name($r['who']['full_name'] ?? '')) ?></b>
               <span class="p-hint"> · <?= e((string) ($r['who']['mobile_number'] ?? '')) ?> · <?= e(long_datetime($r['created_at'])) ?></span>
               <p style="margin:4px 0 0"><?= $r['kind'] === 'full_name'
-                  ? e(t('Change name to', 'Palitan ang pangalan sa')) . ' <b>' . e(display_name($r['new_full_name'])) . '</b>'
+                  ? e(t('Change name to', 'Palitan ang pangalan sa')) . ' <b>' . e(formal_name($r['new_full_name'])) . '</b>'
                   : e(t('New ID photo', 'Bagong litrato ng ID')) . ' (' . e(str_replace('_', ' ', (string) $r['id_type'])) . ')' ?></p>
               <?php if (!empty($r['reason'])): ?><p class="p-quote" style="margin:4px 0 0"><?= e($r['reason']) ?></p><?php endif; ?>
               <form method="post" class="ss-req-actions">
@@ -387,7 +387,7 @@ function render_account_screen(string $role): void
           <?php endif; ?>
           <?php foreach ($accounts as $a): ?>
             <tr>
-              <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e(display_name($a['full_name'])) ?></span></div></td>
+              <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e(formal_name($a['full_name'])) ?></span></div></td>
               <td class="p-num"><?= e($a['mobile_number']) ?></td>
               <?php if ($isTanod): ?>
                 <td><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">' . e(t('None', 'Wala')) . '</span>' ?></td>
@@ -655,7 +655,7 @@ function render_account_screen(string $role): void
               '</form>';
           }
           return '<tr>' +
-            '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(window.ssName(a.full_name)) + '</span></div></td>' +
+            '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(String(a.full_name || '').trim()) + '</span></div></td>' +
             '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
             (IS_TANOD ? '<td>' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
                                                : '<span class="p-sub">' + T('None', 'Wala') + '</span>') + '</td>' : '') +
@@ -1035,7 +1035,7 @@ function render_account_detail(
     <div class="p-profile-grid">
       <div class="p-grid">
         <div class="p-card p-card-pad">
-        <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e(display_name($p['full_name'])) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
+        <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e(formal_name($p['full_name'])) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
 
         <?php if ($pending && !empty($p['due_at'])): ?>
           <p class="p-clock verif-clock<?= !empty($p['is_overdue']) ? ' p-late' : '' ?>"
@@ -1062,7 +1062,7 @@ function render_account_detail(
         <div class="p-card p-card-pad">
           <p class="p-eyebrow"><?= e(t('Account Details', 'Detalye ng Account')) ?></p>
           <dl class="p-dl">
-            <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(display_name($p['full_name'])) ?></dd>
+            <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(formal_name($p['full_name'])) ?></dd>
             <dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?></dd>
             <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?></dd>
             <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>

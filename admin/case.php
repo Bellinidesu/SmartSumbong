@@ -791,7 +791,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?php foreach ($resolved as $d): ?>
           <?php $shots = $proof[$d['id']] ?? []; ?>
           <p class="p-meta-line">
-            <?= e(name_or($d['tanod']['full_name'] ?? null, t('Barangay tanod', 'Tanod ng barangay'))) ?>
+            <?= e(formal_or($d['tanod']['full_name'] ?? null, t('Barangay tanod', 'Tanod ng barangay'))) ?>
             <?php if (!empty($d['resolved_at'])): ?>
               &middot; <?= e(long_datetime($d['resolved_at'])) ?>
             <?php endif; ?>
@@ -826,7 +826,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <div class="p-card p-meta-strip">
     <div><small><?= e(t('Resident', 'Residente')) ?></small><b><?= !empty($report['is_anonymous'])
               ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
-              : e(name_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></div>
+              : e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></div>
     <div><small><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></small><b class="p-num"><?= e($report['tracking_id']) ?></b></div>
     <div><small><?= e(t('Category', 'Kategorya')) ?></small><b><?= e(category_label($report['category'])) ?></b></div>
     <div><small><?= e(t('Filed', 'Naisampa')) ?></small><b class="p-num"><?= e(short_date($report['created_at'])) ?></b></div>
@@ -1133,7 +1133,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
               <span class="p-who">
-                <?= e(display_name($t['full_name'])) ?>
+                <?= e(formal_name($t['full_name'])) ?>
                 <?php if ($ok && $t['metres'] !== null): ?>
                   <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
                     <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
@@ -1225,7 +1225,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <?php if ($active): ?>
         <div class="p-tanod-card">
           <p class="p-eyebrow" style="margin:0"><?= e(t('Currently with', 'Kasalukuyang hawak ni')) ?></p>
-          <p class="p-assigned-name"><?= e(name_or($active['tanod']['full_name'] ?? null, t('Unknown tanod', 'Hindi kilalang tanod'))) ?></p>
+          <p class="p-assigned-name"><?= e(formal_or($active['tanod']['full_name'] ?? null, t('Unknown tanod', 'Hindi kilalang tanod'))) ?></p>
           <p class="p-kv-line">
             <?= e(status_label($active['state'])) ?>
             &middot; <?= e(t('assigned', 'na-assign')) ?> <?= e(relative_time($active['assigned_at'])) ?>
@@ -1263,7 +1263,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                 <label class="p-tanod-opt<?= $ok ? '' : ' p-out' ?>">
                   <input type="radio" name="to" value="<?= e($t['tanod_id']) ?>" <?= $ok ? '' : 'disabled' ?>>
                   <span class="p-who">
-                    <?= e(display_name($t['full_name'])) ?>
+                    <?= e(formal_name($t['full_name'])) ?>
                     <?php if ($ok && $t['metres'] !== null): ?>
                       <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
                         <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?>

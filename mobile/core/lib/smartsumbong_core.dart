@@ -12,3 +12,4 @@ export 'src/biometric_auth.dart';
 export 'src/biometric_lock_gate.dart';
 export 'src/id_ocr.dart';
 export 'src/saved_login.dart';
+export 'src/names.dart';

@@ -496,7 +496,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         if (isSystem) {
           authors[id] = 'SYSTEM';
         } else if (name != null && name.isNotEmpty) {
-          authors[id] = 'TANOD ${name.toUpperCase()}';
+          authors[id] = 'TANOD ${casualName(name).toUpperCase()}';
         }
       }
       setState(() => _resolutionAuthors = authors);

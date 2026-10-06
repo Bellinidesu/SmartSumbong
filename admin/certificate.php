@@ -117,7 +117,7 @@ foreach (CERT_REASONS as $key => $r) {
     }
 }
 $ticked  = isset($_GET['r']) ? array_values(array_intersect((array) $_GET['r'], array_keys(CERT_REASONS))) : $suggested;
-$name    = trim((string) ($_GET['name'] ?? display_name($report['resident']['full_name'] ?? '')));
+$name    = trim((string) ($_GET['name'] ?? formal_name($report['resident']['full_name'] ?? '')));
 $address = trim((string) ($_GET['address'] ?? ($report['resident']['address'] ?? '')));
 $by      = trim((string) ($_GET['by'] ?? $name));
 try {
