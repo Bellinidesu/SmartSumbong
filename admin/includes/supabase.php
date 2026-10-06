@@ -41,6 +41,33 @@ function supabase_curl_opts(): array
     ];
 }
 
+/**
+ * Timing of each database call on this page (speed work, 7 Oct 2026).
+ * Printed as an HTML comment at the end of the page only when the URL has
+ * ?_trace=1 and an admin is signed in; otherwise it costs nothing.
+ */
+function supabase_trace(?string $what = null, ?float $since = null): array
+{
+    static $log = [];
+    static $on = null;
+    if ($on === null) {
+        $on = isset($_GET['_trace']);
+        if ($on) {
+            $t0 = microtime(true);
+            register_shutdown_function(function () use (&$log, $t0) {
+                if (empty($_SESSION[SESSION_KEY])) return;
+                echo "\n<!-- trace: page " . round((microtime(true) - $t0) * 1000) . " ms\n";
+                foreach ($log as $l) echo '  ' . $l . "\n";
+                echo "-->";
+            });
+        }
+    }
+    if ($on && $what !== null) {
+        $log[] = sprintf('%5d ms  %s', (int) round((microtime(true) - $since) * 1000), $what);
+    }
+    return $log;
+}
+
 class SupabaseError extends RuntimeException
 {
     public function __construct(string $message, public readonly int $status = 0)
@@ -83,7 +110,9 @@ final class Supabase
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body, JSON_UNESCAPED_UNICODE));
         }
 
+        $tq     = microtime(true);
         $raw    = curl_exec($ch);
+        supabase_trace($method . ' ' . strtok($path, '?'), $tq);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err    = curl_error($ch);
         // curl_close() is a deliberate no-op since PHP 8.0 (deprecated in
@@ -258,6 +287,7 @@ final class Supabase
             $running[spl_object_id($ch)] = [$key, $ch];
         };
 
+        $tq = microtime(true);
         while ($queue && count($running) < $concurrency) { $start(); }
         do {
             curl_multi_exec($mh, $active);
@@ -292,6 +322,7 @@ final class Supabase
                 if ($queue) { $start(); }
             }
         } while ($running);
+        supabase_trace('batch of ' . count($selects) . ': ' . implode(', ', array_map(fn($x) => strtok($x[0], '?'), $selects)), $tq);
         return $out;
     }
 
@@ -315,7 +346,9 @@ final class Supabase
                 'Range: 0-0',
             ],
         ]);
+        $tq  = microtime(true);
         $raw = curl_exec($ch);
+        supabase_trace('count ' . $table, $tq);
         // curl_close() removed -- see the comment in request() above.
 
         // Content-Range comes back as "0-0/57"; the total is after the slash.
