@@ -56,7 +56,7 @@ dependencies:
   cached_network_image: ^3.4.1
   firebase_core: ^4.14.0
   image_picker: ^1.1.2
-  package_info_plus: ^10.2.1
+  package_info_plus: ^10.2.2
   supabase_flutter: ^2.8.0
   # local_auth (Face ID / fingerprint unlock) is not listed here: it
   # arrives through smartsumbong_core, same as flutter_secure_storage
