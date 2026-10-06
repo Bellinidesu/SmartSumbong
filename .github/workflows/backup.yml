@@ -28,7 +28,7 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Secrets present?
         run: |
           for s in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD BACKUP_PASSPHRASE; do
