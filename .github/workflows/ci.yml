@@ -73,6 +73,11 @@ jobs:
   database:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # One at a time across all runs: the checks share throwaway test
+    # accounts, so two at once (a push and its pull request) collide.
+    concurrency:
+      group: database-checks
+      cancel-in-progress: false
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
