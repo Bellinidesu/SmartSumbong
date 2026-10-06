@@ -437,6 +437,11 @@ class TanodStrings {
   String get homeSelectStatus =>
       _t('Select a Status', 'Pumili ng Status');
   String get homeSubmit => _t('Submit', 'I-submit');
+  String get homeIncomingWaiting => _t(
+      'Nothing assigned to you right now. You will be alerted the moment a '
+      'nearby complaint is sent to you.',
+      'Walang naka-assign sa iyo sa ngayon. Aabisuhan ka agad kapag may '
+      'malapit na reklamong ipinadala sa iyo.');
   String get homeIncomingDispatch =>
       _t('Incoming Dispatch', 'Papasok na Dispatch');
   String get homeIncomingEmpty => _t(

@@ -1220,10 +1220,10 @@ class _LocationLabelState extends State<_LocationLabel> {
           children: [
             Icon(Icons.location_on_outlined, size: 12, color: colour),
             const SizedBox(width: 3),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 110),
+            Flexible(
               child: Text(
                 name,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 11, color: colour),
               ),

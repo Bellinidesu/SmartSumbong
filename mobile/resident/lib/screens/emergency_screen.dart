@@ -521,8 +521,9 @@ class _SlideCard extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(number.label!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white)),
-                if (number.number.trim() != number.label!.trim())
-                  Text(number.number, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
+                // 911 is its own number: an empty line keeps both cards the same height.
+                Text(number.number.trim() != number.label!.trim() ? number.number : ' ',
+                    style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
               ]),
             ),
             Semantics(

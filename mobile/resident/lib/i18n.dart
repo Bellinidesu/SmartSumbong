@@ -1141,7 +1141,7 @@ class Strings {
       '(You will use this to sign in.)',
       '(Gagamitin mo ito para mag-log in.)');
   String get registerPhoneHint =>
-      _t('e.g. +63 1234567899', 'hal. +63 1234567899');
+      _t('e.g. 0917 123 4567', 'hal. 0917 123 4567');
   String get registerPasswordLabel => _t('Password', 'Password');
   String get registerPasswordNote => _t(
       '(Your password must be at least 8 characters long.)',

@@ -329,7 +329,14 @@ class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
         stat('$missed', s.homeTabMissed),
       ]),
       const SizedBox(height: 14),
-      Wrap(spacing: 6, runSpacing: 6, children: [seg(s.homeTabAll, null), seg(s.homeTabResponded, ActivityKind.responded), seg(s.homeTabMissed, ActivityKind.missed)]),
+      // One row, three equal parts, under the three counts above.
+      Row(children: [
+        Expanded(child: seg(s.homeTabAll, null)),
+        const SizedBox(width: 8),
+        Expanded(child: seg(s.homeTabResponded, ActivityKind.responded)),
+        const SizedBox(width: 8),
+        Expanded(child: seg(s.homeTabMissed, ActivityKind.missed)),
+      ]),
       const SizedBox(height: 14),
       if (widget.loading)
         const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: CircularProgressIndicator()))

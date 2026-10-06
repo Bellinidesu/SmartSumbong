@@ -213,6 +213,7 @@ class _Assigned {
     required this.subject,
     required this.description,
     required this.dueAt,
+    required this.assignedAt,
     required this.isAnonymous,
     required this.instructions,
     required this.lat,
@@ -225,6 +226,8 @@ class _Assigned {
   final String subject;
   final String description;
   final DateTime? dueAt;
+  /// When the barangay sent it: the time on its instructions bubble.
+  final DateTime? assignedAt;
   final bool isAnonymous;
   final String? instructions;
   final double? lat;
@@ -239,6 +242,7 @@ class _Assigned {
       subject: r['subject'] as String? ?? '',
       description: r['description'] as String? ?? '',
       dueAt: DateTime.tryParse(r['due_at'] as String? ?? ''),
+      assignedAt: DateTime.tryParse(d['assigned_at'] as String? ?? ''),
       isAnonymous: r['is_anonymous'] == true,
       instructions: d['admin_instructions'] as String?,
       lat: (r['latitude'] as num?)?.toDouble(),
@@ -255,7 +259,7 @@ class _Assigned {
         description: description,
         acceptDueAt: null,
         dueAt: dueAt,
-        assignedAt: null,
+        assignedAt: assignedAt,
         instructions: instructions,
       );
 }

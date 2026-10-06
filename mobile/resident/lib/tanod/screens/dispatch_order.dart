@@ -396,14 +396,15 @@ class _DispatchOrderState extends State<_DispatchOrder>
       Container(
         padding: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(border: Border(bottom: BorderSide(color: d.line))),
-        child: Row(children: [
+        // Icons on one line even when a label wraps to two.
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           act(Icons.map_outlined, context.ts.reportsViewMap, () => setState(() => _pane = _Pane.map)),
           act(Icons.photo_library_outlined, context.ts.reportsViewMedia, () => setState(() => _pane = _Pane.media)),
           act(Icons.assignment_outlined, context.ts.reportsViewInstructions, () => setState(() => _pane = _Pane.instructions)),
         ]),
       ),
       if (near != null && near.isNotEmpty)
-        DRow(icon: Icons.place_outlined, title: context.ts.dispatchNear(near), sub: _routeLine ?? 'Barangay 183'),
+        DRow(icon: Icons.place_outlined, title: context.ts.dispatchNear(near), sub: _routeLine),
       // "Complainant: Anonymous" on every row, and not because every
       // complaint is anonymous — users_self_read is `id = auth.uid() or
       // is_admin()`, so a tanod cannot read the filer's row at all.

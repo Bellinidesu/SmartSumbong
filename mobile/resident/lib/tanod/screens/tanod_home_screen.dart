@@ -307,7 +307,12 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(context.tr('INCOMING DISPATCH', 'PAPASOK NA DISPATCH'), style: DType.label(Colors.white.withValues(alpha: .8))),
                     const SizedBox(height: 8),
-                    Text(s.homeIncomingEmpty, style: DType.body(Colors.white.withValues(alpha: .9), size: 13.5)),
+                    ListenableBuilder(
+                      listenable: DutyController.instance,
+                      builder: (context, _) => Text(
+                          DutyController.instance.status == DutyState.onDuty ? s.homeIncomingWaiting : s.homeIncomingEmpty,
+                          style: DType.body(Colors.white.withValues(alpha: .9), size: 13.5)),
+                    ),
                   ]),
                 )
               else
