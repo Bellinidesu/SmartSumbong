@@ -1,0 +1,94 @@
+# Checks every push and pull request (industry pass 7, 7 Oct 2026).
+#
+#   portal    every PHP file parses, every portal script parses, and the
+#             portal actually starts: login page, sign-in redirect, ping,
+#             friendly 404, security headers and script nonces.
+#   mobile    flutter analyze on the shared core and the resident app.
+#   database  the 126 rolled-back checks in supabase/tests, against the
+#             real project. Needs two repository secrets (Settings ->
+#             Secrets and variables -> Actions): SUPABASE_ACCESS_TOKEN
+#             (supabase.com -> Account -> Access tokens) and
+#             SUPABASE_DB_PASSWORD. Without them the job says so and skips.
+#
+# Render deploys smartsumbong-ph only after these pass when its Auto-Deploy
+# is set to "After CI checks pass".
+
+name: CI
+
+on:
+  push:
+    branches: [main, D]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring
+      - name: PHP files parse
+        run: |
+          fail=0
+          while IFS= read -r f; do php -l "$f" > /dev/null || fail=1; done < <(git ls-files '*.php')
+          exit $fail
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Portal scripts parse
+        run: for f in admin/assets/js/*.js; do node --check "$f"; done
+      - name: Web manifest is valid JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('admin/manifest.webmanifest','utf8'))"
+      - name: Portal starts and answers
+        env:
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+        run: bash .github/scripts/portal-smoke.sh
+
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analyze core
+        working-directory: mobile/core
+        run: flutter pub get && flutter analyze --no-fatal-infos
+      - name: Analyze resident app
+        working-directory: mobile/resident
+        run: flutter pub get && flutter analyze --no-fatal-infos
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secrets present?
+        id: have
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
+            echo "yes=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Add SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD to run the database checks."
+          fi
+      - uses: supabase/setup-cli@v1
+        if: steps.have.outputs.yes
+        with:
+          version: latest
+      - name: Rolled-back system checks
+        if: steps.have.outputs.yes
+        run: bash .github/scripts/db-checks.sh

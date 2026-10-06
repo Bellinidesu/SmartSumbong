@@ -1,0 +1,57 @@
+# Nightly encrypted backup of the database (industry pass 7, 7 Oct 2026).
+#
+# The Supabase free plan keeps no downloadable backups. Every night this
+# dumps the roles, schema and data, encrypts them with a passphrase only
+# the team holds, and keeps the result as a workflow artifact for 30 days.
+# The repo is public, so nothing unencrypted is ever uploaded.
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD  as for CI
+#   BACKUP_PASSPHRASE                           a long passphrase, kept in
+#                                               the team's password manager
+# Restore: gpg --decrypt smartsumbong-<date>.tgz.gpg | tar xz, then load
+# roles.sql, schema.sql and data.sql with psql into a fresh project.
+
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: '30 18 * * *' # 02:30 Philippine time
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secrets present?
+        run: |
+          for s in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD BACKUP_PASSPHRASE; do
+            [ -n "${!s}" ] || { echo "::error::Missing secret $s"; exit 1; }
+          done
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Dump and encrypt
+        run: |
+          supabase link --project-ref xmkpokcnjzgxgwysperh --password "$SUPABASE_DB_PASSWORD" > /dev/null
+          stamp=$(date -u +%Y-%m-%d)
+          mkdir -p out
+          supabase db dump --linked --role-only -f roles.sql
+          supabase db dump --linked -f schema.sql
+          supabase db dump --linked --data-only --use-copy -f data.sql
+          tar czf dump.tgz roles.sql schema.sql data.sql
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+              --symmetric --cipher-algo AES256 -o "out/smartsumbong-$stamp.tgz.gpg" dump.tgz
+          rm -f roles.sql schema.sql data.sql dump.tgz
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smartsumbong-backup
+          path: out/
+          retention-days: 30

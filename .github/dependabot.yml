@@ -1,0 +1,18 @@
+# Weekly pull requests for outdated dependencies (industry pass 7): the
+# Flutter packages and the GitHub Actions the workflows use.
+version: 2
+updates:
+  - package-ecosystem: pub
+    directory: /mobile/core
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: pub
+    directory: /mobile/resident
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
