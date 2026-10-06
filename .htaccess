@@ -27,6 +27,11 @@
     Require all denied
 </FilesMatch>
 
+# Friendly error pages (industry pass 3) instead of Apache's defaults.
+ErrorDocument 403 /admin/error.php
+ErrorDocument 404 /admin/error.php
+ErrorDocument 500 /admin/error.php
+
 RewriteEngine On
 
 # Bare domain root -> the small landing page in this folder, so visiting

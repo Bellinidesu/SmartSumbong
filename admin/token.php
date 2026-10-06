@@ -19,7 +19,7 @@ header('Content-Type: application/json');
 header('Cache-Control: no-store');
 
 $admin = current_admin();
-if (!$admin) {
+if (!$admin || session_idle_expired($admin)) {
     http_response_code(401);
     echo json_encode(['error' => 'signed_out']);
     exit;

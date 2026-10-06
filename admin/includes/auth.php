@@ -92,6 +92,7 @@ function attempt_login(string $email, string $password): void
         // must choose its own before anything else (change-password.php).
         'must_change'   => !empty($me['must_change_password']),
         'avatar_url'    => $me['avatar_url'] ?? null,
+        'seen'          => time(),
     ];
 }
 
@@ -106,9 +107,31 @@ function logout(): void
 }
 
 /** Call at the top of every protected page. */
+/**
+ * Idle sign-out (industry pass 3, 7 Oct 2026): a session nobody has used
+ * for this long ends, so a portal left open on a shared barangay computer
+ * does not stay signed in. Only real use counts (opening a page, saving a
+ * form); a live page refreshing its token in the background does not.
+ */
+const IDLE_LIMIT = 2 * 3600;
+
+function session_idle_expired(?array $admin): bool
+{
+    return $admin !== null && isset($admin['seen']) && $admin['seen'] < time() - IDLE_LIMIT;
+}
+
 function require_admin(): array
 {
     $admin = current_admin();
+    if (session_idle_expired($admin)) {
+        unset($_SESSION[SESSION_KEY]);
+        header('Location: login.php?expired=1');
+        exit;
+    }
+    if ($admin) {
+        $admin['seen'] = time();
+        $_SESSION[SESSION_KEY] = $admin;
+    }
 
     if ($admin && $admin['expires_at'] < time() + 60) {
         // Token is about to lapse. Renew silently so a long shift on the

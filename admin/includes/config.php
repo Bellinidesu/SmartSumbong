@@ -107,3 +107,36 @@ function asset_version(string $cssFile): string
     $mtime = @filemtime($path);
     return $mtime !== false ? (string) $mtime : '1';
 }
+
+/**
+ * Content-Security-Policy (industry pass 3, 7 Oct 2026): the browser runs
+ * scripts and loads data only from this site and the services the portal
+ * really uses — Supabase (data, sign-in, live updates), Cloudinary
+ * (photos), OpenFreeMap (map tiles), Open-Meteo (rain), Nominatim
+ * (addresses) and Google Fonts (the printable documents). Anything else,
+ * including a script injected into a page, is refused. Inline scripts and
+ * handlers are still allowed: the pages use many, and moving them out is
+ * after-defense work.
+ */
+function send_security_policy(): void
+{
+    if (PHP_SAPI === 'cli' || headers_sent()) return;
+    try { $sb = supabase_url(); } catch (Throwable) { $sb = ''; }
+    $ws = preg_replace('#^http#', 'ws', $sb);
+    $policy = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "worker-src 'self' blob:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "img-src 'self' data: blob: https://res.cloudinary.com https://tiles.openfreemap.org",
+        "media-src 'self' blob: https://res.cloudinary.com",
+        "connect-src 'self' {$sb} {$ws} https://tiles.openfreemap.org https://api.open-meteo.com https://nominatim.openstreetmap.org",
+        "frame-ancestors 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "object-src 'none'",
+    ];
+    header('Content-Security-Policy: ' . implode('; ', $policy));
+}
+send_security_policy();
