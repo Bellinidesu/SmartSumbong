@@ -32,6 +32,7 @@ class TanodHomeScreen extends StatefulWidget {
 }
 
 class _TanodHomeScreenState extends State<TanodHomeScreen> {
+  int _unread = 0;
   String? _firstName;
 
   List<Ticket> _incoming = const [];
@@ -193,8 +194,19 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
         'first_name': casualNameOrNull(name),
         'open': open,
       }));
+      // The bell's count, like the resident home (it was always 0 here).
+      var unread = 0;
+      try {
+        unread = await Supabase.instance.client
+            .from('notifications')
+            .count(CountOption.exact)
+            .eq('user_id', Supabase.instance.client.auth.currentUser!.id)
+            .eq('is_read', false);
+      } catch (_) {}
+      if (!mounted) return;
       setState(() {
         _error = null;
+        _unread = unread;
         _firstName = casualNameOrNull(name);
         _incoming = [
           for (final r in open) Ticket.fromRow(r),
@@ -280,7 +292,10 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
                       filterQuality: FilterQuality.medium),
                 ),
               ),
-              Positioned(top: 0, right: 0, child: DBell(unread: 0, onTap: () => Navigator.of(context).pushNamed('/t/notifications'))),
+              Positioned(top: 0, right: 0, child: DBell(unread: _unread, onTap: () async {
+                await Navigator.of(context).pushNamed('/t/notifications');
+                if (mounted) setState(() => _unread = 0);
+              })),
             ]),
             const SizedBox(height: 14),
             Padding(

@@ -432,17 +432,14 @@ function status_label(string $s): string
  */
 function escalation_offices(): array
 {
+    // Rose (7 Oct 2026): the five reasons on the Certification of Lack of
+    // Jurisdiction, and nothing else.
     return [
-        'VAWC Desk'                  => t('VAWC Desk (violence against women and children)', 'VAWC Desk (karahasan sa kababaihan at bata)'),
-        'Philippine National Police' => t('Philippine National Police (PNP)', 'Philippine National Police (PNP)'),
-        'City Social Welfare Office' => t('City Social Welfare Office (DSWD)', 'City Social Welfare Office (DSWD)'),
-        'Lupong Tagapamayapa'        => t('Lupong Tagapamayapa (Katarungang Pambarangay)', 'Lupong Tagapamayapa (Katarungang Pambarangay)'),
-        'City Environment Office'    => t('City Environment Office (ENRO)', 'City Environment Office (ENRO)'),
-        'Bureau of Fire Protection'  => t('Bureau of Fire Protection (BFP)', 'Bureau of Fire Protection (BFP)'),
-        'City Health Office'         => t('City Health Office', 'City Health Office'),
-        // With the Certification of Lack of Jurisdiction's own reasons.
-        'Office of the Ombudsman'    => t('Office of the Ombudsman (a public officer, in official duties)', 'Office of the Ombudsman (pampublikong opisyal, sa tungkulin)'),
-        'Regular Courts'             => t('Regular courts (parties live in different cities)', 'Regular na hukuman (magkaibang lungsod ang tirahan)'),
+        'Lupong Tagapamayapa'        => t('Katarungang Pambarangay (Lupong Tagapamayapa)', 'Katarungang Pambarangay (Lupong Tagapamayapa)'),
+        'Philippine National Police' => t('Philippine National Police (PNP) — a criminal offense', 'Philippine National Police (PNP) — krimen'),
+        'VAWC Desk'                  => t('VAWC Desk — violence against women and children', 'VAWC Desk — karahasan sa kababaihan at bata'),
+        'Office of the Ombudsman'    => t('Grievances against public officers (Ombudsman)', 'Reklamo laban sa pampublikong opisyal (Ombudsman)'),
+        'Regular Courts'             => t('Outside the barangay (parties live in different cities)', 'Labas ng barangay (magkaibang lungsod ang tirahan)'),
     ];
 }
 
@@ -457,7 +454,6 @@ function office_picker(string $id, ?string $suggested = null): void
         <?php foreach ($offices as $val => $lbl): ?>
           <option value="<?= e($val) ?>" <?= $suggested === $val ? 'selected' : '' ?>><?= e($lbl) ?></option>
         <?php endforeach; ?>
-        <option value="other"><?= e(t('Another office…', 'Ibang tanggapan…')) ?></option>
       </select>
     </div>
     <div class="p-cfield" data-office-other hidden>

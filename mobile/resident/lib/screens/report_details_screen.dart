@@ -768,15 +768,17 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     Text(s.reportDetailsAnonymousQuestion, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
                     const SizedBox(height: 6),
                     Row(children: [
-                      _SmallSwitch(
-                        value: _anonymous,
-                        onChanged: _busy
+                      DToggle(
+                        on: _anonymous,
+                        label: s.reportDetailsAnonymousQuestion,
+                        onTap: _busy
                             ? null
-                            : (v) {
-                                setState(() => _anonymous = v);
+                            : () {
+                                setState(() => _anonymous = !_anonymous);
                                 _scheduleDraftSave();
                               },
                       ),
+                      const SizedBox(width: 12),
                       Expanded(child: Text(_anonymous ? s.reportDetailsHiddenNote : s.reportDetailsShownNote, style: DType.body(d.muted, size: 12))),
                     ]),
                   ]),
@@ -1175,8 +1177,10 @@ class _PhotoStrip extends StatelessWidget {
             onTap: enabled ? onAdd : null,
             borderRadius: BorderRadius.circular(25),
             child: Container(
-              width: 174,
-              height: 128,
+              // Full width, like the video tile below, until there are
+              // photos to sit beside.
+              width: photos.isEmpty ? double.infinity : 174,
+              height: photos.isEmpty ? 96 : 128,
               decoration: BoxDecoration(
                 color: context.colors.field,
                 borderRadius: BorderRadius.circular(25),
@@ -1425,52 +1429,6 @@ class _Acknowledgement extends StatelessWidget {
             ),
         ],
       );
-}
-
-/// Figma's anonymous toggle: 30x18, drawn as a Material Switch scaled to
-/// that size. The tap is taken by a 48x34 area around it (the scaled
-/// Switch alone would only answer a 30x18 touch); the Switch itself just
-/// draws, with its semantics kept for screen readers.
-class _SmallSwitch extends StatelessWidget {
-  const _SmallSwitch({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onChanged == null ? null : () => onChanged!(!value),
-      child: SizedBox(
-        width: 48,
-        height: 34,
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: 30,
-            height: 18,
-            child: IgnorePointer(
-              child: FittedBox(
-                // Navy track and light knob in both states, as drawn: on
-                // and off differ by which side the knob sits.
-                child: Switch(
-                  value: value,
-                  onChanged: onChanged,
-                  activeThumbColor: context.colors.bg,
-                  activeTrackColor: context.colors.navy,
-                  inactiveThumbColor: context.colors.bg,
-                  inactiveTrackColor: context.colors.navy,
-                  trackOutlineColor:
-                      const WidgetStatePropertyAll(Colors.transparent),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _Banner extends StatelessWidget {

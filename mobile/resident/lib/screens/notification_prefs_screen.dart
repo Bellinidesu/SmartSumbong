@@ -201,35 +201,10 @@ class _PrefRow extends StatelessWidget {
         if (busy)
           const SizedBox(width: 46, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))))
         else
-          Semantics(label: label, toggled: value, child: _Tog(on: value, onTap: () => onChanged(!value))),
+          Semantics(label: label, toggled: value, child: DToggle(on: value, onTap: () => onChanged(!value))),
       ]),
     );
   }
 }
 
 /// `.tog`: 46x28, grey, green when on, a 22 px white knob.
-class _Tog extends StatelessWidget {
-  const _Tog({required this.on, required this.onTap});
-
-  final bool on;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 46,
-          height: 28,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(color: on ? const Color(0xFF1F8A45) : const Color(0xFFC8CEDB), borderRadius: BorderRadius.circular(99)),
-          alignment: on ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 22,
-            height: 22,
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white, boxShadow: [BoxShadow(color: Color(0x40000000), blurRadius: 3, offset: Offset(0, 1))]),
-          ),
-        ),
-      );
-}

@@ -14,6 +14,11 @@
 
 part of 'dispatch_order.dart';
 
+/// Rose (7 Oct 2026): the tanod's dispatch page without the in-app
+/// navigation card and the chat bar. Switched off, not removed: true brings
+/// both back. The barangay's instructions and the step updates still show.
+const bool kTanodNavAndChat = false;
+
 MediaUploader _proofUploader() => MediaUploader(
   cloudName: _cloudName,
   uploadPreset: _uploadPreset,
@@ -758,18 +763,15 @@ class _DispatchWindowState extends State<DispatchWindow>
                     border: const OutlineInputBorder(),
                   ),
                   items: [
+                    // Rose (7 Oct 2026): the certificate's five reasons only.
                     for (final o in const [
-                      'VAWC Desk',
-                      'Philippine National Police',
-                      'City Social Welfare Office',
-                      'Lupong Tagapamayapa',
-                      'City Environment Office',
-                      'Bureau of Fire Protection',
-                      'City Health Office',
-                      'Office of the Ombudsman',
-                      'Regular Courts',
+                      ('Lupong Tagapamayapa', 'Katarungang Pambarangay'),
+                      ('Philippine National Police', 'PNP — a criminal offense'),
+                      ('VAWC Desk', 'VAWC — violence against women and children'),
+                      ('Office of the Ombudsman', 'Grievance against a public officer'),
+                      ('Regular Courts', 'Outside the barangay'),
                     ])
-                      DropdownMenuItem(value: o, child: Text(o)),
+                      DropdownMenuItem(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis)),
                   ],
                   onChanged: (v) => setD(() => office = v),
                 ),
@@ -958,7 +960,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                           _stepper(),
                           const SizedBox(height: 16),
                           if (_open) _stepActions(),
-                          if (_open && onsite && _casePoint != null) ...[
+                          if (kTanodNavAndChat && _open && onsite && _casePoint != null) ...[
                             const SizedBox(height: 12),
                             _againCard(),
                           ],
@@ -977,7 +979,10 @@ class _DispatchWindowState extends State<DispatchWindow>
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
                 child: Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
               ),
-            _open ? _composer() : _closedBar(),
+            if (!kTanodNavAndChat && _open)
+              const SafeArea(top: false, child: SizedBox(height: 8))
+            else
+              _open ? _composer() : _closedBar(),
           ],
         ),
       ),
