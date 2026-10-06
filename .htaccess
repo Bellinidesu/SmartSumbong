@@ -39,3 +39,26 @@ RewriteRule ^$ index.php [L]
 RewriteCond %{REQUEST_URI} !^/admin/
 RewriteCond %{REQUEST_URI} !^/index\.php$
 RewriteRule ^ - [F]
+
+# ---------- Speed (7 Oct 2026) ----------
+# Compress text on the way out, and let browsers keep static files instead
+# of downloading every style, script, font and logo on every page.
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript text/javascript application/json application/geo+json image/svg+xml
+</IfModule>
+AddType font/woff2 .woff2
+AddType application/geo+json .geojson
+<IfModule mod_expires.c>
+    # Our own CSS/JS carry ?v=<file time>, so each deploy changes their URL;
+    # vendor files, fonts and logos rarely change at all.
+    ExpiresActive On
+    ExpiresByType text/css "access plus 30 days"
+    ExpiresByType application/javascript "access plus 30 days"
+    ExpiresByType text/javascript "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType application/geo+json "access plus 7 days"
+</IfModule>

@@ -142,7 +142,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
-<script src="assets/js/map-theme.js"></script>
+<script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
 // Self-hosted rather than imported from esm.sh. This script runs with the

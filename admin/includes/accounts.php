@@ -300,7 +300,7 @@ function render_account_screen(string $role): void
         <?php foreach ($requests as $r): ?>
           <div class="ss-req">
             <?php if ($r['kind'] === 'id_document'): ?>
-              <a href="<?= e($r['id_image_url']) ?>" target="_blank" rel="noopener"><img src="<?= e($r['id_image_url']) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" class="ss-req-img"></a>
+              <a href="<?= e($r['id_image_url']) ?>" target="_blank" rel="noopener"><img src="<?= e(cld_thumb($r['id_image_url'], 480)) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" class="ss-req-img"></a>
             <?php else: ?>
               <span class="p-chip"><?= e(t('Name', 'Pangalan')) ?></span>
             <?php endif; ?>
@@ -474,7 +474,7 @@ function render_account_screen(string $role): void
       function avatarHtml(url, name, size) {
         var cls = 'p-avatar p-av-' + size;
         if (url) {
-          return '<img class="' + cls + '" src="' + escapeHtml(url) + '" alt="" loading="lazy">';
+          return '<img class="' + cls + '" src="' + escapeHtml(window.ssThumb(url, 160, true)) + '" alt="" loading="lazy">';
         }
         return '<span class="' + cls + '" aria-hidden="true">' + escapeHtml(initials(name)) + '</span>';
       }
@@ -837,7 +837,7 @@ function account_avatar_html(?string $url, string $name, string $size = 'sm'): s
 {
     $cls = 'p-avatar p-av-' . $size;
     if (!empty($url)) {
-        return '<img class="' . $cls . '" src="' . e($url) . '" alt="" loading="lazy">';
+        return '<img class="' . $cls . '" src="' . e(cld_thumb($url, 160, true)) . '" alt="" loading="lazy">';
     }
     return '<span class="' . $cls . '" aria-hidden="true">' . e(account_initials($name)) . '</span>';
 }
@@ -1119,7 +1119,7 @@ function render_account_detail(
             <p class="p-none-line"><?= e(t('No identification was uploaded. This account cannot be verified until one is.', 'Walang na-upload na ID. Hindi maveberipika ang account na ito hangga\'t walang ID.')) ?></p>
           <?php else: ?>
             <a class="p-id-shot" href="<?= e($p['id_image_url']) ?>" target="_blank" rel="noopener">
-              <img src="<?= e($p['id_image_url']) ?>" alt="<?= e(t('Identification submitted by ', 'ID na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
+              <img src="<?= e(cld_thumb($p['id_image_url'], 1000)) ?>" alt="<?= e(t('Identification submitted by ', 'ID na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>
         <?php
@@ -1200,7 +1200,7 @@ function render_account_detail(
             </p>
           <?php else: ?>
             <a class="p-id-shot p-id-shot--square" href="<?= e($p['selfie_url']) ?>" target="_blank" rel="noopener">
-              <img src="<?= e($p['selfie_url']) ?>" alt="<?= e(t('Selfie submitted by ', 'Selfie na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
+              <img src="<?= e(cld_thumb($p['selfie_url'], 600)) ?>" alt="<?= e(t('Selfie submitted by ', 'Selfie na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>
         </div>

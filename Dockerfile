@@ -14,8 +14,8 @@ FROM php:8.3-apache
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev \
-    && docker-php-ext-install curl mbstring \
-    && a2enmod rewrite \
+    && docker-php-ext-install curl mbstring opcache \
+    && a2enmod rewrite expires headers deflate \
     && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,6 +23,10 @@ RUN apt-get update \
 # into the page — a fatal on request-access.php showed visitors the
 # server's file paths. The image's own production ini logs them instead.
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# Speed (7 Oct 2026): OPcache keeps compiled PHP in memory. The image never
+# changes after it is built, so there is no need to re-check files on disk.
+RUN { echo 'opcache.enable=1'; echo 'opcache.memory_consumption=64'; echo 'opcache.max_accelerated_files=4000';       echo 'opcache.validate_timestamps=0'; echo 'opcache.interned_strings_buffer=8'; } > "$PHP_INI_DIR/conf.d/zz-opcache.ini"
 
 WORKDIR /var/www/html
 

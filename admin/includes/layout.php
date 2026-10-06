@@ -52,6 +52,7 @@ function layout_head(string $title, string $active = ''): void
 // before that runs out, so realtime and the polls keep working on a page
 // left open for hours. Pass it as createClient's accessToken option.
 // Names are stored "Last, First"; people read them First Last (Rose). Same as display_name().
+window.ssThumb = function (u, w, sq) { u = String(u || ''); return /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) ? u.replace('/image/upload/', '/image/upload/' + (sq ? 'c_fill,g_face,w_' + w + ',h_' + w : 'c_limit,w_' + w) + ',q_auto,f_auto/') : u; };
 window.ssName = function (n) { n = String(n == null ? '' : n); var c = n.indexOf(','); return c > 0 ? n.slice(c + 1).trim() + ' ' + n.slice(0, c).trim() : n; };
 window.ssAccessToken = function (initial) {
   var token = initial, fetchedAt = Date.now(), pending = null;
@@ -124,7 +125,7 @@ window.ssAccessToken = function (initial) {
 function admin_avatar_html(?array $admin): string
 {
     $url = $admin['avatar_url'] ?? null;
-    if ($url) return '<img class="p-avatar" src="' . e($url) . '" alt="">';
+    if ($url) return '<img class="p-avatar" src="' . e(cld_thumb($url, 96, true)) . '" alt="">';
     return '<div class="p-avatar" aria-hidden="true">' . e(admin_initials((string) ($admin['full_name'] ?? ''))) . '</div>';
 }
 
@@ -781,6 +782,20 @@ function handler_cell(array $r, string $me): string
 }
 
 /** "Besarra, Rose" -> "Rose Besarra" (0088); anything else unchanged. */
+/**
+ * A smaller copy of a Cloudinary photo for showing it small (speed, 7 Oct
+ * 2026): $w wide, or a $w square cropped to the face for avatars. Links
+ * still point at the original; anything that is not a Cloudinary image is
+ * returned as is.
+ */
+function cld_thumb(?string $url, int $w, bool $square = false): string
+{
+    $url = (string) $url;
+    if (!preg_match('#^https://res\.cloudinary\.com/[^/]+/image/upload/#', $url)) return $url;
+    $t = $square ? "c_fill,g_face,w_$w,h_$w" : "c_limit,w_$w";
+    return preg_replace('#/image/upload/#', "/image/upload/$t,q_auto,f_auto/", $url, 1);
+}
+
 /** display_name(), or $fallback when there is no name. */
 function name_or(?string $name, string $fallback): string
 {

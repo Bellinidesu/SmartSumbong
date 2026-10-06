@@ -19,6 +19,38 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 
 $admin = require_admin();
+
+/**
+ * Highest Project NOAH flood and storm-surge level (0-3) at a point, from
+ * assets/map/hazards.geojson — the same test map-theme.js's hazardAt() does.
+ */
+function case_hazard_at(float $lng, float $lat): array
+{
+    $out = ['flood' => 0, 'surge' => 0];
+    $fc = json_decode((string) @file_get_contents(__DIR__ . '/assets/map/hazards.geojson'), true);
+    $inRing = function (array $ring) use ($lng, $lat): bool {
+        $c = false;
+        for ($i = 0, $j = count($ring) - 1; $i < count($ring); $j = $i++) {
+            [$xi, $yi] = $ring[$i]; [$xj, $yj] = $ring[$j];
+            if ((($yi > $lat) !== ($yj > $lat)) && $lng < ($xj - $xi) * ($lat - $yi) / ($yj - $yi) + $xi) $c = !$c;
+        }
+        return $c;
+    };
+    foreach ((array) ($fc['features'] ?? []) as $f) {
+        $g = $f['geometry'] ?? [];
+        $polys = ($g['type'] ?? '') === 'Polygon' ? [$g['coordinates']] : (array) ($g['coordinates'] ?? []);
+        foreach ($polys as $poly) {
+            if (!$inRing($poly[0])) continue;
+            $hole = false;
+            for ($k = 1; $k < count($poly); $k++) { if ($inRing($poly[$k])) { $hole = true; break; } }
+            if ($hole) continue;
+            $h = $f['properties']['hazard'] ?? '';
+            if (isset($out[$h])) $out[$h] = max($out[$h], (int) ($f['properties']['level'] ?? 0));
+            break;
+        }
+    }
+    return $out;
+}
 $db    = db();
 
 $id = (string) ($_GET['id'] ?? '');
@@ -634,9 +666,18 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?= e(t('Near', 'Malapit sa')) ?> <?= e($report['location_label']) ?>
       </p>
     <?php endif; ?>
-    <!-- Filled in by the map script: the Project NOAH hazard levels at
-         this spot, only when there is one. -->
-    <p class="p-filed p-hazard" id="case-hazard" hidden></p>
+    <?php
+      // Project NOAH hazard levels at this spot, worked out here so the
+      // browser no longer downloads the 640 KB hazard file (speed, 7 Oct).
+      $hz = case_hazard_at((float) $report['longitude'], (float) $report['latitude']);
+      $hzNames = [t('none', 'wala'), t('low', 'mababa'), t('medium', 'katamtaman'), t('high', 'mataas')];
+      $hzBits = [];
+      if ($hz['flood']) $hzBits[] = t('Flood hazard (100-year): ', 'Panganib ng baha (100-taon): ') . $hzNames[$hz['flood']];
+      if ($hz['surge']) $hzBits[] = t('Storm surge: ', 'Daluyong: ') . $hzNames[$hz['surge']];
+    ?>
+    <?php if ($hzBits): ?>
+      <p class="p-filed p-hazard<?= max($hz['flood'], $hz['surge']) >= 3 ? ' p-high' : '' ?>" id="case-hazard"><?= e(implode(' · ', $hzBits)) ?> — Project NOAH</p>
+    <?php endif; ?>
     <p class="p-filed p-zone" id="case-zone" hidden></p>
 
     <?php if (!empty($report['due_at'])
@@ -711,7 +752,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               </div>
             <?php else: ?>
               <a class="p-media-thumb" href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
-                <img src="<?= e($m['media_url']) ?>" alt="<?= e(t('Evidence submitted with ', 'Ebidensyang isinumite kasama ng ') . $report['tracking_id']) ?>" loading="lazy">
+                <img src="<?= e(cld_thumb($m['media_url'], 480)) ?>" alt="<?= e(t('Evidence submitted with ', 'Ebidensyang isinumite kasama ng ') . $report['tracking_id']) ?>" loading="lazy">
                 <span class="p-media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
               </a>
             <?php endif; ?>
@@ -726,7 +767,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <div class="p-media">
           <?php foreach ($evidence as $m): ?>
             <a class="p-media-thumb" href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
-              <img src="<?= e($m['media_url']) ?>" alt="<?= e($m['kind'] === 'resolution' ? t('Resolution proof', 'Patunay ng resolusyon') : t('Barangay update photo', 'Larawan ng update ng barangay')) ?>" loading="lazy">
+              <img src="<?= e(cld_thumb($m['media_url'], 480)) ?>" alt="<?= e($m['kind'] === 'resolution' ? t('Resolution proof', 'Patunay ng resolusyon') : t('Barangay update photo', 'Larawan ng update ng barangay')) ?>" loading="lazy">
               <span class="p-media-size"><?= e($m['kind'] === 'resolution' ? t('Resolution', 'Resolusyon') : t('Update', 'Update')) ?> · <?= e(byte_size((int) $m['bytes'])) ?></span>
             </a>
           <?php endforeach; ?>
@@ -766,7 +807,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <?php foreach ($shots as $m): ?>
                 <a class="p-media-thumb" href="<?= e($m['media_url']) ?>"
                    target="_blank" rel="noopener">
-                  <img src="<?= e($m['media_url']) ?>"
+                  <img src="<?= e(cld_thumb($m['media_url'], 480)) ?>"
                        alt="<?= e(t('Proof photo for ', 'Larawang patunay para sa ') . $report['tracking_id']) ?>"
                        loading="lazy">
                   <span class="p-media-size"><?= e(byte_size((int) $m['bytes'])) ?></span>
@@ -926,7 +967,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                       <div class="p-thread-media">
                         <?php foreach ($threadMedia[$u['id']] as $m): ?>
                           <a href="<?= e($m['media_url']) ?>" target="_blank" rel="noopener">
-                            <img src="<?= e($m['media_url']) ?>" alt="<?= e(t('Update photo', 'Larawan ng update')) ?>" loading="lazy">
+                            <img src="<?= e(cld_thumb($m['media_url'], 480)) ?>" alt="<?= e(t('Update photo', 'Larawan ng update')) ?>" loading="lazy">
                           </a>
                         <?php endforeach; ?>
                       </div>
@@ -1503,7 +1544,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 </script>
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
-<script src="assets/js/map-theme.js"></script>
+<script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
 <script>
 (function () {
   // ---- copy the tracking id ----
@@ -1607,17 +1648,6 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
       el.textContent = T('Zone: ', 'Purok: ') + z;
       el.hidden = false;
     });
-    hazardAt(lng, lat).then(function (h) {
-      var names = [T('none', 'wala'), T('low', 'mababa'), T('medium', 'katamtaman'), T('high', 'mataas')];
-      var bits = [];
-      if (h.flood) bits.push(T('Flood hazard (100-year): ', 'Panganib ng baha (100-taon): ') + names[h.flood]);
-      if (h.surge) bits.push(T('Storm surge: ', 'Daluyong: ') + names[h.surge]);
-      if (!bits.length) return;
-      var el = document.getElementById('case-hazard');
-      el.textContent = bits.join(' · ') + ' — Project NOAH';
-      el.classList.toggle('p-high', Math.max(h.flood, h.surge) >= 3);
-      el.hidden = false;
-    }).catch(function () {});
     // Navy on the light map, pale blue on the dark one.
     new maplibregl.Marker({ color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#a9c1ff' : '#00308f' })
       .setLngLat([lng, lat]).addTo(map);

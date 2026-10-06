@@ -229,7 +229,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
 <section class="p-card ss-pf-head">
   <div class="ss-pf-banner" aria-hidden="true"></div>
   <div class="ss-pf-id">
-    <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" src="<?= e($me['avatar_url']) ?>" alt="" id="ss-photo-preview">
+    <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" src="<?= e(cld_thumb($me['avatar_url'], 240, true)) ?>" alt="" id="ss-photo-preview">
     <?php else: ?><span class="ss-pf-av ss-pf-ini" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
     <div class="ss-pf-who">
       <h2><?= e($shown) ?></h2>
