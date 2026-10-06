@@ -161,6 +161,9 @@
 (function () {
   var data = null;
   function zones() {
+    // The page says whether the file exists (layout.php), so a portal
+    // without one never makes a request that can only 404.
+    if (window.SS_ZONES === false) return data || (data = Promise.resolve(null));
     return data || (data = fetch('assets/map/zones.geojson')
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; }));

@@ -47,13 +47,15 @@ function layout_head(string $title, string $active = ''): void
 <?= theme_head(false) ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
+// Whether a purok boundaries file exists (map-theme.js skips the request if not).
+window.SS_ZONES = <?= is_file(__DIR__ . '/../assets/map/zones.geojson') ? 'true' : 'false' ?>;
+window.ssThumb = function (u, w, sq) { u = String(u || ''); return /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) ? u.replace('/image/upload/', '/image/upload/' + (sq ? 'c_fill,g_face,w_' + w + ',h_' + w : 'c_limit,w_' + w) + ',q_auto,f_auto/') : u; };
+// Names are stored "Last, First"; people read them First Last (Rose). Same as display_name().
+window.ssName = function (n) { n = String(n == null ? '' : n); var c = n.indexOf(','); return c > 0 ? n.slice(c + 1).trim() + ' ' + n.slice(0, c).trim() : n; };
 // The live connections' token (27 Sep 2026). A page starts with the one
 // it was loaded with; this hands supabase-js a fresh one from token.php
 // before that runs out, so realtime and the polls keep working on a page
 // left open for hours. Pass it as createClient's accessToken option.
-// Names are stored "Last, First"; people read them First Last (Rose). Same as display_name().
-window.ssThumb = function (u, w, sq) { u = String(u || ''); return /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) ? u.replace('/image/upload/', '/image/upload/' + (sq ? 'c_fill,g_face,w_' + w + ',h_' + w : 'c_limit,w_' + w) + ',q_auto,f_auto/') : u; };
-window.ssName = function (n) { n = String(n == null ? '' : n); var c = n.indexOf(','); return c > 0 ? n.slice(c + 1).trim() + ' ' + n.slice(0, c).trim() : n; };
 window.ssAccessToken = function (initial) {
   var token = initial, fetchedAt = Date.now(), pending = null;
   function renew() {
@@ -75,6 +77,7 @@ window.ssAccessToken = function (initial) {
 };
 </script>
 <title><?= e($title) ?> — Smart Sumbong | Barangay 183</title>
+<meta name="description" content="Smart Sumbong: Barangay 183 Villamor, Pasay City complaint management portal for barangay staff.">
 <link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
 <meta name="theme-color" content="#00308F">
