@@ -14,6 +14,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -79,6 +80,10 @@ Future<void> main() async {
   // Crashlytics instead of vanishing into an unhandled zone error.
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Phone run (7 Oct 2026): turned sideways, the bottom bar covered the
+    // home screen. Every screen is drawn for a phone held upright.
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
     // The shared permission prompts speak the resident's language too.
     PermissionGate.labels = (context) {

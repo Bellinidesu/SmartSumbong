@@ -623,7 +623,10 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
       ));
     } else if (showsNote) {
       final fallback = status == ReportStatus.assigned || status == ReportStatus.inProgress || status == ReportStatus.offlineInvestigation ? s.reportViewAssigned : null;
-      final text = remarkText ?? fallback;
+      // The hand-off already has its own "Handled by" row below; the same
+      // words in a note above it read twice (phone run, 7 Oct 2026).
+      final handOff = _official != null && (remark ?? '').startsWith('Handed to');
+      final text = handOff ? null : (remarkText ?? fallback);
       if (text != null) notes.add(_RNote(colour: stCol, title: stLabel, body: text));
     }
 
