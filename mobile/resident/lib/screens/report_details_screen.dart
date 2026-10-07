@@ -126,6 +126,16 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   bool _geocoding = false;
   String? _geocodeError;
 
+  // Rose (7 Oct 2026): the address can always be typed, with places to
+  // pick from, and the pin has to be inside Barangay 183.
+  List<List<LatLng>> _rings = const [];
+  bool _outside = false;
+  List<_Place> _suggestions = const [];
+  Timer? _suggestDebounce;
+  bool _settingAddress = false;
+  int _suggestSeq = 0;
+  final _suggestKey = GlobalKey();
+
   final _photos = <File>[];
   final _uploaded = <UploadedMedia>[]; // held across retries
 
@@ -151,6 +161,10 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     _description =
         TextEditingController(text: widget.choice.descriptionPrefill);
     _description.addListener(_scheduleDraftSave);
+    _addressSearch.addListener(_onAddressTyped);
+    brgyBoundary().then((r) {
+      if (mounted) setState(() => _rings = r);
+    });
     _locate();
     _restoreDraftIfAny();
   }
@@ -158,6 +172,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
   @override
   void dispose() {
     _draftDebounce?.cancel();
+    _suggestDebounce?.cancel();
     _description.dispose();
     _addressSearch.dispose();
     super.dispose();
@@ -165,51 +180,112 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   // ---------- location ---------------------------------------
 
+  /// Places matching what is typed, from Photon (komoot's open-source
+  /// geocoder over OpenStreetMap, made for search-as-you-type), limited to
+  /// the barangay's box and then to its outline.
+  Future<List<_Place>> _lookup(String q) async {
+    final uri = Uri.https('photon.komoot.io', '/api/', {
+      'q': q,
+      'limit': '8',
+      'lang': 'en',
+      'lat': '${_barangayCentre.latitude}',
+      'lon': '${_barangayCentre.longitude}',
+      'bbox': '120.9996,14.5019,121.0328,14.5310',
+    });
+    final res = await http.get(uri, headers: {
+      'User-Agent': 'SmartSumbong-Resident/1.0 (Barangay 183, Pasay City)',
+    }).timeout(const Duration(seconds: 10));
+    if (res.statusCode != 200) throw Exception('geocode ${res.statusCode}');
+    final features = (jsonDecode(res.body) as Map)['features'] as List? ?? const [];
+    final out = <_Place>[];
+    for (final f in features) {
+      final c = (f['geometry']?['coordinates'] as List?)?.cast<num>();
+      if (c == null || c.length < 2) continue;
+      final at = LatLng(c[1].toDouble(), c[0].toDouble());
+      if (!insideBrgy(_rings, at)) continue;
+      final pr = (f['properties'] as Map?) ?? const {};
+      final name = (pr['name'] ?? '').toString();
+      final street = [pr['housenumber'], pr['street']].where((e) => e != null && '$e'.isNotEmpty).join(' ');
+      final title = name.isNotEmpty ? name : (street.isNotEmpty ? street : q);
+      final sub = [if (name.isNotEmpty && street.isNotEmpty) street, 'Barangay 183, Pasay City'].join(' · ');
+      if (out.any((o) => o.title == title && o.sub == sub)) continue;
+      out.add(_Place(title, sub, at));
+      if (out.length == 5) break;
+    }
+    return out;
+  }
+
+  void _onAddressTyped() {
+    if (_settingAddress) return;
+    _suggestDebounce?.cancel();
+    final q = _addressSearch.text.trim();
+    if (q.length < 3) {
+      if (_suggestions.isNotEmpty || _geocodeError != null) {
+        setState(() {
+          _suggestions = const [];
+          _geocodeError = null;
+        });
+      }
+      return;
+    }
+    _suggestDebounce = Timer(const Duration(milliseconds: 450), () async {
+      final seq = ++_suggestSeq;
+      try {
+        final found = await _lookup(q);
+        if (!mounted || seq != _suggestSeq) return;
+        setState(() {
+          _suggestions = found;
+          _geocodeError = found.isEmpty ? context.s.reportDetailsAddressNotFound : null;
+        });
+        // Above the keyboard, so the list can be seen while typing.
+        if (found.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final c = _suggestKey.currentContext;
+            if (c != null) Scrollable.ensureVisible(c, alignment: 1, duration: const Duration(milliseconds: 250));
+          });
+        }
+      } catch (_) {
+        // Quietly: the search button says so if it fails again.
+      }
+    });
+  }
+
+  void _pickPlace(_Place p) {
+    FocusScope.of(context).unfocus();
+    _settingAddress = true;
+    _addressSearch.text = p.title;
+    _settingAddress = false;
+    setState(() {
+      _pin = p.at;
+      _accuracyMetres = null;
+      _outside = false;
+      _suggestions = const [];
+      _geocodeError = null;
+      _errors.remove('location');
+    });
+    _map.move(_pin, 17);
+  }
+
   Future<void> _searchAddress() async {
     final q = _addressSearch.text.trim();
     if (q.isEmpty) return;
+    if (_suggestions.isNotEmpty) {
+      _pickPlace(_suggestions.first);
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() {
       _geocoding = true;
       _geocodeError = null;
     });
     try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
-        'format': 'json',
-        'limit': '1',
-        'countrycodes': 'ph',
-        // Biases the search toward the barangay without forcing the
-        // resident to type it — Nominatim treats this as ordinary query
-        // text, not a hard filter, so a mismatch costs relevance, not a
-        // failure.
-        'q': '$q, Barangay 183, Pasay City, Philippines',
-      });
-      final res = await http.get(uri, headers: {
-        // Required by Nominatim's usage policy for any non-browser
-        // client — identifies the app, not decoration.
-        'User-Agent': 'SmartSumbong-Resident/1.0 (Barangay 183, Pasay City)',
-      }).timeout(const Duration(seconds: 10));
-
-      if (res.statusCode != 200) throw Exception('geocode ${res.statusCode}');
-      final results = jsonDecode(res.body) as List;
-      if (results.isEmpty) {
-        if (!mounted) return;
+      final found = await _lookup(q);
+      if (!mounted) return;
+      if (found.isEmpty) {
         setState(() => _geocodeError = context.s.reportDetailsAddressNotFound);
         return;
       }
-
-      final hit = results.first as Map<String, dynamic>;
-      final lat = double.tryParse(hit['lat'] as String? ?? '');
-      final lon = double.tryParse(hit['lon'] as String? ?? '');
-      if (lat == null || lon == null) throw Exception('geocode: bad coords');
-
-      if (!mounted) return;
-      setState(() {
-        _pin = LatLng(lat, lon);
-        // The circle described a GPS fix. A typed address is not one.
-        _accuracyMetres = null;
-      });
-      _map.move(_pin, 17);
+      _pickPlace(found.first);
     } catch (_) {
       if (!mounted) return;
       setState(
@@ -260,10 +336,20 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       );
 
       if (!mounted) return;
+      final rings = _rings.isNotEmpty ? _rings : await brgyBoundary();
+      if (!mounted) return;
+      final here = LatLng(pos.latitude, pos.longitude);
+      if (!insideBrgy(rings, here)) {
+        // Rose (7 Oct 2026): a phone far away put the pin in another
+        // country. Start from the barangay instead.
+        _fallback(denied: false, outside: true);
+        return;
+      }
       setState(() {
-        _pin = LatLng(pos.latitude, pos.longitude);
+        _pin = here;
         _accuracyMetres = pos.accuracy;
         _locating = false;
+        _outside = false;
       });
       _map.move(_pin, 17);
     } catch (_) {
@@ -273,13 +359,14 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     }
   }
 
-  void _fallback({required bool denied}) {
+  void _fallback({required bool denied, bool outside = false}) {
     if (!mounted) return;
     setState(() {
       _pin = _barangayCentre;
       _accuracyMetres = null;
       _locating = false;
       _locationDenied = denied;
+      _outside = outside;
     });
     _map.move(_pin, 15);
   }
@@ -512,6 +599,11 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   bool _validate() {
     _errors.clear();
+    if (!insideBrgy(_rings, _pin)) {
+      _errors['location'] = context.tr(
+          'This spot is outside Barangay 183. Move the pin inside the barangay or type the address.',
+          'Nasa labas ng Barangay 183 ang lugar na ito. Ilipat ang pin sa loob ng barangay o i-type ang address.');
+    }
     if (_description.text.trim().length < 10) {
       _errors['description'] = context.s.reportDetailsDescriptionValidation;
     }
@@ -733,6 +825,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     locating: _locating,
                     onMoved: (p) => setState(() {
                       _pin = p;
+                      _outside = false;
+                      _errors.remove('location');
                       // The circle described the GPS fix, not a hand placed
                       // pin. Keeping it would claim an accuracy that no
                       // longer applies.
@@ -740,8 +834,15 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     }),
                   ),
                   const SizedBox(height: 6),
-                  _LocationStatus(locating: _locating, denied: _locationDenied, accuracyMetres: _accuracyMetres, onRetry: _locate),
-                  if (_locationDenied && !_locating) ...[
+                  if (_outside && !_locating)
+                    Text(
+                      context.tr('You seem to be outside Barangay 183, so the map shows the barangay centre. Drag the pin or type the address.',
+                          'Mukhang nasa labas ka ng Barangay 183, kaya nasa gitna ng barangay ang mapa. I-drag ang pin o i-type ang address.'),
+                      style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5),
+                    )
+                  else
+                    _LocationStatus(locating: _locating, denied: _locationDenied, accuracyMetres: _accuracyMetres, onRetry: _locate),
+                  if (!_locating) ...[
                     const SizedBox(height: 14),
                     _ManualAddressField(
                       controller: _addressSearch,
@@ -750,6 +851,14 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                       enabled: !_busy,
                       onSearch: _searchAddress,
                     ),
+                    if (_suggestions.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      _Suggestions(key: _suggestKey, places: _suggestions, onPick: _pickPlace),
+                    ],
+                  ],
+                  if (_errors['location'] != null) ...[
+                    const SizedBox(height: 8),
+                    Text(_errors['location']!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
                   ],
                 ]),
                 const SizedBox(height: 12),
@@ -1447,4 +1556,54 @@ class _Banner extends StatelessWidget {
         child: Text(message,
             style: TextStyle(color: context.colors.hint, fontSize: 13)),
       );
+}
+
+
+/// One place offered under the address box.
+class _Place {
+  const _Place(this.title, this.sub, this.at);
+  final String title;
+  final String sub;
+  final LatLng at;
+}
+
+/// Rose (7 Oct 2026): a list to pick from as the address is typed.
+class _Suggestions extends StatelessWidget {
+  const _Suggestions({super.key, required this.places, required this.onPick});
+
+  final List<_Place> places;
+  final ValueChanged<_Place> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: [
+        for (var i = 0; i < places.length; i++) ...[
+          if (i > 0) Divider(height: 1, color: d.line),
+          InkWell(
+            onTap: () => onPick(places[i]),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(children: [
+                  Icon(Icons.place_outlined, size: 20, color: d.accent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(places[i].title, style: DType.body(d.ink, size: 14, w: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(places[i].sub, style: DType.body(d.muted, size: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        ],
+      ]),
+    );
+  }
 }

@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../theme.dart';
+import '../d/d_theme.dart';
 
 /// The design's drop shadow: y 5, blur 5, #121212 at 30%.
 const kFigmaShadow = [
@@ -166,7 +167,7 @@ class FigmaDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
+    final d = context.d;
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -176,9 +177,11 @@ class FigmaDialog extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(
             20, body != null || content != null ? 30 : 40, 20, 27),
         decoration: BoxDecoration(
-          color: c.navy,
-          borderRadius: BorderRadius.circular(50),
-          border: Border.all(color: const Color(0xFF252525), width: 2),
+          // 7 Oct 2026: the D card in both themes, like showDDialog. The
+          // old navy surface turned white in dark mode.
+          color: d.card,
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: d.line, width: 1.5),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -205,7 +208,7 @@ class FigmaDialog extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     fontSize: 16,
                     height: 1.25,
-                    color: c.bg,
+                    color: d.ink2,
                   ),
                 ),
               ],
@@ -262,9 +265,9 @@ class FigmaDialogPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final bg = destructive ? kFigmaRed : (filled ? c.bg : c.navy);
-    final fg = destructive ? Colors.white : (filled ? c.navy : c.bg);
+    final d = context.d;
+    final bg = destructive ? kFigmaRed : (filled ? DColors.orange : Colors.transparent);
+    final fg = destructive ? Colors.white : (filled ? const Color(0xFF141B34) : d.ink);
     return DecoratedBox(
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.all(Radius.circular(50)),
@@ -280,7 +283,7 @@ class FigmaDialogPill extends StatelessWidget {
           minimumSize: const Size(106, 40),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           elevation: 0,
-          side: filled ? BorderSide.none : BorderSide(color: c.bg),
+          side: filled ? BorderSide.none : BorderSide(color: d.line, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(50),
           ),
@@ -533,7 +536,7 @@ class FigmaDialogField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
+    final d = context.d;
     return TextField(
       controller: controller,
       obscureText: obscure,
@@ -545,7 +548,7 @@ class FigmaDialogField extends StatelessWidget {
         fontFamily: 'Urbanist',
         fontWeight: FontWeight.w500,
         fontSize: 14,
-        color: c.navy,
+        color: d.ink,
       ),
       decoration: InputDecoration(
         hintText: hint,
@@ -553,16 +556,20 @@ class FigmaDialogField extends StatelessWidget {
           fontFamily: 'Urbanist',
           fontStyle: FontStyle.italic,
           fontSize: 13,
-          color: c.navy.withValues(alpha: 0.7),
+          color: d.muted,
         ),
         isDense: true,
         filled: true,
-        fillColor: c.field,
+        fillColor: d.field,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(50),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: d.line),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: d.line),
         ),
       ),
     );

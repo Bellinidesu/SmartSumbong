@@ -977,3 +977,29 @@ class FigmaPinPainter extends CustomPainter {
   bool shouldRepaint(FigmaPinPainter old) =>
       old.colour != colour || old.fill != fill || old.tip != tip;
 }
+
+/// Barangay 183's outline, the bundled OSM relation the map draws
+/// (7 Oct 2026, Rose): the report form keeps a pin inside it.
+Future<List<List<ll.LatLng>>> brgyBoundary() =>
+    _BrgyMapState._rings ??= _BrgyMapState._loadRings();
+
+/// Even-odd ray casting over every ring, so a hole stays outside. True
+/// when the outline could not be read: the check never blocks a report
+/// because a file failed to load.
+bool insideBrgy(List<List<ll.LatLng>> rings, ll.LatLng p) {
+  if (rings.isEmpty) return true;
+  var inside = false;
+  for (final r in rings) {
+    for (var i = 0, j = r.length - 1; i < r.length; j = i++) {
+      final a = r[i], b = r[j];
+      if ((a.latitude > p.latitude) != (b.latitude > p.latitude) &&
+          p.longitude <
+              (b.longitude - a.longitude) * (p.latitude - a.latitude) /
+                      (b.latitude - a.latitude) +
+                  a.longitude) {
+        inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
