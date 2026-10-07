@@ -88,7 +88,7 @@ class _ReportMessagesScreenState extends State<ReportMessagesScreen> {
           .from('report_messages')
           .select('id, from_barangay, body, created_at')
           .eq('report_id', widget.reportId)
-          .order('created_at');
+          .order('created_at', ascending: true);
       if (!mounted) return;
       final grew = rows.length > _messages.length;
       setState(() {
