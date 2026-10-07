@@ -1668,7 +1668,7 @@ class _ReasonDialogState extends State<_ReasonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PDialog(
       backgroundColor: context.colors.bg,
       title: Text(widget.title, style: const TextStyle(fontSize: 18)),
       content: Column(

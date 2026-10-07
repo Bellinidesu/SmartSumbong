@@ -7,6 +7,7 @@
 // screen rather than stacking it.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../d/d_theme.dart';
 import '../i18n.dart';
@@ -72,7 +73,19 @@ class DBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // The system buttons sit on this bar: dark ones on a light bar.
+    final light = colors.bar.computeLuminance() > .5;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
+        systemNavigationBarIconBrightness: light ? Brightness.dark : Brightness.light,
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: Theme.of(context).brightness,
+      ),
+      child: Container(
       decoration: BoxDecoration(
         color: colors.bar,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
@@ -90,6 +103,7 @@ class DBar extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -113,13 +127,17 @@ class DBarTab extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: ExcludeSemantics(
-          child: Column(children: [
+          // B1 (Ace, 7 Oct 2026): a short orange line over the active tab,
+          // the others a little quieter.
+          child: Opacity(
+            opacity: active ? 1 : .62,
+            child: Column(children: [
             const SizedBox(height: 5),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: active ? 46 : 0,
-              height: 2,
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+              width: active ? 26 : 0,
+              height: 3,
+              decoration: BoxDecoration(color: DColors.orange, borderRadius: BorderRadius.circular(3)),
             ),
             const Spacer(),
             SizedBox(height: 26, child: Center(child: icon)),
@@ -139,6 +157,7 @@ class DBarTab extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ]),
+          ),
         ),
       ),
     );

@@ -24,9 +24,9 @@ import 'package:smartsumbong_core/smartsumbong_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../d/d_theme.dart';
+import '../d/d_success.dart';
 import '../d/d_ui.dart';
 import '../i18n.dart';
-import '../theme.dart';
 import '../widgets/figma_ui.dart';
 
 class AddDetailsScreen extends StatefulWidget {
@@ -193,49 +193,15 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
   // and the 301x44 navy Back to Home.
   Widget _confirmation() {
     final s = context.s;
-    final c = context.colors;
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(26, figmaTop(context, 240, min: 40), 26, 24),
-      child: Column(
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: DColors.greenVivid,
-              boxShadow: [BoxShadow(color: DColors.greenVivid.withValues(alpha: .45), blurRadius: 28, offset: const Offset(0, 10))],
-            ),
-            child: const Icon(Icons.check_rounded, size: 52, color: Colors.white),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            s.addDetailsSentTitle(widget.trackingId),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w800,
-              fontSize: 30,
-              height: 1.0,
-              color: c.navy,
-            ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            s.addDetailsSentBody,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w500,
-              fontSize: 16,
-              height: 20 / 16,
-              color: c.navy,
-            ),
-          ),
-          const SizedBox(height: 48),
-          DButton(s.reportSubmittedBackHome, expand: true, onTap: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false)),
-        ],
-      ),
+    // Ace (7 Oct 2026): the shared success page, blue ticket.
+    return DSuccess(
+      title: context.tr('Details sent', 'Naipadala ang detalye'),
+      body: s.addDetailsSentBody,
+      button: s.reportSubmittedBackHome,
+      onButton: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false),
+      ticketId: widget.trackingId,
+      tone: DTicketTone.inProgress,
+      status: context.tr('With the tanod', 'Nasa tanod'),
     );
   }
 

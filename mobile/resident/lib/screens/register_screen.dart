@@ -399,7 +399,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (e.code == 'mobile_taken' && mounted) {
         final go = await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
+          builder: (ctx) => PDialog(
             content: Text(s.registerMobileTaken),
             actions: [
               TextButton(
@@ -478,7 +478,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => PDialog(
         backgroundColor: context.colors.bg,
         title: Text(s.registerOcrConcernTitle),
         content: Text(
@@ -519,7 +519,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => PDialog(
         backgroundColor: context.colors.bg,
         title: Text(s.registerReviewTitle, style: t.titleMedium),
         content: SingleChildScrollView(
@@ -563,7 +563,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
           ),
         ),
-        actionsOverflowButtonSpacing: 8,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

@@ -229,6 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
               child: AutofillGroup(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 _DField(
+                  tanod: tanod,
                   autofill: const [AutofillHints.username],
                   label: s.loginPhoneLabel,
                   hint: s.loginPhoneHint,
@@ -240,6 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
                 _DField(
+                  tanod: tanod,
                   autofill: const [AutofillHints.password],
                   label: s.loginPasswordLabel,
                   hint: s.loginPasswordHint,
@@ -361,8 +363,11 @@ class _DField extends StatelessWidget {
     this.keyboardType,
     this.inputFormatters,
     this.autofill,
+    this.tanod = false,
   });
 
+  /// The tanod's login is graphite by night, not navy (Ace, 7 Oct 2026).
+  final bool tanod;
   final Iterable<String>? autofill;
   final String label;
   final String hint;
@@ -398,7 +403,7 @@ class _DField extends StatelessWidget {
           hintText: hint,
           hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 14.5, letterSpacing: 0, color: dark ? Colors.white60 : const Color(0xFF8A90A3), fontStyle: FontStyle.normal),
           filled: true,
-          fillColor: dark ? const Color(0xFF22305E) : Colors.white,
+          fillColor: dark ? (tanod ? const Color(0xFF353B44) : const Color(0xFF22305E)) : Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: b(Colors.transparent),
           enabledBorder: b(Colors.transparent),

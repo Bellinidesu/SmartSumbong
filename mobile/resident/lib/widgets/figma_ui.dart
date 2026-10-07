@@ -145,7 +145,8 @@ class FigmaDialog extends StatelessWidget {
     required this.title,
     this.body,
     this.content,
-    this.titleColor = kFigmaOrange,
+    this.titleColor,
+    this.icon,
     required this.primaryLabel,
     required this.onPrimary,
     this.secondaryLabel,
@@ -156,91 +157,58 @@ class FigmaDialog extends StatelessWidget {
   final String title;
   final String? body;
   final Widget? content;
-  final Color titleColor;
+  final Color? titleColor;
 
-  /// Draws the primary pill red — for an action that can't be undone.
+  /// The disc over the title, in the action's colour (P1).
+  final IconData? icon;
+
+  /// Draws the primary button red — for an action that can't be undone.
   final bool destructive;
   final String primaryLabel;
   final VoidCallback? onPrimary;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
 
+  // P1 (Ace, 7 Oct 2026): every popup is the Log Out card — an icon in
+  // the action's colour, the title, the words, then the buttons full width
+  // and stacked, the main one on top.
   @override
   Widget build(BuildContext context) {
     final d = context.d;
+    final tone = destructive ? kFigmaRed : DColors.orange;
     return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Container(
-        width: 300,
-        padding: EdgeInsets.fromLTRB(
-            20, body != null || content != null ? 30 : 40, 20, 27),
-        decoration: BoxDecoration(
-          // 7 Oct 2026: the D card in both themes, like showDDialog. The
-          // old navy surface turned white in dark mode.
-          color: d.card,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: d.line, width: 1.5),
-        ),
+      backgroundColor: d.card,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: d.line)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 24,
-                  height: 1.1,
-                  color: titleColor,
-                ),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Center(
+              child: Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: tone.withValues(alpha: .14)),
+                child: Icon(icon ?? (destructive ? Icons.warning_amber_rounded : Icons.edit_outlined), color: tone, size: 26),
               ),
-              if (body != null) ...[
-                const SizedBox(height: 20),
-                Text(
-                  body!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
-                    height: 1.25,
-                    color: d.ink2,
-                  ),
-                ),
-              ],
-              if (content != null) ...[
-                const SizedBox(height: 16),
-                content!,
-              ],
-              SizedBox(height: body != null || content != null ? 23 : 32),
-              // Side by side, 13 apart, as the frames have them; a pair
-              // too long for one line (a Filipino label, "Delete my
-              // account") stacks instead of overflowing.
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 13,
-                runSpacing: 12,
-                children: [
-                  if (secondaryLabel != null)
-                    FigmaDialogPill(
-                      label: secondaryLabel!,
-                      onPressed: onSecondary,
-                      filled: false,
-                    ),
-                  FigmaDialogPill(
-                    label: primaryLabel,
-                    onPressed: onPrimary,
-                    filled: true,
-                    destructive: destructive,
-                  ),
-                ],
-              ),
+            ),
+            const SizedBox(height: 12),
+            Text(title, textAlign: TextAlign.center, style: DType.h2(titleColor ?? d.ink)),
+            if (body != null) ...[
+              const SizedBox(height: 8),
+              Text(body!, textAlign: TextAlign.center, style: DType.body(d.ink2, size: 14)),
             ],
-          ),
+            if (content != null) ...[
+              const SizedBox(height: 14),
+              content!,
+            ],
+            const SizedBox(height: 18),
+            FigmaDialogPill(label: primaryLabel, onPressed: onPrimary, filled: true, destructive: destructive),
+            if (secondaryLabel != null) ...[
+              const SizedBox(height: 8),
+              FigmaDialogPill(label: secondaryLabel!, onPressed: onSecondary, filled: false),
+            ],
+          ]),
         ),
       ),
     );
@@ -270,8 +238,7 @@ class FigmaDialogPill extends StatelessWidget {
     final fg = destructive ? Colors.white : (filled ? const Color(0xFF141B34) : d.ink);
     return DecoratedBox(
       decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.circular(50)),
-        boxShadow: kFigmaShadow,
+        borderRadius: BorderRadius.all(Radius.circular(14)),
       ),
       child: FilledButton(
         onPressed: onPressed,
@@ -280,12 +247,12 @@ class FigmaDialogPill extends StatelessWidget {
           foregroundColor: fg,
           disabledBackgroundColor: bg.withValues(alpha: 0.5),
           disabledForegroundColor: fg.withValues(alpha: 0.6),
-          minimumSize: const Size(106, 40),
+          minimumSize: const Size.fromHeight(46),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           elevation: 0,
           side: filled ? BorderSide.none : BorderSide(color: d.line, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(50),
+            borderRadius: BorderRadius.circular(14),
           ),
           textStyle: const TextStyle(
             fontFamily: 'Urbanist',
@@ -633,4 +600,59 @@ Future<ImageSource?> showFigmaSourceSheet(
       ),
     ),
   );
+}
+
+/// P1 for the dialogs written as AlertDialog (Ace, 7 Oct 2026): the same
+/// title / content / actions, laid out as the shared popup card — the
+/// words centred, the buttons full width and stacked with the main one
+/// (the last action) on top, orange filled and outlined.
+class PDialog extends StatelessWidget {
+  const PDialog({super.key, this.title, this.content, this.actions = const [], this.backgroundColor});
+
+  final Widget? title;
+  final Widget? content;
+  final List<Widget> actions;
+
+  /// Ignored: the card is always the D card. Kept so AlertDialog's
+  /// arguments carry over unchanged.
+  final Color? backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
+    const size = Size.fromHeight(46);
+    const label = TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 15);
+    return Dialog(
+      backgroundColor: d.card,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: d.line)),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: size, shape: shape, backgroundColor: DColors.orange, foregroundColor: const Color(0xFF141B34), textStyle: label)),
+          textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(minimumSize: size, shape: shape.copyWith(side: BorderSide(color: d.line, width: 1.5)), foregroundColor: d.ink, textStyle: label)),
+          elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(minimumSize: size, shape: shape, backgroundColor: DColors.orange, foregroundColor: const Color(0xFF141B34), textStyle: label)),
+          outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(minimumSize: size, shape: shape, foregroundColor: d.ink, side: BorderSide(color: d.line, width: 1.5), textStyle: label)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (title != null)
+                DefaultTextStyle.merge(textAlign: TextAlign.center, style: DType.h2(d.ink), child: Center(child: title!)),
+              if (content != null) ...[
+                const SizedBox(height: 10),
+                DefaultTextStyle.merge(style: DType.body(d.ink2, size: 14), child: content!),
+              ],
+              if (actions.isNotEmpty) const SizedBox(height: 18),
+              for (final a in actions.reversed) ...[
+                if (a != actions.last) const SizedBox(height: 8),
+                a,
+              ],
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }
