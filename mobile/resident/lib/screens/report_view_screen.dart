@@ -374,7 +374,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               .from('report_evidence')
               .select('kind, media_url, mime_type')
               .eq('report_id', widget.reportId)
-              .order('created_at');
+              .order('created_at', ascending: true);
           if (mounted) {
             setState(() => _evidence = [
                   for (final m in ev) (url: m['media_url'] as String, kind: m['kind'] as String? ?? 'update'),
@@ -575,7 +575,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final hasRemark = remark != null && remark.isNotEmpty;
     final remarkText = hasRemark ? (author != null ? '$author: $remark' : remark) : null;
     final reopened = (r['reopened_count'] as num?)?.toInt() ?? 0;
-    final askingDetails = _detailRequest != null && widget.uploader != null;
+    // A question left unanswered when the case closed no longer asks
+    // anything (found on the phone, 7 Oct 2026).
+    final askingDetails = _detailRequest != null && widget.uploader != null && status.isOngoing;
     const amber = Color(0xFFF59E0B);
     const green = Color(0xFF1F8A45);
 

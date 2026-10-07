@@ -523,6 +523,15 @@ if ($report && !$error) {
         ]];
     }
 
+    // The resident's questions and the barangay's answers (0072), for
+    // every case: Rose (7 Oct 2026) found them missing on cases with no
+    // tanod on them, where they were never loaded.
+    $second['messages'] = ['report_messages', [
+        'select'    => 'id,from_barangay,body,created_at',
+        'report_id' => 'eq.' . $id,
+        'order'     => 'created_at.asc',
+    ], true];
+
     // The dispatch window's thread (0069): the tanod's updates and
     // steps, and admin replies. Optional — the page stands without it.
     if ($liveIds) {
@@ -531,11 +540,6 @@ if ($report && !$error) {
             'report_id' => 'eq.' . $id,
             'status'    => 'eq.pending',
             'limit'     => '1',
-        ], true];
-        $second['messages'] = ['report_messages', [
-            'select'    => 'id,from_barangay,body,created_at',
-            'report_id' => 'eq.' . $id,
-            'order'     => 'created_at.asc',
         ], true];
         $second['thread'] = ['dispatch_updates', [
             'select'      => 'id,dispatch_id,author_id,kind,step,body,created_at',
@@ -903,20 +907,31 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         }
         $timeline[] = $l + ['sig' => $sig, 'repeat' => 1, 'last_at' => null];
     }
+    // Rose (7 Oct 2026): Ask the barangay belongs in the activity too.
+    foreach ($messages as $m) {
+        $timeline[] = ['msg' => true, 'from_barangay' => !empty($m['from_barangay']),
+                       'remark' => $m['body'] ?? '', 'created_at' => $m['created_at'],
+                       'repeat' => 1, 'last_at' => null];
+    }
+    usort($timeline, fn($a, $b) => strcmp((string) $a['created_at'], (string) $b['created_at']));
     ?>
     <ul class="p-timeline">
       <?php foreach ($timeline as $l): ?>
         <li>
           <span class="p-tl-dot" aria-hidden="true"><svg width="13" height="13"><use href="#i-flag"/></svg></span>
-          <b class="p-tl-title"><?= e(timeline_title($l)) ?><?php if ($l['repeat'] > 1): ?> <span class="p-sub">&times; <?= (int) $l['repeat'] ?></span><?php endif; ?></b>
+          <b class="p-tl-title"><?= e(!empty($l['msg'])
+                ? ($l['from_barangay'] ? t('Barangay replied to the resident', 'Sumagot ang barangay sa residente') : t('Resident asked the barangay', 'Nagtanong ang residente sa barangay'))
+                : timeline_title($l)) ?><?php if ($l['repeat'] > 1): ?> <span class="p-sub">&times; <?= (int) $l['repeat'] ?></span><?php endif; ?></b>
           <small class="p-tl-when"><?= e(long_datetime($l['created_at'])) ?><?php if ($l['repeat'] > 1): ?> &ndash; <?= e(t('last', 'huli')) ?> <?= e(long_datetime($l['last_at'])) ?><?php endif; ?></small>
           <?php if (!empty($l['remark'])): ?>
             <div class="p-quote"><?= e($l['remark']) ?></div>
           <?php endif; ?>
           <small class="p-tl-who">
-            <?= !empty($l['is_system'])
+            <?= !empty($l['msg'])
+                ? e($l['from_barangay'] ? t('Barangay', 'Barangay') : formal_or($report['resident']['full_name'] ?? null, t('Resident', 'Residente')))
+                : (!empty($l['is_system'])
                 ? e(t('System', 'System'))
-                : e(name_or($l['by']['full_name'] ?? null, t('Barangay staff', 'Kawani ng barangay'))) ?>
+                : e(name_or($l['by']['full_name'] ?? null, t('Barangay staff', 'Kawani ng barangay')))) ?>
           </small>
         </li>
       <?php endforeach; ?>

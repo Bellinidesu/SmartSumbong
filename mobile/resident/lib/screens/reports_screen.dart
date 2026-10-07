@@ -831,7 +831,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           onCancel: r.status.canCancel ? () => _cancel(r) : null,
           onReopen: r.status.canRequestReopen ? () => _requestReopen(r) : null,
           onAppeal: r.status.canRequestAppeal ? () => _requestAppeal(r) : null,
-          onAddDetails: _detailRequests.containsKey(r.id) ? () => _addDetails(r) : null,
+          onAddDetails: _detailRequests.containsKey(r.id) && r.status.isOngoing ? () => _addDetails(r) : null,
         );
       },
     );
