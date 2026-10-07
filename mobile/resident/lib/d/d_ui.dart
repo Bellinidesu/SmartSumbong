@@ -5,6 +5,7 @@
 // contour, the buttons, the vivid status steps, the round icon wells.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../i18n.dart';
 import 'd_theme.dart';
@@ -99,14 +100,28 @@ class DPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = colors ?? context.d;
-    return Scaffold(
-      backgroundColor: d.bg,
-      bottomNavigationBar: bottomBar,
-      body: Stack(children: [
-        if (contour)
-          DContour(kind: homeContour ? ContourKind.home : (fullContour ? ContourKind.full : ContourKind.fade), colors: d),
-        SafeArea(bottom: bottomBar == null, child: child),
-      ]),
+    // The page shows behind the system buttons; they take the colour that
+    // reads on it (a bottom bar sets its own, DBar).
+    final light = d.bg.computeLuminance() > .5;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
+        systemNavigationBarIconBrightness: light ? Brightness.dark : Brightness.light,
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: light ? Brightness.dark : Brightness.light,
+        statusBarBrightness: light ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: d.bg,
+        bottomNavigationBar: bottomBar,
+        body: Stack(children: [
+          if (contour)
+            DContour(kind: homeContour ? ContourKind.home : (fullContour ? ContourKind.full : ContourKind.fade), colors: d),
+          SafeArea(bottom: bottomBar == null, child: child),
+        ]),
+      ),
     );
   }
 }
@@ -187,7 +202,7 @@ class DSheet extends StatelessWidget {
   }
 }
 
-enum DButtonKind { orange, white, accent, ghost, green, greenLine, danger, line }
+enum DButtonKind { orange, white, accent, ghost, green, greenLine, danger, red, line }
 
 /// The preview's `.btn`: 44 high, radius 12, 15/800; `.sm` is 34, 10,
 /// 13.5. Orange carries its soft glow.
@@ -230,6 +245,7 @@ class DButton extends StatelessWidget {
       DButtonKind.green => (DColors.greenVivid, Colors.white, null),
       DButtonKind.greenLine => (Colors.transparent, d.dark ? const Color(0xFF5FD68A) : DColors.green, d.dark ? const Color(0xFF3DBE6E) : DColors.green),
       DButtonKind.danger => (Colors.transparent, const Color(0xFFC62828), const Color(0xFFE7B4B4)),
+      DButtonKind.red => (const Color(0xFFE5383B), Colors.white, null),
       DButtonKind.line => (Colors.transparent, d.link, d.link),
     };
     final fg = textColour ?? fg0;
@@ -438,11 +454,15 @@ class DRow extends StatelessWidget {
 /// .045 over it. Children (the chip, the back and close buttons) go in a
 /// stack on top.
 class DHero extends StatelessWidget {
-  const DHero({super.key, required this.colour, required this.height, this.radius = 0, this.children = const []});
+  const DHero({super.key, required this.colour, required this.height, this.radius = 0, this.glyph, this.children = const []});
 
   final Color colour;
   final double height;
   final double radius;
+
+  /// The category's own symbol, the one on its map pin, drawn large and
+  /// faint at the right (Ace, 7 Oct 2026).
+  final IconData? glyph;
   final List<Widget> children;
 
   static BoxDecoration decoration(Color cs) => BoxDecoration(
@@ -462,6 +482,12 @@ class DHero extends StatelessWidget {
           child: Stack(children: [
             Positioned.fill(child: DecoratedBox(decoration: decoration(colour))),
             Positioned.fill(child: IgnorePointer(child: DContourTile(color: Colors.white.withValues(alpha: .045), tile: 300))),
+            if (glyph != null)
+              Positioned(
+                right: -height * .08,
+                bottom: -height * .1,
+                child: IgnorePointer(child: Icon(glyph, size: height * .78, color: Colors.white.withValues(alpha: .16))),
+              ),
             ...children,
           ]),
         ),

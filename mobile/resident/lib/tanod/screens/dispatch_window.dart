@@ -732,86 +732,13 @@ class _DispatchWindowState extends State<DispatchWindow>
   /// take this beyond its level (0073). The admin decides.
   Future<void> _requestEscalation() async {
     final s = context.ts;
-    final reason = TextEditingController();
-    String? office;
-    final go = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setD) => AlertDialog(
-          backgroundColor: ctx.colors.bg,
-          title: Text(s.escTitle,
-              style: TextStyle(
-                  fontFamily: 'Urbanist',
-                  fontWeight: FontWeight.w800,
-                  color: ctx.colors.navy)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.escBody,
-                    style: TextStyle(
-                        fontFamily: 'Urbanist',
-                        fontSize: 13.5,
-                        color: ctx.colors.navy)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reason,
-                  maxLines: 3,
-                  maxLength: 500,
-                  decoration: InputDecoration(
-                    labelText: s.escReason,
-                    // A box, not the theme's pill (phone run, 7 Oct 2026).
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.line)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.accent, width: 2)),
-                  ),
-                ),
-                DropdownButtonFormField<String>(
-                  initialValue: office,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: s.escOffice,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.line)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.accent, width: 2)),
-                  ),
-                  items: [
-                    // Rose (7 Oct 2026): the certificate's five reasons only.
-                    for (final o in const [
-                      ('Lupong Tagapamayapa', 'Katarungang Pambarangay'),
-                      ('Philippine National Police', 'PNP — a criminal offense'),
-                      ('VAWC Desk', 'VAWC — violence against women and children'),
-                      ('Office of the Ombudsman', 'Grievance against a public officer'),
-                      ('Regular Courts', 'Outside the barangay'),
-                    ])
-                      DropdownMenuItem(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis)),
-                  ],
-                  onChanged: (v) => setD(() => office = v),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(s.dispatchCancel),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 44),
-                backgroundColor: _red,
-              ),
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(s.escSend),
-            ),
-          ],
-        ),
-      ),
+    // Ace (7 Oct 2026): its own full screen, not a popup.
+    final res = await Navigator.of(context).push<(String, String?)>(
+      MaterialPageRoute(builder: (_) => _EscalationPage(ticket: widget.ticket)),
     );
-    final text = reason.text.trim();
-    reason.dispose();
-    if (go != true || !mounted) return;
+    if (res == null || !mounted) return;
+    final text = res.$1.trim();
+    final office = res.$2;
     if (text.isEmpty) {
       setState(() => _error = s.escReasonRequired);
       return;
@@ -848,13 +775,15 @@ class _DispatchWindowState extends State<DispatchWindow>
       _savedOffline();
       return;
     }
-    await showDDialog(
+    // Ace (7 Oct 2026): a full page like Report submitted, not a popup.
+    await showDSuccessPage(
       context,
-      title: context.ts.windowResolveSent(widget.ticket.trackingId),
+      title: context.tr('Sent for approval', 'Naipasa para aprubahan'),
       body: context.ts.windowAwaitingApproval,
-      primary: context.ts.dispatchBack,
-      icon: Icons.task_alt_rounded,
-      iconColor: DColors.greenVivid,
+      button: context.tr('Back to the job', 'Bumalik sa trabaho'),
+      ticketId: widget.ticket.trackingId,
+      tone: DTicketTone.awaitingApproval,
+      status: context.tr('Waiting for approval', 'Hinihintay ang pag-apruba'),
     );
     if (mounted) await _load();
   }
@@ -2032,6 +1961,153 @@ class _MapPill extends StatelessWidget {
           ]),
         ),
       ),
+    );
+  }
+}
+
+
+/// Request escalation as a page (Ace, 7 Oct 2026): why, and which of the
+/// certificate's five offices, then Cancel / Send request as equal halves.
+class _EscalationPage extends StatefulWidget {
+  const _EscalationPage({required this.ticket});
+
+  final Ticket ticket;
+
+  @override
+  State<_EscalationPage> createState() => _EscalationPageState();
+}
+
+class _EscalationPageState extends State<_EscalationPage> {
+  final _reason = TextEditingController();
+  String? _office;
+  String? _error;
+
+  static const _offices = [
+    ('Lupong Tagapamayapa', 'Katarungang Pambarangay', 'Disputes between neighbours, for mediation'),
+    ('Philippine National Police', 'PNP', 'A criminal offense'),
+    ('VAWC Desk', 'VAWC', 'Violence against women and children'),
+    ('Office of the Ombudsman', 'Ombudsman', 'A grievance against a public officer'),
+    ('Regular Courts', 'Courts', 'Outside what the barangay can settle'),
+  ];
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  void _send() {
+    if (_reason.text.trim().isEmpty) {
+      setState(() => _error = context.ts.escReasonRequired);
+      return;
+    }
+    Navigator.of(context).pop((_reason.text, _office));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.ts;
+    final d = context.d;
+    final red = d.dark ? const Color(0xFFFF8A8A) : DColors.red;
+    return DPage(
+      child: Column(children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 6, 18, 20),
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(Icons.chevron_left_rounded, color: d.ink2, size: 26),
+                  label: Text(context.tr('On the job', 'Nasa trabaho'), style: DType.body(d.ink2, size: 14, w: FontWeight.w800)),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                ),
+              ),
+              Text(context.tr('ESCALATION', 'ESCALATION'), style: DType.label(red)),
+              const SizedBox(height: 4),
+              Text(s.escTitle, style: DType.h1(d.ink).copyWith(fontSize: 26)),
+              const SizedBox(height: 2),
+              Text('${widget.ticket.subject} · ${widget.ticket.trackingId}', style: DType.body(d.muted, size: 13)),
+              const SizedBox(height: 10),
+              Text(s.escBody, style: DType.body(d.ink2, size: 14)),
+              const SizedBox(height: 18),
+              Text(s.escReason, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _reason,
+                maxLines: 5,
+                minLines: 4,
+                maxLength: 500,
+                onChanged: (_) => setState(() => _error = null),
+                style: DType.body(d.ink, size: 14.5),
+                decoration: InputDecoration(
+                  hintText: context.tr('e.g. The neighbours want mediation; it is beyond the tanod.', 'hal. Gusto ng magkapitbahay ng pamamagitan.'),
+                  hintStyle: DType.body(d.muted, size: 14),
+                  filled: true,
+                  fillColor: d.field,
+                  contentPadding: const EdgeInsets.all(14),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: red, width: 2)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(s.escOffice, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+              const SizedBox(height: 8),
+              for (final o in _offices) ...[
+                InkWell(
+                  onTap: () => setState(() => _office = _office == o.$1 ? null : o.$1),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                    decoration: BoxDecoration(
+                      color: d.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _office == o.$1 ? red : d.line, width: _office == o.$1 ? 2 : 1),
+                    ),
+                    child: Row(children: [
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(o.$1, style: DType.body(d.ink, size: 14.5, w: FontWeight.w800)),
+                          Text(o.$3, style: DType.body(d.muted, size: 12.5)),
+                        ]),
+                      ),
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: _office == o.$1 ? red : d.line, width: _office == o.$1 ? 7 : 2),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+          decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+          child: SafeArea(
+            top: false,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (_error != null) ...[
+                Text(_error!, textAlign: TextAlign.center, style: DType.body(red, size: 13, w: FontWeight.w700)),
+                const SizedBox(height: 10),
+              ],
+              Row(children: [
+                Expanded(child: DButton(context.tr('Cancel', 'Kanselahin'), kind: DButtonKind.ghost, expand: true, onTap: () => Navigator.of(context).pop())),
+                const SizedBox(width: 10),
+                Expanded(child: DButton(s.escSend, kind: DButtonKind.red, expand: true, onTap: _send)),
+              ]),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 }

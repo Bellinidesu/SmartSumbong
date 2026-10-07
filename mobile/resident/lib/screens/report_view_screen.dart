@@ -477,6 +477,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             child: DHero(
               colour: r == null ? d.card2 : col,
               height: 170 + MediaQuery.paddingOf(context).top,
+              glyph: r == null ? null : categoryGlyph(cat),
               children: [
                 Positioned(left: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.chevron_left_rounded, onTap: () => Navigator.of(context).maybePop())),
                 if (r != null) Positioned(right: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.ios_share_rounded, onTap: _share)),
@@ -861,7 +862,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
     final note = TextEditingController();
     final go = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => PDialog(
         backgroundColor: ctx.colors.bg,
         title: Text(s.followUpTitle,
             style: TextStyle(

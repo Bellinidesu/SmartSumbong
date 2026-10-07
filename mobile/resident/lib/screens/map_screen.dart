@@ -86,6 +86,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   bool _showReports = false;
+  /// The category legend under the card folds away (Ace, 7 Oct 2026).
+  bool _legendOpen = false;
   bool _hazards = false;
   List<_Pin>? _pins;
   bool _loading = false;
@@ -209,6 +211,7 @@ class _MapScreenState extends State<MapScreen> {
               colour: col,
               height: 110,
               radius: 18,
+              glyph: cat == null ? null : categoryGlyph(cat),
               children: [
                 if (cat != null) Positioned(left: 12, bottom: 10, child: DHeroChip(cat.label)),
                 Positioned(right: 8, top: 8, child: DHeroButton(icon: Icons.close_rounded, size: 30, onTap: () => Navigator.of(ctx).pop())),
@@ -401,6 +404,31 @@ class _MapScreenState extends State<MapScreen> {
                   const SizedBox(height: 2),
                   Text(_showReports ? s.mapCardBodyShowing : s.mapCardBodyHidden, style: DType.body(d.muted, size: 12.5).copyWith(height: 1.35)),
                   if (_showReports && pins.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    // A chip opens and closes the legend, so the card stays
+                    // small until it is wanted.
+                    InkWell(
+                      onTap: () => setState(() => _legendOpen = !_legendOpen),
+                      borderRadius: BorderRadius.circular(99),
+                      child: Container(
+                        height: 28,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), border: Border.all(color: d.line), color: d.field),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.palette_outlined, size: 15, color: d.ink2),
+                          const SizedBox(width: 6),
+                          Text(
+                            context.tr('Legend · ${{for (final p in pins) p.category ?? ComplaintCategory.other}.length} categories',
+                                'Legend · ${{for (final p in pins) p.category ?? ComplaintCategory.other}.length} kategorya'),
+                            style: DType.body(d.ink2, size: 12, w: FontWeight.w700),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(_legendOpen ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 18, color: d.ink2),
+                        ]),
+                      ),
+                    ),
+                  ],
+                  if (_showReports && pins.isNotEmpty && _legendOpen) ...[
                     const SizedBox(height: 8),
                     // two even columns, so the dots line up down the card
                     LayoutBuilder(builder: (context, box) => Wrap(spacing: 10, runSpacing: 4, children: [

@@ -44,6 +44,7 @@ import '../../outbox.dart' show Outbox;
 import '../tanod_strings.dart';
 import '../../d/d_theme.dart';
 import '../../preview/demo.dart';
+import '../../d/d_success.dart';
 import '../../d/d_ui.dart';
 import '../../d/d_categories.dart';
 import '../../models/complaint_category.dart';
@@ -313,6 +314,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
               DHero(
                 colour: col,
                 height: 170 + MediaQuery.paddingOf(context).top,
+                glyph: categoryGlyph(cat),
                 children: [
                   Positioned(
                     left: 12,
@@ -793,105 +795,6 @@ class _Link extends StatelessWidget {
   }
 }
 
-/// The frames' labelled input box: the label 14/700, a 128-tall #FBFBFB
-/// box with a 1px edge and radius 25, the hint 12/400, the count 10/300
-/// at the bottom right. [colour] is ink, or red on the reroute pane.
-class _InputBox extends StatelessWidget {
-  const _InputBox({
-    required this.label,
-    required this.colour,
-    required this.controller,
-    required this.hint,
-    required this.maxLength,
-    required this.enabled,
-    required this.onChanged,
-    this.autofocus = false,
-  });
-
-  final bool autofocus;
-  final String label;
-  final Color colour;
-  final TextEditingController controller;
-  final String hint;
-  final int maxLength;
-  final bool enabled;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (label.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 2),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                height: 21.84 / 14,
-                color: colour,
-              ),
-            ),
-          ),
-        Container(
-          height: 128,
-          padding: const EdgeInsets.fromLTRB(17, 10, 11, 4),
-          decoration: BoxDecoration(
-            color: context.colors.field,
-            border: Border.all(color: colour),
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: TextField(
-            controller: controller,
-            autofocus: autofocus,
-            maxLines: null,
-            expands: true,
-            maxLength: maxLength,
-            enabled: enabled,
-            textAlignVertical: TextAlignVertical.top,
-            textCapitalization: TextCapitalization.sentences,
-            cursorColor: colour,
-            style: TextStyle(
-              fontFamily: 'Urbanist',
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
-              height: 1.35,
-              color: context.colors.navy,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w400,
-                fontSize: 12,
-                color: colour,
-              ),
-              counterStyle: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w300,
-                fontSize: 10,
-                height: 1,
-                color: colour,
-              ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              filled: false,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// The frames' pill: [colour] filled with a 1px #F3F3F3 edge and the
 /// design shadow, 14/700 (112x37) by default; [filled] false draws the
 /// light twin — #FBFBFB with a [colour] edge and label.
@@ -900,7 +803,6 @@ class _Pill extends StatelessWidget {
     required this.label,
     required this.colour,
     required this.onTap,
-    this.filled = true,
     this.width = 112,
     this.fontSize = 14,
   });
@@ -908,7 +810,7 @@ class _Pill extends StatelessWidget {
   final String label;
   final Color colour;
   final VoidCallback? onTap;
-  final bool filled;
+  bool get filled => true;
   final double width;
   final double height = 37;
   final double radius = 50;
@@ -972,68 +874,37 @@ class _DetailsRequestDialogState extends State<_DetailsRequestDialog> {
     super.dispose();
   }
 
+  // P1 (Ace, 7 Oct 2026): the shared popup card, the box inside it.
   @override
   Widget build(BuildContext context) {
     final s = context.ts;
-    final c = context.colors;
-    return Dialog(
-      backgroundColor: c.bg,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(50),
-        side: BorderSide(color: c.navy, width: 2),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 34, 28, 26),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              s.dispatchRequestDetailsTitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Urbanist',
-                fontWeight: FontWeight.w800,
-                fontSize: 24,
-                height: 1.05,
-                color: c.navy,
-              ),
-            ),
-            const SizedBox(height: 18),
-            _InputBox(
-              label: '',
-              colour: c.navy,
-              controller: _text,
-              hint: s.dispatchRequestDetailsHint,
-              maxLength: 300,
-              enabled: true,
-              autofocus: true,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 13,
-              runSpacing: 12,
-              children: [
-                _Pill(
-                  label: s.dispatchRequestDetailsCancel,
-                  filled: false,
-                  colour: c.navy,
-                  onTap: () => Navigator.of(context).pop(),
-                ),
-                _Pill(
-                  label: s.dispatchRequestDetailsSend,
-                  colour: c.navy,
-                  onTap: _text.text.trim().isEmpty
-                      ? null
-                      : () => Navigator.of(context).pop(_text.text.trim()),
-                ),
-              ],
-            ),
-          ],
+    final d = context.d;
+    return FigmaDialog(
+      title: s.dispatchRequestDetailsTitle,
+      icon: Icons.help_outline_rounded,
+      content: TextField(
+        controller: _text,
+        autofocus: true,
+        maxLength: 300,
+        minLines: 3,
+        maxLines: 5,
+        onChanged: (_) => setState(() {}),
+        style: DType.body(d.ink, size: 14.5),
+        decoration: InputDecoration(
+          hintText: s.dispatchRequestDetailsHint,
+          hintStyle: DType.body(d.muted, size: 14),
+          filled: true,
+          fillColor: d.field,
+          contentPadding: const EdgeInsets.all(14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: d.line)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: DColors.orange, width: 2)),
         ),
       ),
+      primaryLabel: s.dispatchRequestDetailsSend,
+      onPrimary: _text.text.trim().isEmpty ? null : () => Navigator.of(context).pop(_text.text.trim()),
+      secondaryLabel: s.dispatchRequestDetailsCancel,
+      onSecondary: () => Navigator.of(context).pop(),
     );
   }
 }

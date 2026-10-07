@@ -113,7 +113,11 @@ class _StatusButtonState extends State<_StatusButton> {
                       color: c,
                       shape: BoxShape.circle,
                       border: Border.all(color: d.bar, width: 4),
-                      boxShadow: [BoxShadow(color: c.withValues(alpha: .5), blurRadius: 16, offset: const Offset(0, 6))],
+                      // B1: the status colour glows around the button.
+                      boxShadow: [
+                        BoxShadow(color: c.withValues(alpha: .55), blurRadius: 18, offset: const Offset(0, 6)),
+                        BoxShadow(color: c.withValues(alpha: .22), blurRadius: 4, spreadRadius: 6),
+                      ],
                     ),
                     child: const Icon(Icons.shield_outlined, size: 24, color: Colors.white),
                   ),
@@ -124,7 +128,8 @@ class _StatusButtonState extends State<_StatusButton> {
                         maxLines: 1,
                         // Tab labels stay one size, so five fit evenly at any phone text size.
                         textScaler: TextScaler.noScaling,
-                        style: TextStyle(fontFamily: 'Urbanist', fontSize: 12.5, height: 1.2, fontWeight: FontWeight.w800, color: d.barFg)),
+                        // B1: the label in the status colour too.
+                        style: TextStyle(fontFamily: 'Urbanist', fontSize: 12.5, height: 1.2, fontWeight: FontWeight.w800, color: Color.lerp(c, d.barFg, d.bar.computeLuminance() > .5 ? .25 : 0))),
                   ),
                   const SizedBox(height: 12),
                 ]),

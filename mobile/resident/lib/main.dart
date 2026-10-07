@@ -84,6 +84,16 @@ Future<void> main() async {
     // Phone run (7 Oct 2026): turned sideways, the bottom bar covered the
     // home screen. Every screen is drawn for a phone held upright.
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // Ace (7 Oct 2026): on phones with the three buttons, the app shows
+    // through behind them instead of a grey strip. Each bar and page sets
+    // the buttons' colour to suit what is behind them (DBar, DPage).
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+      statusBarColor: Colors.transparent,
+    ));
 
     // The shared permission prompts speak the resident's language too.
     PermissionGate.labels = (context) {
