@@ -804,7 +804,7 @@ class _Field extends StatelessWidget {
                 if (note != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 3),
-                    child: Text(note!, style: t.bodySmall),
+                    child: Text(note!, style: t.bodySmall?.copyWith(fontSize: 12, height: 1.3)),
                   ),
               ],
             ),
@@ -881,7 +881,7 @@ class _IdTypeDropdown extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
-                child: Text(s.registerInfoReadableNote, style: t.bodySmall),
+                child: Text(s.registerInfoReadableNote, style: t.bodySmall?.copyWith(fontSize: 12, height: 1.3)),
               ),
             ],
           ),

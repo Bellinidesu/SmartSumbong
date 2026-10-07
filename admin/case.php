@@ -924,7 +924,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                 : timeline_title($l)) ?><?php if ($l['repeat'] > 1): ?> <span class="p-sub">&times; <?= (int) $l['repeat'] ?></span><?php endif; ?></b>
           <small class="p-tl-when"><?= e(long_datetime($l['created_at'])) ?><?php if ($l['repeat'] > 1): ?> &ndash; <?= e(t('last', 'huli')) ?> <?= e(long_datetime($l['last_at'])) ?><?php endif; ?></small>
           <?php if (!empty($l['remark'])): ?>
-            <div class="p-quote"><?= e($l['remark']) ?></div>
+            <div class="p-quote"><?= e(preg_replace(['/\b1 time\(s\)/', '/time\(s\)/'], ['1 time', 'times'], (string) $l['remark'])) ?></div>
           <?php endif; ?>
           <small class="p-tl-who">
             <?= !empty($l['msg'])

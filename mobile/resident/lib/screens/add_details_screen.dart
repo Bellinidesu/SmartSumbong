@@ -75,8 +75,6 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
     super.dispose();
   }
 
-  String get _head => '(# ${widget.trackingId} - ${widget.statusLabel}) '
-      '${widget.subject}';
 
   Future<void> _addPhoto() async {
     final s = context.s;
@@ -212,7 +210,7 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            s.addDetailsSentTitle(_head),
+            s.addDetailsSentTitle(widget.trackingId),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Urbanist',

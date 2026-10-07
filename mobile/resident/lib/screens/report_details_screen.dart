@@ -1472,69 +1472,53 @@ class _Acknowledgement extends StatelessWidget {
   final String? error;
   final bool enabled;
 
-  // Figma "confirm?": a 12x12 square box, 5 below the text's top, text
-  // 15 in at 12/400 on an 18.72 line. The box is drawn at that size but
-  // tapped through a 24x24 area around it, so it is not harder to hit
-  // than before.
+  // Phone run (7 Oct 2026): the 12 px box was too small to see or hit.
+  // Now a 22 px box, and the whole sentence takes the tap.
   @override
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 15),
-                child: Text(
-                  context.s.reportDetailsAcknowledgement,
-                  style: TextStyle(
-                    fontFamily: 'Urbanist',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 12,
-                    height: 18.72 / 12,
-                    color: context.colors.navy,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: -6,
-                top: -1,
-                width: 24,
-                height: 24,
-                // The 24x24 area takes the tap; the scaled Checkbox only
-                // draws (IgnorePointer keeps its semantics for screen
-                // readers).
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: enabled ? () => onChanged(!value) : null,
-                  child: Center(
-                    child: SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: IgnorePointer(
-                        child: FittedBox(
-                          child: Checkbox(
-                            value: value,
-                            onChanged: enabled ? onChanged : null,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                            side: BorderSide(
-                                color: context.colors.navy, width: 1.5),
-                          ),
-                        ),
-                      ),
+          InkWell(
+            onTap: enabled ? () => onChanged(!value) : null,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: IgnorePointer(
+                    child: Checkbox(
+                      value: value,
+                      onChanged: enabled ? onChanged : null,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      side: BorderSide(color: context.colors.navy, width: 1.6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    context.s.reportDetailsAcknowledgement,
+                    style: TextStyle(
+                      fontFamily: 'Urbanist',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      height: 1.45,
+                      color: context.colors.navy,
+                    ),
+                  ),
+                ),
+              ]),
+            ),
           ),
           if (error != null)
             Padding(
-              padding: const EdgeInsets.only(left: 15, top: 4),
+              padding: const EdgeInsets.only(left: 32, top: 2),
               child: Text(error!,
-                  style: TextStyle(color: context.colors.hint, fontSize: 11)),
+                  style: TextStyle(color: context.colors.hint, fontSize: 12)),
             ),
         ],
       );

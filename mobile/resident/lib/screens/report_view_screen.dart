@@ -2265,7 +2265,7 @@ class _RateCardState extends State<_RateCard> {
           ),
         ),
         const SizedBox(height: 10),
-        DButton(context.tr('Send feedback', 'Ipadala'), busy: _saving, onTap: _saving ? null : _send),
+        DButton(context.tr('Send feedback', 'Ipadala'), expand: true, busy: _saving, onTap: _saving ? null : _send),
       ]),
     );
   }

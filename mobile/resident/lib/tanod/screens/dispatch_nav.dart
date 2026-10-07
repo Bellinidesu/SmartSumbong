@@ -224,6 +224,11 @@ class _NavScreenState extends State<_NavScreen> {
       if (i >= 0 && i + 1 < route.steps.length && !route.steps[i + 1].isArrive) after = route.steps[i + 1];
     }
     final left = fix == null ? route.metres : route.metresLeft(fix);
+    // Phone run (7 Oct 2026): the route's last turn said "You have
+    // arrived" while the button still waited for 25 m from the pin, which
+    // can sit off the road. The end of the route counts as there too.
+    final here = _arrived ||
+        (fix != null && (left < 30 || (next != null && next.isArrive && (toNext ?? 99) < 30)));
     final mins = (left / route.pace / 60).ceil().clamp(1, 999);
     final eta = DateTime.now().add(Duration(minutes: mins));
     final h = eta.hour % 12 == 0 ? 12 : eta.hour % 12;
@@ -236,7 +241,7 @@ class _NavScreenState extends State<_NavScreen> {
     if (step >= 2) {
       mainLabel = context.tr('Back to the job', 'Bumalik sa trabaho');
       mainTap = () => Navigator.of(context).pop('job');
-    } else if (_arrived) {
+    } else if (here) {
       mainLabel = s.windowActionArrived;
       mainTap = () => Navigator.of(context).pop('arrived');
     } else {
@@ -278,24 +283,24 @@ class _NavScreenState extends State<_NavScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: _arrived
+                      colors: here
                           ? const [Color(0xFF22A055), Color(0xFF1F8A45), Color(0xFF146B33)]
                           : const [Color(0xFF0A3FB0), Color(0xFF00308F), Color(0xFF0A1E5C)],
                     ),
                     boxShadow: const [BoxShadow(color: Color(0x5900245A), blurRadius: 22, offset: Offset(0, 10))],
                   ),
                   child: Row(children: [
-                    Icon(_arrived ? Icons.place_rounded : (next?.icon ?? Icons.navigation_rounded), color: Colors.white, size: 46),
+                    Icon(here ? Icons.place_rounded : (next?.icon ?? Icons.navigation_rounded), color: Colors.white, size: 46),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(
-                          _arrived ? s.navArrive : (toNext != null ? navDistance(toNext) : navDistance(left)),
+                          here ? s.navArrive : (toNext != null ? navDistance(toNext) : navDistance(left)),
                           style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w900, fontSize: 26, height: 1.05, color: Colors.white),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          _arrived
+                          here
                               ? widget.title
                               : _rerouting
                                   ? s.navRerouting
@@ -316,7 +321,7 @@ class _NavScreenState extends State<_NavScreen> {
                     ),
                   ]),
                 ),
-                if (after != null && !_arrived)
+                if (after != null && !here)
                   Container(
                     margin: const EdgeInsets.only(top: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -397,11 +402,11 @@ class _NavScreenState extends State<_NavScreen> {
                     ),
                     const SizedBox(height: 10),
                     Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                      Text(_arrived ? context.tr('You’re here', 'Narito ka na') : '$mins min',
+                      Text(here ? context.tr('You’re here', 'Narito ka na') : '$mins min',
                           style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w900, fontSize: 26, color: d.dark ? const Color(0xFF5FD68A) : DColors.green)),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(_arrived ? context.tr('at the report', 'sa report') : '${navDistance(left)} · ${s.navArriveAt(etaText)}',
+                        child: Text(here ? context.tr('at the report', 'sa report') : '${navDistance(left)} · ${s.navArriveAt(etaText)}',
                             maxLines: 1, overflow: TextOverflow.ellipsis, style: DType.body(d.ink2, size: 15, w: FontWeight.w700)),
                       ),
                     ]),
@@ -424,7 +429,7 @@ class _NavScreenState extends State<_NavScreen> {
                                 ),
                                 child: Text(mainLabel, style: DType.body(d.muted, size: 16, w: FontWeight.w800)),
                               )
-                            : _Pulse(on: _arrived && step < 2, child: DButton(mainLabel, onTap: mainTap, expand: true, height: 52, radius: 14, fontSize: 16)),
+                            : _Pulse(on: here && step < 2, child: DButton(mainLabel, onTap: mainTap, expand: true, height: 52, radius: 14, fontSize: 16)),
                       ),
                       const SizedBox(width: 8),
                       DButton(context.tr('Exit', 'Lumabas'), kind: DButtonKind.danger, height: 52, radius: 14, fontSize: 16, onTap: () => Navigator.of(context).pop()),

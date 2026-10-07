@@ -761,7 +761,10 @@ class _DispatchWindowState extends State<DispatchWindow>
                   maxLength: 500,
                   decoration: InputDecoration(
                     labelText: s.escReason,
-                    border: const OutlineInputBorder(),
+                    // A box, not the theme's pill (phone run, 7 Oct 2026).
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.line)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.accent, width: 2)),
                   ),
                 ),
                 DropdownButtonFormField<String>(
@@ -769,7 +772,9 @@ class _DispatchWindowState extends State<DispatchWindow>
                   isExpanded: true,
                   decoration: InputDecoration(
                     labelText: s.escOffice,
-                    border: const OutlineInputBorder(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.line)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: ctx.d.accent, width: 2)),
                   ),
                   items: [
                     // Rose (7 Oct 2026): the certificate's five reasons only.
@@ -1805,13 +1810,15 @@ class _ResolveSheetState extends State<_ResolveSheet> {
             if (sub != null) Text(sub, style: DType.body(d.muted, size: 12)),
           ]),
         );
-    Widget tile({required IconData icon, required String text, required String limit, VoidCallback? onTap}) => InkWell(
+    // Full width while empty, as on the resident's report form; a tile
+    // beside the photos once there are some (phone run, 7 Oct 2026).
+    Widget tile({required IconData icon, required String text, required String limit, VoidCallback? onTap, bool wide = false}) => InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
           child: DottedBox(
             color: d.line,
             child: Container(
-              width: 104,
+              width: wide ? double.infinity : 104,
               height: 104,
               decoration: BoxDecoration(color: d.field, borderRadius: BorderRadius.circular(14)),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -1867,9 +1874,11 @@ class _ResolveSheetState extends State<_ResolveSheet> {
                           ),
                         ),
                       ]),
-                    if (_photos.length < 3)
+                    if (_photos.isNotEmpty && _photos.length < 3)
                       tile(icon: Icons.add_a_photo_outlined, text: s.dispatchAttachMedia, limit: '', onTap: _busy ? null : () => _add(video: false)),
                   ]),
+                  if (_photos.isEmpty)
+                    tile(icon: Icons.add_a_photo_outlined, text: s.dispatchAttachMedia, limit: '', wide: true, onTap: _busy ? null : () => _add(video: false)),
                   const SizedBox(height: 18),
                   label(context.tr('Video', 'Video'), s.dispatchMaxVideoSize),
                   InkWell(
@@ -1924,23 +1933,27 @@ class _ResolveSheetState extends State<_ResolveSheet> {
                         'Inaaprubahan ng barangay ang ulat bago isara ang kaso. Walang signal? Mase-save ito at kusang ipapadala.'),
                     style: DType.body(d.muted, size: 12),
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 10),
-                    Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
-                  ],
                 ],
               ),
             ),
             Container(
-              padding: EdgeInsets.fromLTRB(18, 12, 18, 12 + MediaQuery.viewInsetsOf(context).bottom * 0),
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
               decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
-              child: Row(children: [
-                Expanded(child: DButton(context.tr('Back', 'Bumalik'), kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 4,
-                  child: DButton(context.tr('Submit for approval', 'Ipasa para aprubahan'), kind: DButtonKind.green, expand: true, busy: _busy, onTap: _busy ? null : _submit),
-                ),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                // Phone run (7 Oct 2026): under the list it scrolled out of
+                // sight; here it sits right above the button that caused it.
+                if (_error != null) ...[
+                  Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 13, w: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                ],
+                // Equal halves, like every other pair in the app ("B..." before).
+                Row(children: [
+                  Expanded(child: DButton(context.tr('Back', 'Bumalik'), kind: DButtonKind.ghost, expand: true, onTap: _busy ? null : () => Navigator.of(context).pop())),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DButton(context.tr('Submit', 'Ipasa'), kind: DButtonKind.green, expand: true, busy: _busy, onTap: _busy ? null : _submit),
+                  ),
+                ]),
               ]),
             ),
           ]),

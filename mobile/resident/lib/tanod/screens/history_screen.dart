@@ -90,7 +90,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _activity = [
             for (final r in saved)
               _ActivityEntry.fromRow(Map<String, dynamic>.from(r as Map)),
-          ];
+          ]..sort(_newestFirst);
           _loading = false;
         });
       }
@@ -127,7 +127,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       setState(() {
         _activity = [
           for (final r in past) _ActivityEntry.fromRow(r),
-        ];
+        ]..sort(_newestFirst);
         _loading = false;
         _error = null;
       });
@@ -258,6 +258,12 @@ class _ActivityEntry {
     );
   }
 }
+
+/// Newest first by the moment each entry is dated (resolved, else
+/// assigned): fetched by assigned_at, the days came out interleaved
+/// (phone run, 7 Oct 2026).
+int _newestFirst(_ActivityEntry a, _ActivityEntry b) =>
+    (b.at ?? DateTime(0)).compareTo(a.at ?? DateTime(0));
 
 class _ActivityHistoryCard extends StatefulWidget {
   const _ActivityHistoryCard({required this.loading, required this.entries});

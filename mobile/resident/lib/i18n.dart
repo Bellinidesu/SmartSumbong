@@ -740,9 +740,10 @@ class Strings {
   String get addDetailsHint => _t('Enter here...', 'Ilagay dito...');
   String get addDetailsRequired => _t('Please add the details or a photo.',
       'Maglagay ng detalye o larawan.');
-  String addDetailsSentTitle(String head) => _t(
-      '$head \u2014 your details were sent.',
-      '$head \u2014 naipadala na ang iyong mga detalye.');
+  // Phone run (7 Oct 2026): it began "(# BRG-2026-0198 - In Progress)".
+  String addDetailsSentTitle(String ticket) => _t(
+      'Your details for $ticket were sent.',
+      'Naipadala na ang iyong mga detalye para sa $ticket.');
   String get addDetailsSentBody => _t(
       'Thank you for letting us know. The tanod handling your report will '
           'look at them.',
@@ -1751,7 +1752,7 @@ class Strings {
       _t('Delete Account', 'Burahin ang Account');
 
   // ---------- notification preferences screen ----------
-  String get notifPrefsTitle => _t('Notifications', 'Mga Abiso');
+  String get notifPrefsTitle => _t('Notification Preferences', 'Mga Kagustuhan sa Abiso');
   String get notifPrefsSubtitle => _t(
       'Choose which updates send a push to your phone. You will still '
       'see every update in the app either way.',
