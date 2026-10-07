@@ -104,7 +104,7 @@ class _CategoryCard extends StatelessWidget {
     return _Shell(
       colour: col,
       title: category.label,
-      child: Wrap(spacing: 8, runSpacing: 8, children: [
+      child: Wrap(spacing: 6, runSpacing: 6, children: [
         for (final issue in category.issues)
           Builder(builder: (context) {
             final choice = CategoryChoice(category: category, issue: issue);
@@ -154,7 +154,7 @@ class _Shell extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(width: 5, color: colour),
+          Container(width: 6, color: colour),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -194,18 +194,21 @@ class _IssuePill extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          // The preview's compact chip (Ace, 7 Oct 2026): 30 tall, 12 in,
+          // 12.5 text, the edge tinted with the category's colour.
+          constraints: const BoxConstraints(minHeight: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: selected ? colour : d.field,
             borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: selected ? colour : d.line),
+            border: Border.all(color: selected ? colour : Color.lerp(d.line, colour, .45)!),
             boxShadow: selected ? [BoxShadow(color: colour.withValues(alpha: .35), blurRadius: 10, offset: const Offset(0, 4))] : null,
           ),
           child: Text(label,
               style: TextStyle(
                   fontFamily: 'Urbanist',
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   color: selected ? Colors.white : d.ink)),
         ),
       ),

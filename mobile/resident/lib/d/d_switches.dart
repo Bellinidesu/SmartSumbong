@@ -132,6 +132,23 @@ class DFlags extends StatelessWidget {
   }
 }
 
+/// A flag on its own, the preview's 46x31 on Languages (7 Oct 2026).
+class DFlag extends StatelessWidget {
+  const DFlag({super.key, required this.us, this.width = 46, this.height = 31});
+
+  final bool us;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), boxShadow: const [BoxShadow(color: Color(0x1F000000), spreadRadius: 1)]),
+        child: ClipRRect(borderRadius: BorderRadius.circular(6), child: CustomPaint(painter: _FlagPainter(us))),
+      );
+}
+
 class _FlagPainter extends CustomPainter {
   _FlagPainter(this.us);
 

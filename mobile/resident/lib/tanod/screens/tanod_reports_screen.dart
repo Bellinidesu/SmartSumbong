@@ -108,10 +108,10 @@ class _ReportsScreenState extends State<TanodReportsScreen> {
 
       final rows = await client
           .from('dispatches')
-          .select('id, report_id, state, accept_due_at, assigned_at, '
+          .select('id, report_id, state, step, accept_due_at, assigned_at, '
               'admin_instructions, '
               'reports(tracking_id, subject, description, due_at, '
-              'is_anonymous, latitude, longitude)')
+              'is_anonymous, latitude, longitude, resolution_submitted_at)')
           .eq('tanod_id', uid)
           .eq('state', 'accepted')
           .order('assigned_at', ascending: false);
@@ -218,6 +218,8 @@ class _Assigned {
     required this.instructions,
     required this.lat,
     required this.lon,
+    this.step,
+    this.awaitingApproval = false,
   });
 
   final String dispatchId;
@@ -233,6 +235,10 @@ class _Assigned {
   final double? lat;
   final double? lon;
 
+  /// Where the tanod is with it (the preview's status pill, 7 Oct 2026).
+  final String? step;
+  final bool awaitingApproval;
+
   factory _Assigned.fromRow(Map<String, dynamic> d) {
     final r = (d['reports'] ?? const {}) as Map<String, dynamic>;
     return _Assigned(
@@ -247,6 +253,8 @@ class _Assigned {
       instructions: d['admin_instructions'] as String?,
       lat: (r['latitude'] as num?)?.toDouble(),
       lon: (r['longitude'] as num?)?.toDouble(),
+      step: d['step'] as String?,
+      awaitingApproval: r['resolution_submitted_at'] != null,
     );
   }
 
@@ -301,7 +309,13 @@ class _AssignedCard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(row.subject, style: DType.h3(d.ink).copyWith(fontSize: 17)),
+                  // Hybrid (Ace, 7 Oct 2026): the preview's title row with
+                  // its status pill, over the phone's details and buttons.
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(child: Text(row.subject, style: DType.h3(d.ink).copyWith(fontSize: 17))),
+                    const SizedBox(width: 8),
+                    _StatusPill(row: row),
+                  ]),
                   const SizedBox(height: 2),
                   Text(row.trackingId, style: DType.mono(d.link, size: 12.5)),
                   const SizedBox(height: 6),
@@ -348,5 +362,29 @@ class _AssignedCard extends StatelessWidget {
     if (d == null) return context.ts.reportsDeadlineNotSet;
     final l = d.toLocal();
     return '${context.ts.monthFull(l.month)} ${l.day}, ${l.year}';
+  }
+}
+
+/// The preview's pill: where the tanod is with the dispatch.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.row});
+
+  final _Assigned row;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final (String label, Color c) = row.awaitingApproval
+        ? (context.tr('Waiting for approval', 'Hinihintay ang pag-apruba'), const Color(0xFF8B5CF6))
+        : switch (row.step) {
+            'arrived' => (context.tr('On site', 'Nasa lugar'), const Color(0xFF7BA428)),
+            'on_the_way' => (context.tr('On the way', 'Papunta na'), const Color(0xFF356CF9)),
+            _ => (context.tr('Accepted', 'Tinanggap'), const Color(0xFF356CF9)),
+          };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(color: c.withValues(alpha: .14), borderRadius: BorderRadius.circular(99)),
+      child: Text(label, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 11, color: d.dark ? Color.lerp(c, Colors.white, .35) : c)),
+    );
   }
 }
