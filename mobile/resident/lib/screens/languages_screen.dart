@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 
 import '../i18n.dart';
+import '../d/d_switches.dart';
 import '../d/d_ui.dart';
 import '../theme.dart';
 
@@ -44,12 +45,13 @@ class LanguagesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final value = AppLocaleScope.of(context);
     final s = context.s;
-    Widget flag(String e) => Text(e, style: const TextStyle(fontSize: 26));
+    // The preview (Ace, 7 Oct 2026): English first, each language greeting
+    // you in itself under its name, drawn flags.
     return DOptionsPage(
       title: s.languagesTitle,
       options: [
-        DOption(title: s.languagesFilipino, sub: 'Filipino', leading: flag('🇵🇭'), selected: value == AppLocale.fil, onTap: () => _choose(context, AppLocale.fil)),
-        DOption(title: s.languagesEnglish, sub: 'English', leading: flag('🇺🇸'), selected: value == AppLocale.en, onTap: () => _choose(context, AppLocale.en)),
+        DOption(title: 'English', sub: 'Welcome! How are you doing today?', leading: const DFlag(us: true), selected: value == AppLocale.en, onTap: () => _choose(context, AppLocale.en)),
+        DOption(title: 'Filipino', sub: 'Maligayang pagdating! Kumusta ka ngayon?', leading: const DFlag(us: false), selected: value == AppLocale.fil, onTap: () => _choose(context, AppLocale.fil)),
       ],
     );
   }

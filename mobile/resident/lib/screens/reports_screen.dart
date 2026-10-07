@@ -772,7 +772,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           const SizedBox(height: 18),
           Text(s.reportsViewTitle, style: DType.h1(d.accent).copyWith(fontSize: 28)),
           const SizedBox(height: 10),
-          _FilterDropdown(value: _filter, counts: _filterCounts, onChanged: _setFilter),
+          if (kReportsFilterChips)
+            _FilterChips(value: _filter, counts: _filterCounts, onChanged: _setFilter)
+          else
+            _FilterDropdown(value: _filter, counts: _filterCounts, onChanged: _setFilter),
           const SizedBox(height: 14),
           // Waiting to send: at most a couple on screen, the rest a
           // scroll away inside the same box.
@@ -979,6 +982,73 @@ class _QueuedCard extends StatelessWidget {
 /// stay in each item's label -- a genuine improvement the mockup work
 /// surfaced, not something the user asked to give back, just no longer
 /// tied to a row of buttons.
+/// Ace (7 Oct 2026): the preview's row of status chips instead of the
+/// dropdown (whose open menu also ran edge to edge). Switched, not removed:
+/// false brings the dropdown back.
+const bool kReportsFilterChips = true;
+
+/// The preview's `.seg`: 32 tall pills, the chosen one navy, sliding
+/// sideways when they don't fit.
+class _FilterChips extends StatelessWidget {
+  const _FilterChips({required this.value, required this.counts, required this.onChanged});
+
+  final ReportFilter value;
+  final Map<ReportFilter, int> counts;
+  final ValueChanged<ReportFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final d = context.d;
+    return SizedBox(
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final f in ReportFilter.values) ...[
+            if (f != ReportFilter.values.first) const SizedBox(width: 6),
+            Builder(builder: (context) {
+              final on = f == value;
+              final n = counts[f];
+              return Semantics(
+                selected: on,
+                button: true,
+                child: InkWell(
+                  onTap: () => onChanged(f),
+                  borderRadius: BorderRadius.circular(99),
+                  child: Container(
+                    height: 32,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: on ? d.btn : d.card,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: on ? d.btn : d.line),
+                    ),
+                    child: Text(
+                      n == null ? s.reportFilterLabel(f.name) : '${s.reportFilterLabel(f.name)} · $n',
+                      style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 12.5, color: on ? Colors.white : d.ink2),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// How far along a report is, in the preview's four steps: filed,
+/// validated, tanod dispatched, resolved.
+int _stepsDone(ReportStatus s) => switch (s) {
+      ReportStatus.pendingReview || ReportStatus.rejected || ReportStatus.cancelled => 1,
+      ReportStatus.validated => 2,
+      ReportStatus.assigned || ReportStatus.inProgress || ReportStatus.offlineInvestigation => 3,
+      ReportStatus.resolved || ReportStatus.closed || ReportStatus.archived => 4,
+    };
+
 class _FilterDropdown extends StatelessWidget {
   const _FilterDropdown({
     required this.value,
@@ -1137,6 +1207,25 @@ class _ReportCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: DType.body(d.ink2, size: 13),
                     ),
+                  ),
+                  // The preview's progress bar (Ace, 7 Oct 2026).
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Row(children: [
+                      for (var i = 0; i < 4; i++) ...[
+                        if (i > 0) const SizedBox(width: 4),
+                        Expanded(
+                          child: Container(
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: i < _stepsDone(report.status) ? col : d.line,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ]),
                   ),
                 ]),
               ),

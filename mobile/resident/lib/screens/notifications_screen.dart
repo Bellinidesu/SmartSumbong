@@ -92,6 +92,12 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification>? _items;
+
+  /// New when this page opened. The server marks them read straight away
+  /// (the bell clears), and the live feed then reloads them as read; they
+  /// keep their new look and count here until the page closes or Mark all
+  /// as read (7 Oct 2026).
+  final _fresh = <String>{};
   // report id -> (tracking id, category), for each row's report chip
   Map<String, (String, ComplaintCategory)> _reports = {};
   String? _error;
@@ -168,8 +174,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         } catch (_) {}
       }
       if (!mounted) return;
+      _fresh.addAll([for (final n in list) if (!n.isRead) n.id]);
       setState(() {
-        _items = list;
+        _items = [
+          for (final n in list)
+            _fresh.contains(n.id) && n.isRead
+                ? AppNotification(id: n.id, kind: n.kind, message: n.message, isRead: false, createdAt: n.createdAt, reportId: n.reportId)
+                : n,
+        ];
         _reports = reports;
       });
 
@@ -263,14 +275,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               const DBack(),
               const SizedBox(width: 10),
               Expanded(child: Text(s.notificationsTitle, style: DType.h2(d.ink).copyWith(fontSize: 24))),
-              if (unread > 0)
-                GestureDetector(
-                  onTap: () => setState(() => _items = [
-                        for (final n in _items!)
-                          AppNotification(id: n.id, kind: n.kind, message: n.message, isRead: true, createdAt: n.createdAt, reportId: n.reportId),
-                      ]),
-                  child: Text(context.tr('Mark all as read', 'Basahin lahat'), style: DType.body(d.link, size: 13, w: FontWeight.w700)),
-                ),
+              // Always in the header, as in the preview (7 Oct 2026); muted
+              // when there is nothing left to mark.
+              TextButton(
+                onPressed: unread == 0
+                    ? null
+                    : () => setState(() {
+                          _fresh.clear();
+                          _items = [
+                          for (final n in _items!)
+                            AppNotification(id: n.id, kind: n.kind, message: n.message, isRead: true, createdAt: n.createdAt, reportId: n.reportId),
+                          ];
+                        }),
+                child: Text(context.tr('Mark all as read', 'Basahin lahat'), style: DType.body(unread == 0 ? d.muted : d.link, size: 13, w: FontWeight.w700)),
+              ),
             ]),
             const SizedBox(height: 12),
             if (_error != null)

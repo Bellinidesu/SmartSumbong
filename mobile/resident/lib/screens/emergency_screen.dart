@@ -307,6 +307,9 @@ class _HotlineList extends StatelessWidget {
       return Center(child: CircularProgressIndicator(color: d.accent));
     }
 
+    // The preview's order (Ace, 7 Oct 2026): the slide-to-call cards (911,
+    // Fire) first, then the hotline lists and the groups.
+    final slides = <Widget>[];
     final cards = <Widget>[];
     for (final g in groups ?? const <HotlineGroup>[]) {
       if (g.isLink) {
@@ -317,9 +320,10 @@ class _HotlineList extends StatelessWidget {
       final labelled = [for (final n in g.numbers) if (n.label != null) n];
       if (plain.isNotEmpty) cards.add(_GroupCard(name: g.name, numbers: plain));
       for (final n in labelled) {
-        cards.add(_SlideCard(number: n));
+        slides.add(_SlideCard(number: n));
       }
     }
+    cards.insertAll(0, slides);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
@@ -522,7 +526,9 @@ class _SlideCard extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(number.label!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white)),
                 // 911 is its own number: an empty line keeps both cards the same height.
-                Text(number.number.trim() != number.label!.trim() ? number.number : ' ',
+                Text(number.number.trim() != number.label!.trim()
+                        ? number.number
+                        : (number.label!.trim() == '911' ? context.tr('National emergency · police, fire, medical', 'Pambansang emergency · pulis, bumbero, medikal') : ' '),
                     style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12, color: Colors.white.withValues(alpha: .85))),
               ]),
             ),

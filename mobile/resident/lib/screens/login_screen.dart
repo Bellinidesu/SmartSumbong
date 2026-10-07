@@ -378,6 +378,9 @@ class _DField extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = BorderRadius.circular(14);
     OutlineInputBorder b(Color c, [double w = 1.5]) => OutlineInputBorder(borderRadius: r, borderSide: BorderSide(color: c, width: w));
+    // The preview (Ace, 7 Oct 2026): white fields by day, navy ones by night.
+    final dark = context.isDark;
+    final ink = dark ? Colors.white : const Color(0xFF141B34);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 6),
@@ -390,12 +393,12 @@ class _DField extends StatelessWidget {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         autofillHints: autofill,
-        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: obscure ? 20 : 15.5, letterSpacing: obscure ? 2 : 0, color: const Color(0xFF141B34)),
+        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: obscure ? 20 : 15.5, letterSpacing: obscure ? 2 : 0, color: ink),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 14.5, letterSpacing: 0, color: Color(0xFF8A90A3), fontStyle: FontStyle.normal),
+          hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 14.5, letterSpacing: 0, color: dark ? Colors.white60 : const Color(0xFF8A90A3), fontStyle: FontStyle.normal),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: dark ? const Color(0xFF22305E) : Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: b(Colors.transparent),
           enabledBorder: b(Colors.transparent),
@@ -408,7 +411,7 @@ class _DField extends StatelessWidget {
               : IconButton(
                   onPressed: onToggleObscure,
                   tooltip: obscure ? context.tr('Show password', 'Ipakita ang password') : context.tr('Hide password', 'Itago ang password'),
-                  icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF6E7489)),
+                  icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: dark ? Colors.white70 : const Color(0xFF6E7489)),
                 ),
         ),
       ),

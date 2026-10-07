@@ -26,7 +26,6 @@ class ThemeScreen extends StatelessWidget {
   // Branch D: the three modes as cards, each with its own icon.
   @override
   Widget build(BuildContext context) {
-    final d = context.d;
     final mode = AppThemeScope.of(context);
     final controller = AppThemeScope.controllerOf(context);
     final s = context.s;
@@ -35,23 +34,60 @@ class ThemeScreen extends StatelessWidget {
       options: [
         DOption(
           title: s.themeSystem,
-          leading: DWell(Icons.phone_android_rounded, size: 42),
+          sub: context.tr('Follows your phone’s setting', 'Sumusunod sa setting ng telepono'),
+          leading: const _Mini(_MiniKind.system),
           selected: mode == ThemeMode.system,
           onTap: () => controller.set(ThemeMode.system),
         ),
         DOption(
           title: s.themeLight,
-          leading: DWell(Icons.light_mode_rounded, size: 42, color: DColors.orange),
+          sub: context.tr('Day: bright and clear', 'Araw: maliwanag'),
+          leading: const _Mini(_MiniKind.light),
           selected: mode == ThemeMode.light,
           onTap: () => controller.set(ThemeMode.light),
         ),
         DOption(
           title: s.themeDark,
-          leading: DWell(Icons.dark_mode_rounded, size: 42, color: d.dark ? const Color(0xFFFFD27A) : d.link),
+          sub: context.tr('Night: easy on the eyes', 'Gabi: hindi masakit sa mata'),
+          leading: const _Mini(_MiniKind.dark),
           selected: mode == ThemeMode.dark,
           onTap: () => controller.set(ThemeMode.dark),
         ),
       ],
+    );
+  }
+}
+
+enum _MiniKind { system, light, dark }
+
+/// The preview's little phone for each mode (Ace, 7 Oct 2026): the page
+/// colour, a navy card near the top and the navy bar along the bottom.
+class _Mini extends StatelessWidget {
+  const _Mini(this.kind);
+
+  final _MiniKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final line = context.d.line;
+    Widget half(bool dark) => Container(
+          color: dark ? const Color(0xFF0E1322) : const Color(0xFFF3F3F3),
+          child: Column(children: [
+            Container(margin: const EdgeInsets.fromLTRB(6, 8, 6, 0), height: 18, decoration: BoxDecoration(color: dark ? const Color(0xFF13235A) : const Color(0xFF00308F), borderRadius: BorderRadius.circular(5))),
+            const Spacer(),
+            Container(height: 14, color: dark ? const Color(0xFF0A1640) : const Color(0xFF00308F)),
+          ]),
+        );
+    return Container(
+      width: 56,
+      height: 84,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: line)),
+      clipBehavior: Clip.antiAlias,
+      child: switch (kind) {
+        _MiniKind.light => half(false),
+        _MiniKind.dark => half(true),
+        _MiniKind.system => Row(children: [Expanded(child: half(false)), Expanded(child: half(true))]),
+      },
     );
   }
 }
