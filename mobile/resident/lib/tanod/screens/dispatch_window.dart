@@ -325,6 +325,10 @@ class _DispatchWindowState extends State<DispatchWindow>
   /// admin's approval) and this tanod's escalation request, if one waits.
   String? _reportStatus;
   Map<String, dynamic>? _escalation;
+
+  /// Bellinist (9 Oct 2026): the admin's Look around, sent to this tanod for
+  /// this case: a note, the street view to open, which way the spot lies.
+  Map<String, dynamic>? _look;
   List<_Post> _posts = const [];
   String? _step;
   String _state = 'accepted';
@@ -523,6 +527,28 @@ class _DispatchWindowState extends State<DispatchWindow>
         ],
       ]..sort((a, b) => a.at.compareTo(b.at));
 
+      Map<String, dynamic>? look;
+      try {
+        look = await client
+            .from('look_shares')
+            .select('id, message, mapillary_image_id, spot_dir, spot_metres, image_captured_at, read_at')
+            .eq('report_id', widget.ticket.reportId)
+            .eq('tanod_id', me ?? '')
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+        if (look != null && look['read_at'] == null) {
+          // Seen: the barangay can tell the note arrived.
+          unawaited(client
+              .from('look_shares')
+              .update({'read_at': DateTime.now().toUtc().toIso8601String()})
+              .eq('id', look['id'] as String)
+              .then((_) {}, onError: (_) {}));
+        }
+      } catch (_) {
+        look = null;
+      }
+
       final d = got[2] as Map<String, dynamic>;
       if (!mounted) return;
       final grew = posts.length > _posts.length;
@@ -538,6 +564,7 @@ class _DispatchWindowState extends State<DispatchWindow>
         _detailRequest = detail;
         _reportStatus = (got[0] as Map<String, dynamic>)['status'] as String?;
         _escalation = got[6] as Map<String, dynamic>?;
+        _look = look;
         _state = d['state'] as String? ?? 'accepted';
         _step = d['step'] as String?;
         _posts = posts;
@@ -923,6 +950,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                           const SizedBox(height: 16),
                           if (!kJobPinnedDock && _open) _stepActions(),
                           if (kJobPinnedDock && (widget.ticket.instructions ?? '').trim().isNotEmpty) _instructionsCard(),
+                          if (_look != null) _lookCard(),
                           if (kTanodNavAndChat && _open && onsite && _casePoint != null) ...[
                             const SizedBox(height: 12),
                             _againCard(),
@@ -1615,6 +1643,61 @@ class _DispatchWindowState extends State<DispatchWindow>
           Text(context.tr('BARANGAY INSTRUCTIONS', 'TAGUBILIN NG BARANGAY'), style: DType.label(amberInk)),
           const SizedBox(height: 4),
           Text(widget.ticket.instructions!.trim(), style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+
+  /// Look around, from the barangay: the admin's note, how far and which way
+  /// the spot lies from where the street view was taken, and the view itself
+  /// in the phone's browser (Mapillary opens on that very image).
+  Widget _lookCard() {
+    final d = context.d;
+    final bg = d.dark ? const Color(0xFF14264A) : const Color(0xFFEEF3FF);
+    final line = d.dark ? const Color(0xFF2B4380) : const Color(0xFFC9D8FF);
+    final ink = d.dark ? const Color(0xFF8DB2FF) : const Color(0xFF00308F);
+    final l = _look!;
+    final imageId = l['mapillary_image_id'] as String?;
+    final dir = l['spot_dir'] as String?;
+    final m = l['spot_metres'] as int?;
+    final where = dir == null || m == null
+        ? null
+        : (m < 3
+            ? context.tr('The street view was taken right at the spot.', 'Kinuha ang street view mismo sa lugar.')
+            : context.tr('From where the street view was taken, the spot is about $m m $dir.',
+                'Mula sa kinuhanan ng street view, ang lugar ay mga $m m sa $dir.'));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.threesixty_rounded, size: 18, color: ink),
+            const SizedBox(width: 8),
+            Text(context.tr('LOOK AROUND, FROM THE BARANGAY', 'LOOK AROUND, MULA SA BARANGAY'), style: DType.label(ink)),
+          ]),
+          const SizedBox(height: 6),
+          Text((l['message'] as String? ?? '').trim(), style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
+          if (where != null) ...[
+            const SizedBox(height: 6),
+            Text(where, style: DType.body(d.muted, size: 13)),
+          ],
+          if (imageId != null) ...[
+            const SizedBox(height: 10),
+            DButton(
+              context.tr('Open the street view', 'Buksan ang street view'),
+              icon: Icons.open_in_new_rounded,
+              expand: true,
+              height: 46,
+              radius: 14,
+              fontSize: 15,
+              onTap: () => launchUrl(
+                Uri.parse('https://www.mapillary.com/app/?pKey=$imageId&focus=photo'),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+          ],
         ]),
       ),
     );
