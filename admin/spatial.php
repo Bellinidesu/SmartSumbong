@@ -856,9 +856,10 @@ function lkOpen(r) {
       '<div class="lk-ti"><b>' + T('Look around', 'Luminga-linga') + '</b><span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : r.tracking_id) + ' · ' + esc(r.tracking_id) + '</span></div>' +
       '<div class="lk-hd" id="lk-hd"><svg class="lk-needle" id="lk-needle" viewBox="0 0 24 24"><path d="M12 3l5 16-5-4-5 4z" fill="currentColor"/></svg><b id="lk-hdt">N 0°</b></div></div>' +
     '<div class="lk-state" id="lk-state"><span class="lk-spin"></span><b>' + T('Finding street imagery…', 'Hinahanap ang street imagery…') + '</b></div>' +
+    '<aside class="lk-send" id="lk-send" aria-label="' + T('Send to tanod', 'Ipadala sa tanod') + '"></aside>' +
     '<div class="lk-bar"><div class="lk-steps"><button type="button" data-lkstep="prev">' + T('◀ Step back', '◀ Umatras') + '</button><button type="button" data-lkstep="next">' + T('Step ahead ▶', 'Sumulong ▶') + '</button></div>' +
       '<div class="lk-fact" id="lk-fact"><span class="lk-cdot"></span>' + esc(label(r.category)) + '</div>' +
-      '<div class="lk-acts"><button type="button" class="p-btn" id="lk-cmp-btn" data-lkcmp>' + T('Then / Now', 'Dati / Ngayon') + '</button><a class="p-btn p-btn-primary" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open case', 'Buksan ang kaso') + '</a></div>' +
+      '<div class="lk-acts"><button type="button" class="p-btn" id="lk-cmp-btn" data-lkcmp>' + T('Then / Now', 'Dati / Ngayon') + '</button><a class="p-btn" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open case', 'Buksan ang kaso') + '</a><button type="button" class="p-btn p-btn-primary" id="lk-send-btn" data-lksend disabled>' + T('Send to tanod', 'Ipadala sa tanod') + '</button></div>' +
       '<small class="lk-credit">' + T('Imagery © Mapillary contributors, CC BY-SA 4.0', 'Imagery © Mapillary contributors, CC BY-SA 4.0') + '</small></div>';
   sec.appendChild(el);
   LK = { el, r, here, viewer: null, ready: false, photos: [], pn: 0, raf: 0, bearing: 0, sx: 40 };
@@ -884,8 +885,9 @@ function lkOpen(r) {
 function lkImage(im) {
   if (!LK) return;
   const first = !LK.ready; LK.ready = true;
-  LK.img = { lng: im.lngLat.lng, lat: im.lngLat.lat, comp: im.compassAngle, pano: im.cameraType === 'spherical', at: im.capturedAt };
+  LK.img = { id: im.id, lng: im.lngLat.lng, lat: im.lngLat.lat, comp: im.compassAngle, pano: im.cameraType === 'spherical', at: im.capturedAt };
   const st = document.getElementById('lk-state'); if (st) st.hidden = true;
+  const sbn = document.getElementById('lk-send-btn'); if (sbn) sbn.disabled = false;
   const when = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(im.capturedAt));
   const then = document.getElementById('lk-then'); then.hidden = false; then.textContent = T('THEN · street imagery, ', 'DATI · street imagery, ') + when + ' · Mapillary';
   const m = Math.round(lkMetres(LK.here, LK.img));
@@ -940,6 +942,9 @@ function lkPlace() {
       const c = document.getElementById('lk-cmp'), on = c.hidden; c.hidden = !on; t.closest('button').classList.toggle('on', on);
       LK.el.style.setProperty('--sx', LK.sx + '%'); return;
     }
+    if (t.closest('[data-lksend]')) { lkSendOpen(); return; }
+    if (t.closest('[data-lksendx]')) { document.getElementById('lk-send').classList.remove('open'); return; }
+    const go = t.closest('[data-lksendgo]'); if (go) { lkSendGo(go); return; }
     if (t.closest('#lk-ph') && LK.photos.length > 1) { LK.pn++; lkPhoto(); }
   });
   document.addEventListener('pointerdown', e => {
@@ -953,6 +958,55 @@ function lkPlace() {
   window.addEventListener('resize', () => { if (LK && LK.viewer) { try { LK.viewer.resize(); } catch (e) { /* closing */ } lkPlace(); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && LK) { e.stopPropagation(); lkClose(false); } }, true);
 })();
+
+// ---- Send to tanod (Bellinist phase 5b): the street view goes with the one who is going ----
+const ME = <?= json_encode($admin['id'] ?? null) ?>;
+const DUTY_ORDER = { on_duty: 0, break: 1, lunch: 1, offline: 2 };
+const dutyLabel = d => ({ on_duty: T('On duty', 'Naka-duty'), break: T('On break', 'Nagpapahinga'), lunch: T('At lunch', 'Kumakain'), offline: T('Offline', 'Offline') }[d] || d);
+function lkSpot() {
+  if (!LK || !LK.img) return null;
+  return { m: Math.round(lkMetres(LK.img, LK.here)), dir: lkDir(lkBearing(LK.img, LK.here)) };
+}
+async function lkSendOpen() {
+  const el = document.getElementById('lk-send'); if (!el || !LK) return;
+  el.classList.add('open');
+  el.innerHTML = '<div class="sd-h"><b>' + T('Send to tanod', 'Ipadala sa tanod') + '</b><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div><p class="sd-l">' + T('Loading the tanod…', 'Kinukuha ang mga tanod…') + '</p>';
+  const { data, error } = await sb.from('users').select('id,full_name,duty_status').eq('role', 'tanod').not('duty_status', 'is', null);
+  if (!LK) return;
+  if (error || !data) { el.innerHTML = '<div class="sd-h"><b>' + T('Send to tanod', 'Ipadala sa tanod') + '</b><button type="button" class="sd-x" data-lksendx>&times;</button></div><p class="sd-l">' + T('The tanod could not be loaded.', 'Hindi ma-load ang mga tanod.') + '</p>'; return; }
+  const list = data.slice().sort((a, b) => (DUTY_ORDER[a.duty_status] ?? 3) - (DUTY_ORDER[b.duty_status] ?? 3) || String(a.full_name).localeCompare(String(b.full_name)));
+  const r = LK.r, sp = lkSpot(), street = r.location_label || T('the spot', 'lugar');
+  const where = !sp ? '' : sp.m < 3 ? T(' The street view was taken right at the spot.', ' Kinuha ang street view mismo sa lugar.') : T(' From where the street view was taken, the spot is about ' + sp.m + ' m ' + sp.dir + '.', ' Mula sa kinuhanan ng street view, ang lugar ay mga ' + sp.m + ' m sa ' + sp.dir + '.');
+  const first = list.findIndex(t => t.duty_status === 'on_duty');
+  el.innerHTML = '<div class="sd-h"><b>' + T('Send to tanod', 'Ipadala sa tanod') + '</b><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
+    '<p class="sd-l">' + T('Who is going', 'Sino ang pupunta') + '</p><div class="sd-list">' + (list.length ? list.map((t, i) =>
+      '<label class="sd-t d-' + esc(t.duty_status) + '"><input type="radio" name="lkt" value="' + esc(t.id) + '"' + (i === Math.max(0, first) ? ' checked' : '') + '><span class="av">' + esc(String(t.full_name || '?').split(/[ ,]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()) + '</span>' +
+      '<span><b>' + esc(String(t.full_name || '').trim()) + '</b><small>' + esc(dutyLabel(t.duty_status)) + '</small></span></label>').join('') : '<p class="sd-l">' + T('No tanod accounts yet.', 'Wala pang tanod.') + '</p>') + '</div>' +
+    '<p class="sd-l">' + T('Include', 'Isama') + '</p>' +
+    '<label class="sd-c"><input type="checkbox" id="sd-street" checked><span>' + T('The street view of the spot', 'Ang street view ng lugar') + '</span></label>' +
+    '<label class="sd-c"><input type="checkbox" id="sd-photos" checked' + (LK.photos.length ? '' : ' disabled') + '><span>' + (LK.photos.length ? T('The resident’s photos (' + LK.photos.length + ')', 'Ang mga larawan ng residente (' + LK.photos.length + ')') : T('No resident photos to include', 'Walang larawan ng residente')) + '</span></label>' +
+    '<textarea id="sd-msg" rows="4" maxlength="600">' + esc(T('Please check ' + r.tracking_id + ' near ' + street + '.' + where, 'Pakisuri ang ' + r.tracking_id + ' malapit sa ' + street + '.' + where)) + '</textarea>' +
+    '<button type="button" class="p-btn p-btn-primary sd-go" data-lksendgo' + (list.length ? '' : ' disabled') + '>' + T('Send', 'Ipadala') + '</button>';
+}
+async function lkSendGo(btn) {
+  const el = document.getElementById('lk-send'), pick = el.querySelector('input[name=lkt]:checked'), msg = el.querySelector('#sd-msg').value.trim();
+  if (!pick || !msg || !LK) return;
+  btn.disabled = true; btn.textContent = T('Sending…', 'Ipinapadala…');
+  const street = el.querySelector('#sd-street').checked && LK.img, sp = lkSpot(), name = pick.closest('label').querySelector('b').textContent, r = LK.r;
+  const { error } = await sb.from('look_shares').insert({
+    report_id: r.id, tanod_id: pick.value, sent_by: ME, message: msg,
+    mapillary_image_id: street ? LK.img.id : null, image_captured_at: street ? new Date(LK.img.at).toISOString() : null,
+    spot_dir: street && sp ? sp.dir : null, spot_metres: street && sp ? Math.min(1000, sp.m) : null,
+    include_photos: !!(el.querySelector('#sd-photos').checked && LK.photos.length),
+  });
+  if (error) { btn.disabled = false; btn.textContent = T('Send', 'Ipadala'); if (window.pToast) pToast(T('Could not send: ', 'Hindi naipadala: ') + error.message); return; }
+  // The tanod's notifications list is what their phone shows first.
+  await sb.from('notifications').insert({ user_id: pick.value, report_id: r.id, kind: 'look_around', message: T('From the barangay: ', 'Mula sa barangay: ') + msg }).then(() => {}, () => {});
+  el.innerHTML = '<div class="sd-h"><b>' + T('Sent', 'Naipadala') + '</b><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
+    '<p class="sd-ok"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>' + T('Sent to ', 'Naipadala kay ') + '<b>' + esc(name) + '</b></p>' +
+    '<p class="sd-l">' + T('They will see it in their notifications and on the case.', 'Makikita nila ito sa notifications at sa kaso.') + '</p>';
+  if (window.pToast) pToast(T('Sent to ', 'Naipadala kay ') + name);
+}
 
 // ---- Zoom here: the camera flies in and a box unfolds out of the pin ----
 // (Bellinist, 9 Oct 2026.) The case card tucks away, the box shows the
