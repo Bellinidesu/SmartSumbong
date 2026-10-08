@@ -378,12 +378,32 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
   map.addLayer({ id: 'outline-glow', type: 'line', source: 'fog', filter: ['==', ['get', 'role'], 'outline'], layout: { visibility: 'none' },
                  paint: { 'line-color': '#FF9D3C', 'line-width': 9, 'line-blur': 7, 'line-opacity': .6 } }, 'outline');
   // "BARANGAY 183", large and faint, under everything; it fades as you zoom in.
-  map.addSource('biglab', { type: 'geojson', data: point(RESIDENTIAL_CENTRE[0], RESIDENTIAL_CENTRE[1] + 0.0004) });
+  // The names of the places round the barangay, in large faint type under the
+  // pins: the barangay itself, then Villamor, the airport terminal, Newport
+  // and the neighbouring barangays. Places are placed in priority order and
+  // one that would run into a bigger one stays out of its way.
+  // (k: size tier, o: how faint; coordinates from OpenStreetMap.)
+  map.addSource('biglab', { type: 'geojson', data: { type: 'FeatureCollection', features: [
+    point(RESIDENTIAL_CENTRE[0], RESIDENTIAL_CENTRE[1] + 0.0004, { name: 'BARANGAY 183', sub: 'PASAY CITY · ZONE 20', k: 1, o: .11, p: 0 }),
+    point(121.02433, 14.51713, { name: 'VILLAMOR AIR BASE', sub: 'PHILIPPINE AIR FORCE', k: .8, o: .12, p: 1 }),
+    point(121.01375, 14.51922, { name: 'NAIA TERMINAL 3', sub: 'NINOY AQUINO INTERNATIONAL AIRPORT', k: .75, o: .12, p: 1 }),
+    point(121.01768, 14.51954, { name: 'NEWPORT CITY', sub: 'RESORTS WORLD MANILA', k: .6, o: .105, p: 2 }),
+    point(121.02057, 14.53049, { name: 'HUMABON PLACE', sub: 'MAGALLANES', k: .55, o: .1, p: 2 }),
+    point(121.00790, 14.53148, { name: 'MARICABAN', sub: 'PASAY CITY', k: .55, o: .1, p: 2 }),
+    point(121.00774, 14.52843, { name: 'BARANGAY 184', k: .4, o: .09, p: 3 }),
+    point(121.01100, 14.52751, { name: 'BARANGAY 185', k: .4, o: .09, p: 3 }),
+    point(121.01029, 14.53044, { name: 'BARANGAY 182', k: .4, o: .09, p: 3 }),
+    point(121.01130, 14.53002, { name: 'BARANGAY 181', k: .33, o: .08, p: 4 }),
+    point(121.01170, 14.53019, { name: 'BARANGAY 180', k: .33, o: .08, p: 4 }),
+    point(121.00489, 14.53177, { name: 'BARANGAY 186', k: .4, o: .09, p: 3 }),
+    point(121.00811, 14.53198, { name: 'BARANGAY 168', k: .33, o: .08, p: 4 }),
+  ] } });
   map.addLayer({ id: 'biglab', type: 'symbol', source: 'biglab',
-    layout: { 'text-field': ['format', 'BARANGAY 183', {}, '\n', {}, 'PASAY CITY · ZONE 20', { 'font-scale': .3 }],
-              'text-font': ['Noto Sans Bold'], 'text-letter-spacing': .16, 'text-allow-overlap': true, 'text-ignore-placement': true,
-              'text-size': ['interpolate', ['exponential', 2], ['zoom'], 15, 30, 18, 240] },
-    paint: { 'text-color': '#141B34', 'text-opacity': ['interpolate', ['linear'], ['zoom'], 15, .11, 16.4, .05, 17.2, 0] } });
+    layout: { 'text-field': ['format', ['get', 'name'], {}, ['case', ['has', 'sub'], '\n', ''], {}, ['coalesce', ['get', 'sub'], ''], { 'font-scale': .3 }],
+              'text-font': ['Noto Sans Bold'], 'text-letter-spacing': .16, 'text-allow-overlap': false, 'text-ignore-placement': false, 'text-padding': 12,
+              'symbol-sort-key': ['get', 'p'], 'text-max-width': 40,
+              'text-size': ['interpolate', ['exponential', 2], ['zoom'], 15, ['*', ['get', 'k'], 30], 18, ['*', ['get', 'k'], 240]] },
+    paint: { 'text-color': '#141B34', 'text-opacity': 0 } });
   outlineLook(); bigLabelLook();
 
   // Project NOAH's flood and storm-surge zones (map-theme.js), off until
@@ -521,9 +541,10 @@ function outlineLook() {
 }
 function bigLabelLook() {
   if (!map.getLayer('biglab')) return;
-  const dark = isDark();
+  const dark = isDark(), m = dark ? 1.45 : 1;
   map.setPaintProperty('biglab', 'text-color', dark ? '#FF9D3C' : '#141B34');
-  map.setPaintProperty('biglab', 'text-opacity', ['interpolate', ['linear'], ['zoom'], 15, dark ? .16 : .11, 16.4, dark ? .08 : .05, 17.2, 0]);
+  map.setPaintProperty('biglab', 'text-opacity', ['interpolate', ['linear'], ['zoom'],
+    15, ['*', m, ['get', 'o']], 16.4, ['*', m * .45, ['get', 'o']], 17.2, 0]);
 }
 
 // The intro: the outline draws itself, the camera settles, the pins drop.
