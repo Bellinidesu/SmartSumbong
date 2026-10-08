@@ -153,6 +153,19 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
   color: #fff; font-weight: 600; font-size: 13.5px; background: var(--fw); box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: calc(100% - 32px); }
 @media (max-width: 980px) { .fw { top: auto; bottom: 16px; right: 70px; } }
 
+/* ---- Bellinist (9 Oct 2026): the map page arrives, folds and returns ---- */
+#s-spatial .p-map-search { animation: bnDown .7s .15s cubic-bezier(.2,1.25,.3,1) backwards; transition: transform .45s cubic-bezier(.2,1.25,.3,1), opacity .3s; }
+#s-spatial .p-map-search .p-row { max-height: 110px; overflow: clip; overflow-clip-margin: 10px; transition: max-height .45s cubic-bezier(.4,0,.2,1), opacity .3s, margin .3s; }
+#s-spatial.ss-dragging .p-map-search:not(:hover):not(:focus-within) .p-row { max-height: 0; opacity: 0; margin: -5px 0; overflow: clip; overflow-clip-margin: 0; }
+#s-spatial .p-map-dock .p-dock-btn { animation: bnDock .6s backwards cubic-bezier(.2,1.25,.3,1); }
+#s-spatial .p-map-dock .p-dock-btn:nth-child(1) { animation-delay: .55s; } #s-spatial .p-map-dock .p-dock-btn:nth-child(2) { animation-delay: .63s; }
+#s-spatial .p-map-dock .p-dock-btn:nth-child(3) { animation-delay: .71s; } #s-spatial .p-map-dock .p-dock-btn:nth-child(4) { animation-delay: .79s; }
+#s-spatial .p-map-dock, #s-spatial .fw { transition: opacity .35s cubic-bezier(.4,0,.2,1); }
+#s-spatial.ss-dragging .p-map-dock:not(:hover), #s-spatial.ss-dragging .fw:not(:hover) { opacity: .35; }
+@keyframes bnDown { from { opacity: 0; transform: translateY(-26px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes bnDock { from { opacity: 0; transform: translateX(30px) scale(.8); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #s-spatial .p-map-search, #s-spatial .p-map-dock .p-dock-btn { animation: none; } #s-spatial .p-map-search .p-row, #s-spatial .p-map-dock, #s-spatial .fw { transition: none; } }
+
 
 /* ── Settings: system status and plan and usage ── */
 .st-tabs { margin: 0 0 16px; }

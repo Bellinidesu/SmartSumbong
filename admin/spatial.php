@@ -252,6 +252,39 @@ function pinSvg(shape, fill) {
          '" stroke="#fff" stroke-width="2">' + under + top + '</svg>';
 }
 
+// Bellinist (9 Oct 2026): the pin is the resident app's badge: a teardrop
+// in the category's colour with the category's own symbol on a white disc.
+// Colour still carries the category; the symbol carries it for the one man
+// in twelve who cannot separate the hues. At night it glows in its colour.
+const PIN_GLYPH = {
+  street_obstruction: '<path d="M7 20V4h6a4 4 0 0 1 0 8H7"/>',
+  public_safety_infrastructure: '<path d="M3 20h18M6 20l2-12h8l2 12M9 13h6"/>',
+  environmental_waste_hazard: '<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/>',
+  animal_welfare: '<circle cx="7" cy="9" r="1.7" fill="__C__"/><circle cx="12" cy="6.5" r="1.7" fill="__C__"/><circle cx="17" cy="9" r="1.7" fill="__C__"/><path d="M8 17c0-3 2-5 4-5s4 2 4 5c0 2-2 2-4 1-2 1-4 1-4-1z"/>',
+  traffic_violation: '<rect x="8" y="3" width="8" height="18" rx="3"/><circle cx="12" cy="8" r="1.2" fill="__C__"/><circle cx="12" cy="12" r="1.2" fill="__C__"/><circle cx="12" cy="16" r="1.2" fill="__C__"/>',
+  barangay_service: '<path d="M3 10l9-6 9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 20h18"/>',
+  peace_order_nuisance: '<path d="M4 10v4h4l5 4V6l-5 4H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',
+  other: '<circle cx="6" cy="12" r="1.7" fill="__C__"/><circle cx="12" cy="12" r="1.7" fill="__C__"/><circle cx="18" cy="12" r="1.7" fill="__C__"/>',
+};
+const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+function pinTear(cat, fill, dark) {
+  const glyph = (PIN_GLYPH[cat] || PIN_GLYPH.other).replace(/__C__/g, fill);
+  const filter = dark
+    ? '<filter id="g" x="-60%" y="-40%" width="220%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="2.6" flood-color="' + fill + '" flood-opacity=".95"/></filter>'
+    : '<filter id="g" x="-40%" y="-30%" width="180%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.3" flood-color="#000" flood-opacity=".35"/></filter>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="104" viewBox="-22 -52 44 52"><defs>' + filter + '</defs>' +
+    '<g filter="url(#g)"><path d="M0 0C-4-9-15-15-15-27a15 15 0 0 1 30 0C15-15 4-9 0 0Z" fill="' + fill + '" stroke="#fff" stroke-width="1.6"/>' +
+    '<circle cy="-27" r="9.5" fill="#fff"/>' +
+    '<g transform="translate(-6.5 -33.5) scale(.54)" fill="none" stroke="' + fill + '" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">' + glyph + '</g></g></svg>';
+}
+function addPinImages() {
+  const dark = isDark();
+  return Promise.all(Object.entries(CATEGORY_COLOUR).map(([c, hex]) => {
+    if (map.hasImage('pin-cat-' + c)) map.removeImage('pin-cat-' + c);
+    return addSvgImage('pin-cat-' + c, pinTear(c, hex, dark));
+  }));
+}
+
 function addSvgImage(name, svg) {
   return new Promise(resolve => {
     const img = new Image();
@@ -266,11 +299,25 @@ function addSvgImage(name, svg) {
 // assets/map/style-light.json) — no API key and no billing account,
 // which is what sent the CARTO attempt of 15 Sep 2026 back to plain OSM
 // raster tiles.
+// Bellinist intro (9 Oct 2026): once a session the map opens wide, the
+// barangay's outline draws itself, the camera settles on the residential
+// area and the pins drop in. Skipped for reduced motion; ?intro=1 forces it.
+const AREA_CENTRE = [(AREA[0][0] + AREA[1][0]) / 2, (AREA[0][1] + AREA[1][1]) / 2];
+let introHide = false;
+const INTRO = (() => {
+  try {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    if (/[?&]intro=1\b/.test(location.search)) return (introHide = true);
+    if (sessionStorage.getItem('ss-spatial-intro')) return false;
+    sessionStorage.setItem('ss-spatial-intro', '1');
+    return (introHide = true);
+  } catch (e) { return false; }
+})();
 const map = new maplibregl.Map({
   container: 'map',
   style: window.mapStyleUrl(),
-  center: RESIDENTIAL_CENTRE,
-  zoom: DEFAULT_ZOOM,
+  center: INTRO ? AREA_CENTRE : RESIDENTIAL_CENTRE,
+  zoom: INTRO ? 15 : DEFAULT_ZOOM,
   minZoom: 15,
   maxZoom: 18,
   maxBounds: AREA,
@@ -290,6 +337,16 @@ map.on('error', e => {
 map.on('load', () => { document.getElementById('map-failed').hidden = true; });
 map.keyboard.disableRotation();
 mapFollowTheme(map);
+// Bellinist: while the map is being moved the filter rows fold away and the
+// controls dim, so the map has the whole screen; they return when the
+// pointer does, or two seconds after the map settles.
+{
+  const sec = document.getElementById('s-spatial'); let t;
+  const fold = e => { if (!e.originalEvent) return; sec.classList.add('ss-dragging'); clearTimeout(t); };
+  const unfold = () => { clearTimeout(t); t = setTimeout(() => sec.classList.remove('ss-dragging'), 2200); };
+  ['dragstart', 'zoomstart'].forEach(ev => map.on(ev, fold));
+  ['dragend', 'zoomend', 'moveend'].forEach(ev => map.on(ev, unfold));
+}
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
@@ -299,18 +356,29 @@ const point = (lng, lat, props) => ({ type: 'Feature', properties: props || {},
 
 // Everything waits on the style; data that arrives first is drawn then.
 const mapReady = new Promise(resolve => map.on('load', async () => {
-  await Promise.all(Object.entries(CATEGORY_COLOUR).map(([c, hex]) =>
-    addSvgImage('pin-cat-' + c, pinSvg('circle', hex))));
+  await addPinImages();
+  window.addEventListener('themechange', () => { addPinImages(); outlineLook(); bigLabelLook(); });
 
   // Bottom to top: fog, outline, complaint heat, hotspots, complaints.
   // (Live tanod positions and path heat were removed on branch B, 26 Sep
   // 2026: the tanod app no longer streams a location — see 0067.)
-  map.addSource('fog', { type: 'geojson', data: EMPTY });
+  map.addSource('fog', { type: 'geojson', data: EMPTY, lineMetrics: true });
   map.addLayer({ id: 'fog', type: 'fill', source: 'fog',
                  paint: { 'fill-color': '#0d1117', 'fill-opacity': .55 } });
   map.addLayer({ id: 'outline', type: 'line', source: 'fog', filter: ['==', ['get', 'role'], 'outline'],
                  paint: { 'line-color': '#14181d', 'line-width': 2, 'line-opacity': .9 } });
   map.setFilter('fog', ['==', ['get', 'role'], 'fog']);
+  // A soft glow under the outline, for the night map only.
+  map.addLayer({ id: 'outline-glow', type: 'line', source: 'fog', filter: ['==', ['get', 'role'], 'outline'], layout: { visibility: 'none' },
+                 paint: { 'line-color': '#FF9D3C', 'line-width': 9, 'line-blur': 7, 'line-opacity': .6 } }, 'outline');
+  // "BARANGAY 183", large and faint, under everything; it fades as you zoom in.
+  map.addSource('biglab', { type: 'geojson', data: point(RESIDENTIAL_CENTRE[0], RESIDENTIAL_CENTRE[1] + 0.0004) });
+  map.addLayer({ id: 'biglab', type: 'symbol', source: 'biglab',
+    layout: { 'text-field': ['format', 'BARANGAY 183', {}, '\n', {}, 'PASAY CITY · ZONE 20', { 'font-scale': .3 }],
+              'text-font': ['Noto Sans Bold'], 'text-letter-spacing': .16, 'text-allow-overlap': true, 'text-ignore-placement': true,
+              'text-size': ['interpolate', ['exponential', 2], ['zoom'], 15, 30, 18, 240] },
+    paint: { 'text-color': '#141B34', 'text-opacity': ['interpolate', ['linear'], ['zoom'], 15, .11, 16.4, .05, 17.2, 0] } });
+  outlineLook(); bigLabelLook();
 
   // Project NOAH's flood and storm-surge zones (map-theme.js), off until
   // the switch or a rain warning turns them on; and a ring for each open
@@ -358,6 +426,8 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
     map.easeTo({ center: f.geometry.coordinates, zoom });
   });
   map.on('click', 'hotspots', e => { const h = hotspots[e.features[0].properties.i]; if (h) showHotspotDetail(h); });
+  // If the complaints are slow or fail, the intro still settles the camera.
+  setTimeout(() => runIntro(), 4500);
 
   resolve();
 }));
@@ -375,8 +445,10 @@ function setPinsSource(want) {
   clustered = want;
   map.addSource('reports', { type: 'geojson', data: EMPTY,
                              cluster: want, clusterRadius: 46, clusterMaxZoom: 17 });
+  const h = introHide ? 0 : 1;
   map.addLayer({ id: 'clusters', type: 'circle', source: 'reports', filter: ['has', 'point_count'],
     paint: {
+      'circle-opacity': h, 'circle-stroke-opacity': h,
       // Neutral, so a cluster is not read as a category.
       'circle-color': ['step', ['get', 'point_count'], '#64748b', 10, '#475569', 50, '#1e293b'],
       'circle-radius': ['step', ['get', 'point_count'], 16, 10, 20, 50, 25],
@@ -385,11 +457,53 @@ function setPinsSource(want) {
     } });
   map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'reports', filter: ['has', 'point_count'],
     layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13 },
-    paint: { 'text-color': '#fff' } });
+    paint: { 'text-color': '#fff', 'text-opacity': h } });
   map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: ['!', ['has', 'point_count']],
-    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+              'icon-anchor': 'bottom', 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 16, .74, 18, .95] },
+    paint: { 'icon-opacity': h } });
   // The flood-risk rings go round pins and clusters alike, so they sit on top.
-  if (map.getLayer('risk')) map.moveLayer('risk');
+  if (map.getLayer('risk')) {
+    map.moveLayer('risk');
+    // A pin's head is above the point it marks, so its ring is lifted to match.
+    map.setPaintProperty('risk', 'circle-translate', want ? [0, 0] : [0, -20]);
+  }
+}
+
+// The outline and the big type follow the theme.
+function outlineLook() {
+  if (!map.getLayer('outline')) return;
+  const dark = isDark();
+  map.setPaintProperty('outline', 'line-color', dark ? '#FF9D3C' : '#14181d');
+  map.setLayoutProperty('outline-glow', 'visibility', dark ? 'visible' : 'none');
+}
+function bigLabelLook() {
+  if (!map.getLayer('biglab')) return;
+  const dark = isDark();
+  map.setPaintProperty('biglab', 'text-color', dark ? '#FF9D3C' : '#141B34');
+  map.setPaintProperty('biglab', 'text-opacity', ['interpolate', ['linear'], ['zoom'], 15, dark ? .16 : .11, 16.4, dark ? .08 : .05, 17.2, 0]);
+}
+
+// The intro: the outline draws itself, the camera settles, the pins drop.
+let introRan = false;
+function runIntro() {
+  if (!INTRO || introRan) return; introRan = true;
+  const ease = t => 1 - Math.pow(1 - t, 3), back = t => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  const frame = (ms, fn, done) => { const t0 = performance.now(); (function f(now) { const u = Math.min(1, (now - t0) / ms); fn(u); if (u < 1) requestAnimationFrame(f); else if (done) done(); })(t0); };
+  const dark = isDark();
+  map.setPaintProperty('outline', 'line-width', 5);
+  frame(1900, u => map.setPaintProperty('outline', 'line-gradient', ['step', ['line-progress'], '#FF9800', Math.max(.001, ease(u)), 'rgba(255,152,0,0)']),
+    () => { map.setPaintProperty('outline', 'line-gradient', null); map.setPaintProperty('outline', 'line-width', 2); });
+  setTimeout(() => map.easeTo({ center: RESIDENTIAL_CENTRE, zoom: DEFAULT_ZOOM, duration: 1900, easing: ease }), 1000);
+  setTimeout(() => {
+    introHide = false;
+    frame(850, u => {
+      const o = Math.min(1, u * 2);
+      if (map.getLayer('pins')) { map.setPaintProperty('pins', 'icon-opacity', o); map.setPaintProperty('pins', 'icon-translate', [0, -120 * (1 - back(u))]); }
+      ['clusters'].forEach(id => { if (map.getLayer(id)) { map.setPaintProperty(id, 'circle-opacity', o); map.setPaintProperty(id, 'circle-stroke-opacity', o); } });
+      if (map.getLayer('cluster-count')) map.setPaintProperty('cluster-count', 'text-opacity', o);
+    }, () => { if (map.getLayer('pins')) map.setPaintProperty('pins', 'icon-translate', [0, 0]); });
+  }, 2700);
 }
 
 let all = [], rings = [];
@@ -545,6 +659,7 @@ async function draw() {
   if (!rows.length) {
     list.innerHTML = '<li class="p-pin-empty">' + T('No complaint matches these filters.', 'Walang sumbong na tugma sa mga salang ito.') + '</li>';
   }
+  if (loaded) runIntro();
 }
 
 // ---- data + realtime ---------------------------------------------
