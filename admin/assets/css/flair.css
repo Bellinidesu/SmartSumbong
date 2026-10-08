@@ -594,3 +594,10 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .ss-lyr .map-sw--noah b em, .ss-lyr .map-sw--transit b em { display: block; }
 @media (prefers-reduced-motion: reduce) { .ss-lyr .map-sw .scene { transition: none; } }
 .ss-lyr .map-sw--safe .scene svg { display: none; }
+/* the tile's mark: just the icon, centred in the picture, no frame */
+.ss-lyr .map-sw > i { display: none; }
+.ss-lyr .map-sw .scene svg.mk-ic { position: absolute; inset: auto; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; color: #fff; stroke-width: 2.1; opacity: .8; filter: drop-shadow(0 2px 4px rgba(0,0,0,.55)); transition: opacity .3s, transform .45s cubic-bezier(.2,1.7,.4,1); pointer-events: none; z-index: 2; }
+.ss-lyr .map-sw:has(input:checked) .scene svg.mk-ic { opacity: 1; transform: scale(1.15); }
+.ss-lyr .map-sw--safe .scene svg:not(.mk-ic) { display: none; }
+.ss-lyr .map-sw--safe .scene svg.mk-ic { display: block; }
+.ss-lyr .map-sw--transit .scene svg.mk-ic { filter: drop-shadow(0 0 4px rgba(10,16,40,.9)) drop-shadow(0 2px 4px rgba(0,0,0,.6)); }

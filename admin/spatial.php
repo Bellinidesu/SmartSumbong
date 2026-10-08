@@ -1493,7 +1493,7 @@ function layerSync() {
   list.querySelectorAll('.map-sw').forEach(l => { if (l.querySelector('.scene')) return; const sc = document.createElement('span'); sc.className = 'scene'; sc.setAttribute('aria-hidden', 'true'); l.querySelectorAll(':scope > svg').forEach(v => sc.appendChild(v)); l.insertBefore(sc, l.querySelector(':scope > i')); });
   const MARK = { heat: 'heat', noah: 'noah', dim: 'dim', transit: 'jeepney', air: 'wind', safe: 'safepoints' };
   list.querySelectorAll('.map-sw').forEach(l => { const m = /map-sw--(\w+)/.exec(l.className), box = l.querySelector(':scope > i'); if (!m || !box || !MARK[m[1]]) return;
-    l.classList.add('has-ic'); box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS[MARK[m[1]]] + '</svg>'; });
+    l.classList.add('has-ic'); l.querySelector('.scene').insertAdjacentHTML('beforeend', '<svg class="mk-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS[MARK[m[1]]] + '</svg>'); });
   const sw = (k, cls, label, scene) => '<label class="map-sw map-sw--' + cls + '"><input type="checkbox" id="lyr-' + k + '"><span class="scene" aria-hidden="true">' + scene + '</span><i aria-hidden="true"></i><b>' + label + '</b></label>';
   list.insertAdjacentHTML('beforeend',
     sw('transit', 'transit', T('Transit', 'Transit') + ' <em>' + T('jeepney, bus', 'jeep, bus') + '</em>',
@@ -1501,7 +1501,7 @@ function layerSync() {
     sw('aq', 'air', T('Air quality', 'Kalidad ng hangin'), '<span></span><span></span><span></span><span></span><i></i><i></i><i></i><i></i><i></i>') +
     sw('safe', 'safe', T('Safe points', 'Ligtas na lugar'), '<span></span><span></span><span></span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + SD_ICONS.safepoints + '</svg>'));
   list.querySelectorAll('.map-sw:not(.has-ic)').forEach(l => { const m = /map-sw--(\w+)/.exec(l.className), box = l.querySelector(':scope > i'); if (!m || !box || !MARK[m[1]]) return;
-    l.classList.add('has-ic'); box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS[MARK[m[1]]] + '</svg>'; });
+    l.classList.add('has-ic'); l.querySelector('.scene').insertAdjacentHTML('beforeend', '<svg class="mk-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS[MARK[m[1]]] + '</svg>'); });
   btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
   card.addEventListener('change', e => {
     const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
