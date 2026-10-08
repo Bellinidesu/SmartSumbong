@@ -568,3 +568,8 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 @keyframes swRing { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(2.6); } }
 @media (prefers-reduced-motion: reduce) { .map-sw--transit path, .map-sw--air .scene span, .map-sw--air .scene i, .map-sw--safe .scene span { animation: none !important; } }
 .map-sw--transit path { stroke-width: 2.2; } .map-sw--transit:has(input:checked) path { opacity: .85; } .map-sw--transit b, .map-sw--safe b, .map-sw--air b { text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+/* each layer's box is its mark: an outline when off, a filled tile when on */
+.map-sw.has-ic > i { width: 24px; height: 24px; border-radius: 8px; color: rgba(255,255,255,.9); transition: background .25s, color .25s, transform .4s cubic-bezier(.2,1.7,.4,1); }
+.map-sw.has-ic > i svg { width: 15px; height: 15px; }
+.map-sw.has-ic:has(input:checked) > i { background: #fff; border-color: #fff; color: var(--tick, #0B57C4); transform: scale(1.1); }
+.map-sw.has-ic:has(input:checked) > i::after { display: none; }
