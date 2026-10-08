@@ -348,6 +348,7 @@ mapFollowTheme(map);
 // pointer does, or two seconds after the map settles.
 {
   const sec = document.getElementById('s-spatial'); let t;
+  sec.classList.add('ss-peek'); setTimeout(() => sec.classList.remove('ss-peek'), 3500);
   const fold = e => { if (!e.originalEvent) return; sec.classList.add('ss-dragging'); clearTimeout(t); };
   const unfold = () => { clearTimeout(t); t = setTimeout(() => sec.classList.remove('ss-dragging'), 2200); };
   ['dragstart', 'zoomstart'].forEach(ev => map.on(ev, fold));
@@ -740,6 +741,8 @@ async function load() {
   note.textContent = all.length
     ? T('Live — new complaints appear without refreshing.', 'Live — lumalabas ang bagong sumbong nang hindi nire-refresh.')
     : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.');
+  // Still down: keep saying so; the line above was just rewritten with the good news.
+  if (connLost && window.__showLive) { delete note.dataset.live; window.__showLive(true); }
   draw();
 }
 
@@ -755,8 +758,16 @@ sb.channel('reports-spatial')
   .subscribe(status => {
     const strip = document.getElementById('conn'),
           text  = document.getElementById('conn-text');
+    // The title card carries it: the Live pill goes red and says Reconnecting, and the line beside it says why.
+    const pill = document.getElementById('map-live'), note = document.getElementById('map-status');
+    const showLive = down => {
+      pill.classList.toggle('p-down', down); pill.lastChild.textContent = down ? T('Reconnecting…', 'Kumokonekta…') : T('Live', 'Live');
+      if (down) { if (!note.dataset.live) note.dataset.live = note.textContent; note.textContent = T('Connection lost — new complaints are not appearing.', 'Nawala ang koneksyon — hindi lumalabas ang mga bagong sumbong.'); }
+      else if (note.dataset.live) { note.textContent = note.dataset.live; delete note.dataset.live; }
+    };
+    window.__showLive = showLive;
     if (status === 'SUBSCRIBED') {
-      strip.setAttribute('hidden', '');
+      strip.setAttribute('hidden', ''); showLive(false);
       // Changes made while the socket was down were never delivered, so
       // hiding the strip alone would present a map that is missing them
       // as current. Reload the rows once the channel is back.
@@ -764,7 +775,7 @@ sb.channel('reports-spatial')
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       connLost = true;
       text.textContent = T('Connection lost — this map is not updating. Reconnecting…', 'Nawala ang koneksyon — hindi nag-a-update ang mapa. Kumokonekta muli…');
-      strip.removeAttribute('hidden');
+      strip.removeAttribute('hidden'); showLive(true);
     }
   });
 
