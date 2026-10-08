@@ -483,3 +483,17 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 :root[data-theme="dark"] .sp-copy, :root[data-theme="dark"] .sp-body li svg { color: color-mix(in srgb, var(--c) 60%, #fff); }
 .sp-acts .p-btn { width: 100%; height: 40px; border-radius: 12px; background: var(--c); border-color: var(--c); color: #fff; justify-content: center; }
 .sp-body small { color: var(--p-muted); font: 600 10.5px Inter, sans-serif; }
+
+/* ---- Safe point panel: the complaint panel, in the service's colour ---- */
+#safe-sheet[hidden] { display: none; }
+.sp-hero { background-size: cover; background-position: center; }
+.sp-hero.has-bg .cs-mark { display: none; }
+.sp-credit { position: absolute; z-index: 1; right: 12px; bottom: 10px; max-width: 55%; font: 600 10px Inter, sans-serif; color: #fff; background: rgba(0,0,0,.5); padding: 3px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.sp-strip a { flex: none; width: 92px; height: 68px; border-radius: 12px; background: var(--p-surface-2) center / cover no-repeat; border: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--p-line); transition: transform .3s cubic-bezier(.2,1.4,.4,1), border-color .15s; }
+.sp-strip a:hover { transform: scale(1.06); } .sp-strip a.on { border-color: var(--cs); }
+.sp-load, .sp-src { color: var(--p-muted); font: 600 11.5px Inter, sans-serif; }
+#safe-sheet .cs-acts a, #safe-sheet .cs-acts button { color: var(--cs); }
+:root[data-theme="dark"] #safe-sheet .cs-acts a, :root[data-theme="dark"] #safe-sheet .cs-acts button, :root[data-theme="dark"] #safe-sheet .cs-rows li svg { color: color-mix(in srgb, var(--cs) 60%, #fff); }
+#safe-sheet .cs-rows li svg { color: var(--cs); }
+#safe-sheet .cs-rows a { color: var(--p-link); }
