@@ -212,9 +212,9 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 /* ── Case panel (Google Maps-style) on Spatial Distribution ── */
 .cs-sheet { position: absolute; z-index: 6; left: 16px; top: 16px; bottom: 16px; width: min(390px, calc(100% - 32px)); overflow: auto; display: flex; flex-direction: column;
   border-radius: 18px; background: var(--p-surface); color: var(--p-ink); border: 1px solid var(--p-line); box-shadow: 0 2px 6px rgba(20,27,52,.12), 0 18px 50px rgba(20,27,52,.22);
-  animation: csIn .28s cubic-bezier(.2,.8,.2,1); scrollbar-width: thin; }
+  animation: csIn .55s cubic-bezier(.2,1.25,.3,1) backwards; scrollbar-width: thin; }
 .cs-sheet[hidden] { display: none; }
-@keyframes csIn { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@keyframes csIn { from { opacity: 0; transform: translateX(-60px) scale(.94); } to { opacity: 1; transform: none; } }
 #s-spatial.sheet-open .p-map-search { display: none; }
 .cs-hero { position: relative; flex: none; height: 160px; display: grid; place-items: center; overflow: hidden; isolation: isolate;
   background: radial-gradient(120% 90% at 20% 10%, color-mix(in srgb, var(--cs) 55%, #fff), var(--cs) 60%, color-mix(in srgb, var(--cs) 70%, #000)); }
@@ -250,6 +250,28 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .cs-steps li.on { color: var(--p-ink); font-weight: 600; }
 .cs-steps li.on::before { background: var(--cs); border-color: var(--cs); }
 .cs-steps li.on::after { background: var(--cs); }
+
+/* ---- Bellinist (9 Oct 2026): progress in the complaint's own colour ---- */
+.cs-sheet { --cv: var(--cs); }
+:root[data-theme="dark"] .cs-sheet { --cv: color-mix(in srgb, var(--cs) 62%, #fff); }
+.cs-glyph { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; animation: bnPop .55s .12s cubic-bezier(.34,1.56,.64,1) backwards; }
+.cs-steps li.on::before { background: var(--cv); border-color: var(--cv); }
+.cs-steps li.on::after { background: var(--cv); }
+.cs-steps li.cur { color: var(--cv); font-weight: 800; }
+.cs-steps li.cur::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cv) 26%, transparent); animation: bnRing 1.8s ease-out infinite; }
+.cs-steps li.cur::after { background: linear-gradient(var(--cv), var(--p-line)); }
+:root[data-theme="dark"] .cs-steps li.on::before { box-shadow: 0 0 10px var(--cv); }
+:root[data-theme="dark"] .cs-steps li.on::after { box-shadow: 0 0 8px color-mix(in srgb, var(--cv) 60%, transparent); }
+:root[data-theme="dark"] .cs-steps li.cur { text-shadow: 0 0 12px color-mix(in srgb, var(--cv) 70%, transparent); }
+.cs-rows li { animation: bnRow .4s cubic-bezier(.2,.8,.2,1) backwards; }
+.cs-rows li:nth-child(2) { animation-delay: .06s; } .cs-rows li:nth-child(3) { animation-delay: .12s; } .cs-rows li:nth-child(4) { animation-delay: .18s; } .cs-rows li:nth-child(5) { animation-delay: .24s; }
+.cs-acts span { transition: background .15s, transform .35s cubic-bezier(.2,1.6,.4,1); }
+.cs-acts a:hover span, .cs-acts button:hover span { transform: scale(1.1); }
+.cs-acts a:active span, .cs-acts button:active span { transform: scale(.9); }
+@keyframes bnRing { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cv) 55%, transparent); } 100% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--cv) 0%, transparent); } }
+@keyframes bnRow { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes bnPop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cs-steps li.cur::before, .cs-glyph, .cs-rows li { animation: none; } }
 .cs-foot { position: sticky; bottom: 0; padding: 12px 18px 16px; background: linear-gradient(to top, var(--p-surface) 70%, transparent); }
 .cs-foot .p-btn { width: 100%; justify-content: center; }
 @media (prefers-reduced-motion: reduce) { .cs-sheet { animation: none; } }

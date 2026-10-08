@@ -736,10 +736,13 @@ function showDetail(r) {
     : [[T('Filed', 'Naisampa'), 1], [T('Validated', 'Napatunayan'), r.status !== 'pending_review'],
        [T('Tanod dispatched', 'Na-dispatch ang tanod'), CS_DISPATCHED.includes(r.status) || CS_DONE.includes(r.status)], [T('Resolved', 'Nalutas'), CS_DONE.includes(r.status)]];
   el.style.setProperty('--cs', col);
+  // The step the complaint is at now: bold, in the category's colour, with a ring.
+  const cur = steps.reduce((m, [, on], i) => on ? i : m, 0);
+  const glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
   el.innerHTML =
     '<div class="cs-hero" id="cs-hero" title="' + T('Drag to move', 'I-drag para ilipat') + '"><span class="cs-grip" aria-hidden="true"></span><button class="cs-x" type="button" aria-label="' + T('Close', 'Isara') + '">&times;</button>' +
       '<span class="cs-cat">' + esc(label(r.category)) + '</span>' +
-      '<svg class="cs-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg></div>' +
+      '<svg class="cs-mark cs-glyph" viewBox="0 0 24 24" aria-hidden="true">' + glyph + '</svg></div>' +
     '<div class="cs-body">' +
       '<h2 class="cs-title">' + esc(r.subject || label(r.category)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span></p>' +
@@ -756,7 +759,7 @@ function showDetail(r) {
         '<li>' + csIcon('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/>') + '<span>' + nearby + T(nearby === 1 ? ' other complaint within 150 m' : ' other complaints within 150 m', ' iba pang sumbong sa loob ng 150 m') + '<small>' + T('Same block or the next', 'Parehong bloke o katabi') + '</small></span></li>' +
       '</ul>' +
       '<h3 class="cs-h">' + T('Progress', 'Takbo') + '</h3>' +
-      '<ol class="cs-steps">' + steps.map(([t, on]) => '<li class="' + (on ? 'on' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' +
+      '<ol class="cs-steps" style="--fill:' + (steps.length > 1 ? Math.round(cur / (steps.length - 1) * 100) : 100) + '%">' + steps.map(([t, on], i) => '<li class="' + (on ? 'on' : '') + (i === cur ? ' cur' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' +
     '</div>' +
     '<div class="cs-foot"><a class="p-btn p-btn-primary" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a></div>';
   el.hidden = false; el.querySelector('.cs-body').scrollTop = 0;
