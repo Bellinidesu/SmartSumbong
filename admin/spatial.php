@@ -147,6 +147,10 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
+<?php if (env('MAPILLARY_TOKEN', '') !== ''): ?>
+<link rel="stylesheet" href="assets/vendor/mapillary/mapillary.css">
+<script src="assets/vendor/mapillary/mapillary.js"></script>
+<?php endif; ?>
 <script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
@@ -752,9 +756,10 @@ function showDetail(r) {
     '<div class="cs-body">' +
       '<h2 class="cs-title">' + esc(r.subject || label(r.category)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span></p>' +
-      '<div class="cs-acts">' +
+      '<div class="cs-acts' + (MLY ? ' four' : '') + '">' +
         '<a href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + csIcon('<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/>') + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
         '<button type="button" data-act="zoom"><span>' + csIcon('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>') + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        (MLY ? '<button type="button" data-act="look"><span>' + csIcon('<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>') + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
         '<button type="button" data-act="copy"><span>' + csIcon('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>') + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
       '</div>' +
       '<ul class="cs-rows">' +
@@ -775,6 +780,7 @@ function showDetail(r) {
   el.querySelector('.cs-x').addEventListener('click', closeCaseSheet);
   csDraggable(el);
   el.querySelector('[data-act=zoom]').addEventListener('click', () => qvOpen(r));
+  const lookBtn = el.querySelector('[data-act=look]'); if (lookBtn) lookBtn.addEventListener('click', () => lkOpen(r));
   el.querySelector('[data-act=copy]').addEventListener('click', () => {
     const done = () => (window.pToast ? pToast(T('Copied ', 'Nakopya ') + r.tracking_id) : null);
     try { navigator.clipboard.writeText(r.tracking_id).then(done, done); } catch (e) { done(); }
@@ -793,6 +799,161 @@ function showDetail(r) {
     box.firstChild.textContent = lv ? [T('Low', 'Mababa'), T('Medium', 'Katamtaman'), T('High', 'Mataas')][lv - 1] + T(' flood hazard', ' na panganib sa baha') : T('Outside the flood zones', 'Labas sa bahaing lugar');
   }).catch(() => {});
 }
+// ---- Look around: street imagery with the resident's photo in it ---------
+// (Bellinist phase 5, 9 Oct 2026.) Mapillary's street-level imagery, found
+// nearest to the complaint and newest first; the resident's photo stands in
+// the scene where the complaint was filed, and a slider sets it beside the
+// street as it was. Needs MAPILLARY_TOKEN; without one the buttons are not
+// drawn.
+const MLY = <?= json_encode(env('MAPILLARY_TOKEN', '')) ?>;
+let LK = null;
+const lkRad = d => d * Math.PI / 180;
+const lkBearing = (a, b) => (Math.atan2((b.lng - a.lng) * Math.cos(lkRad(a.lat)), b.lat - a.lat) * 180 / Math.PI + 360) % 360;
+const lkMetres = (a, b) => Math.hypot((b.lng - a.lng) * 107500, (b.lat - a.lat) * 110600);
+const LK_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const lkDir = b => LK_DIRS[Math.round(((b % 360) + 360) % 360 / 45) % 8];
+
+async function lkFind(lng, lat) {
+  const dl = 0.0013, db = 0.0011;
+  const r = await fetch('https://graph.mapillary.com/images?' + new URLSearchParams({
+    access_token: MLY, bbox: [lng - dl, lat - db, lng + dl, lat + db].join(','), limit: '2000',
+    fields: 'id,captured_at,compass_angle,is_pano,computed_geometry' }));
+  if (!r.ok) throw new Error('mapillary ' + r.status);
+  let best = null;
+  ((await r.json()).data || []).forEach(i => {
+    const g = i.computed_geometry && i.computed_geometry.coordinates; if (!g) return;
+    const d = lkMetres({ lng, lat }, { lng: g[0], lat: g[1] }), age = (Date.now() - i.captured_at) / 3.156e10;
+    // Near beats far, new beats old, a panorama beats a flat photo.
+    const score = d + age * 8 - (i.is_pano ? 12 : 0);
+    if (d < 120 && (!best || score < best.score)) best = { id: i.id, score };
+  });
+  return best;
+}
+function lkClose(silent) {
+  const el = document.getElementById('ss-lk'); if (!el) { LK = null; return; }
+  const v = LK && LK.viewer; LK = null;
+  try { if (v) v.remove(); } catch (e) { /* already gone */ }
+  if (silent) { el.remove(); return; }
+  el.classList.remove('open'); el.classList.add('out'); setTimeout(() => el.remove(), 520);
+}
+function lkOpen(r) {
+  lkClose(true);
+  if (!window.mapillary || !MLY) return;
+  const sec = document.getElementById('s-spatial'), lng = +r.longitude, lat = +r.latitude, col = catColour(r.category);
+  const here = { lng, lat }, glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
+  const el = document.createElement('div'); el.id = 'ss-lk'; el.className = 'ss-lk'; el.style.setProperty('--cs', col);
+  const pt = map.project([lng, lat]), cb = map.getContainer().getBoundingClientRect(), sb0 = sec.getBoundingClientRect();
+  el.style.setProperty('--ox', (pt.x + cb.left - sb0.left) + 'px'); el.style.setProperty('--oy', (pt.y + cb.top - sb0.top - 40) + 'px');
+  el.innerHTML =
+    '<div class="lk-view" id="lk-view"></div>' +
+    '<div class="lk-cmp" id="lk-cmp" hidden><div class="lk-cmp-img" id="lk-cmp-img"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></div>' +
+      '<span class="lk-tag l">' + T('NOW · the resident’s photo', 'NGAYON · larawan ng residente') + '</span><div class="lk-grip" id="lk-grip"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l-6 6 6 6M15 6l6 6-6 6"/></svg></span></div></div>' +
+    '<span class="lk-tag r" id="lk-then" hidden></span>' +
+    '<div class="lk-card" id="lk-card" hidden><div class="lk-ph" id="lk-ph"><span class="lk-gl"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></span><em id="lk-phn"></em></div>' +
+      '<div class="lk-cap"><b>' + esc(r.tracking_id) + '</b><small>' + T('Resident photo · ', 'Larawan ng residente · ') + esc(fmtDate(r.created_at) || '') + '</small></div><i class="lk-stem"></i><i class="lk-spot"></i></div>' +
+    '<div class="lk-edge" id="lk-edge" hidden></div>' +
+    '<div class="lk-top"><button type="button" class="lk-back" data-lkclose aria-label="' + T('Back to the map', 'Bumalik sa mapa') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>' +
+      '<div class="lk-ti"><b>' + T('Look around', 'Luminga-linga') + '</b><span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : r.tracking_id) + ' · ' + esc(r.tracking_id) + '</span></div>' +
+      '<div class="lk-hd" id="lk-hd"><svg class="lk-needle" id="lk-needle" viewBox="0 0 24 24"><path d="M12 3l5 16-5-4-5 4z" fill="currentColor"/></svg><b id="lk-hdt">N 0°</b></div></div>' +
+    '<div class="lk-state" id="lk-state"><span class="lk-spin"></span><b>' + T('Finding street imagery…', 'Hinahanap ang street imagery…') + '</b></div>' +
+    '<div class="lk-bar"><div class="lk-steps"><button type="button" data-lkstep="prev">' + T('◀ Step back', '◀ Umatras') + '</button><button type="button" data-lkstep="next">' + T('Step ahead ▶', 'Sumulong ▶') + '</button></div>' +
+      '<div class="lk-fact" id="lk-fact"><span class="lk-cdot"></span>' + esc(label(r.category)) + '</div>' +
+      '<div class="lk-acts"><button type="button" class="p-btn" id="lk-cmp-btn" data-lkcmp>' + T('Then / Now', 'Dati / Ngayon') + '</button><a class="p-btn p-btn-primary" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open case', 'Buksan ang kaso') + '</a></div>' +
+      '<small class="lk-credit">' + T('Imagery © Mapillary contributors, CC BY-SA 4.0', 'Imagery © Mapillary contributors, CC BY-SA 4.0') + '</small></div>';
+  sec.appendChild(el);
+  LK = { el, r, here, viewer: null, ready: false, photos: [], pn: 0, raf: 0, bearing: 0, sx: 40 };
+  void el.offsetWidth; el.classList.add('open');
+
+  // The resident's photos, as they arrive.
+  sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3).then(({ data }) => {
+    if (!LK || LK.r.id !== r.id || !data || !data.length) return;
+    LK.photos = data.map(d => d.media_url); lkPhoto();
+  });
+
+  lkFind(lng, lat).then(best => {
+    if (!LK || LK.r.id !== r.id) return;
+    const st = document.getElementById('lk-state');
+    if (!best) { st.innerHTML = '<b>' + T('No street imagery within 120 m of this spot.', 'Walang street imagery sa loob ng 120 m ng lugar na ito.') + '</b><small>' + T('Mapillary has nothing recent here.', 'Walang kuha ang Mapillary dito.') + '</small>'; st.classList.add('none'); return; }
+    const v = new mapillary.Viewer({ accessToken: MLY, container: 'lk-view', imageId: best.id, component: { cover: false, zoom: false, bearing: false } });
+    LK.viewer = v;
+    v.on('image', e => lkImage(e.image));
+    v.on('bearing', e => { LK.bearing = e.bearing; lkHeading(); lkPlace(); });
+    ['pov', 'fov', 'position'].forEach(ev => v.on(ev, lkPlace));
+  }).catch(err => { console.error('Look around', err); const st = document.getElementById('lk-state'); if (st) { st.innerHTML = '<b>' + T('Street imagery could not be reached.', 'Hindi maabot ang street imagery.') + '</b>'; st.classList.add('none'); } });
+}
+function lkImage(im) {
+  if (!LK) return;
+  const first = !LK.ready; LK.ready = true;
+  LK.img = { lng: im.lngLat.lng, lat: im.lngLat.lat, comp: im.compassAngle, pano: im.cameraType === 'spherical', at: im.capturedAt };
+  const st = document.getElementById('lk-state'); if (st) st.hidden = true;
+  const when = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(im.capturedAt));
+  const then = document.getElementById('lk-then'); then.hidden = false; then.textContent = T('THEN · street imagery, ', 'DATI · street imagery, ') + when + ' · Mapillary';
+  const m = Math.round(lkMetres(LK.here, LK.img));
+  document.getElementById('lk-fact').innerHTML = '<span class="lk-cdot"></span>' + esc(label(LK.r.category)) + ' · <b>' + (m < 3 ? T('you are at the spot', 'nandito ka na') : m + ' m ' + T('away', 'ang layo')) + '</b>';
+  if (first && LK.img.pano) {
+    // Turn to face the complaint.
+    const b = lkBearing(LK.img, LK.here), delta = ((b - LK.img.comp + 540) % 360) - 180;
+    LK.viewer.setCenter([(0.5 + delta / 360 + 1) % 1, 0.5]);
+  }
+  lkPlace();
+}
+function lkHeading() {
+  const b = ((LK.bearing % 360) + 360) % 360;
+  document.getElementById('lk-hdt').textContent = lkDir(b) + ' ' + Math.round(b) + '°';
+  document.getElementById('lk-needle').style.transform = 'rotate(' + b.toFixed(0) + 'deg)';
+}
+function lkPhoto() {
+  if (!LK) return;
+  const url = LK.photos[LK.pn % (LK.photos.length || 1)], ph = document.getElementById('lk-ph'), ci = document.getElementById('lk-cmp-img');
+  if (!url) return;
+  ph.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")'; ph.classList.add('has');
+  ci.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")'; ci.classList.add('has');
+  document.getElementById('lk-phn').textContent = T('Photo ', 'Larawan ') + (LK.pn % LK.photos.length + 1) + '/' + LK.photos.length;
+}
+// The resident's photo stands where the complaint was filed.
+function lkPlace() {
+  if (!LK || !LK.viewer || !LK.ready || LK.busy) return;
+  LK.busy = true;
+  LK.viewer.project({ lng: LK.here.lng, lat: LK.here.lat }).then(p => {
+    LK.busy = false; if (!LK) return;
+    const card = document.getElementById('lk-card'), edge = document.getElementById('lk-edge'), W = LK.el.clientWidth, H = LK.el.clientHeight;
+    if (p && p[0] != null && p[0] > -40 && p[0] < W + 40) {
+      const u = Math.max(-1.2, Math.min(1.2, (p[0] - W / 2) / (W / 2)));
+      card.hidden = false; edge.hidden = true;
+      card.style.left = p[0] + 'px'; card.style.top = Math.max(96, p[1] - 232) + 'px';
+      card.style.setProperty('--ry', (-u * 24).toFixed(1) + 'deg'); card.style.setProperty('--stem', Math.max(14, p[1] - Math.max(96, p[1] - 232) - 205) + 'px');
+    } else {
+      card.hidden = true;
+      const rel = ((lkBearing(LK.img, LK.here) - LK.bearing + 540) % 360) - 180;
+      edge.hidden = false; edge.className = 'lk-edge ' + (rel < 0 ? 'l' : 'r');
+      edge.innerHTML = (rel < 0 ? '◀ ' : '') + T('The complaint is this way', 'Nandito ang sumbong') + (rel < 0 ? '' : ' ▶');
+    }
+  }).catch(() => { LK.busy = false; });
+}
+(function lkEvents() {
+  document.addEventListener('click', e => {
+    if (!LK || !e.target.closest) return; const t = e.target;
+    if (t.closest('[data-lkclose]')) { lkClose(false); return; }
+    const st = t.closest('[data-lkstep]');
+    if (st && LK.viewer) { LK.viewer.moveDir(st.dataset.lkstep === 'next' ? mapillary.NavigationDirection.Next : mapillary.NavigationDirection.Prev).catch(() => {}); return; }
+    if (t.closest('[data-lkcmp]')) {
+      const c = document.getElementById('lk-cmp'), on = c.hidden; c.hidden = !on; t.closest('button').classList.toggle('on', on);
+      LK.el.style.setProperty('--sx', LK.sx + '%'); return;
+    }
+    if (t.closest('#lk-ph') && LK.photos.length > 1) { LK.pn++; lkPhoto(); }
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!LK || !e.target.closest || !e.target.closest('#lk-grip')) return; LK.drag = true; e.preventDefault();
+  });
+  window.addEventListener('pointermove', e => {
+    if (!LK || !LK.drag) return; const r = LK.el.getBoundingClientRect();
+    LK.sx = Math.max(8, Math.min(92, (e.clientX - r.left) / r.width * 100)); LK.el.style.setProperty('--sx', LK.sx + '%');
+  });
+  window.addEventListener('pointerup', () => { if (LK) LK.drag = false; });
+  window.addEventListener('resize', () => { if (LK && LK.viewer) { try { LK.viewer.resize(); } catch (e) { /* closing */ } lkPlace(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && LK) { e.stopPropagation(); lkClose(false); } }, true);
+})();
+
 // ---- Zoom here: the camera flies in and a box unfolds out of the pin ----
 // (Bellinist, 9 Oct 2026.) The case card tucks away, the box shows the
 // resident's photos and the quick facts, and its button carries the admin on
@@ -837,6 +998,7 @@ function qvOpen(r) {
         '<div><small>' + T('Nearby', 'Malapit') + '</small><b>' + nearby + T(' within 150 m', ' sa loob ng 150 m') + '</b></div></div>' +
       '<div class="qv-act"><button type="button" class="p-btn p-btn-primary" data-qvgo>' + T('Open in Case Reports', 'Buksan sa Case Reports') +
         ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' +
+        (MLY ? '<button type="button" class="p-btn qv-look" data-qvlook title="' + T('Look around', 'Luminga-linga') + '">360°</button>' : '') +
         '<button type="button" class="p-btn" data-qvback>' + T('Back', 'Bumalik') + '</button></div></div>';
   sec.appendChild(box);
   const place = () => {
@@ -852,6 +1014,7 @@ function qvOpen(r) {
   setTimeout(() => { if (qvFor !== r.id) return; place(); void box.offsetWidth; box.classList.add('in'); }, 900);
   box.querySelector('[data-qvx]').addEventListener('click', () => qvBack(r));
   box.querySelector('[data-qvback]').addEventListener('click', () => qvBack(r));
+  const qvl = box.querySelector('[data-qvlook]'); if (qvl) qvl.addEventListener('click', () => lkOpen(r));
   box.querySelector('[data-qvgo]').addEventListener('click', () => {
     const nav = document.querySelector('.p-nav a[href="cases.php"]');
     if (nav) { nav.classList.remove('ss-navglow'); void nav.offsetWidth; nav.classList.add('ss-navglow'); }
@@ -904,7 +1067,7 @@ function csDraggable(el) {
   });
 }
 function closeCaseSheet() {
-  csFor = null; qvClose(true);
+  csFor = null; qvClose(true); lkClose(true);
   document.getElementById('case-sheet').hidden = true;
   document.getElementById('s-spatial').classList.remove('sheet-open');
   map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 500 });
