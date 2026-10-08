@@ -1484,11 +1484,13 @@ function layerSync() {
   const sec = document.getElementById('s-spatial'), btn = document.getElementById('layers-btn'), card = document.getElementById('ss-lyr');
   // Heatmap, Flood zones and Dim outside were switches in the title card; they are layers, so
   // they live here now, with their own pictures. The other layers get pictures too.
-  card.innerHTML = '<h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><div class="lyr-list" id="lyr-list"></div><small>' + T('OpenStreetMap and Open-Meteo.', 'Mula sa OpenStreetMap at Open-Meteo.') + '</small>';
+  card.innerHTML = '<h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><div class="lyr-list" id="lyr-list"></div><small>' + T('Flood zones: Project NOAH · Map data: OpenStreetMap · Air quality: Open-Meteo', 'Bahaing lugar: Project NOAH · Map data: OpenStreetMap · Kalidad ng hangin: Open-Meteo') + '</small>';
   const list = document.getElementById('lyr-list');
   document.querySelectorAll('.p-map-search .map-sw').forEach(l => list.appendChild(l));
   document.querySelectorAll('.p-map-search .p-row').forEach(r => { if (!r.children.length) r.remove(); });
   // Each switch's box carries its own mark: it fills in when the layer is on. Project NOAH's is an N.
+  // Project NOAH is credited at the foot of the card with the other sources, not on the tile.
+  list.querySelectorAll('.map-sw--noah b').forEach(b => { const em = b.querySelector('em'); if (em) b.textContent = em.textContent.replace(/\s*[·•]\s*$/, '').trim(); });
   // Flood zones draws its wave straight in the chip; the tile wants it inside its picture.
   list.querySelectorAll('.map-sw').forEach(l => { if (l.querySelector('.scene')) return; const sc = document.createElement('span'); sc.className = 'scene'; sc.setAttribute('aria-hidden', 'true'); l.querySelectorAll(':scope > svg').forEach(v => sc.appendChild(v)); l.insertBefore(sc, l.querySelector(':scope > i')); });
   const MARK = { heat: 'heat', noah: 'noah', dim: 'dim', transit: 'jeepney', air: 'wind', safe: 'safepoints' };

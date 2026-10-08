@@ -601,3 +601,10 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .ss-lyr .map-sw--safe .scene svg:not(.mk-ic) { display: none; }
 .ss-lyr .map-sw--safe .scene svg.mk-ic { display: block; }
 .ss-lyr .map-sw--transit .scene svg.mk-ic { filter: drop-shadow(0 0 4px rgba(10,16,40,.9)) drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+/* on: a thin white ring and a soft halo in the layer's own colour */
+.ss-lyr .map-sw--heat { --lc: #FF8A3D; } .ss-lyr .map-sw--noah { --lc: #2F6BFF; } .ss-lyr .map-sw--dim { --lc: #8DB2FF; }
+.ss-lyr .map-sw--transit { --lc: #5FA8FF; } .ss-lyr .map-sw--air { --lc: #43D6A0; } .ss-lyr .map-sw--safe { --lc: #34C759; }
+.ss-lyr .map-sw:has(input:checked) .scene { box-shadow: 0 0 0 2px #fff, 0 0 0 5px color-mix(in srgb, var(--lc) 55%, transparent), 0 8px 18px rgba(0,0,0,.35); }
+.ss-lyr .map-sw:has(input:checked) b { color: var(--p-ink); }
+.ss-lyr .map-sw:has(input:focus-visible) .scene { box-shadow: 0 0 0 3px var(--p-link); }
+.ss-lyr > small { display: block; margin-top: 12px; line-height: 1.45; }
