@@ -513,3 +513,18 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 @keyframes dmBurst { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
 #map.dm-hide .dm { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .dm.in svg, .dm.out svg, .dm.burst svg { animation: none; } }
+
+/* ---- Dark map, Bellinist: the card is glass; the zoom control is ours ---- */
+:root[data-theme="dark"] #s-spatial .p-map-search { background: color-mix(in srgb, var(--p-surface) 66%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); transition: background .35s, transform .45s cubic-bezier(.2,1.25,.3,1), opacity .3s; }
+:root[data-theme="dark"] #s-spatial .p-map-search:hover, :root[data-theme="dark"] #s-spatial .p-map-search:focus-within { background: color-mix(in srgb, var(--p-surface) 94%, transparent); }
+:root[data-theme="dark"] #s-spatial.ss-dragging .p-map-search:not(:hover):not(:focus-within) { background: color-mix(in srgb, var(--p-surface) 42%, transparent); }
+:root[data-theme="dark"] #s-spatial .p-map-search .p-pill-select { background: color-mix(in srgb, var(--p-surface-2) 72%, transparent); }
+#s-spatial .maplibregl-ctrl-group { border-radius: 14px; overflow: hidden; background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow); }
+#s-spatial .maplibregl-ctrl-group button { width: 42px; height: 42px; background: transparent; color: var(--p-ink-2); border: 0; transition: background .15s, color .15s, transform .25s cubic-bezier(.2,1.6,.4,1); }
+#s-spatial .maplibregl-ctrl-group button + button { border-top: 1px solid var(--p-line); }
+#s-spatial .maplibregl-ctrl-group button:hover { background: var(--p-surface-2); color: var(--p-ink); }
+#s-spatial .maplibregl-ctrl-group button:active { transform: scale(.88); }
+#s-spatial .maplibregl-ctrl-group button .maplibregl-ctrl-icon { background-image: none !important; position: relative; filter: none !important; }
+#s-spatial .maplibregl-ctrl-group button .maplibregl-ctrl-icon::after { content: ""; position: absolute; inset: 0; margin: auto; width: 20px; height: 20px; background: currentColor; -webkit-mask: var(--zi) center / contain no-repeat; mask: var(--zi) center / contain no-repeat; }
+#s-spatial .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon { --zi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E"); }
+#s-spatial .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon { --zi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E"); }

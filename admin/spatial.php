@@ -138,10 +138,10 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     <button class="p-dock-btn" id="legend-toggle" type="button" aria-expanded="false" aria-controls="map-legend" title="<?= e(t('Legend', 'Alamat')) ?>" aria-label="<?= e(t('Legend', 'Alamat')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h.01" /> <path d="M3 12h.01" /> <path d="M3 19h.01" /> <path d="M8 5h13" /> <path d="M8 12h13" /> <path d="M8 19h13" /></svg></button>
     <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
-      <?= p_icon('i-map', 18) ?><span class="p-cnt" id="pin-count">0</span></button>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s5-4.4 5-8.8a5 5 0 1 0-10 0c0 4.4 5 8.8 5 8.8z"/><circle cx="12" cy="11.5" r="1.8"/><path d="M3.2 8a9.6 9.6 0 0 0 0 7M20.8 8a9.6 9.6 0 0 1 0 7"/></svg><span class="p-cnt" id="pin-count">0</span></button>
     <?php if (HOTSPOTS_ENABLED): ?>
     <button class="p-dock-btn" id="hotspot-toggle" aria-expanded="false" aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>" aria-label="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 2 1.2 3 2.5 3.5C11 9 11 5 12 2z"/></svg><span class="p-cnt" id="hotspot-count">0</span></button>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1.3 3.4 5 4.8 5 9.5a5 5 0 0 1-10 0c0-2 .8-3.6 2-4.8.3 1.8 1.1 2.9 2.2 3.3C10.8 8.6 10.7 5.6 12 3z"/></svg><span class="p-cnt" id="hotspot-count">0</span></button>
     <?php endif; ?>
   </div>
 </section>
@@ -388,6 +388,7 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
     point(121.02433, 14.51713, { name: 'VILLAMOR AIR BASE', sub: 'PHILIPPINE AIR FORCE', k: .8, o: .12, p: 1 }),
     point(121.01375, 14.51922, { name: 'NAIA TERMINAL 3', sub: 'NINOY AQUINO INTERNATIONAL AIRPORT', k: .75, o: .12, p: 1 }),
     point(121.01768, 14.51954, { name: 'NEWPORT CITY', sub: 'RESORTS WORLD MANILA', k: .6, o: .105, p: 2 }),
+    point(121.0209, 14.5249, { name: 'VILLAMOR GOLF COURSE', sub: 'VILLAMOR AIR BASE', k: .55, o: .1, p: 2 }),
     point(121.02057, 14.53049, { name: 'HUMABON PLACE', sub: 'MAGALLANES', k: .55, o: .1, p: 2 }),
     point(121.00790, 14.53148, { name: 'MARICABAN', sub: 'PASAY CITY', k: .55, o: .1, p: 2 }),
     point(121.00774, 14.52843, { name: 'BARANGAY 184', k: .4, o: .09, p: 3 }),
