@@ -1486,7 +1486,7 @@ function layerSync() {
   const sec = document.getElementById('s-spatial'), btn = document.getElementById('layers-btn'), card = document.getElementById('ss-lyr');
   // Heatmap, Flood zones and Dim outside were switches in the title card; they are layers, so
   // they live here now, with their own pictures. The other layers get pictures too.
-  card.innerHTML = '<div class="lyr-list" id="lyr-list"></div><small>OpenStreetMap · Open-Meteo · Project NOAH</small>';
+  card.innerHTML = '<div class="lyr-list" id="lyr-list"></div>';
   const list = document.getElementById('lyr-list');
   // Like the Maps chooser: a picture tile at the map's bottom-left, and the layers open in a row beside it.
   btn.classList.add('lyr-tile'); btn.classList.remove('p-dock-btn');
