@@ -726,6 +726,7 @@ let csFor = null;
 function csIcon(d) { return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
 function csPad() { return { left: innerWidth > 980 ? 420 : 0, top: 0, right: 0, bottom: 0 }; }
 function showDetail(r) {
+  qvClose(true);
   const el = document.getElementById('case-sheet');
   csFor = r.id;
   const col = catColour(r.category);
@@ -768,7 +769,7 @@ function showDetail(r) {
   map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 17), padding: csPad(), duration: 800 });
   el.querySelector('.cs-x').addEventListener('click', closeCaseSheet);
   csDraggable(el);
-  el.querySelector('[data-act=zoom]').addEventListener('click', () => map.easeTo({ center: [lng, lat], zoom: 18, padding: csPad() }));
+  el.querySelector('[data-act=zoom]').addEventListener('click', () => qvOpen(r));
   el.querySelector('[data-act=copy]').addEventListener('click', () => {
     const done = () => (window.pToast ? pToast(T('Copied ', 'Nakopya ') + r.tracking_id) : null);
     try { navigator.clipboard.writeText(r.tracking_id).then(done, done); } catch (e) { done(); }
@@ -787,6 +788,95 @@ function showDetail(r) {
     box.firstChild.textContent = lv ? [T('Low', 'Mababa'), T('Medium', 'Katamtaman'), T('High', 'Mataas')][lv - 1] + T(' flood hazard', ' na panganib sa baha') : T('Outside the flood zones', 'Labas sa bahaing lugar');
   }).catch(() => {});
 }
+// ---- Zoom here: the camera flies in and a box unfolds out of the pin ----
+// (Bellinist, 9 Oct 2026.) The case card tucks away, the box shows the
+// resident's photos and the quick facts, and its button carries the admin on
+// to the case in Case Reports.
+let qvFor = null, qvPlace = null;
+function qvClose(silent) {
+  const box = document.getElementById('ss-qv');
+  qvFor = null;
+  if (qvPlace) { map.off('move', qvPlace); qvPlace = null; }
+  document.getElementById('case-sheet').classList.remove('cs-tuck');
+  if (!box) return;
+  if (silent) { box.remove(); return; }
+  box.classList.remove('in'); box.classList.add('out');
+  setTimeout(() => box.remove(), 280);
+}
+function qvOpen(r) {
+  qvClose(true);
+  const sec = document.getElementById('s-spatial'), sheet = document.getElementById('case-sheet');
+  const lng = +r.longitude, lat = +r.latitude, col = catColour(r.category);
+  qvFor = r.id; sheet.classList.add('cs-tuck');
+  map.easeTo({ center: [lng, lat], zoom: 18, padding: { left: 0, top: 0, right: 0, bottom: 0 }, offset: [-190, 40], duration: 950,
+               easing: t => 1 - Math.pow(1 - t, 3) });
+  const nearby = all.filter(q => q.id !== r.id && Math.hypot((q.longitude - lng) * 107500, (q.latitude - lat) * 110600) < 150).length;
+  const rejected = r.status === 'rejected' || r.status === 'cancelled';
+  const late = r.due_at && new Date(r.due_at).getTime() < Date.now() && !rejected && !CS_DONE.includes(r.status);
+  const glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
+  const box = document.createElement('div');
+  box.id = 'ss-qv'; box.className = 'ss-qv'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', esc(r.subject || ''));
+  box.style.setProperty('--cs', col);
+  box.innerHTML = '<span class="qv-tail"></span>' +
+    '<div class="qv-h"><span class="qv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></span>' +
+      '<div class="qv-t"><b>' + esc(r.subject || label(r.category)) + '</b><span>' + esc(r.tracking_id) + ' · ' + esc(label(r.category)) + '</span></div>' +
+      '<button type="button" class="qv-x" data-qvx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
+    '<div class="qv-body">' +
+      '<div class="qv-st"><span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span>' + (late ? '<span class="qv-late">' + T('Overdue', 'Lampas na') + '</span>' : '') + '</div>' +
+      '<div class="qv-media" id="qv-media"><i class="qv-ph none"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></i></div>' +
+      '<div class="qv-cap" id="qv-cap">' + T('Looking for the resident’s photos…', 'Hinahanap ang mga larawan ng residente…') + '</div>' +
+      '<div class="qv-q" id="qv-q" hidden></div>' +
+      '<div class="qv-facts"><div><small>' + T('Filed', 'Naisampa') + '</small><b>' + esc(fmtDate(r.created_at) || '—') + '</b></div>' +
+        '<div><small>' + T('Tanod', 'Tanod') + '</small><b id="qv-tanod">…</b></div>' +
+        '<div><small>' + T('Where', 'Saan') + '</small><b>' + esc(r.location_label || T('Pinned location', 'Naka-pin')) + '</b></div>' +
+        '<div><small>' + T('Nearby', 'Malapit') + '</small><b>' + nearby + T(' within 150 m', ' sa loob ng 150 m') + '</b></div></div>' +
+      '<div class="qv-act"><button type="button" class="p-btn p-btn-primary" data-qvgo>' + T('Open in Case Reports', 'Buksan sa Case Reports') +
+        ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' +
+        '<button type="button" class="p-btn" data-qvback>' + T('Back', 'Bumalik') + '</button></div></div>';
+  sec.appendChild(box);
+  const place = () => {
+    if (qvFor !== r.id) return;
+    const p = map.project([lng, lat]), c = map.getContainer().getBoundingClientRect(), s = sec.getBoundingClientRect();
+    const ax = p.x + (c.left - s.left), ay = p.y + (c.top - s.top) - 40, bw = box.offsetWidth, bh = box.offsetHeight;
+    const right = ax + 44 + bw < s.width - 16, left = right ? ax + 44 : ax - 44 - bw, top = Math.max(14, Math.min(s.height - bh - 24, ay - 120));
+    box.style.left = left + 'px'; box.style.top = top + 'px'; box.classList.toggle('flip', !right);
+    box.style.setProperty('--ox', (ax - left) + 'px'); box.style.setProperty('--oy', (ay - top) + 'px');
+    box.style.setProperty('--ty', Math.max(24, Math.min(bh - 24, ay - top)) + 'px');
+  };
+  qvPlace = place; map.on('move', place);
+  setTimeout(() => { if (qvFor !== r.id) return; place(); void box.offsetWidth; box.classList.add('in'); }, 900);
+  box.querySelector('[data-qvx]').addEventListener('click', () => qvBack(r));
+  box.querySelector('[data-qvback]').addEventListener('click', () => qvBack(r));
+  box.querySelector('[data-qvgo]').addEventListener('click', () => {
+    const nav = document.querySelector('.p-nav a[href="cases.php"]');
+    if (nav) { nav.classList.remove('ss-navglow'); void nav.offsetWidth; nav.classList.add('ss-navglow'); }
+    box.classList.add('go');
+    setTimeout(() => { location.href = 'case.php?id=' + encodeURIComponent(r.id); }, 650);
+  });
+  // The photos, the resident's own words and the tanod, as they arrive.
+  sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3).then(({ data }) => {
+    if (qvFor !== r.id) return; const m = document.getElementById('qv-media'), cap = document.getElementById('qv-cap'); if (!m) return;
+    if (!data || !data.length) { cap.textContent = T('No photos attached', 'Walang kalakip na larawan'); return; }
+    m.innerHTML = '';
+    data.forEach(d => { const a = document.createElement('a'), img = new Image(); a.className = 'qv-ph'; a.href = d.media_url; a.target = '_blank'; a.rel = 'noopener';
+      img.alt = ''; img.referrerPolicy = 'no-referrer'; img.src = d.media_url; a.appendChild(img); m.appendChild(a); });
+    m.dataset.n = data.length; cap.textContent = T('Photos from the resident · ', 'Mga larawan mula sa residente · ') + data.length;
+  });
+  sb.from('reports').select('description').eq('id', r.id).limit(1).then(({ data }) => {
+    if (qvFor !== r.id || !data || !data[0] || !data[0].description) return; const q = document.getElementById('qv-q'); if (!q) return;
+    q.textContent = '“' + String(data[0].description).slice(0, 220) + (data[0].description.length > 220 ? '…' : '') + '”'; q.hidden = false;
+  });
+  sb.from('dispatches').select('tanod:users!dispatches_tanod_id_fkey(full_name)').eq('report_id', r.id).order('assigned_at', { ascending: false }).limit(1).then(({ data }) => {
+    if (qvFor !== r.id) return; const b = document.getElementById('qv-tanod'); if (!b) return;
+    b.textContent = data && data[0] && data[0].tanod ? String(data[0].tanod.full_name || '').trim() : T('Not yet', 'Wala pa');
+  });
+}
+function qvBack(r) {
+  qvClose(false);
+  map.easeTo({ center: [+r.longitude, +r.latitude], zoom: 17, padding: csPad(), duration: 600 });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && qvFor) { const r = byId.get(qvFor); if (r) qvBack(r); else qvClose(true); } });
+
 // Drag the panel by its header; it stays inside the map and remembers where
 // it was put for the rest of the visit.
 let csPos = null;
@@ -809,7 +899,7 @@ function csDraggable(el) {
   });
 }
 function closeCaseSheet() {
-  csFor = null;
+  csFor = null; qvClose(true);
   document.getElementById('case-sheet').hidden = true;
   document.getElementById('s-spatial').classList.remove('sheet-open');
   map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 500 });
