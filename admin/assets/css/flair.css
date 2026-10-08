@@ -612,14 +612,8 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 /* ---- Layer tiles, the original shape: a small square, the icon centred, the name under it ---- */
 .ss-lyr { width: 292px; }
 .ss-lyr .lyr-list { grid-template-columns: repeat(3, 1fr); gap: 14px 6px; }
-.ss-lyr .lyr-list .map-sw.tile .scene { width: 54px; height: 54px; aspect-ratio: auto; margin: 0 auto; border-radius: 14px; filter: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 3px 8px rgba(0,0,0,.28); }
+.ss-lyr .lyr-list .map-sw.tile .scene { width: 54px; height: 54px; aspect-ratio: auto; margin: 0 auto; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 3px 8px rgba(0,0,0,.28); }
 .ss-lyr .lyr-list .map-sw.tile:has(input:checked) .scene { box-shadow: 0 0 0 2px #fff, 0 0 0 5px color-mix(in srgb, var(--lc) 55%, transparent), 0 8px 18px rgba(0,0,0,.35); }
-.ss-lyr .map-sw.tile .scene > * { filter: none; }
-.ss-lyr .map-sw--heat .scene { background: linear-gradient(160deg, #FF8A3D, #C2185B); }
-.ss-lyr .map-sw--transit .scene { background: linear-gradient(160deg, #6B8CFF, #2F4FD6); }
-.ss-lyr .map-sw--air .scene { background: linear-gradient(160deg, #F9C74F, #43AA8B); }
-.ss-lyr .map-sw--safe .scene { background: linear-gradient(160deg, #34C759, #0F9D9A); }
-.ss-lyr .map-sw--dim .scene { background: linear-gradient(160deg, #4B5F96, #25356B); }
 .ss-lyr .map-sw--noah .scene { background: #333; }
 .ss-lyr .map-sw.tile .scene svg.ti { position: absolute; inset: auto; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; color: #fff; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 1; display: block; filter: drop-shadow(0 1px 3px rgba(0,0,0,.35)); transform: none; }
 .ss-lyr .map-sw.tile:hover .scene { transform: translateY(-2px); }
@@ -669,3 +663,14 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 @keyframes tiSlosh { 0% { transform: translate(-2.6%, .6%); } 50% { transform: translate(2.6%, -1.2%); } 100% { transform: translate(-2.6%, .6%); } }
 @keyframes tiSheen { to { background-position: -60% 0; } }
 @media (prefers-reduced-motion: reduce) { .ss-lyr .map-sw--noah .scene .nw, .ss-lyr .map-sw--noah .scene .nw::after, .ss-lyr .lyr-list .map-sw.tile:has(input:checked) .scene { animation: none !important; } }
+
+/* the cool pictures, fitted to the small square */
+.ss-lyr .map-sw--heat .scene span, .ss-lyr .map-sw--air .scene span { zoom: .62; }
+.ss-lyr .map-sw--safe .scene span { zoom: .7; }
+.ss-lyr .map-sw--dim .scene svg:not(.ti), .ss-lyr .map-sw--transit .scene svg:not(.ti) { position: absolute; inset: 0; width: 100%; height: 100%; shape-rendering: geometricPrecision; }
+.ss-lyr .map-sw--transit .scene path { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 9 6; opacity: .45; transition: opacity .4s; }
+.ss-lyr .map-sw--transit .scene .r1 { stroke: #FF8A3D; } .ss-lyr .map-sw--transit .scene .r2 { stroke: #8DB2FF; } .ss-lyr .map-sw--transit .scene .r3 { stroke: #5FD68A; }
+.ss-lyr .map-sw--transit .scene circle { fill: #fff; opacity: .5; }
+.ss-lyr .map-sw--transit:has(input:checked) .scene path:not(.road) { opacity: 1; animation: swMarch 1.1s linear infinite; }
+.ss-lyr .map-sw--transit:has(input:checked) .scene circle { opacity: 1; }
+.ss-lyr .map-sw--dim .edge { stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-dasharray: 5 4; }

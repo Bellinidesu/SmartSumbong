@@ -1510,16 +1510,21 @@ function layerSync() {
   const TILE = {
     heat: TI('heat', '<g class="fl">' + SD_ICONS.heat + '</g>'),
     noah: '<span class="nw"></span><span class="nl"></span>',
-    dim: '<svg class="fog" viewBox="0 0 54 54" aria-hidden="true"><path class="out" d="M0 0H54V54H0Z M14 10 L40 8 L48 22 L38 42 L20 44 L9 30Z" fill-rule="evenodd"/><path class="edge" d="M14 10 L40 8 L48 22 L38 42 L20 44 L9 30Z"/></svg>' +
-      TI('dim', '<circle cx="12" cy="12" r="9"/><path class="half" d="M12 3a9 9 0 0 0 0 18z"/>'),
+    dim: TI('dim', '<circle cx="12" cy="12" r="9"/><path class="half" d="M12 3a9 9 0 0 0 0 18z"/>'),
     transit: TI('transit', '<g class="car"><path d="M3 16V9a2 2 0 0 1 2-2h9.5a2 2 0 0 1 1.6.8L19 11h1.2A1.8 1.8 0 0 1 22 12.8V16a1 1 0 0 1-1 1h-1M3 16a1 1 0 0 0 1 1h1M10 17h4"/><path d="M3 12h13M7 7v5M11.5 7v5"/>' +
-      '<g class="wh w1"><circle cx="7.5" cy="17.5" r="2"/><path d="M7.5 16v3"/></g><g class="wh w2"><circle cx="17.5" cy="17.5" r="2"/><path d="M17.5 16v3"/></g></g><path class="road" d="M1 21.8H23"/>'),
+      '<g class="wh"><circle cx="7.5" cy="17.5" r="2"/><path d="M7.5 16v3"/></g><g class="wh"><circle cx="17.5" cy="17.5" r="2"/><path d="M17.5 16v3"/></g></g><path class="road" d="M1 21.8H23"/>'),
     aq: TI('air', '<path class="a1" d="M3 8h9a3 3 0 1 0-3-3"/><path class="a2" d="M3 12.5h15a3 3 0 1 1-3 3"/><path class="a3" d="M3 17h6a2.5 2.5 0 1 1-2.5 2.5"/>'),
     safe: TI('safe', '<mask id="sf-m"><rect width="24" height="24" fill="#fff"/><path d="M12 8.6v6.8M8.6 12h6.8" stroke="#000" stroke-width="2.4" stroke-linecap="round"/></mask>' +
       '<path class="sh" mask="url(#sf-m)" d="M12 3 5 6v5.5c0 4.3 2.9 7.7 7 9.5 4.1-1.8 7-5.2 7-9.5V6z"/><path class="pl" d="M12 8.6v6.8M8.6 12h6.8"/>'),
   };
+  // The pictures stay as they were. Dim's and Transit's are redrawn square, so they stay crisp at this size.
+  const DIMPIC = '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path class="dim" fill-rule="evenodd" d="M0 0H100V100H0Z M24 20L72 14 88 42 72 80 36 84 14 56Z"/><path class="edge" d="M24 20L72 14 88 42 72 80 36 84 14 56Z"/></svg>';
+  const ROUTEPIC = '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path class="r1" d="M-4 70C20 40 46 84 70 52S96 30 104 40"/><path class="r2" d="M-4 30C24 56 50 12 78 44S100 70 104 62"/><path class="r3" d="M30 104C40 80 62 70 80 46"/><circle cx="28" cy="58" r="3"/><circle cx="66" cy="47" r="3"/><circle cx="88" cy="34" r="3"/></svg>';
   list.querySelectorAll('.map-sw').forEach(l => { const m = /map-sw--(\w+)/.exec(l.className), sc = l.querySelector('.scene'); const k = m && (m[1] === 'air' ? 'aq' : m[1]);
-    if (!sc || !TILE[k]) return; l.classList.add('tile'); sc.innerHTML = TILE[k]; });
+    if (!sc || !TILE[k]) return; l.classList.add('tile');
+    if (k === 'noah') { sc.innerHTML = TILE.noah; return; }
+    if (k === 'dim') sc.innerHTML = DIMPIC; if (k === 'transit') sc.innerHTML = ROUTEPIC;
+    sc.querySelectorAll('svg.mk-ic').forEach(v => v.remove()); sc.insertAdjacentHTML('beforeend', TILE[k]); });
   btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
   card.addEventListener('change', e => {
     const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
