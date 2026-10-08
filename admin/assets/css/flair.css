@@ -573,3 +573,24 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .map-sw.has-ic > i svg { width: 15px; height: 15px; }
 .map-sw.has-ic:has(input:checked) > i { background: #fff; border-color: #fff; color: var(--tick, #0B57C4); transform: scale(1.1); }
 .map-sw.has-ic:has(input:checked) > i::after { display: none; }
+
+/* ---- Layers as picture tiles, like the Maps chooser: a square picture, the name under it ---- */
+.ss-lyr { width: 312px; }
+.ss-lyr .lyr-list { grid-template-columns: repeat(3, 1fr); gap: 14px 10px; }
+.ss-lyr .map-sw { display: grid; justify-items: center; align-content: start; gap: 6px; width: auto; height: auto; padding: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; filter: none; color: var(--p-ink-2); font-size: 12px; text-align: center; }
+.ss-lyr .map-sw:hover, .ss-lyr .map-sw:has(input:checked):hover { filter: none; }
+.ss-lyr .map-sw .scene { position: relative; inset: auto; display: block; width: 100%; aspect-ratio: 1 / .86; border-radius: 14px; overflow: hidden; filter: saturate(.55) brightness(.9); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 3px 8px rgba(0,0,0,.25); transition: filter .3s, box-shadow .25s, transform .35s cubic-bezier(.2,1.5,.4,1); }
+.ss-lyr .map-sw:hover .scene { transform: translateY(-2px); }
+.ss-lyr .map-sw:active .scene { transform: scale(.95); }
+.ss-lyr .map-sw:has(input:checked) .scene { filter: none; box-shadow: 0 0 0 3px var(--p-orange), 0 6px 14px rgba(0,0,0,.3); }
+.ss-lyr .map-sw:has(input:focus-visible) { outline: none; } .ss-lyr .map-sw:has(input:focus-visible) .scene { box-shadow: 0 0 0 3px var(--p-link); }
+.ss-lyr .map-sw--heat .scene { background: #2B2026; } .ss-lyr .map-sw--noah .scene { background: #333438; } .ss-lyr .map-sw--dim .scene { background: #3B4D7E; }
+.ss-lyr .map-sw--transit .scene { background: #26356F; } .ss-lyr .map-sw--air .scene { background: #2A4A45; } .ss-lyr .map-sw--safe .scene { background: #1D4A3A; }
+.ss-lyr .map-sw > i { position: absolute; top: 6px; left: 6px; z-index: 2; width: 22px; height: 22px; }
+.ss-lyr .map-sw b { position: static; font-size: 12px; font-weight: 700; letter-spacing: 0; white-space: normal; line-height: 1.2; color: var(--p-ink); text-shadow: none; }
+.ss-lyr .map-sw b em { display: block; font-size: 10.5px; font-weight: 600; color: var(--p-muted); opacity: 1; }
+.ss-lyr .map-sw:has(input:checked) b { color: var(--p-link); }
+.ss-lyr .map-sw--safe .scene span { left: 50%; } .ss-lyr .map-sw--safe .scene svg { right: auto; left: 50%; margin-left: -11px; }
+.ss-lyr .map-sw--noah b em, .ss-lyr .map-sw--transit b em { display: block; }
+@media (prefers-reduced-motion: reduce) { .ss-lyr .map-sw .scene { transition: none; } }
+.ss-lyr .map-sw--safe .scene svg { display: none; }
