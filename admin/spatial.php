@@ -318,6 +318,7 @@ const INTRO = (() => {
     return (introHide = true);
   } catch (e) { return false; }
 })();
+if (INTRO) document.getElementById('map').classList.add('dm-hide');
 const map = new maplibregl.Map({
   container: 'map',
   style: window.mapStyleUrl(),
@@ -420,22 +421,64 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
 
   setPinsSource(false);
 
-  ['pins', 'clusters', 'hotspots'].forEach(id => {
+  ['pins', 'hotspots'].forEach(id => {
     map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
   });
   map.on('click', 'pins', e => { const r = byId.get(e.features[0].properties.id); if (r) showDetail(r); });
-  map.on('click', 'clusters', async e => {
-    const f = e.features[0];
-    const zoom = await map.getSource('reports').getClusterExpansionZoom(f.properties.cluster_id);
-    map.easeTo({ center: f.geometry.coordinates, zoom });
-  });
   map.on('click', 'hotspots', e => { const h = hotspots[e.features[0].properties.i]; if (h) showHotspotDetail(h); });
   // If the complaints are slow or fail, the intro still settles the camera.
   setTimeout(() => runIntro(), 4500);
 
   resolve();
 }));
+
+// Donut pins (Bellinist): a cluster is the complaint pin, bigger, with a ring of
+// the categories inside it and the count on its white disc. They are drawn as
+// markers from the cluster's own category counts; they spring in as you zoom
+// out and burst when you open one.
+const DM = new Map();
+let dmKey = '';
+const dmCats = () => Object.keys(CATEGORY_COLOUR);
+function donutSvg(props, n) {
+  const cats = dmCats(), parts = cats.map((c, i) => [c, Number(props['c' + i] || 0)]).filter(x => x[1] > 0), tot = parts.reduce((a, x) => a + x[1], 0) || 1;
+  let a0 = -90, ring = '';
+  parts.forEach(([c, v]) => {
+    const a1 = a0 + 360 * v / tot, whole = parts.length === 1, r = 21, f = a => [(r * Math.cos(a * Math.PI / 180)).toFixed(2), (r * Math.sin(a * Math.PI / 180)).toFixed(2)];
+    if (whole) ring += '<circle r="' + r + '" fill="none" stroke="' + catColour(c) + '" stroke-width="5"/>';
+    else { const p0 = f(a0), p1 = f(a1 - 4); ring += '<path d="M' + p0 + ' A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + p1 + '" fill="none" stroke="' + catColour(c) + '" stroke-width="5" stroke-linecap="round"/>'; }
+    a0 = a1;
+  });
+  return '<svg viewBox="-34 -78 68 82" aria-hidden="true"><path class="dm-body" d="M0 0C-7-14-27-24-27-43a27 27 0 0 1 54 0C27-24 7-14 0 0Z" stroke="#fff" stroke-width="2.4"/>' +
+    '<g transform="translate(0 -43)">' + ring + '<circle r="15.5" fill="#fff"/><text y="' + (String(n).length > 3 ? 5 : 6) + '" text-anchor="middle" font-family="Urbanist,sans-serif" font-weight="800" font-size="' + (String(n).length > 3 ? 12 : 17) + '" fill="#141B34">' + esc(n) + '</text></g></svg>';
+}
+function clusterMarkers() {
+  if (map._dmBound) return; map._dmBound = true;
+  const update = () => {
+    if (!map.getLayer('clusters')) return;
+    const feats = clustered ? map.queryRenderedFeatures({ layers: ['clusters'] }) : [], seen = new Map();
+    feats.forEach(f => { if (f.properties.cluster_id != null && !seen.has(f.properties.cluster_id)) seen.set(f.properties.cluster_id, f); });
+    const key = [...seen.keys()].sort().join(',') + '|' + (isDark() ? 1 : 0);
+    if (key === dmKey) return; dmKey = key;
+    DM.forEach((m, id) => { if (!seen.has(id)) { m.el.classList.remove('in'); m.el.classList.add('out'); setTimeout(() => m.marker.remove(), 260); DM.delete(id); } });
+    seen.forEach((f, id) => {
+      if (DM.has(id)) return;
+      const n = f.properties.point_count, w = n < 10 ? 46 : n < 50 ? 58 : 70, el = document.createElement('button');
+      el.type = 'button'; el.className = 'dm in'; el.style.width = w + 'px'; el.style.height = (w * 82 / 68) + 'px';
+      el.setAttribute('aria-label', n + T(' complaints, open to see them', ' sumbong, buksan para makita'));
+      el.innerHTML = donutSvg(f.properties, f.properties.point_count_abbreviated || n);
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
+      el.addEventListener('click', async ev => {
+        ev.stopPropagation(); el.classList.add('burst');
+        const zoom = await map.getSource('reports').getClusterExpansionZoom(f.properties.cluster_id);
+        map.easeTo({ center: f.geometry.coordinates, zoom, duration: 700 });
+      });
+      DM.set(id, { marker, el });
+    });
+  };
+  map.on('render', update);
+  window.addEventListener('themechange', () => { dmKey = ''; DM.forEach(m => m.marker.remove()); DM.clear(); update(); });
+}
 
 // Below the threshold every pin stands alone; above it they would sit on
 // top of each other on a barangay-sized map, so they gather into counted
@@ -445,24 +488,18 @@ const CLUSTER_FROM = 25;
 let clustered = null;
 function setPinsSource(want) {
   if (clustered === want) return;
-  ['pins', 'cluster-count', 'clusters'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+  ['pins', 'clusters'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
   if (map.getSource('reports')) map.removeSource('reports');
   clustered = want;
+  // A cluster counts its members per category, so its ring can show the mix.
+  const clusterProperties = {};
+  Object.keys(CATEGORY_COLOUR).forEach((c, i) => { clusterProperties['c' + i] = ['+', ['case', ['==', ['get', 'cat'], c], 1, 0]]; });
   map.addSource('reports', { type: 'geojson', data: EMPTY,
-                             cluster: want, clusterRadius: 46, clusterMaxZoom: 17 });
+                             cluster: want, clusterRadius: 46, clusterMaxZoom: 17, clusterProperties });
   const h = introHide ? 0 : 1;
   map.addLayer({ id: 'clusters', type: 'circle', source: 'reports', filter: ['has', 'point_count'],
-    paint: {
-      'circle-opacity': h, 'circle-stroke-opacity': h,
-      // Neutral, so a cluster is not read as a category.
-      'circle-color': ['step', ['get', 'point_count'], '#64748b', 10, '#475569', 50, '#1e293b'],
-      'circle-radius': ['step', ['get', 'point_count'], 16, 10, 20, 50, 25],
-      'circle-stroke-color': 'rgba(255,255,255,.85)',
-      'circle-stroke-width': 4,
-    } });
-  map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'reports', filter: ['has', 'point_count'],
-    layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13 },
-    paint: { 'text-color': '#fff', 'text-opacity': h } });
+    paint: { 'circle-opacity': 0, 'circle-stroke-opacity': 0, 'circle-radius': 20 } });
+  clusterMarkers();
   map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: ['!', ['has', 'point_count']],
     layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
               'icon-anchor': 'bottom', 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 16, .74, 18, .95] },
@@ -505,8 +542,7 @@ function runIntro() {
     frame(850, u => {
       const o = Math.min(1, u * 2);
       if (map.getLayer('pins')) { map.setPaintProperty('pins', 'icon-opacity', o); map.setPaintProperty('pins', 'icon-translate', [0, -120 * (1 - back(u))]); }
-      ['clusters'].forEach(id => { if (map.getLayer(id)) { map.setPaintProperty(id, 'circle-opacity', o); map.setPaintProperty(id, 'circle-stroke-opacity', o); } });
-      if (map.getLayer('cluster-count')) map.setPaintProperty('cluster-count', 'text-opacity', o);
+      document.getElementById('map').classList.toggle('dm-hide', false);
     }, () => { if (map.getLayer('pins')) map.setPaintProperty('pins', 'icon-translate', [0, 0]); });
   }, 2700);
 }
@@ -622,7 +658,7 @@ async function draw() {
       lng += d * Math.cos(ang) / Math.cos(lat * Math.PI / 180);
       lat += d * Math.sin(ang);
     }
-    return point(lng, lat, { id: r.id, icon: pinName(r.category) });
+    return point(lng, lat, { id: r.id, icon: pinName(r.category), cat: r.category });
   });
   map.getSource('reports').setData({ type: 'FeatureCollection', features });
 
