@@ -332,7 +332,7 @@ const map = new maplibregl.Map({
   attributionControl: false,
 });
 // Bottom-left, so the zoom buttons sit where Leaflet's did, under the dock.
-map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 map.touchZoomRotate.disableRotation();
 // The style or its tiles could not load: say so rather than show a blank.
 map.on('error', e => {
