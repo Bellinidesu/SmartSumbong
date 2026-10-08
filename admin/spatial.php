@@ -130,13 +130,13 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 
   <div class="p-map-dock">
     <button class="p-dock-btn" id="expand-btn" type="button" title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>" aria-label="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3" /> <path d="M21 8V5a2 2 0 0 0-2-2h-3" /> <path d="M3 16v3a2 2 0 0 0 2 2h3" /> <path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg></button>
     <button class="p-dock-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>" aria-label="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 12a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0" fill="currentColor" /> <path d="M5 12a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /> <path d="M12 3l0 2" /> <path d="M3 12l2 0" /> <path d="M12 19l0 2" /> <path d="M19 12l2 0" /></svg></button>
     <button class="p-dock-btn" id="layers-btn" type="button" aria-expanded="false" aria-controls="ss-lyr" title="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>" aria-label="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></svg></button>
     <button class="p-dock-btn" id="legend-toggle" type="button" aria-expanded="false" aria-controls="map-legend" title="<?= e(t('Legend', 'Alamat')) ?>" aria-label="<?= e(t('Legend', 'Alamat')) ?>">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="7" r="2"/><circle cx="6" cy="17" r="2"/><path d="M11 7h9M11 17h9"/></svg></button>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h.01" /> <path d="M3 12h.01" /> <path d="M3 19h.01" /> <path d="M8 5h13" /> <path d="M8 12h13" /> <path d="M8 19h13" /></svg></button>
     <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
       <?= p_icon('i-map', 18) ?><span class="p-cnt" id="pin-count">0</span></button>
     <?php if (HOTSPOTS_ENABLED): ?>
@@ -153,6 +153,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 <script src="assets/vendor/mapillary/mapillary.js"></script>
 <?php endif; ?>
 <script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
+<script src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>"></script>
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
 // Self-hosted rather than imported from esm.sh. This script runs with the
@@ -267,14 +268,8 @@ function pinSvg(shape, fill) {
 // Colour still carries the category; the symbol carries it for the one man
 // in twelve who cannot separate the hues. At night it glows in its colour.
 const PIN_GLYPH = {
-  street_obstruction: '<path d="M7 20V4h6a4 4 0 0 1 0 8H7"/>',
-  public_safety_infrastructure: '<path d="M3 20h18M6 20l2-12h8l2 12M9 13h6"/>',
-  environmental_waste_hazard: '<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/>',
-  animal_welfare: '<circle cx="7" cy="9" r="1.7" fill="__C__"/><circle cx="12" cy="6.5" r="1.7" fill="__C__"/><circle cx="17" cy="9" r="1.7" fill="__C__"/><path d="M8 17c0-3 2-5 4-5s4 2 4 5c0 2-2 2-4 1-2 1-4 1-4-1z"/>',
-  traffic_violation: '<rect x="8" y="3" width="8" height="18" rx="3"/><circle cx="12" cy="8" r="1.2" fill="__C__"/><circle cx="12" cy="12" r="1.2" fill="__C__"/><circle cx="12" cy="16" r="1.2" fill="__C__"/>',
-  barangay_service: '<path d="M3 10l9-6 9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 20h18"/>',
-  peace_order_nuisance: '<path d="M4 10v4h4l5 4V6l-5 4H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',
-  other: '<circle cx="6" cy="12" r="1.7" fill="__C__"/><circle cx="12" cy="12" r="1.7" fill="__C__"/><circle cx="18" cy="12" r="1.7" fill="__C__"/>',
+  street_obstruction: SD_ICONS.obstruction, public_safety_infrastructure: SD_ICONS.infra, environmental_waste_hazard: SD_ICONS.waste,
+  animal_welfare: SD_ICONS.animal, traffic_violation: SD_ICONS.traffic, barangay_service: SD_ICONS.service, peace_order_nuisance: SD_ICONS.noise, other: SD_ICONS.other,
 };
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 function pinTear(cat, fill, dark) {
@@ -758,17 +753,17 @@ function showDetail(r) {
       '<h2 class="cs-title">' + esc(r.subject || label(r.category)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span></p>' +
       '<div class="cs-acts' + (MLY ? ' four' : '') + '">' +
-        '<a href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + csIcon('<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/>') + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
-        '<button type="button" data-act="zoom"><span>' + csIcon('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>') + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
-        (MLY ? '<button type="button" data-act="look"><span>' + csIcon('<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>') + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
-        '<button type="button" data-act="copy"><span>' + csIcon('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>') + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
+        '<a href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + csIcon(SD_ICONS.send) + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
+        '<button type="button" data-act="zoom"><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        (MLY ? '<button type="button" data-act="look"><span>' + csIcon(SD_ICONS.view360) + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
+        '<button type="button" data-act="copy"><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
       '</div>' +
       '<ul class="cs-rows">' +
-        '<li>' + csIcon('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/>') + '<span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Pinned location', 'Naka-pin na lokasyon')) + '<small>Barangay 183, Zone 20, Villamor, Pasay City</small></span></li>' +
-        '<li>' + csIcon('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') + '<span>' + T('Submitted ', 'Isinumite ') + esc(fmtDate(r.created_at) || '—') + '<small>' + esc(r.due_at ? T('Deadline ', 'Takdang oras ') + fmtDate(r.due_at) : T('No deadline set', 'Walang takdang oras')) + '</small></span></li>' +
-        '<li>' + csIcon('<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/>') + '<span id="cs-tanod">' + T('Checking who has it…', 'Tinitingnan kung sino ang may hawak…') + '<small>&nbsp;</small></span></li>' +
-        '<li>' + csIcon('<path d="M2 15c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0M2 20c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0M12 3v7"/>') + '<span id="cs-flood">' + T('Checking the flood map…', 'Tinitingnan ang mapa ng baha…') + '<small>Project NOAH 100-year flood map</small></span></li>' +
-        '<li>' + csIcon('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 3"/>') + '<span>' + nearby + T(nearby === 1 ? ' other complaint within 150 m' : ' other complaints within 150 m', ' iba pang sumbong sa loob ng 150 m') + '<small>' + T('Same block or the next', 'Parehong bloke o katabi') + '</small></span></li>' +
+        '<li>' + csIcon(SD_ICONS.pin) + '<span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Pinned location', 'Naka-pin na lokasyon')) + '<small>Barangay 183, Zone 20, Villamor, Pasay City</small></span></li>' +
+        '<li>' + csIcon(SD_ICONS.calendar) + '<span>' + T('Submitted ', 'Isinumite ') + esc(fmtDate(r.created_at) || '—') + '<small>' + esc(r.due_at ? T('Deadline ', 'Takdang oras ') + fmtDate(r.due_at) : T('No deadline set', 'Walang takdang oras')) + '</small></span></li>' +
+        '<li>' + csIcon(SD_ICONS.handler) + '<span id="cs-tanod">' + T('Checking who has it…', 'Tinitingnan kung sino ang may hawak…') + '<small>&nbsp;</small></span></li>' +
+        '<li>' + csIcon(SD_ICONS.flood) + '<span id="cs-flood">' + T('Checking the flood map…', 'Tinitingnan ang mapa ng baha…') + '<small>Project NOAH 100-year flood map</small></span></li>' +
+        '<li>' + csIcon(SD_ICONS.radar) + '<span>' + nearby + T(nearby === 1 ? ' other complaint within 150 m' : ' other complaints within 150 m', ' iba pang sumbong sa loob ng 150 m') + '<small>' + T('Same block or the next', 'Parehong bloke o katabi') + '</small></span></li>' +
       '</ul>' +
       '<h3 class="cs-h">' + T('Progress', 'Takbo') + '</h3>' +
       '<ol class="cs-steps" style="--fill:' + (steps.length > 1 ? Math.round(cur / (steps.length - 1) * 100) : 100) + '%">' + steps.map(([t, on], i) => '<li class="' + (on ? 'on' : '') + (i === cur ? ' cur' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' +
@@ -853,7 +848,7 @@ function lkOpen(r) {
     '<div class="lk-card" id="lk-card" hidden><div class="lk-ph" id="lk-ph"><span class="lk-gl"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></span><em id="lk-phn"></em></div>' +
       '<div class="lk-cap"><b>' + esc(r.tracking_id) + '</b><small>' + T('Resident photo · ', 'Larawan ng residente · ') + esc(fmtDate(r.created_at) || '') + '</small></div><i class="lk-stem"></i><i class="lk-spot"></i></div>' +
     '<div class="lk-edge" id="lk-edge" hidden></div>' +
-    '<div class="lk-top"><button type="button" class="lk-back" data-lkclose aria-label="' + T('Back to the map', 'Bumalik sa mapa') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>' +
+    '<div class="lk-top"><button type="button" class="lk-back" data-lkclose aria-label="' + T('Back to the map', 'Bumalik sa mapa') + '">' + sdIcon('back') + '</button>' +
       '<div class="lk-ti"><b>' + T('Look around', 'Luminga-linga') + '</b><span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : r.tracking_id) + ' · ' + esc(r.tracking_id) + '</span></div>' +
       '<div class="lk-hd" id="lk-hd"><svg class="lk-needle" id="lk-needle" viewBox="0 0 24 24"><path d="M12 3l5 16-5-4-5 4z" fill="currentColor"/></svg><b id="lk-hdt">N 0°</b></div></div>' +
     '<div class="lk-state" id="lk-state"><span class="lk-spin"></span><b>' + T('Finding street imagery…', 'Hinahanap ang street imagery…') + '</b></div>' +
@@ -1218,7 +1213,7 @@ const LAYER_DATA = { aq: null, transit: null, safe: null }, LAYER_ERR = {};
 let layerQ = Promise.resolve();
 const ROUTE_COLOURS = ['#FF8A3D', '#2F6BFF', '#1E9E56', '#E0609A', '#8E3FD6', '#0F9D9A', '#E5383B', '#F9AB00'];
 const SAFE_KINDS = {
-  evac:      { c: '#1E9E56', en: 'Evacuation or shelter', fil: 'Evacuation o silungan', g: '<path d="M4 12l8-7 8 7v8H4z"/><path d="M10 20v-5h4v5"/>' },
+  evac:      { c: '#1E9E56', en: 'Evacuation or shelter', fil: 'Evacuation o silungan', g: SD_ICONS.evac },
   hydrant:   { c: '#E5383B', en: 'Fire hydrant',          fil: 'Fire hydrant',          g: '<path d="M12 3c2 3 5 5.5 5 9a5 5 0 0 1-10 0c0-3.5 3-6 5-9z"/>' },
   health:    { c: '#2F6BFF', en: 'Health facility',       fil: 'Pasilidad pangkalusugan', g: '<path d="M12 5v14M5 12h14"/>' },
   responder: { c: '#FF8A3D', en: 'Fire or police',        fil: 'Bumbero o pulis',       g: '<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.4l6-.8z"/>' },
@@ -1356,16 +1351,16 @@ function safeSheet(f) {
       '<svg class="cs-mark cs-glyph" viewBox="0 0 24 24" aria-hidden="true">' + g + '</svg><span class="sp-credit" id="sp-credit" hidden></span></div>' +
     '<div class="cs-body"><h2 class="cs-title">' + esc(p.name || T(kd.en, kd.fil)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-st" style="--st:' + kd.c + '">' + esc(T(kd.en, kd.fil)) + '</span></p>' +
-      '<div class="cs-acts"><a target="_blank" rel="noopener" href="' + dir + '"><span>' + csIcon('<path d="M12 3l9 9-9 9-9-9z"/><path d="M8 12h8m-3-3l3 3-3 3"/>') + '</span>' + T('Directions', 'Direksyon') + '</a>' +
-        '<button type="button" data-spzoom><span>' + csIcon('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>') + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
-        '<button type="button" data-spcopy><span>' + csIcon('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>') + '</span>' + T('Copy coords', 'Kopyahin') + '</button></div>' +
+      '<div class="cs-acts"><a target="_blank" rel="noopener" href="' + dir + '"><span>' + csIcon(SD_ICONS.directions) + '</span>' + T('Directions', 'Direksyon') + '</a>' +
+        '<button type="button" data-spzoom><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        '<button type="button" data-spcopy><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy coords', 'Kopyahin') + '</button></div>' +
       '<ul class="cs-rows">' +
-        row('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/>', esc(p.addr || 'Barangay 183, Pasay City') + '<small>' + coord + '</small>') +
-        row('<path d="M6 3h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 12l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/>', esc(p.phone)) +
-        row('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', esc(p.hours)) +
-        row('<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>', p.cap ? esc(p.cap) + T(' people', ' tao') + '<small>' + T('Capacity', 'Kapasidad') + '</small>' : '') +
-        row('<path d="M3 21h18M5 21V8l7-5 7 5v13"/>', p.op ? esc(p.op) + '<small>' + T('Operator', 'Nangangasiwa') + '</small>' : '') +
-        row('<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>', p.web ? '<a href="' + esc(p.web) + '" target="_blank" rel="noopener">' + esc(p.web.replace(/^https?:\/\/(www\.)?/, '').slice(0, 38)) + '</a>' : '') +
+        row(SD_ICONS.pin, esc(p.addr || 'Barangay 183, Pasay City') + '<small>' + coord + '</small>') +
+        row(SD_ICONS.phone, esc(p.phone)) +
+        row(SD_ICONS.clock, esc(p.hours)) +
+        row(SD_ICONS.users, p.cap ? esc(p.cap) + T(' people', ' tao') + '<small>' + T('Capacity', 'Kapasidad') + '</small>' : '') +
+        row(SD_ICONS.hall, p.op ? esc(p.op) + '<small>' + T('Operator', 'Nangangasiwa') + '</small>' : '') +
+        row(SD_ICONS.link, p.web ? '<a href="' + esc(p.web) + '" target="_blank" rel="noopener">' + esc(p.web.replace(/^https?:\/\/(www\.)?/, '').slice(0, 38)) + '</a>' : '') +
       '</ul>' +
       '<h3 class="cs-h">' + T('Photos', 'Mga larawan') + '</h3><div class="sp-strip" id="sp-strip"><span class="sp-load">' + T('Looking for photos of this place…', 'Naghahanap ng larawan ng lugar…') + '</span></div>' +
       '<small class="sp-src">' + T('From OpenStreetMap, Wikimedia Commons and Mapillary. Photos found near the place, not always of the building itself.', 'Mula sa OpenStreetMap, Wikimedia Commons at Mapillary. Mga larawang malapit sa lugar, hindi laging ng mismong gusali.') + '</small></div>' +
@@ -1431,9 +1426,9 @@ function layerSync() {
   const I = p => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
   const tile = (k, label, ic) => '<button type="button" class="lyt ' + k + '" data-lyr="' + k + '"><span class="th">' + ic + '</span><b>' + label + '</b></button>';
   card.innerHTML = '<h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><div class="lyr-grid">' +
-    tile('transit', T('Transit', 'Transit'), I('<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l1.5-4M16 21l-1.5-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>')) +
-    tile('aq', T('Air quality', 'Kalidad ng hangin'), I('<path d="M3 9c3-2 5-2 8 0s5 2 8 0M3 15c3-2 5-2 8 0s5 2 8 0"/>')) +
-    tile('safe', T('Safe points', 'Ligtas na lugar'), I('<path d="M4 12l8-7 8 7v8H4z"/><path d="M12 10v6M9 13h6"/>')) +
+    tile('transit', T('Transit', 'Transit'), I(SD_ICONS.jeepney)) +
+    tile('aq', T('Air quality', 'Kalidad ng hangin'), I(SD_ICONS.wind)) +
+    tile('safe', T('Safe points', 'Ligtas na lugar'), I(SD_ICONS.safepoints)) +
     '</div><small>' + T('OpenStreetMap and Open-Meteo.', 'Mula sa OpenStreetMap at Open-Meteo.') + '</small>';
   btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
   card.addEventListener('click', e => {
