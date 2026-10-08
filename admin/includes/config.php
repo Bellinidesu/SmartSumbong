@@ -139,7 +139,7 @@ function send_security_policy(): void
         "font-src 'self' data: https://fonts.gstatic.com",
         "img-src 'self' data: blob: https://res.cloudinary.com https://tiles.openfreemap.org",
         "media-src 'self' blob: https://res.cloudinary.com",
-        "connect-src 'self' {$sb} {$ws} https://tiles.openfreemap.org https://api.open-meteo.com https://nominatim.openstreetmap.org",
+        "connect-src 'self' {$sb} {$ws} https://tiles.openfreemap.org https://api.open-meteo.com https://air-quality-api.open-meteo.com https://nominatim.openstreetmap.org",
         "manifest-src 'self'",
         "frame-ancestors 'self'",
         "base-uri 'self'",

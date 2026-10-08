@@ -124,11 +124,16 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     <div class="fw-card" id="fw-card" hidden></div>
   </div>
 
+  <div class="ss-lyr" id="ss-lyr" hidden></div>
+  <div class="ss-lyr-info" id="ss-lyr-info"></div>
+
   <div class="p-map-dock">
     <button class="p-dock-btn" id="expand-btn" type="button" title="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>" aria-label="<?= e(t('Expand map to full screen', 'I-full screen ang mapa')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="p-dock-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>" aria-label="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+    <button class="p-dock-btn" id="layers-btn" type="button" aria-expanded="false" aria-controls="ss-lyr" title="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>" aria-label="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
     <button class="p-dock-btn" id="legend-toggle" type="button" aria-expanded="false" aria-controls="map-legend" title="<?= e(t('Legend', 'Alamat')) ?>" aria-label="<?= e(t('Legend', 'Alamat')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="7" r="2"/><circle cx="6" cy="17" r="2"/><path d="M11 7h9M11 17h9"/></svg></button>
     <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
@@ -968,6 +973,7 @@ addEventListener('resize', () => { if (!side.hasAttribute('hidden')) placeSide()
 // side of the map, so opening one closes the others.
 function mapDrawer(which) {
   if (which !== 'sheet' && csFor) closeCaseSheet();
+  if (which !== 'layers') { const lc = document.getElementById('ss-lyr'); if (lc && !lc.hidden) { lc.hidden = true; document.getElementById('layers-btn').setAttribute('aria-expanded', 'false'); } }
   if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
   if (which !== 'legend') { document.getElementById('map-legend').hidden = true; document.getElementById('legend-toggle').setAttribute('aria-expanded', 'false'); }
   if (which !== 'flood') { document.getElementById('fw-card').hidden = true; document.getElementById('fw-chip').setAttribute('aria-expanded', 'false'); }
@@ -984,6 +990,157 @@ document.getElementById('fw-chip').addEventListener('click', () => {
   c.hidden = !open;
   document.getElementById('fw-chip').setAttribute('aria-expanded', String(open));
 });
+
+// ---- Map layers (Bellinist phase 4, 9 Oct 2026) -------------------------
+// Air quality (Open-Meteo), safe points and public transport (OpenStreetMap,
+// through layers.php, cached). Each is its own tile in the Layers card; what
+// is on says what it is saying in a small card under the filter card.
+const LAYER = { aq: false, transit: false, safe: false };
+const LAYER_DATA = { aq: null, transit: null, safe: null }, LAYER_ERR = {};
+let layerQ = Promise.resolve();
+const ROUTE_COLOURS = ['#FF8A3D', '#2F6BFF', '#1E9E56', '#E0609A', '#8E3FD6', '#0F9D9A', '#E5383B', '#F9AB00'];
+const SAFE_KINDS = {
+  evac:      { c: '#1E9E56', en: 'Evacuation or shelter', fil: 'Evacuation o silungan', g: '<path d="M4 12l8-7 8 7v8H4z"/><path d="M10 20v-5h4v5"/>' },
+  hydrant:   { c: '#E5383B', en: 'Fire hydrant',          fil: 'Fire hydrant',          g: '<path d="M12 3c2 3 5 5.5 5 9a5 5 0 0 1-10 0c0-3.5 3-6 5-9z"/>' },
+  health:    { c: '#2F6BFF', en: 'Health facility',       fil: 'Pasilidad pangkalusugan', g: '<path d="M12 5v14M5 12h14"/>' },
+  responder: { c: '#FF8A3D', en: 'Fire or police',        fil: 'Bumbero o pulis',       g: '<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.4l6-.8z"/>' },
+  hall:      { c: '#00308F', en: 'Barangay or city hall', fil: 'Barangay o city hall',  g: '<path d="M12 3L5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/>' },
+};
+const AQ_BANDS = [[50, 'Good', 'Mabuti', '#34C759'], [100, 'Moderate', 'Katamtaman', '#F9C74F'], [150, 'Unhealthy for sensitive groups', 'Hindi mabuti sa sensitibo', '#FF8A3D'],
+                  [200, 'Unhealthy', 'Hindi mabuti', '#E5383B'], [300, 'Very unhealthy', 'Napakasama', '#8E3FD6'], [1e9, 'Hazardous', 'Mapanganib', '#7E0023']];
+const aqBand = v => AQ_BANDS.find(b => v <= b[0]);
+
+function layerSafeImages() {
+  return Promise.all(Object.entries(SAFE_KINDS).map(([k, d]) => {
+    if (map.hasImage('safe-' + k)) return null;
+    return addSvgImage('safe-' + k, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-17 -17 34 34"><rect x="-14" y="-14" width="28" height="28" rx="9" fill="' + d.c + '" stroke="#fff" stroke-width="2.6"/>' +
+      '<g transform="translate(-9 -9) scale(.75)" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' + d.g + '</g></svg>');
+  }));
+}
+function layerBox() { const [[w, s], [e, n]] = AREA; return [w, s, e, n].map(v => v.toFixed(3)).join(','); }
+async function layerLoad(k) {
+  if (LAYER_DATA[k]) return LAYER_DATA[k];
+  delete LAYER_ERR[k];
+  try {
+    if (k === 'aq') {
+      const r = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + RESIDENTIAL_CENTRE[1] + '&longitude=' + RESIDENTIAL_CENTRE[0] +
+        '&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone&timezone=Asia%2FManila');
+      if (!r.ok) throw new Error(r.status);
+      const c = (await r.json()).current; if (!c || c.us_aqi == null) throw new Error('empty');
+      return (LAYER_DATA.aq = { v: Math.round(c.us_aqi), pm25: c.pm2_5, pm10: c.pm10, no2: c.nitrogen_dioxide, o3: c.ozone, time: c.time });
+    }
+    // One at a time: the public OpenStreetMap servers do not like two at once.
+    const run = layerQ.then(async () => { const r = await fetch('layers.php?k=' + k + '&b=' + layerBox(), { credentials: 'same-origin' });
+      if (!r.ok) throw new Error(r.status); return r.json(); });
+    layerQ = run.catch(() => {});
+    return (LAYER_DATA[k] = await run);
+  } catch (e) { LAYER_ERR[k] = true; return null; }
+}
+function layerShape() {
+  // The barangay's own outline when it has loaded; otherwise the map's area.
+  const polys = rings && rings.length ? rings.map(r => [r]) : [[[[AREA[0][0], AREA[0][1]], [AREA[1][0], AREA[0][1]], [AREA[1][0], AREA[1][1]], [AREA[0][0], AREA[1][1]], [AREA[0][0], AREA[0][1]]]]];
+  return { type: 'Feature', properties: {}, geometry: { type: 'MultiPolygon', coordinates: polys } };
+}
+function layerBefore() { return map.getLayer('clusters') ? 'clusters' : undefined; }
+async function layerDraw(k) {
+  await mapReady;
+  const vis = LAYER[k] ? 'visible' : 'none', dark = isDark();
+  if (k === 'aq') {
+    if (LAYER.aq && !map.getSource('aq')) {
+      const d = await layerLoad('aq'); if (!d) return;
+      map.addSource('aq', { type: 'geojson', data: layerShape() });
+      map.addLayer({ id: 'aq-fill', type: 'fill', source: 'aq', paint: { 'fill-color': aqBand(d.v)[3], 'fill-opacity': dark ? .2 : .26 } }, 'outline');
+    }
+    if (map.getLayer('aq-fill')) { map.setLayoutProperty('aq-fill', 'visibility', vis); if (LAYER_DATA.aq) map.setPaintProperty('aq-fill', 'fill-color', aqBand(LAYER_DATA.aq.v)[3]); map.setPaintProperty('aq-fill', 'fill-opacity', dark ? .2 : .26); }
+  } else if (k === 'transit') {
+    if (LAYER.transit && !map.getSource('transit')) {
+      const d = await layerLoad('transit'); if (!d) return;
+      const refs = [...new Set(d.features.filter(f => f.properties.k === 'route').map(f => f.properties.ref || f.properties.name))];
+      d.features.forEach(f => { if (f.properties.k === 'route') f.properties.c = ROUTE_COLOURS[refs.indexOf(f.properties.ref || f.properties.name) % ROUTE_COLOURS.length]; });
+      map.addSource('transit', { type: 'geojson', data: d });
+      map.addLayer({ id: 'transit-glow', type: 'line', source: 'transit', filter: ['==', ['get', 'k'], 'route'], layout: { 'line-cap': 'round' },
+                     paint: { 'line-color': ['get', 'c'], 'line-width': 12, 'line-blur': 8, 'line-opacity': 0 } }, layerBefore());
+      map.addLayer({ id: 'transit-case', type: 'line', source: 'transit', filter: ['==', ['get', 'k'], 'route'], layout: { 'line-cap': 'round', 'line-join': 'round' },
+                     paint: { 'line-color': '#fff', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 6, 18, 11], 'line-opacity': .9 } }, layerBefore());
+      map.addLayer({ id: 'transit-line', type: 'line', source: 'transit', filter: ['==', ['get', 'k'], 'route'], layout: { 'line-cap': 'round', 'line-join': 'round' },
+                     paint: { 'line-color': ['get', 'c'], 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 3.4, 18, 7] } }, layerBefore());
+      map.addLayer({ id: 'transit-stops', type: 'circle', source: 'transit', filter: ['==', ['get', 'k'], 'stop'],
+                     paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 3.5, 18, 6.5], 'circle-color': '#fff', 'circle-stroke-color': '#00308F', 'circle-stroke-width': 2.4 } }, layerBefore());
+    }
+    ['transit-glow', 'transit-case', 'transit-line', 'transit-stops'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
+    if (map.getLayer('transit-glow')) map.setPaintProperty('transit-glow', 'line-opacity', dark ? .75 : 0);
+  } else if (k === 'safe') {
+    if (LAYER.safe && !map.getSource('safe')) {
+      const d = await layerLoad('safe'); if (!d) return;
+      await layerSafeImages();
+      d.features.forEach(f => { f.properties.icon = 'safe-' + f.properties.k; });
+      map.addSource('safe', { type: 'geojson', data: d });
+      map.addLayer({ id: 'safe', type: 'symbol', source: 'safe', layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .5, 18, .8] } }, layerBefore());
+      map.on('mouseenter', 'safe', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'safe', () => { map.getCanvas().style.cursor = ''; });
+      map.on('click', 'safe', e => { const p = e.features[0].properties, kd = SAFE_KINDS[p.k]; if (!kd) return;
+        new maplibregl.Popup({ offset: 14, closeButton: false }).setLngLat(e.features[0].geometry.coordinates)
+          .setHTML('<b>' + esc(T(kd.en, kd.fil)) + '</b>' + (p.name ? '<br>' + esc(p.name) : '')).addTo(map); });
+    }
+    if (map.getLayer('safe')) map.setLayoutProperty('safe', 'visibility', vis);
+  }
+}
+function layerInfo() {
+  const box = document.getElementById('ss-lyr-info'); if (!box) return; let h = '';
+  if (LAYER.aq) {
+    const d = LAYER_DATA.aq;
+    h += !d ? '<div class="lyc">' + (LAYER_ERR.aq ? T('Air quality could not be read right now.', 'Hindi mabasa ang kalidad ng hangin ngayon.') : T('Reading the air…', 'Binabasa ang hangin…')) + '</div>' : (() => {
+      const b = aqBand(d.v), bar = Math.min(100, d.v / 300 * 100);
+      const row = (n, v, max) => '<div class="aq-r"><span>' + n + '</span><div><i style="width:' + Math.min(100, (v || 0) / max * 100).toFixed(0) + '%"></i></div><b>' + (v == null ? '–' : Math.round(v * 10) / 10) + '</b></div>';
+      return '<div class="lyc aq" style="--c:' + b[3] + '"><div class="aq-h"><b>' + d.v + '</b><span><em>' + T('Air quality', 'Kalidad ng hangin') + '</em><strong>' + esc(T(b[1], b[2])) + '</strong></span></div>' +
+        '<div class="aq-bar"><i style="left:' + bar + '%"></i></div>' + row('PM2.5', d.pm25, 35) + row('PM10', d.pm10, 100) + row('NO₂', d.no2, 100) + row('O₃', d.o3, 120) +
+        '<small>Open-Meteo · CAMS · ' + esc(String(d.time || '').replace('T', ' ')) + '</small></div>';
+    })();
+  }
+  if (LAYER.transit) {
+    const d = LAYER_DATA.transit;
+    h += !d ? '<div class="lyc">' + (LAYER_ERR.transit ? T('Transit could not be loaded from OpenStreetMap.', 'Hindi ma-load ang transit mula sa OpenStreetMap.') : T('Loading routes…', 'Nilo-load ang mga ruta…')) + '</div>' : (() => {
+      const seen = new Map(); d.features.filter(f => f.properties.k === 'route').forEach(f => { const key = f.properties.ref || f.properties.name; if (!seen.has(key)) seen.set(key, f.properties); });
+      const stops = d.features.filter(f => f.properties.k === 'stop').length, list = [...seen.values()];
+      return '<div class="lyc tr"><b>' + T('Public transport', 'Pampublikong sasakyan') + '</b>' + (list.length ? list.slice(0, 6).map(p => '<div class="tr-r"><i style="background:' + ROUTE_COLOURS[[...seen.keys()].indexOf(p.ref || p.name) % ROUTE_COLOURS.length] + '"></i><span>' + esc(p.ref || p.name) + '</span><small>' + esc(p.mode) + '</small></div>').join('') + (list.length > 6 ? '<small>+ ' + (list.length - 6) + T(' more routes', ' pang ruta') + '</small>' : '')
+        : '<small>' + T('OpenStreetMap has no routes mapped here yet.', 'Wala pang naka-map na ruta dito sa OpenStreetMap.') + '</small>') + '<small>' + stops + T(' stops · OpenStreetMap', ' hintuan · OpenStreetMap') + '</small></div>';
+    })();
+  }
+  if (LAYER.safe) {
+    const d = LAYER_DATA.safe;
+    h += !d ? '<div class="lyc">' + (LAYER_ERR.safe ? T('Safe points could not be loaded from OpenStreetMap.', 'Hindi ma-load ang mga ligtas na lugar.') : T('Finding safe points…', 'Hinahanap ang mga ligtas na lugar…')) + '</div>' : (() => {
+      const n = {}; d.features.forEach(f => { n[f.properties.k] = (n[f.properties.k] || 0) + 1; });
+      return '<div class="lyc sf"><b>' + T('Safe points', 'Mga ligtas na lugar') + '</b>' + Object.entries(SAFE_KINDS).map(([k, kd]) => '<div class="tr-r"><i class="sq" style="background:' + kd.c + '"></i><span>' + esc(T(kd.en, kd.fil)) + '</span><small>' + (n[k] || 0) + '</small></div>').join('') + '<small>OpenStreetMap</small></div>';
+    })();
+  }
+  box.innerHTML = h;
+}
+function layerSync() {
+  document.querySelectorAll('[data-lyr]').forEach(t => t.classList.toggle('on', !!LAYER[t.dataset.lyr]));
+  document.getElementById('layers-btn').classList.toggle('on', Object.values(LAYER).some(Boolean));
+  layerInfo();
+}
+(function layerInit() {
+  const sec = document.getElementById('s-spatial'), btn = document.getElementById('layers-btn'), card = document.getElementById('ss-lyr');
+  const I = p => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+  const tile = (k, label, ic) => '<button type="button" class="lyt ' + k + '" data-lyr="' + k + '"><span class="th">' + ic + '</span><b>' + label + '</b></button>';
+  card.innerHTML = '<h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><div class="lyr-grid">' +
+    tile('transit', T('Transit', 'Transit'), I('<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l1.5-4M16 21l-1.5-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>')) +
+    tile('aq', T('Air quality', 'Kalidad ng hangin'), I('<path d="M3 9c3-2 5-2 8 0s5 2 8 0M3 15c3-2 5-2 8 0s5 2 8 0"/>')) +
+    tile('safe', T('Safe points', 'Ligtas na lugar'), I('<path d="M4 12l8-7 8 7v8H4z"/><path d="M12 10v6M9 13h6"/>')) +
+    '</div><small>' + T('OpenStreetMap and Open-Meteo.', 'Mula sa OpenStreetMap at Open-Meteo.') + '</small>';
+  btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+  card.addEventListener('click', e => {
+    const t = e.target.closest('[data-lyr]'); if (!t) return; const k = t.dataset.lyr;
+    LAYER[k] = !LAYER[k]; layerSync();
+    layerDraw(k).then(() => { if (LAYER[k] && !LAYER_DATA[k]) LAYER[k] = false; layerSync(); });
+  });
+  document.addEventListener('click', e => { if (!card.hidden && !e.target.closest('#ss-lyr, #layers-btn')) { card.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
+  window.addEventListener('themechange', () => ['aq', 'transit'].forEach(k => { if (map.getLayer(k === 'aq' ? 'aq-fill' : 'transit-glow')) layerDraw(k); }));
+  // The outline arrives after the page does; the air-quality tint follows it.
+  const wait = setInterval(() => { if (rings.length) { clearInterval(wait); if (map.getSource('aq')) map.getSource('aq').setData(layerShape()); } }, 600); setTimeout(() => clearInterval(wait), 20000);
+})();
 
 // Tuning aid, off unless asked for: load spatial.php?bounds=1 and the
 // console prints the framing on every pan, ready to paste above.
