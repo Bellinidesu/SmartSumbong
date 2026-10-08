@@ -1486,13 +1486,18 @@ function layerSync() {
   const sec = document.getElementById('s-spatial'), btn = document.getElementById('layers-btn'), card = document.getElementById('ss-lyr');
   // Heatmap, Flood zones and Dim outside were switches in the title card; they are layers, so
   // they live here now, with their own pictures. The other layers get pictures too.
-  card.innerHTML = '<div class="lyr-h"><h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><span class="lyr-n" id="lyr-n" hidden></span><button type="button" class="lyr-off" id="lyr-off" hidden>' + T('Turn all off', 'Patayin lahat') + '</button></div><div class="lyr-list" id="lyr-list"></div><small>OpenStreetMap · Open-Meteo · Project NOAH</small>';
+  card.innerHTML = '<div class="lyr-list" id="lyr-list"></div><small>OpenStreetMap · Open-Meteo · Project NOAH</small>';
   const list = document.getElementById('lyr-list');
+  // Like the Maps chooser: a picture tile at the map's bottom-left, and the layers open in a row beside it.
+  btn.classList.add('lyr-tile'); btn.classList.remove('p-dock-btn');
+  btn.innerHTML = '<span class="lt-pic" aria-hidden="true"></span><span class="lt-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS.layers + '</svg>' + T('Layers', 'Layers') + '</span>';
+  sec.appendChild(btn); sec.appendChild(card);
   document.querySelectorAll('.p-map-search .map-sw').forEach(l => list.appendChild(l));
   document.querySelectorAll('.p-map-search .p-row').forEach(r => { if (!r.children.length) r.remove(); });
   // Each switch's box carries its own mark: it fills in when the layer is on. Project NOAH's is an N.
   // Project NOAH is credited at the foot of the card with the other sources, not on the tile.
   list.querySelectorAll('.map-sw--noah b').forEach(b => { const em = b.querySelector('em'); if (em) b.textContent = em.textContent.replace(/\s*[·•]\s*$/, '').trim(); });
+  list.querySelectorAll('.map-sw--dim b').forEach(b => { b.textContent = T('Dim outside', 'I-dim sa labas'); });
   // Flood zones draws its wave straight in the chip; the tile wants it inside its picture.
   list.querySelectorAll('.map-sw').forEach(l => { if (l.querySelector('.scene')) return; const sc = document.createElement('span'); sc.className = 'scene'; sc.setAttribute('aria-hidden', 'true'); l.querySelectorAll(':scope > svg').forEach(v => sc.appendChild(v)); l.insertBefore(sc, l.querySelector(':scope > i')); });
   const MARK = { heat: 'heat', noah: 'noah', dim: 'dim', transit: 'jeepney', air: 'wind', safe: 'safepoints' };

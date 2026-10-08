@@ -701,3 +701,26 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 @keyframes tiBlink { 0%, 100% { filter: none; } 20% { filter: drop-shadow(0 0 3px #fff); } }
 @media (prefers-reduced-motion: reduce) { .ss-lyr .lyr-list .map-sw.tile, .lyr-n, .ss-lyr .map-sw--noah:has(input:checked) .nl { animation: none !important; } }
 .ss-lyr::after { display: none; }
+
+/* ---- Layers like the Maps chooser: a picture tile bottom-left, the layers open in a row beside it ---- */
+.lyr-tile { position: absolute; z-index: 8; left: 16px; bottom: 46px; width: 66px; height: 66px; padding: 0; border: 2px solid #fff; border-radius: 15px; overflow: hidden; cursor: pointer; background: #0D1B33; box-shadow: 0 4px 14px rgba(0,0,0,.4); transition: transform .3s cubic-bezier(.2,1.5,.4,1), box-shadow .3s; }
+.lyr-tile:hover { transform: translateY(-2px) scale(1.04); }
+.lyr-tile:active { transform: scale(.94); }
+.lyr-tile .lt-pic { position: absolute; inset: 0; background:
+  linear-gradient(180deg, transparent 40%, rgba(5,10,28,.78)),
+  linear-gradient(32deg, transparent 46%, #3A5588 46% 49%, transparent 49%) 0 0 / 34px 34px,
+  linear-gradient(-58deg, transparent 46%, #2A4170 46% 49%, transparent 49%) 0 0 / 34px 34px,
+  linear-gradient(110deg, #16264A 30%, #0F2D3C 30% 62%, #16264A 62%); }
+.lyr-tile .lt-lbl { position: absolute; left: 0; right: 0; bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; font: 700 11px Urbanist, sans-serif; color: #fff; }
+.lyr-tile .lt-lbl svg { width: 13px; height: 13px; }
+.lyr-tile.on { box-shadow: 0 0 0 1px var(--p-orange), 0 0 18px 2px color-mix(in srgb, var(--p-orange) 70%, transparent); border-color: #fff; background: #0D1B33; color: #fff; }
+.lyr-tile[aria-expanded="true"] { border-color: var(--p-orange); }
+.ss-lyr { right: auto; left: 94px; bottom: 46px; width: auto; max-width: calc(100% - 200px); padding: 12px 16px 8px; border-radius: 22px; transform-origin: 0 100%; animation: lyOpen .3s cubic-bezier(.2,1.2,.3,1) both; }
+@keyframes lyOpen { from { opacity: 0; transform: translateX(-14px) scale(.92); } to { opacity: 1; transform: none; } }
+.ss-lyr .lyr-list { grid-template-columns: repeat(6, 78px); gap: 0 6px; }
+.ss-lyr > small { margin-top: 8px; padding-top: 7px; text-align: left; font-size: 10.5px; }
+.ss-lyr::before, .ss-lyr::after { display: none; }
+#s-spatial .p-map-legend { left: 96px; }
+.maplibregl-ctrl-bottom-left { left: 0; bottom: 0; }
+@media (max-width: 900px) { .ss-lyr .lyr-list { grid-template-columns: repeat(3, 78px); gap: 14px 6px; } .ss-lyr { bottom: 120px; left: 16px; } }
+@media (prefers-reduced-motion: reduce) { .ss-lyr { animation: none; } }
