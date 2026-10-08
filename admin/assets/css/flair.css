@@ -528,3 +528,43 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 #s-spatial .maplibregl-ctrl-group button .maplibregl-ctrl-icon::after { content: ""; position: absolute; inset: 0; margin: auto; width: 20px; height: 20px; background: currentColor; -webkit-mask: var(--zi) center / contain no-repeat; mask: var(--zi) center / contain no-repeat; }
 #s-spatial .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon { --zi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E"); }
 #s-spatial .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon { --zi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E"); }
+
+/* ---- Layers: every layer is a switch with its own picture ---- */
+.ss-lyr { width: 304px; }
+.lyr-list { display: grid; gap: 8px; }
+.ss-lyr .map-sw { width: 100%; height: 42px; border-radius: 10px; font-size: 14px; }
+.ss-lyr .map-sw--noah b em { opacity: .85; }
+.ss-lyr-info { top: 126px; }
+/* Transit: routes march along when it is on */
+.map-sw--transit { background: #26356F; --tick: #26356F; }
+.map-sw--transit .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-sw--transit path { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 9 6; opacity: .35; transition: opacity .4s; }
+.map-sw--transit .r1 { stroke: #FF8A3D; } .map-sw--transit .r2 { stroke: #8DB2FF; } .map-sw--transit .r3 { stroke: #5FD68A; }
+.map-sw--transit circle { fill: #fff; opacity: .4; transition: opacity .4s; }
+.map-sw--transit:has(input:checked) path { opacity: 1; animation: swMarch 1.1s linear infinite; }
+.map-sw--transit:has(input:checked) circle { opacity: 1; }
+/* Air quality: a green haze that drifts, with specks in it */
+.map-sw--air { background: #2A4A45; --tick: #2A6B55; }
+.map-sw--air .scene span { position: absolute; border-radius: 50%; filter: blur(8px); transform: scale(.3); opacity: .5; transition: transform .6s cubic-bezier(.4,1.3,.5,1), opacity .4s; }
+.map-sw--air .scene span:nth-child(1) { width: 70px; height: 50px; left: 0; top: 30%; background: #34C759; }
+.map-sw--air .scene span:nth-child(2) { width: 60px; height: 46px; left: 32%; top: 10%; background: #F9C74F; }
+.map-sw--air .scene span:nth-child(3) { width: 66px; height: 50px; left: 58%; top: 40%; background: #43AA8B; }
+.map-sw--air .scene span:nth-child(4) { width: 50px; height: 40px; left: 82%; top: 0; background: #8DD6C0; }
+.map-sw--air .scene i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0; }
+.map-sw--air .scene i:nth-of-type(1) { left: 12%; top: 60%; } .map-sw--air .scene i:nth-of-type(2) { left: 30%; top: 25%; } .map-sw--air .scene i:nth-of-type(3) { left: 52%; top: 70%; } .map-sw--air .scene i:nth-of-type(4) { left: 70%; top: 30%; } .map-sw--air .scene i:nth-of-type(5) { left: 88%; top: 65%; }
+.map-sw--air:has(input:checked) .scene span { transform: scale(1); opacity: .9; animation: swHaze 5s ease-in-out infinite alternate; }
+.map-sw--air:has(input:checked) .scene span:nth-child(2) { animation-delay: .8s; } .map-sw--air:has(input:checked) .scene span:nth-child(3) { animation-delay: 1.6s; }
+.map-sw--air:has(input:checked) .scene i { animation: swSpeck 3s linear infinite; }
+.map-sw--air:has(input:checked) .scene i:nth-of-type(2) { animation-delay: .6s; } .map-sw--air:has(input:checked) .scene i:nth-of-type(3) { animation-delay: 1.2s; } .map-sw--air:has(input:checked) .scene i:nth-of-type(4) { animation-delay: 1.8s; } .map-sw--air:has(input:checked) .scene i:nth-of-type(5) { animation-delay: 2.3s; }
+@keyframes swHaze { to { transform: translate(14px, -4px) scale(1.15); } }
+@keyframes swSpeck { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: .9; } 100% { opacity: 0; transform: translate(10px, -10px); } }
+/* Safe points: rings go out from the badge */
+.map-sw--safe { background: #1D4A3A; --tick: #1D6B50; }
+.map-sw--safe .scene span { position: absolute; left: 38px; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 2px solid #5FD68A; opacity: 0; transform: scale(.3); }
+.map-sw--safe .scene svg { position: absolute; right: 12px; top: 50%; width: 22px; height: 22px; margin-top: -11px; opacity: .55; transition: opacity .4s, transform .5s cubic-bezier(.2,1.6,.4,1); }
+.map-sw--safe:has(input:checked) .scene svg { opacity: 1; transform: scale(1.12); }
+.map-sw--safe:has(input:checked) .scene span { animation: swRing 2.4s ease-out infinite; }
+.map-sw--safe:has(input:checked) .scene span:nth-child(2) { animation-delay: .8s; } .map-sw--safe:has(input:checked) .scene span:nth-child(3) { animation-delay: 1.6s; }
+@keyframes swRing { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(2.6); } }
+@media (prefers-reduced-motion: reduce) { .map-sw--transit path, .map-sw--air .scene span, .map-sw--air .scene i, .map-sw--safe .scene span { animation: none !important; } }
+.map-sw--transit path { stroke-width: 2.2; } .map-sw--transit:has(input:checked) path { opacity: .85; } .map-sw--transit b, .map-sw--safe b, .map-sw--air b { text-shadow: 0 1px 3px rgba(0,0,0,.55); }

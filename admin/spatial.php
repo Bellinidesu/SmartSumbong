@@ -1475,23 +1475,29 @@ function layerInfo() {
   box.innerHTML = h;
 }
 function layerSync() {
-  document.querySelectorAll('[data-lyr]').forEach(t => t.classList.toggle('on', !!LAYER[t.dataset.lyr]));
-  document.getElementById('layers-btn').classList.toggle('on', Object.values(LAYER).some(Boolean));
+  Object.keys(LAYER).forEach(k => { const c = document.getElementById('lyr-' + k); if (c) c.checked = !!LAYER[k]; });
+  const on = Object.values(LAYER).some(Boolean) || ['f-heat', 'f-flood'].some(id => { const c = document.getElementById(id); return c && c.checked; });
+  document.getElementById('layers-btn').classList.toggle('on', on);
   layerInfo();
 }
 (function layerInit() {
   const sec = document.getElementById('s-spatial'), btn = document.getElementById('layers-btn'), card = document.getElementById('ss-lyr');
-  const I = p => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
-  const tile = (k, label, ic) => '<button type="button" class="lyt ' + k + '" data-lyr="' + k + '"><span class="th">' + ic + '</span><b>' + label + '</b></button>';
-  card.innerHTML = '<h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><div class="lyr-grid">' +
-    tile('transit', T('Transit', 'Transit'), I(SD_ICONS.jeepney)) +
-    tile('aq', T('Air quality', 'Kalidad ng hangin'), I(SD_ICONS.wind)) +
-    tile('safe', T('Safe points', 'Ligtas na lugar'), I(SD_ICONS.safepoints)) +
-    '</div><small>' + T('OpenStreetMap and Open-Meteo.', 'Mula sa OpenStreetMap at Open-Meteo.') + '</small>';
+  // Heatmap, Flood zones and Dim outside were switches in the title card; they are layers, so
+  // they live here now, with their own pictures. The other layers get pictures too.
+  card.innerHTML = '<h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><div class="lyr-list" id="lyr-list"></div><small>' + T('OpenStreetMap and Open-Meteo.', 'Mula sa OpenStreetMap at Open-Meteo.') + '</small>';
+  const list = document.getElementById('lyr-list');
+  document.querySelectorAll('.p-map-search .map-sw').forEach(l => list.appendChild(l));
+  document.querySelectorAll('.p-map-search .p-row').forEach(r => { if (!r.children.length) r.remove(); });
+  const sw = (k, cls, label, scene) => '<label class="map-sw map-sw--' + cls + '"><input type="checkbox" id="lyr-' + k + '"><span class="scene" aria-hidden="true">' + scene + '</span><i aria-hidden="true"></i><b>' + label + '</b></label>';
+  list.insertAdjacentHTML('beforeend',
+    sw('transit', 'transit', T('Transit', 'Transit') + ' <em>· ' + T('jeepney, bus', 'jeep, bus') + '</em>',
+      '<svg viewBox="0 0 180 36" preserveAspectRatio="none"><path class="r1" d="M-4 26 C30 8 60 30 96 16 S150 6 186 18"/><path class="r2" d="M-4 10 C34 28 70 4 110 22 S160 28 186 8"/><path class="r3" d="M20 40 C44 24 78 18 100 4"/><circle cx="52" cy="17" r="2.4"/><circle cx="108" cy="19" r="2.4"/><circle cx="150" cy="13" r="2.4"/></svg>') +
+    sw('aq', 'air', T('Air quality', 'Kalidad ng hangin'), '<span></span><span></span><span></span><span></span><i></i><i></i><i></i><i></i><i></i>') +
+    sw('safe', 'safe', T('Safe points', 'Ligtas na lugar'), '<span></span><span></span><span></span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + SD_ICONS.safepoints + '</svg>'));
   btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
-  card.addEventListener('click', e => {
-    const t = e.target.closest('[data-lyr]'); if (!t) return; const k = t.dataset.lyr;
-    LAYER[k] = !LAYER[k]; layerSync();
+  card.addEventListener('change', e => {
+    const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
+    LAYER[k] = e.target.checked; layerSync();
     layerDraw(k).then(() => { if (LAYER[k] && !LAYER_DATA[k]) LAYER[k] = false; layerSync(); });
   });
   document.addEventListener('click', e => { if (!card.hidden && !e.target.closest('#ss-lyr, #layers-btn')) { card.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
