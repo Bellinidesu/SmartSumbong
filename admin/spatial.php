@@ -1296,11 +1296,48 @@ async function layerDraw(k) {
         'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .5, 18, .8] } }, layerBefore());
       map.on('mouseenter', 'safe', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'safe', () => { map.getCanvas().style.cursor = ''; });
-      map.on('click', 'safe', e => { const p = e.features[0].properties, kd = SAFE_KINDS[p.k]; if (!kd) return;
-        new maplibregl.Popup({ offset: 14, closeButton: false }).setLngLat(e.features[0].geometry.coordinates)
-          .setHTML('<b>' + esc(T(kd.en, kd.fil)) + '</b>' + (p.name ? '<br>' + esc(p.name) : '')).addTo(map); });
+      map.on('click', 'safe', e => safePopup(e.features[0]));
     }
     if (map.getLayer('safe')) map.setLayoutProperty('safe', 'visibility', vis);
+  }
+}
+// A safe point, opened: what it is in its service's colour, a photo of the
+// place (the nearest Mapillary street image), where it is and its
+// coordinates, and what OpenStreetMap knows of it.
+function safePopup(f) {
+  const p = f.properties, kd = SAFE_KINDS[p.k]; if (!kd) return;
+  const [lng, lat] = f.geometry.coordinates, coord = lat.toFixed(5) + ', ' + lng.toFixed(5);
+  const row = (ic, v) => v ? '<li>' + csIcon(ic) + '<span>' + v + '</span></li>' : '';
+  const g = (kd.g || '');
+  const html = '<div class="sp-card" style="--c:' + kd.c + '">' +
+    '<div class="sp-photo" id="sp-photo"><span class="sp-ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + g + '</svg></span><i class="sp-kind">' + esc(T(kd.en, kd.fil)) + '</i></div>' +
+    '<div class="sp-body"><h3>' + esc(p.name || T(kd.en, kd.fil)) + '</h3>' +
+    '<ul>' +
+      row('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/>', esc(p.addr || T('Barangay 183, Pasay City', 'Barangay 183, Pasay City'))) +
+      row('<circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>', '<b class="sp-co">' + coord + '</b><button type="button" class="sp-copy" data-co="' + coord + '">' + T('Copy', 'Kopyahin') + '</button>') +
+      row('<path d="M6 3h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 12l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/>', esc(p.phone)) +
+      row('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', esc(p.hours)) +
+      row('<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>', p.cap ? esc(p.cap) + T(' people', ' tao') : '') +
+      row('<path d="M3 21h18M5 21V8l7-5 7 5v13"/>', esc(p.op)) +
+    '</ul>' +
+    '<div class="sp-acts"><a class="p-btn p-btn-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking">' + T('Directions', 'Direksyon') + '</a></div>' +
+    '<small>OpenStreetMap' + (p.sub ? ' · ' + esc(p.sub.replace(/_/g, ' ')) : '') + '</small></div></div>';
+  const pop = new maplibregl.Popup({ offset: 16, closeButton: true, maxWidth: '320px', className: 'ss-spop' }).setLngLat([lng, lat]).setHTML(html).addTo(map);
+  map.easeTo({ center: [lng, lat], offset: [0, 170], duration: 500 });
+  const el = pop.getElement();
+  el.querySelector('.sp-copy').addEventListener('click', ev => { try { navigator.clipboard.writeText(ev.target.dataset.co); } catch (x) { /* blocked */ } if (window.pToast) pToast(T('Copied ', 'Nakopya ') + ev.target.dataset.co); });
+  // The photo: the nearest street image Mapillary has of the place.
+  if (typeof MLY !== 'undefined' && MLY) {
+    fetch('https://graph.mapillary.com/images?' + new URLSearchParams({ access_token: MLY, limit: '300',
+      bbox: [lng - 0.0004, lat - 0.00035, lng + 0.0004, lat + 0.00035].join(','), fields: 'id,thumb_1024_url,computed_geometry,captured_at' }))
+      .then(r => r.ok ? r.json() : null).then(j => {
+        let best = null; ((j && j.data) || []).forEach(i => { const c = i.computed_geometry && i.computed_geometry.coordinates; if (!c || !i.thumb_1024_url) return;
+          const d = lkMetres({ lng, lat }, { lng: c[0], lat: c[1] }) - (Date.now() - i.captured_at) / 3.156e10 * 3; if (!best || d < best.d) best = { d, i }; });
+        const box = el.querySelector('#sp-photo'); if (!best || !box) return;
+        const img = new Image(); img.alt = ''; img.referrerPolicy = 'no-referrer';
+        img.onload = () => { box.style.backgroundImage = 'url("' + best.i.thumb_1024_url.replace(/"/g, '%22') + '")'; box.classList.add('has'); };
+        img.src = best.i.thumb_1024_url;
+      }).catch(() => {});
   }
 }
 function layerInfo() {

@@ -41,7 +41,7 @@ if ($e <= $w || $n <= $s || ($e - $w) > 0.06 || ($n - $s) > 0.06 || $w < 116 || 
     exit;
 }
 
-$cache = sys_get_temp_dir() . '/ss-layer-' . md5("$kind|$w|$s|$e|$n") . '.json';
+$cache = sys_get_temp_dir() . '/ss-layer-' . md5("v2|$kind|$w|$s|$e|$n") . '.json';
 $fresh = is_file($cache) && filemtime($cache) > time() - 7 * 86400;
 if ($fresh) {
     readfile($cache);
@@ -74,8 +74,9 @@ foreach (['https://overpass-api.de/api/interpreter', 'https://overpass.private.c
     if (is_array($data) && isset($data['elements'])) break;
 }
 if (!is_array($data) || !isset($data['elements'])) {
-    // A week-old answer beats none.
-    if (is_file($cache)) { readfile($cache); exit; }
+    // An older answer beats none (this one's, or the layout before it carried the extras).
+    $legacy = sys_get_temp_dir() . '/ss-layer-' . md5("$kind|$w|$s|$e|$n") . '.json';
+    foreach ([$cache, $legacy] as $old) { if (is_file($old)) { readfile($old); exit; } }
     http_response_code(502);
     echo json_encode(['error' => 'OpenStreetMap did not answer']);
     exit;
@@ -101,7 +102,19 @@ if ($kind === 'safe') {
         elseif ($am === 'townhall' || (($t['office'] ?? '') === 'government' && stripos($name, 'barangay') !== false)) $k = 'hall';
         elseif (in_array($am, ['school', 'community_centre', 'social_facility', 'shelter'], true)
                 || in_array($t['leisure'] ?? '', ['sports_hall', 'sports_centre'], true)) $k = 'evac';
-        if ($k) $features[] = $point($lng, $lat, ['k' => $k, 'name' => $name, 'sub' => $am ?: ($t['emergency'] ?? '')]);
+        if (!$k) continue;
+        $addr = trim(implode(' ', array_filter([$t['addr:housenumber'] ?? '', $t['addr:street'] ?? ''])));
+        $area = trim(implode(', ', array_filter([$t['addr:suburb'] ?? '', $t['addr:city'] ?? ''])));
+        $features[] = $point($lng, $lat, [
+            'k' => $k, 'name' => $name, 'sub' => $am ?: ($t['emergency'] ?? ''),
+            'addr' => trim($addr . ($addr && $area ? ', ' : '') . $area),
+            'phone' => (string) ($t['phone'] ?? $t['contact:phone'] ?? ''),
+            'hours' => (string) ($t['opening_hours'] ?? ''),
+            'cap'   => (string) ($t['capacity'] ?? ''),
+            'op'    => (string) ($t['operator'] ?? ''),
+            'web'   => preg_match('#^https?://#i', (string) ($t['website'] ?? $t['contact:website'] ?? '')) ? (string) ($t['website'] ?? $t['contact:website']) : '',
+            'speciality' => (string) ($t['healthcare:speciality'] ?? ''),
+        ]);
     }
 } else {
     $seen = [];
