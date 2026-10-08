@@ -1478,13 +1478,15 @@ function layerSync() {
   Object.keys(LAYER).forEach(k => { const c = document.getElementById('lyr-' + k); if (c) c.checked = !!LAYER[k]; });
   const on = Object.values(LAYER).some(Boolean) || ['f-heat', 'f-flood'].some(id => { const c = document.getElementById(id); return c && c.checked; });
   document.getElementById('layers-btn').classList.toggle('on', on);
+  const cnt = [...document.querySelectorAll('#lyr-list input')].filter(c => c.checked).length, nEl = document.getElementById('lyr-n'), offB = document.getElementById('lyr-off');
+  if (nEl) { nEl.hidden = !cnt; nEl.textContent = cnt + T(' on', ' bukas'); } if (offB) offB.hidden = !cnt;
   layerInfo();
 }
 (function layerInit() {
   const sec = document.getElementById('s-spatial'), btn = document.getElementById('layers-btn'), card = document.getElementById('ss-lyr');
   // Heatmap, Flood zones and Dim outside were switches in the title card; they are layers, so
   // they live here now, with their own pictures. The other layers get pictures too.
-  card.innerHTML = '<h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><div class="lyr-list" id="lyr-list"></div><small>OpenStreetMap · Open-Meteo · Project NOAH</small>';
+  card.innerHTML = '<div class="lyr-h"><h4>' + T('Map layers', 'Mga layer ng mapa') + '</h4><span class="lyr-n" id="lyr-n" hidden></span><button type="button" class="lyr-off" id="lyr-off" hidden>' + T('Turn all off', 'Patayin lahat') + '</button></div><div class="lyr-list" id="lyr-list"></div><small>OpenStreetMap · Open-Meteo · Project NOAH</small>';
   const list = document.getElementById('lyr-list');
   document.querySelectorAll('.p-map-search .map-sw').forEach(l => list.appendChild(l));
   document.querySelectorAll('.p-map-search .p-row').forEach(r => { if (!r.children.length) r.remove(); });
@@ -1509,7 +1511,7 @@ function layerSync() {
   const TI = (cls, body) => '<svg class="ti ' + cls + '" viewBox="0 0 24 24" aria-hidden="true">' + body + '</svg>';
   const TILE = {
     heat: TI('heat', '<g class="fl">' + SD_ICONS.heat + '</g>'),
-    noah: '<span class="nw"></span><span class="nl"></span>',
+    noah: '<span class="nw"></span><span class="nl"></span><span class="np"><i></i><i></i><i></i></span>',
     dim: TI('dim', '<circle cx="12" cy="12" r="9"/><path class="half" d="M12 3a9 9 0 0 0 0 18z"/>'),
     transit: TI('transit', '<g class="car"><path d="M3 16V9a2 2 0 0 1 2-2h9.5a2 2 0 0 1 1.6.8L19 11h1.2A1.8 1.8 0 0 1 22 12.8V16a1 1 0 0 1-1 1h-1M3 16a1 1 0 0 0 1 1h1M10 17h4"/><path d="M3 12h13M7 7v5M11.5 7v5"/>' +
       '<g class="wh"><circle cx="7.5" cy="17.5" r="2"/><path d="M7.5 16v3"/></g><g class="wh"><circle cx="17.5" cy="17.5" r="2"/><path d="M17.5 16v3"/></g></g><path class="road" d="M1 21.8H23"/>'),
@@ -1526,6 +1528,7 @@ function layerSync() {
     if (k === 'dim') sc.innerHTML = DIMPIC; if (k === 'transit') sc.innerHTML = ROUTEPIC;
     sc.querySelectorAll('svg.mk-ic').forEach(v => v.remove()); sc.insertAdjacentHTML('beforeend', TILE[k]); });
   btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+  card.addEventListener('click', e => { if (!e.target.closest('#lyr-off')) return; document.querySelectorAll('#lyr-list input:checked').forEach(c => c.click()); });
   card.addEventListener('change', e => {
     const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
     LAYER[k] = e.target.checked; layerSync();

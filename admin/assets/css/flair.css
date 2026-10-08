@@ -674,3 +674,30 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .ss-lyr .map-sw--transit:has(input:checked) .scene path:not(.road) { opacity: 1; animation: swMarch 1.1s linear infinite; }
 .ss-lyr .map-sw--transit:has(input:checked) .scene circle { opacity: 1; }
 .ss-lyr .map-sw--dim .edge { stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-dasharray: 5 4; }
+
+/* ---- The Layers card, built round its tiles ---- */
+.ss-lyr { width: 326px; padding: 16px 16px 12px; border-radius: 24px; border: 1px solid var(--p-line); overflow: visible; }
+:root[data-theme="dark"] .ss-lyr { background: color-mix(in srgb, var(--p-surface) 78%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.25); backdrop-filter: blur(18px) saturate(1.25); box-shadow: 0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07); }
+.ss-lyr::after { content: ""; position: absolute; right: -7px; bottom: 26px; width: 14px; height: 14px; background: inherit; border-top: 1px solid var(--p-line); border-right: 1px solid var(--p-line); transform: rotate(45deg); border-radius: 0 4px 0 0; -webkit-backdrop-filter: inherit; backdrop-filter: inherit; }
+.ss-lyr::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .5; background: url("../img/texture-contours.webp") 0 0 / 300px repeat; -webkit-mask: linear-gradient(180deg, #000, transparent 55%); mask: linear-gradient(180deg, #000, transparent 55%); mix-blend-mode: soft-light; }
+.ss-lyr > * { position: relative; }
+.lyr-h { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.lyr-h h4 { margin: 0; font: 800 17px Urbanist, sans-serif; letter-spacing: -.01em; }
+.lyr-n { font: 800 11px Inter, sans-serif; padding: 3px 9px; border-radius: 99px; background: var(--p-orange); color: #fff; animation: gmPop .35s cubic-bezier(.34,1.56,.64,1) both; }
+.lyr-off { margin-left: auto; border: 0; background: transparent; color: var(--p-link); font: 700 12px Urbanist, sans-serif; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+.lyr-off:hover { background: var(--p-surface-2); }
+.lyr-h [hidden] { display: none; }
+.ss-lyr .lyr-list { gap: 18px 8px; padding: 2px 0 4px; }
+.ss-lyr .lyr-list .map-sw.tile { animation: lyTile .45s cubic-bezier(.2,1.3,.4,1) backwards; }
+.ss-lyr .lyr-list .map-sw.tile:nth-child(2) { animation-delay: .04s; } .ss-lyr .lyr-list .map-sw.tile:nth-child(3) { animation-delay: .08s; } .ss-lyr .lyr-list .map-sw.tile:nth-child(4) { animation-delay: .12s; } .ss-lyr .lyr-list .map-sw.tile:nth-child(5) { animation-delay: .16s; } .ss-lyr .lyr-list .map-sw.tile:nth-child(6) { animation-delay: .2s; }
+@keyframes lyTile { from { opacity: 0; transform: translateY(10px) scale(.9); } to { opacity: 1; transform: none; } }
+.ss-lyr .lyr-list .map-sw.tile b { font-size: 12.5px; }
+.ss-lyr > small { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--p-line); text-align: center; letter-spacing: .02em; }
+.ss-lyr-info { top: 126px; }
+/* Project NOAH: the signal on the A pings */
+.ss-lyr .np { left: 65%; top: 29%; }
+.ss-lyr .np i { left: -6px; top: -6px; width: 12px; height: 12px; border-width: 1.4px; }
+.ss-lyr .map-sw--noah:has(input:checked) .nl { animation: tiBlink 1.8s ease-in-out infinite; }
+@keyframes tiBlink { 0%, 100% { filter: none; } 20% { filter: drop-shadow(0 0 3px #fff); } }
+@media (prefers-reduced-motion: reduce) { .ss-lyr .lyr-list .map-sw.tile, .lyr-n, .ss-lyr .map-sw--noah:has(input:checked) .nl { animation: none !important; } }
+.ss-lyr::after { display: none; }
