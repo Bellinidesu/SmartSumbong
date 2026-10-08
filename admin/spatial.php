@@ -1498,28 +1498,36 @@ function layerSync() {
     l.classList.add('has-ic'); l.querySelector('.scene').insertAdjacentHTML('beforeend', '<svg class="mk-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS[MARK[m[1]]] + '</svg>'); });
   const sw = (k, cls, label, scene) => '<label class="map-sw map-sw--' + cls + '"><input type="checkbox" id="lyr-' + k + '"><span class="scene" aria-hidden="true">' + scene + '</span><i aria-hidden="true"></i><b>' + label + '</b></label>';
   list.insertAdjacentHTML('beforeend',
-    sw('transit', 'transit', T('Transit', 'Transit') + '',
+    sw('transit', 'transit', T('Transit', 'Transit') + ' <em>' + T('jeepney, bus', 'jeep, bus') + '</em>',
       '<svg viewBox="0 0 180 36" preserveAspectRatio="none"><path class="r1" d="M-4 26 C30 8 60 30 96 16 S150 6 186 18"/><path class="r2" d="M-4 10 C34 28 70 4 110 22 S160 28 186 8"/><path class="r3" d="M20 40 C44 24 78 18 100 4"/><circle cx="52" cy="17" r="2.4"/><circle cx="108" cy="19" r="2.4"/><circle cx="150" cy="13" r="2.4"/></svg>') +
     sw('aq', 'air', T('Air quality', 'Kalidad ng hangin'), '<span></span><span></span><span></span><span></span><i></i><i></i><i></i><i></i><i></i>') +
     sw('safe', 'safe', T('Safe points', 'Ligtas na lugar'), '<span></span><span></span><span></span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + SD_ICONS.safepoints + '</svg>'));
   list.querySelectorAll('.map-sw:not(.has-ic)').forEach(l => { const m = /map-sw--(\w+)/.exec(l.className), box = l.querySelector(':scope > i'); if (!m || !box || !MARK[m[1]]) return;
     l.classList.add('has-ic'); l.querySelector('.scene').insertAdjacentHTML('beforeend', '<svg class="mk-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS[MARK[m[1]]] + '</svg>'); });
-  // Each layer is a small square: its picture, its icon centred with no frame. The icons move
-  // and fill in when the layer is on.
-  const TI = (cls, body) => '<svg class="ti ' + cls + '" viewBox="0 0 24 24" aria-hidden="true">' + body + '</svg>';
-  const TILE = {
+  // The icons move and fill in when their layer is on; the pictures stay as they were, except
+  // Dim's, redrawn to the tile's own proportions, and Flood zones', which is the NOAH logo.
+  const TI = (cls, body) => '<svg class="mk-ic ti ' + cls + '" viewBox="0 0 24 24" aria-hidden="true">' + body + '</svg>';
+  const ICON = {
     heat: TI('heat', '<g class="fl">' + SD_ICONS.heat + '</g>'),
-    noah: '<span class="np"><i></i><i></i><i></i></span>',
-    dim: '<svg class="fog" viewBox="0 0 54 54" aria-hidden="true"><path class="out" d="M0 0H54V54H0Z M14 10 L40 8 L48 22 L38 42 L20 44 L9 30Z" fill-rule="evenodd"/><path class="edge" d="M14 10 L40 8 L48 22 L38 42 L20 44 L9 30Z"/></svg>' +
-      TI('dim', '<circle cx="12" cy="12" r="9"/><path class="half" d="M12 3a9 9 0 0 0 0 18z"/>'),
+    dim: TI('dim', '<circle cx="12" cy="12" r="9"/><path class="half" d="M12 3a9 9 0 0 0 0 18z"/>'),
     transit: TI('transit', '<g class="car"><path d="M3 16V9a2 2 0 0 1 2-2h9.5a2 2 0 0 1 1.6.8L19 11h1.2A1.8 1.8 0 0 1 22 12.8V16a1 1 0 0 1-1 1h-1M3 16a1 1 0 0 0 1 1h1M10 17h4"/><path d="M3 12h13M7 7v5M11.5 7v5"/>' +
-      '<g class="wh w1"><circle cx="7.5" cy="17.5" r="2"/><path d="M7.5 16v3"/></g><g class="wh w2"><circle cx="17.5" cy="17.5" r="2"/><path d="M17.5 16v3"/></g></g><path class="road" d="M1 21.8H23"/>'),
-    aq: TI('air', '<path class="a1" d="M3 8h9a3 3 0 1 0-3-3"/><path class="a2" d="M3 12.5h15a3 3 0 1 1-3 3"/><path class="a3" d="M3 17h6a2.5 2.5 0 1 1-2.5 2.5"/>'),
+      '<g class="wh"><circle cx="7.5" cy="17.5" r="2"/><path d="M7.5 16v3"/></g><g class="wh"><circle cx="17.5" cy="17.5" r="2"/><path d="M17.5 16v3"/></g></g><path class="road" d="M1 21.8H23"/>'),
+    air: TI('air', '<path class="a1" d="M3 8h9a3 3 0 1 0-3-3"/><path class="a2" d="M3 12.5h15a3 3 0 1 1-3 3"/><path class="a3" d="M3 17h6a2.5 2.5 0 1 1-2.5 2.5"/>'),
     safe: TI('safe', '<mask id="sf-m"><rect width="24" height="24" fill="#fff"/><path d="M12 8.6v6.8M8.6 12h6.8" stroke="#000" stroke-width="2.4" stroke-linecap="round"/></mask>' +
       '<path class="sh" mask="url(#sf-m)" d="M12 3 5 6v5.5c0 4.3 2.9 7.7 7 9.5 4.1-1.8 7-5.2 7-9.5V6z"/><path class="pl" d="M12 8.6v6.8M8.6 12h6.8"/>'),
   };
-  list.querySelectorAll('.map-sw').forEach(l => { const m = /map-sw--(\w+)/.exec(l.className), sc = l.querySelector('.scene'); const k = m && (m[1] === 'air' ? 'aq' : m[1]);
-    if (!sc || !TILE[k]) return; l.classList.add('tile'); sc.innerHTML = TILE[k]; });
+  const WAVE = 'M-100 52C-87.5 44 -62.5 60 -50 52S-12.5 44 0 52 37.5 60 50 52 87.5 44 100 52 137.5 60 150 52 187.5 44 200 52V100H-100Z';
+  const NOAH = '<svg class="noah" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="100" height="100" fill="#333436"/>' +
+    '<g class="wv"><path d="' + WAVE + '" fill="#1A73E8"/><path d="' + WAVE.replace(/V100H-100Z$/, '') + '" fill="none" stroke="#fff" stroke-width="2.6"/></g>' +
+    '<g fill="none" stroke="#fff" stroke-width="5.2" stroke-linejoin="miter"><path d="M9 64V36L25 64V36"/><ellipse cx="41" cy="50" rx="8" ry="14"/><path d="M54 64L64 38 74 64"/><path d="M82 36V64M94 36V64M82 50H94"/></g>' +
+    '<g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M64 25V37"/><path d="M59.3 19.8A7 7 0 0 0 59.3 30.2M68.7 19.8A7 7 0 0 1 68.7 30.2M56 16.1A12 12 0 0 0 56 33.9M72 16.1A12 12 0 0 1 72 33.9M52.6 12.4A17 17 0 0 0 52.6 37.6M75.4 12.4A17 17 0 0 1 75.4 37.6"/></g></svg>';
+  const DIM = '<svg viewBox="0 0 100 86" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path class="dim" fill-rule="evenodd" d="M0 0H100V86H0Z M26 18L72 14 86 38 70 70 36 72 18 50Z"/><path class="edge" d="M26 18L72 14 86 38 70 70 36 72 18 50Z"/></svg>';
+  list.querySelectorAll('.map-sw').forEach(l => { const m = /map-sw--(\w+)/.exec(l.className), sc = l.querySelector('.scene'); if (!m || !sc) return;
+    const k = m[1];
+    if (k === 'noah') { sc.innerHTML = NOAH; return; }
+    if (k === 'dim') sc.innerHTML = DIM;
+    sc.querySelectorAll('svg.mk-ic').forEach(v => v.remove());
+    if (ICON[k]) sc.insertAdjacentHTML('beforeend', ICON[k]); });
   btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
   card.addEventListener('change', e => {
     const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
