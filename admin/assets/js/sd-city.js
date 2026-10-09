@@ -7,6 +7,8 @@
 //                      windows (lit at night), pitched roofs in the colours this neighbourhood's roofs have
 //   shadows            baked ahead of time into one picture of the ground (docs/map-data/bake_shadows.py): what each
 //                      building and tree throws, and the dark at the foot of a wall and down a lane; free while the map moves
+//   wall faces         a thin plate over every wall face painted with its own baked light (docs/map-data/bake_detail.py): sun and
+//                      sky by day, the warmth of the nearest street lamps by night
 //   trees              the 93 OpenStreetMap has mapped, and rounded ones planted in the parks and the golf course
 //   road detail        zebra crossings (all 125 OpenStreetMap has) and dashed lane lines
 //   places             small coloured dots for shops, food, clinics and schools
@@ -79,6 +81,8 @@
   // houses in a set of pastels (one for each, from where it stands), towers in neutrals; at night a house with its lights on adds warmth
   const wallPlain = p => shaded(i => ['case', ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
+  const faceColour = p => shaded(i => ['case', ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+    ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', p.glow[i], ['+', ['*', ['coalesce', ['get', 'g'], 0], .55], ['*', ['coalesce', ['get', 'w'], 0], 1.8]]]);
   const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey, p.trim];
   const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
   const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
@@ -123,6 +127,29 @@
   ];
   const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
   const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) { const ax = ring[i], ay = ring[i + 1], bx = ring[j], by = ring[j + 1]; if ((ay > pt[1]) !== (by > pt[1]) && pt[0] < (bx - ax) * (pt[1] - ay) / (by - ay) + ax) c = !c; } return c; };
+  // A thin plate over each wall face (outside it by a hand's width), in two bands: the foot, and the rest of the wall. Its colour is the
+  // house's plain colour times the tone baked for that face; the lamp light baked for it is added warm at night.
+  const dig = ch => '0123456789abcdefghijklmnopqrstuvwxyz'.indexOf(ch);
+  function facePlates(d, faces) {
+    const out = [], low = faces.lowBand || 4.5;
+    d.b.forEach((b, idx) => {
+      const row = faces.f[idx]; if (!row || b[1] < 2) return;
+      if (b._lm) return;
+      const ring = b[0], k = ring.length / 2, h = b[1], tone = row[0].split('|'), lamp = row[1].split('|');
+      if (tone[0].length !== k) return;
+      let area = 0; for (let i = 0; i < k; i++) { const j = (i + 1) % k; area += ring[2 * i] * MX * ring[2 * j + 1] * MY - ring[2 * j] * MX * ring[2 * i + 1] * MY; }
+      const sg = area > 0 ? 1 : -1, wi = Math.min(7, Math.floor(hit01(b[4], b[5]) * 8)), g = b[12] || 0;
+      for (let i = 0; i < k; i++) {
+        const j = (i + 1) % k, x0 = ring[2 * i] * MX, y0 = ring[2 * i + 1] * MY, x1 = ring[2 * j] * MX, y1 = ring[2 * j + 1] * MY, dx = x1 - x0, dy = y1 - y0, ln = Math.hypot(dx, dy);
+        if (ln < 1.4) continue;
+        const nx = sg * dy / ln * .15, ny = -sg * dx / ln * .15, ox = nx * .15 / .15 * .1, oy = ny * .1;
+        const quad = [[x0 + ox, y0 + oy], [x1 + ox, y1 + oy], [x1 + nx + ox, y1 + ny + oy], [x0 + nx + ox, y0 + ny + oy], [x0 + ox, y0 + oy]].map(([a, c]) => [a / MX, c / MY]);
+        const bands = h > low + 1 ? [[0, low, 0], [low, h, 1]] : [[0, h, 0]];
+        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: { b: bb, t: tt, h, wi, g, k: .62 + .38 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35 }, geometry: { type: 'Polygon', coordinates: [quad] } }));
+      }
+    });
+    return { type: 'FeatureCollection', features: out };
+  }
   function bldShapes(d, lms, lk) {
     lk = lk || LOOKS.steps;
     const sun = (lk.az === undefined ? 200 : lk.az) * Math.PI / 180, sx = Math.sin(sun), sy = Math.cos(sun);
@@ -135,7 +162,7 @@
         if (inRing(l.c, b[0])) { best = i; bd = -1; return; }
         if (bd >= 0) { const dd = Math.hypot(dx * MX, dy * MY); if (dd < bd && dd < 28) { bd = dd; best = i; } }
       });
-      if (best >= 0) spec.set(best, m[1]);
+      if (best >= 0) { spec.set(best, m[1]); d.b[best]._lm = 1; }
     });
     const box = (x0, y0, co, si, u, v, hl, hw) => [[-hl, -hw], [hl, -hw], [hl, hw], [-hl, hw], [-hl, -hw]].map(([a, b]) => [(x0 + (u + a) * co - (v + b) * si) / MX, (y0 + (u + a) * si + (v + b) * co) / MY]);
     // a pitched roof as two flat halves, one painted lit and one shaded: plain colours and one more polygon, no steps
@@ -199,7 +226,7 @@
     return [fc(walls), fc(roofs), fc(lmWalls), fc(trim)];
   }
 
-  let ready = null, on = false, TREES = [], FOG = null, BLD = null, LMS = [], BAKE = null;
+  let ready = null, on = false, TREES = [], FOG = null, FACES = null, BLD = null, LMS = [], BAKE = null;
   const ngon = (cx, cy, r, n, rot) => {   // metres to degrees at this latitude
     const out = []; for (let i = 0; i <= n; i++) { const a = rot + i / n * Math.PI * 2; out.push([cx + Math.cos(a) * r / 107500, cy + Math.sin(a) * r / 110574]); } return out;
   };
@@ -263,6 +290,7 @@
       await mapReady;
       if (typeof build3d === 'function') build3d();
       const bake = await fetch('assets/map/shadows.json').then(r => r.json()).catch(() => null);
+      const faces = bake && bake.faces ? await fetch('assets/map/' + bake.faces).then(r => r.json()).catch(() => null) : null;
       const [detail, bld, lmj] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null)));
       const lms = lmj ? lmj.features.map(f => ({ n: (f.properties && f.properties.name) || '', c: f.geometry.coordinates })).filter(x => x.n) : [];
       if (WINDOWS) addWalls();
@@ -275,7 +303,9 @@
       // the buildings: walls with windows by height, then their roofs (the map tiles' plain 3D buildings stay hidden underneath)
       if (bld && bld.b) {
         BLD = bld; LMS = lms; BAKE = bake;
+        FACES = faces;
         const [walls, roofs, lmw, trim] = bldShapes(bld, lms, look());
+        if (faces) { map.addSource('cd-faces', { type: 'geojson', data: facePlates(bld, faces) }); map.addLayer({ id: 'cd-face', type: 'fill-extrusion', source: 'cd-faces', minzoom: 16.2, layout: hide, paint: { 'fill-extrusion-color': faceColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d'); }
         map.addSource('cd-bld', { type: 'geojson', data: walls }); map.addSource('cd-roofs', { type: 'geojson', data: roofs }); map.addSource('cd-lm', { type: 'geojson', data: lmw }); map.addSource('cd-trim', { type: 'geojson', data: trim });
         const wall = (id, k, flt) => map.addLayer({ id, type: 'fill-extrusion', source: 'cd-bld', minzoom: 15, filter: flt, layout: hide,
           paint: { 'fill-extrusion-pattern': wallName(k), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
@@ -299,7 +329,7 @@
       // the light, baked: a pool under every lamp and a spill from lit windows (night), a warm bounce beside sunlit walls (day)
       if (bake && bake.bounds && bake.glow) {
         const [bw, bs, be, bn] = bake.bounds, co = [[bw, bn], [be, bn], [be, bs], [bw, bs]];
-        map.addSource('cd-glow', { type: 'image', url: 'assets/map/' + bake.glow, coordinates: co });
+        map.addSource('cd-glow', { type: 'image', url: 'assets/map/' + (bake.glowRt || bake.glow), coordinates: co });
         map.addLayer({ id: 'cd-glow', type: 'raster', source: 'cd-glow', minzoom: 15, layout: hide, paint: { 'raster-opacity': 1, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
         map.addSource('cd-bounce', { type: 'image', url: 'assets/map/' + bake.bounce, coordinates: co });
         map.addLayer({ id: 'cd-bounce', type: 'raster', source: 'cd-bounce', minzoom: 15, layout: hide, paint: { 'raster-opacity': .8, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
@@ -358,12 +388,12 @@
       }
     })());
   }
-  const LAYERS = ['cd-bake', 'cd-bake-u', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
+  const LAYERS = ['cd-face', 'cd-bake', 'cd-bake-u', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
   const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
   function paint() {
     const p = pal();
     CLASSES.forEach(k => set('cd-w-' + k, 'fill-extrusion-pattern', wallName(k)));
-    set('cd-wall', 'fill-extrusion-color', wallPlain(p)); set('cd-roof', 'fill-extrusion-color', roofColour(p)); set('cd-lm-wall', 'fill-extrusion-color', wallKey(p)); set('cd-lm-trim', 'fill-extrusion-color', trimColour(p));
+    set('cd-face', 'fill-extrusion-color', faceColour(p)); set('cd-wall', 'fill-extrusion-color', wallPlain(p)); set('cd-roof', 'fill-extrusion-color', roofColour(p)); set('cd-lm-wall', 'fill-extrusion-color', wallKey(p)); set('cd-lm-trim', 'fill-extrusion-color', trimColour(p));
     set('cd-cross', 'fill-color', p.cross[0]); set('cd-cross', 'fill-opacity', p.cross[1]);
     set('cd-lane', 'line-color', p.lane[0]); set('cd-lane', 'line-opacity', p.lane[1]);
     set('cd-canopy', 'fill-extrusion-color', canopyColour(p, 'canopy')); set('cd-canopy2', 'fill-extrusion-color', canopyColour(p, 'canopy2')); set('cd-trunk', 'fill-extrusion-color', trunkColour(p));
@@ -382,7 +412,7 @@
     // walls and the landmark walls always; roofs, models' trim and (behind the switch) window textures only at Full
     ['cd-wall', 'cd-lm-wall'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); });
     WALLS.forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });
-    ['cd-roof', 'cd-lm-trim'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });   // Light: plain boxes, no roofs, no model trim
+    ['cd-roof', 'cd-lm-trim', 'cd-face'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });   // Light: plain boxes, no roofs, no model trim
     if (has('building-3d')) {   // the map tiles' own 3D buildings are only a fallback, when the buildings file did not load
       map.setLayoutProperty('building-3d', 'visibility', on && !plain ? 'visible' : 'none');
       if (on && !plain) map.setPaintProperty('building-3d', 'fill-extrusion-color', plainWalls(pal()));
@@ -435,7 +465,7 @@
   window.sdCityLooks = () => Object.keys(LOOKS);
   async function show(want) {
     on = want; await init(); if (want !== on) return;
-    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
+    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-face', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
     detail(); fogUpdate(); lightUpdate(); clip();
     if (want) paint(); else { try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
   }
