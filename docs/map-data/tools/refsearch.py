@@ -113,7 +113,7 @@ def google(q, n):
         try:
             r = K.get_json('https://www.googleapis.com/customsearch/v1?%s' % urllib.parse.urlencode({'key': key, 'cx': cx, 'q': q, 'searchType': 'image', 'num': 10, 'start': start, 'safe': 'active', 'imgSize': 'large'}))
         except Exception as ex:
-            print('  google: %s' % str(ex)[:90])
+            print('  google: %s (Google has closed the Custom Search JSON API to new projects: use the finder, engine.py finder)' % str(ex)[:60])
             break
         for i in r.get('items', []):
             im = i.get('image', {})

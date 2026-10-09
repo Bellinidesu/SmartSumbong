@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reference finder</title>
+<style>
+:root { --bg:#0f1224; --panel:#181c35; --ink:#eceaf7; --muted:#9ba0c4; --line:#2b3050; --accent:#ff9a2e; --ok:#3fd0c9; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 "Segoe UI", system-ui, sans-serif; }
+header { position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--line); padding:12px 20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+h1 { font-size:1.05rem; margin:0; font-weight:600; }
+label { color:var(--muted); font-size:.85rem; display:grid; gap:3px; }
+input { background:#0f1224; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; min-width:280px; }
+#added { color:var(--ok); font-size:.9rem; margin-left:auto; }
+main { padding:16px 20px 60px; max-width:1400px; margin:0 auto; }
+.note { color:var(--muted); font-size:.9rem; margin:0 0 14px; max-width:80ch; }
+/* Google's own results (its widget draws them); a + on every picture puts it on the landmark's board */
+.gsc-control-cse { background:transparent !important; border:0 !important; padding:0 !important; }
+.gsc-input-box { background:#fff !important; border-radius:8px !important; }
+.gsc-result, .gsc-imageResult { background:var(--panel) !important; border:1px solid var(--line) !important; border-radius:8px !important; }
+.gs-title, .gs-title * { color:#cfd3f3 !important; }
+.gs-visibleUrl { color:var(--muted) !important; }
+.gsc-imageResult { position:relative; }
+.plus { position:absolute; top:6px; right:6px; z-index:3; border:0; border-radius:999px; background:var(--accent); color:#1b1200; font:700 .85rem "Segoe UI", sans-serif; padding:5px 11px; cursor:pointer; box-shadow:0 2px 8px #0008; }
+.plus.done { background:var(--ok); }
+.plus.bad { background:#ff7a70; }
+</style>
+<header>
+  <h1>Reference finder</h1>
+  <label>Landmark<input id="name" list="names" placeholder="Newport Mall" autocomplete="off"></label>
+  <span id="added"></span>
+</header>
+<datalist id="names"></datalist>
+<main>
+  <p class="note">Search Google below (images). Press <b>+ add</b> on a picture to put it on the board of the landmark named above: it is saved here on this computer, leads that landmark's reference board, feeds the colour suggestions, and is credited to the page it came from. It is looked at, never shipped. Then run <code>engine.py refs "&lt;landmark&gt;"</code> or the bench.</p>
+  <div class="gcse-search" data-gname="refsearch" data-enableImageSearch="true" data-defaultToImageSearch="true" data-linkTarget="_blank"></div>
+</main>
+<script>
+const CX = new URLSearchParams(location.search).get('cx') || '__CX__';
+const s = document.createElement('script'); s.async = true; s.src = 'https://cse.google.com/cse.js?cx=' + CX; document.head.appendChild(s);
+const nameEl = document.getElementById('name'), addedEl = document.getElementById('added');
+try { nameEl.value = localStorage.getItem('rf-name') || ''; } catch (e) {}
+nameEl.addEventListener('input', () => { try { localStorage.setItem('rf-name', nameEl.value); } catch (e) {} });
+fetch('/names').then(r => r.json()).then(l => { document.getElementById('names').innerHTML = l.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">').join(''); }).catch(() => {});
+let count = 0;
+function decorate() {
+  document.querySelectorAll('.gsc-imageResult:not([data-plus])').forEach(box => {
+    box.dataset.plus = '1';
+    const a = box.querySelector('a.gs-image'), img = box.querySelector('img.gs-image');
+    const title = (box.querySelector('.gs-title') || {}).textContent || '';
+    const page = (box.querySelector('.gs-visibleUrl-short, .gs-visibleUrl') || {}).textContent || '';
+    const b = document.createElement('button'); b.className = 'plus'; b.type = 'button'; b.textContent = '+ add';
+    b.onclick = async (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      const nm = nameEl.value.trim();
+      if (!nm) { nameEl.focus(); nameEl.style.borderColor = '#ff7a70'; return; }
+      nameEl.style.borderColor = '';
+      const full = (a && (a.getAttribute('data-ctorig') || a.href)) || '';
+      b.textContent = '…';
+      try {
+        const r = await fetch('/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: nm, url: full, thumb: img && img.src, credit: (title + ' · ' + page).trim() }) });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.status);
+        b.textContent = 'added'; b.classList.add('done'); count++; addedEl.textContent = count + ' added to ' + nm;
+      } catch (e) { b.textContent = 'failed'; b.classList.add('bad'); b.title = String(e.message || e); }
+    };
+    box.appendChild(b);
+  });
+}
+new MutationObserver(decorate).observe(document.body, { childList: true, subtree: true });
+</script>

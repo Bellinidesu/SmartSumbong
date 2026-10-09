@@ -5,6 +5,7 @@ The landmark engine, one command for everything about designing a landmark.
     engine.py find <words>        search every named building, sheet, model and reference we know (fuzzy; shows what each already has)
     engine.py status              the landmarks that have a sheet: built or not, size, references, how close the wall colour is to the street's
     engine.py refs <name>         reference search: photos, street views, models, ranked, one board         (refsearch.py)
+    engine.py finder              Google image search on a page of ours: press + on a picture to put it on a landmark's board       (finder.py)
     engine.py suggest <name>      colours, floor height, bay width and glass read off the street view         (suggest.py)
     engine.py draft <name>        a first sheet from those numbers, to edit                                    (suggest.py --draft)
     engine.py bench <name>        one landmark from four sides, day and night, beside the street view          (bench.py)
@@ -188,6 +189,8 @@ def main():
         return run('suggest.py', name, '--draft')
     if c == 'bench' and name:
         return run('bench.py', *rest)
+    if c == 'finder':
+        return run('finder.py', *rest)
     if c == 'sil':
         return run('silhouettes.py', *rest)
     if c == 'build':
