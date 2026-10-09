@@ -8,7 +8,7 @@
   'use strict';
   const ID = 'cd-models';
   const MX = 107500;
-  let grow = 0, data = null, bin = null, lightBin = null, atlas = null, emis = null, map = null, night = false;
+  let grow = 0, data = null, bin = null, lightBin = null, atlas = null, emis = null, atlas2 = null, emis2 = null, map = null, night = false;
   const gl_ = { prog: null, loc: null, vbuf: null, ibuf: null, lbuf: null, tex: null, texE: null, ready: false };
 
   const VS = `#version 300 es
@@ -20,14 +20,15 @@
     float g = dot(l, vec3(.333)); l = mix(vec3(g), l, mix(1.0, .5, u_night)) * mix(1.0, .72, u_night); v_light = l; }`;
   const FS = `#version 300 es
   precision highp float;
-  uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[256]; uniform float u_night; uniform vec3 u_wash[8];
+  uniform sampler2D u_atlas, u_emis, u_atlas2, u_emis2; uniform vec4 u_tiles[256]; uniform float u_night; uniform vec3 u_wash[8];
   in vec2 v_uv; in float v_mat; in vec3 v_alb; in vec3 v_light; in vec2 v_x;
   out vec4 o;
   void main() {
     int mi = int(v_mat + .5); vec4 t = u_tiles[mi];
     vec2 f = fract(v_uv), dx = dFdx(v_uv) * t.zw, dy = dFdy(v_uv) * t.zw, auv = t.xy + f * t.zw;
-    vec3 base = textureGrad(u_atlas, auv, dx, dy).rgb;
-    vec3 em = textureGrad(u_emis, auv, dx, dy).rgb;
+    vec3 base, em;
+    if (mi >= 100) { base = textureGrad(u_atlas2, auv, dx, dy).rgb; em = textureGrad(u_emis2, auv, dx, dy).rgb; }      // a landmark's own tile (finer atlas)
+    else { base = textureGrad(u_atlas, auv, dx, dy).rgb; em = textureGrad(u_emis, auv, dx, dy).rgb; }
     if (mi == 8) em = v_alb * .55;
     // a landmark's own colour of night light up its walls (v_x: how much, and which of the eight colours); nothing live, baked into the vertices
     int wi = int(v_x.y * 255.0 + .5); vec3 wc = u_wash[wi] * v_x.x * (.35 + .65 * dot(base, vec3(.333)));
@@ -44,7 +45,7 @@
     onAdd(m, gl) {
       const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
       const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p); gl_.prog = p;
-      const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_tiles', 'u_wash'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
+      const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_atlas2', 'u_emis2', 'u_tiles', 'u_wash'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
       ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night', 'a_x'].forEach(n => { L[n] = gl.getAttribLocation(p, n); }); gl_.loc = L;
       gl_.vbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.vbuf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes), gl.STATIC_DRAW);
       gl_.ibuf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes), gl.STATIC_DRAW);
@@ -54,6 +55,8 @@
       const tex = (img, mip) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
       gl_.tex = tex(atlas); gl_.texE = tex(emis);
+      const blank = (r) => { const c = document.createElement('canvas'); c.width = c.height = 4; const x = c.getContext('2d'); x.fillStyle = r; x.fillRect(0, 0, 4, 4); return c; };
+      gl_.tex2 = tex(atlas2 || blank('#fff')); gl_.texE2 = tex(emis2 || blank('#000'));
       gl_.tiles = new Float32Array(1024); data.tiles.forEach((r, i) => { if (r) gl_.tiles.set(r, i * 4); });
       gl_.ready = true;
     },
@@ -64,6 +67,8 @@
       gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform1f(L.u_grow, g); gl.uniform4fv(L.u_tiles, gl_.tiles); gl.uniform3fv(L.u_wash, WASH);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl_.tex); gl.uniform1i(L.u_atlas, 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gl_.texE); gl.uniform1i(L.u_emis, 1);
+      gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, gl_.tex2); gl.uniform1i(L.u_atlas2, 2);
+      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, gl_.texE2); gl.uniform1i(L.u_emis2, 3);
       gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf);
       for (const md of data.models) {
@@ -93,6 +98,7 @@
       const unzip = r => new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();   // the model files are zipped (5 times smaller to send)
       const [b, lb, a, e] = await Promise.all([fetch('assets/map/landmarks3d.bin.gz').then(unzip),
         fetch('assets/map/landmarks3d-light.bin.gz').then(r => r.ok ? unzip(r) : null).catch(() => null), img('assets/map/landmarks3d-atlas.png'), img('assets/map/landmarks3d-emis.png')]);
+      [atlas2, emis2] = await Promise.all([img('assets/map/landmarks3d-atlas2.png'), img('assets/map/landmarks3d-emis2.png')]);
       bin = new Uint8Array(b); lightBin = lb ? new Uint8Array(lb) : null; atlas = a; emis = e;
       if (!atlas || !emis) throw new Error('atlas');
       return true;
@@ -103,7 +109,7 @@
     ready,
     // for the design bench (docs/map-data/tools/bench): the shaders and the loaded data, so a landmark can be looked at on its own
     shaders: () => ({ VS, FS, WASH }),
-    raw: () => ({ data, bin, lightBin, atlas, emis }),
+    raw: () => ({ data, bin, lightBin, atlas, emis, atlas2, emis2 }),
     replaces: new Set(),
     names: () => (data ? data.models.map(m => m.name) : []),
     // add the layer under `before` (the first label); a no-op if the models did not load

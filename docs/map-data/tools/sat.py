@@ -174,6 +174,45 @@ def fit(name, src='esri'):
     return dict(name=name, east_m=round(best[1] * v.mpp, 1), north_m=round(-best[2] * v.mpp, 1), confidence=round(best[0], 2))
 
 
+def zones(name, src='esri', min_m2=60):
+    """The coloured regions of a roof as polygons (longitude, latitude): terracotta or red tile and membrane, solar panels (dark blue), planting (green), a pool (light blue).
+    Everything else (white, grey, black membrane) is the roof's own colour and is not a zone."""
+    from shapely.geometry import Polygon, shape
+    import rasterio.features
+    from affine import Affine
+    bi, b, ring = footprint(name)
+    lngs, lats = [p[0] for p in ring], [p[1] for p in ring]
+    pad = 25 / K.MX
+    v = View((min(lngs) - pad, min(lats) - pad, max(lngs) + pad, max(lats) + pad), Z, src)
+    pts = [v.px(*p) for p in ring]
+    reach = Polygon(pts).buffer(5 / v.mpp)               # the roof leans away from its footprint in the picture, up to a few metres
+    mask = Image.new('L', v.im.size, 0)
+    ImageDraw.Draw(mask).polygon(list(reach.exterior.coords), fill=255)
+    a = np.asarray(v.im, dtype=np.float32)
+    r, g, bl = a[..., 0], a[..., 1], a[..., 2]
+    lum = .299 * r + .587 * g + .114 * bl
+    m = np.asarray(mask) > 0
+    cls = np.zeros(lum.shape, np.uint8)
+    cls[(r > 80) & (r - g > 24) & (r - bl > 32) & (r - g < 110)] = 1                      # tile
+    cls[(bl > r + 14) & (lum < 125) & (bl > g + 4)] = 2                                    # solar
+    cls[(g > r + 10) & (g > bl + 6) & (lum < 160)] = 3                                     # green
+    cls[(bl > r + 35) & (lum > 135)] = 4                                                   # water
+    cls[~m] = 0
+    from scipy import ndimage
+    out = []
+    names = {1: 'tile', 2: 'solar', 3: 'green', 4: 'water'}
+    for c, nm in names.items():
+        mk = ndimage.binary_closing(ndimage.binary_opening(cls == c, iterations=2), iterations=3)
+        for geom, val in rasterio.features.shapes(mk.astype(np.uint8), mask=mk, transform=Affine.identity()):
+            pg = shape(geom).simplify(1.4)
+            area = pg.area * v.mpp ** 2
+            if area < min_m2 or pg.geom_type != 'Polygon':
+                continue
+            out.append(dict(cls=nm, m2=round(area), poly=[[round(x, 7) for x in v.ll(px, py)] for px, py in pg.exterior.coords]))
+    out.sort(key=lambda z: -z['m2'])
+    return out[:8]
+
+
 def apply(name, src='esri'):
     """Write what the satellite shows into the landmark's sheet: the roof colour (lifted and softened to our palette) and the roof plant (boxes where the objects are)."""
     import colorsys
@@ -187,9 +226,9 @@ def apply(name, src='esri'):
     sat_ = min(.25, sat_ * .8)
     hexc = '%02X%02X%02X' % tuple(int(round(c * 255)) for c in colorsys.hls_to_rgb(h, l, sat_))
     sh = json.load(open(path, encoding='utf-8'))
-    sh['roof'] = {'colour': hexc, 'from': 'satellite (%s, %.2f m a pixel)' % (src, rep['mpp']), 'plant': rep.get('objects', [])[:10]}
+    sh['roof'] = {'colour': hexc, 'from': 'satellite (%s, %.2f m a pixel)' % (src, rep['mpp']), 'plant': rep.get('objects', [])[:10], 'zones': zones(name, src)}
     json.dump(sh, open(path, 'w', encoding='utf-8'), indent=2)
-    print('%-34s roof #%s, %d plant objects' % (name, hexc, len(sh['roof']['plant'])))
+    print('%-34s roof #%s, %d plant objects, zones: %s' % (name, hexc, len(sh['roof']['plant']), ', '.join('%s %d m2' % (z['cls'], z['m2']) for z in sh['roof']['zones']) or 'none'))
 
 
 def sheet_image(name, out, src='esri'):

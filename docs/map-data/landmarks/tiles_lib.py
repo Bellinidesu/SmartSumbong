@@ -284,15 +284,74 @@ def arcade(lit, seed=29, p=.8, bays=2, lc='bright', wear=.7, **kw):
     return im
 
 
-KINDS = dict(brickbay=brickbay, arcade=arcade, loggia=loggia, curtain=curtain, band=band, stucco=stucco, board=board, terrazzo=terrazzo, stone=stone, timber=timber, shopfront=shopfront)
+def _hexmul(c, ref):
+    """A painted colour (hex) as a multiplier on the wall's albedo (ref, hex): the tile is multiplied by the vertex colour, so a colour lighter than the wall cannot be had; the sheet
+    therefore takes the lightest painted colour as its wall and everything else as a share of it."""
+    c = tuple(int(c[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    r = tuple(int(ref[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    return tuple(min(1.0, a / max(b, .05)) for a, b in zip(c, r))
 
 
-def register(slug, name, spec):
+def photo(lit, ref='FFFFFF', seed=1, bays=3, floors=3, bay_w=4.0, floor_h=3.4, win=(.14, .96, .06, .72), glass='6FA9B0', glass_hi='9FD4D6', spandrel='D9DDDD', pier='EDEDEA',
+          mull_x=0, mull_y=0, mull='E6E8E8', sky=.12, jit=.08, p=.45, lc='warm', wear=.3, blinds=.18, strip=False, **kw):
+    """A facade as measured off the street view (measure.py): bays across and floors up in one tile, each cell a pier, a window (its glass, its mullions, its blind or curtain) and a
+    spandrel; the glass differs a little from window to window and now and then holds the sky; at night some windows are lit (a whole pane, or half of it). Every number is a measurement."""
+    im = _canvas(lit, 1.0)
+    d = ImageDraw.Draw(im)
+    rnd = random.Random(seed)
+    S = INNER * SS
+    g0, g1 = _hexmul(glass, ref), _hexmul(glass_hi, ref)
+    sp, pc, mc = _hexmul(spandrel, ref), _hexmul(pier, ref), _hexmul(mull, ref)
+    col = LIT.get(lc, WARM)
+    cw, ch = S / bays, S / floors
+    x0f, x1f, y0f, y1f = win
+    for f in range(floors):
+        on = rnd.random() < min(1.0, p * 1.5)                               # a floor that is occupied lights most of its rooms; an empty one none
+        for b in range(bays):
+            X, Y = b * cw, f * ch
+            wx0, wx1, wy0, wy1 = X + x0f * cw, X + x1f * cw, Y + y0f * ch, Y + y1f * ch
+            if lit:
+                if on and rnd.random() < .72:
+                    half = rnd.random() < .3
+                    warm = tuple(a * (.88 + .12 * rnd.random()) for a in col)
+                    d.rectangle([wx0, wy0, (wx0 + wx1) / 2 if half else wx1, wy1], fill=_g(warm, .55 + .45 * rnd.random()))
+                elif rnd.random() < .08:
+                    d.rectangle([wx0, wy0, wx1, wy1], fill=_g((.30, .42, .62), .35))       # a screen or a night light left on, cold
+                continue
+            d.rectangle([X, Y, X + cw, Y + ch], fill=_g(sp))                       # the wall between the windows
+            d.rectangle([X, Y, X + x0f * cw, Y + ch], fill=_g(pc))                 # the pier
+            hi = rnd.random() < sky
+            k = 1 + jit * (rnd.random() * 2 - 1)
+            gc = tuple(a * (1 - t) + c * t for a, c, t in zip(g0, g1, [.85 if hi else rnd.random() * .35] * 3))
+            d.rectangle([wx0, wy0, wx1, wy1], fill=_g(gc, k))
+            if rnd.random() < blinds:                                              # a blind or a curtain drawn over part of the window
+                bh = (wy1 - wy0) * (.25 + .5 * rnd.random())
+                d.rectangle([wx0, wy0, wx1, wy0 + bh], fill=_g((.93, .91, .86), 1))
+            for j in range(1, mull_x + 1):
+                x = wx0 + (wx1 - wx0) * j / (mull_x + 1)
+                d.rectangle([x - .004 * S, wy0, x + .004 * S, wy1], fill=_g(mc))
+            for j in range(1, mull_y + 1):
+                y = wy0 + (wy1 - wy0) * j / (mull_y + 1)
+                d.rectangle([wx0, y - .004 * S, wx1, y + .004 * S], fill=_g(mc))
+            d.rectangle([wx0, wy0, wx1, wy0 + .006 * S], fill=_g(mc, .9))          # the head of the window
+            d.rectangle([wx0 - .004 * S, wy1, wx1 + .004 * S, wy1 + .012 * S], fill=_g(mc))   # the sill
+    if lit:
+        return im
+    return weather(im, seed, wear, 6, .08)
+
+
+KINDS = dict(photo=photo, brickbay=brickbay, arcade=arcade, loggia=loggia, curtain=curtain, band=band, stucco=stucco, board=board, terrazzo=terrazzo, stone=stone, timber=timber, shopfront=shopfront)
+
+
+def register(slug, name, spec, ref='FFFFFF'):
     """Register one tile of a sheet with the atlas and the mesh library; returns the material name."""
     import meshlib
     kind = spec['kind']
     fn = KINDS[kind]
     kw = {k: v for k, v in spec.items() if k not in ('kind', 'm', 'fit', 'graded')}
+    if kind == 'photo':
+        kw['ref'] = ref
+        kw.setdefault('bay_w', spec['m'][0] / kw.get('bays', 3))
     full = '%s/%s' % (slug, name)
     tid = atlas.register_custom(full, lambda: fn(False, **kw), lambda: fn(True, **kw))
     meshlib.register_material(full, tid, tuple(spec.get('m', (6.4, 3.4))), bool(spec.get('fit', False)), bool(spec.get('graded', False)))

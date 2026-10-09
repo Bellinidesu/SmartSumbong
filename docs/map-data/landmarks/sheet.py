@@ -52,7 +52,8 @@ class Sheets:
                 for t in sh.get('tiles', {}).values():
                     if 'p' in t and not t.get('p_fixed'):
                         t['p'] = round(float(lit) * float(t.get('p_scale', 1.0)), 3)
-            sh['mats'] = {n: tiles_lib.register(sh['slug'], n, t) for n, t in sh.get('tiles', {}).items()}
+            ref = (sh.get('palette') or {}).get('wall', 'FFFFFF')
+            sh['mats'] = {n: tiles_lib.register(sh['slug'], n, t, ref) for n, t in sh.get('tiles', {}).items()}
             self.items.append(sh)
 
     def find(self, name, idx=None):
@@ -90,7 +91,8 @@ def front_edge(ring, others):
 
 
 def build(m, ring, ctx, sh, h, name):
-    """Build the landmark described by sheet sh on the footprint ring (local metres, any winding) of height h; returns what the model entry should carry."""
+    """Build the landmark described by sheet sh on the footprint ring (local metres, any winding) of height h (the sheet's own height wins: measured off the photographs); returns what the model entry should carry."""
+    h = float(sh.get('height', h))
     ring = _ccw(ring)
     pal = sh.get('palette', {})
     wall = _hex(pal.get('wall', 'F1E6D2'))
@@ -117,6 +119,7 @@ def build(m, ring, ctx, sh, h, name):
     m.prism(list(poly.exterior.coords)[:-1], h - .7, h + .45, 'plain', trim, 'roofdeck', roof_col, top=True, cell=4)
     MXm, MYm = 111320 * math.cos(math.radians(14.525)), 110574
     inside = Polygon(ring).buffer(-1.5)
+    hips = _roof_zones(m, ctx, ring, roof.get('zones', []), h)
     for o in roof.get('plant', [])[:10]:                                                # the plant on the roof, where the satellite sees it
         x, y = (o['lng'] - ctx['lng']) * MXm, (o['lat'] - ctx['lat']) * MYm
         if inside.is_empty or not inside.contains(Point(x, y)):
@@ -137,6 +140,8 @@ def build(m, ring, ctx, sh, h, name):
             _flag(m, F, ft, h, accent)
         elif t == 'vault':
             _vault(m, ctx, ft, h, mats)
+        elif t == 'piers':
+            _piers(m, es, ft, h, pod, trim)
     fa = sh.get('facade')
     if fa is not False:
         flags = dict(awnings=True, entrance=False, sign=False, balconies=False, ac=False, belts=False, pilasters=False)
@@ -201,6 +206,73 @@ def _roof_sign(m, F, ft, h, name, accent):
         m.box(cx, cy + 0, z0 + b, w + .3, .12, .12, F['th'], g, C['white'], g, C['white'], True, 40.0)
     for s in (-1, 1):
         m.box(cx + ux * s * (w / 2 + .1), cy + uy * s * (w / 2 + .1), z0, .12, .12, hh, F['th'], g, C['white'], g, C['white'], True, 40.0)
+
+
+ZONE_COL = dict(tile=C['rooftile'], solar=rgb('2E3A66'), green=rgb('62A072'), water=rgb('A9D4F0'), red=rgb('C9544A'))
+
+
+def _roof_zones(m, ctx, ring, zones, h):
+    """A pitched roof shows in the picture as a sunny slope (tile colour) and a shaded one (dark, or covered in solar panels): the two together are one hip. Tile and solar regions that touch
+    are merged and a hip is built over each merged region's own outline; the zones left over are laid flat on the roof."""
+    from shapely.geometry import Polygon as P
+    from shapely.ops import unary_union
+    MXm, MYm = 111320 * math.cos(math.radians(14.525)), 110574
+    loc = lambda z: P([((lng - ctx['lng']) * MXm, (lat - ctx['lat']) * MYm) for lng, lat in z['poly']]).buffer(0)
+    pitched = [loc(z) for z in zones if z['cls'] in ('tile', 'solar')]
+    hips = []
+    if any(z['cls'] == 'tile' for z in zones) and pitched:
+        merged = unary_union([g.buffer(3) for g in pitched]).buffer(-3)
+        for g in (merged.geoms if hasattr(merged, 'geoms') else [merged]):
+            has_tile = any(z['cls'] == 'tile' and loc(z).intersects(g) for z in zones)
+            if g.geom_type != 'Polygon' or g.area < 300 or not has_tile:
+                continue
+            rect = g.minimum_rotated_rectangle
+            xs, ys = rect.exterior.coords.xy
+            e0, e1 = math.hypot(xs[1] - xs[0], ys[1] - ys[0]), math.hypot(xs[2] - xs[1], ys[2] - ys[1])
+            L, W = max(e0, e1), min(e0, e1)
+            th = math.atan2(ys[1] - ys[0], xs[1] - xs[0]) if e0 >= e1 else math.atan2(ys[2] - ys[1], xs[2] - xs[1])
+            c = rect.centroid
+            m.hip(c.x, c.y, L, W, th, h + .45, min(9.0, W * .26), 'tile', ZONE_COL['tile'], over=.6, ridge=.4)
+            hips.append(rect)
+    for z in zones:
+        if z['cls'] in ('tile', 'solar') and any(r.buffer(2).contains(loc(z).centroid) for r in hips):
+            continue
+        _zone(m, ctx, ring, z, h, hips)
+    return hips
+
+
+def _zone(m, ctx, ring, z, h, hips=None):
+    from shapely.geometry import Polygon as P
+    MXm, MYm = 111320 * math.cos(math.radians(14.525)), 110574
+    pts = [((lng - ctx['lng']) * MXm, (lat - ctx['lat']) * MYm) for lng, lat in z['poly']]
+    raw = P(pts).buffer(0)
+    cls = z['cls']
+    if cls == 'solar' and hips and any(r.buffer(2).contains(raw.centroid) for r in hips):
+        return                                             # panels on a hip roof lie on its slope: not drawn flat under it
+    poly = raw.intersection(P(ring).buffer(1.0 if cls in ('tile', 'red', 'solar') else -1.5))
+    if poly.is_empty or poly.area < 25:
+        return
+    for g in (poly.geoms if hasattr(poly, 'geoms') else [poly]):
+        if g.geom_type == 'Polygon' and g.area >= 25:
+            m.cap(list(g.exterior.coords)[:-1], h + .52, MAT['roofdeck'], ZONE_COL.get(cls, C['grey']), True, 8.0)
+
+
+def _piers(m, es, ft, h, pod, trim):
+    """Vertical piers (or fins) standing proud of the wall at every bay, from the podium to the cornice: real geometry, so the light finds them."""
+    bay = float(ft.get('bay', 4.0))
+    depth, wid = float(ft.get('depth', .5)), float(ft.get('width', .55))
+    z0 = float(ft.get('from', pod))
+    z1 = h - float(ft.get('to_below', .7))
+    col = _hex(ft['colour']) if ft.get('colour') else trim
+    for e in es:
+        if not e or e['ln'] < 9 or (ft.get('street_only', True) and e['free'] < 6):
+            continue
+        n = max(1, int(e['ln'] // bay))
+        step = e['ln'] / n
+        for k in range(n + 1):
+            t = k * step
+            cx, cy = e['a'][0] + e['u'][0] * t + e['n'][0] * depth / 2, e['a'][1] + e['u'][1] * t + e['n'][1] * depth / 2
+            m.box(cx, cy, z0, wid, depth, z1 - z0, e['th'], 'plain', col, 'plain', col, True, 40.0)
 
 
 def _vault(m, ctx, ft, h, mats):

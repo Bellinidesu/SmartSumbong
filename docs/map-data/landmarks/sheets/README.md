@@ -59,3 +59,14 @@ engine.py new "Newport Mall"      refs + suggest + draft + build + bench in one 
 Search keeps a picture only when it says it was taken here (Commons categories, Openverse tags, or a street-level frame, which is here by construction) and is
 about the building; `--loose` keeps pictures that do not say where. Keys are read from `.env` (OPENVERSE_CLIENT_ID/SECRET, SKETCHFAB_TOKEN, MAPILLARY_TOKEN);
 `refsearch.py --index-mapillary` builds the street-view index of the zone once.
+
+## Reading a facade from photographs (the overdrive pass)
+
+```
+engine.py ... / measure.py "Horizon Centre" --floor 3.8     the unwrapped street-view faces with a ruler (a line every floor, a tick every metre) and the real colours: read bay, floor, window, spandrel by eye
+sat.py "Plaza 66" --apply                                     the satellite view (open tiles, no key): roof colour, roof plant, and roof zones (tile hips, solar, planting) written into the sheet
+```
+
+Tile kind `photo` draws a facade from measured numbers: `bays` x `floors` cells in a tile, `bay_w`, `floor_h`, `win` [x0, x1, y0, y1] (the window inside its cell), `glass`, `glass_hi`,
+`spandrel`, `pier`, `mull`, `mull_x`, `mull_y`, `sky`, `jit`, `p` (share of lit windows), `blinds`. Colours are absolute hex; the sheet's `palette.wall` is the lightest of them.
+The landmarks' own tiles are in a finer atlas (256 px a cell). A sheet may set `height` (measured: the eaves) and the feature `piers` (real fins or piers: `bay`, `width`, `depth`, `colour`).

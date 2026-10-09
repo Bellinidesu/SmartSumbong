@@ -10,12 +10,12 @@
 (async () => {
   const q = new URLSearchParams(location.search);
   await sdModels.ready;
-  const { data, bin, lightBin, atlas, emis } = sdModels.raw();
+  const { data, bin, lightBin, atlas, emis, atlas2, emis2 } = sdModels.raw();
   const { VS, FS, WASH } = sdModels.shaders();
   const gl = document.getElementById('c').getContext('webgl2', { antialias: true, preserveDrawingBuffer: true });
   const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
   const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
-  const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_tiles', 'u_wash'].forEach(n => { L[n] = gl.getUniformLocation(prog, n); });
+  const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_atlas2', 'u_emis2', 'u_tiles', 'u_wash'].forEach(n => { L[n] = gl.getUniformLocation(prog, n); });
   ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night', 'a_x'].forEach(n => { L[n] = gl.getAttribLocation(prog, n); });
   const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes), gl.STATIC_DRAW);
   const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes), gl.STATIC_DRAW);
@@ -23,7 +23,7 @@
   gl.bufferData(gl.ARRAY_BUFFER, lightBin && lightBin.length === data.vertices * 8 ? lightBin : new Uint8Array(data.vertices * 8).fill(204), gl.STATIC_DRAW);
   const tex = (img) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
-  const tA = tex(atlas), tE = tex(emis);
+  const tA = tex(atlas), tE = tex(emis), tA2 = tex(atlas2 || atlas), tE2 = tex(emis2 || emis);
   const tiles = new Float32Array(1024); data.tiles.forEach((r, i) => { if (r) tiles.set(r, i * 4); });
 
   const name = q.get('name') || 'Plaza 66';
@@ -62,6 +62,7 @@
   gl.useProgram(prog);
   gl.uniformMatrix4fv(L.u_m, false, new Float32Array(vp)); gl.uniform1f(L.u_night, night); gl.uniform1f(L.u_grow, 1); gl.uniform4fv(L.u_tiles, tiles); gl.uniform3fv(L.u_wash, WASH);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tA); gl.uniform1i(L.u_atlas, 0); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tE); gl.uniform1i(L.u_emis, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tA2); gl.uniform1i(L.u_atlas2, 2); gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, tE2); gl.uniform1i(L.u_emis2, 3);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bindBuffer(gl.ARRAY_BUFFER, vb);
   const base = md.voff * 24;
   gl.enableVertexAttribArray(L.a_pos); gl.vertexAttribPointer(L.a_pos, 3, gl.FLOAT, false, 24, base);

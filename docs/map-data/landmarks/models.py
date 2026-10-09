@@ -573,9 +573,11 @@ def main():
         os.remove(os.path.join(MAP, 'landmarks3d.bin'))
     # the normals, for the baker only
     np.concatenate([n for *_, n in V]).astype('<f4').tofile(os.path.join(HERE, 'work', 'normals.f32')) if V else None
-    A, E, rects = atlas.build(MAP)
+    A, E, rects, A2, E2 = atlas.build(MAP)
     A.save(os.path.join(MAP, 'landmarks3d-atlas.png'), optimize=True)
     E.save(os.path.join(MAP, 'landmarks3d-emis.png'), optimize=True)
+    A2.save(os.path.join(MAP, 'landmarks3d-atlas2.png'), optimize=True)       # the landmarks' own tiles, finer (tile ids from 100)
+    E2.save(os.path.join(MAP, 'landmarks3d-emis2.png'), optimize=True)
     meta = {'about': 'Landmark models drawn by docs/map-data/landmarks/models.py. Vertex: float32 x y z (metres, east north up from the model origin), float32 u v (tile units), uint8 material, uint8 r g b (albedo); 24 bytes. Then uint32 triangle indices, per model offset by voff.',
             'vertexBytes': 24, 'vertices': voff, 'indices': ioff, 'indexOffsetBytes': voff * 24, 'tiles': rects, 'models': models}
     json.dump(meta, open(os.path.join(MAP, 'landmarks3d.json'), 'w'), separators=(',', ':'))

@@ -365,15 +365,20 @@ def tile_sign_text(text, lit):
     return im.resize((INNER * SS, INNER * SS), Image.LANCZOS)
 
 
-def periodic(im):
+def periodic(im, inner=None, cell=None):
     """A cell: the tile in its middle, and the tile again all round it."""
-    im = im.resize((INNER, INNER), Image.LANCZOS)
-    big = Image.new('RGB', (INNER * 3, INNER * 3))
+    inner, cell = inner or INNER, cell or CELL
+    im = im.resize((inner, inner), Image.LANCZOS)
+    big = Image.new('RGB', (inner * 3, inner * 3))
     for i in range(3):
         for j in range(3):
-            big.paste(im, (i * INNER, j * INNER))
-    o = INNER - (CELL - INNER) // 2
-    return big.crop((o, o, o + CELL, o + CELL))
+            big.paste(im, (i * inner, j * inner))
+    o = inner - (cell - inner) // 2
+    return big.crop((o, o, o + cell, o + cell))
+
+
+# The landmarks' own tiles live in a finer atlas: 8 x 8 cells of 256 px (the tile 224), 64 tiles of their own, drawn at 448 and reduced (2 x supersampled).
+HERO_GRID, HERO_CELL, HERO_INNER = 8, 256, 224
 
 
 GRID = 16
@@ -411,10 +416,18 @@ def build(outdir):
     for k, c in enumerate(GLOWS):
         put(GLOW_BASE + k, tile_glow(False, c), tile_glow(True, c))
     put(84, tile_apron(False), tile_apron(True))
+    A2 = Image.new('RGBA', (HERO_CELL * HERO_GRID, HERO_CELL * HERO_GRID), (255, 255, 255, 255))
+    E2 = Image.new('RGBA', (HERO_CELL * HERO_GRID, HERO_CELL * HERO_GRID), (0, 0, 0, 255))
+    pad2 = (HERO_CELL - HERO_INNER) / 2 / (HERO_CELL * HERO_GRID)
+    if len(CUSTOM) > HERO_GRID * HERO_GRID:
+        raise SystemExit('too many own tiles for the fine atlas (%d, at most %d)' % (len(CUSTOM), HERO_GRID * HERO_GRID))
     for i, (n, day, night) in enumerate(CUSTOM):
-        put(CUSTOM_BASE + i, day(), night())
+        col, row = i % HERO_GRID, i // HERO_GRID
+        A2.paste(periodic(day(), HERO_INNER, HERO_CELL).convert('RGBA'), (col * HERO_CELL, row * HERO_CELL))
+        E2.paste(periodic(night(), HERO_INNER, HERO_CELL).convert('RGBA'), (col * HERO_CELL, row * HERO_CELL))
+        rects[CUSTOM_BASE + i] = [col / HERO_GRID + pad2, row / HERO_GRID + pad2, HERO_INNER / (HERO_CELL * HERO_GRID), HERO_INNER / (HERO_CELL * HERO_GRID)]
     ids = variant_ids()
     for fam, (base, fn) in FAMILIES.items():
         for v, (seed, p, jit, lc) in enumerate(VARIANTS):
             put(ids['%s%d' % (fam, v + 1)], fn(False, seed, p, jit, lc), fn(True, seed, p, jit, lc))
-    return A, E, rects
+    return A, E, rects, A2, E2
