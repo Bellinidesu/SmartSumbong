@@ -1432,9 +1432,9 @@ function safeSheet(f) {
       '<svg class="cs-mark cs-glyph" viewBox="0 0 24 24" aria-hidden="true">' + g + '</svg><span class="sp-credit" id="sp-credit" hidden></span></div>' +
     '<div class="cs-body"><h2 class="cs-title">' + esc(p.name || T(kd.en, kd.fil)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-st" style="--st:' + kd.c + '">' + esc(T(kd.en, kd.fil)) + '</span></p>' +
-      '<div class="cs-acts"><a target="_blank" rel="noopener" href="' + dir + '"><span>' + csIcon(SD_ICONS.directions) + '</span>' + T('Directions', 'Direksyon') + '</a>' +
-        '<button type="button" data-spzoom><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
-        '<button type="button" data-spcopy><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy coords', 'Kopyahin') + '</button></div>' +
+      '<div class="cs-acts"><a class="ac-send" target="_blank" rel="noopener" href="' + dir + '"><span>' + csIcon(SD_ICONS.directions) + '</span>' + T('Directions', 'Direksyon') + '</a>' +
+        '<button type="button" class="ac-zoom" data-spzoom><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        '<button type="button" class="ac-copy" data-spcopy><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy coords', 'Kopyahin') + '</button></div>' +
       '<ul class="cs-rows">' +
         row(SD_ICONS.pin, esc(p.addr || 'Barangay 183, Pasay City') + '<small>' + coord + '</small>') +
         row(SD_ICONS.phone, esc(p.phone)) +
@@ -1451,8 +1451,14 @@ function safeSheet(f) {
   if (typeof mapDrawer === 'function') mapDrawer('sheet');
   map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 17.4), padding: csPad(), duration: 800 });
   el.querySelector('.cs-x').addEventListener('click', spClose);
-  el.querySelector('[data-spzoom]').addEventListener('click', () => map.easeTo({ center: [lng, lat], zoom: 18, padding: csPad() }));
-  el.querySelector('[data-spcopy]').addEventListener('click', () => { try { navigator.clipboard.writeText(coord); } catch (x) { /* blocked */ } if (window.pToast) pToast(T('Copied ', 'Nakopya ') + coord); });
+  const press = (btn, ms, then) => btn.addEventListener('click', () => { if (btn.classList.contains('go')) return; btn.classList.add('go'); setTimeout(() => btn.classList.remove('go'), ms + 120); setTimeout(then, (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 0 : ms); });
+  press(el.querySelector('[data-spzoom]'), 420, () => map.easeTo({ center: [lng, lat], zoom: 18, padding: csPad() }));
+  const spc = el.querySelector('[data-spcopy]'); press(spc, 0, () => {
+    try { navigator.clipboard.writeText(coord); } catch (x) { /* blocked */ } if (window.pToast) pToast(T('Copied ', 'Nakopya ') + coord);
+    const sp = spc.querySelector('span'), lb = spc.lastChild, was = [sp.innerHTML, lb.textContent];
+    sp.innerHTML = csIcon('<path d="M5 12.5l5 5 9-10"/>'); lb.textContent = T('Copied', 'Nakopya'); spc.classList.add('done');
+    setTimeout(() => { sp.innerHTML = was[0]; lb.textContent = was[1]; spc.classList.remove('done'); }, 1500);
+  });
   spPhotos(p, lng, lat).then(list => {
     if (spFor !== key) return; const strip = document.getElementById('sp-strip'), hero = document.getElementById('sp-hero'); if (!strip) return;
     if (!list.length) { strip.innerHTML = '<span class="sp-load">' + T('No photos of this place found yet.', 'Wala pang nakitang larawan ng lugar.') + '</span>'; return; }

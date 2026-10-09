@@ -896,3 +896,23 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .cs-acts .ac-look:hover svg { animation: qlTurn 3s linear infinite; }
 .cs-acts .ac-look.go svg { animation: qlTurn .6s cubic-bezier(.5,0,.3,1) both; }
 @media (prefers-reduced-motion: reduce) { .cs-acts > * svg, .cs-acts .ac-look span::before { animation: none !important; } }
+
+/* ---- Backgrounds for the four actions: each circle has its own small world ---- */
+.cs-acts > * span { overflow: hidden; isolation: isolate; }
+.cs-acts > * span svg { position: relative; z-index: 2; }
+.cs-acts .ac-send span::before, .cs-acts .ac-zoom span::before, .cs-acts .ac-copy span::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%; transition: opacity .3s, transform .5s cubic-bezier(.2,1.2,.4,1); }
+/* Dispatch: a radar, with a sweep that picks up speed on hover */
+.cs-acts .ac-send span::before { background: conic-gradient(from 0deg, transparent 0 62%, color-mix(in srgb, var(--cs-c) 55%, transparent) 100%), repeating-radial-gradient(circle, transparent 0 7px, rgba(255,255,255,.1) 7px 8px), radial-gradient(circle, color-mix(in srgb, var(--cs-c) 22%, transparent), transparent 70%); animation: qlSpin 4.5s linear infinite; opacity: .8; }
+.cs-acts .ac-send:hover span::before { animation-duration: 1.4s; opacity: 1; }
+/* Zoom: a reticle, the rings tighten on hover */
+.cs-acts .ac-zoom span::before { background: linear-gradient(rgba(255,255,255,.14), rgba(255,255,255,.14)) center / 1px 100% no-repeat, linear-gradient(rgba(255,255,255,.14), rgba(255,255,255,.14)) center / 100% 1px no-repeat, repeating-radial-gradient(circle, transparent 0 8px, rgba(255,255,255,.11) 8px 9px), radial-gradient(circle, color-mix(in srgb, var(--cs-c) 20%, transparent), transparent 72%); }
+.cs-acts .ac-zoom:hover span::before { transform: scale(.82); }
+.cs-acts .ac-zoom.go span::before { transform: scale(1.5); opacity: .4; }
+/* Look around: a night sky over a glowing horizon inside its colour ring */
+.cs-acts .ac-look span::after { background: radial-gradient(circle at 50% 135%, color-mix(in srgb, var(--cs-c) 70%, transparent), transparent 62%), radial-gradient(circle at 28% 24%, #fff 0 .8px, transparent 1.2px), radial-gradient(circle at 70% 18%, #fff 0 .7px, transparent 1.1px), radial-gradient(circle at 80% 40%, #fff 0 .6px, transparent 1px), linear-gradient(180deg, #1B2A5A, #0A1230); }
+/* Copy ID: stacked sheets, sliding on hover */
+.cs-acts .ac-copy span::before { background: repeating-linear-gradient(135deg, rgba(255,255,255,.1) 0 2px, transparent 2px 9px), radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--cs-c) 28%, transparent), transparent 70%); background-size: 18px 18px, auto; animation: acSheets 6s linear infinite; }
+.cs-acts .ac-copy:hover span::before { animation-duration: 1.6s; }
+@keyframes acSheets { to { background-position: 18px 0, 0 0; } }
+.cs-acts .ac-copy.done span::before { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .cs-acts .ac-send span::before, .cs-acts .ac-copy span::before { animation: none !important; } }
