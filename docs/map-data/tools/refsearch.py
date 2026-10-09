@@ -122,6 +122,22 @@ def google(q, n):
     return out
 
 
+def brave(q, n):
+    """Brave Search, image search on an independent index (its official API; the key is BRAVE_SEARCH_KEY in .env). Other people's pictures: looked at only."""
+    key = K.env('BRAVE_SEARCH_KEY')
+    if not key:
+        return []
+    out = []
+    r = K.get_json('https://api.search.brave.com/res/v1/images/search?%s' % urllib.parse.urlencode({'q': q, 'count': min(n, 50), 'safesearch': 'strict', 'country': 'ph', 'search_lang': 'en'}), {'X-Subscription-Token': key, 'Accept': 'application/json'})
+    for i in r.get('results', []):
+        pr = i.get('properties', {})
+        th = (i.get('thumbnail') or {}).get('src') or pr.get('url')
+        if not th:
+            continue
+        out.append(_entry('brave', pr.get('url') or i.get('url'), i.get('title'), i.get('source'), 'unknown (via Brave; looked at only)', i.get('url'), th, pr.get('width', 0), pr.get('height', 0), extra={'where': ' '.join([i.get('title') or '', i.get('url') or '', i.get('source') or ''])}))
+    return out
+
+
 def inbox_entries(name):
     """The pictures put on the board by hand (--add): they come first."""
     d = os.path.join(INBOX, re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-'))
@@ -245,7 +261,7 @@ def relevant(e, name, loose=False):
     t = (e['title'] + ' ' + e['url']).lower()
     rel = sum(1 for w in words if w in t) / max(1, len(words))
     near = e.get('geo') is not None and e['geo'] <= 150
-    ok_ctx = e.get('ctx', 0) > 0 or ((loose or e['src'] == 'google') and e.get('ctx', 0) == 0)
+    ok_ctx = e.get('ctx', 0) > 0 or ((loose or e['src'] in ('google', 'brave')) and e.get('ctx', 0) == 0)
     return ok_ctx and (rel >= .5 or (near and rel > 0))
 
 
@@ -253,7 +269,7 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
     if near is None:
         bi, b = K.building_named(name)
         near = (b[4], b[5]) if b else None
-    qs = queries or [name + ' Pasay', name]
+    qs = queries or [name + ' Pasay', name, name + ' exterior Manila', name + ' facade']
     res = []
     for q in qs:
         for s in sources:
@@ -266,6 +282,8 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
                     res += sketchfab(q, n)
                 elif s == 'google':
                     res += google(q, n)
+                elif s == 'brave':
+                    res += brave(q, n)
             except Exception as ex:
                 print('  %s (%s): %s' % (s, q, str(ex)[:80]))
         if 'mapillary' in sources and q == qs[-1]:
@@ -353,7 +371,7 @@ def board(name, entries, out=None, cols=5):
         im = Image.open(e['file']).convert('RGB')
         im.thumbnail((W - 6, H - 4))
         S.paste(im, (x + 3 + (W - 6 - im.width) // 2, y + 2 + (H - 4 - im.height) // 2))
-        tag = {'openverse': 'OV', 'commons': 'WC', 'mapillary': 'MLY', 'sketchfab': '3D', 'google': 'G', 'user': 'ME'}[e['src']]
+        tag = {'openverse': 'OV', 'commons': 'WC', 'mapillary': 'MLY', 'sketchfab': '3D', 'google': 'G', 'brave': 'BR', 'user': 'ME'}[e['src']]
         d.rectangle([x + 3, y + 2, x + 3 + 38, y + 20], fill=(232, 120, 12))
         d.text((x + 8, y + 3), tag, fill=(20, 14, 0), font=f2)
         d.text((x + 6, y + H), (e['title'] or '')[:44], fill=(230, 232, 245), font=f2)
@@ -412,7 +430,7 @@ def main():
         return pick(name, opt('--pick'))
     if '--add' in a:
         return add(name, opt('--add'), opt('--credit'))
-    src = tuple((opt('--sources') or ('openverse,commons,mapillary,sketchfab' + (',google' if K.env('GOOGLE_CSE_KEY') else ''))).split(','))
+    src = tuple((opt('--sources') or ('openverse,commons,mapillary,sketchfab' + (',google' if K.env('GOOGLE_CSE_KEY') else '') + (',brave' if K.env('BRAVE_SEARCH_KEY') else ''))).split(','))
     near = tuple(float(x) for x in opt('--near').split(',')) if opt('--near') else None
     es = search(name, src, int(opt('--n', 24)), near, loose='--loose' in a)
     remember(name, es)

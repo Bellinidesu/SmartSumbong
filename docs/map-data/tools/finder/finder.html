@@ -20,6 +20,8 @@ main { padding:16px 20px 60px; max-width:1400px; margin:0 auto; }
 .gs-title, .gs-title * { color:#cfd3f3 !important; }
 .gs-visibleUrl { color:var(--muted) !important; }
 .gsc-imageResult { position:relative; }
+.preset { background:#232849; color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:5px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
+.preset:hover { border-color:var(--accent); }
 .plus { position:absolute; top:6px; right:6px; z-index:3; border:0; border-radius:999px; background:var(--accent); color:#1b1200; font:700 .85rem "Segoe UI", sans-serif; padding:5px 11px; cursor:pointer; box-shadow:0 2px 8px #0008; }
 .plus.done { background:var(--ok); }
 .plus.bad { background:#ff7a70; }
@@ -28,6 +30,7 @@ main { padding:16px 20px 60px; max-width:1400px; margin:0 auto; }
   <h1>Reference finder</h1>
   <label>Landmark<input id="name" list="names" placeholder="Newport Mall" autocomplete="off"></label>
   <span id="added"></span>
+  <div id="presets" style="flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap"></div>
 </header>
 <datalist id="names"></datalist>
 <main>
@@ -42,6 +45,17 @@ try { nameEl.value = localStorage.getItem('rf-name') || ''; } catch (e) {}
 nameEl.addEventListener('input', () => { try { localStorage.setItem('rf-name', nameEl.value); } catch (e) {} });
 fetch('/names').then(r => r.json()).then(l => { document.getElementById('names').innerHTML = l.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">').join(''); }).catch(() => {});
 let count = 0;
+// the searches worth running for a landmark, one press each (a press is you searching: the widget does it as it would for anyone)
+const ASKS = ['{n}', '{n} exterior', '{n} facade', '{n} building Manila', '{n} at night', '{n} aerial view', '{n} entrance', '{n} architecture design', '{n} hotel exterior'];
+function presets() {
+  const nm = nameEl.value.trim(), box = document.getElementById('presets');
+  box.innerHTML = '';
+  if (!nm) return;
+  ASKS.forEach(t => { const q = t.replace('{n}', nm); const b = document.createElement('button'); b.type = 'button'; b.className = 'preset'; b.textContent = q.replace(nm, '…').replace('…', nm.length > 22 ? nm.slice(0, 20) + '…' : nm);
+    b.onclick = () => { try { google.search.cse.element.getElement('refsearch').execute(q); } catch (e) { const inp = document.querySelector('input.gsc-input'); if (inp) { inp.value = q; document.querySelector('button.gsc-search-button').click(); } } };
+    box.appendChild(b); });
+}
+nameEl.addEventListener('input', presets); nameEl.addEventListener('change', presets); presets();
 function decorate() {
   document.querySelectorAll('.gsc-imageResult:not([data-plus])').forEach(box => {
     box.dataset.plus = '1';
