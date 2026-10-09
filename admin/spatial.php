@@ -104,7 +104,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
   <div class="p-map-legend lg-card" id="map-legend" hidden>
     <h3><?= e(t('Complaint type', 'Uri ng sumbong')) ?></h3>
     <?php foreach (category_colours() as $c => $hex): ?>
-      <div><span class="p-lg p-lg-circle" style="--c:<?= e($hex) ?>"></span><?= e(category_label($c)) ?></div>
+      <div class="lg-cat" data-cat="<?= e($c) ?>" style="--c:<?= e($hex) ?>" role="button" tabindex="0"><span class="lg-ic" data-glyph="<?= e($c) ?>"></span><span class="lg-t"><?= e(category_label($c)) ?></span><b class="lg-n">0</b></div>
     <?php endforeach; ?>
     <div id="lg-flood" hidden>
       <div class="lg-sep"></div>
@@ -706,15 +706,21 @@ async function draw() {
   document.getElementById('pin-count').textContent = rows.length;
   badge.classList.toggle('p-live-n', rows.length > 0);
 
+  const eb = document.querySelector('#map-side .p-eyebrow'); if (eb) { let c = eb.querySelector('.lv-n'); if (!c) { c = document.createElement('span'); c.className = 'lv-n'; eb.appendChild(c); } c.textContent = rows.length; }
+  const cnt = {}; rows.forEach(r => { cnt[r.category] = (cnt[r.category] || 0) + 1; });
+  document.querySelectorAll('#map-legend [data-cat]').forEach(d => { d.querySelector('.lg-n').textContent = cnt[d.dataset.cat] || 0; d.classList.toggle('zero', !cnt[d.dataset.cat]); });
   const list = document.getElementById('pin-list');
   list.innerHTML = '';
   rows.slice(0, 40).forEach(r => {
     const li = document.createElement('li');
     li.className = 'p-pin-row';
+    const ago = (() => { const h = Math.round((Date.now() - new Date(r.created_at).getTime()) / 36e5); return h < 1 ? T('now', 'ngayon') : h < 48 ? h + T(' h', ' oras') : Math.round(h / 24) + T(' d', ' araw'); })();
+    li.style.setProperty('--c', catColour(r.category));
     li.innerHTML =
-      '<span class="p-dot-s" style="background:' + catColour(r.category) + '"></span>' +
+      '<span class="lv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff') + '</svg></span>' +
       '<span class="p-pin-body"><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + esc(r.tracking_id) + '</a>' +
-      '<small>' + esc(label(r.category)) + '</small></span>';
+      '<small>' + esc(r.location_label || label(r.category)) + '</small></span>' +
+      '<span class="lv-meta"><em>' + esc(ago) + '</em><i style="background:' + (COLOUR[r.status] || '#9aa1ab') + '" title="' + esc(label(r.status)) + '"></i></span>';
     // Clicking a row (not hovering) moves the map, and opens the case panel.
     li.style.cursor = 'pointer';
     li.addEventListener('click', e => { if (e.target.closest('a')) return; showDetail(r); });
@@ -1642,6 +1648,12 @@ function layerSync() {
   const wait = setInterval(() => { if (rings.length) { clearInterval(wait); if (map.getSource('aq')) map.getSource('aq').setData(layerShape()); } }, 600); setTimeout(() => clearInterval(wait), 20000);
 })();
 
+// Legend rows: each category's symbol and how many are on the map; press one to show only that category.
+document.querySelectorAll('#map-legend .lg-ic').forEach(el => { el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PIN_GLYPH[el.dataset.glyph] || PIN_GLYPH.other).replace(/__C__/g, '#fff') + '</svg>'; });
+document.querySelectorAll('#map-legend .lg-cat').forEach(row => {
+  const go = () => { const sel = document.getElementById('f-category'), v = row.dataset.cat === sel.value ? '' : row.dataset.cat; sel.value = v; sel.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('f-apply').click(); document.querySelectorAll('#map-legend .lg-cat').forEach(r => r.classList.toggle('on', !!v && r.dataset.cat === v)); };
+  row.addEventListener('click', go); row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+});
 // The filter dropdowns and the month picker, in the portal's own look.
 const STATUS_DOT = { under_review: '#F9AB00', in_progress: '#2F6BFF', resolved: '#1E9E56', rejected: '#9AA3B2' };
 sdPickers.select(document.getElementById('f-category'), { dot: v => catColour(v) });
