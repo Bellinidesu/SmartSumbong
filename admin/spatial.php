@@ -274,13 +274,16 @@ const PIN_GLYPH = {
 };
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 function pinTear(cat, fill, dark) {
-  const glyph = (PIN_GLYPH[cat] || PIN_GLYPH.other).replace(/__C__/g, fill);
-  const filter = dark
-    ? '<filter id="g" x="-60%" y="-40%" width="220%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="2.6" flood-color="' + fill + '" flood-opacity=".95"/></filter>'
-    : '<filter id="g" x="-40%" y="-30%" width="180%" height="160%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.3" flood-color="#000" flood-opacity=".35"/></filter>';
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="104" viewBox="-22 -52 44 52"><defs>' + filter + '</defs>' +
-    '<g filter="url(#g)"><path d="M0 0C-4-9-15-15-15-27a15 15 0 0 1 30 0C15-15 4-9 0 0Z" fill="' + fill + '" stroke="#fff" stroke-width="1.6"/>' +
-    '<circle cy="-27" r="9.5" fill="#fff"/>' +
+  // The glass gem: a tinted, translucent body, a bright rim, a gloss crescent and a frosted disc, glowing in its own colour.
+  const glyph = (PIN_GLYPH[cat] || PIN_GLYPH.other).replace(/__C__/g, fill), T0 = 'M0 0C-4-9-15-15-15-27a15 15 0 0 1 30 0C15-15 4-9 0 0Z';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="104" viewBox="-22 -52 44 52"><defs>' +
+    '<linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + fill + '" stop-opacity=".96"/><stop offset=".55" stop-color="' + fill + '" stop-opacity="' + (dark ? .86 : .74) + '"/><stop offset="1" stop-color="' + fill + '" stop-opacity=".96"/></linearGradient>' +
+    '<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity=".7"/></linearGradient>' +
+    '<radialGradient id="d" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".98"/><stop offset="1" stop-color="#fff" stop-opacity=".74"/></radialGradient>' +
+    '<filter id="s" x="-60%" y="-35%" width="220%" height="180%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.6 : 1.8) + '" flood-color="' + (dark ? fill : '#000') + '" flood-opacity="' + (dark ? .9 : .38) + '"/></filter></defs>' +
+    '<g filter="url(#s)"><path d="' + T0 + '" fill="url(#a)"/><path d="' + T0 + '" fill="none" stroke="url(#r)" stroke-width="1.7"/>' +
+    '<path d="M-11-34C-12-40-7-45-1-45.5c-5 2-8 6-8 12.5C-9-30-10-31-11-34Z" fill="#fff" opacity=".55"/>' +
+    '<circle cy="-27" r="9.5" fill="url(#d)"/><circle cy="-27" r="9.5" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width=".8"/>' +
     '<g transform="translate(-6.5 -33.5) scale(.54)" fill="none" stroke="' + fill + '" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">' + glyph + '</g></g></svg>';
 }
 function addPinImages() {
@@ -472,7 +475,7 @@ function donutSvg(props, n) {
     else { const p0 = f(a0), p1 = f(a1 - 4); ring += '<path d="M' + p0 + ' A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + p1 + '" fill="none" stroke="' + catColour(c) + '" stroke-width="5" stroke-linecap="round"/>'; }
     a0 = a1;
   });
-  return '<svg viewBox="-34 -78 68 82" aria-hidden="true"><path class="dm-body" d="M0 0C-7-14-27-24-27-43a27 27 0 0 1 54 0C27-24 7-14 0 0Z" stroke="#fff" stroke-width="2.4"/>' +
+  return '<svg viewBox="-34 -78 68 82" aria-hidden="true"><defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3A62E0" stop-opacity=".96"/><stop offset=".55" stop-color="#1B3FA8" stop-opacity=".72"/><stop offset="1" stop-color="#2B4BC4" stop-opacity=".94"/></linearGradient><linearGradient id="dr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity=".7"/></linearGradient></defs><path class="dm-body" d="M0 0C-7-14-27-24-27-43a27 27 0 0 1 54 0C27-24 7-14 0 0Z" fill="url(#dg)"/><path d="M0 0C-7-14-27-24-27-43a27 27 0 0 1 54 0C27-24 7-14 0 0Z" fill="none" stroke="url(#dr)" stroke-width="2.4"/><path d="M-20-58C-22-70-12-78-1-79c-9 4-14 11-14 22C-15-53-17-54-20-58Z" fill="#fff" opacity=".5"/>' +
     '<g transform="translate(0 -43)">' + ring + '<circle r="15.5" fill="#fff"/><text y="' + (String(n).length > 3 ? 5 : 6) + '" text-anchor="middle" font-family="Urbanist,sans-serif" font-weight="800" font-size="' + (String(n).length > 3 ? 12 : 17) + '" fill="#141B34">' + esc(n) + '</text></g></svg>';
 }
 function clusterMarkers() {

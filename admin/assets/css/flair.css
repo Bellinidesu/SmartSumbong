@@ -1305,3 +1305,10 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] #s-spatial.ss-dragging .p-dock-btn, :root[data-theme="dark"] #s-spatial.ss-dragging .maplibregl-ctrl-group { background: rgba(21,22,29,.8) !important; }
 /* the flood chip carries text, so it keeps the firmer glass */
 :root[data-theme="dark"] #s-spatial .fw-chip { background-color: rgba(21,22,29,.9); }
+
+/* the donut cluster: the gem's body takes its fill from the gradient, not a flat colour */
+.dm .dm-body { fill: url(#dg); } :root[data-theme="dark"] .dm .dm-body { fill: url(#dg); }
+/* the round badges in the incidents list and the legend, and the case card's ID chips, share the gem's gloss and rim */
+.lv-ic, .lg-ic { position: relative; overflow: hidden; }
+.lv-ic::after, .lg-ic::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; background: radial-gradient(70% 55% at 32% 22%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); }
+.lv-ic svg, .lg-ic svg { position: relative; z-index: 1; }
