@@ -133,6 +133,8 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3" /> <path d="M21 8V5a2 2 0 0 0-2-2h-3" /> <path d="M3 16v3a2 2 0 0 0 2 2h3" /> <path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg></button>
     <button class="p-dock-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>" aria-label="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 12a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0" fill="currentColor" /> <path d="M5 12a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /> <path d="M12 3l0 2" /> <path d="M3 12l2 0" /> <path d="M12 19l0 2" /> <path d="M19 12l2 0" /></svg></button>
+    <button class="p-dock-btn" id="tilt-btn" type="button" aria-pressed="false" title="<?= e(t('Tilt the map', 'I-tilt ang mapa')) ?>" aria-label="<?= e(t('Tilt the map', 'I-tilt ang mapa')) ?>">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
     <button class="p-dock-btn" id="layers-btn" type="button" aria-expanded="false" aria-controls="ss-lyr" title="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>" aria-label="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></svg></button>
     <button class="p-dock-btn" id="legend-toggle" type="button" aria-expanded="false" aria-controls="map-legend" title="<?= e(t('Legend', 'Alamat')) ?>" aria-label="<?= e(t('Legend', 'Alamat')) ?>">
@@ -312,7 +314,7 @@ function addSvgImage(name, svg) {
 // barangay's outline draws itself, the camera settles on the residential
 // area and the pins drop in. Skipped for reduced motion; ?intro=1 forces it.
 const AREA_CENTRE = [(AREA[0][0] + AREA[1][0]) / 2, (AREA[0][1] + AREA[1][1]) / 2];
-let introHide = false;
+let introHide = false, heatK = 1;
 const INTRO = (() => {
   try {
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
@@ -432,7 +434,7 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
       'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 15, 2, 18, 4],
       'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
         0, 'rgba(0,0,255,0)', 0.2, 'rgba(0,0,255,.6)', 0.4, 'blue', 0.65, 'lime', 1, 'red'],
-      'heatmap-opacity': .8,
+      'heatmap-opacity': .8, 'heatmap-opacity-transition': { duration: 0, delay: 0 },
     } });
 
   map.addSource('hotspots', { type: 'geojson', data: EMPTY });
@@ -534,7 +536,7 @@ function setPinsSource(want) {
   map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: pinFilter(),
     layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
               'icon-anchor': 'center', 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 16, .74, 18, .95] },
-    paint: { 'icon-opacity': h } });
+    paint: { 'icon-opacity': h, 'icon-opacity-transition': { duration: 0, delay: 0 } } });
   // The flood-risk rings go round pins and clusters alike, so they sit on top.
   if (map.getLayer('risk')) {
     map.moveLayer('risk');
@@ -573,9 +575,9 @@ function runIntro() {
     introHide = false;
     frame(850, u => {
       const o = Math.min(1, u * 2);
-      if (map.getLayer('pins')) { map.setPaintProperty('pins', 'icon-opacity', o); map.setPaintProperty('pins', 'icon-translate', [0, -120 * (1 - back(u))]); }
+      if (map.getLayer('pins')) { map.setPaintProperty('pins', 'icon-opacity', o * heatK); map.setPaintProperty('pins', 'icon-translate', [0, -120 * (1 - back(u))]); }
       document.getElementById('map').classList.toggle('dm-hide', false);
-    }, () => { if (map.getLayer('pins')) map.setPaintProperty('pins', 'icon-translate', [0, 0]); });
+    }, () => { if (map.getLayer('pins')) map.setPaintProperty('pins', 'icon-translate', [0, 0]); heatBlend(); });
   }, 2700);
 }
 
@@ -739,6 +741,7 @@ async function draw() {
   if (!rows.length) {
     list.innerHTML = '<li class="p-pin-empty">' + T('No complaint matches these filters.', 'Walang sumbong na tugma sa mga salang ito.') + '</li>';
   }
+  heatBlend();
   if (loaded) runIntro();
 }
 
@@ -1684,6 +1687,42 @@ sdPickers.select(document.getElementById('f-status'), { dot: v => STATUS_DOT[v] 
 // The calendar shows how busy each day was: the day's box is filled by its number of complaints.
 const CAL_COUNTS = (y, m) => { const o = {}; all.forEach(r => { const d = new Date(new Date(r.created_at).getTime() + 8 * 3600 * 1000); if (d.getUTCFullYear() === y && d.getUTCMonth() === m) o[d.getUTCDate()] = (o[d.getUTCDate()] || 0) + 1; }); return o; };
 sdPickers.range(document.getElementById('f-period'), { from: document.getElementById('f-from'), to: document.getElementById('f-to'), allTime: document.getElementById('f-period-all'), counts: CAL_COUNTS });
+
+// ---- Heat view: with the heatmap on, the zoomed-out map is the heat alone (the pins and the orbs stand down), and as you zoom in
+// the heat dissolves into the cases themselves. ----
+const HEAT_FROM = 16.7, HEAT_TO = 17.7;
+let heatHint = null;
+function heatBlend() {
+  const on = document.getElementById('f-heat').checked, z = map.getZoom();
+  const k = on ? Math.max(0, Math.min(1, (z - HEAT_FROM) / (HEAT_TO - HEAT_FROM))) : 1, mapEl = document.getElementById('map');
+  heatK = k; mapEl.style.setProperty('--pk', k.toFixed(3)); mapEl.classList.toggle('heat-view', on && k < .25);
+  if (map.getLayer('heat')) map.setPaintProperty('heat', 'heatmap-opacity', on ? .94 * (1 - .78 * k) : .9);
+  if (!introHide && map.getLayer('pins')) map.setPaintProperty('pins', 'icon-opacity', k);
+  if (!heatHint) { heatHint = document.createElement('div'); heatHint.className = 'heat-hint'; heatHint.setAttribute('aria-live', 'polite'); document.getElementById('s-spatial').appendChild(heatHint); }
+  heatHint.textContent = T('Heat view · zoom in to see each case', 'Heat view · mag-zoom in para makita ang bawat kaso');
+  heatHint.classList.toggle('on', on && k < .4);
+}
+map.on('zoom', heatBlend);
+document.getElementById('f-heat').addEventListener('change', heatBlend);
+
+// ---- Tilt: the buildings stand up. Off until asked for, so the flat map costs nothing extra. ----
+let tilted = false;
+function build3d() {
+  if (map.getLayer('building-3d')) return;
+  const layers = map.getStyle().layers, i = layers.findIndex(l => l.id === 'building'), before = i >= 0 && layers[i + 1] ? layers[i + 1].id : undefined, dark = isDark();
+  map.addLayer({ id: 'building-3d', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 15, layout: { visibility: 'none' },
+    paint: { 'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6], 0, dark ? '#22242B' : '#DDE0E8', 60, dark ? '#3A3D49' : '#B9BECB'],
+             'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': .95 } }, before);
+}
+function setTilt(on) {
+  tilted = on; const b = document.getElementById('tilt-btn'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  build3d();
+  map.setLayoutProperty('building-3d', 'visibility', on ? 'visible' : 'none');
+  if (map.getLayer('building')) map.setPaintProperty('building', 'fill-opacity', on ? 0 : 1);
+  map.easeTo({ pitch: on ? 52 : 0, bearing: on ? -14 : 0, duration: 900, easing: t => 1 - Math.pow(1 - t, 3) });
+}
+document.getElementById('tilt-btn').addEventListener('click', () => mapReady.then(() => setTilt(!tilted)));
+window.addEventListener('themechange', () => { if (map.getLayer('building-3d')) { const dark = isDark(); map.setPaintProperty('building-3d', 'fill-extrusion-color', ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6], 0, dark ? '#22242B' : '#DDE0E8', 60, dark ? '#3A3D49' : '#B9BECB']); } });
 
 // Tuning aid, off unless asked for: load spatial.php?bounds=1 and the
 // console prints the framing on every pan, ready to paste above.
