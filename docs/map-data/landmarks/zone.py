@@ -56,6 +56,15 @@ def body_style(ctx, default_pool, salt):
     return 'slots'
 
 
+def looked(ctx, mat, salt=0):
+    """One of the four looks of a glazed material (atlas.py), by the building: which panes are lit at night, how the panes differ by day.
+    Hotels lean to the busier looks, offices to the emptier."""
+    if mat not in ('windows', 'ribbon', 'glass', 'slots', 'strip'):
+        return mat
+    k = zlib.crc32(('%.5f,%.5f,%d,w' % (ctx['lng'], ctx['lat'], salt)).encode()) % 4
+    return mat if k == 0 else '%s%d' % (mat, k)
+
+
 def floors_of(h):
     return max(2, int(round((h - 1.2) / 3.4)))
 
@@ -108,7 +117,7 @@ def z_hotel(m, ring, ctx, p):
     base = seen(ctx, PASTELS, 1)
     gh = min(6.0, h * .3)
     m.prism(ring, 0, gh, 'shop', C['white'], 'plain', base, top=False, cell=4)
-    m.prism(ring, gh, h - 1.2, body_style(ctx, ['windows', 'strip', 'slots'], 11), base, 'plain', base, top=False, cell=4)
+    m.prism(ring, gh, h - 1.2, looked(ctx, body_style(ctx, ['windows', 'strip', 'slots'], 11), 11), base, 'plain', base, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 2))
     porte_cochere(m, ring, ctx, h)
 
@@ -118,7 +127,7 @@ def z_condo(m, ring, ctx, p):
     ring = _ccw(ring)
     col = seen(ctx, PASTELS, 3)
     m.prism(ring, 0, 4.6, 'shop', C['white'], 'plain', col, top=False, cell=4)
-    m.prism(ring, 4.6, h - 1.2, body_style(ctx, ['windows', 'strip', 'slots', 'windows'], 12), col, 'plain', col, top=False, cell=4)
+    m.prism(ring, 4.6, h - 1.2, looked(ctx, body_style(ctx, ['windows', 'strip', 'slots', 'windows'], 12), 12), col, 'plain', col, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 4))
 
 
@@ -126,7 +135,7 @@ def z_office(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
     m.prism(ring, 0, 5.0, 'ribbon', C['glass'], 'plain', C['grey'], top=False, cell=4)
-    m.prism(ring, 5.0, h - 1.2, 'glass', seen(ctx, [C['glass'], rgb('C6D2E0'), rgb('B3C4D6')], 5), 'plain', C['grey'], top=False, cell=4)
+    m.prism(ring, 5.0, h - 1.2, looked(ctx, 'glass', 5), seen(ctx, [C['glass'], rgb('C6D2E0'), rgb('B3C4D6')], 5), 'plain', C['grey'], top=False, cell=4)
     crown(m, ring, h, ctx, C['slate'])
 
 
@@ -136,7 +145,7 @@ def z_mall(m, ring, ctx, p):
     col = seen(ctx, PASTELS, 6)
     gh = min(6.0, h * .45)
     m.prism(ring, 0, gh, 'shop', C['white'], 'plain', col, top=False, cell=4)
-    m.prism(ring, gh, h - .6, 'ribbon' if h > 12 else 'plain', col, 'plain', col, top=False, cell=4)
+    m.prism(ring, gh, h - .6, looked(ctx, 'ribbon', 6) if h > 12 else 'plain', col, 'plain', col, top=False, cell=4)
     crown(m, ring, h, ctx, C['cream'], big=False)
 
 
@@ -167,7 +176,7 @@ def z_generic(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
     col = seen(ctx, PASTELS, 8)
-    m.prism(ring, 0, h, 'windows' if h > 5 else 'panel', col, 'roofdeck', C['white'], top=True, cell=4)
+    m.prism(ring, 0, h, looked(ctx, 'windows', 8) if h > 5 else 'panel', col, 'roofdeck', C['white'], top=True, cell=4)
     if Polygon(ring).area > 300:
         poly = Polygon(ring).buffer(.25, join_style=2)
         m.prism(list(poly.exterior.coords)[:-1], h - .5, h + .6, 'plain', C['white'], 'plain', C['white'], top=True, cell=5)

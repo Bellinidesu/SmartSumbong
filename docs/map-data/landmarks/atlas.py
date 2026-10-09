@@ -32,59 +32,67 @@ def tile_plain(lit=False):
     return im if not lit else Image.new('RGB', im.size, (0, 0, 0))
 
 
-def tile_windows(lit):
+def _pane(rnd, jit):
+    """One pane of glass: its own brightness, and now and then a pane that holds a bright piece of sky."""
+    k = 1 + jit * (rnd.random() * 2 - 1)
+    if rnd.random() < .10:
+        return _g((.44, .55, .70), k)
+    return _g(GLASS, k)
+
+
+def tile_windows(lit, seed=11, p=.55, jit=.10):
     """Two bays of punched windows over one storey (6.4 m x 3.4 m)."""
     im = Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0) if lit else (255, 255, 255))
     d = ImageDraw.Draw(im)
-    rnd = random.Random(11)
+    rnd = random.Random(seed)
+    dr = random.Random(seed + 1000)
     for bay in range(2):
         x0, x1 = (bay * .5 + .17), (bay * .5 + .33)
-        # a window: frame, glass, sill
         if lit:
-            if rnd.random() < .55:
-                _rect(d, x0, .30, x1, .74, _g(GLASS_LIT, .9))
+            if rnd.random() < p:
+                _rect(d, x0, .30, x1, .74, _g(GLASS_LIT, .70 + .3 * rnd.random()))
         else:
             _rect(d, x0 - .018, .28, x1 + .018, .76, _g((.92, .92, .92)))
-            _rect(d, x0, .30, x1, .74, _g(GLASS))
+            _rect(d, x0, .30, x1, .74, _pane(dr, jit))
             _rect(d, x0 - .03, .74, x1 + .03, .79, _g((.86, .86, .86)))
             _rect(d, (x0 + x1) / 2 - .006, .30, (x0 + x1) / 2 + .006, .74, _g((.92, .92, .92)))
     return im
 
-
-def tile_ribbon(lit):
+def tile_ribbon(lit, seed=7, p=.6, jit=.10):
     """A continuous band of glass with mullions (6 m x 3.4 m)."""
     im = Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0) if lit else (255, 255, 255))
     d = ImageDraw.Draw(im)
-    rnd = random.Random(7)
+    rnd = random.Random(seed)
+    dr = random.Random(seed + 1000)
     n = 4
     for i in range(n):
         x0, x1 = i / n + .012, (i + 1) / n - .012
         if lit:
-            if rnd.random() < .6:
-                _rect(d, x0, .30, x1, .72, _g(GLASS_LIT, .85))
+            if rnd.random() < p:
+                _rect(d, x0, .30, x1, .72, _g(GLASS_LIT, .65 + .3 * rnd.random()))
         else:
-            _rect(d, x0, .30, x1, .72, _g(GLASS))
+            _rect(d, x0, .30, x1, .72, _pane(dr, jit))
     if not lit:
         _rect(d, 0, .72, 1, .76, _g((.9, .9, .9)))
         _rect(d, 0, .26, 1, .30, _g((.9, .9, .9)))
     return im
 
-
-def tile_glass(lit):
+def tile_glass(lit, seed=5, p=.4, jit=.14):
     """A curtain wall: a grid of glass panels (3.2 m x 3.4 m)."""
     im = Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0) if lit else _g((.78, .80, .84)))
     d = ImageDraw.Draw(im)
-    rnd = random.Random(5)
+    rnd = random.Random(seed)
+    dr = random.Random(seed + 1000)
     for i in range(2):
         for j in range(3):
             x0, x1, y0, y1 = i / 2 + .03, (i + 1) / 2 - .03, j / 3 + .03, (j + 1) / 3 - .03
             if lit:
-                if rnd.random() < .4:
-                    _rect(d, x0, y0, x1, y1, _g((.82, .88, 1.0), .6))
+                if rnd.random() < p:
+                    _rect(d, x0, y0, x1, y1, _g((.82, .88, 1.0), .45 + .3 * rnd.random()))
             else:
-                _rect(d, x0, y0, x1, y1, _g((.28, .40, .54)))
+                k = 1 + jit * (dr.random() * 2 - 1)
+                _rect(d, x0, y0, x1, y1, _g((.44, .58, .76) if dr.random() < .12 else (.28, .40, .54), k))
     return im
-
 
 def tile_sheet(lit):
     """Corrugated roof sheet (2.4 m): ribs."""
@@ -196,38 +204,38 @@ def tile_shop(lit):
     return im
 
 
-def tile_slots(lit):
+def tile_slots(lit, seed=21, p=.55, jit=.10):
     """Tall slot windows, three to a tile (6 m x 3.4 m)."""
     im = Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0) if lit else (255, 255, 255))
     d = ImageDraw.Draw(im)
-    rnd = random.Random(21)
+    rnd = random.Random(seed)
+    dr = random.Random(seed + 1000)
     for i in range(3):
         x0, x1 = i / 3 + .09, i / 3 + .24
         if lit:
-            if rnd.random() < .55:
-                _rect(d, x0, .14, x1, .84, _g(GLASS_LIT, .9))
+            if rnd.random() < p:
+                _rect(d, x0, .14, x1, .84, _g(GLASS_LIT, .70 + .3 * rnd.random()))
         else:
             _rect(d, x0 - .015, .12, x1 + .015, .86, _g((.9, .9, .9)))
-            _rect(d, x0, .14, x1, .84, _g(GLASS))
+            _rect(d, x0, .14, x1, .84, _pane(dr, jit))
     return im
 
-
-def tile_strip(lit):
+def tile_strip(lit, seed=33, p=.6, jit=.10):
     """Pairs of wide windows in a strip with a solid spandrel under each (6 m x 3.4 m)."""
     im = Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0) if lit else (255, 255, 255))
     d = ImageDraw.Draw(im)
-    rnd = random.Random(33)
+    rnd = random.Random(seed)
+    dr = random.Random(seed + 1000)
     for i in range(2):
         x0, x1 = i / 2 + .06, i / 2 + .44
         if lit:
-            if rnd.random() < .6:
-                _rect(d, x0, .26, x1, .66, _g(GLASS_LIT, .85))
+            if rnd.random() < p:
+                _rect(d, x0, .26, x1, .66, _g(GLASS_LIT, .70 + .3 * rnd.random()))
         else:
-            _rect(d, x0, .24, x1, .68, _g(GLASS))
+            _rect(d, x0, .24, x1, .68, _pane(dr, jit))
             _rect(d, x0, .68, x1, .96, _g((.92, .92, .92)))
             _rect(d, x0 + .19 - .006, .24, x0 + .19 + .006, .68, _g((.92, .92, .92)))
     return im
-
 
 def tile_brick(lit):
     if lit:
@@ -257,6 +265,24 @@ def tile_roofdeck(lit):
         _rect(d, x, y, x + .07, y + .07, _g((.62, .64, .68)))
         _rect(d, x + .012, y + .012, x + .058, y + .058, _g((.78, .8, .84)))
     return im
+
+
+# Four looks for each glazed family so that neighbours do not repeat one another: a seed (which panes), the share of panes lit at night
+# (a hotel at ten at night, an office at three in the morning), and how much the panes differ by day.
+FAMILIES = {'windows': (1, tile_windows), 'ribbon': (2, tile_ribbon), 'glass': (3, tile_glass), 'slots': (12, tile_slots), 'strip': (13, tile_strip)}
+VARIANTS = [(101, .30, .12), (202, .78, .09), (303, .12, .14)]
+VARIANT_BASE = 64
+
+
+def variant_ids():
+    """{'windows1': 64, ...}: the material names and tiles of the variants."""
+    out = {}
+    k = VARIANT_BASE
+    for fam in FAMILIES:
+        for v in range(len(VARIANTS)):
+            out['%s%d' % (fam, v + 1)] = k
+            k += 1
+    return out
 
 
 TILES = [tile_plain, tile_windows, tile_ribbon, tile_glass, tile_sheet, tile_tile, tile_arches, tile_louvre, tile_sign, tile_panel, tile_column, tile_shop, tile_slots, tile_strip, tile_brick, tile_roofdeck]
@@ -312,13 +338,13 @@ def periodic(im):
     return big.crop((o, o, o + CELL, o + CELL))
 
 
-GRID = 8
+GRID = 16
 
 
 def build(outdir):
     A = Image.new('RGBA', (CELL * GRID, CELL * GRID), (255, 255, 255, 255))
     E = Image.new('RGBA', (CELL * GRID, CELL * GRID), (0, 0, 0, 255))
-    rects = [None] * (16 + len(SIGNS))
+    rects = [None] * (VARIANT_BASE + len(variant_ids()))
     pad = (CELL - INNER) / 2 / (CELL * GRID)
     def put(k, day, night):
         col, row = k % GRID, k // GRID
@@ -331,4 +357,8 @@ def build(outdir):
         put(k, tile_plain(False), tile_plain(True))
     for text, k in SIGNS.items():
         put(k, tile_sign_text(text, False), tile_sign_text(text, True))
+    ids = variant_ids()
+    for fam, (base, fn) in FAMILIES.items():
+        for v, (seed, p, jit) in enumerate(VARIANTS):
+            put(ids['%s%d' % (fam, v + 1)], fn(False, seed, p, jit), fn(True, seed, p, jit))
     return A, E, rects

@@ -22,6 +22,14 @@ TILE_M = {  # metres a tile covers across and up
 }
 
 
+# the variants of the glazed families (atlas.py) cover what their family covers
+_FAM = {'windows': 1, 'ribbon': 2, 'glass': 3, 'slots': 12, 'strip': 13}
+for _i, _f in enumerate(_FAM):
+    for _v in range(3):
+        MAT['%s%d' % (_f, _v + 1)] = 64 + _i * 3 + _v
+        TILE_M[64 + _i * 3 + _v] = TILE_M[_FAM[_f]]
+
+
 class _TileM(dict):
     """Tiles from 16 up are one sign each, drawn 12 m by 1.6 m."""
     def __missing__(self, k):
