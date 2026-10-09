@@ -22,7 +22,8 @@
       sky: { 'sky-color': '#0E1226', 'horizon-color': '#2A3156', 'fog-color': '#171B2C', 'sky-horizon-blend': .55, 'horizon-fog-blend': .8, 'fog-ground-blend': .55 },
       wall: { lo: ['#444C77', '#2C3150', '#FFD58A', .2], mid: ['#485079', '#292E4C', '#FFD08A', .3], hi: ['#535D8B', '#262B49', '#FFE0A0', .45] },
       roofFlat: '#5C6590', roofs: ['#8C4650', '#9A5E48', '#3B5391', '#35705F', '#646880', '#8E846C', '#54424A', '#9EA1B5'],
-      canopy: ['#1F6B53', '#2E8A63'], canopy2: ['#27805F', '#3AA374'], trunk: '#2F2A3A', cross: ['#FFFFFF', .6], lane: ['#AEB6DA', .5],
+      canopy: ['#1F6B53', '#2E8A63'], canopy2: ['#27805F', '#3AA374'], palm: ['#2F7F4E', '#4C9A55'], trunk: '#2F2A3A', palmTrunk: '#5A5068', tshadow: ['#04060F', .38],
+      area: { fairway: '#2F8A63', green: '#3FA878', tee: '#3FA878', bunker: '#77738F', water: '#1D3A86', driving_range: '#2A7A58', 'pitch:basketball': '#B06A4C', 'pitch:tennis': '#4A73B8', 'pitch:soccer': '#3C9A6B', 'pitch:football': '#3C9A6B', playground: '#B9877A', swimming_pool: '#2E78C0', track: '#A8604A', other: '#3A9068' }, areaLine: ['#E9ECFA', .55], cross: ['#FFFFFF', .6], lane: ['#AEB6DA', .5],
       haloText: 'rgba(18,21,42,.92)', poiStroke: '#14172A',
       wk: { cream: '#6E749D', white: '#7C82AC', tan: '#6B6489' }, trim: '#8189B2', tower: '#767CA6',
       rk: { blue: '#3B5391', green: '#2E6B5B', white: '#8D93B8', tan: '#7A7396', cream: '#8087AE', grey: '#6B7096', red: '#8C4650' },
@@ -32,7 +33,8 @@
       sky: { 'sky-color': '#8FC1F0', 'horizon-color': '#E9F1FA', 'fog-color': '#E8EDF3', 'sky-horizon-blend': .5, 'horizon-fog-blend': .8, 'fog-ground-blend': .5 },
       wall: { lo: ['#EDE9E3', '#A9BAD2', '#B9CADF', .05], mid: ['#E6E4E2', '#9FB1CC', '#B6C8DF', .06], hi: ['#DCE1EA', '#8EA4C4', '#AFC3DD', .08] },
       roofFlat: '#F2EFEA', roofs: ['#C25446', '#D07A45', '#3F6FC4', '#3E8E6C', '#9A9DA6', '#E3D3AC', '#7A5A48', '#EDEDED'],
-      canopy: ['#7FCB5E', '#5FB55A'], canopy2: ['#8DD66A', '#6BC262'], trunk: '#8A6B4F', cross: ['#FFFFFF', .95], lane: ['#CBC7BE', .85],
+      canopy: ['#7FCB5E', '#5FB55A'], canopy2: ['#8DD66A', '#6BC262'], palm: ['#74C24E', '#5DB04A'], trunk: '#8A6B4F', palmTrunk: '#B09370', tshadow: ['#2E4A2A', .2],
+      area: { fairway: '#9BDB82', green: '#7CD36A', tee: '#7CD36A', bunker: '#F6ECC9', water: '#7CC4F0', driving_range: '#A9DF92', 'pitch:basketball': '#E8A168', 'pitch:tennis': '#6FA3E6', 'pitch:soccer': '#86D073', 'pitch:football': '#86D073', playground: '#EBC9A5', swimming_pool: '#62BDF0', track: '#D98B6E', other: '#8FD27E' }, areaLine: ['#FFFFFF', .9], cross: ['#FFFFFF', .95], lane: ['#CBC7BE', .85],
       haloText: 'rgba(255,255,255,.95)', poiStroke: '#FFFFFF',
       wk: { cream: '#EDE4D0', white: '#F3F0EA', tan: '#D9C6A5' }, trim: '#C9C4BA', tower: '#E9E4D8',
       rk: { blue: '#2F5FB5', green: '#2F7F6F', white: '#F2EEE7', tan: '#D7C3A4', cream: '#EFE6D4', grey: '#B5B8C0', red: '#B5473A' },
@@ -44,7 +46,9 @@
     ['match', ['get', 'c'], -1, p.roofFlat].concat(...p.roofs.map((c, i) => [i, c]), [p.roofs[0]])];
   const wallKey = p => ['match', ['get', 'w']].concat(...Object.keys(p.wk).map(k => [k, p.wk[k]]), [p.wk.cream]);
   const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey, p.trim];
-  const canopyColour = (p, k) => ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]];
+  const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
+  const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
+  const areaColour = p => ['match', ['get', 'k']].concat(...Object.keys(p.area).filter(k => k !== 'other').map(k => [k, p.area[k]]), [p.area.other]);
 
   // ---- the window walls: a picture of a few floors of windows, some lit, repeated over the wall ----
   const CLASSES = ['lo', 'mid', 'hi'];
@@ -152,20 +156,30 @@
     const out = []; for (let i = 0; i <= n; i++) { const a = rot + i / n * Math.PI * 2; out.push([cx + Math.cos(a) * r / 107500, cy + Math.sin(a) * r / 110574]); } return out;
   };
   function treeShapes(trees) {
-    const low = [], high = [], trunk = [];
+    const c1 = [], c2 = [], trunk = [], shade = [];
+    const feat = (props, ring) => ({ type: 'Feature', properties: props, geometry: { type: 'Polygon', coordinates: [ring] } });
+    const star = (cx, cy, R, r, n, rot) => { const out = []; for (let i = 0; i <= n * 2; i++) { const a = rot + i / (n * 2) * Math.PI * 2, rr = i % 2 ? r : R; out.push([cx + Math.cos(a) * rr / 107500, cy + Math.sin(a) * rr / 110574]); } return out; };
     trees.forEach((t, i) => {
-      const [lng, lat, r, h, v, cone] = t, rot = (i * 2.399) % 6.283, props = (b, top) => ({ v, b, h: top });
-      if (cone) {   // a narrow tree, wide at its foot
-        low.push({ type: 'Feature', properties: props(h * .25, h * .62), geometry: { type: 'Polygon', coordinates: [ngon(lng, lat, r * .8, 7, rot)] } });
-        high.push({ type: 'Feature', properties: props(h * .55, h), geometry: { type: 'Polygon', coordinates: [ngon(lng, lat, r * .45, 7, rot)] } });
-      } else {      // a round one: a full lower crown and a narrower upper one
-        low.push({ type: 'Feature', properties: props(h * .3, h * .7), geometry: { type: 'Polygon', coordinates: [ngon(lng, lat, r, 9, rot)] } });
-        high.push({ type: 'Feature', properties: props(h * .58, h), geometry: { type: 'Polygon', coordinates: [ngon(lng, lat, r * .66, 8, rot + .4)] } });
+      const [lng, lat, r, h, v, shape] = t, rot = (i * 2.399) % 6.283, s = shape || 0;
+      const jx = (Math.sin(i * 7.7) * .5) * r * .3, jy = (Math.cos(i * 5.3) * .5) * r * .3;      // the upper crown sits a little off-centre, so no two trees are quite alike
+      const ox = lng + jx / 107500, oy = lat + jy / 110574;
+      if (s === 2) {          // a palm: a tall slim trunk, a flat crown of fronds, a small tuft on top
+        c1.push(feat({ v, s, b: h * .86, h: h * .96 }, star(lng, lat, 3.4, 1.0, 8, rot)));
+        c2.push(feat({ v, s, b: h * .96, h: h * 1.06 }, ngon(lng, lat, 1.0, 7, rot)));
+        trunk.push(feat({ s, h: h * .88 }, ngon(lng, lat, .3, 5, rot)));
+      } else if (s === 1) {   // an evergreen: wide at its foot, narrow at its top
+        c1.push(feat({ v, s, b: h * .2, h: h * .6 }, ngon(lng, lat, r * .85, 8, rot)));
+        c2.push(feat({ v, s, b: h * .5, h }, ngon(lng, lat, r * .42, 7, rot)));
+        trunk.push(feat({ s, h: h * .35 }, ngon(lng, lat, .38, 5, rot)));
+      } else {                // a round-crowned tree: a full lower crown and a narrower, off-centre upper one
+        c1.push(feat({ v, s, b: h * .3, h: h * .7 }, ngon(lng, lat, r * (.92 + (v - .5) * .2), 9, rot)));
+        c2.push(feat({ v, s, b: h * .58, h }, ngon(ox, oy, r * .68, 8, rot + .4)));
+        trunk.push(feat({ s, h: h * .42 }, ngon(lng, lat, .38, 5, rot)));
       }
-      trunk.push({ type: 'Feature', properties: { h: h * .42 }, geometry: { type: 'Polygon', coordinates: [ngon(lng, lat, .38, 5, rot)] } });
+      shade.push(feat({}, ngon(lng + h * .22 / 107500, lat + h * .38 / 110574, (s === 2 ? 2.4 : r * .95), 9, rot)));   // the shadow on the ground, thrown away from the light
     });
     const fc = f => ({ type: 'FeatureCollection', features: f });
-    return [fc(low), fc(high), fc(trunk)];
+    return [fc(c1), fc(c2), fc(trunk), fc(shade)];
   }
   const POI_COL = { restaurant: '#FF9A3D', fast_food: '#FF9A3D', cafe: '#FF9A3D', bar: '#FF9A3D', bakery: '#FF9A3D', ice_cream: '#FF9A3D', food_court: '#FF9A3D',
     shop: '#4F8CFF', grocery: '#4F8CFF', supermarket: '#4F8CFF', clothing_store: '#4F8CFF', convenience: '#4F8CFF', department_store: '#4F8CFF', mall: '#4F8CFF', jewelry: '#4F8CFF',
@@ -203,15 +217,22 @@
         map.addSource('cd-cross', { type: 'geojson', data: detail.crossings });
         map.addLayer({ id: 'cd-cross', type: 'fill', source: 'cd-cross', minzoom: 16, layout: hide, paint: { 'fill-color': p.cross[0], 'fill-opacity': p.cross[1] } }, firstLabel);
       }
+      if (detail && detail.areas) {   // the golf course as it is mapped, and the pitches, playgrounds and pools, drawn flat
+        map.addSource('cd-areas', { type: 'geojson', data: detail.areas });
+        map.addLayer({ id: 'cd-area', type: 'fill', source: 'cd-areas', minzoom: 15.4, layout: hide, paint: { 'fill-color': areaColour(p) } }, firstLabel);
+        map.addLayer({ id: 'cd-area-line', type: 'line', source: 'cd-areas', minzoom: 16.4, layout: hide, filter: ['any', ['==', ['slice', ['get', 'k'], 0, 5], 'pitch'], ['==', ['get', 'k'], 'track']],
+          paint: { 'line-color': p.areaLine[0], 'line-opacity': p.areaLine[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .6, 19, 1.6] } }, firstLabel);
+      }
       if (src) map.addLayer({ id: 'cd-lane', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', minzoom: 16.4, layout: Object.assign({ 'line-cap': 'butt' }, hide),
         filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary']]],
         paint: { 'line-color': p.lane[0], 'line-opacity': p.lane[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .7, 19, 1.6], 'line-dasharray': [3, 4] } }, firstLabel);
       // over the buildings: trees, places
       if (detail && detail.trees) {
-        TREES = detail.trees; const [lo, hi, tr] = treeShapes(TREES);
-        map.addSource('cd-canopy', { type: 'geojson', data: lo }); map.addSource('cd-canopy2', { type: 'geojson', data: hi }); map.addSource('cd-trunk', { type: 'geojson', data: tr });
+        TREES = detail.trees; const [lo, hi, tr, sh] = treeShapes(TREES);
+        map.addSource('cd-canopy', { type: 'geojson', data: lo }); map.addSource('cd-canopy2', { type: 'geojson', data: hi }); map.addSource('cd-trunk', { type: 'geojson', data: tr }); map.addSource('cd-tsh', { type: 'geojson', data: sh });
+        map.addLayer({ id: 'cd-tshadow', type: 'fill', source: 'cd-tsh', minzoom: 16, layout: hide, paint: { 'fill-color': p.tshadow[0], 'fill-opacity': p.tshadow[1] } }, firstLabel);
         const fade = ['interpolate', ['linear'], ['zoom'], 15.6, 0, 16.4, .97];
-        map.addLayer({ id: 'cd-trunk', type: 'fill-extrusion', source: 'cd-trunk', minzoom: 16, layout: hide, paint: { 'fill-extrusion-color': p.trunk, 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, above);
+        map.addLayer({ id: 'cd-trunk', type: 'fill-extrusion', source: 'cd-trunk', minzoom: 16, layout: hide, paint: { 'fill-extrusion-color': trunkColour(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, above);
         map.addLayer({ id: 'cd-canopy', type: 'fill-extrusion', source: 'cd-canopy', minzoom: 15.6, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
         map.addLayer({ id: 'cd-canopy2', type: 'fill-extrusion', source: 'cd-canopy2', minzoom: 15.6, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy2'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
       }
@@ -224,7 +245,7 @@
       }
     })());
   }
-  const LAYERS = ['cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi', 'cd-poi-name'];
+  const LAYERS = ['cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi', 'cd-poi-name'];
   const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
   function paint() {
     const p = pal();
@@ -232,7 +253,8 @@
     set('cd-roof', 'fill-extrusion-color', roofColour(p)); set('cd-lm-wall', 'fill-extrusion-color', wallKey(p)); set('cd-lm-trim', 'fill-extrusion-color', trimColour(p));
     set('cd-cross', 'fill-color', p.cross[0]); set('cd-cross', 'fill-opacity', p.cross[1]);
     set('cd-lane', 'line-color', p.lane[0]); set('cd-lane', 'line-opacity', p.lane[1]);
-    set('cd-canopy', 'fill-extrusion-color', canopyColour(p, 'canopy')); set('cd-canopy2', 'fill-extrusion-color', canopyColour(p, 'canopy2')); set('cd-trunk', 'fill-extrusion-color', p.trunk);
+    set('cd-canopy', 'fill-extrusion-color', canopyColour(p, 'canopy')); set('cd-canopy2', 'fill-extrusion-color', canopyColour(p, 'canopy2')); set('cd-trunk', 'fill-extrusion-color', trunkColour(p));
+    set('cd-area', 'fill-color', areaColour(p)); set('cd-area-line', 'line-color', p.areaLine[0]); set('cd-area-line', 'line-opacity', p.areaLine[1]); set('cd-tshadow', 'fill-color', p.tshadow[0]); set('cd-tshadow', 'fill-opacity', p.tshadow[1]);
     set('cd-poi', 'circle-stroke-color', p.poiStroke); set('cd-poi-name', 'text-halo-color', p.haloText);
     try { map.setLight(p.light); map.setSky(p.sky); } catch (e) { /* an older map */ }
   }

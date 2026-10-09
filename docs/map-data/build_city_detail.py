@@ -9,7 +9,9 @@ City view (the tilted map) draws: trees and zebra crossings. All from OpenStreet
     stylised trees on a jittered grid, because OpenStreetMap does not map every tree. The
     spacing says what the place is (a park is closer planted than a golf course rough);
     the golf course fairways, greens, tees, bunkers and water are left clear;
-  * every highway=crossing is drawn as zebra bars across the road it sits on.
+  * every highway=crossing is drawn as zebra bars across the road it sits on;
+  * the golf course is drawn as it is mapped (fairways, greens, tees, bunkers, water), and the pitches,
+    playgrounds, pools and tracks as flat coloured areas, as Apple Maps does.
 
 Run:  python docs/map-data/build_city_detail.py   (only the Python standard library and
 internet; the public Overpass servers are shared, so it tries several)
@@ -80,13 +82,16 @@ def main():
     trees_el = overpass('[out:json][timeout:90];node["natural"="tree"](%s);out;' % bb)
     greens = overpass('[out:json][timeout:90];(way["leisure"~"^(park|garden|golf_course|recreation_ground|nature_reserve)$"](%s);way["landuse"~"^(grass|forest|recreation_ground|village_green|cemetery|meadow)$"](%s);'
                       'way["natural"~"^(wood|scrub|grassland)$"](%s);way["golf"](%s);relation["leisure"~"^(park|golf_course)$"](%s);relation["landuse"~"^(grass|forest)$"](%s);relation["natural"="wood"](%s););out geom tags;' % ((bb,) * 7))
+    flat = overpass('[out:json][timeout:90];(way["leisure"~"^(pitch|playground|swimming_pool|track|sports_centre|stadium)$"](%s);way["golf"="driving_range"](%s););out geom tags;' % (bb, bb))
     cross_el = overpass('[out:json][timeout:90];node["highway"="crossing"](%s);out;' % bb)
     cross_ways = overpass('[out:json][timeout:90];node["highway"="crossing"](%s)->.c;way(bn.c)["highway"];out geom tags;' % bb)
 
     # ---- trees: [lng, lat, canopy radius m, height m, variation 0..1, shape (0 round, 1 cone), mapped 1 / planted 0] ----
     trees = []
     for n in trees_el:
-        trees.append([n['lon'], n['lat'], round(3.0 + random.random() * 1.6, 1), round(7 + random.random() * 4, 1), round(random.random(), 2), 0, 1])
+        t = n.get('tags', {})
+        palm = 'palm' in (t.get('species', '') + t.get('genus', '') + t.get('leaf_type', '')).lower() or t.get('genus') in ('Cocos', 'Roystonea', 'Areca', 'Veitchia', 'Washingtonia', 'Phoenix')
+        trees.append([n['lon'], n['lat'], round(3.0 + random.random() * 1.6, 1), round(9 + random.random() * 4, 1) if palm else round(7 + random.random() * 4, 1), round(random.random(), 2), 2 if palm else 0, 1])
     keep_clear = []   # golf fairways, greens, tees, bunkers, water, the clubhouse
     plant = []        # (rings, spacing m, kind)
     for el in greens:
@@ -121,8 +126,9 @@ def main():
                     px, py = x + (random.random() - .5) * .7 * gx, y + (random.random() - .5) * .7 * gy
                     if ring_has((px, py), ring) and not any(ring_has((px, py), c) for c in keep_clear):
                         r = 2.3 + random.random() * 1.9
-                        trees.append([round(px, 6), round(py, 6), round(r, 1), round(6 + r * 1.3 + random.random() * 2.5, 1), round(random.random(), 2),
-                                      1 if (kind == 'wood' and random.random() < .15) else 0, 0])
+                        u = random.random()
+                        shape = 2 if u < (.14 if kind == 'park' else .07) else 1 if (kind == 'wood' and u > .9) else 0   # palm, evergreen, deciduous
+                        trees.append([round(px, 6), round(py, 6), round(r, 1), round((9 + random.random() * 4) if shape == 2 else (6 + r * 1.3 + random.random() * 2.5), 1), round(random.random(), 2), shape, 0])
                     x += gx
                 y += gy
     print('  before thinning: %d' % len(trees))
@@ -177,8 +183,28 @@ def main():
             bars.append([pts])
         feats.append({'type': 'Feature', 'properties': {}, 'geometry': {'type': 'MultiPolygon', 'coordinates': bars}})
     print('  crossings: %d' % len(feats))
-    out = {'about': 'OpenStreetMap contributors (ODbL). Built by docs/map-data/build_city_detail.py. trees: [lng, lat, canopy radius m, height m, variation, shape, mapped(1)/planted(0)]',
-           'trees': trees, 'crossings': {'type': 'FeatureCollection', 'features': feats}}
+
+    # ---- golf and sports areas, drawn flat ----
+    areas = []
+    for el in greens + flat:
+        t = el.get('tags', {})
+        golf = t.get('golf')
+        k = None
+        if golf in ('fairway', 'green', 'tee', 'bunker', 'driving_range'):
+            k = golf
+        elif golf in ('water_hazard', 'lateral_water_hazard'):
+            k = 'water'
+        elif t.get('leisure') == 'pitch':
+            k = 'pitch:' + (t.get('sport') or 'other').split(';')[0]
+        elif t.get('leisure') in ('playground', 'swimming_pool', 'track'):
+            k = t['leisure']
+        if not k:
+            continue
+        for ring in rings_of(el):
+            areas.append({'type': 'Feature', 'properties': {'k': k}, 'geometry': {'type': 'Polygon', 'coordinates': [[[round(x, 6), round(y, 6)] for x, y in ring]]}})
+    print('  golf and sports areas: %d' % len(areas))
+    out = {'about': 'OpenStreetMap contributors (ODbL). Built by docs/map-data/build_city_detail.py. trees: [lng, lat, canopy radius m, height m, variation, shape (0 deciduous, 1 evergreen, 2 palm), mapped(1)/planted(0)]',
+           'trees': trees, 'crossings': {'type': 'FeatureCollection', 'features': feats}, 'areas': {'type': 'FeatureCollection', 'features': areas}}
     with open(OUT, 'w', encoding='utf-8') as f:
         json.dump(out, f, separators=(',', ':'))
     print('wrote', os.path.normpath(OUT), os.path.getsize(OUT) // 1024, 'KB')
