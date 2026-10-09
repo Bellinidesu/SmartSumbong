@@ -16,8 +16,11 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..'))
 import infra
 from meshlib import MAT, rgb
+import aircraft
 
 Z_SURF, Z_MARK = .10, .17
+# The map can only be moved over this box (admin/spatial.php, AREA); nothing outside it can ever be seen, so nothing outside it is drawn. A margin of 40 m.
+AREA = (121.002663 - .0004, 14.514585 - .0004, 121.028423 + .0004, 14.539225 + .0004)
 
 COL = dict(
     asphalt=rgb('565B68'), runway=rgb('4B505C'), rubber=rgb('363A45'), apron=rgb('D3D6DE'), white=rgb('F4F1EA'), yellow=rgb('F2C14E'),
@@ -32,10 +35,11 @@ def _hash(*a):
 
 def local_polygon(boundary, origin):
     rs = []
+    view = Polygon([infra.loc(AREA[0], AREA[1], origin), infra.loc(AREA[2], AREA[1], origin), infra.loc(AREA[2], AREA[3], origin), infra.loc(AREA[0], AREA[3], origin)])
     for r in boundary.rings:
         p = Polygon([infra.loc(x, y, origin) for x, y in r]).buffer(0)
         if not p.is_empty:
-            rs.append(p)
+            rs.append(p.intersection(view))
     return unary_union(rs)
 
 
@@ -100,74 +104,6 @@ def inside_runs(pts, pp):
     if cur:
         runs.append(cur)
     return runs
-
-
-# ---------------------------------------------------------------- the airliner
-def loft(m, o, th, L, prof, col, mat=0, seg=12):
-    """A body of revolution along the heading th from o = (x, y, z of its axis at the start), length L: prof(t) -> (radius, rise of the axis)."""
-    c, s = math.cos(th), math.sin(th)
-    N = 14
-    rings = []
-    for k in range(N + 1):
-        t = k / N
-        r, up = prof(t)
-        cx, cy, cz = o[0] + c * L * t, o[1] + s * L * t, o[2] + up
-        ring = []
-        for j in range(seg):
-            a = 2 * math.pi * j / seg
-            lat, vz = math.cos(a), math.sin(a)
-            ring.append(((cx - s * lat * r, cy + c * lat * r, cz + vz * r), (-s * lat, c * lat, vz)))
-        rings.append(ring)
-    for k in range(N):
-        for j in range(seg):
-            j2 = (j + 1) % seg
-            ids = [m._v(p, n, (0, 0), mat, col) for p, n in (rings[k][j], rings[k][j2], rings[k + 1][j2], rings[k + 1][j])]
-            m.tri(ids[0], ids[2], ids[1])
-            m.tri(ids[0], ids[3], ids[2])
-
-
-def airliner(m, x, y, th):
-    """One airliner of the A320 class, nose at (x, y), heading th: white, a coloured tail, grey belly, engines under the wings."""
-    L, R, zc = 37.6, 2.0, 3.6
-    tail = COL['tail'][_hash(round(x), round(y)) % len(COL['tail'])]
-    back = th + math.pi                                  # from the nose to the tail
-    cb, sb = math.cos(back), math.sin(back)
-
-    def pt(t, lat, z):                                   # t metres back from the nose, lat to the left of the way it faces
-        return (x + cb * t - sb * lat, y + sb * t + cb * lat, z)
-
-    def prof(t):
-        if t < .10:
-            return max(R * math.sqrt(max(0.0, 1 - ((.10 - t) / .10) ** 2)), .08), 0.0
-        if t > .80:
-            u = (t - .80) / .20
-            return max(R * (1 - .82 * u * u), .12), R * .9 * u * u
-        return R, 0.0
-    loft(m, (x, y, zc), back, L, prof, COL['white'])
-    p = pt(2.6, 0, 0)                                    # the cockpit windows
-    m.box(p[0], p[1], zc + .55, 1.0, 2.1, .55, back, 'plain', COL['dark'], 'plain', COL['dark'], True, 40.0)
-    for side in (-1, 1):                                 # a window row down each side
-        p = pt(L * .48, side * (R - .03), 0)
-        m.box(p[0], p[1], zc + .45, L * .62, .06, .42, back, 'plain', COL['glass'], 'plain', COL['glass'], False, 40.0)
-    p = pt(L * .45, 0, 0)                                # the belly
-    m.box(p[0], p[1], zc - R * .85, L * .62, R * 1.5, R * .42, back, 'plain', COL['grey'], 'plain', COL['grey'], False, 40.0)
-    for side in (-1, 1):
-        rf, rb = pt(L * .30, 0, 0), pt(L * .30 + 7.0, 0, 0)
-        tf, tb = pt(L * .30 + 7.0, side * 17.5, 0), pt(L * .30 + 9.2, side * 17.5, 0)
-        ring = [(rf[0], rf[1]), (tf[0], tf[1]), (tb[0], tb[1]), (rb[0], rb[1])]
-        m.prism(ring, zc - .55, zc - .25, 'plain', COL['white'], 'plain', COL['white'], True, 40.0)
-        e = pt(L * .30 + 2.0, side * 5.7, zc - 1.9)      # an engine under the wing
-        loft(m, (e[0], e[1], e[2]), back, 3.8, lambda t: (1.0 - (.3 * (t - .85) / .15 if t > .85 else 0.0), 0.0), COL['grey'], 0, 10)
-        w = pt(L * .30 + 8.6, side * 17.5, 0)            # the winglet
-        m.box(w[0], w[1], zc - .25, 1.6, .12, 1.5, back, 'plain', tail, 'plain', tail, True, 40.0)
-        a, b = pt(L * .88, 0, 0), pt(L * .88 + 3.0, side * 6.6, 0)
-        a2, b2 = pt(L * .88 + 3.2, 0, 0), pt(L * .88 + 4.7, side * 6.6, 0)
-        m.prism([(a[0], a[1]), (b[0], b[1]), (b2[0], b2[1]), (a2[0], a2[1])], zc + R * .5, zc + R * .62, 'plain', COL['white'], 'plain', COL['white'], True, 40.0)
-    f = pt(L * .84, 0, 0)                                # the tail fin
-    m.vprism([(0, 0), (4.2, 0), (2.0, 5.6), (0.0, 5.6)], (f[0], f[1], zc + R * .75), (cb, sb), (-sb, cb), -.18, .18, 'plain', tail)
-    for t, lat in ((4.5, 0.0), (L * .42, -2.8), (L * .42, 2.8)):      # the gear
-        g = pt(t, lat, 0)
-        m.box(g[0], g[1], 0, .35, .35, zc - R * .6, back, 'plain', COL['dark'], 'plain', COL['dark'], True, 40.0)
 
 
 # ---------------------------------------------------------------- the airfield
@@ -275,7 +211,7 @@ def build(m, origin, boundary):
                 ribbon(m, [(x - nx * w / 2 + ox, y - ny * w / 2 + oy), (x + nx * w / 2 + ox, y + ny * w / 2 + oy)], .35, Z_MARK, COL['yellow'], 0, 60.0)
             cnt('hold')
     placed = []
-    for e in by.get('parking_position', []):             # stands: a lead-in line, and an airliner on most
+    for e in by.get('parking_position', []):             # stands: a lead-in line, and an aircraft on most
         pts = L(e) if e['type'] == 'way' else []
         if len(pts) < 2:
             continue
@@ -284,14 +220,21 @@ def build(m, origin, boundary):
         (x, y), th = pts[-1], math.atan2(pts[-1][1] - pts[-2][1], pts[-1][0] - pts[-2][0])
         if not ins(x, y) or length(pts) < 20 or _hash(round(x), round(y)) % 100 >= 62:
             continue
+        tp = aircraft.pick_type(x, y)
+        S = aircraft.TYPES[tp]
         nx, ny = x + math.cos(th) * 4.5, y + math.sin(th) * 4.5
-        if any(math.hypot(nx - px, ny - py) < 33 for px, py in placed):
+        cx, cy = nx - math.cos(th) * S['L'] / 2, ny - math.sin(th) * S['L'] / 2
+        # it must fit: its tail and both wing tips inside the boundary, and clear of the aircraft already there
+        tipx, tipy = -math.sin(th) * S['span'] / 2, math.cos(th) * S['span'] / 2
+        if not (ins(nx, ny) and ins(nx - math.cos(th) * S['L'], ny - math.sin(th) * S['L']) and ins(cx + tipx, cy + tipy) and ins(cx - tipx, cy - tipy)):
             continue
-        if not (ins(nx, ny) and ins(nx - math.cos(th) * 38, ny - math.sin(th) * 38)):
+        if any(math.hypot(cx - px, cy - py) < (S['span'] + sp) * .5 * .92 for px, py, sp in placed):
             continue
-        placed.append((nx, ny))
-        airliner(m, nx, ny, th)
+        placed.append((cx, cy, S['span']))
+        aircraft.airliner(m, nx, ny, th, tp, aircraft.livery_of(tp, x, y))
+        aircraft.ground_support(m, nx, ny, th, tp)
         cnt('aircraft')
+        cnt(tp)
     for e in by.get('helipad', []):
         if e['type'] == 'node':
             x, y = N(e)
@@ -322,3 +265,48 @@ def build(m, origin, boundary):
             continue
         cnt(k)
     print('  airfield:', st)
+
+
+# ---------------------------------------------------------------- towers: air traffic control, radars, a lattice mast
+def tower_list(boundary):
+    q = '[out:json][timeout:120];(nwr["man_made"="tower"](14.5019,120.9996,14.5309,121.0328);nwr["building"="control_tower"](14.5019,120.9996,14.5309,121.0328);nwr["man_made"="mast"]["name"](14.5019,120.9996,14.5309,121.0328););out geom tags;'
+    out = []
+    for e in infra.overpass('towers', q):
+        t = e['tags']
+        g = e.get('geometry')
+        pt = (sum(p['lon'] for p in g) / len(g), sum(p['lat'] for p in g) / len(g)) if g else (e.get('lon'), e.get('lat'))
+        if pt[0] is None or not boundary.inside(*pt) or not (AREA[0] <= pt[0] <= AREA[2] and AREA[1] <= pt[1] <= AREA[3]):
+            continue
+        ty = t.get('tower:type', '')
+        kind = 'atc' if ty == 'aircraft_control' or t.get('building') == 'control_tower' else 'radar' if ty == 'radar' else 'mast' if ty == 'communication' else None
+        if not kind:
+            continue
+        try:
+            h = float(str(t.get('height', '')).split()[0])
+        except (ValueError, IndexError):
+            h = {'atc': 40.0, 'radar': 22.0, 'mast': 45.0}[kind]
+        out.append(dict(kind=kind, name=t.get('name') or {'atc': 'Air traffic control tower', 'radar': 'Radar tower', 'mast': 'Communication mast'}[kind], lng=pt[0], lat=pt[1], h=h))
+    return out
+
+
+def tower_mesh(m, kind, h):
+    W, G, D = COL['white'], COL['glass'], COL['dark']
+    if kind == 'atc':
+        cab = h * .74
+        m.cylinder(0, 0, 0, cab, 2.7, 'plain', W, seg=16)
+        m.cylinder(0, 0, cab * .35, cab * .38, 3.0, 'plain', COL['grey'], seg=16)           # a service ring
+        m.cylinder(0, 0, cab, cab + 4.4, 5.3, 'glass', G, seg=16)                             # the cab: glass all round
+        m.cylinder(0, 0, cab + 4.4, cab + 5.0, 5.8, 'plain', W, seg=16, cap_mat='roofdeck', cap_col=W)
+        m.cylinder(0, 0, cab + 5.0, cab + 9.0, .12, 'plain', COL['grey'], seg=6)              # the mast
+        m.box(0, 0, h + 4.0, .5, .5, .5, 0, 'glow2', COL['white'], 'glow2', COL['white'], True, 40.0)
+    elif kind == 'radar':
+        m.cylinder(0, 0, 0, h, 1.6, 'plain', W, seg=12)
+        m.dome(0, 0, h, 4.2, 4.2, 'plain', W, seg=18, rings=6)
+    else:
+        for k in range(3):
+            a = 2 * math.pi * k / 3
+            m.cylinder(math.cos(a) * 1.6, math.sin(a) * 1.6, 0, h, .20, 'plain', COL['grey'], seg=6)
+        for z in range(6, int(h), 8):
+            m.cylinder(0, 0, z, z + .25, 1.7, 'plain', COL['grey'], seg=3)
+        m.cylinder(0, 0, h, h + 6, .10, 'plain', COL['red'] if 'red' in COL else COL['grey'], seg=5)
+        m.box(0, 0, h + 5.8, .4, .4, .4, 0, 'glow0', COL['white'], 'glow0', COL['white'], True, 40.0)

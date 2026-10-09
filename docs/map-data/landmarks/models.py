@@ -421,7 +421,7 @@ def main():
     except Exception:
         styles = {}
     for bi, b in enumerate(bld):
-        if bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and ZONE[1] <= b[5] <= ZONE[3]):
+        if bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and max(ZONE[1], 14.5142) <= b[5] <= ZONE[3]):     # (the map cannot be moved south of 14.5146)
             continue
         nm, cls = (info.get(str(bi)) or ['', ''])
         area = b[6] * b[7]
@@ -502,6 +502,28 @@ def main():
         voff += len(P)
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles' % ('Airfield', 'furniture', len(P), len(Ix) // 3))
+    # towers: the air traffic control tower, the radars and the mast, each standing where a building of the same footprint is (that building is hidden)
+    for t in airfield.tower_list(Boundary()):
+        best = None
+        for bi, b in enumerate(bld):
+            d = math.hypot((b[4] - t['lng']) * MX, (b[5] - t['lat']) * MY)
+            if d < 14 and (best is None or d < best[0]):
+                best = (d, bi)
+        if best and best[1] in taken:
+            continue
+        m = Mesh()
+        airfield.tower_mesh(m, t['kind'], t['h'])
+        P, N, U, M, Cc, Ix = m.arrays()
+        if not len(P):
+            continue
+        if best:
+            taken.add(best[1])
+        models.append({'name': t['name'], 'template': 'tower', 'lng': t['lng'], 'lat': t['lat'], 'replaces': best[1] if best else -1, 'height': float(P[:, 2].max()), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+        V.append((P, U, M, Cc, N))
+        I.append(Ix)
+        voff += len(P)
+        ioff += len(Ix)
+        print('%-42s %-9s %6d vertices %6d triangles  h %.0f m' % (t['name'], 'tower', len(P), len(Ix) // 3, t['h']))
     # one binary: vertices (x y z u v as float32, mat r g b as uint8) then triangles (uint32)
     vb = bytearray()
     for P, U, M, Cc, N in V:
