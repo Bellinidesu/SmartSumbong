@@ -1063,3 +1063,18 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .cs-hero.has-photo:hover .cs-view { opacity: 1; transform: translate(-50%, -50%); }
 .cs-hero.has-photo:hover .cs-photo { filter: brightness(.82); } .cs-photo { transition: filter .25s, opacity .3s; }
 .cs-photos { display: none; }
+/* ---- The status code, vivid by night (the Zoom here box carries no status) ---- */
+:root[data-theme="dark"] .cs-stg li:nth-child(1) { --c: #B4BCCB !important; }
+:root[data-theme="dark"] .cs-stg li:nth-child(2) { --c: #FFB61F !important; }
+:root[data-theme="dark"] .cs-stg li:nth-child(3) { --c: #3D7BFF !important; }
+:root[data-theme="dark"] .cs-stg li:nth-child(4) { --c: #2FDC74 !important; }
+:root[data-theme="dark"] .cs-stg li:last-child.on:nth-child(2) { --c: #FF4D5A !important; }
+:root[data-theme="dark"] .cs-stg li.on .bub { box-shadow: 0 0 16px 1px color-mix(in srgb, var(--c) 80%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
+:root[data-theme="dark"] .cs-stg li.cur .bub { box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 32%, transparent), 0 0 24px 2px var(--c), inset 0 1px 0 rgba(255,255,255,.35); }
+:root[data-theme="dark"] .cs-stg li.on { color: #fff; } :root[data-theme="dark"] .cs-stg li.cur { color: var(--c); text-shadow: 0 0 12px color-mix(in srgb, var(--c) 60%, transparent); }
+:root[data-theme="dark"] .cs-stg .sg.lit { box-shadow: 0 0 12px color-mix(in srgb, var(--a) 75%, transparent); height: 5px; top: 16.5px; }
+
+:root[data-theme="dark"] .cs-stg li:nth-child(1) .sg { --a: #B4BCCB !important; --b: #FFB61F !important; }
+:root[data-theme="dark"] .cs-stg li:nth-child(2) .sg { --a: #FFB61F !important; --b: #3D7BFF !important; }
+:root[data-theme="dark"] .cs-stg li:nth-child(3) .sg { --a: #3D7BFF !important; --b: #2FDC74 !important; }
+:root[data-theme="dark"] .cs-stg li:first-child:nth-last-child(2) .sg { --a: #B4BCCB !important; --b: #FF4D5A !important; }

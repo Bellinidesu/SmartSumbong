@@ -1180,8 +1180,7 @@ function qvOpen(r) {
       '<div class="qv-t"><b>' + esc(r.subject || label(r.category)) + '</b><span>' + esc(r.tracking_id) + ' · ' + esc(label(r.category)) + '</span></div>' +
       '<button type="button" class="qv-x" data-qvx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
     '<div class="qv-body">' +
-      '<div class="qv-st"><span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span>' + (late ? '<span class="qv-late">' + T('Overdue', 'Lampas na') + '</span>' : '') + '</div>' +
-      '<div class="qv-media" id="qv-media"><i class="qv-ph none"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></i></div>' +
+            '<div class="qv-media" id="qv-media"><i class="qv-ph none"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></i></div>' +
       '<div class="qv-cap" id="qv-cap">' + T('Looking for the resident’s photos…', 'Hinahanap ang mga larawan ng residente…') + '</div>' +
       '<div class="qv-q" id="qv-q" hidden></div>' +
       '<div class="qv-facts"><div><small>' + T('Filed', 'Naisampa') + '</small><b>' + esc(fmtDate(r.created_at) || '—') + '</b></div>' +
