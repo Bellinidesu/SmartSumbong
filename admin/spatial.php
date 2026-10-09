@@ -823,10 +823,10 @@ function showDetail(r) {
       '<h2 class="cs-title">' + esc(r.subject || label(r.category)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span></p>' +
       '<div class="cs-acts' + (MLY ? ' four' : '') + '">' +
-        '<a href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + csIcon(SD_ICONS.send) + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
-        '<button type="button" data-act="zoom"><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
-        (MLY ? '<button type="button" data-act="look"><span>' + csIcon(SD_ICONS.view360) + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
-        '<button type="button" data-act="copy"><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
+        '<a class="ac-send" data-act="dispatch" href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + csIcon(SD_ICONS.send) + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
+        '<button type="button" class="ac-zoom" data-act="zoom"><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        (MLY ? '<button type="button" class="ac-look" data-act="look"><span>' + csIcon(SD_ICONS.view360) + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
+        '<button type="button" class="ac-copy" data-act="copy"><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
       '</div>' +
       '<ul class="cs-rows">' +
         '<li>' + csIcon(SD_ICONS.pin) + '<span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Pinned location', 'Naka-pin na lokasyon')) + '<small>Barangay 183, Zone 20, Villamor, Pasay City</small></span></li>' +
@@ -845,11 +845,22 @@ function showDetail(r) {
   map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 17), padding: csPad(), duration: 800 });
   el.querySelector('.cs-x').addEventListener('click', closeCaseSheet);
   csDraggable(el);
-  el.querySelector('[data-act=zoom]').addEventListener('click', () => qvOpen(r));
-  const lookBtn = el.querySelector('[data-act=look]'); if (lookBtn) lookBtn.addEventListener('click', () => lkOpen(r));
-  el.querySelector('[data-act=copy]').addEventListener('click', () => {
+  // Each action answers its press, then goes where it says: the plane flies off, then the dispatch page;
+  // the magnifier magnifies, then the zoomed card; the 360 turns once, then the street; the copy ticks.
+  const ACT = (btn, cls, ms, then) => btn && btn.addEventListener('click', ev => {
+    ev.preventDefault(); if (btn.classList.contains(cls)) return; btn.classList.add(cls);
+    const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => { btn.classList.remove(cls); }, ms + 120); setTimeout(then, reduced ? 0 : ms);
+  });
+  const dp = el.querySelector('[data-act=dispatch]'); ACT(dp, 'go', 520, () => { location.href = dp.getAttribute('href'); });
+  ACT(el.querySelector('[data-act=zoom]'), 'go', 420, () => qvOpen(r));
+  ACT(el.querySelector('[data-act=look]'), 'go', 650, () => lkOpen(r));
+  const cp = el.querySelector('[data-act=copy]'); ACT(cp, 'go', 0, () => {
     const done = () => (window.pToast ? pToast(T('Copied ', 'Nakopya ') + r.tracking_id) : null);
     try { navigator.clipboard.writeText(r.tracking_id).then(done, done); } catch (e) { done(); }
+    const sp = cp.querySelector('span'), lb = cp.lastChild, was = [sp.innerHTML, lb.textContent];
+    sp.innerHTML = csIcon('<path d="M5 12.5l5 5 9-10"/>'); lb.textContent = T('Copied', 'Nakopya'); cp.classList.add('done');
+    setTimeout(() => { sp.innerHTML = was[0]; lb.textContent = was[1]; cp.classList.remove('done'); }, 1500);
   });
   // Who has it, the first photo, and the flood level, filled in as they arrive.
   sb.from('dispatches').select('state,assigned_at,tanod:users!dispatches_tanod_id_fkey(full_name)').eq('report_id', r.id).order('assigned_at', { ascending: false }).limit(1)
