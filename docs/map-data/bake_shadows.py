@@ -15,7 +15,11 @@ barangay (every building at its height, every tree at its crown height, on a 1.5
   2. two tones      written into every building in buildings.json: field 10 for its walls (how shut in the street at its foot
                     is, and how much of it a neighbour's shadow covers, set against the rest of the barangay), field 11 for its roof (how much sky the roof sees,
                     and whether a taller neighbour shades it). The map multiplies the plain colour by the tone.
-  3. fog-day.png / fog-night.png    the fog of war: nothing is drawn outside the barangay, and the ground beyond its edge
+  3. glow.png       the night's light, baked: a pool of warm light under every street lamp and a spill of it round every
+                    building with its lights on; and a lit amount (field 12 of buildings.json) for each building, which the map
+                    adds to its walls at night as a warm tint, so a house with its lights on glows without a texture.
+     bounce.png     the day's one bounce of light: a warm wash on the ground beside a wall the sun is shining on.
+  4. fog-day.png / fog-night.png    the fog of war: nothing is drawn outside the barangay, and the ground beyond its edge
                     fades into haze (day) or dark (night) over about 300 m, a soft vignette on a tilted map.
 
 Trees are in the height map, so they shade the ground and the roofs near them as buildings do. Only what is inside the
@@ -54,6 +58,16 @@ SHADOW_REACH = 44                                   # pixels: 66 m, the longest 
 MAP_AREA = (121.0027, 14.5146, 121.0284, 14.5392)   # west, south, east, north: what the page lets you pan to (spatial.php: AREA)
 LAT0 = math.radians(14.525)
 MX, MY = 111320 * math.cos(LAT0), 110574
+
+
+def save_png(arr, path, rgb_step=1):
+    """Saves an RGBA picture with its alpha in 64 steps (and its colour in coarser ones, if it is not constant): smooth enough once
+    the map filters it, and about a third smaller."""
+    a = arr.copy()
+    a[..., 3] = (a[..., 3] // 4) * 4
+    if rgb_step > 1:
+        a[..., :3] = (a[..., :3] // rgb_step) * rgb_step
+    Image.fromarray(a, 'RGBA').save(path, optimize=True)
 
 
 def raster(rings, w, s, e, n, px):
@@ -144,10 +158,60 @@ def main():
     img[..., 0], img[..., 1], img[..., 2] = 12, 14, 34
     img[..., 3] = (alpha * 255).astype(np.uint8)
     out = os.path.join(MAP, 'shadows%s.png' % SUFFIX)
-    Image.fromarray(img, 'RGBA').save(out, optimize=True)
+    save_png(img, out)
     print('wrote', os.path.basename(out), os.path.getsize(out) // 1024, 'KB')
     if SUFFIX:
         return
+
+    # ---- the lit amount of every building (a few more have their lights on the taller they are) ----
+    def h01(a, b):
+        x = math.sin(a * 12.9898 + b * 78.233) * 43758.5453
+        return x - math.floor(x)
+    lit = []
+    for b in bld:
+        h, u = float(b[1]), h01(b[4] * 1e3, b[5] * 1e3)
+        p_on = .4 if h < 9 else .62 if h < 30 else .82
+        lit.append(round(.45 + .55 * h01(b[5], b[4] * 7.7), 2) if u < p_on else (round(.12 * u, 2) if u < p_on + .15 else 0.0))
+
+    # ---- the night: lamp pools and the spill from lit windows ----
+    footf = foot.astype(np.float32)
+    lamps = det.get('lamps', [])
+    wlamp, plamp = np.zeros((H, W), dtype=np.float32), np.zeros((H, W), dtype=np.float32)
+    for lng, lat, br, white in lamps:
+        x, y = int(round((lng - w) * MX / PX)), int(round((n - lat) * MY / PX))
+        if 0 <= x < W and 0 <= y < H:
+            (plamp if white else wlamp)[y, x] += br
+    sig = 5.4 / PX
+    k = .62 * 2 * math.pi * sig * sig
+    a_warm = np.clip(gaussian_filter(wlamp, sig) * k, 0, .85) * (1 - footf)
+    a_white = np.clip(gaussian_filter(plamp, sig) * k, 0, .85) * (1 - footf)
+    lit_img = Image.new('F', (W, H), 0.0)
+    ld = ImageDraw.Draw(lit_img)
+    for b, l in zip(bld, lit):
+        if l > .05:
+            ld.polygon([to_px(b[0][i], b[0][i + 1]) for i in range(0, len(b[0]), 2)], fill=float(l))
+    a_win = np.clip(gaussian_filter(np.asarray(lit_img, dtype=np.float32), 2.6) * 1.9, 0, 1) * (1 - footf) * .6
+    warm, white, win = np.array([255, 184, 98], np.float32), np.array([214, 228, 255], np.float32), np.array([255, 196, 120], np.float32)
+    tot = a_warm + a_white + a_win + 1e-6
+    col = (a_warm[..., None] * warm + a_white[..., None] * white + a_win[..., None] * win) / tot[..., None]
+    a_all = (1 - (1 - a_warm) * (1 - a_white) * (1 - a_win)) * soft
+    gimg = np.zeros((H, W, 4), dtype=np.uint8)
+    gimg[..., :3] = np.clip(col, 0, 255).astype(np.uint8)
+    gimg[..., 3] = (np.clip(a_all, 0, 1) * 255).astype(np.uint8)
+    go = os.path.join(MAP, 'glow.png')
+    save_png(gimg, go, 8)
+    print('wrote glow.png', os.path.getsize(go) // 1024, 'KB (%d lamps, %d buildings lit)' % (len(lamps), sum(1 for l in lit if l > .3)))
+
+    # ---- the day: the warm bounce beside a sunlit wall ----
+    from scipy.ndimage import shift as nd_shift
+    bf = nd_shift(footf, (ey * 2.0, ex * 2.0), order=1)
+    bounce = np.clip(gaussian_filter(bf, 2.2) * 1.4, 0, .55) * (1 - footf) * (1 - np.clip(sh, 0, 1)) * soft
+    bimg = np.zeros((H, W, 4), dtype=np.uint8)
+    bimg[..., 0], bimg[..., 1], bimg[..., 2] = 255, 222, 170
+    bimg[..., 3] = (bounce * 255).astype(np.uint8)
+    bo = os.path.join(MAP, 'bounce.png')
+    save_png(bimg, bo)
+    print('wrote bounce.png', os.path.getsize(bo) // 1024, 'KB')
 
     # ---- two tones for every building: its walls, and its roof ----
     px_ = lambda lng, lat: (int(round((lng - w) * MX / PX)), int(round((n - lat) * MY / PX)))
@@ -192,11 +256,11 @@ def main():
     # the rest, so they are stretched over 0.74 to 1 between the 5th and the 95th percentile.
     lo, hi = np.percentile(wt, 5), np.percentile(wt, 95)
     wt = [round(float(.74 + .26 * min(1.0, max(0.0, (v - lo) / max(hi - lo, 1e-6)))), 2) for v in wt]
-    for b, a, c in zip(bld, wt, rt):
-        while len(b) < 12:
+    for b, a, c, l in zip(bld, wt, rt, lit):
+        while len(b) < 13:
             b.append(1.0)
-        b[10], b[11] = a, c
-    bdoc['fields'] = '[ring (lng,lat flat), height m, roof 0 flat 1 gable 2 hip, roof colour index, centre lng, centre lat, long side m, short side m, angle rad, height estimated, baked wall tone 0.74 to 1, baked roof tone 0.72 to 1]'
+        b[10], b[11], b[12] = a, c, l
+    bdoc['fields'] = '[ring (lng,lat flat), height m, roof 0 flat 1 gable 2 hip, roof colour index, centre lng, centre lat, long side m, short side m, angle rad, height estimated, baked wall tone 0.74 to 1, baked roof tone 0.72 to 1, lights on 0 to 1]'
     json.dump(bdoc, open(bpath, 'w', encoding='utf-8'), separators=(',', ':'))
     print('tones: walls %.2f to %.2f (mean %.2f), roofs %.2f to %.2f (mean %.2f)' % (min(wt), max(wt), sum(wt) / len(wt), min(rt), max(rt), sum(rt) / len(rt)))
 
@@ -214,7 +278,7 @@ def main():
         fo = os.path.join(MAP, 'fog-%s.png' % name)
         Image.fromarray(im, 'RGBA').save(fo, optimize=True)
         print('wrote', os.path.basename(fo), os.path.getsize(fo) // 1024, 'KB', '(%d x %d px)' % (FW, FH))
-    json.dump({'bounds': [w, s, e, n], 'metresPerPixel': PX, 'sunAzimuth': AZ,
+    json.dump({'bounds': [w, s, e, n], 'metresPerPixel': PX, 'sunAzimuth': AZ, 'glow': 'glow.png', 'bounce': 'bounce.png',
                'fog': {'bounds': [fw, fs, fe, fn], 'night': 'fog-night.png', 'day': 'fog-day.png', 'alpha': {'night': .93, 'day': .88}},
                'about': 'Baked by docs/map-data/bake_shadows.py'}, open(os.path.join(MAP, 'shadows.json'), 'w'), separators=(',', ':'))
 

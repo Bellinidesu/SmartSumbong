@@ -10,6 +10,8 @@ City view (the tilted map) draws: trees and zebra crossings. All from OpenStreet
     spacing says what the place is (a park is closer planted than a golf course rough);
     the golf course fairways, greens, tees, bunkers and water are left clear;
   * every highway=crossing is drawn as zebra bars across the road it sits on;
+  * street lamps are set along every road at the spacing a street of that kind is lit at (the roads are OpenStreetMap's; the
+    lamps are not mapped, so they are placed), for the baked glow of the night map;
   * the golf course is drawn as it is mapped (fairways, greens, tees, bunkers, water), and the pitches,
     playgrounds, pools and tracks as flat coloured areas, as Apple Maps does.
 
@@ -89,10 +91,11 @@ def main():
     greens = overpass('[out:json][timeout:90];(way["leisure"~"^(park|garden|golf_course|recreation_ground|nature_reserve)$"](%s);way["landuse"~"^(grass|forest|recreation_ground|village_green|cemetery|meadow)$"](%s);'
                       'way["natural"~"^(wood|scrub|grassland)$"](%s);way["golf"](%s);relation["leisure"~"^(park|golf_course)$"](%s);relation["landuse"~"^(grass|forest)$"](%s);relation["natural"="wood"](%s););out geom tags;' % ((bb,) * 7))
     flat = overpass('[out:json][timeout:90];(way["leisure"~"^(pitch|playground|swimming_pool|track|sports_centre|stadium)$"](%s);way["golf"="driving_range"](%s););out geom tags;' % (bb, bb))
+    roads = overpass('[out:json][timeout:120];way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|service|living_street)$"](%s);out geom tags;' % bb)
     cross_el = overpass('[out:json][timeout:90];node["highway"="crossing"](%s);out;' % bb)
     cross_ways = overpass('[out:json][timeout:90];node["highway"="crossing"](%s)->.c;way(bn.c)["highway"];out geom tags;' % bb)
 
-    # ---- trees: [lng, lat, canopy radius m, height m, variation 0..1, shape (0 round, 1 cone), mapped 1 / planted 0] ----
+    # ---- lamps: [lng, lat, brightness, white 1 / sodium 0]. trees: [lng, lat, canopy radius m, height m, variation 0..1, shape (0 round, 1 cone), mapped 1 / planted 0] ----
     trees = []
     for n in trees_el:
         if not B.inside(n['lon'], n['lat']):
@@ -194,6 +197,33 @@ def main():
         feats.append({'type': 'Feature', 'properties': {}, 'geometry': {'type': 'MultiPolygon', 'coordinates': bars}})
     print('  crossings: %d' % len(feats))
 
+    # ---- street lamps along the roads ----
+    SPACING = {'motorway': 26, 'trunk': 26, 'primary': 26, 'secondary': 28, 'tertiary': 30, 'unclassified': 34, 'residential': 34, 'living_street': 36, 'service': 52}
+    BRIGHT = {'motorway': 1.0, 'trunk': 1.0, 'primary': 1.0, 'secondary': .9, 'tertiary': .85, 'unclassified': .7, 'residential': .7, 'living_street': .6, 'service': .5}
+    lamps = []
+    for w in roads:
+        t = w.get('tags', {})
+        kind = t.get('highway')
+        if kind == 'service' and t.get('service') in ('parking_aisle', 'driveway', 'drive-through', 'emergency_access'):
+            continue
+        g = [(p['lon'] * MX, p['lat'] * MY) for p in w.get('geometry', [])]
+        if len(g) < 2:
+            continue
+        step = SPACING.get(kind, 40)
+        carry = (w['id'] % step) * .5               # start each road at its own place along it
+        for (x0, y0), (x1, y1) in zip(g, g[1:]):
+            seg = math.hypot(x1 - x0, y1 - y0)
+            d = carry
+            while d < seg:
+                f = d / seg
+                x, y = x0 + (x1 - x0) * f, y0 + (y1 - y0) * f
+                lng, lat = x / MX, y / MY
+                if B.inside(lng, lat):
+                    lamps.append([round(lng, 6), round(lat, 6), BRIGHT.get(kind, .6), 1 if kind in ('motorway', 'trunk', 'primary', 'secondary') else 0])   # lng, lat, brightness, 1 = white lamp
+                d += step
+            carry = d - seg
+    print('  street lamps: %d on %d roads' % (len(lamps), len(roads)))
+
     # ---- golf and sports areas, drawn flat ----
     areas = []
     for el in greens + flat:
@@ -216,7 +246,7 @@ def main():
             areas.append({'type': 'Feature', 'properties': {'k': k}, 'geometry': {'type': 'Polygon', 'coordinates': [[[round(x, 6), round(y, 6)] for x, y in ring]]}})
     print('  golf and sports areas: %d' % len(areas))
     out = {'about': 'OpenStreetMap contributors (ODbL). Built by docs/map-data/build_city_detail.py. trees: [lng, lat, canopy radius m, height m, variation, shape (0 deciduous, 1 evergreen, 2 palm), mapped(1)/planted(0)]',
-           'trees': trees, 'crossings': {'type': 'FeatureCollection', 'features': feats}, 'areas': {'type': 'FeatureCollection', 'features': areas}}
+           'trees': trees, 'crossings': {'type': 'FeatureCollection', 'features': feats}, 'areas': {'type': 'FeatureCollection', 'features': areas}, 'lamps': lamps}
     with open(OUT, 'w', encoding='utf-8') as f:
         json.dump(out, f, separators=(',', ':'))
     print('wrote', os.path.normpath(OUT), os.path.getsize(OUT) // 1024, 'KB')

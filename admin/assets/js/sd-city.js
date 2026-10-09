@@ -30,6 +30,7 @@
       roofFlat: '#5C6590', roofs: ['#8C4650', '#9A5E48', '#3B5391', '#35705F', '#646880', '#8E846C', '#54424A', '#9EA1B5'],
       canopy: ['#1F6B53', '#2E8A63'], canopy2: ['#27805F', '#3AA374'], palm: ['#2F7F4E', '#4C9A55'], trunk: '#2F2A3A', palmTrunk: '#5A5068', tshadow: ['#04060F', .38],
       area: { fairway: '#2F8A63', green: '#3FA878', tee: '#3FA878', bunker: '#77738F', water: '#1D3A86', driving_range: '#2A7A58', 'pitch:basketball': '#B06A4C', 'pitch:tennis': '#4A73B8', 'pitch:soccer': '#3C9A6B', 'pitch:football': '#3C9A6B', playground: '#B9877A', swimming_pool: '#2E78C0', track: '#A8604A', other: '#3A9068' }, areaLine: ['#E9ECFA', .55], cross: ['#FFFFFF', .6], lane: ['#AEB6DA', .5],
+      wpal: ['#554C86', '#5A5090', '#4A5C90', '#4F6A92', '#654F90', '#505890', '#655A88', '#4C6090'], wtall: ['#4C5490', '#5A64A0'], glow: [255, 150, 46],
       bake: .95, haloText: 'rgba(18,21,42,.92)', poiStroke: '#14172A',
       wk: { cream: '#6E749D', white: '#7C82AC', tan: '#6B6489' }, trim: '#8189B2', tower: '#767CA6',
       rk: { blue: '#3B5391', green: '#2E6B5B', white: '#8D93B8', tan: '#7A7396', cream: '#8087AE', grey: '#6B7096', red: '#8C4650' },
@@ -41,6 +42,7 @@
       roofFlat: '#F2EFEA', roofs: ['#C25446', '#D07A45', '#3F6FC4', '#3E8E6C', '#9A9DA6', '#E3D3AC', '#7A5A48', '#EDEDED'],
       canopy: ['#7FCB5E', '#5FB55A'], canopy2: ['#8DD66A', '#6BC262'], palm: ['#74C24E', '#5DB04A'], trunk: '#8A6B4F', palmTrunk: '#B09370', tshadow: ['#2E4A2A', .2],
       area: { fairway: '#9BDB82', green: '#7CD36A', tee: '#7CD36A', bunker: '#F6ECC9', water: '#7CC4F0', driving_range: '#A9DF92', 'pitch:basketball': '#E8A168', 'pitch:tennis': '#6FA3E6', 'pitch:soccer': '#86D073', 'pitch:football': '#86D073', playground: '#EBC9A5', swimming_pool: '#62BDF0', track: '#D98B6E', other: '#8FD27E' }, areaLine: ['#FFFFFF', .9], cross: ['#FFFFFF', .95], lane: ['#CBC7BE', .85],
+      wpal: ['#F5C2A6', '#F8DC9C', '#BEE2CB', '#B8D6F2', '#D3C2F0', '#F1ECE4', '#EBC590', '#D0D0D6'], wtall: ['#E6E4E2', '#D8DDE8'], glow: [0, 0, 0],
       bake: .6, haloText: 'rgba(255,255,255,.95)', poiStroke: '#FFFFFF',
       wk: { cream: '#EDE4D0', white: '#F3F0EA', tan: '#D9C6A5' }, trim: '#C9C4BA', tower: '#E9E4D8',
       rk: { blue: '#2F5FB5', green: '#2F7F6F', white: '#F2EEE7', tan: '#D7C3A4', cream: '#EFE6D4', grey: '#B5B8C0', red: '#B5473A' },
@@ -53,9 +55,10 @@
   const LOOKS = {
     steps: { mode: 'steps', vg: true, toneK: 1 },     // the roofs as stepped slabs (what the City view had)
     // Apple Maps: soft, pastel, a high even light, every roof a gentle two-tone
-    apple: { mode: 'halves', lit: 1.05, shade: .86, vg: true, toneK: 1, az: 200,
-      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .3, position: [1.2, 200, 56] }, wall: { lo: ['#F1EEE9'], mid: ['#EAE7E3'], hi: ['#DEE2E9'] }, roofs: mixAll(PAL.day.roofs, '#F0E9DD', .4), roofFlat: '#F4F1EC', bake: .62 },
-      night: { light: { anchor: 'map', color: '#C9D3FF', intensity: .4, position: [1.3, 200, 52] }, wall: { lo: ['#565F8E'], mid: ['#5A6492'], hi: ['#6A75A4'] }, roofs: mixAll(PAL.night.roofs, '#7078A8', .3), roofFlat: '#6B749F', bake: .9 } },
+    apple: { mode: 'halves', lit: 1.04, litN: 1.5, shade: .9, shadeN: .82, vg: true, toneK: 1, az: 200,
+      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .26, position: [1.2, 200, 56] }, roofs: Array(8).fill('#F6F4F0'), roofFlat: '#F6F4F0', rk: { blue: '#F6F4F0', green: '#F6F4F0', white: '#F6F4F0', tan: '#F6F4F0', cream: '#F6F4F0', grey: '#F6F4F0', red: '#F6F4F0' }, bake: .62 },
+      night: { light: { anchor: 'map', color: '#BFD0FF', intensity: .32, position: [1.3, 200, 52] }, sky: { 'sky-color': '#0E1226', 'horizon-color': '#4B3F72', 'fog-color': '#1A1E33', 'sky-horizon-blend': .6, 'horizon-fog-blend': .85, 'fog-ground-blend': .5 },
+        roofs: Array(8).fill('#2C3256'), roofFlat: '#2C3256', rk: { blue: '#2C3256', green: '#2C3256', white: '#2C3256', tan: '#2C3256', cream: '#2C3256', grey: '#2C3256', red: '#2C3256' }, bake: .95 } },
     // two-tone roofs in the roofs' own colours, a strong lit side and shaded side
     halves: { mode: 'halves', lit: 1.12, shade: .72, vg: true, toneK: 1, az: 200 },
   };
@@ -69,11 +72,13 @@
   const toneExpr = () => look().toneStep ? ['step', KTONE, .7, .78, .82, .9, 1] : ['^', KTONE, look().toneK || 1];
   const HALF = ['coalesce', ['get', 's'], 1];   // a roof half's lit or shaded factor (1 for everything else)
   const ch = (hex, i) => parseInt(hex.substr(1 + i * 2, 2), 16);
-  const shaded = f => { const t = toneExpr(); return ['rgb', ['min', 255, ['*', f(0), t, HALF]], ['min', 255, ['*', f(1), t, HALF]], ['min', 255, ['*', f(2), t, HALF]]]; };
+  const shaded = (f, add) => { const t = toneExpr(), a = i => add ? ['+', ['*', f(i), t, HALF], add(i)] : ['*', f(i), t, HALF]; return ['rgb', ['min', 255, a(0)], ['min', 255, a(1)], ['min', 255, a(2)]]; };
   const roofColour = p => shaded(i => ['case', ['has', 'rk'], ['match', ['get', 'rk']].concat(...Object.keys(p.rk).map(k => [k, ch(p.rk[k], i)]), [ch(p.rk.grey, i)]),
     ['match', ['get', 'c'], -1, ch(p.roofFlat, i)].concat(...p.roofs.map((c, j) => [j, ch(c, i)]), [ch(p.roofs[0], i)])]);
-  const wallKey = p => shaded(i => ['match', ['get', 'w']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]));
-  const wallPlain = p => shaded(i => ['step', ['get', 'h'], ch(p.wall.lo[0], i), 9, ch(p.wall.mid[0], i), 30, ch(p.wall.hi[0], i)]);
+  const wallKey = p => shaded(i => ['match', ['get', 'w']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]), i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
+  // houses in a set of pastels (one for each, from where it stands), towers in neutrals; at night a house with its lights on adds warmth
+  const wallPlain = p => shaded(i => ['case', ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+    ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
   const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey, p.trim];
   const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
   const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
@@ -136,14 +141,14 @@
     // a pitched roof as two flat halves, one painted lit and one shaded: plain colours and one more polygon, no steps
     const halves = (x0, y0, co, si, hl, hw, h, rise, props) => [1, -1].map(side => {
       const lit = (-si * side) * sx + (co * side) * sy > 0, q = [[-hl, 0], [hl, 0], [hl, side * hw], [-hl, side * hw], [-hl, 0]].map(([a, b]) => [(x0 + a * co - b * si) / MX, (y0 + a * si + b * co) / MY]);
-      return { type: 'Feature', properties: Object.assign({ b: h, t: h + rise, s: lit ? (lk.lit || 1.1) : (lk.shade || .75) }, props), geometry: { type: 'Polygon', coordinates: [q] } };
+      return { type: 'Feature', properties: Object.assign({ b: h, t: h + rise, s: lit ? ((isDark() ? lk.litN : 0) || lk.lit || 1.1) : ((isDark() ? lk.shadeN : 0) || lk.shade || .75) }, props), geometry: { type: 'Polygon', coordinates: [q] } };
     });
-    d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone, rtone], idx) => {
-      const kk = tone || 1, rr = rtone || kk;
+    d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone, rtone, lit], idx) => {
+      const kk = tone || 1, rr = rtone || kk, gg = lit || 0, wi = Math.min(7, Math.floor(hit01(cx, cy) * 8));
       const poly = []; for (let i = 0; i < ring.length; i += 2) poly.push([ring[i], ring[i + 1]]); poly.push(poly[0]);
       const m = spec.get(idx), co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY;
       if (m) {
-        lmWalls.push({ type: 'Feature', properties: { h, w: m.w, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
+        lmWalls.push({ type: 'Feature', properties: { h, w: m.w, k: kk, g: gg }, geometry: { type: 'Polygon', coordinates: [poly] } });
         const pitched = m.type === 'gable' && L * W > 60 && L * W < 2500;
         if (!pitched) {
           roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } });
@@ -180,7 +185,7 @@
         }
         return;
       }
-      walls.push({ type: 'Feature', properties: { h, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
+      walls.push({ type: 'Feature', properties: { h, k: kk, g: gg, wi }, geometry: { type: 'Polygon', coordinates: [poly] } });
       if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
       if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: rr }).forEach(f => roofs.push(f)); return; }
       if (lk.mode === 'flat') { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: ci, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
@@ -291,6 +296,19 @@
         map.addSource('cd-bake', { type: 'image', url: 'assets/map/shadows.png', coordinates: [[bw, bn], [be, bn], [be, bs], [bw, bs]] });
         map.addLayer({ id: 'cd-bake', type: 'raster', source: 'cd-bake', minzoom: 15, layout: hide, paint: { 'raster-opacity': p.bake, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
       }
+      // the light, baked: a pool under every lamp and a spill from lit windows (night), a warm bounce beside sunlit walls (day)
+      if (bake && bake.bounds && bake.glow) {
+        const [bw, bs, be, bn] = bake.bounds, co = [[bw, bn], [be, bn], [be, bs], [bw, bs]];
+        map.addSource('cd-glow', { type: 'image', url: 'assets/map/' + bake.glow, coordinates: co });
+        map.addLayer({ id: 'cd-glow', type: 'raster', source: 'cd-glow', minzoom: 15, layout: hide, paint: { 'raster-opacity': 1, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+        map.addSource('cd-bounce', { type: 'image', url: 'assets/map/' + bake.bounce, coordinates: co });
+        map.addLayer({ id: 'cd-bounce', type: 'raster', source: 'cd-bounce', minzoom: 15, layout: hide, paint: { 'raster-opacity': .8, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+      }
+      if (detail && detail.lamps) {   // the lamps themselves: small bright points, at night, close up
+        map.addSource('cd-lamps', { type: 'geojson', data: { type: 'FeatureCollection', features: detail.lamps.map(l => ({ type: 'Feature', properties: { w: l[3] }, geometry: { type: 'Point', coordinates: [l[0], l[1]] } })) } });
+        map.addLayer({ id: 'cd-lamp', type: 'circle', source: 'cd-lamps', minzoom: 17, layout: hide,
+          paint: { 'circle-color': ['case', ['==', ['get', 'w'], 1], '#E6EEFF', '#FFD08A'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 17, 1.1, 19, 3], 'circle-blur': .6, 'circle-opacity': .95, 'circle-pitch-alignment': 'viewport' } }, above);
+      }
       // the fog of war: outside the boundary the ground fades into haze (day) or dark (night); a flat dim covers what is beyond the picture
       if (bake && bake.fog) {
         const [fw, fs, fe, fn] = bake.fog.bounds, co = [[fw, fn], [fe, fn], [fe, fs], [fw, fs]], WORLD = [[-179.9, -85], [179.9, -85], [179.9, 85], [-179.9, 85], [-179.9, -85]];
@@ -334,7 +352,7 @@
       }
     })());
   }
-  const LAYERS = ['cd-bake', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
+  const LAYERS = ['cd-bake', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
   const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
   function paint() {
     const p = pal();
@@ -365,6 +383,12 @@
     }
   }
   // the fog of war follows the Dim outside switch in Layers; the flat map's own dim hands over to it while the map is tilted
+  // the night's light only at night, the day's bounce only by day
+  function lightUpdate() {
+    const night = isDark();
+    ['cd-glow', 'cd-lamp'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on && night ? 'visible' : 'none'); });
+    if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', on && !night ? 'visible' : 'none');
+  }
   function fogUpdate() {
     const dim = document.getElementById('f-fog') ? document.getElementById('f-fog').checked : true, night = isDark();
     if (has('cd-fog-n')) map.setLayoutProperty('cd-fog-n', 'visibility', on && dim && night ? 'visible' : 'none');
@@ -403,12 +427,12 @@
   window.sdCityLooks = () => Object.keys(LOOKS);
   async function show(want) {
     on = want; await init(); if (want !== on) return;
-    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
-    detail(); fogUpdate(); clip();
+    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-glow', 'cd-bounce', 'cd-lamp'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
+    detail(); fogUpdate(); lightUpdate(); clip();
     if (want) paint(); else { try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
   }
   map.on('pitch', () => { const up = map.getPitch() > 8; if (up !== on) show(up); });
-  window.addEventListener('themechange', () => { if (on) { paint(); detail(); fogUpdate(); } });
+  window.addEventListener('themechange', () => { if (on) { applyLook(); fogUpdate(); lightUpdate(); } });
   { const f = document.getElementById('f-fog'); if (f) f.addEventListener('change', () => { if (ready) fogUpdate(); }); }
   window.addEventListener('storage', e => { if (e.key === 'ss-city') { slow = false; if (on) detail(); } });
 })();
