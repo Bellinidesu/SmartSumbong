@@ -1118,7 +1118,7 @@ function qvOpen(r) {
         '<div><small>' + T('Nearby', 'Malapit') + '</small><b>' + nearby + T(' within 150 m', ' sa loob ng 150 m') + '</b></div></div>' +
       '<div class="qv-act"><button type="button" class="p-btn p-btn-primary" data-qvgo>' + T('Open in Case Reports', 'Buksan sa Case Reports') +
         ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>' +
-        (MLY ? '<button type="button" class="p-btn qv-look" data-qvlook title="' + T('Look around', 'Luminga-linga') + '">360°</button>' : '') +
+        (MLY ? '<button type="button" class="qv-look" data-qvlook title="' + T('Look around', 'Luminga-linga') + '"><span class="ql-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS.view360 + '</svg><b>360°</b><small>' + T('Look around', 'Luminga') + '</small></span></button>' : '') +
         '<button type="button" class="p-btn" data-qvback>' + T('Back', 'Bumalik') + '</button></div></div>';
   sec.appendChild(box);
   const place = () => {
