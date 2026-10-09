@@ -1078,3 +1078,33 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] .cs-stg li:nth-child(2) .sg { --a: #FFB61F !important; --b: #3D7BFF !important; }
 :root[data-theme="dark"] .cs-stg li:nth-child(3) .sg { --a: #3D7BFF !important; --b: #2FDC74 !important; }
 :root[data-theme="dark"] .cs-stg li:first-child:nth-last-child(2) .sg { --a: #B4BCCB !important; --b: #FF4D5A !important; }
+
+/* ---- The case colour, vivid: mixed toward black it goes to mud (amber turns brown), so the shades are
+   made by changing lightness only and keeping the colour's chroma ---- */
+.cs-sheet, .ss-qv { --cs-hi: color-mix(in srgb, var(--cs) 78%, #fff); --cs-lo: color-mix(in srgb, var(--cs) 72%, #000); }
+@supports (color: oklch(from red l c h)) {
+  .cs-sheet, .ss-qv { --cs-hi: oklch(from var(--cs) min(calc(l * 1.1), .93) calc(c * 1.05) h); --cs-lo: oklch(from var(--cs) calc(l * .74) calc(c * 1.12) h); }
+}
+:root[data-theme="dark"] .cs-hero { background: linear-gradient(150deg, var(--cs-hi) 0%, var(--cs) 48%, var(--cs-lo) 100%); }
+:root[data-theme="dark"] .cs-hero::after { opacity: .3; mix-blend-mode: soft-light; background: #fff; }
+:root[data-theme="dark"] .cs-hero.has-photo { background: #0B1020; }
+:root[data-theme="dark"] .cs-hero .cs-mark, :root[data-theme="dark"] .cs-glyph { filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--cs-lo) 80%, #000)); }
+:root[data-theme="dark"] .cs-cat { background: color-mix(in srgb, var(--cs-lo) 70%, #000); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+:root[data-theme="dark"] .cs-sheet { background: linear-gradient(180deg, color-mix(in srgb, var(--cs) 22%, transparent), color-mix(in srgb, var(--cs) 5%, transparent) 50%, color-mix(in srgb, var(--cs) 14%, transparent)), rgba(20,21,27,.7); border-color: color-mix(in srgb, var(--cs) 52%, rgba(255,255,255,.1)); box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 34px color-mix(in srgb, var(--cs) 22%, transparent), inset 0 1px 0 rgba(255,255,255,.16); }
+:root[data-theme="dark"] .cs-id { color: var(--cs-hi); }
+:root[data-theme="dark"] .cs-last { background: linear-gradient(135deg, color-mix(in srgb, var(--cs) 22%, transparent), color-mix(in srgb, var(--cs) 6%, transparent)); border-color: color-mix(in srgb, var(--cs) 48%, transparent); }
+:root[data-theme="dark"] .cs-last i { background: var(--cs-hi); box-shadow: 0 0 0 4px color-mix(in srgb, var(--cs) 34%, transparent), 0 0 12px var(--cs); }
+.cs-foot .cs-open, :root[data-theme="dark"] .cs-foot .cs-open { background: linear-gradient(135deg, var(--cs-hi), var(--cs) 55%, var(--cs-lo)); box-shadow: 0 6px 22px color-mix(in srgb, var(--cs) 62%, transparent), inset 0 1px 0 rgba(255,255,255,.4); }
+.cs-foot .cs-open::before { mix-blend-mode: soft-light; opacity: .35; }
+.cs-foot .cs-open:hover { box-shadow: 0 10px 30px color-mix(in srgb, var(--cs) 80%, transparent), 0 0 0 3px color-mix(in srgb, var(--cs) 34%, transparent), inset 0 1px 0 rgba(255,255,255,.45); }
+.cs-acts > * { --cs-c: var(--cs); }
+:root[data-theme="dark"] .cs-acts .ac-send span { background: linear-gradient(145deg, var(--cs-hi), var(--cs-lo)); }
+:root[data-theme="dark"] .cs-acts .ac-zoom span { background: linear-gradient(215deg, var(--cs-hi), var(--cs-lo)); }
+:root[data-theme="dark"] .cs-acts .ac-copy span { background: linear-gradient(325deg, var(--cs-hi), var(--cs-lo)); }
+.cs-acts .ac-look span::after, :root[data-theme="dark"] .cs-acts .ac-look span::after { background: linear-gradient(160deg, var(--cs-hi), var(--cs-lo)); }
+/* the Zoom here box: the same vivid header */
+:root[data-theme="dark"] .qv-h { background: linear-gradient(150deg, var(--cs-hi), var(--cs) 50%, var(--cs-lo)); }
+.qv-h::after { mix-blend-mode: soft-light; opacity: .3; }
+:root[data-theme="dark"] .ss-qv { border-color: color-mix(in srgb, var(--cs) 48%, rgba(255,255,255,.1)); box-shadow: 0 18px 50px rgba(0,0,0,.55), 0 0 34px color-mix(in srgb, var(--cs) 24%, transparent), inset 0 1px 0 rgba(255,255,255,.16); }
+:root[data-theme="dark"] .cs-id { color: color-mix(in srgb, var(--cs) 45%, #fff); }
+:root[data-theme="dark"] .cs-last i { background: color-mix(in srgb, var(--cs) 55%, #fff); }
