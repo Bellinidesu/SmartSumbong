@@ -1331,8 +1331,6 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 @keyframes spPulse { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sel-pin .sp-h, .sel-pin .sp-d { animation: none; } }
 
-/* ---- Carbon ground: the barangay's damascus laid faintly over the dark map ---- */
-:root[data-theme="dark"] #s-spatial #map::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: #fff; opacity: .1; mix-blend-mode: soft-light; -webkit-mask: url("../img/texture-contours.webp") center / 760px repeat; mask: url("../img/texture-contours.webp") center / 760px repeat; }
 /* ---- Heat view: the orbs stand down as the heat takes the map, and come back as it dissolves ---- */
 #map .dm { filter: opacity(var(--pk, 1)); }
 #map.heat-view .dm { pointer-events: none; }
