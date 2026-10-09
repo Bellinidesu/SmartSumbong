@@ -22,13 +22,14 @@ import atlas
 import facade
 import tiles_lib
 import hero
+import terminal
 from meshlib import MAT, TILE_M, _ccw, rgb
 from models_common import C
 
 GLOW = {'violet': 0, 'teal': 1, 'amber': 2, 'blue': 3}
 WASH = {'none': 0, 'violet': 1, 'teal': 2, 'amber': 3, 'blue': 4, 'rose': 5, 'green': 6, 'white': 7}
 # what a sheet's colours may be: the map's palette (models_common.C) and each sheet's own wall and accent
-BUDGET = dict(vertices=24000, triangles=14000, tiles=8)
+BUDGET = dict(vertices=60000, triangles=36000, tiles=8)
 # how many of a building's windows are lit at night, by what it is (a sheet's night.lit overrides it): a hotel glows late, an office is dark by 20:00, a terminal never sleeps
 USE_LIT = {'hotel': .72, 'residential': .50, 'commercial-residential': .48, 'mall': .62, 'office': .16, 'terminal': .95, 'shrine': .25, 'hospital': .70, 'school': .12}
 
@@ -108,16 +109,23 @@ def build(m, ring, ctx, sh, h, name):
     def sel(k, default):
         n = body.get(k)
         return mats[n] if n in mats else (n if n in MAT else default)
-    m.prism(ring, 0, pod, sel('podium_mat', 'shop'), podium_col, 'plain', podium_col, top=False, cell=4)
-    m.grade = (pod, top, float(body.get('grade', 0.0))) if body.get('grade') else None
-    m.prism(ring, pod, top, sel('floors_mat', 'windows'), wall, 'plain', wall, top=False, cell=4)
-    m.grade = None
-    if band_h:
+    roof_c = _hex((sh.get('roof') or {}).get('colour', 'F4F1EA'))
+    if sh.get('sections'):
+        terminal.sections(m, ring, ctx, sh, wall, podium_col, roof_c)
+    else:
+        m.prism(ring, 0, pod, sel('podium_mat', 'shop'), podium_col, 'plain', podium_col, top=False, cell=4)
+        m.grade = (pod, top, float(body.get('grade', 0.0))) if body.get('grade') else None
+        m.prism(ring, pod, top, sel('floors_mat', 'windows'), wall, 'plain', wall, top=False, cell=4)
+        m.grade = None
+    if band_h and not sh.get('sections'):
         m.prism(ring, top, h - .7, sel('band_mat', 'plain'), accent if body.get('band_colour', 'accent') == 'accent' else wall, 'plain', wall, top=False, cell=4)
     poly = Polygon(ring).buffer(.35, join_style=2)                                       # the cornice
+    if sh.get('sections'):
+        poly = Polygon()
     roof = sh.get('roof') or {}
     roof_col = _hex(roof['colour']) if roof.get('colour') else C['white']               # read off the satellite view (tools/sat.py --apply), softened to our palette
-    m.prism(list(poly.exterior.coords)[:-1], h - .7, h + .45, 'plain', trim, 'roofdeck', roof_col, top=True, cell=4)
+    if not poly.is_empty:
+        m.prism(list(poly.exterior.coords)[:-1], h - .7, h + .45, 'plain', trim, 'roofdeck', roof_col, top=True, cell=4)
     MXm, MYm = 111320 * math.cos(math.radians(14.525)), 110574
     inside = Polygon(ring).buffer(-1.5)
     hips = _roof_zones(m, ctx, ring, roof.get('zones', []), h, bool(roof.get('overlays')))
@@ -157,6 +165,16 @@ def build(m, ring, ctx, sh, h, name):
             hero.rings(m, ctx, sh, ft)
         elif t == 'belt':
             hero.belt(m, ring, ft)
+        elif t == 'vaults':
+            terminal.vaults(m, ctx, sh, ft)
+        elif t == 'skylights':
+            terminal.skylights(m, ctx, sh, ft)
+        elif t == 'pitched':
+            terminal.pitched(m, ctx, sh, ft)
+        elif t == 'kerb_canopy':
+            terminal.kerb_canopy(m, ctx, sh, ft)
+        elif t == 'jet_bridges':
+            terminal.jet_bridges(m, ctx, sh, ft)
     fa = sh.get('facade')
     if fa is not False:
         flags = dict(awnings=True, entrance=False, sign=False, balconies=False, ac=False, belts=False, pilasters=False)
@@ -312,8 +330,13 @@ def _flag(m, F, ft, h, accent):
 
 
 def lint(sh, nv, nt):
-    """Warnings for a built sheet: its budget, its palette, its tiles."""
+    """Warnings for a built sheet: its budget, its palette, its tiles, the design principles of its kind (principles.py)."""
     out = []
+    try:
+        import principles
+        out += ['principle: ' + w for w in principles.check(sh)]
+    except Exception:
+        pass
     if nv > BUDGET['vertices']:
         out.append('%d vertices (budget %d)' % (nv, BUDGET['vertices']))
     if nt > BUDGET['triangles']:

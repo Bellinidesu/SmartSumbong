@@ -104,6 +104,33 @@
  ],
  "NAIA Terminal 3": [
   {
+   "src": "mapillary",
+   "id": "466471018493553",
+   "title": "NAIA Terminal 3 from 87 m",
+   "author": "Mapillary contributors",
+   "license": "CC BY-SA 4.0",
+   "url": "https://www.mapillary.com/app/?pKey=466471018493553",
+   "score": 7.42
+  },
+  {
+   "src": "mapillary",
+   "id": "505054754510330",
+   "title": "NAIA Terminal 3 from 89 m",
+   "author": "Mapillary contributors",
+   "license": "CC BY-SA 4.0",
+   "url": "https://www.mapillary.com/app/?pKey=505054754510330",
+   "score": 7.37
+  },
+  {
+   "src": "commons",
+   "id": "NAIA_Terminal_3_renovation_4Feb2026_01.jpg",
+   "title": "NAIA Terminal 3 renovation 4Feb2026 01",
+   "author": "RFNirmala",
+   "license": "CC0",
+   "url": "https://commons.wikimedia.org/wiki/File:NAIA_Terminal_3_renovation_4Feb2026_01.jpg",
+   "score": 6.49
+  },
+  {
    "src": "commons",
    "id": "Mezza_Food_Hall,_NAIA_Terminal_3,_Pasay,_Sep_2026.jpg",
    "title": "Mezza Food Hall, NAIA Terminal 3, Pasay, Sep 2026",
@@ -165,6 +192,16 @@
    "license": "CC BY-SA 4.0",
    "url": "https://commons.wikimedia.org/wiki/File:Mabuhay_at_NAIA_Terminal_3,_Pasay,_Sep_2026.jpg",
    "score": 6.13
+  },
+  {
+   "src": "commons",
+   "id": "NAIA_Terminal_4.jpg",
+   "title": "NAIA Terminal 4",
+   "author": "Alticzon",
+   "license": "CC0",
+   "url": "https://commons.wikimedia.org/wiki/File:NAIA_Terminal_4.jpg",
+   "score": 5.78,
+   "cat": "Category:Ninoy Aquino International Airport"
   },
   {
    "src": "openverse",
@@ -231,6 +268,15 @@
   },
   {
    "src": "openverse",
+   "id": "96d4a45c-cff9-4235-8087-01655fce1891",
+   "title": "Brunch at Pancake House, NAIA Terminal 3",
+   "author": "ArthurNielsen",
+   "license": "CC BY 2.0",
+   "url": "https://www.flickr.com/photos/49096698@N08/8274305710",
+   "score": 5.66
+  },
+  {
+   "src": "openverse",
    "id": "49244456-31c2-4ce7-9bd1-6d8e8ae85e4b",
    "title": "NAIA Terminal 3",
    "author": "georgeparrilla",
@@ -240,11 +286,38 @@
   },
   {
    "src": "openverse",
+   "id": "4e3688d1-d38c-4a9d-a9df-e10ff6aadb28",
+   "title": "NAIA Terminal 3",
+   "author": "dunhilaryu",
+   "license": "CC BY 2.0",
+   "url": "https://www.flickr.com/photos/46758483@N00/5578878231",
+   "score": 5.63
+  },
+  {
+   "src": "openverse",
+   "id": "3e6835a3-56d4-4310-aad9-6df9c2cfbb50",
+   "title": "sleeping at NAIA Terminal 3",
+   "author": "Mr. Doods",
+   "license": "CC BY 2.0",
+   "url": "https://www.flickr.com/photos/24161434@N08/14654109451",
+   "score": 5.59
+  },
+  {
+   "src": "openverse",
    "id": "ed4b013e-6e65-468f-8ea0-a0625baa4cd0",
    "title": "My travel buddies!! Nilo Pillow , Speedo and Waterproof Hypergear at NAIA Terminal 3.. We came early .. waiting for check-in at Cebu Pacific Air bound to ALBAY! LET'S GO and travel in Philipppine Islands!! Follow @govisitphilippines for more exciting tour",
    "author": "Renzelle Mae Abasolo",
    "license": "CC BY 2.0",
    "url": "https://www.flickr.com/photos/37796692@N05/9734722712",
+   "score": 5.57
+  },
+  {
+   "src": "openverse",
+   "id": "86045860-3e8f-412d-a898-338a63ccf3c6",
+   "title": "while waiting at the NAIA terminal 3 .. coffee muna :) #naia #terminal3 #coffeelover #maeabasolo",
+   "author": "Renzelle Mae Abasolo",
+   "license": "CC BY 2.0",
+   "url": "https://www.flickr.com/photos/37796692@N05/9172489202",
    "score": 5.57
   },
   {
@@ -299,24 +372,6 @@
    "author": "Ralff Nestor Nacor",
    "license": "CC BY-SA 4.0",
    "url": "https://commons.wikimedia.org/wiki/File:Love_The_Philippines_Marker_in_NAIA_Terminal_3,_Pasay,_Sep_2026.jpg",
-   "score": 5.5
-  },
-  {
-   "src": "commons",
-   "id": "Love_The_Philippines_Marker_in_NAIA_Terminal_3,_Pasay_City,_Mar_2026.jpg",
-   "title": "Love The Philippines Marker in NAIA Terminal 3, Pasay City, Mar 2026",
-   "author": "Ralff Nestor Nacor",
-   "license": "CC BY-SA 4.0",
-   "url": "https://commons.wikimedia.org/wiki/File:Love_The_Philippines_Marker_in_NAIA_Terminal_3,_Pasay_City,_Mar_2026.jpg",
-   "score": 5.5
-  },
-  {
-   "src": "commons",
-   "id": "NAIA_Terminal_3_Parking_Area,_Pasay,_Sep_2026.jpg",
-   "title": "NAIA Terminal 3 Parking Area, Pasay, Sep 2026",
-   "author": "Ralff Nestor Nacor",
-   "license": "CC BY-SA 4.0",
-   "url": "https://commons.wikimedia.org/wiki/File:NAIA_Terminal_3_Parking_Area,_Pasay,_Sep_2026.jpg",
    "score": 5.5
   }
  ],
