@@ -16,7 +16,8 @@
   in vec3 a_pos; in vec2 a_uv; in vec4 a_mc; in vec3 a_day; in vec3 a_night;
   uniform float u_night, u_grow;
   out vec2 v_uv; out float v_mat; out vec3 v_alb; out vec3 v_light;
-  void main() { gl_Position = u_m * vec4(a_pos.xy, a_pos.z * u_grow, 1.0); v_uv = a_uv; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; v_light = mix(a_day, a_night, u_night) * 1.25; }`;
+  void main() { gl_Position = u_m * vec4(a_pos.xy, a_pos.z * u_grow, 1.0); v_uv = a_uv; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; vec3 l = mix(a_day, a_night, u_night) * 1.25;
+    float g = dot(l, vec3(.333)); l = mix(vec3(g), l, mix(1.0, .5, u_night)) * mix(1.0, .72, u_night); v_light = l; }`;
   const FS = `#version 300 es
   precision highp float;
   uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[128]; uniform float u_night;
