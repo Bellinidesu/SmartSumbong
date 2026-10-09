@@ -37,8 +37,9 @@ WORK = os.path.join(HERE, 'gpu', 'work')
 PX = float(os.environ.get('GPU_PX', .5))                 # metres per pixel of the baked ground (0.5: twice as fine as before)
 NIGHT = os.environ.get('GPU_NIGHT', '1') != '0'
 AZ, TAN = 200.0, .9
-PASSES = int(os.environ.get('GPU_PASSES', 16))
+PASSES = int(os.environ.get('GPU_PASSES', 32))
 RAYS = int(os.environ.get('GPU_RAYS', 64))
+NIGHT_RAYS = int(os.environ.get('GPU_NIGHT_RAYS', 384))
 DO_GROUND = os.environ.get('GPU_GROUND', '1') != '0'
 MAP_AREA = (121.0027, 14.5146, 121.0284, 14.5392)
 LAT0 = math.radians(14.525)
@@ -63,12 +64,15 @@ def main():
 
     hm = Image.new('F', (W, H), 0.0)
     wall = Image.new('RGB', (W, H), (150, 160, 150))
+    wlit = Image.new('L', (W, H), 0)                        # how much of a building has its lights on (read by the night)
     roof = Image.new('RGB', (W, H), (70, 130, 80))             # a crown seen from above
-    hd, wd, rd = ImageDraw.Draw(hm), ImageDraw.Draw(wall), ImageDraw.Draw(roof)
+    rtree = Image.new('L', (W, H), 255)                     # 255 for a roof, 60 for a crown, which a ray goes through
+    hd, wd, rd, ld, td = ImageDraw.Draw(hm), ImageDraw.Draw(wall), ImageDraw.Draw(roof), ImageDraw.Draw(wlit), ImageDraw.Draw(rtree)
     for lng, lat, r, h, v, shape, real in det['trees']:
         x, y = to_px(lng, lat)
         rr = (1.3 if shape == 2 else r * .9) / PX
         hd.ellipse([x - rr, y - rr, x + rr, y + rr], fill=float(h) * (.95 if shape == 2 else .85))
+        td.ellipse([x - rr, y - rr, x + rr, y + rr], fill=60)
     for b in sorted(bld, key=lambda b: b[1]):
         pts = [to_px(b[0][i], b[0][i + 1]) for i in range(0, len(b[0]), 2)]
         hd.polygon(pts, fill=float(b[1]))
@@ -76,9 +80,11 @@ def main():
         k = int(((math.sin(b[4] * 1e3 * 12.9898 + b[5] * 1e3 * 78.233) * 43758.5453) % 1) * 8)
         wd.polygon(pts, fill=WALLS[min(7, k)] if hh < 9 else (230, 228, 226))
         rd.polygon(pts, fill=(246, 244, 240))
+        td.polygon(pts, fill=255)
+        ld.polygon(pts, fill=int(max(0.0, min(1.0, float(b[12]) if len(b) > 12 else 0.0)) * 255))
     hmap = np.asarray(hm, dtype=np.float32)
     sg = lambda m: m / PX                           # a length in metres, in pixels
-    rgba = lambda im: np.dstack([np.asarray(im, dtype=np.uint8), np.full((H, W), 255, np.uint8)])
+    rgba = lambda im, a: np.dstack([np.asarray(im, dtype=np.uint8), np.asarray(a, dtype=np.uint8)])
 
     # ---- the probes: wall faces at several heights, then roofs ----
     probes, mapping = [], []     # mapping: ('f', building, band, edge) or ('r', building)
@@ -114,8 +120,8 @@ def main():
         os.remove(os.path.join(WORK, 'out', f))
     inp = lambda f: os.path.join(WORK, 'in', f)
     hmap.tofile(inp('hmap.f32'))
-    rgba(wall).tofile(inp('wall.rgba'))
-    rgba(roof).tofile(inp('roof.rgba'))
+    rgba(wall, wlit).tofile(inp('wall.rgba'))
+    rgba(roof, rtree).tofile(inp('roof.rgba'))
     flat.tofile(inp('probes.f32'))
     lamps = det.get('lamps', []) if NIGHT else []
     if lamps:
@@ -123,7 +129,7 @@ def main():
     az = math.radians(AZ)
     ce = 1 / math.sqrt(1 + TAN * TAN)
     sun = [math.sin(az) * ce, -math.cos(az) * ce, TAN * ce]       # towards the sun: east, south (picture y), up
-    json.dump({'w': W, 'h': H, 'px': PX, 'sun': sun, 'passes': PASSES, 'rays': RAYS, 'ground': DO_GROUND, 'probes': len(pr), 'night': bool(lamps), 'lamps': len(lamps), 'nightK': 1.15}, open(inp('meta.json'), 'w'))
+    json.dump({'w': W, 'h': H, 'px': PX, 'sun': sun, 'passes': PASSES, 'rays': RAYS, 'ground': DO_GROUND, 'probes': len(pr), 'night': bool(lamps), 'lamps': len(lamps), 'nightK': 1.15, 'nightKw': 3.2, 'nightRays': NIGHT_RAYS}, open(inp('meta.json'), 'w'))
 
     print('tracing on the graphics card: %d passes of %d rays (%d rays a probe)' % (PASSES, RAYS, PASSES * RAYS))
     r = subprocess.run(['node', os.path.join(HERE, 'gpu', 'bake.mjs'), WORK])
@@ -160,12 +166,7 @@ def main():
         foot = hmap >= 2.5
         a_warm = np.clip(gaussian_filter(ng[..., 0], sg(.8)), 0, 1) * .62 * (~foot)
         a_white = np.clip(gaussian_filter(ng[..., 1], sg(.8)), 0, 1) * .5 * (~foot)
-        lit = Image.new('F', (W, H), 0.0)
-        ld = ImageDraw.Draw(lit)
-        for b in bld:
-            if len(b) > 12 and b[12] > .05:
-                ld.polygon([to_px(b[0][i], b[0][i + 1]) for i in range(0, len(b[0]), 2)], fill=float(b[12]))
-        a_win = np.clip(gaussian_filter(np.asarray(lit, dtype=np.float32), sg(3.9)) * 1.9, 0, 1) * (~foot) * .55
+        a_win = np.clip(gaussian_filter(ng[..., 2], sg(.9)), 0, 1) * .7 * (~foot)      # the windows are lights in the trace, not a blur
         warmc, whitec, winc = np.array([255, 170, 84], np.float32), np.array([186, 206, 246], np.float32), np.array([255, 190, 112], np.float32)
         tot = a_warm + a_white + a_win + 1e-6
         col = (a_warm[..., None] * warmc + a_white[..., None] * whitec + a_win[..., None] * winc) / tot[..., None]
@@ -176,8 +177,8 @@ def main():
         go = os.path.join(MAP, 'glow-rt.webp')
         Image.fromarray(gimg, 'RGBA').save(go, 'WEBP', quality=62, alpha_quality=70, method=6)
         print('wrote glow-rt.webp', os.path.getsize(go) // 1024, 'KB')
-        nres = np.fromfile(out('nprobes.f32'), dtype=np.float32).reshape(-1, 2)
-        nlamp = np.clip((nres[:, 0] + nres[:, 1]) * .55, 0, 1)
+        nres = np.fromfile(out('nprobes.f32'), dtype=np.float32).reshape(-1, 3)
+        nlamp = np.clip((nres[:, 0] + nres[:, 1]) * .55 + nres[:, 2] * 1.3, 0, 1)   # lamps, and the light of the windows round it
         for pth in ('glow-rt.png',):
             if os.path.exists(os.path.join(MAP, pth)):
                 os.remove(os.path.join(MAP, pth))
@@ -186,13 +187,16 @@ def main():
         json.dump(meta, open(os.path.join(MAP, 'shadows.json'), 'w'), separators=(',', ':'))
 
     # ---- wall faces and roofs ----
-    res = np.fromfile(out('probes.f32'), dtype=np.float32).reshape(-1, 2)
+    res = np.fromfile(out('probes.f32'), dtype=np.float32).reshape(-1, 3)
     ratio = np.clip(res[:, 0] / np.maximum(res[:, 1], 1e-4), 0, 1.2)
+    sunv = np.clip(res[:, 2], 0, 1)
     rows = [[[] for _ in range(len(BANDS) - 1)] for _ in bld]
     lrows = [[[] for _ in range(len(BANDS) - 1)] for _ in bld]
+    srows = [[[] for _ in range(len(BANDS) - 1)] for _ in bld]
     for pi, (m, rt) in enumerate(zip(mapping, ratio)):
         if m[0] == 'f':
             rows[m[1]][m[2]].append(B36[int(round(max(0.0, min(1.0, (rt - .25) / .75)) * 35))])
+            srows[m[1]][m[2]].append(B36[int(round(float(sunv[pi]) * 35))])
             if nlamp is not None:
                 lrows[m[1]][m[2]].append(B36[int(round(float(nlamp[pi]) * 35))])
     tone = [float(.72 + .28 * max(0.0, min(1.0, (rt - .4) / .6))) for (m, rt) in zip(mapping, ratio) if m[0] == 'r']
@@ -203,10 +207,10 @@ def main():
     fnew = []
     for bi, row in enumerate(fdoc['f']):
         nb = len(row[0].split('|'))
-        fnew.append(['|'.join(''.join(row_) for row_ in rows[bi][:nb]), '|'.join(''.join(row_) for row_ in lrows[bi][:nb]) if nlamp is not None else row[1]])
+        fnew.append(['|'.join(''.join(row_) for row_ in rows[bi][:nb]), '|'.join(''.join(row_) for row_ in lrows[bi][:nb]) if nlamp is not None else row[1], '|'.join(''.join(row_) for row_ in srows[bi][:nb])])
     # the digits above are 0..35 over a ratio of 0.25..1, while the map reads 0..35 over a tone of 0.5..1: the same scale
     fdoc['f'] = fnew
-    fdoc['about'] = 'Per wall face light. Day tones path traced on the graphics card by docs/map-data/bake_gpu.py; lamp light by bake_detail.py. For each building, in the order of buildings.json: day tones and lamp light, one group per wall band (see "bands", metres), one base-36 digit each per footprint edge.'
+    fdoc['about'] = 'Per wall face light. Day tones path traced on the graphics card by docs/map-data/bake_gpu.py; lamp light by bake_detail.py. For each building, in the order of buildings.json: day tones and lamp light, one group per wall band (see "bands", metres), one base-36 digit each per footprint edge; a third group says how much of the sun reaches each.'
     json.dump(fdoc, open(os.path.join(MAP, 'faces.json'), 'w'), separators=(',', ':'))
     json.dump(bdoc, open(os.path.join(MAP, 'buildings.json'), 'w'), separators=(',', ':'))
     d = np.array([B36.index(c) for row in fnew for sset in row[0].split('|') for c in sset])

@@ -33,6 +33,7 @@
       canopy: ['#1F6B53', '#2E8A63'], canopy2: ['#27805F', '#3AA374'], palm: ['#2F7F4E', '#4C9A55'], trunk: '#2F2A3A', palmTrunk: '#5A5068', tshadow: ['#04060F', .38],
       area: { fairway: '#2F8A63', green: '#3FA878', tee: '#3FA878', bunker: '#77738F', water: '#1D3A86', driving_range: '#2A7A58', 'pitch:basketball': '#B06A4C', 'pitch:tennis': '#4A73B8', 'pitch:soccer': '#3C9A6B', 'pitch:football': '#3C9A6B', playground: '#B9877A', swimming_pool: '#2E78C0', track: '#A8604A', other: '#3A9068' }, areaLine: ['#E9ECFA', .55], cross: ['#FFFFFF', .6], lane: ['#AEB6DA', .5],
       wpal: ['#554C86', '#5A5090', '#4A5C90', '#4F6A92', '#654F90', '#505890', '#655A88', '#4C6090'], wtall: ['#4C5490', '#5A64A0'], glow: [255, 150, 46],
+      scool: [.97, .98, 1.04], swarm: [.97, .98, 1.04],
       bake: .95, haloText: 'rgba(18,21,42,.92)', poiStroke: '#14172A',
       wk: { cream: '#6E749D', white: '#7C82AC', tan: '#6B6489' }, trim: '#8189B2', tower: '#767CA6',
       rk: { blue: '#3B5391', green: '#2E6B5B', white: '#8D93B8', tan: '#7A7396', cream: '#8087AE', grey: '#6B7096', red: '#8C4650' },
@@ -45,6 +46,7 @@
       canopy: ['#7FCB5E', '#5FB55A'], canopy2: ['#8DD66A', '#6BC262'], palm: ['#74C24E', '#5DB04A'], trunk: '#8A6B4F', palmTrunk: '#B09370', tshadow: ['#2E4A2A', .2],
       area: { fairway: '#9BDB82', green: '#7CD36A', tee: '#7CD36A', bunker: '#F6ECC9', water: '#7CC4F0', driving_range: '#A9DF92', 'pitch:basketball': '#E8A168', 'pitch:tennis': '#6FA3E6', 'pitch:soccer': '#86D073', 'pitch:football': '#86D073', playground: '#EBC9A5', swimming_pool: '#62BDF0', track: '#D98B6E', other: '#8FD27E' }, areaLine: ['#FFFFFF', .9], cross: ['#FFFFFF', .95], lane: ['#CBC7BE', .85],
       wpal: ['#F5C2A6', '#F8DC9C', '#BEE2CB', '#B8D6F2', '#D3C2F0', '#F1ECE4', '#EBC590', '#D0D0D6'], wtall: ['#E6E4E2', '#D8DDE8'], glow: [0, 0, 0],
+      scool: [.94, .97, 1.05], swarm: [1.07, 1.02, .90],
       bake: .6, haloText: 'rgba(255,255,255,.95)', poiStroke: '#FFFFFF',
       wk: { cream: '#EDE4D0', white: '#F3F0EA', tan: '#D9C6A5' }, trim: '#C9C4BA', tower: '#E9E4D8',
       rk: { blue: '#2F5FB5', green: '#2F7F6F', white: '#F2EEE7', tan: '#D7C3A4', cream: '#EFE6D4', grey: '#B5B8C0', red: '#B5473A' },
@@ -81,8 +83,12 @@
   // houses in a set of pastels (one for each, from where it stands), towers in neutrals; at night a house with its lights on adds warmth
   const wallPlain = p => shaded(i => ['case', ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
-  const faceColour = p => shaded(i => ['case', ['has', 'lw'], ['match', ['get', 'lw']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]), ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
-    ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', p.glow[i], ['+', ['*', ['coalesce', ['get', 'g'], 0], .55], ['*', ['coalesce', ['get', 'w'], 0], 1.8]]]);
+  // a wall face: its house's plain colour, the tone baked for the face, leaning warm where the sun reaches it and cool where only the sky does
+  const faceColour = p => shaded(i => ['*', ['case', ['has', 'lw'], ['match', ['get', 'lw']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]),
+    ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+    ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])],
+    ['+', p.scool[i], ['*', ['coalesce', ['get', 's2'], 0], p.swarm[i] - p.scool[i]]]],
+    i => ['*', p.glow[i], ['+', ['*', ['coalesce', ['get', 'g'], 0], .8], ['*', ['coalesce', ['get', 'w'], 0], 1.8]]]);
   const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey, p.trim];
   const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
   const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
@@ -132,10 +138,11 @@
   const dig = ch => '0123456789abcdefghijklmnopqrstuvwxyz'.indexOf(ch);
   function facePlates(d, faces) {
     const out = [], BANDS = faces.bands || [0, 4.5, 64];
+    const hasSun = d.b.length && faces.f.length && faces.f[0].length > 2;
     d.b.forEach((b, idx) => {
       const row = faces.f[idx]; if (!row || b[1] < 2) return;
       const lmSpec = b._lm || null;
-      const ring = b[0], k = ring.length / 2, h = b[1], tone = row[0].split('|'), lamp = row[1].split('|');
+      const ring = b[0], k = ring.length / 2, h = b[1], tone = row[0].split('|'), lamp = row[1].split('|'), sunS = hasSun && row[2] ? row[2].split('|') : null;
       if (tone[0].length !== k) return;
       const nb = tone.length;
       let area = 0; for (let i = 0; i < k; i++) { const j = (i + 1) % k; area += ring[2 * i] * MX * ring[2 * j + 1] * MY - ring[2 * j] * MX * ring[2 * i + 1] * MY; }
@@ -146,7 +153,7 @@
         const nx = sg * dy / ln * .15, ny = -sg * dx / ln * .15, ox = nx * .8, oy = ny * .8;   // the plate stands 12 cm clear of the wall: closer than that and the depth buffer cannot tell the two surfaces apart at a distance
         const quad = [[x0 + ox, y0 + oy], [x1 + ox, y1 + oy], [x1 + nx + ox, y1 + ny + oy], [x0 + nx + ox, y0 + ny + oy], [x0 + ox, y0 + oy]].map(([a, c]) => [a / MX, c / MY]);
         const bands = []; for (let t = 0; t < nb; t++) bands.push([BANDS[t], t === nb - 1 ? h : Math.min(BANDS[t + 1], h), t]);
-        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
+        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35, s2: sunS ? dig(sunS[up][i]) / 35 : 0 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
       }
     });
     return { type: 'FeatureCollection', features: out };
@@ -305,7 +312,6 @@
       if (bld && bld.b) {
         BLD = bld; LMS = lms; BAKE = bake;
         FACES = faces;
-        if (window.sdGlow) window.sdGlow.init(map, { bld, faces, lamps: detail && detail.lamps }, firstLabel);
         const [walls, roofs, lmw, trim] = bldShapes(bld, lms, look());
         if (faces) { map.addSource('cd-faces', { type: 'geojson', data: facePlates(bld, faces) }); map.addLayer({ id: 'cd-face', type: 'fill-extrusion', source: 'cd-faces', minzoom: 16.2, layout: hide, paint: { 'fill-extrusion-color': faceColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d'); }
         map.addSource('cd-bld', { type: 'geojson', data: walls }); map.addSource('cd-roofs', { type: 'geojson', data: roofs }); map.addSource('cd-lm', { type: 'geojson', data: lmw }); map.addSource('cd-trim', { type: 'geojson', data: trim });
@@ -336,11 +342,7 @@
         map.addSource('cd-bounce', { type: 'image', url: 'assets/map/' + bake.bounce, coordinates: co });
         map.addLayer({ id: 'cd-bounce', type: 'raster', source: 'cd-bounce', minzoom: 15, layout: hide, paint: { 'raster-opacity': .8, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
       }
-      if (detail && detail.lamps) {   // the lamps themselves: small bright points, at night, close up
-        map.addSource('cd-lamps', { type: 'geojson', data: { type: 'FeatureCollection', features: detail.lamps.map(l => ({ type: 'Feature', properties: { w: l[3] }, geometry: { type: 'Point', coordinates: [l[0], l[1]] } })) } });
-        map.addLayer({ id: 'cd-lamp', type: 'circle', source: 'cd-lamps', minzoom: 17, layout: hide,
-          paint: { 'circle-color': ['case', ['==', ['get', 'w'], 1], '#E6EEFF', '#FFD08A'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 17, 1.1, 19, 3], 'circle-blur': .6, 'circle-opacity': .95, 'circle-pitch-alignment': 'viewport' } }, above);
-      }
+      // the lamps' light is baked into the ground (glow-rt) and onto the walls; there are no markers for the lamps themselves: a marker has no depth and would show through a wall
       // the fog of war: outside the boundary the ground fades into haze (day) or dark (night); a flat dim covers what is beyond the picture
       if (bake && bake.fog) {
         const [fw, fs, fe, fn] = bake.fog.bounds, co = [[fw, fn], [fe, fn], [fe, fs], [fw, fs]], WORLD = [[-179.9, -85], [179.9, -85], [179.9, 85], [-179.9, 85], [-179.9, -85]];
@@ -390,7 +392,7 @@
       }
     })());
   }
-  const LAYERS = ['cd-face', 'cd-bake', 'cd-bake-u', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
+  const LAYERS = ['cd-face', 'cd-bake', 'cd-bake-u', 'cd-glow', 'cd-bounce', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
   const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
   function paint() {
     const p = pal();
@@ -414,7 +416,6 @@
     // walls and the landmark walls always; roofs, models' trim and (behind the switch) window textures only at Full
     ['cd-wall', 'cd-lm-wall'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); });
     WALLS.forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });
-    if (window.sdGlow) window.sdGlow.show(full && isDark());   // the emissive light is the costliest part: Light and a slow screen leave it out
     ['cd-roof', 'cd-lm-trim', 'cd-face'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });   // Light: plain boxes, no roofs, no model trim
     if (has('building-3d')) {   // the map tiles' own 3D buildings are only a fallback, when the buildings file did not load
       map.setLayoutProperty('building-3d', 'visibility', on && !plain ? 'visible' : 'none');
@@ -425,7 +426,7 @@
   // the night's light only at night, the day's bounce only by day
   function lightUpdate() {
     const night = isDark();
-    ['cd-glow', 'cd-lamp'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on && night ? 'visible' : 'none'); });
+    ['cd-glow'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on && night ? 'visible' : 'none'); });
     if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', on && !night && !has('cd-bake-u') ? 'visible' : 'none');   // the ray-traced day ground has its own bounce
     if (has('cd-bake-u')) { map.setLayoutProperty('cd-bake-u', 'visibility', on && !night ? 'visible' : 'none'); if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', on && night ? 'visible' : 'none'); }
     else if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', on ? 'visible' : 'none');
@@ -468,7 +469,7 @@
   window.sdCityLooks = () => Object.keys(LOOKS);
   async function show(want) {
     on = want; await init(); if (want !== on) return;
-    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-face', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
+    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-face', 'cd-glow', 'cd-bounce', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
     detail(); fogUpdate(); lightUpdate(); clip();
     if (want) paint(); else { try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
   }

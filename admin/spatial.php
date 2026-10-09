@@ -2099,7 +2099,6 @@ loadBoundary();
 load();
 </script>
 <script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
-<script src="assets/js/sd-glow.js?v=<?= e(asset_version('../js/sd-glow.js')) ?>"></script>
 <script src="assets/js/sd-city.js?v=<?= e(asset_version('../js/sd-city.js')) ?>"></script>
 
 <?php layout_foot(); ?>
