@@ -210,6 +210,37 @@ def add_bytes(name, data, source, credit=None):
     return base
 
 
+def looks_like_photo(im):
+    """A photograph, not a logo, a badge, an advertisement or a flat banner: big enough, not mostly white, with a real spread of colours and of light."""
+    import numpy as np
+    if min(im.size) < 260 or max(im.size) < 420:
+        return False
+    a = np.asarray(im.convert('RGB').resize((96, 96)), dtype=np.float32)
+    lum = a.mean(-1)
+    if (lum > 238).mean() > .55 or (lum < 12).mean() > .55:
+        return False
+    q = (a // 32).reshape(-1, 3)
+    colours = len({tuple(c) for c in q.astype(int)})
+    return colours >= 40 and float(lum.std()) > 28
+
+
+def clean_inbox(name=None):
+    """Take the pictures that are not photographs out of the inboxes (badges, logos, banners picked up from a page)."""
+    gone = 0
+    for d in sorted(os.listdir(INBOX)) if os.path.isdir(INBOX) else []:
+        if name and d != re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-'):
+            continue
+        for f in os.listdir(os.path.join(INBOX, d)):
+            if f.endswith('.jpg') and 'screenshot' not in json.load(open(os.path.join(INBOX, d, 'meta.json'))).get(f, {}).get('credit', ''):
+                try:
+                    if not looks_like_photo(Image.open(os.path.join(INBOX, d, f))):
+                        os.remove(os.path.join(INBOX, d, f))
+                        gone += 1
+                except Exception:
+                    pass
+    print('removed %d pictures that are not photographs' % gone)
+
+
 def grab_page(name, url, limit=12):
     """Every large picture on a web page (its social-share image and the big <img>s) goes to the landmark's inbox, credited to the page. For a page you found yourself:
     a hotel's own site, an article, a Wikipedia page."""
@@ -235,7 +266,10 @@ def grab_page(name, url, limit=12):
             continue
         seen.add(u)
         try:
-            add_bytes(name, K.get(u), url, 'web page ' + urllib.parse.urlparse(url).netloc)
+            data = K.get(u)
+            if not looks_like_photo(Image.open(io.BytesIO(data))):
+                continue
+            add_bytes(name, data, url, 'web page ' + urllib.parse.urlparse(url).netloc)
             got += 1
         except Exception:
             continue
@@ -502,11 +536,15 @@ def main():
     if '--index-mapillary' in a:
         return index_mapillary()
     name = next((x for x in a if not x.startswith('--') and (a.index(x) == 0)), None)
+    if not name and '--clean' in a:
+        return clean_inbox()
     if not name:
         raise SystemExit(__doc__)
     opt = lambda k, d=None: a[a.index(k) + 1] if k in a else d
     if '--pick' in a:
         return pick(name, opt('--pick'))
+    if '--clean' in a:
+        return clean_inbox(name if name != '--clean' else None)
     if '--page' in a:
         return grab_page(name, opt('--page'))
     if '--add' in a:
