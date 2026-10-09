@@ -140,6 +140,7 @@
     const out = [], BANDS = faces.bands || [0, 4.5, 64];
     const hasSun = d.b.length && faces.f.length && faces.f[0].length > 2;
     d.b.forEach((b, idx) => {
+      if (window.sdModels && window.sdModels.replaces.has(idx)) return;
       const row = faces.f[idx]; if (!row || b[1] < 2) return;
       const lmSpec = b._lm || null;
       const ring = b[0], k = ring.length / 2, h = b[1], tone = row[0].split('|'), lamp = row[1].split('|'), sunS = hasSun && row[2] ? row[2].split('|') : null;
@@ -179,6 +180,7 @@
       return { type: 'Feature', properties: Object.assign({ b: h, t: h + rise, s: lit ? ((isDark() ? lk.litN : 0) || lk.lit || 1.1) : ((isDark() ? lk.shadeN : 0) || lk.shade || .75) }, props), geometry: { type: 'Polygon', coordinates: [q] } };
     });
     d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone, rtone, lit], idx) => {
+      if (window.sdModels && window.sdModels.replaces.has(idx)) return;   // drawn as a model
       const kk = tone || 1, rr = rtone || kk, gg = lit || 0, wi = Math.min(7, Math.floor(hit01(cx, cy) * 8));
       const poly = []; for (let i = 0; i < ring.length; i += 2) poly.push([ring[i], ring[i + 1]]); poly.push(poly[0]);
       const m = spec.get(idx), co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY;
@@ -297,6 +299,7 @@
     return (ready = (async () => {
       await mapReady;
       if (typeof build3d === 'function') build3d();
+      if (window.sdModels) await window.sdModels.ready;
       const bake = await fetch('assets/map/shadows.json').then(r => r.json()).catch(() => null);
       const faces = bake && bake.faces ? await fetch('assets/map/' + bake.faces).then(r => r.json()).catch(() => null) : null;
       const [detail, bld, lmj] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null)));
@@ -311,6 +314,7 @@
       // the buildings: walls with windows by height, then their roofs (the map tiles' plain 3D buildings stay hidden underneath)
       if (bld && bld.b) {
         BLD = bld; LMS = lms; BAKE = bake;
+        if (window.sdModels) window.sdModels.init(map, firstLabel);
         FACES = faces;
         const [walls, roofs, lmw, trim] = bldShapes(bld, lms, look());
         if (faces) { map.addSource('cd-faces', { type: 'geojson', data: facePlates(bld, faces) }); map.addLayer({ id: 'cd-face', type: 'fill-extrusion', source: 'cd-faces', minzoom: 16.2, layout: hide, paint: { 'fill-extrusion-color': faceColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d'); }
@@ -471,10 +475,11 @@
     on = want; await init(); if (want !== on) return;
     LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-face', 'cd-glow', 'cd-bounce', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
     detail(); fogUpdate(); lightUpdate(); clip();
+    if (window.sdModels) window.sdModels.show(want && (quality() === 'full' || (quality() === 'auto' && !slow)), isDark());
     if (want) paint(); else { try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
   }
   map.on('pitch', () => { const up = map.getPitch() > 8; if (up !== on) show(up); });
-  window.addEventListener('themechange', () => { if (on) { applyLook(); fogUpdate(); lightUpdate(); } });
+  window.addEventListener('themechange', () => { if (on) { applyLook(); fogUpdate(); lightUpdate(); if (window.sdModels) window.sdModels.show(quality() !== 'light' && !slow, isDark()); } });
   { const f = document.getElementById('f-fog'); if (f) f.addEventListener('change', () => { if (ready) fogUpdate(); }); }
   window.addEventListener('storage', e => { if (e.key === 'ss-city') { slow = false; if (on) detail(); } });
 })();

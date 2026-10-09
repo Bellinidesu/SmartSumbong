@@ -1,0 +1,112 @@
+// Spatial Distribution, City view: the landmark models (Bellinist, 10 Oct 2026).
+// Real meshes for the landmarks (docs/map-data/landmarks/models.py draws them): a terminal with its canopy, a shrine with its domes, a
+// hall with its pitched roof. A fill-extrusion can only be a prism, so these are drawn by a custom WebGL layer: triangles, a facade
+// atlas for what repeats (windows, roof sheet), and light that was worked out ahead of time by the graphics card and is stored in
+// the vertices (landmarks3d-light.bin: how lit each vertex is by day, and by night). Nothing is lit live and nothing moves.
+// The layer stands where the plain buildings of these landmarks stood; sd-city.js leaves those out (sdModels.replaces).
+(function () {
+  'use strict';
+  const ID = 'cd-models';
+  const MX = 107500;
+  let data = null, bin = null, lightBin = null, atlas = null, emis = null, map = null, night = false;
+  const gl_ = { prog: null, loc: null, vbuf: null, ibuf: null, lbuf: null, tex: null, texE: null, ready: false };
+
+  const VS = `#version 300 es
+  uniform mat4 u_m;
+  in vec3 a_pos; in vec2 a_uv; in vec4 a_mc; in vec3 a_day; in vec3 a_night;
+  uniform float u_night;
+  out vec2 v_uv; out float v_mat; out vec3 v_alb; out vec3 v_light;
+  void main() { gl_Position = u_m * vec4(a_pos, 1.0); v_uv = a_uv; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; v_light = mix(a_day, a_night, u_night) * 1.25; }`;
+  const FS = `#version 300 es
+  precision highp float;
+  uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[16]; uniform float u_night;
+  in vec2 v_uv; in float v_mat; in vec3 v_alb; in vec3 v_light;
+  out vec4 o;
+  void main() {
+    int mi = int(v_mat + .5); vec4 t = u_tiles[mi];
+    vec2 f = fract(v_uv), dx = dFdx(v_uv) * t.zw, dy = dFdy(v_uv) * t.zw, auv = t.xy + f * t.zw;
+    vec3 base = textureGrad(u_atlas, auv, dx, dy).rgb;
+    vec3 em = textureGrad(u_emis, auv, dx, dy).rgb;
+    if (mi == 8) em = v_alb * .55;
+    vec3 c = base * v_alb * v_light + u_night * em;
+    o = vec4(c, 1.0);
+  }`;
+
+  const mul = (a, b) => { const o = new Array(16).fill(0); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; };
+
+  const layer = {
+    id: ID, type: 'custom', renderingMode: '3d',
+    onAdd(m, gl) {
+      const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+      const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p); gl_.prog = p;
+      const L = {}; ['u_m', 'u_night', 'u_atlas', 'u_emis', 'u_tiles'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
+      ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night'].forEach(n => { L[n] = gl.getAttribLocation(p, n); }); gl_.loc = L;
+      gl_.vbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.vbuf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes), gl.STATIC_DRAW);
+      gl_.ibuf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes), gl.STATIC_DRAW);
+      gl_.lbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.lbuf);
+      const lb = lightBin && lightBin.length === data.vertices * 8 ? lightBin : new Uint8Array(data.vertices * 8).fill(204);
+      gl.bufferData(gl.ARRAY_BUFFER, lb, gl.STATIC_DRAW);
+      const tex = (img, mip) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+      gl_.tex = tex(atlas); gl_.texE = tex(emis);
+      gl_.tiles = new Float32Array(64); data.tiles.forEach((r, i) => gl_.tiles.set(r, i * 4));
+      gl_.ready = true;
+    },
+    render(gl, args) {
+      if (!gl_.ready || map.getZoom() < 15.6) return;
+      const main = (args && args.defaultProjectionData && args.defaultProjectionData.mainMatrix) || (args && args.mainMatrix) || args, L = gl_.loc;
+      gl.useProgram(gl_.prog);
+      gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform4fv(L.u_tiles, gl_.tiles);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl_.tex); gl.uniform1i(L.u_atlas, 0);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gl_.texE); gl.uniform1i(L.u_emis, 1);
+      gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf);
+      for (const md of data.models) {
+        const mc = maplibregl.MercatorCoordinate.fromLngLat([md.lng, md.lat], 0), s = mc.meterInMercatorCoordinateUnits();
+        // local (east, north, up in metres) -> mercator (east, south, up)
+        const M = [s, 0, 0, 0, 0, -s, 0, 0, 0, 0, s, 0, mc.x, mc.y, 0, 1];
+        gl.uniformMatrix4fv(L.u_m, false, new Float32Array(mul(Array.from(main), M)));
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl_.vbuf);
+        const base = md.voff * 24;
+        gl.enableVertexAttribArray(L.a_pos); gl.vertexAttribPointer(L.a_pos, 3, gl.FLOAT, false, 24, base);
+        gl.enableVertexAttribArray(L.a_uv); gl.vertexAttribPointer(L.a_uv, 2, gl.FLOAT, false, 24, base + 12);
+        gl.enableVertexAttribArray(L.a_mc); gl.vertexAttribPointer(L.a_mc, 4, gl.UNSIGNED_BYTE, false, 24, base + 20);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl_.lbuf);
+        gl.enableVertexAttribArray(L.a_day); gl.vertexAttribPointer(L.a_day, 3, gl.UNSIGNED_BYTE, true, 8, md.voff * 8);
+        gl.enableVertexAttribArray(L.a_night); gl.vertexAttribPointer(L.a_night, 3, gl.UNSIGNED_BYTE, true, 8, md.voff * 8 + 3);
+        gl.drawElements(gl.TRIANGLES, md.i, gl.UNSIGNED_INT, md.ioff * 4);
+      }
+      ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night'].forEach(n => gl.disableVertexAttribArray(L[n]));
+    },
+  };
+
+  const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+  const ready = (async () => {
+    try {
+      data = await fetch('assets/map/landmarks3d.json').then(r => r.json());
+      const [b, lb, a, e] = await Promise.all([fetch('assets/map/landmarks3d.bin').then(r => r.arrayBuffer()),
+        fetch('assets/map/landmarks3d-light.bin').then(r => r.ok ? r.arrayBuffer() : null).catch(() => null), img('assets/map/landmarks3d-atlas.png'), img('assets/map/landmarks3d-emis.png')]);
+      bin = new Uint8Array(b); lightBin = lb ? new Uint8Array(lb) : null; atlas = a; emis = e;
+      if (!atlas || !emis) throw new Error('atlas');
+      return true;
+    } catch (err) { data = null; return false; }
+  })();
+
+  window.sdModels = {
+    ready,
+    replaces: new Set(),
+    names: () => (data ? data.models.map(m => m.name) : []),
+    // add the layer under `before` (the first label); a no-op if the models did not load
+    init(m, before) {
+      map = m;
+      if (!data) return false;
+      data.models.forEach(md => window.sdModels.replaces.add(md.replaces));
+      if (!m.getLayer(ID)) m.addLayer(layer, before);
+      m.setLayoutProperty(ID, 'visibility', 'none');
+      return true;
+    },
+    show(on, isNight) { night = !!isNight; if (map && map.getLayer(ID)) { map.setLayoutProperty(ID, 'visibility', on ? 'visible' : 'none'); map.triggerRepaint(); } },
+  };
+  // the buildings these models replace are known as soon as the data is: sd-city.js asks before it builds the plain ones
+  ready.then(ok => { if (ok) data.models.forEach(md => window.sdModels.replaces.add(md.replaces)); });
+})();

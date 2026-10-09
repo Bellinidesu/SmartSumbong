@@ -73,10 +73,14 @@ def main():
         rr = (1.3 if shape == 2 else r * .9) / PX
         hd.ellipse([x - rr, y - rr, x + rr, y + rr], fill=float(h) * (.95 if shape == 2 else .85))
         td.ellipse([x - rr, y - rr, x + rr, y + rr], fill=60)
-    for b in sorted(bld, key=lambda b: b[1]):
+    over = {}
+    lp = os.path.join(MAP, 'landmarks3d.json')
+    if os.path.exists(lp):   # a landmark that is a model stands as tall as its model, not as its OpenStreetMap building
+        over = {md['replaces']: md['height'] for md in json.load(open(lp))['models']}
+    for bi, b in sorted(enumerate(bld), key=lambda q: over.get(q[0], q[1][1])):
         pts = [to_px(b[0][i], b[0][i + 1]) for i in range(0, len(b[0]), 2)]
-        hd.polygon(pts, fill=float(b[1]))
-        hh = float(b[1])
+        hh = float(over.get(bi, b[1]))
+        hd.polygon(pts, fill=hh)
         k = int(((math.sin(b[4] * 1e3 * 12.9898 + b[5] * 1e3 * 78.233) * 43758.5453) % 1) * 8)
         wd.polygon(pts, fill=WALLS[min(7, k)] if hh < 9 else (230, 228, 226))
         rd.polygon(pts, fill=(246, 244, 240))

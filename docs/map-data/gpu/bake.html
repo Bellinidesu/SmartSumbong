@@ -278,9 +278,12 @@ void main() {
       const real = await run(1, pw, ph, PASSES, RAYS, false, g3, 'probes');
       const flat = await run(1, pw, ph, 2, 64, true, null, 'probes, open sky');
       const sunp = await run(2, pw, ph, 2, 1, false, null, 'probes, sun');
-      const a = readF(real), b = readF(flat), sv = readF(sunp), res = new Float32Array(np * 3);
+      const a = readF(real), b = readF(flat), sv = readF(sunp), res = new Float32Array(np * (meta.rgb ? 7 : 3));
       const lum = (x, i) => (x[i * 4] * .2126 + x[i * 4 + 1] * .7152 + x[i * 4 + 2] * .0722) / Math.max(x[i * 4 + 3], 1);
-      for (let i = 0; i < np; i++) { res[3 * i] = lum(a, i); res[3 * i + 1] = lum(b, i); res[3 * i + 2] = sv[i * 4] / Math.max(sv[i * 4 + 3], 1); }
+      for (let i = 0; i < np; i++) {
+        if (meta.rgb) { const wa = Math.max(a[i * 4 + 3], 1), wb = Math.max(b[i * 4 + 3], 1); for (let k = 0; k < 3; k++) { res[7 * i + k] = a[i * 4 + k] / wa; res[7 * i + 3 + k] = b[i * 4 + k] / wb; } res[7 * i + 6] = sv[i * 4] / Math.max(sv[i * 4 + 3], 1); }
+        else { res[3 * i] = lum(a, i); res[3 * i + 1] = lum(b, i); res[3 * i + 2] = sv[i * 4] / Math.max(sv[i * 4 + 3], 1); }
+      }
       stash('probes.f32', new Uint8Array(res.buffer));
     }
     if (meta.night) {

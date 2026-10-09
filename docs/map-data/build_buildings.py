@@ -141,6 +141,15 @@ def main():
     tags = {e['id']: e.get('tags', {}) for e in els}
     out = []
     B = Boundary()
+    # a landmark's building is kept even when its middle lies outside the boundary (the airport terminals are bigger than the barangay's edge)
+    from shapely.geometry import Point, Polygon as _P
+    lmf = json.load(open(os.path.join(os.path.dirname(OUT), 'landmarks.geojson'), encoding='utf-8'))['features']
+    lm_pts = [Point(f['geometry']['coordinates'][0] * MX, f['geometry']['coordinates'][1] * MY) for f in lmf]
+    def holds_landmark(ring):
+        poly = _P([(x * MX, y * MY) for x, y in ring])
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        return any(poly.distance(p) < 28 for p in lm_pts)
     stats = {'pitched': 0, 'flat': 0, 'real_h': 0}
     for f in feats:
         p = f['properties']
@@ -162,7 +171,7 @@ def main():
             if a < 10:
                 continue
             cx, cy, L, W, th = obb(ring)
-            if not B.inside(cx, cy, 12):
+            if not B.inside(cx, cy, 12) and not (a > 400 and holds_landmark(ring)):
                 continue
             fill = a / max(1.0, L * W)
             aspect = L / max(0.5, W)
