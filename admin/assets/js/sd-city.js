@@ -55,14 +55,14 @@
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
   const mixAll = (arr, b, t) => arr.map(c => mix(c, b, t));
   const LOOKS = {
-    steps: { mode: 'steps', vg: true, toneK: 1 },     // the roofs as stepped slabs (what the City view had)
+    steps: { mode: 'steps', vg: false, toneK: 1 },     // the roofs as stepped slabs (what the City view had)
     // Apple Maps: soft, pastel, a high even light, every roof a gentle two-tone
-    apple: { mode: 'halves', lit: 1.04, litN: 1.5, shade: .9, shadeN: .82, vg: true, toneK: 1, az: 200,
+    apple: { mode: 'halves', lit: 1.04, litN: 1.5, shade: .9, shadeN: .82, vg: false, toneK: 1, az: 200,
       day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .26, position: [1.2, 200, 56] }, roofs: Array(8).fill('#F6F4F0'), roofFlat: '#F6F4F0', rk: { blue: '#F6F4F0', green: '#F6F4F0', white: '#F6F4F0', tan: '#F6F4F0', cream: '#F6F4F0', grey: '#F6F4F0', red: '#F6F4F0' }, bake: .62 },
       night: { light: { anchor: 'map', color: '#BFD0FF', intensity: .32, position: [1.3, 200, 52] }, sky: { 'sky-color': '#0E1226', 'horizon-color': '#4B3F72', 'fog-color': '#1A1E33', 'sky-horizon-blend': .6, 'horizon-fog-blend': .85, 'fog-ground-blend': .5 },
         roofs: Array(8).fill('#2C3256'), roofFlat: '#2C3256', rk: { blue: '#2C3256', green: '#2C3256', white: '#2C3256', tan: '#2C3256', cream: '#2C3256', grey: '#2C3256', red: '#2C3256' }, bake: .95 } },
     // two-tone roofs in the roofs' own colours, a strong lit side and shaded side
-    halves: { mode: 'halves', lit: 1.12, shade: .72, vg: true, toneK: 1, az: 200 },
+    halves: { mode: 'halves', lit: 1.12, shade: .72, vg: false, toneK: 1, az: 200 },
   };
   let LOOK = 'apple';   // Apple Soft is the look; the other two stay for comparison (sdCityLook('steps') or ('halves') in the console)
   try { LOOK = localStorage.getItem('ss-look') || 'apple'; } catch (e) { /* the default look */ }
@@ -131,12 +131,13 @@
   // house's plain colour times the tone baked for that face; the lamp light baked for it is added warm at night.
   const dig = ch => '0123456789abcdefghijklmnopqrstuvwxyz'.indexOf(ch);
   function facePlates(d, faces) {
-    const out = [], low = faces.lowBand || 4.5;
+    const out = [], BANDS = faces.bands || [0, 4.5, 64];
     d.b.forEach((b, idx) => {
       const row = faces.f[idx]; if (!row || b[1] < 2) return;
       const lmSpec = b._lm || null;
       const ring = b[0], k = ring.length / 2, h = b[1], tone = row[0].split('|'), lamp = row[1].split('|');
       if (tone[0].length !== k) return;
+      const nb = tone.length;
       let area = 0; for (let i = 0; i < k; i++) { const j = (i + 1) % k; area += ring[2 * i] * MX * ring[2 * j + 1] * MY - ring[2 * j] * MX * ring[2 * i + 1] * MY; }
       const sg = area > 0 ? 1 : -1, wi = Math.min(7, Math.floor(hit01(b[4], b[5]) * 8)), g = b[12] || 0;
       for (let i = 0; i < k; i++) {
@@ -144,8 +145,8 @@
         if (ln < 1.4) continue;
         const nx = sg * dy / ln * .15, ny = -sg * dx / ln * .15, ox = nx * .15 / .15 * .1, oy = ny * .1;
         const quad = [[x0 + ox, y0 + oy], [x1 + ox, y1 + oy], [x1 + nx + ox, y1 + ny + oy], [x0 + nx + ox, y0 + ny + oy], [x0 + ox, y0 + oy]].map(([a, c]) => [a / MX, c / MY]);
-        const bands = h > low + 1 ? [[0, low, 0], [low, h, 1]] : [[0, h, 0]];
-        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, g, k: .62 + .38 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
+        const bands = []; for (let t = 0; t < nb; t++) bands.push([BANDS[t], t === nb - 1 ? h : Math.min(BANDS[t + 1], h), t]);
+        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
       }
     });
     return { type: 'FeatureCollection', features: out };
@@ -320,7 +321,7 @@
           paint: { 'fill-extrusion-color': roofColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d');
       }
       // the ground, drawn under the first of our standing layers: the baked shadows, crossings, lane lines, the golf course and pitches
-      const ground = map.getLayer('cd-wall') ? 'cd-wall' : map.getLayer('cd-w-lo') ? 'cd-w-lo' : 'building-3d';
+      const ground = map.getLayer('cd-face') ? 'cd-face' : map.getLayer('cd-wall') ? 'cd-wall' : map.getLayer('cd-w-lo') ? 'cd-w-lo' : 'building-3d';
       // the baked shadows: one picture laid over the ground, under the buildings (a building hides the part that falls on it)
       if (bake && bake.bounds) {
         const [bw, bs, be, bn] = bake.bounds;

@@ -38,7 +38,7 @@ LAMP_H = 7.5
 LAMP_REACH = 26.0
 AO_DISTS = [1, 2, 3, 4, 6, 8, 11, 15, 20, 27]
 SHADOW_REACH = 44
-LOW_BAND = 4.5
+BANDS = [0, 3, 8, 16, 32, 64]                       # wall bands: a tall wall is lit at several heights, so a neighbour's shadow ends where it should
 MAP_AREA = (121.0027, 14.5146, 121.0284, 14.5392)
 LAT0 = math.radians(14.525)
 MX, MY = 111320 * math.cos(LAT0), 110574
@@ -134,10 +134,10 @@ def main():
         occ = occ / np.maximum(cnt, 1)
         return np.clip(1 - .5 * occ - .34 * (1 - vis) * facing, .5, 1)
 
-    zlo = np.minimum(fh * .45, 1.6)
-    zhi = np.maximum(np.minimum(fh * .85, LOW_BAND + 4), 1.0)
-    day_lo, day_hi = band(zlo), band(zhi)
-    print('day tones: foot %.2f to %.2f, upper %.2f to %.2f' % (day_lo.min(), day_lo.max(), day_hi.min(), day_hi.max()))
+    NB = len(BANDS) - 1
+    zb = [np.clip((BANDS[b] + np.minimum(BANDS[b + 1], fh)) / 2, .3, np.maximum(fh - .2, .3)) for b in range(NB)]
+    day_b = [band(z) for z in zb]
+    print('day tones (CPU, replaced by bake_gpu.py when it has run): ' + ', '.join('%.2f..%.2f' % (d.min(), d.max()) for d in day_b))
 
     # ---- the lamps ----
     lamps = det.get('lamps', [])
@@ -149,35 +149,38 @@ def main():
     # lamps on wall faces
     fpx, fpy = px_of(.6)
     tree = cKDTree(np.c_[fpx, fpy])
-    warm_lo, warm_hi = np.zeros(NF), np.zeros(NF)
+    warm_b = [np.zeros(NF) for _ in range(NB)]
     steps = np.linspace(.05, .95, 14)
     for li in range(len(lamps)):
         idx = tree.query_ball_point([lx[li], ly[li]], LAMP_REACH / PX)
         if not idx:
             continue
         idx = np.array(idx)
-        for z, acc in ((zlo[idx], warm_lo), (zhi[idx], warm_hi)):
-            dx, dy = (lx[li] - fpx[idx]) * PX, -(ly[li] - fpy[idx]) * PX          # metres east, north towards the lamp
+        for b in range(NB):
+            z, acc = zb[b][idx], warm_b[b]
+            dx, dy = (lx[li] - fpx[idx]) * PX, -(ly[li] - fpy[idx]) * PX
             dist = np.sqrt(dx * dx + dy * dy + (LAMP_H - z) ** 2)
             lam = np.clip((fnx[idx] * dx + fny[idx] * dy) / np.maximum(np.hypot(dx, dy), .01), 0, 1)
             ok = np.ones(len(idx), bool)
             for t in steps:
                 hs = hat(fpx[idx] + (lx[li] - fpx[idx]) * t, fpy[idx] + (ly[li] - fpy[idx]) * t)
                 ok &= hs < (z + (LAMP_H - z) * t) + .2
-            acc[idx] += lbr[li] * ok * lam / (1 + (dist / 7.5) ** 2) * 1.7
-    warm_lo, warm_hi = np.clip(warm_lo, 0, 1), np.clip(warm_hi * .8, 0, 1)
-    print('night: %d of %d low faces lit by a lamp' % (int((warm_lo > .1).sum()), NF))
+            acc[idx] += lbr[li] * ok * lam / (1 + (dist / 7.5) ** 2) * 1.7 * (1 if z[0] < 9 else .8)
+    warm_b = [np.clip(w_, 0, 1) for w_ in warm_b]
+    print('night: %d of %d low faces lit by a lamp' % (int((warm_b[0] > .1).sum()), NF))
 
     # ---- write the faces file: per building, the day tones and the lamp light of each face, one base-36 digit each ----
     tone = lambda a: B36[int(round((float(a) - .5) / .5 * 35))]
     warm = lambda a: B36[int(round(float(a) * 35))]
     rows = []
-    for (a, b2) in spans:
-        rows.append([''.join(tone(x) for x in day_lo[a:b2]) + '|' + ''.join(tone(x) for x in day_hi[a:b2]),
-                     ''.join(warm(x) for x in warm_lo[a:b2]) + '|' + ''.join(warm(x) for x in warm_hi[a:b2])])
+    for bi, (a, b2) in enumerate(spans):
+        hb = float(bld[bi][1])
+        nb = max(1, sum(1 for k in range(NB) if BANDS[k] < hb - .5))
+        rows.append(['|'.join(''.join(tone(x) for x in day_b[k][a:b2]) for k in range(nb)),
+                     '|'.join(''.join(warm(x) for x in warm_b[k][a:b2]) for k in range(nb))])
     out = os.path.join(MAP, 'faces.json')
-    json.dump({'about': 'Per wall face light, baked by docs/map-data/bake_detail.py. For each building, in the order of buildings.json: "foot|upper" day tones (digit 0-z = 0.5 to 1) and "foot|upper" lamp light (digit 0-z = 0 to 1), one digit per footprint edge; low band is the foot up to %.1f m' % LOW_BAND,
-               'lowBand': LOW_BAND, 'f': rows}, open(out, 'w'), separators=(',', ':'))
+    json.dump({'about': 'Per wall face light, baked by docs/map-data/bake_detail.py. For each building, in the order of buildings.json: "foot|upper" day tones (digit 0-z = 0.5 to 1) and "foot|upper" lamp light (digit 0-z = 0 to 1), one digit per footprint edge; bands as listed in "bands" (metres)',
+               'bands': BANDS, 'f': rows}, open(out, 'w'), separators=(',', ':'))
     print('wrote faces.json', os.path.getsize(out) // 1024, 'KB')
 
     # ---- the night ground, ray traced ----
