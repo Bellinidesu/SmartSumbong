@@ -22,6 +22,7 @@ STEPS = [
     ('detail',   DM, ['build_city_detail.py'],                    'crossings, areas, lamps, mapped trees (OpenStreetMap)'),
     ('buildings', DM, ['build_buildings.py'],                     'footprints, heights, names (OpenStreetMap + Overture + facts.py)'),
     ('trees',    DM, ['build_trees_chm.py'],                      'measured trees from the canopy height map'),
+    ('plain',    DM, ['plain.py', '--apply'],                     'trees and lamps out of the airfield side and Villamor Air Base (they go back to plain colours)'),
     ('shadows',  DM, ['bake_shadows.py'],                         'the first (CPU) shadow and glow pictures'),
     ('faces',    DM, ['bake_detail.py'],                          'per-wall tones in five height bands'),
     ('gpu',      DM, ['bake_gpu.py'],                             'GPU path-traced ground pictures, day and night'),

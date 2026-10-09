@@ -358,6 +358,10 @@ def main():
     bld = bdoc['b']
     lms = json.load(open(os.path.join(MAP, 'landmarks.geojson'), encoding='utf-8'))['features']
     allpolys = [Polygon([(b[0][k] * MX, b[0][k + 1] * MY) for k in range(0, len(b[0]), 2)]).buffer(0) for b in bld]
+    sys.path.insert(0, os.path.join(HERE, '..'))
+    import plain as _plain
+    PL = _plain.load()
+    AIRFIELD = bool(os.environ.get('SS_AIRFIELD'))     # the airfield diorama (airfield.py) is kept but off: the airfield side goes back to plain colours
     models, V, I = [], [], []
     taken, done = set(), set()
     voff = ioff = 0
@@ -372,6 +376,9 @@ def main():
         bi = match_building(bld, lng, lat)
         if bi is None or bi in taken:
             print('  no building for', name)
+            continue
+        if PL.plain(bld[bi][4], bld[bi][5]):
+            print('  plain (airfield side):', name)
             continue
         taken.add(bi)
         done.add(name)
@@ -422,6 +429,8 @@ def main():
         styles = {}
     for bi, b in enumerate(bld):
         if bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and max(ZONE[1], 14.5142) <= b[5] <= ZONE[3]):     # (the map cannot be moved south of 14.5146)
+            continue
+        if PL.plain(b[4], b[5]):
             continue
         nm, cls = (info.get(str(bi)) or ['', ''])
         area = b[6] * b[7]
@@ -493,7 +502,8 @@ def main():
     # the airfield: runways, taxiways, aprons, stands with their airliners, helipads, jet bridges, lights (airfield.py)
     import airfield
     m = Mesh()
-    airfield.build(m, (lng0, lat0), Boundary())
+    if AIRFIELD:
+        airfield.build(m, (lng0, lat0), Boundary())
     P, N, U, M, Cc, Ix = m.arrays()
     if len(P):
         models.append({'name': 'Airfield', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': float(P[:, 2].max()), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
@@ -503,7 +513,7 @@ def main():
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles' % ('Airfield', 'furniture', len(P), len(Ix) // 3))
     # towers: the air traffic control tower, the radars and the mast, each standing where a building of the same footprint is (that building is hidden)
-    for t in airfield.tower_list(Boundary()):
+    for t in (airfield.tower_list(Boundary()) if AIRFIELD else []):
         best = None
         for bi, b in enumerate(bld):
             d = math.hypot((b[4] - t['lng']) * MX, (b[5] - t['lat']) * MY)
