@@ -1730,7 +1730,7 @@ function setTilt(on) {
   build3d();
   map.setLayoutProperty('building-3d', 'visibility', on ? 'visible' : 'none');
   if (map.getLayer('building')) map.setPaintProperty('building', 'fill-opacity', on ? 0 : 1);
-  map.easeTo({ pitch: on ? 52 : 0, bearing: on ? -14 : 0, duration: 900, easing: t => 1 - Math.pow(1 - t, 3) });
+  map.easeTo({ pitch: on ? 58 : 0, bearing: on ? -18 : 0, duration: 900, easing: t => 1 - Math.pow(1 - t, 3) });
 }
 document.getElementById('tilt-btn').addEventListener('click', () => mapReady.then(() => setTilt(!tilted)));
 // The compass (or a pinch) can flatten the map without the button: keep the button and the buildings in step.
@@ -2084,5 +2084,6 @@ loadBoundary();
 load();
 </script>
 <script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
+<script src="assets/js/sd-city.js?v=<?= e(asset_version('../js/sd-city.js')) ?>"></script>
 
 <?php layout_foot(); ?>

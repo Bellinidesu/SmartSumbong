@@ -291,7 +291,7 @@
     Object.keys(ID).forEach(k => setChk(ID[k], v.on[k]));
     Object.keys(LAYER).forEach(k => setChk('lyr-' + k, v.layers[k]));
     if (!!v.tilt !== !!tilted) setTilt(!!v.tilt);
-    map.easeTo({ center: v.cam.c, zoom: v.cam.z, pitch: v.tilt ? 52 : 0, bearing: v.tilt ? -14 : 0, duration: reduced() ? 0 : 1100 });
+    map.easeTo({ center: v.cam.c, zoom: v.cam.z, pitch: v.tilt ? 58 : 0, bearing: v.tilt ? -18 : 0, duration: reduced() ? 0 : 1100 });
     vClose();
   }
   function vRender() {
