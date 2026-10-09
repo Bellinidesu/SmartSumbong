@@ -815,3 +815,7 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 #s-spatial .maplibregl-ctrl-bottom-right { right: 0; }
 #s-spatial .maplibregl-ctrl-group button { width: 40px; }
 #s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { margin: 0 0 16px 16px; float: none; }
+/* the Layers tile and tray step out of the way while a case card is open on the left */
+.lyr-tile, .ss-lyr { transition: opacity .25s, transform .35s cubic-bezier(.4,0,.2,1), box-shadow .3s; }
+#s-spatial:has(.cs-sheet:not([hidden]):not(.cs-tuck)) .lyr-tile { opacity: 0; transform: translateX(-90px); pointer-events: none; }
+#s-spatial:has(.cs-sheet:not([hidden]):not(.cs-tuck)) .ss-lyr { display: none; }
