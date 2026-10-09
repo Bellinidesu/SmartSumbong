@@ -236,6 +236,8 @@
     return [fc(walls), fc(roofs), fc(lmWalls), fc(trim)];
   }
 
+  let prepared = false;
+  const live = () => on || prepared;   // the layers are built and kept ready (at no opacity) once loaded, so a tilt has nothing left to build
   let ready = null, on = false, TREES = [], FOG = null, FACES = null, BLD = null, LMS = [], BAKE = null;
   const ngon = (cx, cy, r, n, rot) => {   // metres to degrees at this latitude
     const out = []; for (let i = 0; i <= n; i++) { const a = rot + i / n * Math.PI * 2; out.push([cx + Math.cos(a) * r / 107500, cy + Math.sin(a) * r / 110574]); } return out;
@@ -317,7 +319,7 @@
         if (window.sdModels) window.sdModels.init(map, firstLabel);
         FACES = faces;
         const [walls, roofs, lmw, trim] = bldShapes(bld, lms, look());
-        if (faces) { map.addSource('cd-faces', { type: 'geojson', data: facePlates(bld, faces) }); map.addLayer({ id: 'cd-face', type: 'fill-extrusion', source: 'cd-faces', minzoom: 16.2, layout: hide, paint: { 'fill-extrusion-color': faceColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d'); }
+        if (faces) { map.addSource('cd-faces', { type: 'geojson', data: facePlates(bld, faces) }); map.addLayer({ id: 'cd-face', type: 'fill-extrusion', source: 'cd-faces', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': faceColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d'); }
         map.addSource('cd-bld', { type: 'geojson', data: walls }); map.addSource('cd-roofs', { type: 'geojson', data: roofs }); map.addSource('cd-lm', { type: 'geojson', data: lmw }); map.addSource('cd-trim', { type: 'geojson', data: trim });
         const wall = (id, k, flt) => map.addLayer({ id, type: 'fill-extrusion', source: 'cd-bld', minzoom: 15, filter: flt, layout: hide,
           paint: { 'fill-extrusion-pattern': wallName(k), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
@@ -325,9 +327,9 @@
         else map.addLayer({ id: 'cd-wall', type: 'fill-extrusion', source: 'cd-bld', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': wallPlain(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
         map.addLayer({ id: 'cd-lm-wall', type: 'fill-extrusion', source: 'cd-lm', minzoom: 15, layout: hide,
           paint: { 'fill-extrusion-color': wallKey(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
-        map.addLayer({ id: 'cd-lm-trim', type: 'fill-extrusion', source: 'cd-trim', minzoom: 15.6, layout: hide,
+        map.addLayer({ id: 'cd-lm-trim', type: 'fill-extrusion', source: 'cd-trim', minzoom: 15, layout: hide,
           paint: { 'fill-extrusion-color': trimColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d');
-        map.addLayer({ id: 'cd-roof', type: 'fill-extrusion', source: 'cd-roofs', minzoom: 16, layout: hide,
+        map.addLayer({ id: 'cd-roof', type: 'fill-extrusion', source: 'cd-roofs', minzoom: 15, layout: hide,
           paint: { 'fill-extrusion-color': roofColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d');
       }
       // the ground, drawn under the first of our standing layers: the baked shadows, crossings, lane lines, the golf course and pitches
@@ -366,26 +368,26 @@
       // on the road: zebra crossings and the dashed lane lines
       if (detail && detail.crossings) {
         map.addSource('cd-cross', { type: 'geojson', data: detail.crossings });
-        map.addLayer({ id: 'cd-cross', type: 'fill', source: 'cd-cross', minzoom: 16, layout: hide, paint: { 'fill-color': p.cross[0], 'fill-opacity': p.cross[1] } }, ground);
+        map.addLayer({ id: 'cd-cross', type: 'fill', source: 'cd-cross', minzoom: 15, layout: hide, paint: { 'fill-color': p.cross[0], 'fill-opacity': p.cross[1] } }, ground);
       }
       if (detail && detail.areas) {   // the golf course as it is mapped, and the pitches, playgrounds and pools, drawn flat
         map.addSource('cd-areas', { type: 'geojson', data: detail.areas });
-        map.addLayer({ id: 'cd-area', type: 'fill', source: 'cd-areas', minzoom: 15.4, layout: hide, paint: { 'fill-color': areaColour(p) } }, ground);
-        map.addLayer({ id: 'cd-area-line', type: 'line', source: 'cd-areas', minzoom: 16.4, layout: hide, filter: ['any', ['==', ['slice', ['get', 'k'], 0, 5], 'pitch'], ['==', ['get', 'k'], 'track']],
+        map.addLayer({ id: 'cd-area', type: 'fill', source: 'cd-areas', minzoom: 15, layout: hide, paint: { 'fill-color': areaColour(p) } }, ground);
+        map.addLayer({ id: 'cd-area-line', type: 'line', source: 'cd-areas', minzoom: 15, layout: hide, filter: ['any', ['==', ['slice', ['get', 'k'], 0, 5], 'pitch'], ['==', ['get', 'k'], 'track']],
           paint: { 'line-color': p.areaLine[0], 'line-opacity': p.areaLine[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .6, 19, 1.6] } }, ground);
       }
-      if (src) map.addLayer({ id: 'cd-lane', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', minzoom: 16.4, layout: Object.assign({ 'line-cap': 'butt' }, hide),
+      if (src) map.addLayer({ id: 'cd-lane', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', minzoom: 15, layout: Object.assign({ 'line-cap': 'butt' }, hide),
         filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary']]],
         paint: { 'line-color': p.lane[0], 'line-opacity': p.lane[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .7, 19, 1.6], 'line-dasharray': [3, 4] } }, ground);
       // over the buildings: trees, places
       if (detail && detail.trees) {
         TREES = detail.trees; const [lo, hi, tr, sh] = treeShapes(TREES);
         map.addSource('cd-canopy', { type: 'geojson', data: lo }); map.addSource('cd-canopy2', { type: 'geojson', data: hi }); map.addSource('cd-trunk', { type: 'geojson', data: tr }); map.addSource('cd-tsh', { type: 'geojson', data: sh });
-        if (!bake) map.addLayer({ id: 'cd-tshadow', type: 'fill', source: 'cd-tsh', minzoom: 16, layout: hide, paint: { 'fill-color': p.tshadow[0], 'fill-opacity': p.tshadow[1] } }, ground);   // the bake has them; this is the fallback
+        if (!bake) map.addLayer({ id: 'cd-tshadow', type: 'fill', source: 'cd-tsh', minzoom: 15, layout: hide, paint: { 'fill-color': p.tshadow[0], 'fill-opacity': p.tshadow[1] } }, ground);   // the bake has them; this is the fallback
         const fade = ['interpolate', ['linear'], ['zoom'], 15.6, 0, 16.4, .97];
-        map.addLayer({ id: 'cd-trunk', type: 'fill-extrusion', source: 'cd-trunk', minzoom: 16, layout: hide, paint: { 'fill-extrusion-color': trunkColour(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, above);
-        map.addLayer({ id: 'cd-canopy', type: 'fill-extrusion', source: 'cd-canopy', minzoom: 15.6, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
-        map.addLayer({ id: 'cd-canopy2', type: 'fill-extrusion', source: 'cd-canopy2', minzoom: 15.6, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy2'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
+        map.addLayer({ id: 'cd-trunk', type: 'fill-extrusion', source: 'cd-trunk', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': trunkColour(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, above);
+        map.addLayer({ id: 'cd-canopy', type: 'fill-extrusion', source: 'cd-canopy', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
+        map.addLayer({ id: 'cd-canopy2', type: 'fill-extrusion', source: 'cd-canopy2', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy2'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
       }
       if (src) {   // places: a badge and a name, the more important winning a crowded spot; names come in as you zoom
         map.addLayer({ id: 'cd-poi', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 16.2,
@@ -394,6 +396,7 @@
                     'text-anchor': 'left', 'text-offset': [1.15, 0], 'text-max-width': 7, 'text-optional': true, 'text-pitch-alignment': 'viewport', 'text-padding': 3 },
           paint: { 'text-color': poiColour(), 'text-halo-color': p.haloText, 'text-halo-width': 1.5, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 16.9, 0, 17.3, 1] } }, above);
       }
+      afterPrepare();   // built: kept ready at no opacity until the map is tilted
     })());
   }
   const LAYERS = ['cd-face', 'cd-bake', 'cd-bake-u', 'cd-glow', 'cd-bounce', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
@@ -408,6 +411,28 @@
     set('cd-bake', 'raster-opacity', p.bake); set('cd-area', 'fill-color', areaColour(p)); set('cd-area-line', 'line-color', p.areaLine[0]); set('cd-area-line', 'line-opacity', p.areaLine[1]); set('cd-tshadow', 'fill-color', p.tshadow[0]); set('cd-tshadow', 'fill-opacity', p.tshadow[1]);
     if (has('cd-poi')) { map.setLayoutProperty('cd-poi', 'icon-image', poiImage()); map.setPaintProperty('cd-poi', 'text-halo-color', p.haloText); }
     try { map.setLight(p.light); map.setSky(p.sky); } catch (e) { /* an older map */ }
+    applyK();
+  }
+  // ---- the transition: tilt the map and the buildings do not pop in, they come up. K is how far the tilt has got (0 flat, 1 standing):
+  // every layer the City view adds fades in with it, the flat map's own building footprints fade out, and the models grow out of the ground.
+  // Nothing is switched by a zoom level any more, so zooming never pops anything either. ----
+  // Two fades. The standing buildings only need a short one at the very start of the tilt: seen from above, an extruded building looks like
+  // its footprint, and a half-transparent extrusion shows its own inside (hollow walls), so it is kept short. The flat things laid on the
+  // ground (shadows, light, the fog) have no inside and fade with the whole tilt.
+  let K = 0, KE = 0;
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const kOf = pitch => smooth(1.5, 54, pitch), keOf = pitch => smooth(.4, 7, pitch);
+  function fadeBase(p) {
+    return { 'cd-wall': 1, 'cd-w-lo': 1, 'cd-w-mid': 1, 'cd-w-hi': 1, 'cd-lm-wall': 1, 'cd-lm-trim': 1, 'cd-roof': 1, 'cd-face': 1, 'cd-trunk': 1, 'cd-canopy': .97, 'cd-canopy2': .97, 'building-3d': 1,
+      'cd-bake': p.bake, 'cd-bake-u': 1, 'cd-glow': 1, 'cd-bounce': .8, 'cd-fog-n': 1, 'cd-fog-d': 1, 'cd-cross': p.cross[1], 'cd-area': 1, 'cd-tshadow': p.tshadow[1], 'cd-lane': p.lane[1], 'cd-area-line': p.areaLine[1] };
+  }
+  const EXTRUDED = new Set(['cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-face', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'building-3d']);
+  const FADE_PROP = { 'fill-extrusion': 'fill-extrusion-opacity', raster: 'raster-opacity', fill: 'fill-opacity', line: 'line-opacity' };
+  function applyK() {
+    const base = fadeBase(pal());
+    Object.keys(base).forEach(id => { const l = map.getLayer(id); if (l) map.setPaintProperty(id, FADE_PROP[l.type], base[id] * (EXTRUDED.has(id) ? KE : K)); });
+    if (map.getLayer('building')) map.setPaintProperty('building', 'fill-opacity', 1 - KE);   // the flat map's footprints give way to the standing buildings
+    if (window.sdModels) window.sdModels.grow(smooth(.4, 16, map.getPitch()));
   }
   // ---- how much detail: Auto draws the window walls and drops to plain walls if the map is running slowly on this
   // computer (Light also drops the pitched roofs); Full and Light (Settings, Appearance) fix it either way ----
@@ -416,30 +441,30 @@
   let slow = false;
   const plainWalls = p => ['step', H, p.wall.lo[0], 9, p.wall.mid[0], 30, p.wall.hi[0]];
   function detail() {
-    const q = quality(), full = on && (q === 'full' || (q === 'auto' && !slow)), plain = has('cd-wall') || has('cd-w-lo');
+    const q = quality(), full = live() && (q === 'full' || (q === 'auto' && !slow)), plain = has('cd-wall') || has('cd-w-lo');
     // walls and the landmark walls always; roofs, models' trim and (behind the switch) window textures only at Full
-    ['cd-wall', 'cd-lm-wall'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); });
+    ['cd-wall', 'cd-lm-wall'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', live() ? 'visible' : 'none'); });
     WALLS.forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });
     ['cd-roof', 'cd-lm-trim', 'cd-face'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });   // Light: plain boxes, no roofs, no model trim
     if (has('building-3d')) {   // the map tiles' own 3D buildings are only a fallback, when the buildings file did not load
-      map.setLayoutProperty('building-3d', 'visibility', on && !plain ? 'visible' : 'none');
-      if (on && !plain) map.setPaintProperty('building-3d', 'fill-extrusion-color', plainWalls(pal()));
+      map.setLayoutProperty('building-3d', 'visibility', live() && !plain ? 'visible' : 'none');
+      if (live() && !plain) map.setPaintProperty('building-3d', 'fill-extrusion-color', plainWalls(pal()));
     }
   }
   // the fog of war follows the Dim outside switch in Layers; the flat map's own dim hands over to it while the map is tilted
   // the night's light only at night, the day's bounce only by day
   function lightUpdate() {
     const night = isDark();
-    ['cd-glow'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on && night ? 'visible' : 'none'); });
-    if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', on && !night && !has('cd-bake-u') ? 'visible' : 'none');   // the ray-traced day ground has its own bounce
-    if (has('cd-bake-u')) { map.setLayoutProperty('cd-bake-u', 'visibility', on && !night ? 'visible' : 'none'); if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', on && night ? 'visible' : 'none'); }
-    else if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', on ? 'visible' : 'none');
+    ['cd-glow'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', live() && night ? 'visible' : 'none'); });
+    if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', live() && !night && !has('cd-bake-u') ? 'visible' : 'none');   // the ray-traced day ground has its own bounce
+    if (has('cd-bake-u')) { map.setLayoutProperty('cd-bake-u', 'visibility', live() && !night ? 'visible' : 'none'); if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', live() && night ? 'visible' : 'none'); }
+    else if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', live() ? 'visible' : 'none');
   }
   function fogUpdate() {
     const dim = document.getElementById('f-fog') ? document.getElementById('f-fog').checked : true, night = isDark();
-    if (has('cd-fog-n')) map.setLayoutProperty('cd-fog-n', 'visibility', on && dim && night ? 'visible' : 'none');
-    if (has('cd-fog-d')) map.setLayoutProperty('cd-fog-d', 'visibility', on && dim && !night ? 'visible' : 'none');
-    if (has('cd-fog-far') && FOG) { map.setLayoutProperty('cd-fog-far', 'visibility', on && dim ? 'visible' : 'none'); map.setPaintProperty('cd-fog-far', 'fill-color', night ? '#0E1226' : '#EEF2F8'); map.setPaintProperty('cd-fog-far', 'fill-opacity', night ? FOG.alpha.night : FOG.alpha.day); }
+    if (has('cd-fog-n')) map.setLayoutProperty('cd-fog-n', 'visibility', live() && dim && night ? 'visible' : 'none');
+    if (has('cd-fog-d')) map.setLayoutProperty('cd-fog-d', 'visibility', live() && dim && !night ? 'visible' : 'none');
+    if (has('cd-fog-far') && FOG) { map.setLayoutProperty('cd-fog-far', 'visibility', live() && dim ? 'visible' : 'none'); map.setPaintProperty('cd-fog-far', 'fill-color', night ? '#0E1226' : '#EEF2F8'); map.setPaintProperty('cd-fog-far', 'fill-opacity', night ? FOG.alpha.night : FOG.alpha.day); }
     if (has('fog')) map.setLayoutProperty('fog', 'visibility', !on && dim ? 'visible' : 'none');
   }
   // nothing outside the boundary: places, lane lines and landmark badges are cut to it
@@ -471,14 +496,25 @@
   }
   window.sdCityLook = name => { if (!LOOKS[name]) return false; LOOK = name; try { localStorage.setItem('ss-look', name); } catch (e) { /* this visit only */ } applyLook(); return true; };
   window.sdCityLooks = () => Object.keys(LOOKS);
+  function afterPrepare() { prepared = true; applyK(); detail(); fogUpdate(); lightUpdate(); }
   async function show(want) {
     on = want; await init(); if (want !== on) return;
-    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-face', 'cd-glow', 'cd-bounce', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
+    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-face', 'cd-glow', 'cd-bounce', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', (want || id === 'cd-poi' ? want : live()) ? 'visible' : 'none'); });
     detail(); fogUpdate(); lightUpdate(); clip();
-    if (window.sdModels) window.sdModels.show(want && (quality() === 'full' || (quality() === 'auto' && !slow)), isDark());
-    if (want) paint(); else { try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
+    if (window.sdModels) window.sdModels.show(live() && (quality() === 'full' || (quality() === 'auto' && !slow)), isDark());
+    K = kOf(map.getPitch()); KE = keOf(map.getPitch());
+    if (want) paint(); else { applyK(); try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
   }
-  map.on('pitch', () => { const up = map.getPitch() > 8; if (up !== on) show(up); });
+  // the tilt drives everything: a frame at a time, so a fast tilt costs no more than a slow one
+  { let raf = 0;
+    map.on('pitch', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0;
+      const pit = map.getPitch(), up = pit > .4; K = kOf(pit); KE = keOf(pit);
+      if (up !== on) show(up); else if (on) applyK(); }); }); }
+  // load the City view's data before it is asked for (when the pointer comes to the Tilt button, and a few quiet seconds after the map is up),
+  // so the first tilt does not wait for it
+  { const pre = () => { init().catch(() => {}); };
+    const tb = document.getElementById('tilt-btn'); if (tb) ['pointerenter', 'focus', 'touchstart'].forEach(ev => tb.addEventListener(ev, pre, { once: true, passive: true }));
+    map.once('idle', () => setTimeout(() => { (window.requestIdleCallback || (f => setTimeout(f, 200)))(pre); }, 4000)); }
   window.addEventListener('themechange', () => { if (on) { applyLook(); fogUpdate(); lightUpdate(); if (window.sdModels) window.sdModels.show(quality() !== 'light' && !slow, isDark()); } });
   { const f = document.getElementById('f-fog'); if (f) f.addEventListener('change', () => { if (ready) fogUpdate(); }); }
   window.addEventListener('storage', e => { if (e.key === 'ss-city') { slow = false; if (on) detail(); } });

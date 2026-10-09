@@ -8,15 +8,15 @@
   'use strict';
   const ID = 'cd-models';
   const MX = 107500;
-  let data = null, bin = null, lightBin = null, atlas = null, emis = null, map = null, night = false;
+  let grow = 0, data = null, bin = null, lightBin = null, atlas = null, emis = null, map = null, night = false;
   const gl_ = { prog: null, loc: null, vbuf: null, ibuf: null, lbuf: null, tex: null, texE: null, ready: false };
 
   const VS = `#version 300 es
   uniform mat4 u_m;
   in vec3 a_pos; in vec2 a_uv; in vec4 a_mc; in vec3 a_day; in vec3 a_night;
-  uniform float u_night;
+  uniform float u_night, u_grow;
   out vec2 v_uv; out float v_mat; out vec3 v_alb; out vec3 v_light;
-  void main() { gl_Position = u_m * vec4(a_pos, 1.0); v_uv = a_uv; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; v_light = mix(a_day, a_night, u_night) * 1.25; }`;
+  void main() { gl_Position = u_m * vec4(a_pos.xy, a_pos.z * u_grow, 1.0); v_uv = a_uv; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; v_light = mix(a_day, a_night, u_night) * 1.25; }`;
   const FS = `#version 300 es
   precision highp float;
   uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[16]; uniform float u_night;
@@ -39,7 +39,7 @@
     onAdd(m, gl) {
       const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
       const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p); gl_.prog = p;
-      const L = {}; ['u_m', 'u_night', 'u_atlas', 'u_emis', 'u_tiles'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
+      const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_tiles'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
       ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night'].forEach(n => { L[n] = gl.getAttribLocation(p, n); }); gl_.loc = L;
       gl_.vbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.vbuf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes), gl.STATIC_DRAW);
       gl_.ibuf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes), gl.STATIC_DRAW);
@@ -53,10 +53,10 @@
       gl_.ready = true;
     },
     render(gl, args) {
-      if (!gl_.ready || map.getZoom() < 15.6) return;
+      const g = grow; if (!gl_.ready || g <= .001) return;
       const main = (args && args.defaultProjectionData && args.defaultProjectionData.mainMatrix) || (args && args.mainMatrix) || args, L = gl_.loc;
       gl.useProgram(gl_.prog);
-      gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform4fv(L.u_tiles, gl_.tiles);
+      gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform1f(L.u_grow, g); gl.uniform4fv(L.u_tiles, gl_.tiles);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl_.tex); gl.uniform1i(L.u_atlas, 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gl_.texE); gl.uniform1i(L.u_emis, 1);
       gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
@@ -105,6 +105,8 @@
       m.setLayoutProperty(ID, 'visibility', 'none');
       return true;
     },
+    // how far the tilt has got (0 flat, 1 standing): the models grow out of the ground with it
+    grow(k) { grow = k; if (map && map.getLayer(ID)) map.triggerRepaint(); },
     show(on, isNight) { night = !!isNight; if (map && map.getLayer(ID)) { map.setLayoutProperty(ID, 'visibility', on ? 'visible' : 'none'); map.triggerRepaint(); } },
   };
   // the buildings these models replace are known as soon as the data is: sd-city.js asks before it builds the plain ones

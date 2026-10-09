@@ -1742,18 +1742,14 @@ function build3d() {
 }
 function setTilt(on) {
   tilted = on; const b = document.getElementById('tilt-btn'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
-  build3d();
-  map.setLayoutProperty('building-3d', 'visibility', on ? 'visible' : 'none');
-  if (map.getLayer('building')) map.setPaintProperty('building', 'fill-opacity', on ? 0 : 1);
-  map.easeTo({ pitch: on ? 58 : 0, bearing: on ? -18 : 0, duration: 900, easing: t => 1 - Math.pow(1 - t, 3) });
+  build3d();   // sd-city.js fades the buildings in and out with the tilt (and the footprints of the flat map the other way)
+  map.easeTo({ pitch: on ? 58 : 0, bearing: on ? -18 : 0, duration: 1200, easing: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2 });   // in and out: the buildings rise through the whole move
 }
 document.getElementById('tilt-btn').addEventListener('click', () => mapReady.then(() => setTilt(!tilted)));
 // The compass (or a pinch) can flatten the map without the button: keep the button and the buildings in step.
 map.on('pitchend', () => {
   if (!tilted || map.getPitch() >= 1) return;
   tilted = false; const b = document.getElementById('tilt-btn'); b.classList.remove('on'); b.setAttribute('aria-pressed', 'false');
-  if (map.getLayer('building-3d')) map.setLayoutProperty('building-3d', 'visibility', 'none');
-  if (map.getLayer('building')) map.setPaintProperty('building', 'fill-opacity', 1);
 });
 window.addEventListener('themechange', () => { if (map.getLayer('building-3d')) { const dark = isDark(); map.setPaintProperty('building-3d', 'fill-extrusion-color', ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6], 0, dark ? '#22242B' : '#DDE0E8', 60, dark ? '#3A3D49' : '#B9BECB']); } });
 
