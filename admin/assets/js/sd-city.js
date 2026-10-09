@@ -53,28 +53,15 @@
   const LOOKS = {
     steps: { mode: 'steps', vg: true, toneK: 1 },     // the roofs as stepped slabs (what the City view had)
     // Apple Maps: soft, pastel, a high even light, every roof a gentle two-tone
-    apple: { mode: 'halves', lit: 1.05, shade: .86, vg: true, toneK: .8, az: 200,
-      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .3, position: [1.2, 200, 56] }, wall: { lo: ['#F1EEE9'], mid: ['#EAE7E3'], hi: ['#DEE2E9'] }, roofs: mixAll(PAL.day.roofs, '#F0E9DD', .5), roofFlat: '#F4F1EC', bake: .5 },
-      night: { light: { anchor: 'map', color: '#C9D3FF', intensity: .4, position: [1.3, 200, 52] }, wall: { lo: ['#565F8E'], mid: ['#5A6492'], hi: ['#6A75A4'] }, roofs: mixAll(PAL.night.roofs, '#7078A8', .38), roofFlat: '#6B749F', bake: .8 } },
+    apple: { mode: 'halves', lit: 1.05, shade: .86, vg: true, toneK: 1, az: 200,
+      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .3, position: [1.2, 200, 56] }, wall: { lo: ['#F1EEE9'], mid: ['#EAE7E3'], hi: ['#DEE2E9'] }, roofs: mixAll(PAL.day.roofs, '#F0E9DD', .4), roofFlat: '#F4F1EC', bake: .62 },
+      night: { light: { anchor: 'map', color: '#C9D3FF', intensity: .4, position: [1.3, 200, 52] }, wall: { lo: ['#565F8E'], mid: ['#5A6492'], hi: ['#6A75A4'] }, roofs: mixAll(PAL.night.roofs, '#7078A8', .3), roofFlat: '#6B749F', bake: .9 } },
     // two-tone roofs in the roofs' own colours, a strong lit side and shaded side
     halves: { mode: 'halves', lit: 1.12, shade: .72, vg: true, toneK: 1, az: 200 },
-    // a low warm sun by day, blue hour by night: long soft shadows
-    golden: { mode: 'halves', lit: 1.15, shade: .7, vg: true, toneK: 1.1, az: 235, img: 'shadows-golden.png',
-      day: { light: { anchor: 'map', color: '#FFD9A8', intensity: .62, position: [1.5, 235, 64] }, sky: { 'sky-color': '#E9A978', 'horizon-color': '#FBE3C4', 'fog-color': '#F3DEC6', 'sky-horizon-blend': .6, 'horizon-fog-blend': .8, 'fog-ground-blend': .5 },
-        wall: { lo: ['#F4E6D0'], mid: ['#EBDCC6'], hi: ['#E0D6CB'] }, roofFlat: '#F0E2CD', bake: .85 },
-      night: { light: { anchor: 'map', color: '#A6B8FF', intensity: .52, position: [1.4, 235, 50] }, wall: { lo: ['#4D5688'], mid: ['#515A8C'], hi: ['#5C679A'] }, bake: 1 } },
-    // clay: one material, only light and shade tell the buildings apart
-    clay: { mode: 'halves', lit: 1.08, shade: .8, vg: true, toneK: 1.5, az: 200, img: 'shadows-ao.png',
-      day: { wall: { lo: ['#E9DECF'], mid: ['#E4D9CA'], hi: ['#DCD3C8'] }, roofs: ['#D5C5AE', '#D9C9B2', '#D1C1AA', '#D7C7B0', '#CFBFA8', '#DBCBB4', '#D3C3AC', '#DDCDB6'], roofFlat: '#E2D6C5', bake: .8 },
-      night: { wall: { lo: ['#4A5070'], mid: ['#4D5373'], hi: ['#565D7F'] }, roofs: ['#41486A', '#444B6D', '#3E4567', '#434A6C', '#3C4365', '#464D6F', '#40476A', '#484F71'], roofFlat: '#515879', bake: 1 } },
-    // toon: three bands of tone, flat colour, hard shadows
-    toon: { mode: 'halves', lit: 1.18, shade: .66, vg: false, toneStep: true, az: 200, img: 'shadows-hard.png',
-      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .25, position: [1.2, 200, 50] }, wall: { lo: ['#F6EFE3'], mid: ['#EFE9E0'], hi: ['#E3E8F0'] }, bake: .45 },
-      night: { light: { anchor: 'map', color: '#C9D3FF', intensity: .3, position: [1.3, 200, 50] }, wall: { lo: ['#5C6696'], mid: ['#606A9A'], hi: ['#6E79A8'] }, bake: .7 } },
   };
-  let LOOK = 'steps';
-  try { LOOK = localStorage.getItem('ss-look') || 'steps'; } catch (e) { /* the default look */ }
-  const look = () => LOOKS[LOOK] || LOOKS.steps;
+  let LOOK = 'apple';   // Apple Soft is the look; the other two stay for comparison (sdCityLook('steps') or ('halves') in the console)
+  try { LOOK = localStorage.getItem('ss-look') || 'apple'; } catch (e) { /* the default look */ }
+  const look = () => LOOKS[LOOK] || LOOKS.apple;
   const pal = () => { const base = isDark() ? PAL.night : PAL.day, o = look()[isDark() ? 'night' : 'day'] || {}; return Object.assign({}, base, o, { wall: Object.assign({}, base.wall, o.wall || {}) }); };
   const H = ['coalesce', ['get', 'render_height'], 6], MH = ['coalesce', ['get', 'render_min_height'], 0];
   // a plain colour times the tone baked into each building (field 10 of buildings.json): the shading, without a texture
@@ -151,15 +138,15 @@
       const lit = (-si * side) * sx + (co * side) * sy > 0, q = [[-hl, 0], [hl, 0], [hl, side * hw], [-hl, side * hw], [-hl, 0]].map(([a, b]) => [(x0 + a * co - b * si) / MX, (y0 + a * si + b * co) / MY]);
       return { type: 'Feature', properties: Object.assign({ b: h, t: h + rise, s: lit ? (lk.lit || 1.1) : (lk.shade || .75) }, props), geometry: { type: 'Polygon', coordinates: [q] } };
     });
-    d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone], idx) => {
-      const kk = tone || 1;
+    d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone, rtone], idx) => {
+      const kk = tone || 1, rr = rtone || kk;
       const poly = []; for (let i = 0; i < ring.length; i += 2) poly.push([ring[i], ring[i + 1]]); poly.push(poly[0]);
       const m = spec.get(idx), co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY;
       if (m) {
         lmWalls.push({ type: 'Feature', properties: { h, w: m.w, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
         const pitched = m.type === 'gable' && L * W > 60 && L * W < 2500;
         if (!pitched) {
-          roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
+          roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } });
           if (m.parapet) {   // a low wall round the roof's edge
             const inner = poly.map(([lng, lat]) => {
               const u = (lng * MX - x0) * co + (lat * MY - y0) * si, v = -(lng * MX - x0) * si + (lat * MY - y0) * co, fu = 1 - 1.1 / Math.max(2, L / 2), fv = 1 - 1.1 / Math.max(2, W / 2);
@@ -178,12 +165,12 @@
         } else if (lk.mode === 'halves') {
           halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.8, Math.min(2.4, W * .2)) * .6, { rk: m.rk, k: kk }).forEach(f => roofs.push(f));
         } else if (lk.mode === 'flat') {
-          roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
+          roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } });
         } else {
           const R = Math.max(.8, Math.min(2.4, W * .2)), step = R / 3;
           for (let k = 0; k < 3; k++) {
             const hl = (L + .6) / 2, hw = (W + .8) / 2 * (1 - k * .36);
-            roofs.push({ type: 'Feature', properties: { b: h + k * step, t: h + (k + 1) * step, rk: m.rk, k: kk }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, 0, 0, hl, hw)] } });
+            roofs.push({ type: 'Feature', properties: { b: h + k * step, t: h + (k + 1) * step, rk: m.rk, k: rr }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, 0, 0, hl, hw)] } });
           }
         }
         if (m.tower) {   // a bell tower at one end of the church, and a spire
@@ -194,13 +181,13 @@
         return;
       }
       walls.push({ type: 'Feature', properties: { h, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
-      if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
-      if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: kk }).forEach(f => roofs.push(f)); return; }
-      if (lk.mode === 'flat') { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: ci, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
+      if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
+      if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: rr }).forEach(f => roofs.push(f)); return; }
+      if (lk.mode === 'flat') { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: ci, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
       const R = Math.max(.7, Math.min(2.4, W * .2)), step = R / 3;
       for (let k = 0; k < 3; k++) {
         const hl = (L + .6) / 2 * (rt === 2 ? 1 - k * .3 : 1), hw = (W + .8) / 2 * (1 - k * .36);
-        roofs.push({ type: 'Feature', properties: { b: h + k * step, t: h + (k + 1) * step, c: ci, k: kk }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, 0, 0, hl, hw)] } });
+        roofs.push({ type: 'Feature', properties: { b: h + k * step, t: h + (k + 1) * step, c: ci, k: rr }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, 0, 0, hl, hw)] } });
       }
     });
     const fc = f => ({ type: 'FeatureCollection', features: f });
