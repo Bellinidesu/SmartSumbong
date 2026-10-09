@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 EXPERIMENTAL: the automatic reading is unreliable (it mixes up wall and glass on most facades); read facades with measure.py and write the numbers into the sheet by hand.
-"""
 Facade parsing: read the structure of a real facade off its unwrapped street-view pictures (faces.py) and write it down as numbers a landmark's tile can be drawn
 from: how wide a bay is and how tall a floor, where the window sits in its cell (fractions), how much is glass, piers between the bays, the spandrel under each
 window, the colours of the glass, the wall, the piers and the frames, whether the glass runs in tall strips over many floors. The pictures are only measured; the
