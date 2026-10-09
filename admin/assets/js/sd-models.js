@@ -92,7 +92,11 @@
   };
 
   const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src + '?v=' + (window.SD_MAPV || ''); });
+  // The landmark models are a flag, off by default: the City view is the plain coloured buildings of the open data (OpenStreetMap, Overture), by day and by night. The models, their
+  // light and their pictures are not even downloaded until it is on: add ?models=1 to the page address, or set localStorage ss-models to 1.
+  const ON = (() => { try { return window.SD_MODELS === true || /[?&]models=1/.test(location.search) || localStorage.getItem('ss-models') === '1'; } catch (e) { return false; } })();
   const ready = (async () => {
+    if (!ON) return false;
     try {
       data = await fetch('assets/map/landmarks3d.json').then(r => r.json());
       const unzip = r => new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();   // the model files are zipped (5 times smaller to send)

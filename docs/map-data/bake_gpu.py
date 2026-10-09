@@ -75,7 +75,7 @@ def main():
         td.ellipse([x - rr, y - rr, x + rr, y + rr], fill=60)
     over = {}
     lp = os.path.join(MAP, 'landmarks3d.json')
-    if os.path.exists(lp):   # a landmark that is a model stands as tall as its model, not as its OpenStreetMap building
+    if os.path.exists(lp) and os.environ.get('SS_MODELS'):   # (only when the models are on: SS_MODELS=1) a landmark that is a model stands as tall as its model, not as its OpenStreetMap building
         over = {md['replaces']: md['height'] for md in json.load(open(lp))['models']}
     for bi, b in sorted(enumerate(bld), key=lambda q: over.get(q[0], q[1][1])):
         pts = [to_px(b[0][i], b[0][i + 1]) for i in range(0, len(b[0]), 2)]

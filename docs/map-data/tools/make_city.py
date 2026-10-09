@@ -27,7 +27,7 @@ STEPS = [
     ('faces',    DM, ['bake_detail.py'],                          'per-wall tones in five height bands'),
     ('gpu',      DM, ['bake_gpu.py'],                             'GPU path-traced ground pictures, day and night'),
     ('styles',   HERE, ['stylise.py', '--min-h', '8'],            'what the real walls look like, from 360 street views (a few numbers per building)'),
-    ('models',   LM, ['models.py'],                               'every building and landmark as a model'),
+    ('models',   LM, ['models.py'],                               'the landmark models (a flag, off in the map by default: ?models=1; bake with SS_MODELS=1)'),
     ('light',    LM, ['bake_models.py'],                          'path-traced light baked into every model vertex'),
     ('wash',     LM, ['wash.py'],                                 'the night wash of each landmark (the colour that climbs its walls), from its sheet'),
 ]
