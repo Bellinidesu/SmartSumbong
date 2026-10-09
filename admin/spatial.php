@@ -347,6 +347,8 @@ map.on('error', e => {
   }
 });
 map.on('load', () => { document.getElementById('map-failed').hidden = true; });
+// One tile that did not arrive must not leave the banner up for good: it goes again once the map is idle with its style in.
+map.on('idle', () => { if (map.isStyleLoaded()) document.getElementById('map-failed').hidden = true; });
 map.keyboard.disableRotation();
 mapFollowTheme(map);
 // Bellinist: while the map is being moved the filter rows fold away and the
