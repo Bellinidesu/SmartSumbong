@@ -1,1 +1,1 @@
-{"w": 5712, "h": 3792, "px": 0.5, "sun": [-0.2542215704325863, 0.698468024301824, 0.6689647316224496], "passes": 24, "rays": 64, "ground": false, "probes": 323544, "rgb": true, "night": true, "lamps": 2235, "nightK": 1.15, "nightKw": 3.2, "nightRays": 384}
+{"w": 5712, "h": 3792, "px": 0.5, "sun": [-0.2542215704325863, 0.698468024301824, 0.6689647316224496], "passes": 24, "rays": 64, "ground": false, "probes": 700776, "rgb": true, "night": true, "lamps": 2235, "nightK": 1.15, "nightKw": 3.2, "nightRays": 384}

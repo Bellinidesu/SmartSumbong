@@ -23,6 +23,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..'))
 from meshlib import Mesh, MAT, rgb, _obb, _ccw
 import atlas
+sys.path.insert(0, HERE)
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', '..'))
 MAP = os.path.join(ROOT, 'admin', 'assets', 'map')
@@ -403,6 +404,45 @@ def main():
         voff += len(P)
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles  h %.0f m' % (name, tname, len(P), len(Ix) // 3, height))
+    # the rest of the Newport - NAIA zone: every building that is big, or tall, or named, by what it is (zone.py)
+    import zone as _zone
+    ZONE = (121.0105, 14.5120, 121.0240, 14.5262)
+    info = bdoc.get('info', {})
+    nz = 0
+    for bi, b in enumerate(bld):
+        if bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and ZONE[1] <= b[5] <= ZONE[3]):
+            continue
+        nm, cls = (info.get(str(bi)) or ['', ''])
+        area = b[6] * b[7]
+        if not (area >= 260 or b[1] >= 14 or nm):
+            continue
+        lng0, lat0 = b[4], b[5]
+        ring = local_ring(b, lng0, lat0)
+        ox = sum(q[0] for q in ring) / len(ring)
+        oy = sum(q[1] for q in ring) / len(ring)
+        ring = [(q[0] - ox, q[1] - oy) for q in ring]
+        lng0 += ox / MX
+        lat0 += oy / MY
+        ctx = dict(cx=0.0, cy=0.0, L=b[6], W=b[7], th=b[8], lng=lng0, lat=lat0)
+        ctx['others'] = [Polygon([(q[0] - lng0 * MX, q[1] - lat0 * MY) for q in allpolys[j].exterior.coords]) for j in range(len(bld)) if j != bi and abs(bld[j][4] - lng0) < .0009 and abs(bld[j][5] - lat0) < .0009]
+        kind = _zone.kind_of(nm, cls, area, b[1], None, lng0, lat0)
+        m = Mesh()
+        try:
+            _zone.TEMPLATES[kind](m, ring, ctx, {'h': float(b[1])})
+        except Exception as e:     # a strange footprint: leave it as the plain building
+            print('  skipped', nm or bi, e)
+            continue
+        P, N, U, M, Cc, Ix = m.arrays()
+        if not len(P):
+            continue
+        taken.add(bi)
+        models.append({'name': nm or ('building %d' % bi), 'template': kind, 'lng': lng0, 'lat': lat0, 'replaces': bi, 'height': round(float(P[:, 2].max()), 1), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+        V.append((P, U, M, Cc, N))
+        I.append(Ix)
+        voff += len(P)
+        ioff += len(Ix)
+        nz += 1
+    print('zone buildings modelled: %d' % nz)
     # street lamps: a pole and a lamp head for every lamp (city-detail.json), as one more model at the middle of the map
     det = json.load(open(os.path.join(MAP, 'city-detail.json'), encoding='utf-8'))
     lamps = det.get('lamps', [])

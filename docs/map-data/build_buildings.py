@@ -26,6 +26,8 @@ import json, math, os, subprocess, sys, tempfile, time, urllib.parse, urllib.req
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from boundary import Boundary
+import re as _re
+import facts as _facts
 
 BBOX = (121.0007, 14.5126, 121.0304, 14.5412)   # west, south, east, north (the map area and a margin for the tilted horizon)
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'admin', 'assets', 'map', 'buildings.json')
@@ -140,6 +142,7 @@ def main():
     els = overpass('[out:json][timeout:150];(way["building"]["building"!="yes"](%s);way["building"][~"^(height|building:levels|roof:shape|roof:colour|roof:levels|building:colour|name|amenity|shop|tourism|office)$"~"."](%s););out tags;' % (bb, bb))
     tags = {e['id']: e.get('tags', {}) for e in els}
     out = []
+    info = {}
     B = Boundary()
     # a landmark's building is kept even when its middle lies outside the boundary (the airport terminals are bigger than the barangay's edge)
     from shapely.geometry import Point, Polygon as _P
@@ -198,6 +201,17 @@ def main():
                 else:
                     h = 3.4 if u < .7 else 6.4
             kind = (t.get('building') or p.get('class') or '').lower()
+            name = ((p.get('names') or {}).get('primary') or t.get('name') or '')
+            cls = (p.get('class') or t.get('building') or '')
+            # a fact found for this building (facts.py) beats a guess from its size
+            for pat, fl, why in _facts.FLOORS:
+                if name and _re.search(pat, name, _re.I) and fl:
+                    h, est = fl * 3.4 + 1.2, 0
+                    stats['real_h'] += 1
+                    break
+            # the Newport side, where nothing says how tall a wide building is, is hotels, condominiums and malls, not sheds: a stand-in
+            if est and 121.0140 < cx < 121.0240 and 14.5120 < cy < 14.5262 and a >= 1200 and 'hangar' not in name.lower():
+                h = 31.0 if a >= 2500 else 24.0 if a >= 1700 else 17.0
             civic = kind in ('commercial', 'retail', 'industrial', 'warehouse', 'office', 'public', 'civic', 'school', 'hospital', 'hotel', 'supermarket', 'terminal', 'train_station', 'transportation', 'government', 'hangar', 'roof', 'garage', 'garages', 'parking', 'service')
             shape = (t.get('roof:shape') or '').lower()
             pitched = (not civic and shape not in ('flat',) and 22 <= a <= 450 and fill >= .78 and aspect <= 4.8 and h <= 11.5) or shape in ('gabled', 'gable', 'hipped', 'hip', 'pyramidal') and a <= 900
@@ -213,9 +227,11 @@ def main():
             flat_ring = []
             for x, y in ring:
                 flat_ring += [x, y]
+            if name or cls:
+                info[len(out)] = [name, cls]
             out.append([flat_ring, round(h, 1), rt, ci, round(cx, 6), round(cy, 6), round(L, 1), round(W, 1), round(th, 3), est])
     data = {'about': 'Footprints: Overture Maps (OpenStreetMap, Google Open Buildings, Microsoft ML Buildings). Tags: OpenStreetMap. Heights are estimated where no source has one; pitched roofs and roof colours are stylised from the satellite look of the neighbourhood. Built by docs/map-data/build_buildings.py.',
-            'roofHex': ROOF_HEX, 'fields': '[ring (lng,lat flat), height m, roof 0 flat 1 gable 2 hip, roof colour index, centre lng, centre lat, long side m, short side m, angle rad, height estimated]', 'b': out}
+            'info': info, 'roofHex': ROOF_HEX, 'fields': '[ring (lng,lat flat), height m, roof 0 flat 1 gable 2 hip, roof colour index, centre lng, centre lat, long side m, short side m, angle rad, height estimated]', 'b': out}
     with open(OUT, 'w', encoding='utf-8') as fh:
         json.dump(data, fh, separators=(',', ':'))
     print('buildings: %d (pitched %d, flat %d, real heights %d) %d KB' % (len(out), stats['pitched'], stats['flat'], stats['real_h'], os.path.getsize(OUT) // 1024))
