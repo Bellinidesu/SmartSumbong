@@ -223,7 +223,68 @@ def shopfront(lit, seed=21, p=.7, bays=2, lc='warm', wear=.8, **kw):
     return im
 
 
-KINDS = dict(loggia=loggia, curtain=curtain, band=band, stucco=stucco, board=board, terrazzo=terrazzo, stone=stone, timber=timber, shopfront=shopfront)
+def brickbay(lit, seed=23, p=.5, bays=2, lc='warm', wear=.9, **kw):
+    """Brick-faced storey: courses of brick, a tall window in each bay with a pale surround, a lintel above it and a sill below."""
+    im = _canvas(lit, .93)
+    d = ImageDraw.Draw(im)
+    rnd = random.Random(seed)
+    dr = random.Random(seed + 1000)
+    col = LIT.get(lc, WARM)
+    for b in range(bays):
+        x0, w = b / bays, 1.0 / bays
+        wx0, wx1 = x0 + w * .24, x0 + w * .76
+        if lit:
+            if rnd.random() < p:
+                _rect(d, wx0 + w * .03, .20, wx1 - w * .03, .76, _g(col, .75 + .25 * rnd.random()))
+            continue
+    if not lit:
+        n = 14
+        for r in range(n):
+            _rect(d, 0, r / n, 1, r / n + .012, _g((.80, .78, .78)))          # brick courses
+        for b in range(bays):
+            x0, w = b / bays, 1.0 / bays
+            wx0, wx1 = x0 + w * .24, x0 + w * .76
+            _rect(d, wx0 - w * .05, .14, wx1 + w * .05, .82, _g((1, 1, 1)))                                  # the pale surround
+            _rect(d, wx0 - w * .08, .10, wx1 + w * .08, .16, _g((1, 1, 1)))                                  # the lintel
+            _rect(d, wx0 - w * .07, .80, wx1 + w * .07, .86, _g((.96, .96, .96)))                            # the sill
+            _rect(d, wx0, .18, wx1, .78, _g((.62, .62, .64)))                                                # the reveal
+            c, k = _pane(dr, .10)
+            _rect(d, wx0 + w * .03, .20, wx1 - w * .03, .76, _g(c, k))
+            _rect(d, (wx0 + wx1) / 2 - .004, .20, (wx0 + wx1) / 2 + .004, .76, _g((.95, .95, .95)))
+            _rect(d, wx0 + w * .03, .47, wx1 - w * .03, .50, _g((.95, .95, .95)))
+        im = weather(im, seed, wear, 14)
+    return im
+
+
+def arcade(lit, seed=29, p=.8, bays=2, lc='bright', wear=.7, **kw):
+    """A ground floor of arched, glazed openings between pale piers, a string course above."""
+    im = _canvas(lit, .96)
+    d = ImageDraw.Draw(im)
+    rnd = random.Random(seed)
+    S = INNER * SS
+    col = LIT.get(lc, WARM)
+    for b in range(bays):
+        x0, w = b / bays, 1.0 / bays
+        cx, hw = (x0 + w / 2) * S, w * .30 * S
+        top, bot = .10 * S, .92 * S
+        if lit:
+            if rnd.random() < p:
+                d.rectangle([cx - hw, top + hw, cx + hw, bot], fill=_g(col, .85))
+                d.pieslice([cx - hw, top, cx + hw, top + 2 * hw], 180, 360, fill=_g(col, .85))
+            continue
+        d.rectangle([cx - hw - .02 * S, top + hw, cx + hw + .02 * S, bot], fill=_g((.90, .90, .92)))
+        d.pieslice([cx - hw - .02 * S, top - .02 * S, cx + hw + .02 * S, top + 2 * hw + .02 * S], 180, 360, fill=_g((.90, .90, .92)))
+        d.rectangle([cx - hw, top + hw, cx + hw, bot], fill=_g((.30, .42, .50)))
+        d.pieslice([cx - hw, top, cx + hw, top + 2 * hw], 180, 360, fill=_g((.30, .42, .50)))
+        d.rectangle([cx - .004 * S, top + .08 * S, cx + .004 * S, bot], fill=_g((.92, .92, .94)))
+        d.rectangle([cx - hw, .52 * S, cx + hw, .535 * S], fill=_g((.92, .92, .94)))
+    if not lit:
+        _rect(d, 0, 0, 1, .035, _g((.80, .80, .82)))
+        im = weather(im, seed, wear, 8, .12)
+    return im
+
+
+KINDS = dict(brickbay=brickbay, arcade=arcade, loggia=loggia, curtain=curtain, band=band, stucco=stucco, board=board, terrazzo=terrazzo, stone=stone, timber=timber, shopfront=shopfront)
 
 
 def register(slug, name, spec):

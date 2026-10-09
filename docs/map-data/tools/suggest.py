@@ -108,6 +108,30 @@ def analyse(name, max_faces=3):
         rh.append(rhythm(im, ppm, h))
     style = json.load(open(os.path.join(K.LM, 'facade-style.json'))).get('%.5f,%.5f' % (b[4], b[5])) if os.path.exists(os.path.join(K.LM, 'facade-style.json')) else None
     out = dict(name=name, index=bi, height=b[1], faces=len(fs))
+    # a wall seen from under a flyover is black: when the unwrapped faces are dark or grey, read the colours off the best street-level frames of the search instead
+    def dull(p):
+        lum = sum((.299 * c[0] + .587 * c[1] + .114 * c[2]) * w for c, w in p)
+        sat = sum((max(c) - min(c)) / max(max(c), 1) * w for c, w in p)
+        return lum < 85 or sat < .10
+    if not pals or all(dull(p) for _, p in pals):
+        try:
+            import refsearch
+            db = json.load(open(refsearch.INDEX, encoding='utf-8')) if os.path.exists(refsearch.INDEX) else {}
+            got = []
+            for e in sorted([e for e in db.get(name, []) if e['src'] == 'mapillary'], key=lambda e: -e.get('score', 0))[:3]:
+                import hashlib
+                f = os.path.join(K.REFS, 'mapillary_%s.jpg' % hashlib.md5(e['id'].encode()).hexdigest()[:12])
+                if os.path.exists(f):
+                    im = Image.open(f).convert('RGB')
+                    W, H = im.size
+                    p = palette(im.crop((int(W * .15), int(H * .12), int(W * .85), int(H * .62))))
+                    if p:
+                        got.append((1.0, p))
+            if got:
+                pals = got
+                out['palette_from'] = 'street frames'
+        except Exception:
+            pass
     if pals:
         allc = {}
         for ln, p in pals:

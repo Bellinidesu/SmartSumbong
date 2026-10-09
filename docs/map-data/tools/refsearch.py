@@ -201,7 +201,7 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
             except Exception as ex:
                 print('  %s (%s): %s' % (s, q, str(ex)[:80]))
         if 'mapillary' in sources and q == qs[-1]:
-            res += mapillary(name, near, n)
+            res += mapillary(name, near, n * 5)
     # drop what is the same picture twice, keep the best-ranked of each
     res.sort(key=lambda e: -score(e, name))
     # rank first, then fetch only the thumbnails that can still make the board (eight at a time)
@@ -212,7 +212,7 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
             continue
         seen.add(k)
         uniq.append(e)
-    uniq = uniq[:n * 3]
+    uniq = uniq[:n * 6]
     import concurrent.futures as cf
     with cf.ThreadPoolExecutor(8) as ex:
         files = list(ex.map(fetch_thumb, uniq))
@@ -232,9 +232,26 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
         out.append(e)
     # a picture placed elsewhere is not shown at all; ones that do not say where come after the ones that do
     out = [e for e in out if relevant(e, name, loose)]
+    for e in out:                      # a street frame that shows the building in good light beats one taken from under a flyover
+        if e['src'] == 'mapillary':
+            e['score'] = round(e['score'] + frame_quality(e['file']), 2)
+    out.sort(key=lambda e: -e['score'])
     out = diversify(out)
     out.sort(key=lambda e: -e['score'])
     return out[:n]
+
+
+def frame_quality(path):
+    """0 to 2.5: how bright and how colourful a street frame is, and how much of it is not a dark roof or a bonnet."""
+    try:
+        import numpy as np
+        a = np.asarray(Image.open(path).convert('RGB').resize((96, 72)), dtype=np.float32)
+    except Exception:
+        return 0.0
+    lum = a.mean(-1)
+    colour = (a.max(-1) - a.min(-1)).mean() / 255
+    top = lum[:int(72 * .45)].mean()           # the upper part of a frame under a flyover is black
+    return float(min(1.0, lum.mean() / 110) * 1.0 + min(1.0, colour * 6) * 0.8 + min(1.0, top / 90) * 0.7)
 
 
 def diversify(entries):

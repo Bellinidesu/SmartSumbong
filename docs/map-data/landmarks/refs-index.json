@@ -2,30 +2,66 @@
  "Newport Mall": [
   {
    "src": "mapillary",
+   "id": "114333931228328",
+   "title": "Newport Mall from 65 m",
+   "author": "Mapillary contributors",
+   "license": "CC BY-SA 4.0",
+   "url": "https://www.mapillary.com/app/?pKey=114333931228328",
+   "score": 7.75
+  },
+  {
+   "src": "mapillary",
+   "id": "1447053452378414",
+   "title": "Newport Mall from 69 m",
+   "author": "Mapillary contributors",
+   "license": "CC BY-SA 4.0",
+   "url": "https://www.mapillary.com/app/?pKey=1447053452378414",
+   "score": 7.73
+  },
+  {
+   "src": "mapillary",
+   "id": "1141764189952057",
+   "title": "Newport Mall from 64 m",
+   "author": "Mapillary contributors",
+   "license": "CC BY-SA 4.0",
+   "url": "https://www.mapillary.com/app/?pKey=1141764189952057",
+   "score": 7.63
+  },
+  {
+   "src": "mapillary",
+   "id": "458955439248082",
+   "title": "Newport Mall from 53 m",
+   "author": "Mapillary contributors",
+   "license": "CC BY-SA 4.0",
+   "url": "https://www.mapillary.com/app/?pKey=458955439248082",
+   "score": 7.41
+  },
+  {
+   "src": "mapillary",
+   "id": "328517715838966",
+   "title": "Newport Mall from 61 m",
+   "author": "Mapillary contributors",
+   "license": "CC BY-SA 4.0",
+   "url": "https://www.mapillary.com/app/?pKey=328517715838966",
+   "score": 7.37
+  },
+  {
+   "src": "mapillary",
    "id": "146256151224742",
    "title": "Newport Mall from 51 m",
    "author": "Mapillary contributors",
    "license": "CC BY-SA 4.0",
    "url": "https://www.mapillary.com/app/?pKey=146256151224742",
-   "score": 5.65
+   "score": 6.98
   },
   {
    "src": "mapillary",
-   "id": "109443108268458",
-   "title": "Newport Mall from 52 m",
+   "id": "1526005441126747",
+   "title": "Newport Mall from 79 m",
    "author": "Mapillary contributors",
    "license": "CC BY-SA 4.0",
-   "url": "https://www.mapillary.com/app/?pKey=109443108268458",
-   "score": 5.65
-  },
-  {
-   "src": "mapillary",
-   "id": "164363359285231",
-   "title": "Newport Mall from 64 m",
-   "author": "Mapillary contributors",
-   "license": "CC BY-SA 4.0",
-   "url": "https://www.mapillary.com/app/?pKey=164363359285231",
-   "score": 5.57
+   "url": "https://www.mapillary.com/app/?pKey=1526005441126747",
+   "score": 6.59
   },
   {
    "src": "commons",

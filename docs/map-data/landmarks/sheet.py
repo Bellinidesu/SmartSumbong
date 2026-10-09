@@ -125,6 +125,8 @@ def build(m, ring, ctx, sh, h, name):
             _roof_sign(m, F, ft, h, name or ft.get('text', ''), accent)
         elif t == 'flag':
             _flag(m, F, ft, h, accent)
+        elif t == 'vault':
+            _vault(m, ctx, ft, h, mats)
     fa = sh.get('facade')
     if fa is not False:
         flags = dict(awnings=True, entrance=False, sign=False, balconies=False, ac=False, belts=False, pilasters=False)
@@ -189,6 +191,14 @@ def _roof_sign(m, F, ft, h, name, accent):
         m.box(cx, cy + 0, z0 + b, w + .3, .12, .12, F['th'], g, C['white'], g, C['white'], True, 40.0)
     for s in (-1, 1):
         m.box(cx + ux * s * (w / 2 + .1), cy + uy * s * (w / 2 + .1), z0, .12, .12, hh, F['th'], g, C['white'], g, C['white'], True, 40.0)
+
+
+def _vault(m, ctx, ft, h, mats):
+    """A glass vault on the roof over the middle of the building (the mall's skylight), as long as a share of the footprint's long side."""
+    L, W, th = ctx['L'], ctx['W'], ctx['th']
+    mat = mats.get(ft.get('mat'), ft.get('mat') if ft.get('mat') in MAT else 'glass')
+    col = _hex(ft['colour']) if ft.get('colour') else C['glass']
+    m.barrel(ctx['cx'], ctx['cy'], L * float(ft.get('length', .55)), W * float(ft.get('width', .32)), th, h + .45, float(ft.get('rise', 4.5)), mat, col)
 
 
 def _flag(m, F, ft, h, accent):

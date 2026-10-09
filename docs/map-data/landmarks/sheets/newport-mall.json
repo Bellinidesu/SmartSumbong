@@ -1,0 +1,22 @@
+{
+  "name": "Newport Mall",
+  "match": { "name": "Newport Mall" },
+  "about": "Newport Mall of Resorts World: a terracotta brick block with pale window surrounds and an arcaded ground floor, teal glass bays and a teal steel canopy where the walkways meet it, a glass vault over the piazza. Read from Mapillary street views near the Newport Boulevard side and a Commons photo of the piazza; the signature is Ace's to confirm.",
+  "palette": { "wall": "D79A82", "trim": "F1E6D2", "accent": "2FA6AB", "podium": "EBDCC4" },
+  "use": "mall",
+  "tiles": {
+    "brick":   { "kind": "brickbay", "m": [6.4, 3.8], "fit": true, "seed": 23, "p": 0.6, "bays": 2 },
+    "arcade":  { "kind": "arcade", "m": [8.0, 5.6], "fit": true, "seed": 29, "p": 0.9, "bays": 2 },
+    "glass":   { "kind": "curtain", "m": [3.2, 3.8], "fit": true, "graded": true, "seed": 5, "p": 0.55, "bays": 2, "lc": "bright" }
+  },
+  "body": { "podium": 7.0, "podium_mat": "arcade", "floors_mat": "brick" },
+  "features": [
+    { "type": "corner_tower", "end": "end", "size": [9.0, 6.0], "proud": 2.2, "extra": 2.5, "mat": "glass" },
+    { "type": "canopy", "at": 0.30, "colour": "accent", "width": 12.0, "z": 5.2 },
+    { "type": "vault", "length": 0.55, "width": 0.30, "rise": 4.5, "colour": "A9CFCB" },
+    { "type": "roof_sign", "text": "NEWPORT MALL", "at": 0.5, "width": 20.0, "neon": "amber" }
+  ],
+  "facade": { "awnings": true, "entrance": false, "sign": false },
+  "night": { "wash": { "color": "amber", "height": 22, "strength": 0.6 } },
+  "ref": []
+}
