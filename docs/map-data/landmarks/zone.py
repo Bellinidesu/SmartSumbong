@@ -30,10 +30,10 @@ def floors_of(h):
 def crown(m, ring, h, ctx, col, big=True):
     """A cornice band, a setback of mechanical floor with louvres, and rooftop plant."""
     poly = Polygon(ring).buffer(.4, join_style=2)
-    m.prism(list(poly.exterior.coords)[:-1], h - 1.2, h + .5, 'plain', col, 'sheet', C['sheetwhite'], top=True, cell=4)
+    m.prism(list(poly.exterior.coords)[:-1], h - 1.2, h + .5, 'plain', col, 'roofdeck', C['white'], top=True, cell=4)
     inner = Polygon(ring).buffer(-3.2, join_style=2)
     if big and not inner.is_empty and inner.geom_type == 'Polygon' and inner.area > 120:
-        m.prism(list(inner.exterior.coords)[:-1], h + .5, h + 4.2, 'louvre', C['grey'], 'plain', C['grey'], top=True, cell=4)
+        m.prism(list(inner.exterior.coords)[:-1], h + .5, h + 4.2, 'louvre', C['grey'], 'roofdeck', C['white'], top=True, cell=4)
         for k in range(min(4, int(inner.area // 400) + 1)):
             u = zlib.crc32(('%d%.4f' % (k, ctx['lng'])).encode()) % 100 / 100 - .5
             v = zlib.crc32(('%d%.4f' % (k + 9, ctx['lat'])).encode()) % 100 / 100 - .5
@@ -75,7 +75,7 @@ def z_hotel(m, ring, ctx, p):
     base = pick(ctx, PASTELS, 1)
     gh = min(6.0, h * .3)
     m.prism(ring, 0, gh, 'shop', C['white'], 'plain', base, top=False, cell=4)
-    m.prism(ring, gh, h - 1.2, 'windows', base, 'plain', base, top=False, cell=4)
+    m.prism(ring, gh, h - 1.2, pick(ctx, ['windows', 'strip', 'slots'], 11), base, 'plain', base, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 2))
     porte_cochere(m, ring, ctx, h)
 
@@ -85,9 +85,7 @@ def z_condo(m, ring, ctx, p):
     ring = _ccw(ring)
     col = pick(ctx, PASTELS, 3)
     m.prism(ring, 0, 4.6, 'shop', C['white'], 'plain', col, top=False, cell=4)
-    m.prism(ring, 4.6, h - 1.2, 'windows', col, 'plain', col, top=False, cell=4)
-    if ctx['L'] > 18:
-        balconies(m, ring, ctx, h, C['white'])
+    m.prism(ring, 4.6, h - 1.2, pick(ctx, ['windows', 'strip', 'slots', 'windows'], 12), col, 'plain', col, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 4))
 
 
@@ -119,7 +117,7 @@ def z_parking(m, ring, ctx, p):
         m.prism(ring, f * step + .9, (f + 1) * step - .15, 'louvre', C['grey'], 'plain', C['grey'], top=False, cell=4)
         poly = Polygon(ring).buffer(.12, join_style=2)
         m.prism(list(poly.exterior.coords)[:-1], f * step, f * step + .9, 'plain', C['pier'] if 'pier' in C else C['grey'], 'plain', C['grey'], top=False, cell=4)
-    m.cap(ring, h, MAT['plain'], C['grey'], True)
+    m.cap(ring, h, MAT['roofdeck'], C['white'], True)
 
 
 def z_hangar(m, ring, ctx, p):
@@ -136,7 +134,7 @@ def z_generic(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
     col = pick(ctx, PASTELS, 8)
-    m.prism(ring, 0, h, 'windows' if h > 5 else 'panel', col, 'sheet', C['grey'], top=True, cell=4)
+    m.prism(ring, 0, h, 'windows' if h > 5 else 'panel', col, 'roofdeck', C['white'], top=True, cell=4)
     if Polygon(ring).area > 300:
         poly = Polygon(ring).buffer(.25, join_style=2)
         m.prism(list(poly.exterior.coords)[:-1], h - .5, h + .6, 'plain', C['white'], 'plain', C['white'], top=True, cell=5)

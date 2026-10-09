@@ -23,6 +23,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..'))
 from meshlib import Mesh, MAT, rgb, _obb, _ccw
 import atlas
+import facade
 sys.path.insert(0, HERE)
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..', '..'))
@@ -267,9 +268,9 @@ def t_tower(m, ring, ctx, p):
     poly = Polygon(ring).buffer(-2.0, join_style=2)
     if not poly.is_empty and poly.geom_type == 'Polygon':
         m.prism(list(poly.exterior.coords)[:-1], h * .9, h, 'glass', C['slate'], 'plain', C['grey'], top=True)
-        m.cap(ring, h * .9, MAT['plain'], C['grey'], True)
+        m.cap(ring, h * .9, MAT['roofdeck'], (238, 238, 240), True)
     else:
-        m.cap(ring, h * .9, MAT['plain'], C['grey'], True)
+        m.cap(ring, h * .9, MAT['roofdeck'], (238, 238, 240), True)
 
 
 def t_police(m, ring, ctx, p):
@@ -394,6 +395,12 @@ def main():
         ctx['others'] = others
         m = Mesh()
         TEMPLATES[tname](m, ring, ctx, dict(params))
+        if tname not in ('shrine', 'terminal', 'tower', 'chapel', 'prayer'):
+            facade.apply(m, ring, ctx, 'school' if tname in ('school', 'psca', 'hall', 'police', 'fire', 'generic', 'shop') else tname, float(params.get('h', 8)), name, {'sign': True})
+        elif tname == 'tower':
+            facade.apply(m, ring, ctx, 'office', float(params.get('h', 40)), name, {'balconies': False, 'ac': False})
+        elif tname == 'terminal':
+            facade.apply(m, ring, ctx, 'office', float(params.get('h', 12)), name, {'awnings': False, 'balconies': False, 'ac': False, 'pilasters': False, 'entrance': False})
         P, N, U, M, Cc, Ix = m.arrays()
         if not len(P):
             continue
@@ -429,6 +436,8 @@ def main():
         m = Mesh()
         try:
             _zone.TEMPLATES[kind](m, ring, ctx, {'h': float(b[1])})
+            if kind != 'parking':
+                facade.apply(m, ring, ctx, 'condo' if kind in ('condo',) else kind, float(b[1]), nm or None, None)
         except Exception as e:     # a strange footprint: leave it as the plain building
             print('  skipped', nm or bi, e)
             continue

@@ -5,7 +5,7 @@ barangay's plain style: flat colours, no photographs. Every tile repeats, so eac
 """
 import random
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 CELL = 128      # pixels a tile takes in the atlas
 INNER = 112     # the tile itself; the rest of the cell repeats it, so a mip level never blends in a neighbour
@@ -196,7 +196,109 @@ def tile_shop(lit):
     return im
 
 
-TILES = [tile_plain, tile_windows, tile_ribbon, tile_glass, tile_sheet, tile_tile, tile_arches, tile_louvre, tile_sign, tile_panel, tile_column, tile_shop]
+def tile_slots(lit):
+    """Tall slot windows, three to a tile (6 m x 3.4 m)."""
+    im = Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0) if lit else (255, 255, 255))
+    d = ImageDraw.Draw(im)
+    rnd = random.Random(21)
+    for i in range(3):
+        x0, x1 = i / 3 + .09, i / 3 + .24
+        if lit:
+            if rnd.random() < .55:
+                _rect(d, x0, .14, x1, .84, _g(GLASS_LIT, .9))
+        else:
+            _rect(d, x0 - .015, .12, x1 + .015, .86, _g((.9, .9, .9)))
+            _rect(d, x0, .14, x1, .84, _g(GLASS))
+    return im
+
+
+def tile_strip(lit):
+    """Pairs of wide windows in a strip with a solid spandrel under each (6 m x 3.4 m)."""
+    im = Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0) if lit else (255, 255, 255))
+    d = ImageDraw.Draw(im)
+    rnd = random.Random(33)
+    for i in range(2):
+        x0, x1 = i / 2 + .06, i / 2 + .44
+        if lit:
+            if rnd.random() < .6:
+                _rect(d, x0, .26, x1, .66, _g(GLASS_LIT, .85))
+        else:
+            _rect(d, x0, .24, x1, .68, _g(GLASS))
+            _rect(d, x0, .68, x1, .96, _g((.92, .92, .92)))
+            _rect(d, x0 + .19 - .006, .24, x0 + .19 + .006, .68, _g((.92, .92, .92)))
+    return im
+
+
+def tile_brick(lit):
+    if lit:
+        return Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0))
+    im = _canvas()
+    d = ImageDraw.Draw(im)
+    for r in range(8):
+        _rect(d, 0, r / 8, 1, r / 8 + .05 / 8, _g((.9, .9, .9)))
+    return im
+
+
+def tile_roofdeck(lit):
+    """A flat roof (6 m): membrane panels with seams, patches of wear, a vent or two."""
+    if lit:
+        return Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0))
+    im = Image.new('RGB', (INNER * SS, INNER * SS), _g((.93, .93, .93)))
+    d = ImageDraw.Draw(im)
+    rnd = random.Random(4)
+    for k in range(4):
+        _rect(d, k / 4 - .004, 0, k / 4 + .004, 1, _g((.82, .83, .85)))
+    for r in range(3):
+        _rect(d, 0, r / 3 - .004, 1, r / 3 + .004, _g((.86, .86, .88)))
+    for _ in range(7):
+        x, y = rnd.random() * .8, rnd.random() * .8
+        _rect(d, x, y, x + .06 + rnd.random() * .14, y + .05 + rnd.random() * .1, _g((.86 + rnd.random() * .06,) * 3))
+    for (x, y) in ((.2, .3), (.7, .72)):
+        _rect(d, x, y, x + .07, y + .07, _g((.62, .64, .68)))
+        _rect(d, x + .012, y + .012, x + .058, y + .058, _g((.78, .8, .84)))
+    return im
+
+
+TILES = [tile_plain, tile_windows, tile_ribbon, tile_glass, tile_sheet, tile_tile, tile_arches, tile_louvre, tile_sign, tile_panel, tile_column, tile_shop, tile_slots, tile_strip, tile_brick, tile_roofdeck]
+
+# one sign for every named building: its name on a band, in the band's colour (drawn in the tile itself, not tinted by the vertex colour)
+SIGNS = {}
+SIGN_BG = [(0x3A, 0x4C, 0x86), (0x2F, 0xA6, 0xAB), (0xC9, 0x54, 0x4A), (0x4C, 0x9A, 0x6A), (0xE0, 0x7B, 0x2E), (0x3F, 0x67, 0xB0), (0x5E, 0x66, 0x7E)]
+
+
+def sign_id(text):
+    """The material of the sign for this text (registering it): 16 and up."""
+    text = text.strip()
+    if text not in SIGNS:
+        if len(SIGNS) >= 48:
+            return None
+        SIGNS[text] = 16 + len(SIGNS)
+    return SIGNS[text]
+
+
+def tile_sign_text(text, lit):
+    W, H = 960, 128
+    bg = SIGN_BG[sum(map(ord, text)) % len(SIGN_BG)]
+    im = Image.new('RGB', (W, H), (0, 0, 0) if lit else (255, 255, 255))
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle([6, 6, W - 7, H - 7], radius=18, fill=(int(bg[0] * .9), int(bg[1] * .9), int(bg[2] * .9)) if lit else bg)
+    size = 84
+    font = None
+    for fp in ('C:/Windows/Fonts/segoeuib.ttf', 'C:/Windows/Fonts/arialbd.ttf'):
+        try:
+            font = ImageFont.truetype(fp, size)
+            break
+        except Exception:
+            pass
+    if font is None:
+        font = ImageFont.load_default()
+    label = text.upper()
+    while d.textlength(label, font=font) > W - 70 and size > 30:
+        size -= 4
+        font = ImageFont.truetype(font.path, size) if hasattr(font, 'path') else font
+    tw = d.textlength(label, font=font)
+    d.text(((W - tw) / 2, H / 2 - size * .58), label, font=font, fill=(255, 255, 255) if not lit else (255, 244, 220))
+    return im.resize((INNER * SS, INNER * SS), Image.LANCZOS)
 
 
 def periodic(im):
@@ -210,15 +312,23 @@ def periodic(im):
     return big.crop((o, o, o + CELL, o + CELL))
 
 
+GRID = 8
+
+
 def build(outdir):
-    A = Image.new('RGBA', (CELL * 4, CELL * 4), (255, 255, 255, 255))
-    E = Image.new('RGBA', (CELL * 4, CELL * 4), (0, 0, 0, 255))
-    rects = []
+    A = Image.new('RGBA', (CELL * GRID, CELL * GRID), (255, 255, 255, 255))
+    E = Image.new('RGBA', (CELL * GRID, CELL * GRID), (0, 0, 0, 255))
+    rects = [None] * (16 + len(SIGNS))
+    pad = (CELL - INNER) / 2 / (CELL * GRID)
+    def put(k, day, night):
+        col, row = k % GRID, k // GRID
+        A.paste(periodic(day).convert('RGBA'), (col * CELL, row * CELL))
+        E.paste(periodic(night).convert('RGBA'), (col * CELL, row * CELL))
+        rects[k] = [col / GRID + pad, row / GRID + pad, INNER / (CELL * GRID), INNER / (CELL * GRID)]
     for k, fn in enumerate(TILES):
-        col, row = k % 4, k // 4
-        A.paste(periodic(fn(False)).convert('RGBA'), (col * CELL, row * CELL))
-        e = periodic(fn(True)).convert('RGBA')
-        E.paste(e, (col * CELL, row * CELL))
-        pad = (CELL - INNER) / 2 / (CELL * 4)
-        rects.append([col / 4 + pad, row / 4 + pad, INNER / (CELL * 4), INNER / (CELL * 4)])
+        put(k, fn(False), fn(True))
+    for k in range(len(TILES), 16):
+        put(k, tile_plain(False), tile_plain(True))
+    for text, k in SIGNS.items():
+        put(k, tile_sign_text(text, False), tile_sign_text(text, True))
     return A, E, rects

@@ -19,7 +19,7 @@
   void main() { gl_Position = u_m * vec4(a_pos.xy, a_pos.z * u_grow, 1.0); v_uv = a_uv; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; v_light = mix(a_day, a_night, u_night) * 1.25; }`;
   const FS = `#version 300 es
   precision highp float;
-  uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[16]; uniform float u_night;
+  uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[64]; uniform float u_night;
   in vec2 v_uv; in float v_mat; in vec3 v_alb; in vec3 v_light;
   out vec4 o;
   void main() {
@@ -49,7 +49,7 @@
       const tex = (img, mip) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
       gl_.tex = tex(atlas); gl_.texE = tex(emis);
-      gl_.tiles = new Float32Array(64); data.tiles.forEach((r, i) => gl_.tiles.set(r, i * 4));
+      gl_.tiles = new Float32Array(256); data.tiles.forEach((r, i) => { if (r) gl_.tiles.set(r, i * 4); });
       gl_.ready = true;
     },
     render(gl, args) {

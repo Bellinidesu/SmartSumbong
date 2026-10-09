@@ -15,11 +15,20 @@ from shapely import constrained_delaunay_triangles
 
 # materials: tiles of the atlas (see atlas.py), with how many metres one tile covers (width, height)
 MAT = {
-    'plain': 0, 'windows': 1, 'ribbon': 2, 'glass': 3, 'sheet': 4, 'tile': 5, 'arches': 6, 'louvre': 7, 'sign': 8, 'panel': 9, 'column': 10, 'shop': 11,
+    'plain': 0, 'windows': 1, 'ribbon': 2, 'glass': 3, 'sheet': 4, 'tile': 5, 'arches': 6, 'louvre': 7, 'sign': 8, 'panel': 9, 'column': 10, 'shop': 11, 'slots': 12, 'strip': 13, 'brick': 14, 'roofdeck': 15,
 }
 TILE_M = {  # metres a tile covers across and up
-    0: (4.0, 4.0), 1: (6.4, 3.4), 2: (6.0, 3.4), 3: (3.2, 3.4), 4: (2.4, 2.4), 5: (2.4, 2.4), 6: (7.0, 7.0), 7: (3.0, 3.0), 8: (4.0, 1.2), 9: (4.0, 3.4), 10: (4.0, 4.0), 11: (6.0, 4.2),
+    0: (4.0, 4.0), 1: (6.4, 3.4), 2: (6.0, 3.4), 3: (3.2, 3.4), 4: (2.4, 2.4), 5: (2.4, 2.4), 6: (7.0, 7.0), 7: (3.0, 3.0), 8: (4.0, 1.2), 9: (4.0, 3.4), 10: (4.0, 4.0), 11: (6.0, 4.2), 12: (6.0, 3.4), 13: (6.0, 3.4), 14: (4.0, 3.4), 15: (6.0, 6.0),
 }
+
+
+class _TileM(dict):
+    """Tiles from 16 up are one sign each, drawn 12 m by 1.6 m."""
+    def __missing__(self, k):
+        return (12.0, 1.6)
+
+
+TILE_M = _TileM(TILE_M)
 CELL = 3.0
 
 
@@ -174,10 +183,13 @@ class Mesh:
         for i in range(len(ring)):
             u = self.wall(ring[i], ring[(i + 1) % len(ring)], z0, z1, MAT[wall_mat], wall_col, u, cell)
         if top:
+            # a big flat roof is a roof deck (membrane panels, wear, vents), not a plain sheet
+            if top_mat in ('sheet', 'plain') and z1 > 7 and Polygon(ring).area > 150:
+                top_mat, top_col = 'roofdeck', (238, 238, 240)
             self.cap(ring, z1, MAT[top_mat], top_col or wall_col, True)
 
-    def box(self, cx, cy, z0, L, W, H, th, wall_mat, wall_col, top_mat='sheet', top_col=None, top=True):
-        self.prism(_obb(cx, cy, L, W, th), z0, z0 + H, wall_mat, wall_col, top_mat, top_col, top)
+    def box(self, cx, cy, z0, L, W, H, th, wall_mat, wall_col, top_mat='sheet', top_col=None, top=True, cell=CELL):
+        self.prism(_obb(cx, cy, L, W, th), z0, z0 + H, wall_mat, wall_col, top_mat, top_col, top, cell)
 
     def sloped(self, p0, p1, p2, p3, mat, col, cell=CELL):
         self.quad(p0, p1, p2, p3, MAT[mat], col, None, None, cell)
