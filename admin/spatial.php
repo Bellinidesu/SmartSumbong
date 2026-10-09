@@ -800,6 +800,26 @@ const CS_OPEN = ['pending_review', 'validated'], CS_DISPATCHED = ['assigned', 'i
 let csFor = null;
 function csIcon(d) { return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
 function csPad() { return { left: innerWidth > 980 ? 420 : 0, top: 0, right: 0, bottom: 0 }; }
+// Photos open in the page: hover to see the cue, press to view, arrows or the sides to go on, Esc to close.
+let lbx = null;
+function lbClose() { if (!lbx) return; const e = lbx.el; lbx = null; e.classList.remove('in'); setTimeout(() => e.remove(), 200); }
+function lbShow(urls, i) {
+  lbClose(); if (!urls.length) return;
+  const el = document.createElement('div'); el.className = 'ss-lbx'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', T('Photo', 'Larawan'));
+  el.innerHTML = '<button type="button" class="lb-x" aria-label="' + T('Close', 'Isara') + '">&times;</button>' + (urls.length > 1 ? '<button type="button" class="lb-n p" aria-label="' + T('Previous', 'Nakaraan') + '">&#8249;</button><button type="button" class="lb-n n" aria-label="' + T('Next', 'Susunod') + '">&#8250;</button>' : '') +
+    '<img alt=""><span class="lb-c"></span>';
+  document.getElementById('s-spatial').appendChild(el); lbx = { el, urls, i };
+  const go = d => { lbx.i = (lbx.i + d + urls.length) % urls.length; const im = el.querySelector('img'); im.classList.remove('sw'); void im.offsetWidth; im.referrerPolicy = 'no-referrer'; im.src = urls[lbx.i]; im.classList.add('sw'); el.querySelector('.lb-c').textContent = urls.length > 1 ? (lbx.i + 1) + ' / ' + urls.length : ''; };
+  go(0); lbx.go = go; void el.offsetWidth; el.classList.add('in');
+  el.addEventListener('click', e => { if (e.target.closest('.lb-n.p')) go(-1); else if (e.target.closest('.lb-n.n')) go(1); else if (!e.target.closest('img')) lbClose(); });
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('.qv-media a, .cs-photos a'); if (!a) return;
+  e.preventDefault(); const box = a.parentNode, list = [...box.querySelectorAll('a')], urls = list.map(x => x.dataset.u || x.getAttribute('href'));
+  lbShow(urls, 0); lbx.go(list.indexOf(a));
+});
+document.addEventListener('keydown', e => { if (!lbx) return; if (e.key === 'Escape') { e.stopPropagation(); lbClose(); } else if (e.key === 'ArrowRight' && lbx.urls.length > 1) lbx.go(1); else if (e.key === 'ArrowLeft' && lbx.urls.length > 1) lbx.go(-1); }, true);
+
 // Pictures for the action tiles: each is a small world in the case's colour.
 const ACT_SCENE = {
   send: '<svg class="bgx" viewBox="0 0 54 54" aria-hidden="true"><g class="st"><path d="M-2 16H56M-2 36H56M16 -2V56M38 -2V56"/></g><g class="bl"><rect x="20" y="20" width="14" height="12" rx="2"/><rect x="42" y="20" width="10" height="12" rx="2"/><rect x="2" y="40" width="12" height="12" rx="2"/><rect x="20" y="40" width="14" height="12" rx="2"/></g><path class="rt" d="M5 50C14 44 14 30 26 28S42 16 48 8"/><circle class="en" cx="48" cy="8" r="3.4"/><circle class="en o" cx="5" cy="50" r="2.4"/></svg>',
@@ -813,6 +833,12 @@ function slaHtml(r) {
   const t0 = new Date(r.created_at).getTime(), t1 = new Date(r.due_at).getTime(), now = Date.now(), f = Math.max(0, Math.min(1, (now - t0) / Math.max(1, t1 - t0))), late = now > t1;
   const ms = Math.abs(t1 - now), h = Math.round(ms / 36e5), when = h < 48 ? h + T(' h', ' oras') : Math.round(h / 24) + T(' days', ' araw');
   return '<div class="cs-sla' + (late ? ' late' : f > .75 ? ' soon' : '') + '"><div class="sl-t"><small>' + T('Time to deadline', 'Oras bago ang deadline') + '</small><b>' + (late ? T('Overdue by ', 'Lampas ng ') : T('Due in ', 'Sa loob ng ')) + when + '</b></div><div class="sl-bar"><i style="width:' + (f * 100).toFixed(0) + '%"></i></div></div>';
+}
+// One colour code for progress on every case, whatever its category: the portal's status family.
+const STAGE_COL = ['#9AA3B2', '#F9AB00', '#2F6BFF', '#1E9E56'], STAGE_ICON = ['photo', 'handler', 'send', 'safepoints'];
+function stageOf(i, rejected, status) {
+  if (rejected && i === 1) return { c: status === 'cancelled' ? '#9AA3B2' : '#E5383B', i: 'close' };
+  return { c: STAGE_COL[i], i: STAGE_ICON[i] };
 }
 function showDetail(r) {
   qvClose(true); spClose();
@@ -850,7 +876,11 @@ function showDetail(r) {
         '<li>' + csIcon(SD_ICONS.radar) + '<span>' + nearby + T(nearby === 1 ? ' other complaint within 150 m' : ' other complaints within 150 m', ' iba pang sumbong sa loob ng 150 m') + '<small>' + T('Same block or the next', 'Parehong bloke o katabi') + '</small></span></li>' +
       '</ul>' +
       '<h3 class="cs-h">' + T('Progress', 'Takbo') + '</h3>' +
-      '<ol class="cs-steps" style="--fill:' + (steps.length > 1 ? Math.round(cur / (steps.length - 1) * 100) : 100) + '%">' + steps.map(([t, on], i) => '<li class="' + (on ? 'on' : '') + (i === cur ? ' cur' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' + slaHtml(r) +
+      '<ol class="cs-stg">' + steps.map(([t, on], i) => {
+        const g = stageOf(i, rejected, r.status), nx = steps[i + 1] ? stageOf(i + 1, rejected, r.status) : null;
+        return '<li class="' + (on ? 'on' : '') + (i === cur ? ' cur' : '') + '" style="--c:' + g.c + '">' + (nx ? '<i class="sg' + (i < cur ? ' lit' : '') + '" style="--a:' + g.c + ';--b:' + nx.c + '"></i>' : '') +
+          '<span class="bub">' + (on && i < cur ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-10"/></svg>' : sdIcon(g.i)) + '</span><b>' + esc(t) + '</b></li>';
+      }).join('') + '</ol>' + slaHtml(r) +
       '<div id="cs-extra"></div>' +
     '</div>' +
     '<div class="cs-foot"><a class="p-btn p-btn-primary cs-open" href="case.php?id=' + encodeURIComponent(r.id) + '"><span>' + T('Open this case', 'Buksan ang kasong ito') + '</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>';
@@ -890,7 +920,7 @@ function showDetail(r) {
     const L = lg && lg.data && lg.data[0], ms = L ? Date.now() - new Date(L.created_at).getTime() : 0, h = Math.round(ms / 36e5), ago = h < 1 ? T('just now', 'ngayon lang') : h < 48 ? h + T(' h ago', ' oras ang nakalipas') : Math.round(h / 24) + T(' days ago', ' araw ang nakalipas');
     const last = L ? '<div class="cs-last"><i></i><div><small>' + T('Last update', 'Huling update') + ' · ' + esc(ago) + '</small><b>' + esc(label(L.new_status)) + (L.by && L.by.full_name ? ' · ' + esc(String(L.by.full_name).trim()) : T(' · by the system', ' · ng sistema')) + '</b>' + (L.remark ? '<span>' + esc(String(L.remark).slice(0, 140)) + '</span>' : '') + '</div></div>' : '';
     box.innerHTML = last + (q ? '<div class="cs-quote"><small>' + T('In the resident’s words', 'Sa salita ng residente') + '</small>“' + esc(String(q).slice(0, 200)) + (String(q).length > 200 ? '…' : '') + '”</div>' : '') +
-      (ph.length ? '<div class="cs-photos" data-n="' + ph.length + '">' + ph.map(u => '<a href="' + esc(u) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(u).replace(/'/g, '%27') + '\')"></a>').join('') + '</div>' : '');
+      (ph.length ? '<div class="cs-photos" data-n="' + ph.length + '">' + ph.map(u => '<a href="' + esc(u) + '" data-u="' + esc(u) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(u).replace(/'/g, '%27') + '\')"></a>').join('') + '</div>' : '');
   });
   sb.from('report_media').select('media_url').eq('report_id', r.id).limit(1)
     .then(({ data }) => { if (csFor !== r.id || !data || !data[0]) return; const h = document.getElementById('cs-hero'); if (!h) return;
