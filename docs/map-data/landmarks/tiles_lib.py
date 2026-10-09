@@ -381,6 +381,6 @@ def register(slug, name, spec, ref='FFFFFF'):
         kw['ref'] = ref
         kw.setdefault('bay_w', spec['m'][0] / kw.get('bays', 3))
     full = '%s/%s' % (slug, name)
-    tid = atlas.register_custom(full, lambda: fn(False, **kw), lambda: fn(True, **kw))
+    tid = atlas.register_custom(full, lambda: fn(False, **kw), lambda: fn(True, **kw), keep_day=(kind == 'ivy'))
     meshlib.register_material(full, tid, tuple(spec.get('m', (6.4, 3.4))), bool(spec.get('fit', False)), bool(spec.get('graded', False)))
     return full

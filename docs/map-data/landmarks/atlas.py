@@ -386,14 +386,20 @@ GRID = 16
 # Tiles that belong to one landmark (landmarks/sheets/*.json, drawn by tiles_lib.py): from 100 up, in the order the sheets are read.
 CUSTOM_BASE = 100
 CUSTOM = []          # (name, day image function, night image function)
+KEEP_DAY = set()     # custom tiles whose day picture is the colour itself (ivy): they are not flattened
+# By day every surface is its plain colour; the windows, panes and arches of the tiles show only at night, as lit light (the emissive atlas). SS_TEXTURES=1 brings the tiles back by day.
+PLAIN_DAY = not __import__('os').environ.get('SS_TEXTURES')
+FLAT_KEEP = {8} | set(range(16, 64)) | {80, 81, 82, 83, 84}      # signs, glow bands and the apron keep their picture
 
 
-def register_custom(name, day, night):
+def register_custom(name, day, night, keep_day=False):
     """Give a landmark's own tile an id (100 and up) and remember how to draw it."""
     for i, (n, _, _) in enumerate(CUSTOM):
         if n == name:
             return CUSTOM_BASE + i
     CUSTOM.append((name, day, night))
+    if keep_day:
+        KEEP_DAY.add(len(CUSTOM) - 1)
     return CUSTOM_BASE + len(CUSTOM) - 1
 
 
@@ -404,6 +410,8 @@ def build(outdir):
     pad = (CELL - INNER) / 2 / (CELL * GRID)
     def put(k, day, night):
         col, row = k % GRID, k // GRID
+        if PLAIN_DAY and k not in FLAT_KEEP:
+            day = Image.new('RGB', day.size, (255, 255, 255))
         A.paste(periodic(day).convert('RGBA'), (col * CELL, row * CELL))
         E.paste(periodic(night).convert('RGBA'), (col * CELL, row * CELL))
         rects[k] = [col / GRID + pad, row / GRID + pad, INNER / (CELL * GRID), INNER / (CELL * GRID)]
@@ -423,7 +431,10 @@ def build(outdir):
         raise SystemExit('too many own tiles for the fine atlas (%d, at most %d)' % (len(CUSTOM), HERO_GRID * HERO_GRID))
     for i, (n, day, night) in enumerate(CUSTOM):
         col, row = i % HERO_GRID, i // HERO_GRID
-        A2.paste(periodic(day(), HERO_INNER, HERO_CELL).convert('RGBA'), (col * HERO_CELL, row * HERO_CELL))
+        dimg = day()
+        if PLAIN_DAY and i not in KEEP_DAY:
+            dimg = Image.new('RGB', dimg.size, (255, 255, 255))
+        A2.paste(periodic(dimg, HERO_INNER, HERO_CELL).convert('RGBA'), (col * HERO_CELL, row * HERO_CELL))
         E2.paste(periodic(night(), HERO_INNER, HERO_CELL).convert('RGBA'), (col * HERO_CELL, row * HERO_CELL))
         rects[CUSTOM_BASE + i] = [col / HERO_GRID + pad2, row / HERO_GRID + pad2, HERO_INNER / (HERO_CELL * HERO_GRID), HERO_INNER / (HERO_CELL * HERO_GRID)]
     ids = variant_ids()
