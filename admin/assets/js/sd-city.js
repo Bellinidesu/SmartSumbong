@@ -5,6 +5,8 @@
 //   light and haze     a low sun on the walls, a sky and a fog that fades the far streets away
 //   buildings          every building in assets/map/buildings.json (Overture and OpenStreetMap footprints): walls with
 //                      windows (lit at night), pitched roofs in the colours this neighbourhood's roofs have
+//   shadows            baked ahead of time into one picture of the ground (docs/map-data/bake_shadows.py): what each
+//                      building and tree throws, and the dark at the foot of a wall and down a lane; free while the map moves
 //   trees              the 93 OpenStreetMap has mapped, and rounded ones planted in the parks and the golf course
 //   road detail        zebra crossings (all 125 OpenStreetMap has) and dashed lane lines
 //   places             small coloured dots for shops, food, clinics and schools
@@ -24,18 +26,18 @@
       roofFlat: '#5C6590', roofs: ['#8C4650', '#9A5E48', '#3B5391', '#35705F', '#646880', '#8E846C', '#54424A', '#9EA1B5'],
       canopy: ['#1F6B53', '#2E8A63'], canopy2: ['#27805F', '#3AA374'], palm: ['#2F7F4E', '#4C9A55'], trunk: '#2F2A3A', palmTrunk: '#5A5068', tshadow: ['#04060F', .38],
       area: { fairway: '#2F8A63', green: '#3FA878', tee: '#3FA878', bunker: '#77738F', water: '#1D3A86', driving_range: '#2A7A58', 'pitch:basketball': '#B06A4C', 'pitch:tennis': '#4A73B8', 'pitch:soccer': '#3C9A6B', 'pitch:football': '#3C9A6B', playground: '#B9877A', swimming_pool: '#2E78C0', track: '#A8604A', other: '#3A9068' }, areaLine: ['#E9ECFA', .55], cross: ['#FFFFFF', .6], lane: ['#AEB6DA', .5],
-      haloText: 'rgba(18,21,42,.92)', poiStroke: '#14172A',
+      bake: .95, haloText: 'rgba(18,21,42,.92)', poiStroke: '#14172A',
       wk: { cream: '#6E749D', white: '#7C82AC', tan: '#6B6489' }, trim: '#8189B2', tower: '#767CA6',
       rk: { blue: '#3B5391', green: '#2E6B5B', white: '#8D93B8', tan: '#7A7396', cream: '#8087AE', grey: '#6B7096', red: '#8C4650' },
     },
     day: {
-      light: { anchor: 'map', color: '#FFFFFF', intensity: .4, position: [1.3, 215, 50] },
+      light: { anchor: 'map', color: '#FFFFFF', intensity: .4, position: [1.3, 200, 50] },
       sky: { 'sky-color': '#8FC1F0', 'horizon-color': '#E9F1FA', 'fog-color': '#E8EDF3', 'sky-horizon-blend': .5, 'horizon-fog-blend': .8, 'fog-ground-blend': .5 },
       wall: { lo: ['#EEEAE4', '#CBD3DE', '#D3DAE4', .05], mid: ['#E8E6E4', '#C3CCD9', '#CBD4E0', .06], hi: ['#DEE2EA', '#B3C0D2', '#BFCADA', .08] },
       roofFlat: '#F2EFEA', roofs: ['#C25446', '#D07A45', '#3F6FC4', '#3E8E6C', '#9A9DA6', '#E3D3AC', '#7A5A48', '#EDEDED'],
       canopy: ['#7FCB5E', '#5FB55A'], canopy2: ['#8DD66A', '#6BC262'], palm: ['#74C24E', '#5DB04A'], trunk: '#8A6B4F', palmTrunk: '#B09370', tshadow: ['#2E4A2A', .2],
       area: { fairway: '#9BDB82', green: '#7CD36A', tee: '#7CD36A', bunker: '#F6ECC9', water: '#7CC4F0', driving_range: '#A9DF92', 'pitch:basketball': '#E8A168', 'pitch:tennis': '#6FA3E6', 'pitch:soccer': '#86D073', 'pitch:football': '#86D073', playground: '#EBC9A5', swimming_pool: '#62BDF0', track: '#D98B6E', other: '#8FD27E' }, areaLine: ['#FFFFFF', .9], cross: ['#FFFFFF', .95], lane: ['#CBC7BE', .85],
-      haloText: 'rgba(255,255,255,.95)', poiStroke: '#FFFFFF',
+      bake: .6, haloText: 'rgba(255,255,255,.95)', poiStroke: '#FFFFFF',
       wk: { cream: '#EDE4D0', white: '#F3F0EA', tan: '#D9C6A5' }, trim: '#C9C4BA', tower: '#E9E4D8',
       rk: { blue: '#2F5FB5', green: '#2F7F6F', white: '#F2EEE7', tan: '#D7C3A4', cream: '#EFE6D4', grey: '#B5B8C0', red: '#B5473A' },
     },
@@ -214,9 +216,13 @@
     return (ready = (async () => {
       await mapReady;
       if (typeof build3d === 'function') build3d();
+      const bake = await fetch('assets/map/shadows.json').then(r => r.json()).catch(() => null);
       const [detail, bld, lmj] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null)));
       const lms = lmj ? lmj.features.map(f => ({ n: (f.properties && f.properties.name) || '', c: f.geometry.coordinates })).filter(x => x.n) : [];
       addWalls(); await addPoiImages();
+      // The style draws the roads after the buildings; the City view draws the ground (roads, shadows, crossings) first and the
+      // standing things over it, so the plain 3D layer moves up to just under the labels and everything of ours goes round it.
+      { const first = (map.getStyle().layers.find(l => l.type === 'symbol') || {}).id; if (map.getLayer('building-3d') && first) map.moveLayer('building-3d', first); }
       const p = pal(), lyrs = map.getStyle().layers, i3 = lyrs.findIndex(l => l.id === 'building-3d'), above = i3 >= 0 && lyrs[i3 + 1] ? lyrs[i3 + 1].id : undefined;
       const firstLabel = (lyrs.find(l => l.type === 'symbol') || {}).id, hide = { visibility: 'none' }, src = map.getSource('openmaptiles');
       // the buildings: walls with windows by height, then their roofs (the map tiles' plain 3D buildings stay hidden underneath)
@@ -233,25 +239,33 @@
         map.addLayer({ id: 'cd-roof', type: 'fill-extrusion', source: 'cd-roofs', minzoom: 16, layout: hide,
           paint: { 'fill-extrusion-color': roofColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d');
       }
+      // the ground, drawn under the first of our standing layers: the baked shadows, crossings, lane lines, the golf course and pitches
+      const ground = map.getLayer('cd-w-lo') ? 'cd-w-lo' : 'building-3d';
+      // the baked shadows: one picture laid over the ground, under the buildings (a building hides the part that falls on it)
+      if (bake && bake.bounds) {
+        const [bw, bs, be, bn] = bake.bounds;
+        map.addSource('cd-bake', { type: 'image', url: 'assets/map/shadows.png', coordinates: [[bw, bn], [be, bn], [be, bs], [bw, bs]] });
+        map.addLayer({ id: 'cd-bake', type: 'raster', source: 'cd-bake', minzoom: 15, layout: hide, paint: { 'raster-opacity': p.bake, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+      }
       // on the road: zebra crossings and the dashed lane lines
       if (detail && detail.crossings) {
         map.addSource('cd-cross', { type: 'geojson', data: detail.crossings });
-        map.addLayer({ id: 'cd-cross', type: 'fill', source: 'cd-cross', minzoom: 16, layout: hide, paint: { 'fill-color': p.cross[0], 'fill-opacity': p.cross[1] } }, firstLabel);
+        map.addLayer({ id: 'cd-cross', type: 'fill', source: 'cd-cross', minzoom: 16, layout: hide, paint: { 'fill-color': p.cross[0], 'fill-opacity': p.cross[1] } }, ground);
       }
       if (detail && detail.areas) {   // the golf course as it is mapped, and the pitches, playgrounds and pools, drawn flat
         map.addSource('cd-areas', { type: 'geojson', data: detail.areas });
-        map.addLayer({ id: 'cd-area', type: 'fill', source: 'cd-areas', minzoom: 15.4, layout: hide, paint: { 'fill-color': areaColour(p) } }, firstLabel);
+        map.addLayer({ id: 'cd-area', type: 'fill', source: 'cd-areas', minzoom: 15.4, layout: hide, paint: { 'fill-color': areaColour(p) } }, ground);
         map.addLayer({ id: 'cd-area-line', type: 'line', source: 'cd-areas', minzoom: 16.4, layout: hide, filter: ['any', ['==', ['slice', ['get', 'k'], 0, 5], 'pitch'], ['==', ['get', 'k'], 'track']],
-          paint: { 'line-color': p.areaLine[0], 'line-opacity': p.areaLine[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .6, 19, 1.6] } }, firstLabel);
+          paint: { 'line-color': p.areaLine[0], 'line-opacity': p.areaLine[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .6, 19, 1.6] } }, ground);
       }
       if (src) map.addLayer({ id: 'cd-lane', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', minzoom: 16.4, layout: Object.assign({ 'line-cap': 'butt' }, hide),
         filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary']]],
-        paint: { 'line-color': p.lane[0], 'line-opacity': p.lane[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .7, 19, 1.6], 'line-dasharray': [3, 4] } }, firstLabel);
+        paint: { 'line-color': p.lane[0], 'line-opacity': p.lane[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .7, 19, 1.6], 'line-dasharray': [3, 4] } }, ground);
       // over the buildings: trees, places
       if (detail && detail.trees) {
         TREES = detail.trees; const [lo, hi, tr, sh] = treeShapes(TREES);
         map.addSource('cd-canopy', { type: 'geojson', data: lo }); map.addSource('cd-canopy2', { type: 'geojson', data: hi }); map.addSource('cd-trunk', { type: 'geojson', data: tr }); map.addSource('cd-tsh', { type: 'geojson', data: sh });
-        map.addLayer({ id: 'cd-tshadow', type: 'fill', source: 'cd-tsh', minzoom: 16, layout: hide, paint: { 'fill-color': p.tshadow[0], 'fill-opacity': p.tshadow[1] } }, firstLabel);
+        if (!bake) map.addLayer({ id: 'cd-tshadow', type: 'fill', source: 'cd-tsh', minzoom: 16, layout: hide, paint: { 'fill-color': p.tshadow[0], 'fill-opacity': p.tshadow[1] } }, ground);   // the bake has them; this is the fallback
         const fade = ['interpolate', ['linear'], ['zoom'], 15.6, 0, 16.4, .97];
         map.addLayer({ id: 'cd-trunk', type: 'fill-extrusion', source: 'cd-trunk', minzoom: 16, layout: hide, paint: { 'fill-extrusion-color': trunkColour(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, above);
         map.addLayer({ id: 'cd-canopy', type: 'fill-extrusion', source: 'cd-canopy', minzoom: 15.6, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
@@ -266,7 +280,7 @@
       }
     })());
   }
-  const LAYERS = ['cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
+  const LAYERS = ['cd-bake', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
   const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
   function paint() {
     const p = pal();
@@ -275,7 +289,7 @@
     set('cd-cross', 'fill-color', p.cross[0]); set('cd-cross', 'fill-opacity', p.cross[1]);
     set('cd-lane', 'line-color', p.lane[0]); set('cd-lane', 'line-opacity', p.lane[1]);
     set('cd-canopy', 'fill-extrusion-color', canopyColour(p, 'canopy')); set('cd-canopy2', 'fill-extrusion-color', canopyColour(p, 'canopy2')); set('cd-trunk', 'fill-extrusion-color', trunkColour(p));
-    set('cd-area', 'fill-color', areaColour(p)); set('cd-area-line', 'line-color', p.areaLine[0]); set('cd-area-line', 'line-opacity', p.areaLine[1]); set('cd-tshadow', 'fill-color', p.tshadow[0]); set('cd-tshadow', 'fill-opacity', p.tshadow[1]);
+    set('cd-bake', 'raster-opacity', p.bake); set('cd-area', 'fill-color', areaColour(p)); set('cd-area-line', 'line-color', p.areaLine[0]); set('cd-area-line', 'line-opacity', p.areaLine[1]); set('cd-tshadow', 'fill-color', p.tshadow[0]); set('cd-tshadow', 'fill-opacity', p.tshadow[1]);
     if (has('cd-poi')) { map.setLayoutProperty('cd-poi', 'icon-image', poiImage()); map.setPaintProperty('cd-poi', 'text-halo-color', p.haloText); }
     try { map.setLight(p.light); map.setSky(p.sky); } catch (e) { /* an older map */ }
   }
