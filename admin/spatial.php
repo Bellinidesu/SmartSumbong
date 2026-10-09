@@ -920,11 +920,17 @@ function showDetail(r) {
     const L = lg && lg.data && lg.data[0], ms = L ? Date.now() - new Date(L.created_at).getTime() : 0, h = Math.round(ms / 36e5), ago = h < 1 ? T('just now', 'ngayon lang') : h < 48 ? h + T(' h ago', ' oras ang nakalipas') : Math.round(h / 24) + T(' days ago', ' araw ang nakalipas');
     const last = L ? '<div class="cs-last"><i></i><div><small>' + T('Last update', 'Huling update') + ' · ' + esc(ago) + '</small><b>' + esc(label(L.new_status)) + (L.by && L.by.full_name ? ' · ' + esc(String(L.by.full_name).trim()) : T(' · by the system', ' · ng sistema')) + '</b>' + (L.remark ? '<span>' + esc(String(L.remark).slice(0, 140)) + '</span>' : '') + '</div></div>' : '';
     box.innerHTML = last + (q ? '<div class="cs-quote"><small>' + T('In the resident’s words', 'Sa salita ng residente') + '</small>“' + esc(String(q).slice(0, 200)) + (String(q).length > 200 ? '…' : '') + '”</div>' : '') +
-      (ph.length ? '<div class="cs-photos" data-n="' + ph.length + '">' + ph.map(u => '<a href="' + esc(u) + '" data-u="' + esc(u) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(u).replace(/'/g, '%27') + '\')"></a>').join('') + '</div>' : '');
+      '';
   });
-  sb.from('report_media').select('media_url').eq('report_id', r.id).limit(1)
+  sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3)
     .then(({ data }) => { if (csFor !== r.id || !data || !data[0]) return; const h = document.getElementById('cs-hero'); if (!h) return;
-      const img = new Image(); img.alt = ''; img.className = 'cs-photo'; img.referrerPolicy = 'no-referrer'; img.onload = () => h.classList.add('has-photo'); img.src = data[0].media_url; h.prepend(img); });
+      // The banner is the photo: hover shows View, press opens it large (with the others, if there are more).
+      h.dataset.urls = JSON.stringify(data.map(d => d.media_url));
+      const img = new Image(); img.alt = ''; img.className = 'cs-photo'; img.referrerPolicy = 'no-referrer';
+      img.onload = () => { h.classList.add('has-photo'); if (!h.querySelector('.cs-view')) h.insertAdjacentHTML('beforeend', '<span class="cs-view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS.zoom + '</svg>' + T('View', 'Tingnan') + (data.length > 1 ? ' · ' + data.length : '') + '</span>'); };
+      // A photo that will not load is skipped for the next one.
+      let k = 0; img.onerror = () => { k++; if (k < data.length) img.src = data[k].media_url; };
+      img.src = data[0].media_url; h.prepend(img); });
   (window.hazardAt ? window.hazardAt(lng, lat) : Promise.resolve({ flood: 0 })).then(h => {
     if (csFor !== r.id) return; const box = document.getElementById('cs-flood'); if (!box) return;
     const lv = h.flood || 0;
@@ -1237,6 +1243,14 @@ let csPos = null;
 function csDraggable(el) {
   if (csPos) { el.style.left = csPos[0] + 'px'; el.style.top = csPos[1] + 'px'; el.style.bottom = 'auto'; el.style.height = csPos[2] + 'px'; }
   const hero = el.querySelector('.cs-hero');
+  let down = null;
+  hero.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; }, true);
+  hero.addEventListener('click', e => {
+    if (e.target.closest('button') || !hero.classList.contains('has-photo')) return;
+    if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;   // that was a drag
+    let urls = []; try { urls = JSON.parse(hero.dataset.urls || '[]'); } catch (x) { /* none */ }
+    lbShow(urls, 0);
+  });
   hero.addEventListener('pointerdown', e => {
     if (e.target.closest('button')) return;
     const box = document.getElementById('s-spatial').getBoundingClientRect(), r = el.getBoundingClientRect();
