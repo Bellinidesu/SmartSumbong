@@ -304,6 +304,25 @@ def tile_glow(lit, c):
     return Image.new('RGB', (INNER * SS, INNER * SS), _g((.9, .9, .92)))
 
 
+def tile_apron(lit):
+    """Apron concrete (15 m): four slabs a tile with their joints, each a touch different, and a few tyre and fuel stains."""
+    if lit:
+        return Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0))
+    im = Image.new('RGB', (INNER * SS, INNER * SS), (255, 255, 255))
+    d = ImageDraw.Draw(im)
+    rnd = random.Random(83)
+    for i in range(2):
+        for j in range(2):
+            _rect(d, i / 2, j / 2, (i + 1) / 2, (j + 1) / 2, _g((1, 1, 1), .90 + .10 * rnd.random()))
+    for _ in range(6):
+        x, y = rnd.random() * .85, rnd.random() * .85
+        _rect(d, x, y, x + .04 + rnd.random() * .10, y + .02 + rnd.random() * .04, _g((.72, .72, .72)))
+    for k in range(2):
+        _rect(d, k / 2 - .006, 0, k / 2 + .006, 1, _g((.55, .56, .60)))
+        _rect(d, 0, k / 2 - .006, 1, k / 2 + .006, _g((.55, .56, .60)))
+    return im
+
+
 TILES = [tile_plain, tile_windows, tile_ribbon, tile_glass, tile_sheet, tile_tile, tile_arches, tile_louvre, tile_sign, tile_panel, tile_column, tile_shop, tile_slots, tile_strip, tile_brick, tile_roofdeck]
 
 # one sign for every named building: its name on a band, in the band's colour (drawn in the tile itself, not tinted by the vertex colour)
@@ -363,7 +382,7 @@ GRID = 16
 def build(outdir):
     A = Image.new('RGBA', (CELL * GRID, CELL * GRID), (255, 255, 255, 255))
     E = Image.new('RGBA', (CELL * GRID, CELL * GRID), (0, 0, 0, 255))
-    rects = [None] * (GLOW_BASE + len(GLOWS))
+    rects = [None] * 84
     pad = (CELL - INNER) / 2 / (CELL * GRID)
     def put(k, day, night):
         col, row = k % GRID, k // GRID
@@ -378,6 +397,7 @@ def build(outdir):
         put(k, tile_sign_text(text, False), tile_sign_text(text, True))
     for k, c in enumerate(GLOWS):
         put(GLOW_BASE + k, tile_glow(False, c), tile_glow(True, c))
+    put(83, tile_apron(False), tile_apron(True))
     ids = variant_ids()
     for fam, (base, fn) in FAMILIES.items():
         for v, (seed, p, jit, lc) in enumerate(VARIANTS):

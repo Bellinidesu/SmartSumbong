@@ -490,6 +490,18 @@ def main():
         voff += len(P)
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles' % ('Infrastructure', 'furniture', len(P), len(Ix) // 3))
+    # the airfield: runways, taxiways, aprons, stands with their airliners, helipads, jet bridges, lights (airfield.py)
+    import airfield
+    m = Mesh()
+    airfield.build(m, (lng0, lat0), Boundary())
+    P, N, U, M, Cc, Ix = m.arrays()
+    if len(P):
+        models.append({'name': 'Airfield', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': float(P[:, 2].max()), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+        V.append((P, U, M, Cc, N))
+        I.append(Ix)
+        voff += len(P)
+        ioff += len(Ix)
+        print('%-42s %-9s %6d vertices %6d triangles' % ('Airfield', 'furniture', len(P), len(Ix) // 3))
     # one binary: vertices (x y z u v as float32, mat r g b as uint8) then triangles (uint32)
     vb = bytearray()
     for P, U, M, Cc, N in V:
