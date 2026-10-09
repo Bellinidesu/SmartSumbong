@@ -378,11 +378,24 @@ def periodic(im):
 
 GRID = 16
 
+# Tiles that belong to one landmark (landmarks/sheets/*.json, drawn by tiles_lib.py): from 100 up, in the order the sheets are read.
+CUSTOM_BASE = 100
+CUSTOM = []          # (name, day image function, night image function)
+
+
+def register_custom(name, day, night):
+    """Give a landmark's own tile an id (100 and up) and remember how to draw it."""
+    for i, (n, _, _) in enumerate(CUSTOM):
+        if n == name:
+            return CUSTOM_BASE + i
+    CUSTOM.append((name, day, night))
+    return CUSTOM_BASE + len(CUSTOM) - 1
+
 
 def build(outdir):
     A = Image.new('RGBA', (CELL * GRID, CELL * GRID), (255, 255, 255, 255))
     E = Image.new('RGBA', (CELL * GRID, CELL * GRID), (0, 0, 0, 255))
-    rects = [None] * 84
+    rects = [None] * (CUSTOM_BASE + len(CUSTOM) if CUSTOM else 85)
     pad = (CELL - INNER) / 2 / (CELL * GRID)
     def put(k, day, night):
         col, row = k % GRID, k // GRID
@@ -397,7 +410,9 @@ def build(outdir):
         put(k, tile_sign_text(text, False), tile_sign_text(text, True))
     for k, c in enumerate(GLOWS):
         put(GLOW_BASE + k, tile_glow(False, c), tile_glow(True, c))
-    put(83, tile_apron(False), tile_apron(True))
+    put(84, tile_apron(False), tile_apron(True))
+    for i, (n, day, night) in enumerate(CUSTOM):
+        put(CUSTOM_BASE + i, day(), night())
     ids = variant_ids()
     for fam, (base, fn) in FAMILIES.items():
         for v, (seed, p, jit, lc) in enumerate(VARIANTS):

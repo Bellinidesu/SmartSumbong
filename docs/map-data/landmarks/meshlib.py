@@ -15,7 +15,7 @@ from shapely import constrained_delaunay_triangles
 
 # materials: tiles of the atlas (see atlas.py), with how many metres one tile covers (width, height)
 MAT = {
-    'plain': 0, 'windows': 1, 'ribbon': 2, 'glass': 3, 'sheet': 4, 'tile': 5, 'arches': 6, 'louvre': 7, 'sign': 8, 'panel': 9, 'column': 10, 'shop': 11, 'slots': 12, 'strip': 13, 'brick': 14, 'roofdeck': 15, 'apron': 83,
+    'plain': 0, 'windows': 1, 'ribbon': 2, 'glass': 3, 'sheet': 4, 'tile': 5, 'arches': 6, 'louvre': 7, 'sign': 8, 'panel': 9, 'column': 10, 'shop': 11, 'slots': 12, 'strip': 13, 'brick': 14, 'roofdeck': 15, 'apron': 84,
 }
 TILE_M = {  # metres a tile covers across and up
     0: (4.0, 4.0), 1: (6.4, 3.4), 2: (6.0, 3.4), 3: (3.2, 3.4), 4: (2.4, 2.4), 5: (2.4, 2.4), 6: (7.0, 7.0), 7: (3.0, 3.0), 8: (4.0, 1.2), 9: (4.0, 3.4), 10: (4.0, 4.0), 11: (6.0, 4.2), 12: (6.0, 3.4), 13: (6.0, 3.4), 14: (4.0, 3.4), 15: (6.0, 6.0),
@@ -30,13 +30,23 @@ for _i, _f in enumerate(_FAM):
         TILE_M[64 + _i * 3 + _v] = TILE_M[_FAM[_f]]
 
 
-TILE_M[83] = (15.0, 15.0)
+TILE_M[84] = (15.0, 15.0)
 for _k in range(4):
     MAT['glow%d' % _k] = 80 + _k
     TILE_M[80 + _k] = (4.0, 4.0)
 
 GLAZED = {1, 2, 3, 12, 13} | set(range(64, 79))      # tiles that are one storey and whole bays: their walls are cut to fit
 GRADED = {2, 3} | set(range(64 + 3, 64 + 9))         # ribbon and curtain wall (their variants too): glass that mirrors the sky
+
+
+def register_material(name, mid, tile_m, fit=False, graded=False):
+    """A landmark's own material: MAT name, how many metres its tile covers, whether its walls are cut to whole bays and storeys, whether the glass is graded."""
+    MAT[name] = mid
+    TILE_M[mid] = tile_m
+    if fit:
+        GLAZED.add(mid)
+    if graded:
+        GRADED.add(mid)
 
 
 class _TileM(dict):

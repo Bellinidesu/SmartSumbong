@@ -29,6 +29,7 @@ STEPS = [
     ('styles',   HERE, ['stylise.py', '--min-h', '8'],            'what the real walls look like, from 360 street views (a few numbers per building)'),
     ('models',   LM, ['models.py'],                               'every building and landmark as a model'),
     ('light',    LM, ['bake_models.py'],                          'path-traced light baked into every model vertex'),
+    ('wash',     LM, ['wash.py'],                                 'the night wash of each landmark (the colour that climbs its walls), from its sheet'),
 ]
 
 

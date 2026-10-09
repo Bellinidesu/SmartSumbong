@@ -1,0 +1,22 @@
+{
+  "name": "Plaza 66",
+  "match": { "name": "Plaza 66" },
+  "about": "Cream block of recessed balconies between paired pilasters, a blue band under the cornice and a blue glass corner tower, shops below. Read from Mapillary street views (building 2032, faces 0 and 1); the signature is Ace's to confirm.",
+  "palette": { "wall": "EADFC6", "trim": "F4F1EA", "accent": "3F67B0", "podium": "E3D6B8" },
+  "use": "commercial-residential",
+  "tiles": {
+    "loggia":  { "kind": "loggia", "m": [6.4, 3.4], "fit": true, "seed": 3, "p": 0.55, "wear": 1.0, "lc": "warm" },
+    "band":    { "kind": "band", "m": [7.2, 3.4], "fit": true, "seed": 9, "p": 0.30, "n": 6 },
+    "shops":   { "kind": "shopfront", "m": [8.0, 4.2], "fit": true, "seed": 21, "p": 0.75, "bays": 2 },
+    "tower":   { "kind": "curtain", "m": [3.2, 3.4], "fit": true, "graded": true, "seed": 5, "p": 0.35, "bays": 2, "lc": "cool" }
+  },
+  "body": { "podium": 6.0, "podium_mat": "shops", "floors_mat": "loggia", "band": 3.4, "band_mat": "band", "band_colour": "accent" },
+  "features": [
+    { "type": "corner_tower", "end": "start", "size": [8.0, 7.0], "proud": 1.8, "extra": 5.0, "mat": "tower" },
+    { "type": "canopy", "at": 0.55, "colour": "accent", "width": 10.0 },
+    { "type": "roof_sign", "text": "PLAZA 66", "at": 0.5, "width": 16.0, "neon": "blue" }
+  ],
+  "facade": { "awnings": true, "entrance": false, "sign": false },
+  "night": { "wash": { "color": "blue", "height": 24, "strength": 0.55 }, "lit": 0.45 },
+  "ref": []
+}

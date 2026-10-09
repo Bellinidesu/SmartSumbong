@@ -361,6 +361,8 @@ def main():
     sys.path.insert(0, os.path.join(HERE, '..'))
     import plain as _plain
     PL = _plain.load()
+    import sheet as _sheet
+    SH = _sheet.Sheets()
     AIRFIELD = bool(os.environ.get('SS_AIRFIELD'))     # the airfield diorama (airfield.py) is kept but off: the airfield side goes back to plain colours
     models, V, I = [], [], []
     taken, done = set(), set()
@@ -372,6 +374,8 @@ def main():
         spec = next(((t, p) for pat, t, p in SPECS if re.search(pat, name)), None)
         if not spec:
             continue
+        if SH.find(name):
+            continue          # drawn from its sheet below
         lng, lat = f['geometry']['coordinates']
         bi = match_building(bld, lng, lat)
         if bi is None or bi in taken:
@@ -380,6 +384,8 @@ def main():
         if PL.plain(bld[bi][4], bld[bi][5]):
             print('  plain (airfield side):', name)
             continue
+        if SH.find((bdoc.get('info', {}).get(str(bi)) or [''])[0], bi):
+            continue          # this building has a sheet of its own: drawn from it below
         taken.add(bi)
         done.add(name)
         b = bld[bi]
@@ -448,10 +454,24 @@ def main():
         ctx['others'] = [Polygon([(q[0] - lng0 * MX, q[1] - lat0 * MY) for q in allpolys[j].exterior.coords]) for j in range(len(bld)) if j != bi and abs(bld[j][4] - lng0) < .0009 and abs(bld[j][5] - lat0) < .0009]
         kind = _zone.kind_of(nm, cls, area, b[1], None, lng0, lat0)
         m = Mesh()
+        sh = SH.find(nm, bi)
+        if sh:
+            try:
+                extra = _sheet.build(m, ring, ctx, sh, float(b[1]), nm or None)
+                for w in _sheet.lint(sh, len(m.p), len(m.idx) // 3):
+                    print('  sheet %s: %s' % (sh['slug'], w))
+            except Exception as e:
+                print('  sheet', sh['slug'], 'failed:', e)
+                import traceback; traceback.print_exc()
+                sh = None
         try:
+            if sh:
+                raise StopIteration
             _zone.TEMPLATES[kind](m, ring, ctx, {'h': float(b[1])})
             if kind != 'parking':
                 facade.apply(m, ring, ctx, 'condo' if kind in ('condo',) else kind, float(b[1]), nm or None, None)
+        except StopIteration:
+            pass
         except Exception as e:     # a strange footprint: leave it as the plain building
             print('  skipped', nm or bi, e)
             continue
@@ -459,7 +479,10 @@ def main():
         if not len(P):
             continue
         taken.add(bi)
-        models.append({'name': nm or ('building %d' % bi), 'template': kind, 'lng': lng0, 'lat': lat0, 'replaces': bi, 'height': round(float(P[:, 2].max()), 1), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+        ent = {'name': nm or ('building %d' % bi), 'template': ('sheet' if sh else kind), 'lng': lng0, 'lat': lat0, 'replaces': bi, 'height': round(float(P[:, 2].max()), 1), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff}
+        if sh and extra.get('wash'):
+            ent['wash'] = extra['wash']
+        models.append(ent)
         V.append((P, U, M, Cc, N))
         I.append(Ix)
         voff += len(P)

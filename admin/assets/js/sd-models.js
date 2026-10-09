@@ -13,15 +13,15 @@
 
   const VS = `#version 300 es
   uniform mat4 u_m;
-  in vec3 a_pos; in vec2 a_uv; in vec4 a_mc; in vec3 a_day; in vec3 a_night;
+  in vec3 a_pos; in vec2 a_uv; in vec4 a_mc; in vec3 a_day; in vec3 a_night; in vec2 a_x;
   uniform float u_night, u_grow;
-  out vec2 v_uv; out float v_mat; out vec3 v_alb; out vec3 v_light;
-  void main() { gl_Position = u_m * vec4(a_pos.xy, a_pos.z * u_grow, 1.0); v_uv = a_uv; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; vec3 l = mix(a_day, a_night, u_night) * 1.25;
+  out vec2 v_uv; out float v_mat; out vec3 v_alb; out vec3 v_light; out vec2 v_x;
+  void main() { gl_Position = u_m * vec4(a_pos.xy, a_pos.z * u_grow, 1.0); v_uv = a_uv; v_x = a_x; v_mat = a_mc.x; v_alb = a_mc.yzw / 255.0; vec3 l = mix(a_day, a_night, u_night) * 1.25;
     float g = dot(l, vec3(.333)); l = mix(vec3(g), l, mix(1.0, .5, u_night)) * mix(1.0, .72, u_night); v_light = l; }`;
   const FS = `#version 300 es
   precision highp float;
-  uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[128]; uniform float u_night;
-  in vec2 v_uv; in float v_mat; in vec3 v_alb; in vec3 v_light;
+  uniform sampler2D u_atlas, u_emis; uniform vec4 u_tiles[256]; uniform float u_night; uniform vec3 u_wash[8];
+  in vec2 v_uv; in float v_mat; in vec3 v_alb; in vec3 v_light; in vec2 v_x;
   out vec4 o;
   void main() {
     int mi = int(v_mat + .5); vec4 t = u_tiles[mi];
@@ -29,10 +29,14 @@
     vec3 base = textureGrad(u_atlas, auv, dx, dy).rgb;
     vec3 em = textureGrad(u_emis, auv, dx, dy).rgb;
     if (mi == 8) em = v_alb * .55;
-    vec3 c = base * v_alb * v_light + u_night * em;
+    // a landmark's own colour of night light up its walls (v_x: how much, and which of the eight colours); nothing live, baked into the vertices
+    int wi = int(v_x.y * 255.0 + .5); vec3 wc = u_wash[wi] * v_x.x * (.35 + .65 * dot(base, vec3(.333)));
+    vec3 c = base * v_alb * v_light + u_night * (em + wc);
     o = vec4(c, 1.0);
   }`;
 
+  // the eight colours a landmark's night wash can have (index 0 is none): violet, teal, amber, blue, rose, green, white
+  const WASH = new Float32Array([0, 0, 0,  .46, .34, .95,  .16, .72, .72,  1.0, .62, .26,  .30, .45, 1.0,  .95, .36, .52,  .30, .80, .46,  1.0, .90, .74]);
   const mul = (a, b) => { const o = new Array(16).fill(0); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; };
 
   const layer = {
@@ -40,24 +44,24 @@
     onAdd(m, gl) {
       const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
       const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p); gl_.prog = p;
-      const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_tiles'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
-      ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night'].forEach(n => { L[n] = gl.getAttribLocation(p, n); }); gl_.loc = L;
+      const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_tiles', 'u_wash'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
+      ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night', 'a_x'].forEach(n => { L[n] = gl.getAttribLocation(p, n); }); gl_.loc = L;
       gl_.vbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.vbuf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes), gl.STATIC_DRAW);
       gl_.ibuf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes), gl.STATIC_DRAW);
       gl_.lbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.lbuf);
-      const lb = lightBin && lightBin.length === data.vertices * 8 ? lightBin : new Uint8Array(data.vertices * 8).fill(204);
+      const lb = lightBin && lightBin.length === data.vertices * 8 ? lightBin : (() => { const f = new Uint8Array(data.vertices * 8).fill(204); for (let i = 6; i < f.length; i += 8) { f[i] = 0; f[i + 1] = 0; } return f; })();
       gl.bufferData(gl.ARRAY_BUFFER, lb, gl.STATIC_DRAW);
       const tex = (img, mip) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
       gl_.tex = tex(atlas); gl_.texE = tex(emis);
-      gl_.tiles = new Float32Array(512); data.tiles.forEach((r, i) => { if (r) gl_.tiles.set(r, i * 4); });
+      gl_.tiles = new Float32Array(1024); data.tiles.forEach((r, i) => { if (r) gl_.tiles.set(r, i * 4); });
       gl_.ready = true;
     },
     render(gl, args) {
       const g = grow; if (!gl_.ready || g <= .001) return;
       const main = (args && args.defaultProjectionData && args.defaultProjectionData.mainMatrix) || (args && args.mainMatrix) || args, L = gl_.loc;
       gl.useProgram(gl_.prog);
-      gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform1f(L.u_grow, g); gl.uniform4fv(L.u_tiles, gl_.tiles);
+      gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform1f(L.u_grow, g); gl.uniform4fv(L.u_tiles, gl_.tiles); gl.uniform3fv(L.u_wash, WASH);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl_.tex); gl.uniform1i(L.u_atlas, 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gl_.texE); gl.uniform1i(L.u_emis, 1);
       gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
@@ -75,9 +79,10 @@
         gl.bindBuffer(gl.ARRAY_BUFFER, gl_.lbuf);
         gl.enableVertexAttribArray(L.a_day); gl.vertexAttribPointer(L.a_day, 3, gl.UNSIGNED_BYTE, true, 8, md.voff * 8);
         gl.enableVertexAttribArray(L.a_night); gl.vertexAttribPointer(L.a_night, 3, gl.UNSIGNED_BYTE, true, 8, md.voff * 8 + 3);
+        gl.enableVertexAttribArray(L.a_x); gl.vertexAttribPointer(L.a_x, 2, gl.UNSIGNED_BYTE, true, 8, md.voff * 8 + 6);
         gl.drawElements(gl.TRIANGLES, md.i, gl.UNSIGNED_INT, md.ioff * 4);
       }
-      ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night'].forEach(n => gl.disableVertexAttribArray(L[n]));
+      ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night', 'a_x'].forEach(n => gl.disableVertexAttribArray(L[n]));
     },
   };
 
@@ -96,6 +101,9 @@
 
   window.sdModels = {
     ready,
+    // for the design bench (docs/map-data/tools/bench): the shaders and the loaded data, so a landmark can be looked at on its own
+    shaders: () => ({ VS, FS, WASH }),
+    raw: () => ({ data, bin, lightBin, atlas, emis }),
     replaces: new Set(),
     names: () => (data ? data.models.map(m => m.name) : []),
     // add the layer under `before` (the first label); a no-op if the models did not load
