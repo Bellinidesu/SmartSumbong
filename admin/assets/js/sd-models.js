@@ -72,6 +72,7 @@
       gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf);
       for (const md of data.models) {
+        if (!shown(md)) continue;
         const mc = maplibregl.MercatorCoordinate.fromLngLat([md.lng, md.lat], 0), s = mc.meterInMercatorCoordinateUnits();
         // local (east, north, up in metres) -> mercator (east, south, up)
         const M = [s, 0, 0, 0, 0, -s, 0, 0, 0, 0, s, 0, mc.x, mc.y, 0, 1];
@@ -95,6 +96,9 @@
   // The landmark models are a flag, off by default: the City view is the plain coloured buildings of the open data (OpenStreetMap, Overture), by day and by night. The models, their
   // light and their pictures are not even downloaded until it is on: add ?models=1 to the page address, or set localStorage ss-models to 1.
   const ON = (() => { try { return window.SD_MODELS === true || /[?&]models=1/.test(location.search) || localStorage.getItem('ss-models') === '1'; } catch (e) { return false; } })();
+  // a landmark drawn from a sheet is shown on the map only once it is approved (tools/viewer.py); ?models=all shows the drafts too
+  const ALL = (() => { try { return window.SD_MODELS_ALL === true || /[?&]models=all\b/.test(location.search) || localStorage.getItem('ss-models') === 'all'; } catch (e) { return false; } })();
+  const shown = md => ALL || !md.sheet || md.approved;
   const ready = (async () => {
     if (!ON) return false;
     try {
@@ -120,7 +124,7 @@
     init(m, before) {
       map = m;
       if (!data) return false;
-      data.models.forEach(md => window.sdModels.replaces.add(md.replaces));
+      data.models.forEach(md => { if (shown(md)) window.sdModels.replaces.add(md.replaces); });
       if (!m.getLayer(ID)) m.addLayer(layer, before);
       m.setLayoutProperty(ID, 'visibility', 'none');
       return true;
@@ -130,5 +134,5 @@
     show(on, isNight) { night = !!isNight; if (map && map.getLayer(ID)) { map.setLayoutProperty(ID, 'visibility', on ? 'visible' : 'none'); map.triggerRepaint(); } },
   };
   // the buildings these models replace are known as soon as the data is: sd-city.js asks before it builds the plain ones
-  ready.then(ok => { if (ok) data.models.forEach(md => window.sdModels.replaces.add(md.replaces)); });
+  ready.then(ok => { if (ok) data.models.forEach(md => { if (shown(md)) window.sdModels.replaces.add(md.replaces); }); });
 })();

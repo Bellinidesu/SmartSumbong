@@ -7,7 +7,7 @@ const exe = [process.env.BROWSER, 'C:/Program Files/BraveSoftware/Brave-Browser/
 const port = 9400 + Math.floor(Math.random() * 400);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 fs.mkdirSync(out, { recursive: true });
-const proc = spawn(exe, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${process.env.TEMP || '/tmp'}/bench-${Date.now()}`, '--no-first-run', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--window-size=760,560', 'about:blank'], { stdio: 'ignore' });
+const proc = spawn(exe, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${process.env.TEMP || '/tmp'}/bench-${Date.now()}`, '--no-first-run', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--window-size=' + (+(process.env.W || 720) + 40) + ',' + (+(process.env.H || 560) + 40), 'about:blank'], { stdio: 'ignore' });
 let tab;
 for (let i = 0; i < 60; i++) { try { tab = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json(); break; } catch { await sleep(200); } }
 const ws = new WebSocket(tab.webSocketDebuggerUrl);
@@ -17,7 +17,7 @@ ws.addEventListener('message', (m) => { const g = JSON.parse(m.data); if (g.id &
 const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ method, params, id: i })); });
 const ev = async (e) => (await send('Runtime.evaluate', { expression: e, returnByValue: true })).result.result?.value;
 await send('Page.enable');
-await send('Emulation.setDeviceMetricsOverride', { width: 720, height: 520, deviceScaleFactor: 1, mobile: false });
+await send('Emulation.setDeviceMetricsOverride', { width: +(process.env.W || 720), height: +(process.env.H || 520), deviceScaleFactor: 1, mobile: false });
 let i = 0;
 for (const u of urls) {
   await send('Page.navigate', { url: u });

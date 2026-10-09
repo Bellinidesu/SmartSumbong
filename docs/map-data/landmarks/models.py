@@ -363,6 +363,10 @@ def main():
     PL = _plain.load()
     import sheet as _sheet
     SH = _sheet.Sheets()
+    try:
+        APPROVALS = json.load(open(os.path.join(HERE, 'approvals.json'), encoding='utf-8'))      # written by tools/viewer.py: what Ace has looked at and passed
+    except Exception:
+        APPROVALS = {}
     AIRFIELD = bool(os.environ.get('SS_AIRFIELD'))     # the airfield diorama (airfield.py) is kept but off: the airfield side goes back to plain colours
     models, V, I = [], [], []
     taken, done = set(), set()
@@ -487,6 +491,9 @@ def main():
         ent = {'name': nm or ('building %d' % bi), 'template': ('sheet' if sh else kind), 'lng': lng0, 'lat': lat0, 'replaces': bi, 'height': round(float(P[:, 2].max()), 1), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff}
         if sh and extra.get('wash'):
             ent['wash'] = extra['wash']
+        if sh:
+            ent['sheet'] = True
+            ent['approved'] = (APPROVALS.get(nm) or {}).get('status') == 'approved'     # the map draws a sheet model only when it is approved (?models=all shows the drafts too)
         models.append(ent)
         V.append((P, U, M, Cc, N))
         I.append(Ix)

@@ -1,0 +1,280 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Landmark viewer</title>
+<style>
+:root { --bg:#0f1224; --panel:#171b33; --line:#2b3050; --ink:#eceaf7; --muted:#9ba0c4; --accent:#ff9a2e; --ok:#3fd0c9; --bad:#ff7a70; }
+* { box-sizing:border-box; }
+html, body { height:100%; margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 "Segoe UI", system-ui, sans-serif; overflow:hidden; }
+#app { display:grid; grid-template-columns:260px 1fr 330px; height:100%; }
+aside { background:var(--panel); border-right:1px solid var(--line); overflow:auto; display:flex; flex-direction:column; }
+aside.right { border-right:0; border-left:1px solid var(--line); }
+h2 { font-size:.75rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:14px 14px 6px; font-weight:600; }
+.item { display:flex; gap:8px; align-items:center; padding:8px 14px; cursor:pointer; border-left:3px solid transparent; }
+.item:hover { background:#1e2342; }
+.item.on { background:#232849; border-left-color:var(--accent); }
+.dot { width:9px; height:9px; border-radius:50%; background:var(--muted); flex:none; }
+.dot.approved { background:var(--ok); } .dot.rejected { background:var(--bad); } .dot.pending { background:var(--accent); }
+.item small { color:var(--muted); margin-left:auto; font-variant-numeric:tabular-nums; }
+main { position:relative; min-width:0; }
+canvas { width:100%; height:100%; display:block; cursor:grab; }
+canvas:active { cursor:grabbing; }
+.bar { position:absolute; left:12px; right:12px; top:12px; display:flex; gap:6px; flex-wrap:wrap; pointer-events:none; }
+.bar > * { pointer-events:auto; }
+button { font:inherit; background:#232849; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 11px; cursor:pointer; }
+button:hover { border-color:var(--accent); }
+button.on { background:var(--accent); border-color:var(--accent); color:#1b1200; }
+button.ok { background:#16463f; border-color:var(--ok); } button.bad { background:#4a2320; border-color:var(--bad); }
+button:disabled { opacity:.5; cursor:default; }
+.seg { display:inline-flex; gap:0; } .seg button { border-radius:0; } .seg button:first-child { border-radius:8px 0 0 8px; } .seg button:last-child { border-radius:0 8px 8px 0; }
+#hud { position:absolute; left:12px; bottom:12px; background:#0f1224cc; border:1px solid var(--line); border-radius:10px; padding:8px 12px; color:var(--muted); font-size:.85rem; max-width:70%; }
+#hud b { color:var(--ink); }
+#badge { color:var(--accent); }
+.box { padding:0 14px 14px; display:grid; gap:8px; }
+textarea { width:100%; min-height:64px; background:#0f1224; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px; font:inherit; resize:vertical; }
+.row { display:flex; gap:6px; flex-wrap:wrap; }
+.status { padding:2px 9px; border-radius:99px; font-size:.78rem; border:1px solid var(--line); }
+.thumbs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:0 14px 14px; }
+.thumbs img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:6px; cursor:zoom-in; border:1px solid var(--line); background:#0f1224; }
+.thumbs figure { margin:0; position:relative; } .thumbs figcaption { position:absolute; left:4px; top:4px; background:#0f1224dd; border-radius:4px; font-size:.68rem; padding:1px 5px; color:var(--muted); }
+#big { position:fixed; inset:0; background:#000d; display:none; align-items:center; justify-content:center; z-index:9; flex-direction:column; gap:8px; }
+#big.on { display:flex; } #big img { max-width:94vw; max-height:88vh; border-radius:8px; } #big div { color:var(--muted); font-size:.85rem; max-width:90vw; text-align:center; }
+#job { position:absolute; right:12px; bottom:12px; background:#0f1224dd; border:1px solid var(--line); border-radius:10px; padding:8px 12px; display:none; max-width:46%; font-size:.8rem; color:var(--muted); white-space:pre-wrap; }
+#job.on { display:block; }
+</style>
+<div id="app">
+  <aside><h2>Landmarks</h2><div id="list"></div><div style="padding:14px;color:var(--muted);font-size:.8rem">Dot: orange waiting, green approved, red sent back. Only approved sheet models show on the map.</div></aside>
+  <main>
+    <canvas id="c"></canvas>
+    <div class="bar">
+      <div class="seg"><button id="bDay" class="on">Day</button><button id="bNight">Night</button></div>
+      <button id="bFoot" class="on">Footprint</button><button id="bGrid" class="on">Grid</button><button id="bCtx" class="on">Neighbours</button><button id="bSpin">Turn</button>
+      <div class="seg"><button data-v="front">Front</button><button data-v="side">Side</button><button data-v="back">Back</button><button data-v="top">Top</button></div>
+      <button id="bShot">Save picture</button>
+    </div>
+    <div id="hud">Loading…</div>
+    <div id="job"></div>
+  </main>
+  <aside class="right">
+    <h2>This landmark</h2>
+    <div class="box">
+      <div><b id="nm">-</b> <span id="st" class="status">-</span></div>
+      <div id="meta" style="color:var(--muted);font-size:.85rem"></div>
+      <textarea id="note" placeholder="Note: what is wrong, or what is good"></textarea>
+      <div class="row"><button class="ok" id="bOk">Approve (A)</button><button class="bad" id="bNo">Send back (X)</button></div>
+      <div class="row"><button id="bBuild">Rebuild</button><button id="bLight">Bake light</button></div>
+    </div>
+    <h2>References</h2>
+    <div class="thumbs" id="refs"></div>
+  </aside>
+</div>
+<div id="big"><img id="bigimg"><div id="bigcap"></div></div>
+<script>window.SD_MODELS = true; window.SD_MODELS_ALL = true;</script>
+<script src="assets/js/sd-models.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const canvas = $('c'), gl = canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true });
+  const { VS, FS, WASH } = sdModels.shaders();
+  const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+  const prog = (v, f) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, v)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, f)); gl.linkProgram(p); return p; };
+  const P = prog(VS, FS);
+  const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_atlas2', 'u_emis2', 'u_tiles', 'u_wash'].forEach(n => L[n] = gl.getUniformLocation(P, n));
+  ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night', 'a_x'].forEach(n => L[n] = gl.getAttribLocation(P, n));
+  // the neighbours: flat colour, shaded by the way each face points; lines: a flat colour
+  const PC = prog('#version 300 es\nuniform mat4 u_m; in vec3 p; in vec3 n; out vec3 vn; void main(){ gl_Position=u_m*vec4(p,1.); vn=n; }',
+    '#version 300 es\nprecision mediump float; uniform vec3 c; uniform float night; in vec3 vn; out vec4 o; void main(){ float l=.52+.48*max(dot(normalize(vn),normalize(vec3(-.4,-.6,.7))),0.); vec3 k=c*l; if(night>.5) k=c*.42*(.6+.4*l)+vec3(.02,.03,.08); o=vec4(k,1.); }');
+  const PL = prog('#version 300 es\nuniform mat4 u_m; in vec3 p; void main(){ gl_Position=u_m*vec4(p,1.); }', '#version 300 es\nprecision mediump float; uniform vec4 c; out vec4 o; void main(){ o=c; }');
+  const U = (p, n) => gl.getUniformLocation(p, n);
+
+  let data = null, bin = null, lightBin = null, atlas = null, emis = null, atlas2 = null, emis2 = null, bufs = {}, tex = {}, tiles = null, stale = false;
+  const unzip = (r) => new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  const img = (src) => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src + '?t=' + Date.now(); });
+  async function loadData() {
+    data = await fetch('assets/map/landmarks3d.json?t=' + Date.now()).then(r => r.json());
+    const [b, lb, a, e, a2, e2] = await Promise.all([fetch('assets/map/landmarks3d.bin.gz?t=' + Date.now()).then(unzip), fetch('assets/map/landmarks3d-light.bin.gz?t=' + Date.now()).then(r => r.ok ? unzip(r) : null).catch(() => null),
+      img('assets/map/landmarks3d-atlas.png'), img('assets/map/landmarks3d-emis.png'), img('assets/map/landmarks3d-atlas2.png'), img('assets/map/landmarks3d-emis2.png')]);
+    bin = new Uint8Array(b); atlas = a; emis = e; atlas2 = a2 || a; emis2 = e2 || e;
+    stale = !(lb && lb.byteLength === data.vertices * 8);
+    lightBin = stale ? (() => { const f = new Uint8Array(data.vertices * 8).fill(204); for (let i = 6; i < f.length; i += 8) { f[i] = 0; f[i + 1] = 0; } return f; })() : new Uint8Array(lb);
+    Object.values(bufs).forEach(x => gl.deleteBuffer(x)); Object.values(tex).forEach(x => gl.deleteTexture(x));
+    const buf = (target, d) => { const x = gl.createBuffer(); gl.bindBuffer(target, x); gl.bufferData(target, d, gl.STATIC_DRAW); return x; };
+    bufs = { v: buf(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes)), i: buf(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes)), l: buf(gl.ARRAY_BUFFER, lightBin) };
+    const mk = (im) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+    tex = { a: mk(atlas), e: mk(emis), a2: mk(atlas2), e2: mk(emis2) };
+    tiles = new Float32Array(1024); data.tiles.forEach((r, i) => { if (r) tiles.set(r, i * 4); });
+  }
+
+  // ---------------------------------------------------------------- state
+  let list = [], cur = null, ctxMesh = null, footprint = [], night = false, showFoot = true, showGrid = true, showCtx = true, spin = false, dirty = true;
+  const cam = { yaw: .6, pitch: .72, dist: 80, tx: 0, ty: 0, tz: 8 };
+  let ext = { min: [0, 0, 0], max: [0, 0, 0] };
+
+  // ---------------------------------------------------------------- matrices
+  const mul = (a, b) => { const o = new Array(16).fill(0); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let v = 0; for (let k = 0; k < 4; k++) v += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = v; } return o; };
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm = (a) => { const l = Math.hypot(...a) || 1; return a.map(x => x / l); }, dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  function matrix() {
+    const W = canvas.width, H = canvas.height;
+    const eye = [cam.tx + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cam.ty - Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cam.tz + Math.sin(cam.pitch) * cam.dist];
+    const f = norm(sub([cam.tx, cam.ty, cam.tz], eye)), s = norm(cross(f, [0, 0, 1])), u = cross(s, f);
+    const view = [s[0], u[0], -f[0], 0, s[1], u[1], -f[1], 0, s[2], u[2], -f[2], 0, -dot(s, eye), -dot(u, eye), dot(f, eye), 1];
+    const fov = 36 * Math.PI / 180, nr = Math.max(.5, cam.dist / 200), fr = cam.dist * 40, t = 1 / Math.tan(fov / 2);
+    const proj = [t * H / W, 0, 0, 0, 0, t, 0, 0, 0, 0, (fr + nr) / (nr - fr), -1, 0, 0, 2 * fr * nr / (nr - fr), 0];
+    return mul(proj, view);
+  }
+
+  // ---------------------------------------------------------------- draw
+  const bufLine = gl.createBuffer(), bufCtxV = gl.createBuffer(), bufCtxN = gl.createBuffer(), bufCtxI = gl.createBuffer(), bufGround = gl.createBuffer();
+  function lines(pts, col, mode, vp) {
+    gl.useProgram(PL); gl.uniformMatrix4fv(U(PL, 'u_m'), false, new Float32Array(vp)); gl.uniform4fv(U(PL, 'c'), col);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufLine); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.DYNAMIC_DRAW);
+    const a = gl.getAttribLocation(PL, 'p'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 3, gl.FLOAT, false, 0, 0); gl.drawArrays(mode, 0, pts.length / 3); gl.disableVertexAttribArray(a);
+  }
+  function draw() {
+    dirty = false;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    gl.viewport(0, 0, w, h);
+    gl.clearColor(...(night ? [.045, .06, .12, 1] : [.80, .88, .96, 1])); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.CULL_FACE);
+    const vp = matrix();
+    const R = 400;
+    // the ground
+    gl.useProgram(PL); gl.uniformMatrix4fv(U(PL, 'u_m'), false, new Float32Array(vp)); gl.uniform4fv(U(PL, 'c'), night ? [.09, .11, .19, 1] : [.93, .91, .86, 1]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufGround); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-R, -R, -.06, R, -R, -.06, R, R, -.06, -R, -R, -.06, R, R, -.06, -R, R, -.06]), gl.DYNAMIC_DRAW);
+    let a = gl.getAttribLocation(PL, 'p'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 3, gl.FLOAT, false, 0, 0); gl.drawArrays(gl.TRIANGLES, 0, 6); gl.disableVertexAttribArray(a);
+    if (showGrid) {
+      const g = []; for (let k = -100; k <= 100; k += 10) { g.push(k, -100, 0, k, 100, 0, -100, k, 0, 100, k, 0); }
+      lines(g, night ? [.3, .34, .5, .5] : [.55, .55, .6, .35], gl.LINES, vp);
+      lines([0, 0, 0, 10, 0, 0], [1, .2, .2, 1], gl.LINES, vp); lines([0, 0, 0, 0, 10, 0], [.2, .8, .3, 1], gl.LINES, vp);
+    }
+    if (showCtx && ctxMesh) {
+      gl.useProgram(PC); gl.uniformMatrix4fv(U(PC, 'u_m'), false, new Float32Array(vp)); gl.uniform3fv(U(PC, 'c'), [.84, .82, .79]); gl.uniform1f(U(PC, 'night'), night ? 1 : 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bufCtxV); const ap = gl.getAttribLocation(PC, 'p'); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bufCtxN); const an = gl.getAttribLocation(PC, 'n'); gl.enableVertexAttribArray(an); gl.vertexAttribPointer(an, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufCtxI); gl.drawElements(gl.TRIANGLES, ctxMesh.count, gl.UNSIGNED_INT, 0); gl.disableVertexAttribArray(ap); gl.disableVertexAttribArray(an);
+    }
+    // the model
+    if (cur && data) {
+      const md = data.models.find(m => m.name === cur.name);
+      if (md) {
+        gl.useProgram(P);
+        gl.uniformMatrix4fv(L.u_m, false, new Float32Array(vp)); gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform1f(L.u_grow, 1); gl.uniform4fv(L.u_tiles, tiles); gl.uniform3fv(L.u_wash, WASH);
+        [[gl.TEXTURE0, tex.a, 'u_atlas', 0], [gl.TEXTURE1, tex.e, 'u_emis', 1], [gl.TEXTURE2, tex.a2, 'u_atlas2', 2], [gl.TEXTURE3, tex.e2, 'u_emis2', 3]].forEach(([u, t, n, i]) => { gl.activeTexture(u); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(L[n], i); });
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufs.i); gl.bindBuffer(gl.ARRAY_BUFFER, bufs.v);
+        const base = md.voff * 24;
+        gl.enableVertexAttribArray(L.a_pos); gl.vertexAttribPointer(L.a_pos, 3, gl.FLOAT, false, 24, base);
+        gl.enableVertexAttribArray(L.a_uv); gl.vertexAttribPointer(L.a_uv, 2, gl.FLOAT, false, 24, base + 12);
+        gl.enableVertexAttribArray(L.a_mc); gl.vertexAttribPointer(L.a_mc, 4, gl.UNSIGNED_BYTE, false, 24, base + 20);
+        gl.bindBuffer(gl.ARRAY_BUFFER, bufs.l);
+        gl.enableVertexAttribArray(L.a_day); gl.vertexAttribPointer(L.a_day, 3, gl.UNSIGNED_BYTE, true, 8, md.voff * 8);
+        gl.enableVertexAttribArray(L.a_night); gl.vertexAttribPointer(L.a_night, 3, gl.UNSIGNED_BYTE, true, 8, md.voff * 8 + 3);
+        gl.enableVertexAttribArray(L.a_x); gl.vertexAttribPointer(L.a_x, 2, gl.UNSIGNED_BYTE, true, 8, md.voff * 8 + 6);
+        gl.drawElements(gl.TRIANGLES, md.i, gl.UNSIGNED_INT, md.ioff * 4);
+        ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night', 'a_x'].forEach(n => gl.disableVertexAttribArray(L[n]));
+      }
+    }
+    if (showFoot && footprint.length > 2) {
+      const f = []; footprint.forEach(([x, y]) => f.push(x, y, .12)); lines(f, [1, .6, .18, 1], gl.LINE_LOOP, vp);
+    }
+  }
+  function tick() { if (spin) { cam.yaw += .004; dirty = true; } if (dirty) draw(); requestAnimationFrame(tick); }
+
+  // ---------------------------------------------------------------- the camera
+  function fit() {
+    const md = data && cur && data.models.find(m => m.name === cur.name); if (!md) return;
+    const f32 = new Float32Array(bin.buffer, bin.byteOffset + md.voff * 24, md.v * 6);
+    const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    for (let i = 0; i < md.v; i++) for (let k = 0; k < 3; k++) { const v = f32[i * 6 + k]; if (v < mn[k]) mn[k] = v; if (v > mx[k]) mx[k] = v; }
+    ext = { min: mn, max: mx };
+    cam.tx = (mn[0] + mx[0]) / 2; cam.ty = (mn[1] + mx[1]) / 2; cam.tz = Math.min(mx[2] * .4, 25);
+    cam.dist = Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) * 1.9 + 30;
+    dirty = true;
+  }
+  const views = { front: [0, .25], side: [Math.PI / 2, .25], back: [Math.PI, .25], top: [.0, 1.5] };
+  document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { const v = views[b.dataset.v]; cam.yaw = v[0] + (cur && cur.frame ? 0 : 0); cam.pitch = v[1]; dirty = true; });
+  let drag = null;
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('mousedown', e => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; spin = false; $('bSpin').classList.remove('on'); });
+  window.addEventListener('mouseup', () => drag = null);
+  window.addEventListener('mousemove', e => {
+    if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+    if (drag.pan) { const k = cam.dist * .0016; cam.tx -= (Math.cos(cam.yaw) * dx + Math.sin(cam.yaw) * dy * Math.sin(cam.pitch)) * k; cam.ty -= (Math.sin(cam.yaw) * dx - Math.cos(cam.yaw) * dy * Math.sin(cam.pitch)) * k; }
+    else { cam.yaw -= dx * .006; cam.pitch = Math.max(.02, Math.min(1.55, cam.pitch + dy * .005)); }
+    dirty = true;
+  });
+  canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = Math.max(8, Math.min(900, cam.dist * Math.exp(e.deltaY * .0012))); dirty = true; }, { passive: false });
+  window.addEventListener('resize', () => dirty = true);
+
+  // ---------------------------------------------------------------- the panels
+  const api = (p, body) => fetch(p, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}).then(r => r.json());
+  function renderList() {
+    $('list').innerHTML = '';
+    list.forEach(m => { const d = document.createElement('div'); d.className = 'item' + (cur && cur.name === m.name ? ' on' : ''); d.innerHTML = '<span class="dot ' + (m.sheet ? m.status : 'approved') + '"></span><span>' + m.name.replace(/</g, '&lt;') + '</span><small>' + (m.sheet ? '' : 'plain ') + Math.round(m.tris / 100) / 10 + 'k</small>'; d.onclick = () => select(m.name); $('list').appendChild(d); });
+  }
+  function hud() {
+    if (!cur) return;
+    $('nm').textContent = cur.name;
+    const s = cur.sheet ? cur.status : 'approved (hand-built)'; $('st').textContent = s; $('st').style.color = cur.status === 'approved' || !cur.sheet ? 'var(--ok)' : cur.status === 'rejected' ? 'var(--bad)' : 'var(--accent)';
+    $('meta').textContent = cur.template + ', ' + cur.verts.toLocaleString() + ' vertices, ' + cur.tris.toLocaleString() + ' triangles, ' + (cur.height || '?') + ' m' + (cur.at ? ', last decision ' + cur.at : '');
+    $('note').value = cur.note || '';
+    $('hud').innerHTML = '<b>' + cur.name + '</b> &nbsp; ' + (night ? 'night' : 'day') + (stale ? ' &nbsp; <span id="badge">light is stale: Bake light</span>' : '') + '<br>' + ext.max.map((v, i) => (v - ext.min[i]).toFixed(0)).slice(0, 2).join(' m by ') + ' m on the ground, ' + (ext.max[2]).toFixed(1) + ' m high. Drag turns, wheel zooms, right-drag moves.';
+  }
+  async function select(name) {
+    cur = list.find(m => m.name === name); renderList(); fit(); hud();
+    const [c, r] = await Promise.all([api('/api/context?name=' + encodeURIComponent(name)), api('/api/refs?name=' + encodeURIComponent(name))]);
+    if (!cur || cur.name !== name) return;
+    footprint = c.footprint || []; ctxMesh = null;
+    if (c.p && c.p.length) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, bufCtxV); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(c.p), gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bufCtxN); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(c.n), gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufCtxI); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(c.i), gl.STATIC_DRAW); ctxMesh = { count: c.i.length };
+    }
+    $('refs').innerHTML = '';
+    r.forEach((e, k) => { const f = document.createElement('figure'); f.innerHTML = '<img loading="lazy" src="' + e.url + '"><figcaption>' + e.src + '</figcaption>'; f.firstChild.onclick = () => big(k, r); $('refs').appendChild(f); });
+    if (!r.length) $('refs').innerHTML = '<div style="grid-column:1/3;color:var(--muted)">No references yet: engine.py refs "' + name + '" or the finder.</div>';
+    dirty = true; hud();
+  }
+  let bigList = [], bigAt = 0;
+  function big(k, r) { if (r) bigList = r; bigAt = (k + bigList.length) % bigList.length; const e = bigList[bigAt]; $('bigimg').src = e.url; $('bigcap').textContent = e.src + ' | ' + e.title + ' | ' + e.credit + '   (' + (bigAt + 1) + '/' + bigList.length + ')'; $('big').classList.add('on'); }
+  $('big').onclick = () => $('big').classList.remove('on');
+  async function decide(status) {
+    if (!cur || !cur.sheet) return;
+    await api('/api/approve', { name: cur.name, status, note: $('note').value });
+    list = await api('/api/models'); cur = list.find(m => m.name === cur.name); renderList(); hud();
+  }
+  $('bOk').onclick = () => decide('approved'); $('bNo').onclick = () => decide('rejected');
+  async function watchJob() {
+    const j = await api('/api/job'), el = $('job');
+    if (j.running) { el.classList.add('on'); el.textContent = j.name + ' … ' + j.secs + ' s\n' + (j.log || '').split('\n').slice(-4).join('\n'); setTimeout(watchJob, 1500); return; }
+    if (j.rc !== null && el.classList.contains('on')) { el.textContent = j.name + (j.rc ? ' failed\n' + (j.log || '').slice(-600) : ' done'); setTimeout(() => el.classList.remove('on'), j.rc ? 8000 : 2500);
+      const keep = cur && cur.name; await loadData(); list = await api('/api/models'); renderList(); if (keep) { cur = list.find(m => m.name === keep) || list[0]; fit(); hud(); } dirty = true; }
+  }
+  const job = async (p) => { const r = await api(p, {}); if (r.started === false) { $('job').classList.add('on'); $('job').textContent = 'something is already running'; } watchJob(); };
+  $('bBuild').onclick = () => job('/api/rebuild'); $('bLight').onclick = () => job('/api/light');
+  const tog = (id, f) => { $(id).onclick = () => { const v = f(); $(id).classList.toggle('on', v); dirty = true; }; };
+  tog('bFoot', () => showFoot = !showFoot); tog('bGrid', () => showGrid = !showGrid); tog('bCtx', () => showCtx = !showCtx); tog('bSpin', () => spin = !spin);
+  const setNight = (v) => { night = v; $('bDay').classList.toggle('on', !v); $('bNight').classList.toggle('on', v); hud(); dirty = true; };
+  $('bDay').onclick = () => setNight(false); $('bNight').onclick = () => setNight(true);
+  $('bShot').onclick = () => { draw(); canvas.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = (cur ? cur.name.replace(/[^a-z0-9]+/gi, '-') : 'landmark') + (night ? '-night' : '-day') + '.png'; a.click(); }); };
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'TEXTAREA') return;
+    const k = e.key.toLowerCase();
+    if ($('big').classList.contains('on')) { if (e.key === 'ArrowRight') big(bigAt + 1); else if (e.key === 'ArrowLeft') big(bigAt - 1); else $('big').classList.remove('on'); return; }
+    if (k === 'n') setNight(!night); else if (k === 'f') $('bFoot').click(); else if (k === 'g') $('bGrid').click(); else if (k === 'c') $('bCtx').click(); else if (k === 'r') $('bSpin').click();
+    else if (k === 'a') decide('approved'); else if (k === 'x') decide('rejected');
+    else if ('1234'.includes(k) && k) document.querySelectorAll('[data-v]')[+k - 1].click();
+    else if (k === '[' || k === ']') { const i = list.findIndex(m => cur && m.name === cur.name); select(list[(i + (k === ']' ? 1 : -1) + list.length) % list.length].name); }
+  });
+
+  await loadData();
+  list = await api('/api/models'); renderList();
+  const want = new URLSearchParams(location.search).get('name');
+  const first = list.find(m => m.name === want) || list.find(m => m.sheet) || list[0];
+  if (first) await select(first.name);
+  requestAnimationFrame(tick);
+  window.__ready = true;
+})().catch(e => { document.getElementById('hud').textContent = 'error: ' + (e.stack || e); window.__error = String(e && e.stack || e); });
+</script>
