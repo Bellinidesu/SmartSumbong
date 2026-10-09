@@ -5,6 +5,7 @@
  *   sdPickers.month(inputEl, { allTime: checkboxEl })
  */
 (function () {
+  if (window.sdPickers) return;
   var lang = (document.documentElement.lang || 'en').slice(0, 2) === 'fi' ? 'fil-PH' : 'en-US';
   var TXT = lang === 'en-US' ? { clear: 'All time', now: 'This month', prev: 'Previous year', next: 'Next year' } : { clear: 'Lahat ng panahon', now: 'Ngayong buwan', prev: 'Nakaraang taon', next: 'Susunod na taon' };
   var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
@@ -90,7 +91,7 @@
     inp.parentNode.insertBefore(btn, inp); hideNative(inp);
     var fmt = new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }), short = new Intl.DateTimeFormat(lang, { month: 'short' });
     function parse(v) { var m = /^(\d{4})-(\d{2})$/.exec(v || ''); return m ? { y: +m[1], m: +m[2] - 1 } : null; }
-    function paint() { var p = parse(inp.value); btn.innerHTML = '<span>' + esc(p ? fmt.format(new Date(p.y, p.m, 1)) : '—') + '</span>' + CHEV; btn.disabled = inp.disabled; }
+    function paint() { var p = parse(inp.value); btn.innerHTML = '<span>' + esc(p ? fmt.format(new Date(p.y, p.m, 1)) : (lang === 'en-US' ? 'All months' : 'Lahat ng buwan')) + '</span>' + CHEV; btn.disabled = inp.disabled; }
     paint(); inp.addEventListener('change', paint);
     new MutationObserver(paint).observe(inp, { attributes: true, attributeFilter: ['disabled'] });
     btn.addEventListener('click', function () {
@@ -113,7 +114,7 @@
         if (n) { year += Number(n.dataset.d); render(); var g = pop.querySelector('.sdp-grid'); g.classList.add('flip'); return; }
         if (m) { pick(year, Number(m.dataset.m)); return; }
         if (e.target.closest('[data-now]')) { pick(nowY, nowM); return; }
-        if (e.target.closest('[data-clear]')) { if (opts.allTime && !opts.allTime.checked) opts.allTime.click(); close(true); }
+        if (e.target.closest('[data-clear]')) { if (opts.allTime) { if (!opts.allTime.checked) opts.allTime.click(); } else { inp.value = ''; inp.dispatchEvent(new Event('change', { bubbles: true })); } close(true); }
       });
       show(btn, pop, function (e) {
         if (e.key === 'Escape') { e.preventDefault(); close(true); }

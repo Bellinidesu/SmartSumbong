@@ -1293,3 +1293,15 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 /* on the orange report bands the pills are white: their pickers read in navy */
 .p-band .p-pill-select .sdp-btn { color: #141B34; } .p-band .p-pill-select .sdp-btn svg { color: #3A4058; }
 .p-band .p-pill-select:has(.sdp-btn) { background: #fff; }
+
+/* ---- Zoom and dock keys: real glass, you can see the map in them ---- */
+:root[data-theme="dark"] #s-spatial { --gl-ctl: rgba(21,22,29,.62); }
+:root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group { background: rgba(21,22,29,.58); -webkit-backdrop-filter: blur(16px) saturate(1.8); backdrop-filter: blur(16px) saturate(1.8); border-color: transparent; }
+:root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group button { color: #fff; } :root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group button + button { border-top-color: rgba(255,255,255,.14); }
+:root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group button .maplibregl-ctrl-icon::after { filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+:root[data-theme="dark"] #s-spatial .p-dock-btn { background-color: rgba(21,22,29,.58); -webkit-backdrop-filter: blur(16px) saturate(1.8); backdrop-filter: blur(16px) saturate(1.8); color: #fff; }
+:root[data-theme="dark"] #s-spatial .p-dock-btn svg { filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+:root[data-theme="dark"] #s-spatial .p-dock-btn.on { background-color: transparent; }
+:root[data-theme="dark"] #s-spatial.ss-dragging .p-dock-btn, :root[data-theme="dark"] #s-spatial.ss-dragging .maplibregl-ctrl-group { background: rgba(21,22,29,.8) !important; }
+/* the flood chip carries text, so it keeps the firmer glass */
+:root[data-theme="dark"] #s-spatial .fw-chip { background-color: rgba(21,22,29,.9); }
