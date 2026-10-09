@@ -810,3 +810,8 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 
 /* the title card stays open while one of its pickers is */
 html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; margin-top: 10px; overflow: visible; pointer-events: auto; }
+/* the zoom control lines up with the dock above it: same right edge, same width */
+#s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { margin: 0 16px 16px 0; width: 42px; }
+#s-spatial .maplibregl-ctrl-bottom-right { right: 0; }
+#s-spatial .maplibregl-ctrl-group button { width: 40px; }
+#s-spatial .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { margin: 0 0 16px 16px; float: none; }
