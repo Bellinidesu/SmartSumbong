@@ -345,4 +345,81 @@
       hero.addEventListener('pointermove', mv); hero.addEventListener('pointerup', up); hero.addEventListener('pointercancel', up);
     });
   };
+
+  // ================= landmarks in 3D (free data only) =================
+  // Tilt the map and the places an officer steers by stand up: the building that holds each landmark in
+  // assets/map/landmarks.geojson (OpenStreetMap) is tinted by the kind of place, and a round badge floats over it,
+  // as Apple Maps does. Heights are OpenStreetMap's own; nothing here is modelled by hand.
+  const LM_COL = { hall: '#FF9D3C', school: '#9B6BFF', worship: '#22B8CF', safety: '#F0524F', health: '#34C46C', park: '#8BCB3A', shop: '#F063A8', transport: '#7C8AA5', military: '#B0A99F', government: '#4F7BFF', service: '#4F7BFF' };
+  const LM_ICON = { hall: 'house', school: 'school', worship: 'church', safety: 'responder', health: 'health', park: 'tree', shop: 'bag', transport: 'plane', military: 'star', government: 'service', service: 'service' };
+  const lmDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+  const badgeSvg = (g, dark) => {
+    const col = LM_COL[g] || '#7C8AA5', ic = (window.SD_ICONS[LM_ICON[g]] || '');
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88"><circle cx="44" cy="48" r="35" fill="rgba(0,0,0,.30)"/><circle cx="44" cy="44" r="35" fill="' + (dark ? '#17181D' : '#FFFFFF') + '" stroke="' + col + '" stroke-width="5"/>' +
+      '<circle cx="44" cy="44" r="31.5" fill="none" stroke="' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.08)') + '" stroke-width="1"/>' +
+      '<g transform="translate(24 24) scale(1.67)" fill="none" stroke="' + (dark ? '#FFFFFF' : col) + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ic + '</g></svg>';
+  };
+  let lmReady = null, lmPts = [], lmOn = false;
+  const lmBuild = {};   // landmark name -> its building features
+  const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const a = ring[i], b = ring[j]; if ((a[1] > pt[1]) !== (b[1] > pt[1]) && pt[0] < (b[0] - a[0]) * (pt[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+  // The tiles merge thousands of buildings into one multipolygon, so work on the single polygon under the landmark, never the whole feature.
+  const polysOf = g => g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+  const hasPt = (pt, poly) => inRing(pt, poly[0]) && !poly.slice(1).some(h => inRing(pt, h));
+  const edgeM = (pt, poly) => { let d = 1e9; poly[0].forEach(v => { d = Math.min(d, lkMetres({ lng: pt[0], lat: pt[1] }, { lng: v[0], lat: v[1] })); }); return d; };
+  // Stand the footprint a little proud of the plain 3D building under it, so the tint is the one that is seen (no flicker).
+  const proud = (poly, m) => {
+    const ring = poly[0]; let w = 1e9, e = -1e9, s = 1e9, n = -1e9; ring.forEach(v => { w = Math.min(w, v[0]); e = Math.max(e, v[0]); s = Math.min(s, v[1]); n = Math.max(n, v[1]); });
+    const cx = (w + e) / 2, cy = (s + n) / 2, hw = Math.max(1, (e - w) * 107500 / 2), hh = Math.max(1, (n - s) * 110600 / 2), fx = 1 + m / hw, fy = 1 + m / hh;
+    return { type: 'Polygon', coordinates: [ring.map(v => [cx + (v[0] - cx) * fx, cy + (v[1] - cy) * fy])] };
+  };
+  function lmCollect() {
+    if (!lmOn || !map.getSource('lm-bld') || !map.getSource('openmaptiles')) return;
+    const todo = lmPts.filter(l => !lmBuild[l.n] && map.getBounds().contains(l.c));
+    if (!todo.length) return;
+    let feats; try { feats = map.querySourceFeatures('openmaptiles', { sourceLayer: 'building' }); } catch (e) { return; }
+    if (!feats.length) return;
+    let changed = false;
+    todo.forEach(l => {
+      let hit = null;
+      for (const f of feats) { for (const poly of polysOf(f.geometry)) { if (hasPt(l.c, poly)) { hit = { poly, f }; break; } } if (hit) break; }
+      if (!hit) {   // the point sits in a yard or a road: the nearest building within 28 m
+        let bd = 28;
+        feats.forEach(f => polysOf(f.geometry).forEach(poly => { const v = poly[0][0]; if (Math.abs(v[0] - l.c[0]) > .0012 || Math.abs(v[1] - l.c[1]) > .0012) return; const d = edgeM(l.c, poly); if (d < bd) { bd = d; hit = { poly, f }; } }));
+      }
+      if (!hit) return;
+      lmBuild[l.n] = [{ type: 'Feature', properties: { g: l.g, h: Math.max(+hit.f.properties.render_height || 0, 11) + .6, b: +hit.f.properties.render_min_height || 0 }, geometry: proud(hit.poly, .7) }]; changed = true;
+    });
+    if (changed) map.getSource('lm-bld').setData({ type: 'FeatureCollection', features: [].concat(...Object.values(lmBuild)) });
+  }
+  const lmTint = dark => ['match', ['get', 'g']].concat(...Object.keys(LM_COL).map(k => [k, dark ? mixHex(LM_COL[k], '#17181D', .22) : LM_COL[k]]), ['#7C8AA5']);
+  const mixHex = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  async function lmInit() {
+    if (lmReady) return lmReady;
+    return (lmReady = (async () => {
+      await mapReady; lmPts = await landmarks();
+      if (typeof build3d === 'function') build3d();
+      await Promise.all(Object.keys(LM_COL).flatMap(g => [addSvgImage('lm-' + g + '-d', badgeSvg(g, true)), addSvgImage('lm-' + g + '-l', badgeSvg(g, false))]));
+      const lyrs = map.getStyle().layers, i = lyrs.findIndex(l => l.id === 'building-3d'), before = i >= 0 && lyrs[i + 1] ? lyrs[i + 1].id : undefined, dark = lmDark();
+      map.addSource('lm-bld', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({ id: 'lm-bld', type: 'fill-extrusion', source: 'lm-bld', minzoom: 15, layout: { visibility: 'none' },
+        paint: { 'fill-extrusion-color': lmTint(dark), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': .98 } }, before);
+      map.addSource('lm-pts', { type: 'geojson', data: { type: 'FeatureCollection', features: lmPts.map(l => ({ type: 'Feature', properties: { name: l.n, group: LM_COL[l.g] ? l.g : 'service' }, geometry: { type: 'Point', coordinates: l.c } })) } });
+      map.addLayer({ id: 'lm-badge', type: 'symbol', source: 'lm-pts', minzoom: 15.2,
+        layout: { visibility: 'none', 'icon-image': ['concat', 'lm-', ['get', 'group'], dark ? '-d' : '-l'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 18, .86], 'icon-anchor': 'center',
+                  'icon-pitch-alignment': 'viewport', 'text-pitch-alignment': 'viewport', 'icon-allow-overlap': false, 'text-optional': true,
+                  'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 11.5, 'text-offset': [0, 2.35], 'text-anchor': 'top', 'text-max-width': 8 },
+        paint: { 'icon-translate': [0, -16], 'text-translate': [0, -16], 'text-color': dark ? '#F4F5FA' : '#1B1C20', 'text-halo-color': dark ? 'rgba(17,18,22,.92)' : 'rgba(255,255,255,.95)', 'text-halo-width': 1.6 } }, typeof layerBefore === 'function' ? layerBefore() : undefined);
+    })());
+  }
+  async function lmShow(on) {
+    lmOn = on; await lmInit(); if (on !== lmOn) return;
+    ['lm-bld', 'lm-badge'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); });
+    if (on) { lmCollect(); }
+  }
+  map.on('pitch', () => { const up = map.getPitch() > 8; if (up !== lmOn) lmShow(up); });
+  map.on('moveend', lmCollect); map.on('idle', lmCollect);
+  window.addEventListener('themechange', () => { if (!map.getLayer('lm-badge')) return; const dark = lmDark();
+    map.setLayoutProperty('lm-badge', 'icon-image', ['concat', 'lm-', ['get', 'group'], dark ? '-d' : '-l']);
+    map.setPaintProperty('lm-badge', 'text-color', dark ? '#F4F5FA' : '#1B1C20'); map.setPaintProperty('lm-badge', 'text-halo-color', dark ? 'rgba(17,18,22,.92)' : 'rgba(255,255,255,.95)');
+    map.setPaintProperty('lm-bld', 'fill-extrusion-color', lmTint(dark)); });
 })();

@@ -1486,3 +1486,38 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
   #s-spatial.sheet-open .ss-tl .tl-seg button { flex: 1; }
   #s-spatial.sheet-open .ss-tl .tl-x { grid-column: 3; grid-row: 1; }
 }
+
+/* ===== Map surfaces: Solid (Settings, Appearance). The same layout with the glass taken off: flat graphite, a hairline, a plain shadow ===== */
+:root[data-surface="solid"][data-theme="dark"] #s-spatial :is(.p-map-search, .cs-sheet, .ss-qv, .ss-lyr, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-pop),
+:root[data-surface="solid"][data-theme="dark"] .sdp-pop {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-color: #1C1D22; background-image: none;
+  border: 1px solid rgba(255,255,255,.09); box-shadow: 0 10px 28px rgba(0,0,0,.5);
+}
+:root[data-surface="solid"][data-theme="dark"] #s-spatial :is(.p-map-search, .cs-sheet, .ss-qv, .ss-lyr, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-pop)::after,
+:root[data-surface="solid"][data-theme="dark"] .sdp-pop::after { display: none; }
+:root[data-surface="solid"][data-theme="dark"] #s-spatial :is(.fw-chip, .p-dock-btn, .maplibregl-ctrl-group, .maplibregl-ctrl-scale, .heat-hint, .lyr-tile) {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-color: #202126; background-image: none;
+  border: 1px solid rgba(255,255,255,.09); box-shadow: 0 6px 16px rgba(0,0,0,.45);
+}
+:root[data-surface="solid"][data-theme="dark"] #s-spatial .p-dock-btn.on, :root[data-surface="solid"][data-theme="dark"] #s-spatial .p-dock-btn[aria-expanded="true"] { background-color: #2A2B31; }
+/* the small gloss: flat colour instead of a lit sphere */
+:root[data-surface="solid"] .tl-play, :root[data-surface="solid"] .sv-i { background: #FF8A3D; box-shadow: none; }
+:root[data-surface="solid"] .sx-i { background: var(--c); box-shadow: none; }
+:root[data-surface="solid"] .tl-seg button.on { box-shadow: none; }
+:root[data-surface="solid"] #s-spatial .cs-hero { background: var(--cs); }
+:root[data-surface="solid"][data-theme="dark"] #s-spatial .cs-hero { background: color-mix(in srgb, var(--cs) 70%, #17181D); }
+:root[data-surface="solid"] #s-spatial .cs-hero::before, :root[data-surface="solid"] #s-spatial .cs-hero::after { display: none; }
+/* the light theme is already solid; only the plain shadow and no sheen */
+:root[data-surface="solid"][data-theme="light"] #s-spatial :is(.p-map-search, .cs-sheet, .ss-pop) { box-shadow: 0 8px 22px rgba(20,27,52,.2), 0 0 0 1px var(--p-line); }
+
+/* Settings: the Glass / Solid choice */
+.st-surfs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; max-width: 620px; }
+.st-surf { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; text-align: left; padding: 12px; border: 0; border-radius: 16px; background: var(--p-surface-2); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-ink); font: inherit; cursor: pointer; transition: box-shadow .2s, transform .2s cubic-bezier(.2,1.6,.4,1); }
+.st-surf:hover { transform: translateY(-1px); }
+.st-surf[aria-checked="true"] { box-shadow: inset 0 0 0 2px var(--p-orange); }
+.st-surf .ss-t b { display: block; font: 800 15px Urbanist, sans-serif; } .st-surf .ss-t small { display: block; margin-top: 2px; color: var(--p-muted); font: 600 12px Inter, sans-serif; }
+.sv-pic { position: relative; width: 96px; height: 64px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #1F4F63, #20303A 55%, #3A2A1E); }
+.sv-pic i { position: absolute; left: 10px; top: 10px; width: 56px; height: 34px; border-radius: 9px; }
+.sv-pic b { position: absolute; right: 9px; bottom: 9px; width: 22px; height: 22px; border-radius: 7px; }
+.sv-pic.g i, .sv-pic.g b { background: rgba(255,255,255,.16); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: inset 1px 1px 0 rgba(255,255,255,.5); }
+.sv-pic.s i, .sv-pic.s b { background: #1C1D22; box-shadow: 0 0 0 1px rgba(255,255,255,.1); }

@@ -152,6 +152,7 @@ layout_head(t('Settings', 'Mga Setting'), 'settings.php');
   <button type="button" class="p-on" role="tab" data-st="status"><?= e(t('System status', 'Kalagayan ng sistema')) ?></button>
   <button type="button" role="tab" data-st="usage"><?= e(t('Plan and usage', 'Plano at paggamit')) ?></button>
   <button type="button" role="tab" data-st="admins"><?= e(t('Administrators', 'Mga Administrator')) ?></button>
+  <button type="button" role="tab" data-st="look"><?= e(t('Appearance', 'Itsura')) ?></button>
 </div>
 
 <?php
@@ -258,6 +259,17 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
   <p class="st-note"><?= e(t('Supabase, Cloudinary and push alerts are checked from the portal\'s server; maps, address lookup, rain data, live updates and the flood map from this browser, so a failure there can also mean this computer\'s internet connection. No keys or passwords are shown.', 'Sinusuri mula sa server ang Supabase, Cloudinary at push alert; mula sa browser na ito ang mapa, address, ulan, live na update at mapa ng baha.')) ?></p>
   <div class="p-card p-card-pad st-credits"><p class="p-eyebrow"><?= e(t('Map credits', 'Mga kredito ng mapa')) ?></p>
     <p class="st-credit-line"><?= e(t('Map data © OpenStreetMap contributors (ODbL) · tiles by OpenFreeMap and OpenMapTiles · flood hazard maps © UP NOAH Center (Project NOAH) · air quality and rain by Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · photos from Wikimedia Commons, credited where shown · icons from Lucide (ISC) and Tabler Icons (MIT).', 'Datos ng mapa © OpenStreetMap contributors (ODbL) · tiles mula sa OpenFreeMap at OpenMapTiles · mapa ng baha © UP NOAH Center (Project NOAH) · kalidad ng hangin at ulan mula sa Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · mga larawan mula sa Wikimedia Commons, may kredito kung saan ipinapakita · mga icon mula sa Lucide (ISC) at Tabler Icons (MIT).')) ?></p></div>
+</section>
+
+<section class="st-pane" data-pane="look" hidden>
+  <div class="p-card p-card-pad st-look">
+    <p class="p-eyebrow"><?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?></p>
+    <p class="st-note" style="margin-top:0"><?= e(t('How the panels and buttons floating on the Spatial Distribution map are drawn. Glass lets the map show through; Solid is flat and plain, easier on older screens and in bright rooms. This is kept on this computer.', 'Kung paano iginuhit ang mga panel at button sa mapa. Hinahayaan ng Glass na makita ang mapa; ang Solid ay patag at simple, mas magaan sa lumang screen at sa maliwanag na silid. Nakatago ito sa computer na ito.')) ?></p>
+    <div class="st-surfs" role="radiogroup" aria-label="<?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?>">
+      <button type="button" class="st-surf" role="radio" data-surf="glass" aria-checked="true"><span class="sv-pic g"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Glass', 'Glass')) ?></b><small><?= e(t('Frosted panels, lit edges', 'Frosted na panel, may ilaw ang gilid')) ?></small></span></button>
+      <button type="button" class="st-surf" role="radio" data-surf="solid" aria-checked="false"><span class="sv-pic s"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Solid', 'Solid')) ?></b><small><?= e(t('Flat graphite, no blur or gloss', 'Patag na graphite, walang blur o kinang')) ?></small></span></button>
+    </div>
+  </div>
 </section>
 
 <section class="st-pane" data-pane="usage" hidden>
@@ -411,5 +423,19 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
 <script>
 // Back on the Administrators tab after adding or resetting.
 if (location.hash === '#admins') { var b = document.querySelector('.st-tabs [data-st="admins"]'); if (b) b.click(); }
+</script>
+<script>
+// Map surfaces: Glass or Solid, kept in this browser.
+(function () {
+  var btns = document.querySelectorAll('.st-surf'); if (!btns.length) return;
+  function paint() { var solid = document.documentElement.getAttribute('data-surface') === 'solid'; btns.forEach(function (b) { b.setAttribute('aria-checked', String((b.dataset.surf === 'solid') === solid)); }); }
+  btns.forEach(function (b) { b.addEventListener('click', function () {
+    var solid = b.dataset.surf === 'solid';
+    if (solid) document.documentElement.setAttribute('data-surface', 'solid'); else document.documentElement.removeAttribute('data-surface');
+    try { localStorage.setItem('ss-surface', solid ? 'solid' : 'glass'); } catch (e) { /* kept for this visit only */ }
+    paint();
+  }); });
+  paint();
+})();
 </script>
 <?php layout_foot(); ?>
