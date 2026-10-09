@@ -273,18 +273,18 @@ const PIN_GLYPH = {
   animal_welfare: SD_ICONS.animal, traffic_violation: SD_ICONS.traffic, barangay_service: SD_ICONS.service, peace_order_nuisance: SD_ICONS.noise, other: SD_ICONS.other,
 };
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+// The pins are glass beads: a tinted round body, a bright rim, a highlight where the light falls and a glow in its own colour by night.
+let selId = null;
+const pinFilter = () => selId ? ['all', ['!', ['has', 'point_count']], ['!=', ['get', 'id'], selId]] : ['!', ['has', 'point_count']];
 function pinTear(cat, fill, dark) {
-  // The glass gem: a tinted, translucent body, a bright rim, a gloss crescent and a frosted disc, glowing in its own colour.
-  const glyph = (PIN_GLYPH[cat] || PIN_GLYPH.other).replace(/__C__/g, fill), T0 = 'M0 0C-4-9-15-15-15-27a15 15 0 0 1 30 0C15-15 4-9 0 0Z';
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="104" viewBox="-22 -52 44 52"><defs>' +
-    '<linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + fill + '" stop-opacity=".96"/><stop offset=".55" stop-color="' + fill + '" stop-opacity="' + (dark ? .86 : .74) + '"/><stop offset="1" stop-color="' + fill + '" stop-opacity=".96"/></linearGradient>' +
-    '<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity=".7"/></linearGradient>' +
-    '<radialGradient id="d" cx=".35" cy=".3"><stop offset="0" stop-color="#fff" stop-opacity=".98"/><stop offset="1" stop-color="#fff" stop-opacity=".74"/></radialGradient>' +
-    '<filter id="s" x="-60%" y="-35%" width="220%" height="180%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.6 : 1.8) + '" flood-color="' + (dark ? fill : '#000') + '" flood-opacity="' + (dark ? .9 : .38) + '"/></filter></defs>' +
-    '<g filter="url(#s)"><path d="' + T0 + '" fill="url(#a)"/><path d="' + T0 + '" fill="none" stroke="url(#r)" stroke-width="1.7"/>' +
-    '<path d="M-11-34C-12-40-7-45-1-45.5c-5 2-8 6-8 12.5C-9-30-10-31-11-34Z" fill="#fff" opacity=".55"/>' +
-    '<circle cy="-27" r="9.5" fill="url(#d)"/><circle cy="-27" r="9.5" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width=".8"/>' +
-    '<g transform="translate(-6.5 -33.5) scale(.54)" fill="none" stroke="' + fill + '" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">' + glyph + '</g></g></svg>';
+  const glyph = (PIN_GLYPH[cat] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="-22 -22 44 44"><defs>' +
+    '<linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + fill + '" stop-opacity="1"/><stop offset=".55" stop-color="' + fill + '" stop-opacity="' + (dark ? .86 : .78) + '"/><stop offset="1" stop-color="' + fill + '" stop-opacity=".96"/></linearGradient>' +
+    '<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>' +
+    '<radialGradient id="h" cx=".3" cy=".2" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+    '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.8 : 1.8) + '" flood-color="' + (dark ? fill : '#000') + '" flood-opacity="' + (dark ? .9 : .4) + '"/></filter></defs>' +
+    '<g filter="url(#s)"><circle r="15" fill="url(#a)"/><circle r="15" fill="url(#h)"/><circle r="14.2" fill="none" stroke="url(#r)" stroke-width="1.6"/>' +
+    '<g transform="translate(-8.5 -8.5) scale(.71)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + glyph + '</g></g></svg>';
 }
 function addPinImages() {
   const dark = isDark();
@@ -467,16 +467,21 @@ const DM = new Map();
 let dmKey = '';
 const dmCats = () => Object.keys(CATEGORY_COLOUR);
 function donutSvg(props, n) {
+  // A graphite glass orb: the count in the middle, the mix of categories as a ring round it.
   const cats = dmCats(), parts = cats.map((c, i) => [c, Number(props['c' + i] || 0)]).filter(x => x[1] > 0), tot = parts.reduce((a, x) => a + x[1], 0) || 1;
   let a0 = -90, ring = '';
+  const r = 26, f = a => [(r * Math.cos(a * Math.PI / 180)).toFixed(2), (r * Math.sin(a * Math.PI / 180)).toFixed(2)];
   parts.forEach(([c, v]) => {
-    const a1 = a0 + 360 * v / tot, whole = parts.length === 1, r = 21, f = a => [(r * Math.cos(a * Math.PI / 180)).toFixed(2), (r * Math.sin(a * Math.PI / 180)).toFixed(2)];
-    if (whole) ring += '<circle r="' + r + '" fill="none" stroke="' + catColour(c) + '" stroke-width="5"/>';
-    else { const p0 = f(a0), p1 = f(a1 - 4); ring += '<path d="M' + p0 + ' A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + p1 + '" fill="none" stroke="' + catColour(c) + '" stroke-width="5" stroke-linecap="round"/>'; }
+    const a1 = a0 + 360 * v / tot;
+    if (parts.length === 1) ring += '<circle r="' + r + '" fill="none" stroke="' + catColour(c) + '" stroke-width="6"/>';
+    else { const p0 = f(a0), p1 = f(a1 - 5); ring += '<path d="M' + p0 + ' A' + r + ' ' + r + ' 0 ' + (a1 - a0 > 180 ? 1 : 0) + ' 1 ' + p1 + '" fill="none" stroke="' + catColour(c) + '" stroke-width="6" stroke-linecap="round"/>'; }
     a0 = a1;
   });
-  return '<svg viewBox="-34 -78 68 82" aria-hidden="true"><defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3A62E0" stop-opacity=".96"/><stop offset=".55" stop-color="#1B3FA8" stop-opacity=".72"/><stop offset="1" stop-color="#2B4BC4" stop-opacity=".94"/></linearGradient><linearGradient id="dr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity=".7"/></linearGradient></defs><path class="dm-body" d="M0 0C-7-14-27-24-27-43a27 27 0 0 1 54 0C27-24 7-14 0 0Z" fill="url(#dg)"/><path d="M0 0C-7-14-27-24-27-43a27 27 0 0 1 54 0C27-24 7-14 0 0Z" fill="none" stroke="url(#dr)" stroke-width="2.4"/><path d="M-20-58C-22-70-12-78-1-79c-9 4-14 11-14 22C-15-53-17-54-20-58Z" fill="#fff" opacity=".5"/>' +
-    '<g transform="translate(0 -43)">' + ring + '<circle r="15.5" fill="#fff"/><text y="' + (String(n).length > 3 ? 5 : 6) + '" text-anchor="middle" font-family="Urbanist,sans-serif" font-weight="800" font-size="' + (String(n).length > 3 ? 12 : 17) + '" fill="#141B34">' + esc(n) + '</text></g></svg>';
+  const txt = String(n);
+  return '<svg viewBox="-35 -35 70 70" aria-hidden="true"><defs><radialGradient id="og" cx=".35" cy=".25" r=".95"><stop offset="0" stop-color="#3A3E4C"/><stop offset=".6" stop-color="#1B1D26"/><stop offset="1" stop-color="#13141B"/></radialGradient>' +
+    '<linearGradient id="or" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".5" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity=".3"/></linearGradient></defs>' +
+    '<circle r="33" fill="url(#og)"/><circle r="32.4" fill="none" stroke="url(#or)" stroke-width="1.4"/><ellipse cx="-9" cy="-21" rx="15" ry="7" fill="#fff" opacity=".1" transform="rotate(-20 -9 -21)"/>' + ring +
+    '<text y="' + (txt.length > 3 ? 5 : 6.5) + '" text-anchor="middle" font-family="Urbanist,sans-serif" font-weight="800" font-size="' + (txt.length > 3 ? 14 : 19) + '" fill="#fff">' + esc(txt) + '</text></svg>';
 }
 function clusterMarkers() {
   if (map._dmBound) return; map._dmBound = true;
@@ -489,11 +494,11 @@ function clusterMarkers() {
     DM.forEach((m, id) => { if (!seen.has(id)) { m.el.classList.remove('in'); m.el.classList.add('out'); setTimeout(() => m.marker.remove(), 260); DM.delete(id); } });
     seen.forEach((f, id) => {
       if (DM.has(id)) return;
-      const n = f.properties.point_count, w = n < 10 ? 46 : n < 50 ? 58 : 70, el = document.createElement('button');
-      el.type = 'button'; el.className = 'dm in'; el.style.width = w + 'px'; el.style.height = (w * 82 / 68) + 'px';
+      const n = f.properties.point_count, w = n < 10 ? 50 : n < 50 ? 64 : 82, el = document.createElement('button');
+      el.type = 'button'; el.className = 'dm in'; el.style.width = w + 'px'; el.style.height = w + 'px';
       el.setAttribute('aria-label', n + T(' complaints, open to see them', ' sumbong, buksan para makita'));
       el.innerHTML = donutSvg(f.properties, f.properties.point_count_abbreviated || n);
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(f.geometry.coordinates).addTo(map);
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(f.geometry.coordinates).addTo(map);
       el.addEventListener('click', async ev => {
         ev.stopPropagation(); el.classList.add('burst');
         const zoom = await map.getSource('reports').getClusterExpansionZoom(f.properties.cluster_id);
@@ -526,15 +531,15 @@ function setPinsSource(want) {
   map.addLayer({ id: 'clusters', type: 'circle', source: 'reports', filter: ['has', 'point_count'],
     paint: { 'circle-opacity': 0, 'circle-stroke-opacity': 0, 'circle-radius': 20 } });
   clusterMarkers();
-  map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: ['!', ['has', 'point_count']],
+  map.addLayer({ id: 'pins', type: 'symbol', source: 'reports', filter: pinFilter(),
     layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
-              'icon-anchor': 'bottom', 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 16, .74, 18, .95] },
+              'icon-anchor': 'center', 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 16, .74, 18, .95] },
     paint: { 'icon-opacity': h } });
   // The flood-risk rings go round pins and clusters alike, so they sit on top.
   if (map.getLayer('risk')) {
     map.moveLayer('risk');
     // A pin's head is above the point it marks, so its ring is lifted to match.
-    map.setPaintProperty('risk', 'circle-translate', want ? [0, 0] : [0, -20]);
+    map.setPaintProperty('risk', 'circle-translate', [0, 0]);
   }
 }
 
@@ -850,10 +855,24 @@ function stageOf(i, rejected, status) {
   if (rejected && i === 1) return { c: status === 'cancelled' ? '#9AA3B2' : '#E5383B', i: 'close' };
   return { c: STAGE_COL[i], i: STAGE_ICON[i] };
 }
+// Pressed: the pin becomes a frosted glass disc in the case's colour (a real HTML piece, so its blur is real) that pulses
+// while the case sidebar is open.
+let selMk = null;
+function selOff() {
+  selId = null; if (map.getLayer('pins')) map.setFilter('pins', pinFilter());
+  if (selMk) { const m = selMk; selMk = null; m.getElement().classList.add('out'); setTimeout(() => m.remove(), 220); }
+}
+function selOn(r) {
+  if (selMk) { selMk.remove(); selMk = null; }
+  selId = r.id; if (map.getLayer('pins')) map.setFilter('pins', pinFilter());
+  const el = document.createElement('div'); el.className = 'sel-pin'; el.style.setProperty('--c', catColour(r.category));
+  el.innerHTML = '<i class="sp-h"></i><i class="sp-h b"></i><span class="sp-d"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff') + '</svg></span>';
+  selMk = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([+r.longitude, +r.latitude]).addTo(map);
+}
 function showDetail(r) {
   qvClose(true); spClose();
   const el = document.getElementById('case-sheet');
-  csFor = r.id;
+  csFor = r.id; selOn(r);
   const col = catColour(r.category);
   const lng = +r.longitude, lat = +r.latitude;
   const nearby = all.filter(q => q.id !== r.id && Math.hypot((q.longitude - lng) * 107500, (q.latitude - lat) * 110600) < 150).length;
@@ -1276,7 +1295,7 @@ function csDraggable(el) {
   });
 }
 function closeCaseSheet() {
-  csFor = null; qvClose(true); lkClose(true);
+  csFor = null; selOff(); qvClose(true); lkClose(true);
   document.getElementById('case-sheet').hidden = true;
   document.getElementById('s-spatial').classList.remove('sheet-open');
   map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: 500 });
