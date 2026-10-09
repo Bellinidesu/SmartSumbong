@@ -1012,3 +1012,17 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] .cs-steps li.cur::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cv) 26%, transparent), 0 0 10px var(--cv); }
 :root[data-theme="dark"] .cs-steps li.on:has(+ li.on)::after { background: var(--cv); }
 :root[data-theme="dark"] .cs-steps li.cur::after { background: linear-gradient(90deg, var(--cv), rgba(255,255,255,.18)); }
+
+/* ---- Action circles: a gradient in the case's colour (the scenes are archived: tag archive/action-circles-scenes) ---- */
+.cs-acts .bgx { display: none; }
+:root[data-theme="dark"] .cs-acts .ac-send span, .cs-acts .ac-send span { background: linear-gradient(145deg, color-mix(in srgb, var(--cs-c) 88%, #fff), color-mix(in srgb, var(--cs-c) 52%, #000)); }
+:root[data-theme="dark"] .cs-acts .ac-zoom span, .cs-acts .ac-zoom span { background: linear-gradient(215deg, color-mix(in srgb, var(--cs-c) 88%, #fff), color-mix(in srgb, var(--cs-c) 52%, #000)); }
+:root[data-theme="dark"] .cs-acts .ac-copy span, .cs-acts .ac-copy span { background: linear-gradient(325deg, color-mix(in srgb, var(--cs-c) 88%, #fff), color-mix(in srgb, var(--cs-c) 52%, #000)); }
+:root[data-theme="dark"] .cs-acts > *:hover span:not(.x), .cs-acts > *:hover span:not(.x) { filter: brightness(1.12) saturate(1.1); }
+.cs-acts > * span { box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 1px 0 rgba(255,255,255,.4), 0 4px 12px color-mix(in srgb, var(--cs-c) 40%, transparent); }
+.cs-acts > *:hover span { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6), 0 0 0 4px color-mix(in srgb, var(--cs-c) 30%, transparent), 0 0 24px 3px color-mix(in srgb, var(--cs-c) 75%, transparent), 0 6px 16px rgba(0,0,0,.4); }
+.cs-acts .ac-copy.done span, :root[data-theme="dark"] .cs-acts .ac-copy.done span { background: linear-gradient(145deg, #3FD07F, #137A43); }
+/* Look around: the colour ring is back, round a gradient core */
+.cs-acts .ac-look span, :root[data-theme="dark"] .cs-acts .ac-look span, .cs-acts .ac-look:hover span, :root[data-theme="dark"] .cs-acts .ac-look:hover span { background: none; box-shadow: 0 4px 16px rgba(141,178,255,.35), 0 3px 10px rgba(0,0,0,.35); }
+.cs-acts .ac-look span::after, :root[data-theme="dark"] .cs-acts .ac-look span::after { inset: 3px; border-radius: 50%; background: linear-gradient(160deg, color-mix(in srgb, var(--cs-c) 70%, #fff), color-mix(in srgb, var(--cs-c) 40%, #000)); }
+.cs-acts .ac-look:hover span, :root[data-theme="dark"] .cs-acts .ac-look:hover span { box-shadow: 0 0 0 3px rgba(141,178,255,.25), 0 0 26px 3px rgba(141,178,255,.6), 0 6px 16px rgba(0,0,0,.4); }
