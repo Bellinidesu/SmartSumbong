@@ -883,10 +883,13 @@ function showDetail(r) {
       box.innerHTML = d && d.tanod ? esc(String(d.tanod.full_name || '').trim()) + '<small>' + esc(label(d.state)) + ' · ' + esc(fmtDate(d.assigned_at) || '') + '</small>'
         : esc(T('No tanod assigned yet', 'Wala pang naka-assign na tanod')) + '<small>' + esc(T('Dispatch from the case', 'I-dispatch mula sa kaso')) + '</small>'; });
   // The resident's words and photos fill the card under the progress.
-  Promise.all([sb.from('reports').select('description').eq('id', r.id).limit(1), sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3)]).then(([d, m]) => {
+  Promise.all([sb.from('reports').select('description').eq('id', r.id).limit(1), sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3),
+    sb.from('status_logs').select('new_status,remark,created_at,by:users!status_logs_changed_by_fkey(full_name)').eq('report_id', r.id).order('created_at', { ascending: false }).limit(1)]).then(([d, m, lg]) => {
     if (csFor !== r.id) return; const box = document.getElementById('cs-extra'); if (!box) return;
     const q = d.data && d.data[0] && d.data[0].description, ph = (m.data || []).map(x => x.media_url);
-    box.innerHTML = (q ? '<div class="cs-quote"><small>' + T('In the resident’s words', 'Sa salita ng residente') + '</small>“' + esc(String(q).slice(0, 200)) + (String(q).length > 200 ? '…' : '') + '”</div>' : '') +
+    const L = lg && lg.data && lg.data[0], ms = L ? Date.now() - new Date(L.created_at).getTime() : 0, h = Math.round(ms / 36e5), ago = h < 1 ? T('just now', 'ngayon lang') : h < 48 ? h + T(' h ago', ' oras ang nakalipas') : Math.round(h / 24) + T(' days ago', ' araw ang nakalipas');
+    const last = L ? '<div class="cs-last"><i></i><div><small>' + T('Last update', 'Huling update') + ' · ' + esc(ago) + '</small><b>' + esc(label(L.new_status)) + (L.by && L.by.full_name ? ' · ' + esc(String(L.by.full_name).trim()) : T(' · by the system', ' · ng sistema')) + '</b>' + (L.remark ? '<span>' + esc(String(L.remark).slice(0, 140)) + '</span>' : '') + '</div></div>' : '';
+    box.innerHTML = last + (q ? '<div class="cs-quote"><small>' + T('In the resident’s words', 'Sa salita ng residente') + '</small>“' + esc(String(q).slice(0, 200)) + (String(q).length > 200 ? '…' : '') + '”</div>' : '') +
       (ph.length ? '<div class="cs-photos" data-n="' + ph.length + '">' + ph.map(u => '<a href="' + esc(u) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(u).replace(/'/g, '%27') + '\')"></a>').join('') + '</div>' : '');
   });
   sb.from('report_media').select('media_url').eq('report_id', r.id).limit(1)
