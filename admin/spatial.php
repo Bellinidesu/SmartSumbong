@@ -800,6 +800,20 @@ const CS_OPEN = ['pending_review', 'validated'], CS_DISPATCHED = ['assigned', 'i
 let csFor = null;
 function csIcon(d) { return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
 function csPad() { return { left: innerWidth > 980 ? 420 : 0, top: 0, right: 0, bottom: 0 }; }
+// Pictures for the action tiles: each is a small world in the case's colour.
+const ACT_SCENE = {
+  send: '<svg class="bgx" viewBox="0 0 54 54" aria-hidden="true"><g class="st"><path d="M-2 16H56M-2 36H56M16 -2V56M38 -2V56"/></g><g class="bl"><rect x="20" y="20" width="14" height="12" rx="2"/><rect x="42" y="20" width="10" height="12" rx="2"/><rect x="2" y="40" width="12" height="12" rx="2"/><rect x="20" y="40" width="14" height="12" rx="2"/></g><path class="rt" d="M5 50C14 44 14 30 26 28S42 16 48 8"/><circle class="en" cx="48" cy="8" r="3.4"/><circle class="en o" cx="5" cy="50" r="2.4"/></svg>',
+  zoom: '<svg class="bgx" viewBox="0 0 54 54" aria-hidden="true"><g class="st w"><path d="M-2 14H56M-2 40H56M14 -2V56M40 -2V56"/></g><g class="bl"><rect x="18" y="18" width="18" height="18" rx="3"/><rect x="2" y="2" width="8" height="8" rx="2"/><rect x="44" y="44" width="8" height="8" rx="2"/></g><circle class="lens" cx="27" cy="27" r="15"/><circle class="lens b" cx="27" cy="27" r="9"/></svg>',
+  look: '<svg class="bgx" viewBox="0 0 54 54" aria-hidden="true"><defs><linearGradient id="lksk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A1230"/><stop offset="1" stop-color="#2A3F86"/></linearGradient></defs><rect width="54" height="54" fill="url(#lksk)"/><g class="sk"><circle cx="12" cy="9" r=".9"/><circle cx="40" cy="7" r=".8"/><circle cx="46" cy="18" r=".7"/><circle cx="24" cy="14" r=".6"/></g><path class="bd" d="M0 34L10 26V18L18 22V34Z"/><path class="bd" d="M54 34L44 26V16L36 22V34Z"/><path class="rd" d="M27 30L2 54H52Z"/><path class="ln" d="M27 32V54"/><ellipse class="gl" cx="27" cy="31" rx="18" ry="6"/></svg>',
+  copy: '<svg class="bgx" viewBox="0 0 54 54" aria-hidden="true"><g class="sh2"><rect x="16" y="11" width="24" height="30" rx="3"/></g><g class="sh1"><rect x="12" y="15" width="24" height="30" rx="3"/><path d="M17 24H31M17 29H31M17 34H26"/></g></svg>',
+};
+// How far through its time a complaint is: elapsed against the deadline, red once past it.
+function slaHtml(r) {
+  if (!r.due_at || CS_DONE.includes(r.status) || r.status === 'rejected' || r.status === 'cancelled') return '';
+  const t0 = new Date(r.created_at).getTime(), t1 = new Date(r.due_at).getTime(), now = Date.now(), f = Math.max(0, Math.min(1, (now - t0) / Math.max(1, t1 - t0))), late = now > t1;
+  const ms = Math.abs(t1 - now), h = Math.round(ms / 36e5), when = h < 48 ? h + T(' h', ' oras') : Math.round(h / 24) + T(' days', ' araw');
+  return '<div class="cs-sla' + (late ? ' late' : f > .75 ? ' soon' : '') + '"><div class="sl-t"><small>' + T('Time to deadline', 'Oras bago ang deadline') + '</small><b>' + (late ? T('Overdue by ', 'Lampas ng ') : T('Due in ', 'Sa loob ng ')) + when + '</b></div><div class="sl-bar"><i style="width:' + (f * 100).toFixed(0) + '%"></i></div></div>';
+}
 function showDetail(r) {
   qvClose(true); spClose();
   const el = document.getElementById('case-sheet');
@@ -823,10 +837,10 @@ function showDetail(r) {
       '<h2 class="cs-title">' + esc(r.subject || label(r.category)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span></p>' +
       '<div class="cs-acts' + (MLY ? ' four' : '') + '">' +
-        '<a class="ac-send" data-act="dispatch" href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + csIcon(SD_ICONS.send) + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
-        '<button type="button" class="ac-zoom" data-act="zoom"><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
-        (MLY ? '<button type="button" class="ac-look" data-act="look"><span>' + csIcon(SD_ICONS.view360) + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
-        '<button type="button" class="ac-copy" data-act="copy"><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
+        '<a class="ac-send" data-act="dispatch" href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + ACT_SCENE.send + csIcon(SD_ICONS.send) + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
+        '<button type="button" class="ac-zoom" data-act="zoom"><span>' + ACT_SCENE.zoom + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        (MLY ? '<button type="button" class="ac-look" data-act="look"><span>' + ACT_SCENE.look + csIcon(SD_ICONS.view360) + '</span>' + T('Look around', 'Luminga') + '</button>' : '') +
+        '<button type="button" class="ac-copy" data-act="copy"><span>' + ACT_SCENE.copy + csIcon(SD_ICONS.copy) + '</span>' + T('Copy ID', 'Kopyahin') + '</button>' +
       '</div>' +
       '<ul class="cs-rows">' +
         '<li>' + csIcon(SD_ICONS.pin) + '<span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Pinned location', 'Naka-pin na lokasyon')) + '<small>Barangay 183, Zone 20, Villamor, Pasay City</small></span></li>' +
@@ -836,9 +850,10 @@ function showDetail(r) {
         '<li>' + csIcon(SD_ICONS.radar) + '<span>' + nearby + T(nearby === 1 ? ' other complaint within 150 m' : ' other complaints within 150 m', ' iba pang sumbong sa loob ng 150 m') + '<small>' + T('Same block or the next', 'Parehong bloke o katabi') + '</small></span></li>' +
       '</ul>' +
       '<h3 class="cs-h">' + T('Progress', 'Takbo') + '</h3>' +
-      '<ol class="cs-steps" style="--fill:' + (steps.length > 1 ? Math.round(cur / (steps.length - 1) * 100) : 100) + '%">' + steps.map(([t, on], i) => '<li class="' + (on ? 'on' : '') + (i === cur ? ' cur' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' +
+      '<ol class="cs-steps" style="--fill:' + (steps.length > 1 ? Math.round(cur / (steps.length - 1) * 100) : 100) + '%">' + steps.map(([t, on], i) => '<li class="' + (on ? 'on' : '') + (i === cur ? ' cur' : '') + '">' + esc(t) + '</li>').join('') + '</ol>' + slaHtml(r) +
+      '<div id="cs-extra"></div>' +
     '</div>' +
-    '<div class="cs-foot"><a class="p-btn p-btn-primary" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open this case', 'Buksan ang kasong ito') + '</a></div>';
+    '<div class="cs-foot"><a class="p-btn p-btn-primary cs-open" href="case.php?id=' + encodeURIComponent(r.id) + '"><span>' + T('Open this case', 'Buksan ang kasong ito') + '</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>';
   el.hidden = false; el.querySelector('.cs-body').scrollTop = 0;
   document.getElementById('s-spatial').classList.add('sheet-open');
   if (typeof mapDrawer === 'function') mapDrawer('sheet');
@@ -867,6 +882,13 @@ function showDetail(r) {
     .then(({ data }) => { if (csFor !== r.id) return; const d = data && data[0], box = document.getElementById('cs-tanod'); if (!box) return;
       box.innerHTML = d && d.tanod ? esc(String(d.tanod.full_name || '').trim()) + '<small>' + esc(label(d.state)) + ' · ' + esc(fmtDate(d.assigned_at) || '') + '</small>'
         : esc(T('No tanod assigned yet', 'Wala pang naka-assign na tanod')) + '<small>' + esc(T('Dispatch from the case', 'I-dispatch mula sa kaso')) + '</small>'; });
+  // The resident's words and photos fill the card under the progress.
+  Promise.all([sb.from('reports').select('description').eq('id', r.id).limit(1), sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3)]).then(([d, m]) => {
+    if (csFor !== r.id) return; const box = document.getElementById('cs-extra'); if (!box) return;
+    const q = d.data && d.data[0] && d.data[0].description, ph = (m.data || []).map(x => x.media_url);
+    box.innerHTML = (q ? '<div class="cs-quote"><small>' + T('In the resident’s words', 'Sa salita ng residente') + '</small>“' + esc(String(q).slice(0, 200)) + (String(q).length > 200 ? '…' : '') + '”</div>' : '') +
+      (ph.length ? '<div class="cs-photos" data-n="' + ph.length + '">' + ph.map(u => '<a href="' + esc(u) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(u).replace(/'/g, '%27') + '\')"></a>').join('') + '</div>' : '');
+  });
   sb.from('report_media').select('media_url').eq('report_id', r.id).limit(1)
     .then(({ data }) => { if (csFor !== r.id || !data || !data[0]) return; const h = document.getElementById('cs-hero'); if (!h) return;
       const img = new Image(); img.alt = ''; img.className = 'cs-photo'; img.referrerPolicy = 'no-referrer'; img.onload = () => h.classList.add('has-photo'); img.src = data[0].media_url; h.prepend(img); });
@@ -1432,9 +1454,9 @@ function safeSheet(f) {
       '<svg class="cs-mark cs-glyph" viewBox="0 0 24 24" aria-hidden="true">' + g + '</svg><span class="sp-credit" id="sp-credit" hidden></span></div>' +
     '<div class="cs-body"><h2 class="cs-title">' + esc(p.name || T(kd.en, kd.fil)) + '</h2>' +
       '<p class="cs-meta"><span class="cs-st" style="--st:' + kd.c + '">' + esc(T(kd.en, kd.fil)) + '</span></p>' +
-      '<div class="cs-acts"><a class="ac-send" target="_blank" rel="noopener" href="' + dir + '"><span>' + csIcon(SD_ICONS.directions) + '</span>' + T('Directions', 'Direksyon') + '</a>' +
-        '<button type="button" class="ac-zoom" data-spzoom><span>' + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
-        '<button type="button" class="ac-copy" data-spcopy><span>' + csIcon(SD_ICONS.copy) + '</span>' + T('Copy coords', 'Kopyahin') + '</button></div>' +
+      '<div class="cs-acts"><a class="ac-send" target="_blank" rel="noopener" href="' + dir + '"><span>' + ACT_SCENE.send + csIcon(SD_ICONS.directions) + '</span>' + T('Directions', 'Direksyon') + '</a>' +
+        '<button type="button" class="ac-zoom" data-spzoom><span>' + ACT_SCENE.zoom + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
+        '<button type="button" class="ac-copy" data-spcopy><span>' + ACT_SCENE.copy + csIcon(SD_ICONS.copy) + '</span>' + T('Copy coords', 'Kopyahin') + '</button></div>' +
       '<ul class="cs-rows">' +
         row(SD_ICONS.pin, esc(p.addr || 'Barangay 183, Pasay City') + '<small>' + coord + '</small>') +
         row(SD_ICONS.phone, esc(p.phone)) +

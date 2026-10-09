@@ -927,3 +927,43 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .cs-acts .ac-zoom.go span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 0 0 7px color-mix(in srgb, var(--cs-c) 30%, transparent), 0 0 30px 4px color-mix(in srgb, var(--cs-c) 70%, transparent); }
 .cs-acts .ac-copy.done span { background: #1E9E56; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3), 0 0 22px 2px rgba(30,158,86,.7); }
 .cs-acts > * { color: #C9D6FF; } :root[data-theme="dark"] .cs-acts > *:hover { color: #fff; }
+
+/* ---- Action tiles: rounded squares with a little world behind each icon ---- */
+.cs-acts > * span { width: 54px; height: 54px; border-radius: 16px; }
+.cs-acts .ac-send span::before, .cs-acts .ac-zoom span::before, .cs-acts .ac-copy span::before { display: none; }
+.cs-acts .ac-look span::before { border-radius: 0; } .cs-acts .ac-look span::after { border-radius: 14px; background: none; inset: 2px; }
+.cs-acts .bgx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.cs-acts > * span > svg:not(.bgx) { z-index: 2; width: 23px; height: 23px; }
+.bgx .st path { fill: none; stroke: rgba(255,255,255,.16); stroke-width: 3; } .bgx .st.w path { stroke-width: 5; stroke: rgba(255,255,255,.12); }
+.bgx .bl rect { fill: rgba(255,255,255,.07); }
+.bgx .rt { fill: none; stroke: var(--cs-c); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 5 4; filter: brightness(1.5); }
+.bgx .en { fill: #fff; } .bgx .en.o { fill: var(--cs-c); filter: brightness(1.4); }
+.cs-acts .ac-send:hover .rt, .cs-acts .ac-send.go .rt { animation: swMarch .6s linear infinite; }
+.bgx .lens { fill: color-mix(in srgb, var(--cs-c) 22%, transparent); stroke: var(--cs-c); stroke-width: 1.4; filter: brightness(1.5); transform-origin: 27px 27px; transition: transform .4s cubic-bezier(.2,1.5,.4,1); } .bgx .lens.b { fill: none; stroke-width: 1; opacity: .7; }
+.cs-acts .ac-zoom:hover .lens { transform: scale(.8); } .cs-acts .ac-zoom.go .lens { transform: scale(1.6); opacity: .5; }
+.bgx .sk circle { fill: #fff; } .bgx .bd { fill: #16224D; stroke: rgba(255,255,255,.18); stroke-width: .8; } .bgx .rd { fill: #1E2B5E; } .bgx .ln { stroke: rgba(255,255,255,.55); stroke-width: 1.4; stroke-dasharray: 3 3; }
+.bgx .gl { fill: color-mix(in srgb, var(--cs-c) 70%, transparent); filter: blur(3px); }
+.cs-acts .ac-look:hover .ln { animation: swMarch .5s linear infinite; }
+.bgx .sh1 rect, .bgx .sh2 rect { fill: rgba(255,255,255,.12); stroke: rgba(255,255,255,.4); stroke-width: 1.2; } .bgx .sh1 path { stroke: rgba(255,255,255,.5); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.bgx .sh1 rect { fill: color-mix(in srgb, var(--cs-c) 35%, #0E1530); } .bgx .sh1, .bgx .sh2 { transition: transform .35s cubic-bezier(.2,1.5,.4,1); }
+.cs-acts .ac-copy:hover .sh1 { transform: translate(-3px, 3px); } .cs-acts .ac-copy:hover .sh2 { transform: translate(3px, -3px); }
+.cs-acts > * { gap: 8px; }
+/* ---- Open this case: in the case's colour, with the damascus, and a shine ---- */
+.cs-foot .cs-open, :root[data-theme="dark"] .cs-foot .cs-open { position: relative; overflow: hidden; isolation: isolate; display: flex; align-items: center; justify-content: center; gap: 10px; height: 52px; border: 0; border-radius: 16px; color: #fff; font: 800 16px Urbanist, sans-serif; text-shadow: 0 1px 3px rgba(0,0,0,.4);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cs) 92%, #fff 0%), color-mix(in srgb, var(--cs) 62%, #000)); box-shadow: 0 6px 20px color-mix(in srgb, var(--cs) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.3); transition: transform .3s cubic-bezier(.2,1.5,.4,1), box-shadow .3s; }
+.cs-foot .cs-open::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .26; background: #fff; -webkit-mask: url("../img/texture-contours.webp") 30% 40% / 300px repeat; mask: url("../img/texture-contours.webp") 30% 40% / 300px repeat; }
+.cs-foot .cs-open::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; z-index: -1; background: linear-gradient(100deg, transparent, rgba(255,255,255,.4), transparent); transform: skewX(-18deg); animation: csShine 5s ease-in-out infinite; }
+@keyframes csShine { 0%, 70% { left: -60%; } 100% { left: 130%; } }
+.cs-foot .cs-open svg { width: 18px; height: 18px; transition: transform .3s cubic-bezier(.2,1.6,.4,1); }
+.cs-foot .cs-open:hover { transform: translateY(-2px); box-shadow: 0 10px 28px color-mix(in srgb, var(--cs) 75%, transparent), 0 0 0 3px color-mix(in srgb, var(--cs) 30%, transparent), inset 0 1px 0 rgba(255,255,255,.35); } .cs-foot .cs-open:hover svg { transform: translateX(5px); } .cs-foot .cs-open:active { transform: scale(.97); }
+#safe-sheet .cs-foot .cs-open { display: none; }
+/* ---- No seam in the card's texture; and the room under the progress is filled ---- */
+.cs-sheet::before { -webkit-mask-size: cover, auto; mask-size: cover, auto; -webkit-mask-repeat: no-repeat, no-repeat; mask-repeat: no-repeat, no-repeat; -webkit-mask-position: center, center; mask-position: center, center; }
+.cs-sla { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.06); border: 1px solid color-mix(in srgb, var(--p-ink) 10%, transparent); display: grid; gap: 8px; }
+.cs-sla .sl-t { display: flex; justify-content: space-between; align-items: baseline; } .cs-sla small { color: var(--p-muted); font: 700 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; } .cs-sla b { font: 800 14px Urbanist, sans-serif; }
+.sl-bar { height: 8px; border-radius: 8px; background: color-mix(in srgb, var(--p-ink) 14%, transparent); overflow: hidden; } .sl-bar i { display: block; height: 100%; border-radius: 8px; background: linear-gradient(90deg, #1E9E56, #7FD28F); box-shadow: 0 0 10px rgba(30,158,86,.6); }
+.cs-sla.soon .sl-bar i { background: linear-gradient(90deg, #F9AB00, #FFD36B); box-shadow: 0 0 10px rgba(249,171,0,.6); } .cs-sla.late .sl-bar i { background: repeating-linear-gradient(135deg, #FF5A5F 0 6px, #C62828 6px 12px); box-shadow: 0 0 10px rgba(255,90,95,.6); } .cs-sla.late b { color: var(--p-red); }
+.cs-quote { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.06); border: 1px solid color-mix(in srgb, var(--p-ink) 10%, transparent); font-size: 14px; line-height: 1.45; } .cs-quote small { display: block; color: var(--p-muted); font: 700 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+.cs-photos { margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; height: 92px; } .cs-photos[data-n="1"] { grid-template-columns: 1fr; } .cs-photos[data-n="2"] { grid-template-columns: 1fr 1fr; }
+.cs-photos a { border-radius: 14px; background: var(--p-surface-2) center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); transition: transform .3s cubic-bezier(.2,1.5,.4,1); } .cs-photos a:hover { transform: scale(1.05); }
+@media (prefers-reduced-motion: reduce) { .cs-foot .cs-open::after { animation: none; } }
