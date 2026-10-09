@@ -1521,3 +1521,6 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .sv-pic b { position: absolute; right: 9px; bottom: 9px; width: 22px; height: 22px; border-radius: 7px; }
 .sv-pic.g i, .sv-pic.g b { background: rgba(255,255,255,.16); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: inset 1px 1px 0 rgba(255,255,255,.5); }
 .sv-pic.s i, .sv-pic.s b { background: #1C1D22; box-shadow: 0 0 0 1px rgba(255,255,255,.1); }
+
+.st-opts { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.st-opt { grid-template-columns: 1fr; }
