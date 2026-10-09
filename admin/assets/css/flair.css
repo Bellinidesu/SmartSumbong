@@ -916,3 +916,14 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 @keyframes acSheets { to { background-position: 18px 0, 0 0; } }
 .cs-acts .ac-copy.done span::before { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .cs-acts .ac-send span::before, .cs-acts .ac-copy span::before { animation: none !important; } }
+/* ---- The action circles: more opaque, white icons, a stronger (not loud) glow ---- */
+.cs-acts > * span { background: color-mix(in srgb, var(--cs-c) 24%, #0E1530); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.2), 0 3px 10px rgba(0,0,0,.35); color: #fff; }
+.cs-acts > * span svg { color: #fff; stroke-width: 2.1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+:root[data-theme="dark"] .cs-acts > * span { background: color-mix(in srgb, var(--cs-c) 24%, #0E1530); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.2), 0 3px 10px rgba(0,0,0,.35); }
+.cs-acts .ac-send span::before { opacity: 1; } .cs-acts .ac-zoom span::before, .cs-acts .ac-copy span::before { opacity: 1; }
+.cs-acts > *:hover span { background: color-mix(in srgb, var(--cs-c) 38%, #0E1530); box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 0 0 4px color-mix(in srgb, var(--cs-c) 28%, transparent), 0 0 22px 2px color-mix(in srgb, var(--cs-c) 70%, transparent), 0 6px 16px rgba(0,0,0,.4); }
+.cs-acts .ac-look span, :root[data-theme="dark"] .cs-acts .ac-look span { background: none; box-shadow: 0 4px 16px rgba(141,178,255,.4), 0 3px 10px rgba(0,0,0,.35); }
+.cs-acts .ac-look:hover span, :root[data-theme="dark"] .cs-acts .ac-look:hover span { background: none; box-shadow: 0 0 0 3px rgba(141,178,255,.22), 0 0 24px 3px rgba(141,178,255,.6), 0 6px 16px rgba(0,0,0,.4); }
+.cs-acts .ac-zoom.go span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 0 0 7px color-mix(in srgb, var(--cs-c) 30%, transparent), 0 0 30px 4px color-mix(in srgb, var(--cs-c) 70%, transparent); }
+.cs-acts .ac-copy.done span { background: #1E9E56; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3), 0 0 22px 2px rgba(30,158,86,.7); }
+.cs-acts > * { color: #C9D6FF; } :root[data-theme="dark"] .cs-acts > *:hover { color: #fff; }
