@@ -81,7 +81,7 @@
   // houses in a set of pastels (one for each, from where it stands), towers in neutrals; at night a house with its lights on adds warmth
   const wallPlain = p => shaded(i => ['case', ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
-  const faceColour = p => shaded(i => ['case', ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+  const faceColour = p => shaded(i => ['case', ['has', 'lw'], ['match', ['get', 'lw']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]), ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', p.glow[i], ['+', ['*', ['coalesce', ['get', 'g'], 0], .55], ['*', ['coalesce', ['get', 'w'], 0], 1.8]]]);
   const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey, p.trim];
   const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
@@ -134,7 +134,7 @@
     const out = [], low = faces.lowBand || 4.5;
     d.b.forEach((b, idx) => {
       const row = faces.f[idx]; if (!row || b[1] < 2) return;
-      if (b._lm) return;
+      const lmSpec = b._lm || null;
       const ring = b[0], k = ring.length / 2, h = b[1], tone = row[0].split('|'), lamp = row[1].split('|');
       if (tone[0].length !== k) return;
       let area = 0; for (let i = 0; i < k; i++) { const j = (i + 1) % k; area += ring[2 * i] * MX * ring[2 * j + 1] * MY - ring[2 * j] * MX * ring[2 * i + 1] * MY; }
@@ -145,7 +145,7 @@
         const nx = sg * dy / ln * .15, ny = -sg * dx / ln * .15, ox = nx * .15 / .15 * .1, oy = ny * .1;
         const quad = [[x0 + ox, y0 + oy], [x1 + ox, y1 + oy], [x1 + nx + ox, y1 + ny + oy], [x0 + nx + ox, y0 + ny + oy], [x0 + ox, y0 + oy]].map(([a, c]) => [a / MX, c / MY]);
         const bands = h > low + 1 ? [[0, low, 0], [low, h, 1]] : [[0, h, 0]];
-        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: { b: bb, t: tt, h, wi, g, k: .62 + .38 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35 }, geometry: { type: 'Polygon', coordinates: [quad] } }));
+        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, g, k: .62 + .38 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
       }
     });
     return { type: 'FeatureCollection', features: out };
@@ -304,6 +304,7 @@
       if (bld && bld.b) {
         BLD = bld; LMS = lms; BAKE = bake;
         FACES = faces;
+        if (window.sdGlow) window.sdGlow.init(map, { bld, faces, lamps: detail && detail.lamps }, firstLabel);
         const [walls, roofs, lmw, trim] = bldShapes(bld, lms, look());
         if (faces) { map.addSource('cd-faces', { type: 'geojson', data: facePlates(bld, faces) }); map.addLayer({ id: 'cd-face', type: 'fill-extrusion', source: 'cd-faces', minzoom: 16.2, layout: hide, paint: { 'fill-extrusion-color': faceColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d'); }
         map.addSource('cd-bld', { type: 'geojson', data: walls }); map.addSource('cd-roofs', { type: 'geojson', data: roofs }); map.addSource('cd-lm', { type: 'geojson', data: lmw }); map.addSource('cd-trim', { type: 'geojson', data: trim });
@@ -412,6 +413,7 @@
     // walls and the landmark walls always; roofs, models' trim and (behind the switch) window textures only at Full
     ['cd-wall', 'cd-lm-wall'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); });
     WALLS.forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });
+    if (window.sdGlow) window.sdGlow.show(full && isDark());   // the emissive light is the costliest part: Light and a slow screen leave it out
     ['cd-roof', 'cd-lm-trim', 'cd-face'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });   // Light: plain boxes, no roofs, no model trim
     if (has('building-3d')) {   // the map tiles' own 3D buildings are only a fallback, when the buildings file did not load
       map.setLayoutProperty('building-3d', 'visibility', on && !plain ? 'visible' : 'none');
