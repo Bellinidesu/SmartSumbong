@@ -58,53 +58,43 @@ def reference(name):
     """Two unwrapped street-view faces of the real building (Mapillary 360 panoramas), if the building is found and seen."""
     sys.path.insert(0, HERE)
     try:
-        import mly_rectify as R
-        from shapely.geometry import LineString, Polygon
-        imgs = [i for i in json.load(open(os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Temp', 'ic', 'src', 'mly_zone.json'))) if i.get('is_pano') and i.get('computed_geometry')]
+        import faces
+        return [im for ln, i, im, pid, h, ppm in faces.rectified_faces(name, 2)]
     except Exception as e:
         print('  (no street-view reference: %s)' % e)
         return []
-    d = json.load(open(os.path.join(ADMIN, 'assets', 'map', 'buildings.json')))
-    bld, info = d['b'], d.get('info', {})
-    bi = next((int(k) for k, v in info.items() if v[0] == name), None)
-    if bi is None:
-        return []
-    b = bld[bi]
-    MX, MY = R.MX, R.MY
-    o = (b[4], b[5])
-    ring = [((b[0][i] - o[0]) * MX, (b[0][i + 1] - o[1]) * MY) for i in range(0, len(b[0]), 2)]
-    others = [Polygon([((q[0][k] - o[0]) * MX, (q[0][k + 1] - o[1]) * MY) for k in range(0, len(q[0]), 2)]).buffer(0) for q in bld if q is not b and abs(q[4] - b[4]) < .0012 and abs(q[5] - b[5]) < .0012]
-    faces = []
-    n = len(ring)
-    for i in range(n):
-        a_, b_ = ring[i], ring[(i + 1) % n]
-        ln = math.hypot(b_[0] - a_[0], b_[1] - a_[1])
-        if ln < 10:
-            continue
-        mid = ((a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2)
-        ux, uy = (b_[0] - a_[0]) / ln, (b_[1] - a_[1]) / ln
-        nx, ny = uy, -ux
-        for dd, im in R.nearest_panos(imgs, (o[0] + mid[0] / MX, o[1] + mid[1] / MY), o, rmin=10, rmax=90, limit=40):
-            lg, lt = im['computed_geometry']['coordinates']
-            cx, cy = (lg - o[0]) * MX, (lt - o[1]) * MY
-            vx, vy = cx - mid[0], cy - mid[1]
-            D = math.hypot(vx, vy)
-            if (vx * nx + vy * ny) / D < .6 or any(q.intersects(LineString([(mid[0] + nx * .6, mid[1] + ny * .6), (cx, cy)])) for q in others):
-                continue
-            faces.append((ln, i, im))
-            break
-    faces.sort(key=lambda t: -t[0])
-    ims = []
-    for ln, i, im in faces[:2]:
-        pano, meta = R.fetch(im['id'])
-        arr, dist, ang = R.rectify(pano, meta, ring[i], ring[(i + 1) % n], min(b[1], 45), o, ppm=7, max_px=420)
-        ims.append(Image.fromarray(arr))
-    return ims
 
 
-def sheet(name, out, ref):
+def refs_row(name, n=5):
+    """The best references the last search found for this landmark (thumbnails from the cache), and the palette of the real walls beside the model's."""
+    sys.path.insert(0, HERE)
+    ims, chips = [], None
+    try:
+        import json as _j
+        import hashlib, refsearch, common as K
+        db = _j.load(open(refsearch.INDEX, encoding='utf-8')) if os.path.exists(refsearch.INDEX) else {}
+        es = sorted(db.get(name, []), key=lambda e: (not e.get('picked'), -e.get('score', 0)))[:n]
+        for e in es:
+            p = os.path.join(K.REFS, '%s_%s.jpg' % (e['src'], hashlib.md5(e['id'].encode()).hexdigest()[:12]))
+            if os.path.exists(p):
+                ims.append((Image.open(p).convert('RGB'), e))
+    except Exception as e:
+        print('  (no reference row: %s)' % e)
+    try:
+        import suggest, engine
+        sg = suggest.analyse(name, 2)
+        ours = engine.wall_colour(name)
+        real = tuple(int(sg['wall'].lstrip('#')[i:i + 2], 16) for i in (0, 2, 4)) if sg.get('wall') else None
+        chips = dict(real=[tuple(int(c.lstrip('#')[i:i + 2], 16) for i in (0, 2, 4)) for c, w in sg.get('palette', [])], ours=ours, de=engine.delta_e(real, ours) if real and ours else None)
+    except BaseException as e:
+        print('  (no palette comparison: %s)' % str(e)[:60])
+    return ims, chips
+
+
+def sheet(name, out, ref, rrow=None, chips=None):
     W, H = 360, 260
-    S = Image.new('RGB', (W * 4, H * 2 + (210 if ref else 0) + 34), (16, 19, 34))
+    extra = (210 if ref else 0) + (215 if rrow else 0) + (44 if chips else 0)
+    S = Image.new('RGB', (W * 4, H * 2 + extra + 34), (16, 19, 34))
     d = ImageDraw.Draw(S)
     try:
         f = ImageFont.truetype('C:/Windows/Fonts/segoeuib.ttf', 15)
@@ -123,6 +113,28 @@ def sheet(name, out, ref):
             im = im.resize((int(im.width * h / im.height), h))
             S.paste(im, (x + 8, 34 + H * 2 + 26))
             x += im.width + 12
+    y = 34 + H * 2 + (210 if ref else 0)
+    if rrow:
+        d.text((10, y + 4), 'references found (refsearch.py): source, licence, author', fill=(160, 166, 200), font=f)
+        x = 8
+        for im, e in rrow:
+            t = im.copy()
+            t.thumbnail((270, 150))
+            S.paste(t, (x, y + 26))
+            d.text((x, y + 26 + 152), '%s | %s' % (e['src'], (e.get('license') or '?')[:18]), fill=(200, 205, 235), font=f)
+            x += 276
+        y += 215
+    if chips:
+        d.text((10, y + 4), 'real walls', fill=(160, 166, 200), font=f)
+        x = 100
+        for c in chips['real'][:6]:
+            d.rectangle([x, y + 4, x + 30, y + 26], fill=tuple(c))
+            x += 34
+        if chips.get('ours'):
+            d.text((x + 24, y + 4), 'model wall', fill=(160, 166, 200), font=f)
+            d.rectangle([x + 112, y + 4, x + 146, y + 26], fill=tuple(chips['ours']))
+            if chips.get('de') is not None:
+                d.text((x + 160, y + 4), 'colour distance dE %.0f (%s)' % (chips['de'], 'close' if chips['de'] < 12 else 'near' if chips['de'] < 24 else 'far'), fill=(240, 240, 250), font=f)
     p = os.path.join(out, 'sheet.jpg')
     S.save(p, quality=88)
     return p
@@ -140,7 +152,8 @@ def run(name, rebuild=False):
         shoot(name, port, out)
     finally:
         srv.shutdown()
-    print('sheet:', sheet(name, out, reference(name)))
+    rrow, chips = refs_row(name)
+    print('sheet:', sheet(name, out, reference(name), rrow, chips))
 
 
 def main():

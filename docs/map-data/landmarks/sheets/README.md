@@ -42,3 +42,20 @@ python docs/map-data/tools/bench.py "Plaza 66" --watch      rebuild and photogra
 python docs/map-data/tools/silhouettes.py                    the skyline test: landmarks must not share an outline
 python docs/map-data/tools/make_city.py --only models,light,wash      the full build for the map
 ```
+
+## The engine (`docs/map-data/tools/engine.py`)
+
+```
+engine.py find "newprt mal"       fuzzy search over every named building, sheet, model and reference (shows what each already has)
+engine.py status                  the landmarks with a sheet: built, size, references, wall colour against the street's (dE)
+engine.py refs "Newport Mall"     reference search: Openverse, Wikimedia Commons, Mapillary street views, Sketchfab models (proportion only); one board
+engine.py refs "Newport Mall" --pick commons:Newport_city_tmall.JPG     mark a reference as used: it is credited in landmarks/REFS.md
+engine.py suggest "Plaza 66"      colours, floor height, bay width and glass share read off the street view
+engine.py draft "Plaza 66"        a first sheet from those numbers
+engine.py bench "Plaza 66"        four sides, day and night, with the street view, the references and the colour distance
+engine.py new "Newport Mall"      refs + suggest + draft + build + bench in one go
+```
+
+Search keeps a picture only when it says it was taken here (Commons categories, Openverse tags, or a street-level frame, which is here by construction) and is
+about the building; `--loose` keeps pictures that do not say where. Keys are read from `.env` (OPENVERSE_CLIENT_ID/SECRET, SKETCHFAB_TOKEN, MAPILLARY_TOKEN);
+`refsearch.py --index-mapillary` builds the street-view index of the zone once.
