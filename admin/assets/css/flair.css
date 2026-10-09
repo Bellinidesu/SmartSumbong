@@ -1129,3 +1129,34 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .qv-look::after { background: rgba(14,15,20,.94); }
 :root[data-theme="dark"] .qv-tail { background: rgba(24,25,32,.9); }
 :root[data-theme="dark"] .qv-ph.none { background: linear-gradient(145deg, color-mix(in srgb, var(--cs-hi) 55%, #14161C), color-mix(in srgb, var(--cs-lo) 55%, #14161C)); }
+
+/* ======== Frosted glass for the rest of the map UI, dark mode. One recipe, two strengths:
+   panels (big, over a lot of map) blur 16 at ~76% graphite; controls (small, over streets) blur 8 at ~84%.
+   Everything goes solid-ish on hover or focus so the text never has to fight the map. ======== */
+:root[data-theme="dark"] #s-spatial {
+  --gl-panel: rgba(21,22,29,.76); --gl-panel-hi: rgba(21,22,29,.94); --gl-ctl: rgba(21,22,29,.84); --gl-edge: rgba(255,255,255,.13); --gl-shine: inset 0 1px 0 rgba(255,255,255,.12);
+}
+:root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend, :root[data-theme="dark"] #s-spatial .fw-card, :root[data-theme="dark"] #s-spatial .lyc {
+  background: var(--gl-panel); border: 1px solid var(--gl-edge); box-shadow: 0 14px 40px rgba(0,0,0,.45), var(--gl-shine); -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3); transition: background .25s; }
+:root[data-theme="dark"] #s-spatial .p-map-stats:hover, :root[data-theme="dark"] #s-spatial .p-map-legend:hover, :root[data-theme="dark"] #s-spatial .fw-card:hover, :root[data-theme="dark"] #s-spatial .lyc:hover { background: var(--gl-panel-hi); }
+:root[data-theme="dark"] #s-spatial .fw-chip { background: var(--gl-ctl); border: 1px solid var(--gl-edge); box-shadow: 0 8px 24px rgba(0,0,0,.4), var(--gl-shine); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+:root[data-theme="dark"] #s-spatial .p-dock-btn, :root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group { background: var(--gl-ctl); border: 1px solid var(--gl-edge); box-shadow: 0 6px 18px rgba(0,0,0,.4), var(--gl-shine); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+:root[data-theme="dark"] #s-spatial .p-dock-btn:hover, :root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group button:hover { background: var(--gl-panel-hi); }
+:root[data-theme="dark"] #s-spatial .p-dock-btn.on { background: var(--p-orange); }
+:root[data-theme="dark"] #s-spatial .p-map-stats .p-pin-row:hover, :root[data-theme="dark"] #s-spatial .p-map-stats .p-hs-row:hover { background: rgba(255,255,255,.07); }
+:root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend { color: #EDEFF7; }
+:root[data-theme="dark"] #s-spatial .p-map-stats small, :root[data-theme="dark"] #s-spatial .p-map-legend small, :root[data-theme="dark"] #s-spatial .fw-card small, :root[data-theme="dark"] #s-spatial .lyc small { color: #A9AEBE; }
+/* while the map moves, nothing is blurred: the blur is the costly part, and nobody reads a panel mid-pan */
+#s-spatial.ss-dragging .p-map-stats, #s-spatial.ss-dragging .p-map-legend, #s-spatial.ss-dragging .fw-card, #s-spatial.ss-dragging .lyc, #s-spatial.ss-dragging .fw-chip, #s-spatial.ss-dragging .p-dock-btn, #s-spatial.ss-dragging .maplibregl-ctrl-group { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--p-surface) !important; }
+@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } :root[data-theme="dark"] #s-spatial { --gl-panel: #15161D; --gl-ctl: #15161D; } }
+/* readability pass: measured against the brightest things the map can put behind a panel (hazard gold, heat red, lime) */
+:root[data-theme="dark"] #s-spatial { --gl-panel: rgba(21,22,29,.85); --gl-ctl: rgba(21,22,29,.9); }
+:root[data-theme="dark"] #s-spatial .p-map-stats small, :root[data-theme="dark"] #s-spatial .p-map-legend small, :root[data-theme="dark"] #s-spatial .fw-card small, :root[data-theme="dark"] #s-spatial .lyc small, :root[data-theme="dark"] #s-spatial .p-map-legend h3, :root[data-theme="dark"] #s-spatial .p-eyebrow { color: #C3C8D6; }
+:root[data-theme="dark"] .cs-sheet { background: linear-gradient(180deg, color-mix(in srgb, var(--cs) 22%, transparent), color-mix(in srgb, var(--cs) 5%, transparent) 50%, color-mix(in srgb, var(--cs) 14%, transparent)), rgba(20,21,27,.8); }
+:root[data-theme="dark"] .cs-h, :root[data-theme="dark"] .cs-last small, :root[data-theme="dark"] .cs-sla small, :root[data-theme="dark"] .cs-quote small, :root[data-theme="dark"] .cs-rows small, :root[data-theme="dark"] .cs-meta { color: #BFC4D2; }
+:root[data-theme="dark"] .cs-stg li { color: #BFC4D2; }
+:root[data-theme="dark"] .ss-qv { background: linear-gradient(180deg, color-mix(in srgb, var(--cs) 14%, transparent), color-mix(in srgb, var(--cs) 3%, transparent) 55%, color-mix(in srgb, var(--cs) 9%, transparent)), rgba(20,21,27,.8); }
+:root[data-theme="dark"] .qv-facts small, :root[data-theme="dark"] .qv-cap { color: #BFC4D2; }
+:root[data-theme="dark"] #s-spatial .p-map-search { background: color-mix(in srgb, var(--p-surface) 82%, transparent); }
+:root[data-theme="dark"] #s-spatial .p-map-search .p-note { color: #C3C8D6; }
+:root[data-theme="dark"] #s-spatial { --gl-panel: rgba(21,22,29,.88); }
