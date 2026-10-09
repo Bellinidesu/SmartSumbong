@@ -6,6 +6,7 @@ where it stands; its height from floors (num_floors, building:levels) or height 
 
 Colours are the barangay's pastels, picked from the building's own place so that no two neighbours match, but a hotel's tower stays one colour.
 """
+import colorsys
 import math
 import re
 import zlib
@@ -21,6 +22,38 @@ ACCENT = [C['blue'], C['teal'], C['navy'], C['terra'], C['green'], C['slate']]
 
 def pick(ctx, pool, salt=0):
     return pool[zlib.crc32(('%.5f,%.5f,%d' % (ctx['lng'], ctx['lat'], salt)).encode()) % len(pool)]
+
+
+def seen(ctx, pool, salt=0):
+    """The building's own wall colour as the street shows it (tools/stylise.py reads it from Mapillary's 360 panoramas), drawn in our palette: the hue
+    it really has, softened to a pastel, light as our baked shading wants it. Where nothing was seen, the barangay's pastel for that place."""
+    st = ctx.get('style')
+    if st and st.get('wall'):
+        r, g, b = [max(0, min(255, v)) / 255 for v in st['wall']]
+        hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
+        ll = .60 + .34 * ll
+        ss = min(.40, ss * 1.15 + .03)
+        return rgb('%02X%02X%02X' % tuple(int(round(v * 255)) for v in colorsys.hls_to_rgb(hh, ll, ss)))
+    return pick(ctx, pool, salt)
+
+
+def glass_of(ctx, default):
+    st = ctx.get('style')
+    return st['glass'] if st and st.get('glass') is not None else default
+
+
+def body_style(ctx, default_pool, salt):
+    """What the upper floors look like: mostly glass (a curtain wall), mostly wall with windows, or in between, as the street shows it."""
+    g = glass_of(ctx, None)
+    if g is None:
+        return pick(ctx, default_pool, salt)
+    if g >= .50:
+        return 'glass'
+    if g >= .33:
+        return 'ribbon'
+    if g >= .20:
+        return 'windows'
+    return 'slots'
 
 
 def floors_of(h):
@@ -72,10 +105,10 @@ def balconies(m, ring, ctx, h, col):
 def z_hotel(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
-    base = pick(ctx, PASTELS, 1)
+    base = seen(ctx, PASTELS, 1)
     gh = min(6.0, h * .3)
     m.prism(ring, 0, gh, 'shop', C['white'], 'plain', base, top=False, cell=4)
-    m.prism(ring, gh, h - 1.2, pick(ctx, ['windows', 'strip', 'slots'], 11), base, 'plain', base, top=False, cell=4)
+    m.prism(ring, gh, h - 1.2, body_style(ctx, ['windows', 'strip', 'slots'], 11), base, 'plain', base, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 2))
     porte_cochere(m, ring, ctx, h)
 
@@ -83,9 +116,9 @@ def z_hotel(m, ring, ctx, p):
 def z_condo(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
-    col = pick(ctx, PASTELS, 3)
+    col = seen(ctx, PASTELS, 3)
     m.prism(ring, 0, 4.6, 'shop', C['white'], 'plain', col, top=False, cell=4)
-    m.prism(ring, 4.6, h - 1.2, pick(ctx, ['windows', 'strip', 'slots', 'windows'], 12), col, 'plain', col, top=False, cell=4)
+    m.prism(ring, 4.6, h - 1.2, body_style(ctx, ['windows', 'strip', 'slots', 'windows'], 12), col, 'plain', col, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 4))
 
 
@@ -93,14 +126,14 @@ def z_office(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
     m.prism(ring, 0, 5.0, 'ribbon', C['glass'], 'plain', C['grey'], top=False, cell=4)
-    m.prism(ring, 5.0, h - 1.2, 'glass', pick(ctx, [C['glass'], rgb('C6D2E0'), rgb('B3C4D6')], 5), 'plain', C['grey'], top=False, cell=4)
+    m.prism(ring, 5.0, h - 1.2, 'glass', seen(ctx, [C['glass'], rgb('C6D2E0'), rgb('B3C4D6')], 5), 'plain', C['grey'], top=False, cell=4)
     crown(m, ring, h, ctx, C['slate'])
 
 
 def z_mall(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
-    col = pick(ctx, PASTELS, 6)
+    col = seen(ctx, PASTELS, 6)
     gh = min(6.0, h * .45)
     m.prism(ring, 0, gh, 'shop', C['white'], 'plain', col, top=False, cell=4)
     m.prism(ring, gh, h - .6, 'ribbon' if h > 12 else 'plain', col, 'plain', col, top=False, cell=4)
@@ -133,7 +166,7 @@ def z_hangar(m, ring, ctx, p):
 def z_generic(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
-    col = pick(ctx, PASTELS, 8)
+    col = seen(ctx, PASTELS, 8)
     m.prism(ring, 0, h, 'windows' if h > 5 else 'panel', col, 'roofdeck', C['white'], top=True, cell=4)
     if Polygon(ring).area > 300:
         poly = Polygon(ring).buffer(.25, join_style=2)

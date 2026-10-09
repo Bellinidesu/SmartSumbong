@@ -416,6 +416,10 @@ def main():
     ZONE = (121.0105, 14.5120, 121.0240, 14.5262)
     info = bdoc.get('info', {})
     nz = 0
+    try:
+        styles = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'facade-style.json')))
+    except Exception:
+        styles = {}
     for bi, b in enumerate(bld):
         if bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and ZONE[1] <= b[5] <= ZONE[3]):
             continue
@@ -424,13 +428,14 @@ def main():
         if not (area >= 260 or b[1] >= 14 or nm):
             continue
         lng0, lat0 = b[4], b[5]
+        style = styles.get('%.5f,%.5f' % (b[4], b[5]))
         ring = local_ring(b, lng0, lat0)
         ox = sum(q[0] for q in ring) / len(ring)
         oy = sum(q[1] for q in ring) / len(ring)
         ring = [(q[0] - ox, q[1] - oy) for q in ring]
         lng0 += ox / MX
         lat0 += oy / MY
-        ctx = dict(cx=0.0, cy=0.0, L=b[6], W=b[7], th=b[8], lng=lng0, lat=lat0)
+        ctx = dict(cx=0.0, cy=0.0, L=b[6], W=b[7], th=b[8], lng=lng0, lat=lat0, style=style)
         ctx['others'] = [Polygon([(q[0] - lng0 * MX, q[1] - lat0 * MY) for q in allpolys[j].exterior.coords]) for j in range(len(bld)) if j != bi and abs(bld[j][4] - lng0) < .0009 and abs(bld[j][5] - lat0) < .0009]
         kind = _zone.kind_of(nm, cls, area, b[1], None, lng0, lat0)
         m = Mesh()
