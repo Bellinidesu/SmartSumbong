@@ -1160,3 +1160,11 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] #s-spatial .p-map-search { background: color-mix(in srgb, var(--p-surface) 82%, transparent); }
 :root[data-theme="dark"] #s-spatial .p-map-search .p-note { color: #C3C8D6; }
 :root[data-theme="dark"] #s-spatial { --gl-panel: rgba(21,22,29,.88); }
+/* while the map moves the blur is off, but the panel stays the same graphite (not the portal's navy), so nothing flashes */
+:root[data-theme="dark"] #s-spatial.ss-dragging .p-map-stats, :root[data-theme="dark"] #s-spatial.ss-dragging .p-map-legend, :root[data-theme="dark"] #s-spatial.ss-dragging .fw-card, :root[data-theme="dark"] #s-spatial.ss-dragging .lyc { background: var(--gl-panel) !important; }
+:root[data-theme="dark"] #s-spatial.ss-dragging .fw-chip, :root[data-theme="dark"] #s-spatial.ss-dragging .p-dock-btn, :root[data-theme="dark"] #s-spatial.ss-dragging .maplibregl-ctrl-group { background: var(--gl-ctl) !important; }
+:root[data-theme="dark"] #s-spatial.ss-dragging .p-map-dock:not(:hover) { opacity: .6; }
+/* the list's scrollbar in the glass's own colours */
+#s-spatial .p-map-stats { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.28) transparent; }
+#s-spatial .p-map-stats::-webkit-scrollbar { width: 8px; } #s-spatial .p-map-stats::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
+#s-spatial .p-map-stats::-webkit-scrollbar-thumb { background: rgba(255,255,255,.26); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; } #s-spatial .p-map-stats::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,.45); }
