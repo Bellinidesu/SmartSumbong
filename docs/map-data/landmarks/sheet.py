@@ -23,6 +23,7 @@ import facade
 import tiles_lib
 import hero
 import terminal
+import uvparts
 from meshlib import MAT, TILE_M, _ccw, rgb
 from models_common import C
 
@@ -110,17 +111,19 @@ def build(m, ring, ctx, sh, h, name):
         n = body.get(k)
         return mats[n] if n in mats else (n if n in MAT else default)
     roof_c = _hex((sh.get('roof') or {}).get('colour', 'F4F1EA'))
-    if sh.get('sections'):
+    if sh.get('parts_only'):
+        pass                                              # the building is all parts (a plan read off the satellite in its own frame): no footprint extrusion
+    elif sh.get('sections'):
         terminal.sections(m, ring, ctx, sh, wall, podium_col, roof_c)
     else:
         m.prism(ring, 0, pod, sel('podium_mat', 'shop'), podium_col, 'plain', podium_col, top=False, cell=4)
         m.grade = (pod, top, float(body.get('grade', 0.0))) if body.get('grade') else None
         m.prism(ring, pod, top, sel('floors_mat', 'windows'), wall, 'plain', wall, top=False, cell=4)
         m.grade = None
-    if band_h and not sh.get('sections'):
+    if band_h and not sh.get('sections') and not sh.get('parts_only'):
         m.prism(ring, top, h - .7, sel('band_mat', 'plain'), accent if body.get('band_colour', 'accent') == 'accent' else wall, 'plain', wall, top=False, cell=4)
     poly = Polygon(ring).buffer(.35, join_style=2)                                       # the cornice
-    if sh.get('sections'):
+    if sh.get('sections') or sh.get('parts_only'):
         poly = Polygon()
     roof = sh.get('roof') or {}
     roof_col = _hex(roof['colour']) if roof.get('colour') else C['white']               # read off the satellite view (tools/sat.py --apply), softened to our palette
@@ -165,6 +168,8 @@ def build(m, ring, ctx, sh, h, name):
             hero.rings(m, ctx, sh, ft)
         elif t == 'belt':
             hero.belt(m, ring, ft)
+        elif t == 'parts':
+            uvparts.build(m, ctx, sh, ft, mats)
         elif t == 'vaults':
             terminal.vaults(m, ctx, sh, ft)
         elif t == 'skylights':
