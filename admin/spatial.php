@@ -154,6 +154,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 <?php endif; ?>
 <script src="assets/js/map-theme.js?v=<?= e(asset_version('../js/map-theme.js')) ?>"></script>
 <script src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>"></script>
+<script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
 <script src="assets/vendor/supabase/supabase.js"></script>
 <script>
 // Self-hosted rather than imported from esm.sh. This script runs with the
@@ -1555,6 +1556,12 @@ function layerSync() {
   // The outline arrives after the page does; the air-quality tint follows it.
   const wait = setInterval(() => { if (rings.length) { clearInterval(wait); if (map.getSource('aq')) map.getSource('aq').setData(layerShape()); } }, 600); setTimeout(() => clearInterval(wait), 20000);
 })();
+
+// The filter dropdowns and the month picker, in the portal's own look.
+const STATUS_DOT = { under_review: '#F9AB00', in_progress: '#2F6BFF', resolved: '#1E9E56', rejected: '#9AA3B2' };
+sdPickers.select(document.getElementById('f-category'), { dot: v => catColour(v) });
+sdPickers.select(document.getElementById('f-status'), { dot: v => STATUS_DOT[v] });
+sdPickers.month(document.getElementById('f-period'), { allTime: document.getElementById('f-period-all') });
 
 // Tuning aid, off unless asked for: load spatial.php?bounds=1 and the
 // console prints the framing on every pan, ready to paste above.
