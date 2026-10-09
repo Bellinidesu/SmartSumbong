@@ -23,6 +23,8 @@ def raster(meta, bin_, w, n, px, W, H):
     hm = np.zeros((H, W), dtype=np.float32)
     P = verts['p'].astype(np.float64)
     for md in meta['models']:
+        if md.get('furniture'):
+            continue
         v0, i0, ni = md['voff'], md['ioff'], md['i']
         ox, oy = (md['lng'] - w) * MX / px, (n - md['lat']) * MY / px
         tri = idx[i0:i0 + ni].reshape(-1, 3).astype(np.int64) + v0

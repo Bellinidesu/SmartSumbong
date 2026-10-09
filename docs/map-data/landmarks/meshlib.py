@@ -114,6 +114,59 @@ class Mesh:
                 ids = [self._v((p[0], p[1], z), nrm, (p[0] / tw, p[1] / th), mat, col) for p in pts]
                 self.tri(*ids)
 
+    def _tri2d(self, poly, cell):
+        """Triangles (as 2D point triples) of a polygon cut into cells of about `cell`, so that light can vary across it."""
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        minx, miny, maxx, maxy = poly.bounds
+        nx_, ny_ = max(1, math.ceil((maxx - minx) / cell)), max(1, math.ceil((maxy - miny) / cell))
+        pieces = []
+        if nx_ * ny_ > 1:
+            for i in range(nx_):
+                for j in range(ny_):
+                    c = poly.intersection(sbox(minx + i * cell, miny + j * cell, minx + (i + 1) * cell, miny + (j + 1) * cell))
+                    pieces += [g for g in (c.geoms if hasattr(c, 'geoms') else [c]) if g.geom_type == 'Polygon' and g.area > .02]
+        else:
+            pieces = [poly]
+        out = []
+        for pc in pieces:
+            for t in constrained_delaunay_triangles(pc).geoms:
+                pts = list(t.exterior.coords)[:3]
+                if abs(Polygon(pts).area) > 1e-5:
+                    out.append(pts)
+        return out
+
+    def vprism(self, poly_uz, o, u, n, d0, d1, mat, col, cell=2.5):
+        """A shape drawn in a vertical plane (u along the facade, z up), pushed out along the horizontal normal n from depth d0 to d1:
+        its edges become walls and its front face (at d1) a cap. o is the plane's origin (x, y, z), u and n are horizontal unit vectors."""
+        P = lambda a, z, d: (o[0] + u[0] * a + n[0] * d, o[1] + u[1] * a + n[1] * d, o[2] + z + 0.0)
+        pts = list(poly_uz)
+        if sum(pts[i][0] * pts[(i + 1) % len(pts)][1] - pts[(i + 1) % len(pts)][0] * pts[i][1] for i in range(len(pts))) < 0:
+            pts = pts[::-1]
+        tw, th = TILE_M[MAT[mat]]
+        for i in range(len(pts)):
+            a, b = pts[i], pts[(i + 1) % len(pts)]
+            du, dz = b[0] - a[0], b[1] - a[1]
+            ln = math.hypot(du, dz)
+            if ln < 1e-4:
+                continue
+            nrm = _norm((u[0] * dz, u[1] * dz, -du))     # outward, in the plane
+            seg = max(1, math.ceil(ln / 3.0))
+            self.grid(P(a[0], a[1], d0), (P(b[0], b[1], d0)[0] - P(a[0], a[1], d0)[0], P(b[0], b[1], d0)[1] - P(a[0], a[1], d0)[1], b[1] - a[1]),
+                      (n[0] * (d1 - d0), n[1] * (d1 - d0), 0.0), seg, 1, nrm, MAT[mat], col, (0, 0), (ln / tw, (d1 - d0) / th))
+        for t in self._tri2d(Polygon(pts), cell):
+            ids = [self._v(P(x, z, d1), (n[0], n[1], 0.0), (x / tw, z / th), MAT[mat], col) for x, z in t]
+            self.tri(*ids)
+
+    def arch_poly(self, half_w, leg_h, seg=14):
+        """The outline (u, z) of an arched opening or a stepped arch: straight legs up to leg_h, then a semicircle."""
+        pts = [(-half_w, 0.0)]
+        for k in range(seg + 1):
+            a = math.pi - math.pi * k / seg
+            pts.append((half_w * math.cos(a), leg_h + half_w * math.sin(a)))
+        pts.append((half_w, 0.0))
+        return pts
+
     def prism(self, ring, z0, z1, wall_mat, wall_col, top_mat='sheet', top_col=None, top=True, cell=CELL):
         """A footprint extruded from z0 to z1: walls (outside normals) and, if asked for, a flat top."""
         ring = _ccw(ring)

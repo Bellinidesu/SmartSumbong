@@ -45,19 +45,72 @@ def local_ring(b, lng0, lat0):
 
 # ---------- templates ----------------------------------------------------------------------------------------------------------------
 
+def _front(ctx, others):
+    """The way a building faces: of its four oriented-box sides, the one with the most open ground in front of it (a road, a forecourt).
+    Returns (unit vector out of the front, half the length across it, half the length behind it, the unit vector along the front)."""
+    th, L, W = ctx['th'], ctx['L'], ctx['W']
+    c, s_ = math.cos(th), math.sin(th)
+    best = None
+    for k, (dx, dy, half, across, along) in enumerate(((c, s_, L / 2, W / 2, (-s_, c)), (-c, -s_, L / 2, W / 2, (s_, -c)),
+                                                         (-s_, c, W / 2, L / 2, (c, s_)), (s_, -c, W / 2, L / 2, (-c, -s_)))):
+        mid = Point(dx * (half + 1), dy * (half + 1))
+        free = min([mid.distance(o) for o in others] + [80.0])
+        score = free + (6 if k < 2 else 0)
+        if best is None or score > best[0]:
+            best = (score, (dx, dy), half, across, along)
+    _, d, half, across, along = best
+    return d, half, across, along
+
+
 def t_shrine(m, ring, ctx, p):
-    """The Shrine of St. Therese: terracotta walls with tall arches, a flat roof with a parapet, small blue domes with crosses."""
-    h = p.get('h', 9.5)
+    """The Shrine of St. Therese (Newport City): from the photographs: terracotta walls, a facade of four stepped concentric arches with the
+    saint above and a cross, a flat portico on columns with planter boxes and a columbarium band, two drum towers with blue domes, a long
+    side wall of arched windows behind a hedge. The way it faces is the side with the most open ground."""
+    h = p.get('h', 11.5)
+    ring = _ccw(ring)
     m.prism(ring, 0, h, 'arches', C['terra'], 'plain', C['sand'], top=True)
-    cx, cy, L, W, th = ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th']
-    c, s = math.cos(th), math.sin(th)
-    for k, off in enumerate((-.26, .26)):
-        x, y = cx + off * L * c, cy + off * L * s
-        m.cylinder(x, y, h, h + 1.7, min(3.6, W * .22), 'plain', C['terra'], seg=16)
-        m.dome(x, y, h + 1.7, min(3.6, W * .22), 2.5, 'plain', C['dome'], seg=18)
-        m.cylinder(x, y, h + 4.2, h + 6.0, .13, 'plain', C['cream'], seg=6)
-        m.box(x, y, h + 5.2, 1.5, .26, .26, th, 'plain', C['cream'])
-    m.box(cx, cy, h, L * .62, W * .5, 1.1, th, 'plain', C['terra'], 'plain', C['sand'])        # a raised roof
+    fr, half, across, along = _front(ctx, ctx.get('others', []))
+    cx, cy = ctx['cx'], ctx['cy']
+    nx, ny = fr
+    ux, uy = along
+    wf = min(2 * across * .86, 24.0)
+    ox, oy = cx + nx * (half + .05), cy + ny * (half + .05)
+    # the stepped arches: each a little proud of the one behind, lighter at the front
+    steps = [(.50, .46, C['terra']), (.41, .50, C['peach']), (.32, .54, C['terra']), (.23, .58, C['peach'])]
+    fh = h + 9.0
+    for k, (rf, leg, col) in enumerate(steps):
+        R = wf * rf
+        leg_h = fh - R - 0.5 - k * .6
+        m.vprism(m.arch_poly(R, max(1.0, leg_h)), (ox, oy, 0), (ux, uy), (nx, ny), .25 + k * .55, .8 + k * .55, 'plain', col)
+    # the stained glass: a dark recessed arch
+    R = wf * .16
+    m.vprism(m.arch_poly(R, 4.2), (ox, oy, 6.2), (ux, uy), (nx, ny), 2.2, 2.45, 'plain', C['navy'])
+    # a cross and the statue above the arch
+    top = fh + .3
+    m.vprism([(-.14, 0), (.14, 0), (.14, 2.6), (-.14, 2.6)], (ox, oy, top), (ux, uy), (nx, ny), 2.0, 2.3, 'plain', C['yellow'])
+    m.vprism([(-.9, 1.6), (.9, 1.6), (.9, 1.95), (-.9, 1.95)], (ox, oy, top), (ux, uy), (nx, ny), 2.0, 2.3, 'plain', C['yellow'])
+    m.vprism([(-.55, 0), (.55, 0), (.45, 3.4), (-.45, 3.4)], (ox, oy, top - 3.8), (ux, uy), (nx, ny), 2.0, 3.0, 'plain', C['cream'])
+    # the portico: a flat roof on columns, a band with the shrine's name, planter boxes along its edge
+    pd, pw, pz = 6.5, wf * .9, 5.4
+    pcx, pcy = ox + nx * (pd / 2 + .3), oy + ny * (pd / 2 + .3)
+    thp = math.atan2(uy, ux)
+    m.box(pcx, pcy, pz, pw, pd, .6, thp, 'plain', C['terra'], 'plain', C['sand'])
+    m.box(pcx + nx * (pd / 2 - .05), pcy + ny * (pd / 2 - .05), pz + .6, pw, .3, 1.1, thp, 'sign', C['cream'], 'plain', C['cream'])      # the band
+    for k in range(5):
+        t = (k / 4 - .5) * pw * .86
+        m.column(pcx + ux * t + nx * (pd / 2 - .5), pcy + uy * t + ny * (pd / 2 - .5), 0, pz, .38, C['terra'])
+        m.box(pcx + ux * t + nx * (pd / 2 - .2), pcy + uy * t + ny * (pd / 2 - .2), pz + .6, 1.6, 1.0, .8, thp, 'plain', C['green'], 'plain', C['green'])   # a planter
+    # two drum towers beside the facade, each with a blue dome and a little cross
+    for sgn in (-1, 1):
+        tx, ty = ox + ux * sgn * wf * .62 - nx * 4.0, oy + uy * sgn * wf * .62 - ny * 4.0
+        r = min(3.8, wf * .17)
+        m.prism([(tx + r * math.cos(2 * math.pi * i / 8), ty + r * math.sin(2 * math.pi * i / 8)) for i in range(8)], h, h + 4.4, 'arches', C['terra'], 'plain', C['sand'], top=True)
+        m.dome(tx, ty, h + 4.4, r * 1.04, r * .62, 'plain', C['dome'], seg=16)
+        m.cylinder(tx, ty, h + 4.4 + r * .62, h + 4.4 + r * .62 + 1.6, .1, 'plain', C['yellow'], seg=6)
+    # a low parapet round the roof
+    poly = Polygon(ring).buffer(-.35, join_style=2)
+    if not poly.is_empty and poly.geom_type == 'Polygon':
+        m.prism(list(poly.exterior.coords)[:-1], h, h + .8, 'plain', C['sand'], 'plain', C['sand'], top=False)
 
 
 def t_chapel(m, ring, ctx, p):
@@ -254,7 +307,7 @@ TEMPLATES = dict(shrine=t_shrine, chapel=t_chapel, terminal=t_terminal, mall=t_m
 # landmark name -> (template, parameters). Heights are for a model that stands where the OSM building stands; where the photos
 # say more (colours, floors, fittings) it is written here.
 SPECS = [
-    (r'Shrine', 'shrine', {'h': 9.5}),
+    (r'Shrine', 'shrine', {'h': 11.5}),
     (r'Our Lady of Loreto|Chapel', 'chapel', {'h': 6.0}),
     (r'Philippines State College|Aeronautics', 'psca', {'h': 12.0}),
     (r'NAIA Terminal 3', 'terminal', {'h': 17.0, 'canopy': 9.0, 'plant': 5, 'wall': 'glass', 'col': C['glass']}),
@@ -331,8 +384,13 @@ def main():
         lng0 += ox / MX
         lat0 += oy / MY
         tname, params = spec
+        params = dict(params)
+        if len(b) > 9 and not b[9]:
+            params['h'] = round(float(b[1]), 1)    # OpenStreetMap or Overture knows this building's real height: it wins over the template's guess
+            print('    (real height %.1f m)' % b[1])
         others = [Polygon([(q[0] - lng0 * MX, q[1] - lat0 * MY) for q in allpolys[j].exterior.coords]) for j in range(len(bld)) if j != bi and abs(bld[j][4] - lng0) < .0009 and abs(bld[j][5] - lat0) < .0009]
         ctx['side'] = _free_side(ctx, _ccw(ring), others)
+        ctx['others'] = others
         m = Mesh()
         TEMPLATES[tname](m, ring, ctx, dict(params))
         P, N, U, M, Cc, Ix = m.arrays()
@@ -345,6 +403,25 @@ def main():
         voff += len(P)
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles  h %.0f m' % (name, tname, len(P), len(Ix) // 3, height))
+    # street lamps: a pole and a lamp head for every lamp (city-detail.json), as one more model at the middle of the map
+    det = json.load(open(os.path.join(MAP, 'city-detail.json'), encoding='utf-8'))
+    lamps = det.get('lamps', [])
+    if lamps:
+        lng0, lat0 = 121.0135, 14.5240
+        m = Mesh()
+        for lng, lat, br, white in lamps:
+            x, y = (lng - lng0) * MX, (lat - lat0) * MY
+            sq = [(x - .09, y - .09), (x + .09, y - .09), (x + .09, y + .09), (x - .09, y + .09)]
+            m.prism(sq, 0, 7.2, 'plain', C['slate'], 'plain', C['slate'], top=False, cell=8.0)
+            head = C['yellow'] if not white else rgb('D8E6FF')
+            m.prism([(x - .30, y - .16), (x + .30, y - .16), (x + .30, y + .16), (x - .30, y + .16)], 7.2, 7.4, 'sign', head, 'sign', head, top=True, cell=3.0)
+        P, N, U, M, Cc, Ix = m.arrays()
+        models.append({'name': 'Street lamps', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': 7.4, 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+        V.append((P, U, M, Cc, N))
+        I.append(Ix)
+        voff += len(P)
+        ioff += len(Ix)
+        print('%-42s %-9s %6d vertices %6d triangles' % ('Street lamps (%d)' % len(lamps), 'furniture', len(P), len(Ix) // 3))
     # one binary: vertices (x y z u v as float32, mat r g b as uint8) then triangles (uint32)
     vb = bytearray()
     for P, U, M, Cc, N in V:
