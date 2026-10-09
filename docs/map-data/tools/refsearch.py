@@ -8,6 +8,7 @@ the best are ranked first. Nothing found here is shipped; a reference that is us
     python docs/map-data/tools/refsearch.py "Newport Mall"
     python docs/map-data/tools/refsearch.py "Plaza 66" --sources openverse,commons,mapillary --n 30
     python docs/map-data/tools/refsearch.py "Plaza 66" --pick commons:File_Plaza_66.jpg      mark a reference as used (credited)
+    python docs/map-data/tools/refsearch.py "Newport Mall" --add C:/pics/mall1.jpg --credit "Google Images, resortsworld.com"   put a picture you found yourself on the board
     python docs/map-data/tools/refsearch.py --index-mapillary                                  (re)build the zone's street-view index
 """
 import hashlib, html, io, json, math, os, re, sys, urllib.parse
@@ -18,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common as K
 
 INDEX = os.path.join(K.LM, 'refs-index.json')
+INBOX = os.path.join(K.CACHE, 'inbox')        # pictures put here by hand: looked at, never committed or shipped
 CREDITS = os.path.join(K.LM, 'REFS.md')
 HERE_TERMS = ('manila', 'pasay', 'philippine', 'filipino', 'resorts world', 'newport city', 'newport boulevard', 'naia', 'villamor', 'metro manila', 'ninoy aquino', 'pasay city', 'barangay 183', 'kalayaan', 'sheraton manila', 'okura manila', 'marriott manila')
 ELSEWHERE = ('isle of wight', ', iw', 'rhode island', 'wales', 'kentucky', 'england', 'new jersey', 'oregon', 'california', 'virginia', 'tennessee', 'vermont', 'cardiff', 'gwent', 'hampshire', 'shropshire', 'pembrokeshire', 'newport news', 'jersey city', 'shanghai', 'china', 'hong kong', 'beijing', 'singapore', 'london', 'new york', 'tokyo', 'bangkok', 'jakarta', 'seoul', 'taipei', 'kuala lumpur')
@@ -73,6 +75,21 @@ def commons(q, n, near=None):
             out.append(_entry('commons', p['title'].replace('File:', '').replace(' ', '_'), md.get('ObjectName', {}).get('value') or p['title'], md.get('Artist', {}).get('value'), md.get('LicenseShortName', {}).get('value'),
                               ii.get('descriptionurl'), ii.get('thumburl') or ii.get('url'), ii.get('width', 0), ii.get('height', 0), geo, {'where': where}))
     pages(K.get_json(api + urllib.parse.urlencode(dict(props, action='query', generator='search', gsrsearch=q + ' filetype:bitmap', gsrnamespace=6, gsrlimit=min(n, 30)))))
+    # the categories that are named for it (Category:Resorts World Manila) and the pictures in them
+    try:
+        cats = K.get_json(api + urllib.parse.urlencode({'action': 'query', 'list': 'search', 'srsearch': q, 'srnamespace': 14, 'srlimit': 3, 'format': 'json'})).get('query', {}).get('search', [])
+        for c in cats[:2]:
+            mem = K.get_json(api + urllib.parse.urlencode({'action': 'query', 'list': 'categorymembers', 'cmtitle': c['title'], 'cmtype': 'file', 'cmlimit': min(n, 40), 'format': 'json'})).get('query', {}).get('categorymembers', [])
+            titles = [m['title'] for m in mem]
+            if titles:
+                before = len(out)
+                pages(K.get_json(api + urllib.parse.urlencode(dict(props, action='query', titles='|'.join(titles[:40])))))
+                for e in out[before:]:
+                    e['where'] = (e.get('where', '') + ' ' + c['title'])
+                    e['ctx'] = max(e.get('ctx', 0), context_of(e['where']))
+                    e['cat'] = c['title']
+    except Exception as ex:
+        print('  commons categories: %s' % str(ex)[:60])
     if near:
         g = K.get_json(api + urllib.parse.urlencode({'action': 'query', 'list': 'geosearch', 'gscoord': '%f|%f' % (near[1], near[0]), 'gsradius': 400, 'gsnamespace': 6, 'gslimit': min(n, 30), 'format': 'json'}))
         titles = [x['title'] for x in g.get('query', {}).get('geosearch', [])]
@@ -83,6 +100,55 @@ def commons(q, n, near=None):
             for e in out[before:]:
                 e['geo'] = dist.get('File:' + e['id'].replace('_', ' '))
     return out
+
+
+def google(q, n):
+    """Google Programmable Search, image search over the whole web (the official API: 100 queries a day free; the key and the search engine id are in .env).
+    Results are other people's pictures: they are looked at for reference, never copied or shipped, and each carries the page it came from."""
+    key, cx = K.env('GOOGLE_CSE_KEY'), K.env('GOOGLE_CSE_CX')
+    if not key or not cx:
+        return []
+    out = []
+    for start in range(1, min(n, 30) + 1, 10):
+        try:
+            r = K.get_json('https://www.googleapis.com/customsearch/v1?%s' % urllib.parse.urlencode({'key': key, 'cx': cx, 'q': q, 'searchType': 'image', 'num': 10, 'start': start, 'safe': 'active', 'imgSize': 'large'}))
+        except Exception as ex:
+            print('  google: %s' % str(ex)[:90])
+            break
+        for i in r.get('items', []):
+            im = i.get('image', {})
+            out.append(_entry('google', i['link'], i.get('title'), i.get('displayLink'), 'unknown (via Google; looked at only)', im.get('contextLink') or i['link'], im.get('thumbnailLink') or i['link'], im.get('width', 0), im.get('height', 0),
+                              extra={'where': (i.get('snippet') or '') + ' ' + (im.get('contextLink') or '')}))
+    return out
+
+
+def inbox_entries(name):
+    """The pictures put on the board by hand (--add): they come first."""
+    d = os.path.join(INBOX, re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-'))
+    out = []
+    if os.path.isdir(d):
+        meta = json.load(open(os.path.join(d, 'meta.json'))) if os.path.exists(os.path.join(d, 'meta.json')) else {}
+        for f in sorted(os.listdir(d)):
+            if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                e = _entry('user', f, f, meta.get(f, {}).get('credit') or 'put here by hand', 'user-supplied (looked at only)', meta.get(f, {}).get('source') or 'file', None, extra={'ctx': 1})
+                e['file'] = os.path.join(d, f)
+                e['score'] = 9.0
+                out.append(e)
+    return out
+
+
+def add(name, src, credit=None):
+    """Put a picture (a file or a web address) in the inbox of a landmark; it will lead its board."""
+    d = os.path.join(INBOX, re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-'))
+    os.makedirs(d, exist_ok=True)
+    base = hashlib.md5(src.encode()).hexdigest()[:10] + '.jpg'
+    data = K.get(src) if re.match(r'https?://', src) else open(src, 'rb').read()
+    Image.open(io.BytesIO(data)).convert('RGB').save(os.path.join(d, base), quality=92)
+    mp = os.path.join(d, 'meta.json')
+    meta = json.load(open(mp)) if os.path.exists(mp) else {}
+    meta[base] = {'source': src if src.startswith('http') else 'a file you gave', 'credit': credit or ''}
+    json.dump(meta, open(mp, 'w'), indent=1)
+    print('added', os.path.join(d, base))
 
 
 def sketchfab(q, n):
@@ -179,7 +245,7 @@ def relevant(e, name, loose=False):
     t = (e['title'] + ' ' + e['url']).lower()
     rel = sum(1 for w in words if w in t) / max(1, len(words))
     near = e.get('geo') is not None and e['geo'] <= 150
-    ok_ctx = e.get('ctx', 0) > 0 or (loose and e.get('ctx', 0) == 0)
+    ok_ctx = e.get('ctx', 0) > 0 or ((loose or e['src'] == 'google') and e.get('ctx', 0) == 0)
     return ok_ctx and (rel >= .5 or (near and rel > 0))
 
 
@@ -198,6 +264,8 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
                     res += commons(q, n, near)
                 elif s == 'sketchfab':
                     res += sketchfab(q, n)
+                elif s == 'google':
+                    res += google(q, n)
             except Exception as ex:
                 print('  %s (%s): %s' % (s, q, str(ex)[:80]))
         if 'mapillary' in sources and q == qs[-1]:
@@ -217,6 +285,9 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
     with cf.ThreadPoolExecutor(8) as ex:
         files = list(ex.map(fetch_thumb, uniq))
     out, hashes = [], []
+    for e in inbox_entries(name):
+        out.append(e)
+        hashes.append(dhash(Image.open(e['file'])))
     for e, p in zip(uniq, files):
         if not p:
             continue
@@ -282,7 +353,7 @@ def board(name, entries, out=None, cols=5):
         im = Image.open(e['file']).convert('RGB')
         im.thumbnail((W - 6, H - 4))
         S.paste(im, (x + 3 + (W - 6 - im.width) // 2, y + 2 + (H - 4 - im.height) // 2))
-        tag = {'openverse': 'OV', 'commons': 'WC', 'mapillary': 'MLY', 'sketchfab': '3D'}[e['src']]
+        tag = {'openverse': 'OV', 'commons': 'WC', 'mapillary': 'MLY', 'sketchfab': '3D', 'google': 'G', 'user': 'ME'}[e['src']]
         d.rectangle([x + 3, y + 2, x + 3 + 38, y + 20], fill=(232, 120, 12))
         d.text((x + 8, y + 3), tag, fill=(20, 14, 0), font=f2)
         d.text((x + 6, y + H), (e['title'] or '')[:44], fill=(230, 232, 245), font=f2)
@@ -297,7 +368,7 @@ def remember(name, entries):
     keep = {(e['src'], e['id']): e for e in db.get(name, []) if e.get('picked')}
     rows = []
     for e in entries:
-        r = {k: e[k] for k in ('src', 'id', 'title', 'author', 'license', 'url', 'score') if k in e}
+        r = {k: e[k] for k in ('src', 'id', 'title', 'author', 'license', 'url', 'score', 'cat') if k in e}
         if (e['src'], e['id']) in keep:
             r['picked'] = True
         rows.append(r)
@@ -339,7 +410,9 @@ def main():
     opt = lambda k, d=None: a[a.index(k) + 1] if k in a else d
     if '--pick' in a:
         return pick(name, opt('--pick'))
-    src = tuple((opt('--sources') or 'openverse,commons,mapillary,sketchfab').split(','))
+    if '--add' in a:
+        return add(name, opt('--add'), opt('--credit'))
+    src = tuple((opt('--sources') or ('openverse,commons,mapillary,sketchfab' + (',google' if K.env('GOOGLE_CSE_KEY') else ''))).split(','))
     near = tuple(float(x) for x in opt('--near').split(',')) if opt('--near') else None
     es = search(name, src, int(opt('--n', 24)), near, loose='--loose' in a)
     remember(name, es)

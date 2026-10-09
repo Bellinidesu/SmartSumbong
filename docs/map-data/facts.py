@@ -7,7 +7,7 @@ FLOORS = [
     (r'Marriott Grand Ballroom', None, 'OpenStreetMap: height 36 m'),
     (r'Marriot(t)? West Wing', 10, 'Overture Maps: 10 floors'),
     (r'Manila Marriott', 8, 'hotel booking listings (Marriott, Traveloka): 8 floors'),
-    (r'Hilton', 10, 'Travel Weekly / AMI Magazine list 9, a hotel listing 11: 10 taken'),
+    (r'Hilton', 11, 'DATEM, the builder: 11 floors plus roof deck (earlier lists said 9 or 10)'),
     (r'Sheraton Manila', 11, 'Marriott.com property facilities; booking listings: 11 floors'),
     (r'Okura', 11, 'Hotel Okura Manila: 11 floors and 4 basement levels'),
     (r'Belmont', 10, 'Overture Maps: 10 floors'),

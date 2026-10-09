@@ -118,9 +118,9 @@ def analyse(name, max_faces=3):
             import refsearch
             db = json.load(open(refsearch.INDEX, encoding='utf-8')) if os.path.exists(refsearch.INDEX) else {}
             got = []
-            for e in sorted([e for e in db.get(name, []) if e['src'] == 'mapillary'], key=lambda e: -e.get('score', 0))[:3]:
+            for e in sorted([e for e in db.get(name, []) if e['src'] in ('mapillary', 'user')], key=lambda e: -e.get('score', 0))[:4]:
                 import hashlib
-                f = os.path.join(K.REFS, 'mapillary_%s.jpg' % hashlib.md5(e['id'].encode()).hexdigest()[:12])
+                f = os.path.join(refsearch.INBOX, slug_of(name), e['id']) if e['src'] == 'user' else os.path.join(K.REFS, 'mapillary_%s.jpg' % hashlib.md5(e['id'].encode()).hexdigest()[:12])
                 if os.path.exists(f):
                     im = Image.open(f).convert('RGB')
                     W, H = im.size
