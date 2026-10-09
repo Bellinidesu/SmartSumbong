@@ -30,6 +30,14 @@ for _i, _f in enumerate(_FAM):
         TILE_M[64 + _i * 3 + _v] = TILE_M[_FAM[_f]]
 
 
+for _k in range(4):
+    MAT['glow%d' % _k] = 80 + _k
+    TILE_M[80 + _k] = (4.0, 4.0)
+
+GLAZED = {1, 2, 3, 12, 13} | set(range(64, 79))      # tiles that are one storey and whole bays: their walls are cut to fit
+GRADED = {2, 3} | set(range(64 + 3, 64 + 9))         # ribbon and curtain wall (their variants too): glass that mirrors the sky
+
+
 class _TileM(dict):
     """Tiles from 16 up are one sign each, drawn 12 m by 1.6 m."""
     def __missing__(self, k):
@@ -55,7 +63,7 @@ class Mesh:
     def tri(self, a, b, c):
         self.idx += [a, b, c]
 
-    def grid(self, o, du, dv, nu, nv, n, mat, col, uv0=(0., 0.), uvs=(1., 1.), flip=False):
+    def grid(self, o, du, dv, nu, nv, n, mat, col, uv0=(0., 0.), uvs=(1., 1.), flip=False, colf=None):
         """A flat parallelogram o + s*du + t*dv, cut into nu x nv cells. uv0, uvs: texture coordinate at the corner and over the whole."""
         rows = []
         for j in range(nv + 1):
@@ -63,7 +71,7 @@ class Mesh:
             for i in range(nu + 1):
                 s, t = i / nu, j / nv
                 p = (o[0] + du[0] * s + dv[0] * t, o[1] + du[1] * s + dv[1] * t, o[2] + du[2] * s + dv[2] * t)
-                row.append(self._v(p, n, (uv0[0] + uvs[0] * s, uv0[1] + uvs[1] * t), mat, col))
+                row.append(self._v(p, n, (uv0[0] + uvs[0] * s, uv0[1] + uvs[1] * t), mat, colf(p) if colf else col))
             rows.append(row)
         for j in range(nv):
             for i in range(nu):
@@ -97,7 +105,19 @@ class Mesh:
         n = (dy / ln, -dx / ln, 0.0)
         tw, th = TILE_M[mat]
         nu, nv = max(1, math.ceil(ln / cell)), max(1, math.ceil((z1 - z0) / cell))
-        self.grid((p0[0], p0[1], z0), (dx, dy, 0), (0, 0, z1 - z0), nu, nv, n, mat, col, (u_start / tw, z0 / th), (ln / tw, (z1 - z0) / th))
+        uv0, uvs = (u_start / tw, z0 / th), (ln / tw, (z1 - z0) / th)
+        if mat in GLAZED and ln >= tw * .5 and z1 - z0 >= th * .5:
+            # whole bays across and whole storeys up, the same at both ends of the wall: no pane is cut by a corner or by the roof
+            uv0, uvs = (0.0, 0.0), (max(1, round(ln / tw)), max(1, round((z1 - z0) / th)))
+        colf = None
+        g = getattr(self, 'grade', None)
+        if g and mat in GRADED:
+            gz0, gz1, k = g
+            def colf(p, col=col, gz0=gz0, gz1=gz1, k=k):
+                f = min(1.0, max(0.0, (p[2] - gz0) / max(gz1 - gz0, 1.0)))
+                lum = 1 + k * (f - .5)
+                return tuple(int(max(0, min(255, round(c * lum * sh)))) for c, sh in zip(col, (1 - .035 * f, 1 - .01 * f, 1 + .05 * f)))
+        self.grid((p0[0], p0[1], z0), (dx, dy, 0), (0, 0, z1 - z0), nu, nv, n, mat, col, uv0, uvs, False, colf)
         return u_start + ln
 
     def cap(self, ring, z, mat, col, up=True, cell=6.0):

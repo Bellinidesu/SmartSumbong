@@ -72,7 +72,11 @@ def floors_of(h):
 def crown(m, ring, h, ctx, col, big=True):
     """A cornice band, a setback of mechanical floor with louvres, and rooftop plant."""
     poly = Polygon(ring).buffer(.4, join_style=2)
-    m.prism(list(poly.exterior.coords)[:-1], h - 1.2, h + .5, 'plain', col, 'roofdeck', C['white'], top=True, cell=4)
+    if h >= 34 and ctx.get('glow', True):
+        # a tall tower's crown is a band of light at night (violet, teal, amber or blue by the building), a plain cornice by day
+        m.prism(list(poly.exterior.coords)[:-1], h - 2.6, h + .5, 'glow%d' % (zlib.crc32(('%.5f,%.5f,g' % (ctx['lng'], ctx['lat'])).encode()) % 4), C['white'], 'roofdeck', C['white'], top=True, cell=4)
+    else:
+        m.prism(list(poly.exterior.coords)[:-1], h - 1.2, h + .5, 'plain', col, 'roofdeck', C['white'], top=True, cell=4)
     inner = Polygon(ring).buffer(-3.2, join_style=2)
     if big and not inner.is_empty and inner.geom_type == 'Polygon' and inner.area > 120:
         m.prism(list(inner.exterior.coords)[:-1], h + .5, h + 4.2, 'louvre', C['grey'], 'roofdeck', C['white'], top=True, cell=4)
@@ -117,6 +121,7 @@ def z_hotel(m, ring, ctx, p):
     base = seen(ctx, PASTELS, 1)
     gh = min(6.0, h * .3)
     m.prism(ring, 0, gh, 'shop', C['white'], 'plain', base, top=False, cell=4)
+    m.grade = (gh, h - 1.2, .22)
     m.prism(ring, gh, h - 1.2, looked(ctx, body_style(ctx, ['windows', 'strip', 'slots'], 11), 11), base, 'plain', base, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 2))
     porte_cochere(m, ring, ctx, h)
@@ -127,6 +132,7 @@ def z_condo(m, ring, ctx, p):
     ring = _ccw(ring)
     col = seen(ctx, PASTELS, 3)
     m.prism(ring, 0, 4.6, 'shop', C['white'], 'plain', col, top=False, cell=4)
+    m.grade = (4.6, h - 1.2, .22)
     m.prism(ring, 4.6, h - 1.2, looked(ctx, body_style(ctx, ['windows', 'strip', 'slots', 'windows'], 12), 12), col, 'plain', col, top=False, cell=4)
     crown(m, ring, h, ctx, pick(ctx, ACCENT, 4))
 
@@ -135,6 +141,7 @@ def z_office(m, ring, ctx, p):
     h = p['h']
     ring = _ccw(ring)
     m.prism(ring, 0, 5.0, 'ribbon', C['glass'], 'plain', C['grey'], top=False, cell=4)
+    m.grade = (5.0, h - 1.2, .30)
     m.prism(ring, 5.0, h - 1.2, looked(ctx, 'glass', 5), seen(ctx, [C['glass'], rgb('C6D2E0'), rgb('B3C4D6')], 5), 'plain', C['grey'], top=False, cell=4)
     crown(m, ring, h, ctx, C['slate'])
 

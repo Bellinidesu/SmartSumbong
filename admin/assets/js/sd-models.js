@@ -80,7 +80,7 @@
     },
   };
 
-  const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+  const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src + '?v=' + (window.SD_MAPV || ''); });
   const ready = (async () => {
     try {
       data = await fetch('assets/map/landmarks3d.json').then(r => r.json());

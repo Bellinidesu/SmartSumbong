@@ -325,8 +325,12 @@ const INTRO = (() => {
   } catch (e) { return false; }
 })();
 if (INTRO) document.getElementById('map').classList.add('dm-hide');
+// The map's own data (models, pictures, footprints) is rebuilt now and then; a version on every request means no browser keeps the old one.
+window.SD_MAPV = <?= json_encode((string) max(array_map('filemtime', glob(__DIR__ . '/assets/map/*') ?: [0]))) ?>;
+(() => { const f = window.fetch; window.fetch = (u, o) => { try { const s = typeof u === 'string' ? u : (u && u.url) || ''; if (typeof u === 'string' && /assets\/map\/[^?]*$/.test(s)) u = s + '?v=' + window.SD_MAPV; } catch (e) {} return f.call(window, u, o); }; })();
 const map = new maplibregl.Map({
   container: 'map',
+  transformRequest: (url) => (/\/assets\/map\/[^?]*\.(png|webp|json|gz)$/.test(url) ? { url: url + '?v=' + window.SD_MAPV } : undefined),
   style: window.mapStyleUrl(),
   center: INTRO ? AREA_CENTRE : RESIDENTIAL_CENTRE,
   zoom: INTRO ? 15 : DEFAULT_ZOOM,
