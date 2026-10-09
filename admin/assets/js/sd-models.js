@@ -84,8 +84,9 @@
   const ready = (async () => {
     try {
       data = await fetch('assets/map/landmarks3d.json').then(r => r.json());
-      const [b, lb, a, e] = await Promise.all([fetch('assets/map/landmarks3d.bin').then(r => r.arrayBuffer()),
-        fetch('assets/map/landmarks3d-light.bin').then(r => r.ok ? r.arrayBuffer() : null).catch(() => null), img('assets/map/landmarks3d-atlas.png'), img('assets/map/landmarks3d-emis.png')]);
+      const unzip = r => new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();   // the model files are zipped (5 times smaller to send)
+      const [b, lb, a, e] = await Promise.all([fetch('assets/map/landmarks3d.bin.gz').then(unzip),
+        fetch('assets/map/landmarks3d-light.bin.gz').then(r => r.ok ? unzip(r) : null).catch(() => null), img('assets/map/landmarks3d-atlas.png'), img('assets/map/landmarks3d-emis.png')]);
       bin = new Uint8Array(b); lightBin = lb ? new Uint8Array(lb) : null; atlas = a; emis = e;
       if (!atlas || !emis) throw new Error('atlas');
       return true;

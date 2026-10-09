@@ -35,14 +35,14 @@ WALLS = [(243, 205, 184), (248, 226, 160), (190, 226, 203), (184, 214, 242), (21
 
 def main():
     meta = json.load(open(os.path.join(MAP, 'landmarks3d.json')))
-    bin_ = np.fromfile(os.path.join(MAP, 'landmarks3d.bin'), dtype=np.uint8)
+    bin_ = np.fromfile(os.path.join(HERE, 'work', 'landmarks3d.bin'), dtype=np.uint8)
     NV = meta['vertices']
     rec = np.dtype([('p', '<f4', 3), ('uv', '<f4', 2), ('m', 'u1'), ('c', 'u1', 3)])
     verts = np.frombuffer(bin_[:NV * 24].tobytes(), dtype=rec)
     idx = np.frombuffer(bin_[NV * 24:].tobytes(), dtype='<u4')
     # the normals the model builder wrote down for every vertex (work-normals.f32)
     P = verts['p'].astype(np.float64)
-    Nrm = np.fromfile(os.path.join(HERE, 'work-normals.f32'), dtype='<f4').reshape(-1, 3).astype(np.float64)
+    Nrm = np.fromfile(os.path.join(HERE, 'work', 'normals.f32'), dtype='<f4').reshape(-1, 3).astype(np.float64)
     assert len(Nrm) == NV, 'run models.py first'
     Nrm /= np.maximum(np.linalg.norm(Nrm, axis=1), 1e-9)[:, None]
 
@@ -131,8 +131,11 @@ def main():
     lb = np.zeros((NV, 8), dtype=np.uint8)
     lb[:, 0:3] = np.round(day * 255)
     lb[:, 3:6] = np.round(night * 255)
-    lb.tofile(os.path.join(MAP, 'landmarks3d-light.bin'))
-    print('wrote landmarks3d-light.bin: %d KB; day light mean %.2f, night mean %.2f' % (os.path.getsize(os.path.join(MAP, 'landmarks3d-light.bin')) // 1024, day.mean(), night.mean()))
+    import gzip
+    open(os.path.join(MAP, 'landmarks3d-light.bin.gz'), 'wb').write(gzip.compress(lb.tobytes(), 9))
+    if os.path.exists(os.path.join(MAP, 'landmarks3d-light.bin')):
+        os.remove(os.path.join(MAP, 'landmarks3d-light.bin'))
+    print('wrote landmarks3d-light.bin.gz: %d KB; day light mean %.2f, night mean %.2f' % (os.path.getsize(os.path.join(MAP, 'landmarks3d-light.bin.gz')) // 1024, day.mean(), night.mean()))
 
 
 main()

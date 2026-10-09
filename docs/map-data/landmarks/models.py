@@ -422,6 +422,20 @@ def main():
         voff += len(P)
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles' % ('Street lamps (%d)' % len(lamps), 'furniture', len(P), len(Ix) // 3))
+    # elevated roads, walkways, the rail viaduct, walls, bus shelters, signals, flagpoles, water towers: what OpenStreetMap maps in the zone
+    import infra
+    from boundary import Boundary
+    lng0, lat0 = 121.0135, 14.5240
+    m = Mesh()
+    infra.build(m, (lng0, lat0), Boundary())
+    P, N, U, M, Cc, Ix = m.arrays()
+    if len(P):
+        models.append({'name': 'Infrastructure', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': float(P[:, 2].max()), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+        V.append((P, U, M, Cc, N))
+        I.append(Ix)
+        voff += len(P)
+        ioff += len(Ix)
+        print('%-42s %-9s %6d vertices %6d triangles' % ('Infrastructure', 'furniture', len(P), len(Ix) // 3))
     # one binary: vertices (x y z u v as float32, mat r g b as uint8) then triangles (uint32)
     vb = bytearray()
     for P, U, M, Cc, N in V:
@@ -429,16 +443,22 @@ def main():
         rec['p'], rec['uv'], rec['m'], rec['c'] = P, U, M, Cc
         vb += rec.tobytes()
     ib = b''.join(np.asarray(x, dtype='<u4').tobytes() for x in I)
-    open(os.path.join(MAP, 'landmarks3d.bin'), 'wb').write(bytes(vb) + ib)
+    os.makedirs(os.path.join(HERE, 'work'), exist_ok=True)
+    raw = bytes(vb) + ib
+    open(os.path.join(HERE, 'work', 'landmarks3d.bin'), 'wb').write(raw)     # for the baker
+    import gzip
+    open(os.path.join(MAP, 'landmarks3d.bin.gz'), 'wb').write(gzip.compress(raw, 9))     # what the page loads (the browser unzips it)
+    if os.path.exists(os.path.join(MAP, 'landmarks3d.bin')):
+        os.remove(os.path.join(MAP, 'landmarks3d.bin'))
     # the normals, for the baker only
-    np.concatenate([n for *_, n in V]).astype('<f4').tofile(os.path.join(HERE, 'work-normals.f32')) if V else None
+    np.concatenate([n for *_, n in V]).astype('<f4').tofile(os.path.join(HERE, 'work', 'normals.f32')) if V else None
     A, E, rects = atlas.build(MAP)
     A.save(os.path.join(MAP, 'landmarks3d-atlas.png'), optimize=True)
     E.save(os.path.join(MAP, 'landmarks3d-emis.png'), optimize=True)
     meta = {'about': 'Landmark models drawn by docs/map-data/landmarks/models.py. Vertex: float32 x y z (metres, east north up from the model origin), float32 u v (tile units), uint8 material, uint8 r g b (albedo); 24 bytes. Then uint32 triangle indices, per model offset by voff.',
             'vertexBytes': 24, 'vertices': voff, 'indices': ioff, 'indexOffsetBytes': voff * 24, 'tiles': rects, 'models': models}
     json.dump(meta, open(os.path.join(MAP, 'landmarks3d.json'), 'w'), separators=(',', ':'))
-    print('wrote landmarks3d.json/.bin:', len(models), 'models,', voff, 'vertices,', ioff // 3, 'triangles,', os.path.getsize(os.path.join(MAP, 'landmarks3d.bin')) // 1024, 'KB')
+    print('wrote landmarks3d.json/.bin:', len(models), 'models,', voff, 'vertices,', ioff // 3, 'triangles,', os.path.getsize(os.path.join(MAP, 'landmarks3d.bin.gz')) // 1024, 'KB zipped')
 
 
 main()
