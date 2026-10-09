@@ -34,7 +34,7 @@
     pop.style.transformOrigin = (up ? 'bottom' : 'top') + ' left';
   }
   function show(btn, pop, key) {
-    close(false); document.body.appendChild(pop); place(btn, pop);
+    close(false); (document.fullscreenElement || document.webkitFullscreenElement || document.body).appendChild(pop); place(btn, pop);   // in full screen only that element is drawn
     void pop.offsetWidth; pop.classList.add('in');
     btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open');
     open = { btn: btn, pop: pop, key: key }; document.documentElement.classList.add('sdp-live');

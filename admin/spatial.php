@@ -1342,6 +1342,9 @@ document.addEventListener('fullscreenchange', () => {
   const active = document.fullscreenElement === mapShell;
   expandBtn.classList.toggle('p-on', active);
   expandBtn.title = active ? T('Exit full screen', 'Lumabas sa full screen') : T('Expand map to full screen', 'I-full screen ang mapa');
+  // Only the full-screen element is drawn, so the toast (which lives on the body) moves in with the map and back out.
+  const toastEl = document.getElementById('p-toast');
+  if (toastEl) { if (active) { toastEl._home = toastEl._home || toastEl.parentNode; mapShell.appendChild(toastEl); } else if (toastEl._home) toastEl._home.appendChild(toastEl); }
   setTimeout(() => map.resize(), 120);
 });
 
