@@ -55,7 +55,16 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send(404, '{}')
 
     def do_POST(self):
-        if urllib.parse.urlparse(self.path).path != '/add':
+        path = urllib.parse.urlparse(self.path).path
+        if path == '/upload':
+            try:
+                import base64
+                d = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))).decode('utf-8'))
+                refsearch.add_bytes(d['name'].strip(), base64.b64decode(d['data'].split(',')[-1]), 'a picture you pasted', d.get('credit') or 'screenshot')
+                return self.send(200, json.dumps({'ok': True}))
+            except Exception as e:
+                return self.send(400, json.dumps({'error': str(e)[:120]}))
+        if path != '/add':
             return self.send(404, '{}')
         try:
             d = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))).decode('utf-8'))

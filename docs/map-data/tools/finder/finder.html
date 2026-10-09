@@ -20,6 +20,8 @@ main { padding:16px 20px 60px; max-width:1400px; margin:0 auto; }
 .gs-title, .gs-title * { color:#cfd3f3 !important; }
 .gs-visibleUrl { color:var(--muted) !important; }
 .gsc-imageResult { position:relative; }
+#drop { border:2px dashed var(--line); border-radius:10px; padding:16px; margin:0 0 14px; color:var(--muted); text-align:center; }
+#drop.over, #drop:focus { border-color:var(--accent); color:var(--ink); outline:none; }
 .preset { background:#232849; color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:5px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
 .preset:hover { border-color:var(--accent); }
 .plus { position:absolute; top:6px; right:6px; z-index:3; border:0; border-radius:999px; background:var(--accent); color:#1b1200; font:700 .85rem "Segoe UI", sans-serif; padding:5px 11px; cursor:pointer; box-shadow:0 2px 8px #0008; }
@@ -34,6 +36,7 @@ main { padding:16px 20px 60px; max-width:1400px; margin:0 auto; }
 </header>
 <datalist id="names"></datalist>
 <main>
+  <div id="drop" tabindex="0">Paste a screenshot here (Win+Shift+S, then Ctrl+V) or drop pictures on this box: they go to the landmark named above. Quickest way to use anything you find.</div>
   <p class="note">Search Google below (images). Press <b>+ add</b> on a picture to put it on the board of the landmark named above: it is saved here on this computer, leads that landmark's reference board, feeds the colour suggestions, and is credited to the page it came from. It is looked at, never shipped. Then run <code>engine.py refs "&lt;landmark&gt;"</code> or the bench.</p>
   <div class="gcse-search" data-gname="refsearch" data-enableImageSearch="true" data-defaultToImageSearch="true" data-linkTarget="_blank"></div>
 </main>
@@ -80,5 +83,21 @@ function decorate() {
     box.appendChild(b);
   });
 }
+function sendFile(f) {
+  const nm = nameEl.value.trim();
+  if (!nm) { nameEl.focus(); nameEl.style.borderColor = '#ff7a70'; return; }
+  nameEl.style.borderColor = '';
+  const r = new FileReader();
+  r.onload = async () => {
+    try { const res = await fetch('/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: nm, data: r.result, credit: 'screenshot, ' + new Date().toISOString().slice(0, 10) }) }); const j = await res.json(); if (!res.ok) throw new Error(j.error); count++; addedEl.textContent = count + ' added to ' + nm; }
+    catch (e) { addedEl.textContent = 'failed: ' + e.message; }
+  };
+  r.readAsDataURL(f);
+}
+document.addEventListener('paste', e => { for (const it of (e.clipboardData || {}).items || []) if (it.type.startsWith('image/')) sendFile(it.getAsFile()); });
+const dz = document.getElementById('drop');
+['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => dz.addEventListener(t, e => { e.preventDefault(); dz.classList.remove('over'); }));
+dz.addEventListener('drop', e => { for (const f of e.dataTransfer.files) if (f.type.startsWith('image/')) sendFile(f); });
 new MutationObserver(decorate).observe(document.body, { childList: true, subtree: true });
 </script>

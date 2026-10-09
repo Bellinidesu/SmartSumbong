@@ -9,6 +9,7 @@ the best are ranked first. Nothing found here is shipped; a reference that is us
     python docs/map-data/tools/refsearch.py "Plaza 66" --sources openverse,commons,mapillary --n 30
     python docs/map-data/tools/refsearch.py "Plaza 66" --pick commons:File_Plaza_66.jpg      mark a reference as used (credited)
     python docs/map-data/tools/refsearch.py "Newport Mall" --add C:/pics/mall1.jpg --credit "Google Images, resortsworld.com"   put a picture you found yourself on the board
+    python docs/map-data/tools/refsearch.py "Newport Mall" --page https://example.com/some-article    every large picture of a web page you found, credited to it
     python docs/map-data/tools/refsearch.py --index-mapillary                                  (re)build the zone's street-view index
 """
 import hashlib, html, io, json, math, os, re, sys, urllib.parse
@@ -122,6 +123,38 @@ def google(q, n):
     return out
 
 
+def flickr(q, n, near=None):
+    """Flickr's own search (free non-commercial API key, FLICKR_KEY in .env): photos taken within 250 m of the building, any licence (looked at, linked to, credited), and by text."""
+    key = K.env('FLICKR_KEY')
+    if not key:
+        return []
+    out = []
+    base = {'method': 'flickr.photos.search', 'api_key': key, 'format': 'json', 'nojsoncallback': 1, 'per_page': min(n, 60), 'extras': 'url_m,url_l,owner_name,license,tags,geo,description', 'sort': 'relevance', 'safe_search': 1, 'content_types': 0, 'media': 'photos'}
+    runs = [dict(base, text=q)]
+    if near:
+        runs.append(dict(base, lat=near[1], lon=near[0], radius=0.25, radius_units='km', text=q.split(' ')[0]))
+        runs.append(dict(base, lat=near[1], lon=near[0], radius=0.15, radius_units='km'))
+    LIC = {'0': 'All rights reserved', '1': 'CC BY-NC-SA 2.0', '2': 'CC BY-NC 2.0', '3': 'CC BY-NC-ND 2.0', '4': 'CC BY 2.0', '5': 'CC BY-SA 2.0', '6': 'CC BY-ND 2.0', '7': 'No known copyright', '9': 'CC0', '10': 'Public domain'}
+    for r in runs:
+        try:
+            js = K.get_json('https://www.flickr.com/services/rest/?' + urllib.parse.urlencode(r))
+        except Exception as ex:
+            print('  flickr: %s' % str(ex)[:70])
+            continue
+        for p in js.get('photos', {}).get('photo', []):
+            u = p.get('url_l') or p.get('url_m')
+            if not u:
+                continue
+            lic = LIC.get(str(p.get('license')), 'unknown')
+            geo = None
+            if near and p.get('latitude'):
+                geo = round(math.hypot((float(p['longitude']) - near[0]) * K.MX, (float(p['latitude']) - near[1]) * K.MY))
+            out.append(_entry('flickr', p['id'], p.get('title'), p.get('ownername'), lic + ('; looked at only' if lic.startswith('All') else ''), 'https://www.flickr.com/photos/%s/%s' % (p.get('owner'), p['id']), p.get('url_m') or u,
+                              int(p.get('width_l') or p.get('width_m') or 0), int(p.get('height_l') or p.get('height_m') or 0), geo,
+                              {'where': ' '.join([p.get('tags') or '', (p.get('description') or {}).get('_content', '')]) + (' manila' if geo is not None and geo < 250 else '')}))
+    return out
+
+
 def brave(q, n):
     """Brave Search, image search on an independent index (its official API; the key is BRAVE_SEARCH_KEY in .env). Other people's pictures: looked at only."""
     key = K.env('BRAVE_SEARCH_KEY')
@@ -157,14 +190,58 @@ def add(name, src, credit=None):
     """Put a picture (a file or a web address) in the inbox of a landmark; it will lead its board."""
     d = os.path.join(INBOX, re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-'))
     os.makedirs(d, exist_ok=True)
-    base = hashlib.md5(src.encode()).hexdigest()[:10] + '.jpg'
     data = K.get(src) if re.match(r'https?://', src) else open(src, 'rb').read()
-    Image.open(io.BytesIO(data)).convert('RGB').save(os.path.join(d, base), quality=92)
+    return add_bytes(name, data, src if src.startswith('http') else 'a file you gave', credit)
+
+
+def add_bytes(name, data, source, credit=None):
+    d = os.path.join(INBOX, re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-'))
+    os.makedirs(d, exist_ok=True)
+    base = hashlib.md5(data[:4096] + str(len(data)).encode()).hexdigest()[:10] + '.jpg'
+    im = Image.open(io.BytesIO(data)).convert('RGB')
+    if min(im.size) < 120:
+        raise ValueError('too small to be a reference (%dx%d)' % im.size)
+    im.save(os.path.join(d, base), quality=92)
     mp = os.path.join(d, 'meta.json')
     meta = json.load(open(mp)) if os.path.exists(mp) else {}
-    meta[base] = {'source': src if src.startswith('http') else 'a file you gave', 'credit': credit or ''}
+    meta[base] = {'source': source, 'credit': credit or ''}
     json.dump(meta, open(mp, 'w'), indent=1)
     print('added', os.path.join(d, base))
+    return base
+
+
+def grab_page(name, url, limit=12):
+    """Every large picture on a web page (its social-share image and the big <img>s) goes to the landmark's inbox, credited to the page. For a page you found yourself:
+    a hotel's own site, an article, a Wikipedia page."""
+    html_ = K.get(url).decode('utf-8', 'ignore')
+    base = url
+    cands = []
+    for m in re.finditer(r'<meta[^>]+(?:property|name)=["\'](?:og:image|twitter:image)["\'][^>]*content=["\']([^"\']+)', html_, re.I):
+        cands.append(m.group(1))
+    for m in re.finditer(r'<img[^>]+>', html_, re.I):
+        tag = m.group(0)
+        src = re.search(r'(?:data-src|src)=["\']([^"\']+)', tag, re.I)
+        ss = re.search(r'srcset=["\']([^"\']+)', tag, re.I)
+        w = re.search(r'width=["\']?(\d+)', tag, re.I)
+        if ss:
+            best = max((p.strip().split(' ') for p in ss.group(1).split(',') if p.strip()), key=lambda p: int(re.sub(r'\D', '', p[1]) or 0) if len(p) > 1 else 0)
+            cands.append(best[0])
+        elif src and (not w or int(w.group(1)) >= 300):
+            cands.append(src.group(1))
+    got, seen = 0, set()
+    for c in cands:
+        u = urllib.parse.urljoin(base, html.unescape(c))
+        if u in seen or not re.search(r'\.(jpe?g|png|webp)(\?|$)|upload\.wikimedia|images?/|cdn', u, re.I) or re.search(r'logo|icon|sprite|avatar|pixel|\.svg', u, re.I):
+            continue
+        seen.add(u)
+        try:
+            add_bytes(name, K.get(u), url, 'web page ' + urllib.parse.urlparse(url).netloc)
+            got += 1
+        except Exception:
+            continue
+        if got >= limit:
+            break
+    print('%d pictures from %s' % (got, url))
 
 
 def sketchfab(q, n):
@@ -284,6 +361,8 @@ def search(name, sources=('openverse', 'commons', 'mapillary', 'sketchfab'), n=2
                     res += google(q, n)
                 elif s == 'brave':
                     res += brave(q, n)
+                elif s == 'flickr':
+                    res += flickr(q, n, near)
             except Exception as ex:
                 print('  %s (%s): %s' % (s, q, str(ex)[:80]))
         if 'mapillary' in sources and q == qs[-1]:
@@ -371,7 +450,7 @@ def board(name, entries, out=None, cols=5):
         im = Image.open(e['file']).convert('RGB')
         im.thumbnail((W - 6, H - 4))
         S.paste(im, (x + 3 + (W - 6 - im.width) // 2, y + 2 + (H - 4 - im.height) // 2))
-        tag = {'openverse': 'OV', 'commons': 'WC', 'mapillary': 'MLY', 'sketchfab': '3D', 'google': 'G', 'brave': 'BR', 'user': 'ME'}[e['src']]
+        tag = {'openverse': 'OV', 'commons': 'WC', 'mapillary': 'MLY', 'sketchfab': '3D', 'google': 'G', 'brave': 'BR', 'flickr': 'FL', 'user': 'ME'}[e['src']]
         d.rectangle([x + 3, y + 2, x + 3 + 38, y + 20], fill=(232, 120, 12))
         d.text((x + 8, y + 3), tag, fill=(20, 14, 0), font=f2)
         d.text((x + 6, y + H), (e['title'] or '')[:44], fill=(230, 232, 245), font=f2)
@@ -428,9 +507,11 @@ def main():
     opt = lambda k, d=None: a[a.index(k) + 1] if k in a else d
     if '--pick' in a:
         return pick(name, opt('--pick'))
+    if '--page' in a:
+        return grab_page(name, opt('--page'))
     if '--add' in a:
         return add(name, opt('--add'), opt('--credit'))
-    src = tuple((opt('--sources') or ('openverse,commons,mapillary,sketchfab' + (',google' if K.env('GOOGLE_CSE_KEY') else '') + (',brave' if K.env('BRAVE_SEARCH_KEY') else ''))).split(','))
+    src = tuple((opt('--sources') or ('openverse,commons,mapillary,sketchfab' + (',google' if K.env('GOOGLE_CSE_KEY') else '') + (',brave' if K.env('BRAVE_SEARCH_KEY') else '') + (',flickr' if K.env('FLICKR_KEY') else ''))).split(','))
     near = tuple(float(x) for x in opt('--near').split(',')) if opt('--near') else None
     es = search(name, src, int(opt('--n', 24)), near, loose='--loose' in a)
     remember(name, es)
