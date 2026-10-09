@@ -359,6 +359,7 @@
       '<circle cx="44" cy="44" r="31.5" fill="none" stroke="' + (dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.08)') + '" stroke-width="1"/>' +
       '<g transform="translate(24 24) scale(1.67)" fill="none" stroke="' + (dark ? '#FFFFFF' : col) + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ic + '</g></svg>';
   };
+  const LM_TINT = false;
   let lmReady = null, lmPts = [], lmOn = false;
   const lmBuild = {};   // landmark name -> its building features
   const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const a = ring[i], b = ring[j]; if ((a[1] > pt[1]) !== (b[1] > pt[1]) && pt[0] < (b[0] - a[0]) * (pt[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
@@ -413,8 +414,9 @@
   }
   async function lmShow(on) {
     lmOn = on; await lmInit(); if (on !== lmOn) return;
-    ['lm-bld', 'lm-badge'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); });
-    if (on) { lmCollect(); }
+    // The tint of a landmark building (LM_TINT) is off: the City view models the landmarks instead (sd-city.js).
+    ['lm-bld', 'lm-badge'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on && (id === 'lm-badge' || LM_TINT) ? 'visible' : 'none'); });
+    if (on && LM_TINT) { lmCollect(); }
   }
   map.on('pitch', () => { const up = map.getPitch() > 8; if (up !== lmOn) lmShow(up); });
   map.on('moveend', lmCollect); map.on('idle', lmCollect);
