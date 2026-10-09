@@ -57,7 +57,13 @@ window.SD_ICONS = {
  "heat": "<path d=\"M12 3c1.3 3.4 5 4.8 5 9.5a5 5 0 0 1-10 0c0-2 .8-3.6 2-4.8.3 1.8 1.1 2.9 2.2 3.3C10.8 8.6 10.7 5.6 12 3z\"/>",
  "noah": "<path d=\"M6.5 19V5l11 14V5\"/><path d=\"M4 21.5c1.5-1 2.5-1 4 0s2.5 1 4 0 2.5-1 4 0 2.5 1 4 0\" stroke-width=\"1.6\"/>",
  "tent": "<path d=\"M3 20 12 5l9 15zM12 5v15\"/>",
- "incidents": "<path d=\"M12 20.5s5-4.4 5-8.8a5 5 0 1 0-10 0c0 4.4 5 8.8 5 8.8z\"/><circle cx=\"12\" cy=\"11.5\" r=\"1.8\"/><path d=\"M3.2 8a9.6 9.6 0 0 0 0 7M20.8 8a9.6 9.6 0 0 1 0 7\"/>"
+ "incidents": "<path d=\"M12 20.5s5-4.4 5-8.8a5 5 0 1 0-10 0c0 4.4 5 8.8 5 8.8z\"/><circle cx=\"12\" cy=\"11.5\" r=\"1.8\"/><path d=\"M3.2 8a9.6 9.6 0 0 0 0 7M20.8 8a9.6 9.6 0 0 1 0 7\"/>",
+ "search": "<circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/>",
+ "bookmark": "<path d=\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z\"/>",
+ "ruler": "<path d=\"M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0z\"/><path d=\"m14.5 12.5 2-2\"/><path d=\"m11.5 9.5 2-2\"/><path d=\"m8.5 6.5 2-2\"/><path d=\"m17.5 15.5 2-2\"/>",
+ "play": "<polygon points=\"6 3 20 12 6 21 6 3\"/>",
+ "pause": "<rect x=\"14\" y=\"4\" width=\"4\" height=\"16\" rx=\"1\"/><rect x=\"6\" y=\"4\" width=\"4\" height=\"16\" rx=\"1\"/>",
+ "trash": "<path d=\"M3 6h18\"/><path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\"/><path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\"/>"
 };
 window.sdIcon = function (name, cls) {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (cls ? ' class="' + cls + '"' : '') + '>' + (window.SD_ICONS[name] || '') + '</svg>';

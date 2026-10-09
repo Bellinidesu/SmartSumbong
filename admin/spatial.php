@@ -360,7 +360,8 @@ mapFollowTheme(map);
   ['dragstart', 'zoomstart'].forEach(ev => map.on(ev, fold));
   ['dragend', 'zoomend', 'moveend'].forEach(ev => map.on(ev, unfold));
 }
-map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'bottom-right');
+map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: 'metric' }), 'bottom-left');
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 let hazards = null;
@@ -657,7 +658,7 @@ function markDirty() {
   document.getElementById('f-apply').classList.toggle('p-dirty', dirty);
 }
 
-function visible() {
+function visible(ignoreTime) {
   const { cat, st } = applied;
   const { from, to } = periodRange();
   const fromMs = new Date(from).getTime(), toMs = new Date(to).getTime();
@@ -666,6 +667,7 @@ function visible() {
     if (st && !(STATUS_GROUPS[st] || []).includes(r.status)) return false;
     const t = new Date(r.created_at).getTime();
     if (t < fromMs || t >= toMs) return false;
+    if (!ignoreTime && window.sdTime && !window.sdTime.pass(t)) return false;
     return true;
   });
 }
@@ -817,7 +819,7 @@ function fmtDate(iso) {
 const CS_OPEN = ['pending_review', 'validated'], CS_DISPATCHED = ['assigned', 'in_progress', 'offline_investigation'], CS_DONE = ['resolved', 'closed', 'archived'];
 let csFor = null;
 function csIcon(d) { return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
-function csPad() { return { left: innerWidth > 980 ? 420 : 0, top: 0, right: 0, bottom: 0 }; }
+function csPad() { return { left: innerWidth > 980 ? 420 : 0, top: 0, right: 0, bottom: innerWidth > 980 ? 0 : Math.round(innerHeight * .46) }; }
 // Photos open in the page: hover to see the cue, press to view, arrows or the sides to go on, Esc to close.
 let lbx = null;
 function lbClose() { if (!lbx) return; const e = lbx.el; lbx = null; e.classList.remove('in'); setTimeout(() => e.remove(), 200); }
@@ -902,6 +904,7 @@ function showDetail(r) {
       '</div>' +
       '<ul class="cs-rows">' +
         '<li>' + csIcon(SD_ICONS.pin) + '<span>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Pinned location', 'Naka-pin na lokasyon')) + '<small>Barangay 183, Zone 20, Villamor, Pasay City</small></span></li>' +
+        (window.sdCaseRows ? window.sdCaseRows(r) : '') +
         '<li>' + csIcon(SD_ICONS.calendar) + '<span>' + T('Submitted ', 'Isinumite ') + esc(fmtDate(r.created_at) || '—') + '<small>' + esc(r.due_at ? T('Deadline ', 'Takdang oras ') + fmtDate(r.due_at) : T('No deadline set', 'Walang takdang oras')) + '</small></span></li>' +
         '<li>' + csIcon(SD_ICONS.handler) + '<span id="cs-tanod">' + T('Checking who has it…', 'Tinitingnan kung sino ang may hawak…') + '<small>&nbsp;</small></span></li>' +
         '<li>' + csIcon(SD_ICONS.flood) + '<span id="cs-flood">' + T('Checking the flood map…', 'Tinitingnan ang mapa ng baha…') + '<small>Project NOAH 100-year flood map</small></span></li>' +
@@ -1272,6 +1275,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && qvFor) { c
 // it was put for the rest of the visit.
 let csPos = null;
 function csDraggable(el) {
+  if (innerWidth <= 980 && window.sdSheetDrag) return window.sdSheetDrag(el);   // a tablet: a bottom sheet with two stops
   if (csPos) { el.style.left = csPos[0] + 'px'; el.style.top = csPos[1] + 'px'; el.style.bottom = 'auto'; el.style.height = csPos[2] + 'px'; }
   const hero = el.querySelector('.cs-hero');
   let down = null;
@@ -1722,6 +1726,13 @@ function setTilt(on) {
   map.easeTo({ pitch: on ? 52 : 0, bearing: on ? -14 : 0, duration: 900, easing: t => 1 - Math.pow(1 - t, 3) });
 }
 document.getElementById('tilt-btn').addEventListener('click', () => mapReady.then(() => setTilt(!tilted)));
+// The compass (or a pinch) can flatten the map without the button: keep the button and the buildings in step.
+map.on('pitchend', () => {
+  if (!tilted || map.getPitch() >= 1) return;
+  tilted = false; const b = document.getElementById('tilt-btn'); b.classList.remove('on'); b.setAttribute('aria-pressed', 'false');
+  if (map.getLayer('building-3d')) map.setLayoutProperty('building-3d', 'visibility', 'none');
+  if (map.getLayer('building')) map.setPaintProperty('building', 'fill-opacity', 1);
+});
 window.addEventListener('themechange', () => { if (map.getLayer('building-3d')) { const dark = isDark(); map.setPaintProperty('building-3d', 'fill-extrusion-color', ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6], 0, dark ? '#22242B' : '#DDE0E8', 60, dark ? '#3A3D49' : '#B9BECB']); } });
 
 // Tuning aid, off unless asked for: load spatial.php?bounds=1 and the
@@ -2065,5 +2076,6 @@ if (HOTSPOTS) hotspotToggleBtn.addEventListener('click', () => {
 loadBoundary();
 load();
 </script>
+<script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
 
 <?php layout_foot(); ?>
