@@ -13,11 +13,16 @@ City view (the tilted map) draws: trees and zebra crossings. All from OpenStreet
   * the golf course is drawn as it is mapped (fairways, greens, tees, bunkers, water), and the pitches,
     playgrounds, pools and tracks as flat coloured areas, as Apple Maps does.
 
+Only what is inside the Barangay 183 boundary is kept (boundary.py).
+
 Run:  python docs/map-data/build_city_detail.py   (only the Python standard library and
 internet; the public Overpass servers are shared, so it tries several)
 Edit BBOX if the map area changes (spatial.php: AREA).
 """
 import json, math, os, random, sys, time, urllib.parse, urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from boundary import Boundary
 
 BBOX = (14.5146, 121.0027, 14.5392, 121.0284)   # south, west, north, east
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'admin', 'assets', 'map', 'city-detail.json')
@@ -78,6 +83,7 @@ def area_m2(ring):
 
 def main():
     random.seed(183)
+    B = Boundary()
     print('trees, greens, crossings from OpenStreetMap...')
     trees_el = overpass('[out:json][timeout:90];node["natural"="tree"](%s);out;' % bb)
     greens = overpass('[out:json][timeout:90];(way["leisure"~"^(park|garden|golf_course|recreation_ground|nature_reserve)$"](%s);way["landuse"~"^(grass|forest|recreation_ground|village_green|cemetery|meadow)$"](%s);'
@@ -89,6 +95,8 @@ def main():
     # ---- trees: [lng, lat, canopy radius m, height m, variation 0..1, shape (0 round, 1 cone), mapped 1 / planted 0] ----
     trees = []
     for n in trees_el:
+        if not B.inside(n['lon'], n['lat']):
+            continue
         t = n.get('tags', {})
         palm = 'palm' in (t.get('species', '') + t.get('genus', '') + t.get('leaf_type', '')).lower() or t.get('genus') in ('Cocos', 'Roystonea', 'Areca', 'Veitchia', 'Washingtonia', 'Phoenix')
         trees.append([n['lon'], n['lat'], round(3.0 + random.random() * 1.6, 1), round(9 + random.random() * 4, 1) if palm else round(7 + random.random() * 4, 1), round(random.random(), 2), 2 if palm else 0, 1])
@@ -124,7 +132,7 @@ def main():
                 x = min(xs)
                 while x < max(xs):
                     px, py = x + (random.random() - .5) * .7 * gx, y + (random.random() - .5) * .7 * gy
-                    if ring_has((px, py), ring) and not any(ring_has((px, py), c) for c in keep_clear):
+                    if ring_has((px, py), ring) and B.inside(px, py) and not any(ring_has((px, py), c) for c in keep_clear):
                         r = 2.3 + random.random() * 1.9
                         u = random.random()
                         shape = 2 if u < (.14 if kind == 'park' else .07) else 1 if (kind == 'wood' and u > .9) else 0   # palm, evergreen, deciduous
@@ -149,6 +157,8 @@ def main():
             at_node.setdefault((round(p['lat'], 7), round(p['lon'], 7)), []).append((w, i))
     feats = []
     for n in cross_el:
+        if not B.inside(n['lon'], n['lat']):
+            continue
         hits = at_node.get((round(n['lat'], 7), round(n['lon'], 7)), [])
         road = next(((w, i) for w, i in hits if w['tags'].get('highway') not in FOOT), None)
         foot = next(((w, i) for w, i in hits if w['tags'].get('highway') in FOOT), None)
@@ -201,6 +211,8 @@ def main():
         if not k:
             continue
         for ring in rings_of(el):
+            if not B.inside(sum(p[0] for p in ring) / len(ring), sum(p[1] for p in ring) / len(ring), 20):
+                continue
             areas.append({'type': 'Feature', 'properties': {'k': k}, 'geometry': {'type': 'Polygon', 'coordinates': [[[round(x, 6), round(y, 6)] for x, y in ring]]}})
     print('  golf and sports areas: %d' % len(areas))
     out = {'about': 'OpenStreetMap contributors (ODbL). Built by docs/map-data/build_city_detail.py. trees: [lng, lat, canopy radius m, height m, variation, shape (0 deciduous, 1 evergreen, 2 palm), mapped(1)/planted(0)]',

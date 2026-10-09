@@ -17,10 +17,15 @@ What is real and what is estimated:
     (rust red, brick, blue, green, grey, cream), not each house's own colour. A roof:shape or roof:colour tag
     in OpenStreetMap wins over all of that.
 
+Only what is inside the Barangay 183 boundary is kept (boundary.py): the City view shows nothing outside it.
+
 Needs:  pip install overturemaps      Run:  python docs/map-data/build_buildings.py
 Edit BBOX if the map area changes (spatial.php: AREA).
 """
 import json, math, os, subprocess, sys, tempfile, time, urllib.parse, urllib.request, zlib
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from boundary import Boundary
 
 BBOX = (121.0007, 14.5126, 121.0304, 14.5412)   # west, south, east, north (the map area and a margin for the tilted horizon)
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'admin', 'assets', 'map', 'buildings.json')
@@ -135,6 +140,7 @@ def main():
     els = overpass('[out:json][timeout:150];(way["building"]["building"!="yes"](%s);way["building"][~"^(height|building:levels|roof:shape|roof:colour|roof:levels|building:colour|name|amenity|shop|tourism|office)$"~"."](%s););out tags;' % (bb, bb))
     tags = {e['id']: e.get('tags', {}) for e in els}
     out = []
+    B = Boundary()
     stats = {'pitched': 0, 'flat': 0, 'real_h': 0}
     for f in feats:
         p = f['properties']
@@ -156,6 +162,8 @@ def main():
             if a < 10:
                 continue
             cx, cy, L, W, th = obb(ring)
+            if not B.inside(cx, cy, 12):
+                continue
             fill = a / max(1.0, L * W)
             aspect = L / max(0.5, W)
             u = hash01(cx, cy)

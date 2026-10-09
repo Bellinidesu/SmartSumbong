@@ -272,11 +272,11 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
   </div>
   <div class="p-card p-card-pad st-look" style="margin-top:14px">
     <p class="p-eyebrow"><?= e(t('City view detail', 'Detalye ng City view')) ?></p>
-    <p class="st-note" style="margin-top:0"><?= e(t('When you tilt the map: Full draws windows on every building; Light draws plain walls and is easier on slow screens. Auto starts with Full and drops to Light by itself if the map runs slowly. Kept on this computer.', 'Kapag ini-tilt ang mapa: ang Full ay may bintana ang bawat gusali; ang Light ay payak ang pader at mas magaan sa mabagal na screen. Ang Auto ay nagsisimula sa Full at nagiging Light kung bumabagal ang mapa. Nakatago sa computer na ito.')) ?></p>
+    <p class="st-note" style="margin-top:0"><?= e(t('When you tilt the map: Full draws pitched roofs and the landmark models; Light draws plain boxes and is easier on slow screens. Auto starts with Full and drops to Light by itself if the map runs slowly. Kept on this computer.', 'Kapag ini-tilt ang mapa: ang Full ay may bubong na may anggulo at mga modelo ng landmark; ang Light ay payak na kahon at mas magaan sa mabagal na screen. Ang Auto ay nagsisimula sa Full at nagiging Light kung bumabagal ang mapa. Nakatago sa computer na ito.')) ?></p>
     <div class="st-surfs st-opts" role="radiogroup" aria-label="<?= e(t('City view detail', 'Detalye ng City view')) ?>">
       <button type="button" class="st-surf st-opt" role="radio" data-city="auto" aria-checked="true"><span class="ss-t"><b><?= e(t('Auto', 'Auto')) ?></b><small><?= e(t('Full, then Light if slow', 'Full, tapos Light kung mabagal')) ?></small></span></button>
-      <button type="button" class="st-surf st-opt" role="radio" data-city="full" aria-checked="false"><span class="ss-t"><b><?= e(t('Full', 'Full')) ?></b><small><?= e(t('Windows on every building', 'May bintana ang bawat gusali')) ?></small></span></button>
-      <button type="button" class="st-surf st-opt" role="radio" data-city="light" aria-checked="false"><span class="ss-t"><b><?= e(t('Light', 'Light')) ?></b><small><?= e(t('Plain walls', 'Payak na pader')) ?></small></span></button>
+      <button type="button" class="st-surf st-opt" role="radio" data-city="full" aria-checked="false"><span class="ss-t"><b><?= e(t('Full', 'Full')) ?></b><small><?= e(t('Pitched roofs and models', 'May bubong at modelo')) ?></small></span></button>
+      <button type="button" class="st-surf st-opt" role="radio" data-city="light" aria-checked="false"><span class="ss-t"><b><?= e(t('Light', 'Light')) ?></b><small><?= e(t('Plain boxes', 'Payak na kahon')) ?></small></span></button>
     </div>
   </div>
 </section>

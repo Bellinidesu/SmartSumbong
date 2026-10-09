@@ -630,6 +630,7 @@ async function loadBoundary() {
       { type: 'Feature', properties: { role: 'outline' }, geometry: { type: 'MultiLineString', coordinates: rings } },
     ] });
     map.setLayoutProperty('fog', 'visibility', document.getElementById('f-fog').checked ? 'visible' : 'none');
+    if (loaded && CLIP_PINS) draw();   // the pins outside the boundary come off
 
     // The outline is drawn, but the view stays on the residential area.
     // Fitting the whole relation would zoom out to include the runway.
@@ -672,20 +673,32 @@ function visible(ignoreTime) {
   });
 }
 
+// Nothing outside the barangay boundary: a complaint pinned outside it is counted ("outside this map") but not drawn.
+// CLIP_PINS = false brings every pin back.
+const CLIP_PINS = true;
+function inBoundary(lng, lat) {
+  if (!rings || !rings.length) return true;                     // the outline has not arrived: draw everything
+  let odd = false;
+  for (const r of rings) { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = r[i], b = r[j]; if ((a[1] > lat) !== (b[1] > lat) && lng < (b[0] - a[0]) * (lat - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } if (c) odd = !odd; }
+  if (odd) return true;
+  const k = Math.cos(lat * Math.PI / 180) * 111320;             // a pin within 25 m of the line still counts, as GPS is not exact
+  return rings.some(r => r.some(([x, y]) => Math.hypot((x - lng) * k, (y - lat) * 110574) <= 25));
+}
 async function draw() {
   const rows = visible();
+  const pinRows = CLIP_PINS ? rows.filter(r => inBoundary(+r.longitude, +r.latitude)) : rows;
   document.getElementById('map-empty').hidden = rows.length > 0 || !loaded;
   byId.clear();
   all.forEach(r => byId.set(r.id, r));
 
   await mapReady;
-  setPinsSource(rows.length >= CLUSTER_FROM);
+  setPinsSource(pinRows.length >= CLUSTER_FROM);
   // Complaints filed from the very same spot would sit exactly on top of
   // each other and read as one pin (Rose, 2 Oct 2026: "recheck the
   // number of complaints"). Each repeat is set a few metres round the
   // spot, so every complaint counted is a pin you can see and click.
   const seen = new Map();
-  const features = rows.map(r => {
+  const features = pinRows.map(r => {
     const key = (+r.latitude).toFixed(5) + ',' + (+r.longitude).toFixed(5);
     const n = seen.get(key) || 0;
     seen.set(key, n + 1);
@@ -703,14 +716,14 @@ async function draw() {
   // reports, or a resident filing from elsewhere) are counted, and said
   // to be, rather than silently missing from the count you can see.
   const [[w, s], [e, n]] = AREA;
-  const outside = rows.filter(r => r.longitude < w || r.longitude > e || r.latitude < s || r.latitude > n).length;
+  const outside = rows.length - pinRows.filter(r => !(r.longitude < w || r.longitude > e || r.latitude < s || r.latitude > n)).length;
   document.getElementById('map-count').textContent =
     rows.length + T(rows.length === 1 ? ' complaint' : ' complaints', ' sumbong') +
     (outside ? T(' · ' + outside + ' outside this map', ' · ' + outside + ' nasa labas ng mapang ito') : '');
 
-  const heatOn = document.getElementById('f-heat').checked && rows.length;
+  const heatOn = document.getElementById('f-heat').checked && pinRows.length;
   map.getSource('heat').setData(heatOn
-    ? { type: 'FeatureCollection', features: rows.map(r => point(r.longitude, r.latitude)) } : EMPTY);
+    ? { type: 'FeatureCollection', features: pinRows.map(r => point(r.longitude, r.latitude)) } : EMPTY);
   map.setLayoutProperty('heat', 'visibility', heatOn ? 'visible' : 'none');
 
   fwRisk();
@@ -1313,7 +1326,7 @@ document.getElementById('fit-btn').addEventListener('click', () => {
   const rows = visible();
   if (!rows.length) { map.easeTo({ center: RESIDENTIAL_CENTRE, zoom: DEFAULT_ZOOM }); return; }
   const b = new maplibregl.LngLatBounds();
-  rows.forEach(r => b.extend([r.longitude, r.latitude]));
+  rows.forEach(r => { if (!CLIP_PINS || inBoundary(+r.longitude, +r.latitude)) b.extend([r.longitude, r.latitude]); });
   map.fitBounds(b, { padding: 60, maxZoom: 17 });
 });
 
