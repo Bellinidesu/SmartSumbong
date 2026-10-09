@@ -993,3 +993,22 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] .cs-acts > * span { background: color-mix(in srgb, var(--cs-c) 8%, #0E1530); }
 :root[data-theme="dark"] .cs-acts > *:hover span { background: color-mix(in srgb, var(--cs-c) 20%, #0E1530); }
 .cs-last { background: color-mix(in srgb, var(--cs) 8%, transparent); border-color: color-mix(in srgb, var(--cs) 22%, transparent); }
+/* ---- Neutral graphite under the case colour, so the colour reads as the case's own and not as blue ---- */
+:root[data-theme="dark"] .cs-sheet { background: linear-gradient(180deg, color-mix(in srgb, var(--cs) 13%, transparent), color-mix(in srgb, var(--cs) 3%, transparent) 55%, color-mix(in srgb, var(--cs) 8%, transparent)), rgba(20,21,27,.66); }
+:root[data-theme="dark"] .ss-qv { background: rgba(20,21,27,.68); }
+:root[data-theme="dark"] .qv-tail { background: rgba(20,21,27,.85); }
+:root[data-theme="dark"] .cs-rows li svg { color: #C9CFDF; }
+:root[data-theme="dark"] .cs-acts > * { color: #E3E7F2; }
+:root[data-theme="dark"] .cs-acts > * span { background: color-mix(in srgb, var(--cs-c) 8%, #14161C); }
+:root[data-theme="dark"] .cs-acts > *:hover span { background: color-mix(in srgb, var(--cs-c) 20%, #14161C); }
+:root[data-theme="dark"] .cs-acts .ac-look span::after { background: none; }
+:root[data-theme="dark"] .cs-meta, :root[data-theme="dark"] .cs-rows small { color: #9EA3B3; }
+:root[data-theme="dark"] .cs-steps li::before { border-color: rgba(255,255,255,.28); background: #1A1C24; }
+:root[data-theme="dark"] .cs-steps li::after { background: rgba(255,255,255,.18); }
+:root[data-theme="dark"] .cs-last small, :root[data-theme="dark"] .cs-sla small, :root[data-theme="dark"] .cs-quote small { color: #9EA3B3; }
+:root[data-theme="dark"] .cs-quote, :root[data-theme="dark"] .cs-sla { background: rgba(255,255,255,.05); }
+:root[data-theme="dark"] .cs-x { background: rgba(0,0,0,.45); }
+:root[data-theme="dark"] .cs-steps li.on::before { background: var(--cv); border-color: var(--cv); box-shadow: 0 0 10px var(--cv); }
+:root[data-theme="dark"] .cs-steps li.cur::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cv) 26%, transparent), 0 0 10px var(--cv); }
+:root[data-theme="dark"] .cs-steps li.on:has(+ li.on)::after { background: var(--cv); }
+:root[data-theme="dark"] .cs-steps li.cur::after { background: linear-gradient(90deg, var(--cv), rgba(255,255,255,.18)); }
