@@ -319,6 +319,12 @@
         map.addLayer({ id: 'cd-fog-far', type: 'fill', source: 'cd-fog-far', layout: hide, paint: { 'fill-color': '#0E1226', 'fill-opacity': .93 } }, ground);
         FOG = bake.fog;
       }
+      // the day's ground, ray traced (docs/map-data/bake_ultra.py): bounced colour and soft contact shadow; the night keeps the lighter picture above
+      if (bake && bake.bounds && bake.ultra) {
+        const [bw, bs, be, bn] = bake.bounds;
+        map.addSource('cd-bake-u', { type: 'image', url: 'assets/map/' + bake.ultra, coordinates: [[bw, bn], [be, bn], [be, bs], [bw, bs]] });
+        map.addLayer({ id: 'cd-bake-u', type: 'raster', source: 'cd-bake-u', minzoom: 15, layout: hide, paint: { 'raster-opacity': 1, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+      }
       // on the road: zebra crossings and the dashed lane lines
       if (detail && detail.crossings) {
         map.addSource('cd-cross', { type: 'geojson', data: detail.crossings });
@@ -352,7 +358,7 @@
       }
     })());
   }
-  const LAYERS = ['cd-bake', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
+  const LAYERS = ['cd-bake', 'cd-bake-u', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
   const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
   function paint() {
     const p = pal();
@@ -387,7 +393,9 @@
   function lightUpdate() {
     const night = isDark();
     ['cd-glow', 'cd-lamp'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', on && night ? 'visible' : 'none'); });
-    if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', on && !night ? 'visible' : 'none');
+    if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', on && !night && !has('cd-bake-u') ? 'visible' : 'none');   // the ray-traced day ground has its own bounce
+    if (has('cd-bake-u')) { map.setLayoutProperty('cd-bake-u', 'visibility', on && !night ? 'visible' : 'none'); if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', on && night ? 'visible' : 'none'); }
+    else if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', on ? 'visible' : 'none');
   }
   function fogUpdate() {
     const dim = document.getElementById('f-fog') ? document.getElementById('f-fog').checked : true, night = isDark();
@@ -427,7 +435,7 @@
   window.sdCityLooks = () => Object.keys(LOOKS);
   async function show(want) {
     on = want; await init(); if (want !== on) return;
-    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-glow', 'cd-bounce', 'cd-lamp'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
+    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-glow', 'cd-bounce', 'cd-lamp', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
     detail(); fogUpdate(); lightUpdate(); clip();
     if (want) paint(); else { try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
   }

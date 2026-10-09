@@ -278,9 +278,14 @@ def main():
         fo = os.path.join(MAP, 'fog-%s.png' % name)
         Image.fromarray(im, 'RGBA').save(fo, optimize=True)
         print('wrote', os.path.basename(fo), os.path.getsize(fo) // 1024, 'KB', '(%d x %d px)' % (FW, FH))
-    json.dump({'bounds': [w, s, e, n], 'metresPerPixel': PX, 'sunAzimuth': AZ, 'glow': 'glow.png', 'bounce': 'bounce.png',
+    old = {}
+    try:
+        old = json.load(open(os.path.join(MAP, 'shadows.json')))
+    except Exception:
+        pass
+    json.dump(dict(({'ultra': old['ultra']} if 'ultra' in old else {}), **{'bounds': [w, s, e, n], 'metresPerPixel': PX, 'sunAzimuth': AZ, 'glow': 'glow.png', 'bounce': 'bounce.png',
                'fog': {'bounds': [fw, fs, fe, fn], 'night': 'fog-night.png', 'day': 'fog-day.png', 'alpha': {'night': .93, 'day': .88}},
-               'about': 'Baked by docs/map-data/bake_shadows.py'}, open(os.path.join(MAP, 'shadows.json'), 'w'), separators=(',', ':'))
+               'about': 'Baked by docs/map-data/bake_shadows.py'}), open(os.path.join(MAP, 'shadows.json'), 'w'), separators=(',', ':'))
 
 
 main()
