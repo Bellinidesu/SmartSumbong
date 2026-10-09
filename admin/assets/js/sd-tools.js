@@ -409,7 +409,7 @@
         layout: { visibility: 'none', 'icon-image': ['concat', 'lm-', ['get', 'group'], dark ? '-d' : '-l'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 18, .86], 'icon-anchor': 'center',
                   'icon-pitch-alignment': 'viewport', 'text-pitch-alignment': 'viewport', 'icon-allow-overlap': false, 'text-optional': true,
                   'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 11.5, 'text-offset': [0, 2.35], 'text-anchor': 'top', 'text-max-width': 8 },
-        paint: { 'icon-translate': [0, -16], 'text-translate': [0, -16], 'text-color': dark ? '#F4F5FA' : '#1B1C20', 'text-halo-color': dark ? 'rgba(17,18,22,.92)' : 'rgba(255,255,255,.95)', 'text-halo-width': 1.6 } }, typeof layerBefore === 'function' ? layerBefore() : undefined);
+        paint: { 'icon-translate': [0, -16], 'text-translate': [0, -16], 'text-color': dark ? '#F4F5FA' : '#1B1C20', 'text-halo-color': dark ? 'rgba(17,18,22,.92)' : 'rgba(255,255,255,.95)', 'text-halo-width': 1.6, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 16, 0, 16.6, 1] } }, typeof layerBefore === 'function' ? layerBefore() : undefined);
     })());
   }
   async function lmShow(on) {

@@ -31,7 +31,7 @@
     day: {
       light: { anchor: 'map', color: '#FFFFFF', intensity: .4, position: [1.3, 215, 50] },
       sky: { 'sky-color': '#8FC1F0', 'horizon-color': '#E9F1FA', 'fog-color': '#E8EDF3', 'sky-horizon-blend': .5, 'horizon-fog-blend': .8, 'fog-ground-blend': .5 },
-      wall: { lo: ['#EDE9E3', '#A9BAD2', '#B9CADF', .05], mid: ['#E6E4E2', '#9FB1CC', '#B6C8DF', .06], hi: ['#DCE1EA', '#8EA4C4', '#AFC3DD', .08] },
+      wall: { lo: ['#EEEAE4', '#CBD3DE', '#D3DAE4', .05], mid: ['#E8E6E4', '#C3CCD9', '#CBD4E0', .06], hi: ['#DEE2EA', '#B3C0D2', '#BFCADA', .08] },
       roofFlat: '#F2EFEA', roofs: ['#C25446', '#D07A45', '#3F6FC4', '#3E8E6C', '#9A9DA6', '#E3D3AC', '#7A5A48', '#EDEDED'],
       canopy: ['#7FCB5E', '#5FB55A'], canopy2: ['#8DD66A', '#6BC262'], palm: ['#74C24E', '#5DB04A'], trunk: '#8A6B4F', palmTrunk: '#B09370', tshadow: ['#2E4A2A', .2],
       area: { fairway: '#9BDB82', green: '#7CD36A', tee: '#7CD36A', bunker: '#F6ECC9', water: '#7CC4F0', driving_range: '#A9DF92', 'pitch:basketball': '#E8A168', 'pitch:tennis': '#6FA3E6', 'pitch:soccer': '#86D073', 'pitch:football': '#86D073', playground: '#EBC9A5', swimming_pool: '#62BDF0', track: '#D98B6E', other: '#8FD27E' }, areaLine: ['#FFFFFF', .9], cross: ['#FFFFFF', .95], lane: ['#CBC7BE', .85],
@@ -181,12 +181,33 @@
     const fc = f => ({ type: 'FeatureCollection', features: f });
     return [fc(c1), fc(c2), fc(trunk), fc(shade)];
   }
-  const POI_COL = { restaurant: '#FF9A3D', fast_food: '#FF9A3D', cafe: '#FF9A3D', bar: '#FF9A3D', bakery: '#FF9A3D', ice_cream: '#FF9A3D', food_court: '#FF9A3D',
-    shop: '#4F8CFF', grocery: '#4F8CFF', supermarket: '#4F8CFF', clothing_store: '#4F8CFF', convenience: '#4F8CFF', department_store: '#4F8CFF', mall: '#4F8CFF', jewelry: '#4F8CFF',
-    hospital: '#F0524F', doctors: '#F0524F', pharmacy: '#F0524F', dentist: '#F0524F', clinic: '#F0524F', veterinary: '#F0524F',
-    school: '#9B6BFF', college: '#9B6BFF', kindergarten: '#9B6BFF', library: '#9B6BFF', university: '#9B6BFF',
-    lodging: '#D56FE0', hotel: '#D56FE0', fuel: '#2CC3D6', bank: '#34B36B', atm: '#34B36B', police: '#F0524F', fire_station: '#F0524F', place_of_worship: '#22B8CF', park: '#6BC25B', playground: '#6BC25B', sports_centre: '#6BC25B' };
-  const poiColour = () => ['match', ['get', 'class']].concat(...Object.keys(POI_COL).map(k => [k, POI_COL[k]]), ['#8E97AB']);
+  // Places, as Apple draws them: a small round badge in the colour of what the place is, its name beside it in the same colour.
+  // They give way to each other (and to the landmarks) by importance, so only what fits on the screen is shown.
+  const POI_CAT = {
+    food: ['#FF9A3D', 'utensils', ['restaurant', 'fast_food', 'food_court', 'bar', 'bakery', 'ice_cream']],
+    cafe: ['#FF9A3D', 'coffee', ['cafe']],
+    shop: ['#4F8CFF', 'bag', ['shop', 'grocery', 'supermarket', 'clothing_store', 'convenience', 'department_store', 'mall', 'jewelry']],
+    health: ['#F0524F', 'health', ['hospital', 'doctors', 'pharmacy', 'dentist', 'clinic', 'veterinary']],
+    school: ['#9B6BFF', 'school', ['school', 'college', 'kindergarten', 'library', 'university']],
+    lodging: ['#D56FE0', 'bed', ['lodging', 'hotel']],
+    fuel: ['#2CC3D6', 'fuel', ['fuel']],
+    bank: ['#34B36B', 'service', ['bank', 'atm']],
+    worship: ['#22B8CF', 'church', ['place_of_worship']],
+    safety: ['#F0524F', 'responder', ['police', 'fire_station']],
+    park: ['#6BC25B', 'tree', ['park', 'playground', 'sports_centre']],
+    other: ['#8E97AB', 'pin', []],
+  };
+  const poiBadge = (cat, dark) => {
+    const [col, ic] = POI_CAT[cat], g = window.SD_ICONS[ic] || '';
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="30" r="22" fill="rgba(0,0,0,.28)"/><circle cx="28" cy="28" r="22" fill="' + col + '" stroke="' + (dark ? '#14172A' : '#FFFFFF') + '" stroke-width="3"/>' +
+      '<g transform="translate(15 15) scale(1.08)" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + g + '</g></svg>';
+  };
+  const poiImage = () => ['concat', 'cdp-', ['match', ['get', 'class']].concat(...Object.keys(POI_CAT).filter(k => POI_CAT[k][2].length).map(k => [POI_CAT[k][2], k]), ['other']), isDark() ? '-n' : '-d'];
+  const poiColour = () => ['match', ['get', 'class']].concat(...Object.keys(POI_CAT).filter(k => POI_CAT[k][2].length).map(k => [POI_CAT[k][2], POI_CAT[k][0]]), [POI_CAT.other[0]]);
+  async function addPoiImages() {
+    const load = (name, svg) => new Promise(res => { const im = new Image(); im.onload = () => { if (!map.hasImage(name)) map.addImage(name, im, { pixelRatio: 2 }); res(); }; im.onerror = res; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
+    await Promise.all(Object.keys(POI_CAT).flatMap(k => [load('cdp-' + k + '-n', poiBadge(k, true)), load('cdp-' + k + '-d', poiBadge(k, false))]));
+  }
 
   async function init() {
     if (ready) return ready;
@@ -195,7 +216,7 @@
       if (typeof build3d === 'function') build3d();
       const [detail, bld, lmj] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null)));
       const lms = lmj ? lmj.features.map(f => ({ n: (f.properties && f.properties.name) || '', c: f.geometry.coordinates })).filter(x => x.n) : [];
-      addWalls();
+      addWalls(); await addPoiImages();
       const p = pal(), lyrs = map.getStyle().layers, i3 = lyrs.findIndex(l => l.id === 'building-3d'), above = i3 >= 0 && lyrs[i3 + 1] ? lyrs[i3 + 1].id : undefined;
       const firstLabel = (lyrs.find(l => l.type === 'symbol') || {}).id, hide = { visibility: 'none' }, src = map.getSource('openmaptiles');
       // the buildings: walls with windows by height, then their roofs (the map tiles' plain 3D buildings stay hidden underneath)
@@ -236,16 +257,16 @@
         map.addLayer({ id: 'cd-canopy', type: 'fill-extrusion', source: 'cd-canopy', minzoom: 15.6, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
         map.addLayer({ id: 'cd-canopy2', type: 'fill-extrusion', source: 'cd-canopy2', minzoom: 15.6, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy2'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
       }
-      if (src) {
-        map.addLayer({ id: 'cd-poi', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 16, layout: hide,
-          paint: { 'circle-color': poiColour(), 'circle-radius': ['interpolate', ['linear'], ['zoom'], 16, 3.5, 18, 6], 'circle-stroke-color': p.poiStroke, 'circle-stroke-width': 1.6, 'circle-pitch-alignment': 'viewport' } }, above);
-        map.addLayer({ id: 'cd-poi-name', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 17, filter: ['has', 'name'],
-          layout: { visibility: 'none', 'text-field': ['coalesce', ['get', 'name:latin'], ['get', 'name']], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-offset': [0, .9], 'text-anchor': 'top', 'text-max-width': 7, 'text-optional': true, 'text-pitch-alignment': 'viewport' },
-          paint: { 'text-color': poiColour(), 'text-halo-color': p.haloText, 'text-halo-width': 1.5 } }, above);
+      if (src) {   // places: a badge and a name, the more important winning a crowded spot; names come in as you zoom
+        map.addLayer({ id: 'cd-poi', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 16.2,
+          layout: { visibility: 'none', 'icon-image': poiImage(), 'icon-size': ['interpolate', ['linear'], ['zoom'], 16.2, .5, 18, .72], 'icon-padding': 3, 'icon-pitch-alignment': 'viewport', 'icon-allow-overlap': false,
+                    'symbol-sort-key': ['get', 'rank'], 'text-field': ['coalesce', ['get', 'name:latin'], ['get', 'name']], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 17, 10.5, 18, 11.5],
+                    'text-anchor': 'left', 'text-offset': [1.15, 0], 'text-max-width': 7, 'text-optional': true, 'text-pitch-alignment': 'viewport', 'text-padding': 3 },
+          paint: { 'text-color': poiColour(), 'text-halo-color': p.haloText, 'text-halo-width': 1.5, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 16.9, 0, 17.3, 1] } }, above);
       }
     })());
   }
-  const LAYERS = ['cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi', 'cd-poi-name'];
+  const LAYERS = ['cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
   const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
   function paint() {
     const p = pal();
@@ -255,7 +276,7 @@
     set('cd-lane', 'line-color', p.lane[0]); set('cd-lane', 'line-opacity', p.lane[1]);
     set('cd-canopy', 'fill-extrusion-color', canopyColour(p, 'canopy')); set('cd-canopy2', 'fill-extrusion-color', canopyColour(p, 'canopy2')); set('cd-trunk', 'fill-extrusion-color', trunkColour(p));
     set('cd-area', 'fill-color', areaColour(p)); set('cd-area-line', 'line-color', p.areaLine[0]); set('cd-area-line', 'line-opacity', p.areaLine[1]); set('cd-tshadow', 'fill-color', p.tshadow[0]); set('cd-tshadow', 'fill-opacity', p.tshadow[1]);
-    set('cd-poi', 'circle-stroke-color', p.poiStroke); set('cd-poi-name', 'text-halo-color', p.haloText);
+    if (has('cd-poi')) { map.setLayoutProperty('cd-poi', 'icon-image', poiImage()); map.setPaintProperty('cd-poi', 'text-halo-color', p.haloText); }
     try { map.setLight(p.light); map.setSky(p.sky); } catch (e) { /* an older map */ }
   }
   // ---- how much detail: Auto draws the window walls and drops to plain walls if the map is running slowly on this
