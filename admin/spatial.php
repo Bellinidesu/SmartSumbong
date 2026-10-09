@@ -65,7 +65,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
           <option value="rejected"><?= e(t('Rejected', 'Tinanggihan')) ?></option>
         </select></label>
       <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Month filed', 'Buwan ng pagsampa')) ?></span>
-        <input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>" disabled></label>
+        <input type="hidden" id="f-from"><input type="hidden" id="f-to"><input type="month" id="f-period" value="<?= e((new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m')) ?>" disabled></label>
       <label class="p-pill-select p-tog"><input type="checkbox" id="f-period-all" checked> <?= e(t('All time', 'Lahat ng panahon')) ?></label>
       <!-- Rose (27 Sep 2026): choices above take effect on Apply; the switches below act at once. -->
       <button type="button" class="p-btn p-btn-primary p-btn-sm p-apply" id="f-apply"><?= e(t('Apply', 'Ilapat')) ?></button>
@@ -628,13 +628,14 @@ async function loadBoundary() {
 // ---- rendering ---------------------------------------------------
 // What the map shows is what was last applied, not what the dropdowns
 // say right now (Rose, 27 Sep 2026: choose, then Apply).
-const applied = { cat: '', st: '', period: '', allTime: true };
+const applied = { cat: '', st: '', period: '', from: '', to: '', allTime: true };
 
 function readFilters() {
   return {
     cat: document.getElementById('f-category').value,
     st: document.getElementById('f-status').value,
     period: document.getElementById('f-period').value,
+    from: document.getElementById('f-from').value, to: document.getElementById('f-to').value,
     allTime: document.getElementById('f-period-all').checked,
   };
 }
@@ -642,7 +643,7 @@ function readFilters() {
 function markDirty() {
   const f = readFilters();
   const dirty = f.cat !== applied.cat || f.st !== applied.st || f.allTime !== applied.allTime
-             || (!f.allTime && f.period !== applied.period);
+             || (!f.allTime && (f.period !== applied.period || f.from !== applied.from || f.to !== applied.to));
   document.getElementById('f-apply').classList.toggle('p-dirty', dirty);
 }
 
@@ -1658,7 +1659,9 @@ document.querySelectorAll('#map-legend .lg-cat').forEach(row => {
 const STATUS_DOT = { under_review: '#F9AB00', in_progress: '#2F6BFF', resolved: '#1E9E56', rejected: '#9AA3B2' };
 sdPickers.select(document.getElementById('f-category'), { dot: v => catColour(v) });
 sdPickers.select(document.getElementById('f-status'), { dot: v => STATUS_DOT[v] });
-sdPickers.month(document.getElementById('f-period'), { allTime: document.getElementById('f-period-all') });
+// The calendar shows how busy each day was: the day's box is filled by its number of complaints.
+const CAL_COUNTS = (y, m) => { const o = {}; all.forEach(r => { const d = new Date(new Date(r.created_at).getTime() + 8 * 3600 * 1000); if (d.getUTCFullYear() === y && d.getUTCMonth() === m) o[d.getUTCDate()] = (o[d.getUTCDate()] || 0) + 1; }); return o; };
+sdPickers.range(document.getElementById('f-period'), { from: document.getElementById('f-from'), to: document.getElementById('f-to'), allTime: document.getElementById('f-period-all'), counts: CAL_COUNTS });
 
 // Tuning aid, off unless asked for: load spatial.php?bounds=1 and the
 // console prints the framing on every pan, ready to paste above.
@@ -1677,9 +1680,9 @@ document.getElementById('f-heat').addEventListener('change', draw);
   document.getElementById(id).addEventListener('change', () => {
     // Picking a month means that month, not all time.
     if (id === 'f-period') document.getElementById('f-period-all').checked = false;
-    document.getElementById('f-period').disabled = document.getElementById('f-period-all').checked;
     markDirty();
   }));
+['f-from', 'f-to'].forEach(id => document.getElementById(id).addEventListener('change', markDirty));
 document.getElementById('f-apply').addEventListener('click', () => {
   Object.assign(applied, readFilters());
   markDirty();
@@ -1825,6 +1828,11 @@ function periodRange() {
   const to = new Date(Date.now() + 60 * 1000);
   if (applied.allTime) {
     return { from: '2000-01-01T00:00:00Z', to: to.toISOString() };
+  }
+  // A range of days chosen in the calendar: from the start of the first day to the end of the last, Manila time.
+  if (applied.from && applied.to) {
+    const [fy, fm, fd] = applied.from.split('-').map(Number), [ty, tm, td] = applied.to.split('-').map(Number), M = 8 * 3600 * 1000;
+    return { from: new Date(Date.UTC(fy, fm - 1, fd) - M).toISOString(), to: new Date(Date.UTC(ty, tm - 1, td + 1) - M).toISOString() };
   }
   const val = applied.period; // 'YYYY-MM'
   if (!val) { return { from: '2000-01-01T00:00:00Z', to: to.toISOString() }; }
@@ -1981,10 +1989,7 @@ async function loadHotspots() {
 
 const HOTSPOTS = <?= json_encode(HOTSPOTS_ENABLED) ?>;
 if (HOTSPOTS) document.getElementById('f-hotspots').addEventListener('change', loadHotspots);
-document.getElementById('f-period-all').addEventListener('change', e => {
-  document.getElementById('f-period').disabled = e.target.checked;
-  markDirty();
-});
+document.getElementById('f-period-all').addEventListener('change', () => markDirty());
 
 const hotspotToggleBtn = document.getElementById('hotspot-toggle');
 const hotspotSide      = document.getElementById('hotspot-side');

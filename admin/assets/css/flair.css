@@ -1263,3 +1263,33 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] .lv-meta em, :root[data-theme="dark"] #s-spatial .p-pin-body small { color: #C9CEDB; }
 :root[data-theme="dark"] #s-spatial .p-pin-body a { color: #A9C5FF; }
 .lv-n { color: #20130A; }
+
+/* ---- The day calendar: each day's box is filled by how busy it was; a range is one lit band ---- */
+.sdp-rng { width: 304px; }
+.sdp-rng .sdp-yr .mn { font: 800 17px Urbanist, sans-serif; }
+.sdp-wk { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; color: var(--p-muted); font: 700 11px Inter, sans-serif; margin-bottom: 4px; }
+.sdp-dg { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px 0; user-select: none; touch-action: none; }
+.sdp-d { position: relative; height: 38px; border: 0; background: none; color: var(--p-ink); font: 700 13.5px Urbanist, sans-serif; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.sdp-d.e { pointer-events: none; }
+.sdp-d b { position: relative; z-index: 1; font-weight: 700; }
+.sdp-d::before { content: ""; position: absolute; inset: 2px; border-radius: 12px; z-index: 0; transition: background .2s, box-shadow .2s, transform .25s cubic-bezier(.2,1.5,.4,1); }
+.sdp-d.l1::before { background: rgba(255,152,0,.2); } .sdp-d.l2::before { background: rgba(255,152,0,.42); }
+.sdp-d.l3::before { background: linear-gradient(145deg, rgba(255,179,71,.88), rgba(242,122,0,.82)); box-shadow: 0 0 12px rgba(255,140,0,.45); } .sdp-d.l3 b { color: #fff; }
+.sdp-d:hover::before { transform: scale(1.08); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.5); }
+.sdp-d.in::before { border-radius: 0; inset: 2px 0; background: rgba(255,255,255,.16); box-shadow: none; transform: none; }
+.sdp-d.in.l1::before, .sdp-d.in.l2::before, .sdp-d.in.l3::before { box-shadow: inset 0 0 0 100px rgba(255,255,255,.12); }
+.sdp-d.in.l1::before { background: rgba(255,152,0,.34); } .sdp-d.in.l2::before { background: rgba(255,152,0,.54); } .sdp-d.in.l3::before { background: linear-gradient(145deg, #FFB347, #F27A00); }
+.sdp-d.a::before, .sdp-d.z::before { background: linear-gradient(145deg, #FFB347, #F27A00); box-shadow: 0 4px 14px rgba(255,140,0,.5); inset: 2px; border-radius: 12px; }
+.sdp-d.a:not(.z)::before { border-radius: 12px 0 0 12px; inset: 2px 0 2px 2px; } .sdp-d.z:not(.a)::before { border-radius: 0 12px 12px 0; inset: 2px 2px 2px 0; }
+.sdp-d.a b, .sdp-d.z b { color: #fff; }
+.sdp-d.now b { text-decoration: underline; text-underline-offset: 3px; }
+.sdp-key { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--p-muted); font: 700 11.5px Urbanist, sans-serif; } .sdp-key i { width: 46px; height: 8px; border-radius: 8px; background: linear-gradient(90deg, rgba(255,255,255,.1), rgba(255,152,0,.75)); }
+.sdp-foot.rng { align-items: center; } .sdp-rt { color: var(--p-ink-2); font: 700 12.5px Urbanist, sans-serif; }
+.sdp-foot .sdp-go { background: linear-gradient(145deg, #FFB347, #F27A00); color: #fff; padding: 7px 18px; border-radius: 99px; box-shadow: 0 4px 14px rgba(255,140,0,.45); transition: transform .25s cubic-bezier(.2,1.5,.4,1); } .sdp-foot .sdp-go:hover { transform: translateY(-1px); } .sdp-foot .sdp-go:disabled { opacity: .4; box-shadow: none; }
+.sdp-pre { display: flex; gap: 6px; margin-top: 8px; } .sdp-pre button { flex: 1; height: 32px; border: 0; border-radius: 10px; background: var(--p-surface-2); color: var(--p-link); font: 700 12.5px Urbanist, sans-serif; cursor: pointer; } .sdp-pre button:hover { background: var(--p-line); }
+:root:not([data-theme="dark"]) .sdp-d.l1::before { background: rgba(255,152,0,.16); } :root:not([data-theme="dark"]) .sdp-d.in::before { background: rgba(0,48,143,.1); }
+.sdp-d.in.a::before, .sdp-d.in.z::before, .sdp-d.in.l1.a::before, .sdp-d.in.l2.a::before, .sdp-d.in.l3.a::before, .sdp-d.in.l1.z::before, .sdp-d.in.l2.z::before, .sdp-d.in.l3.z::before { background: linear-gradient(145deg, #FFB347, #F27A00); box-shadow: 0 4px 14px rgba(255,140,0,.5); }
+.sdp-d.a.z::before { border-radius: 12px; inset: 2px; }
+/* on the orange report bands the pills are white: their pickers read in navy */
+.p-band .p-pill-select .sdp-btn { color: #141B34; } .p-band .p-pill-select .sdp-btn svg { color: #3A4058; }
+.p-band .p-pill-select:has(.sdp-btn) { background: #fff; }
