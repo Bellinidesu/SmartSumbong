@@ -1,0 +1,243 @@
+{
+  "name": "Shrine of St. Thérèse of the Child Jesus",
+  "tier": "hero",
+  "match": {
+    "name": "Shrine of St. Th.r.se of the Child Jesus"
+  },
+  "anchor": [
+    121.015939,
+    14.521266
+  ],
+  "height": 11.6,
+  "about": "Interpreted from the satellite view (metre grid), the street frames and the Commons photographs: a salmon-terracotta stucco church on a long north-east axis. Big terracotta ribbed dome over the crossing at the south-west end; at the north-east end a front of four stepped concentric arches (lighter at each edge) with the saint in a niche, a stained-glass arch, a flat porch on columns and a cross, flanked by two drum towers with blue-grey domes; a pale beige roof deck with two strips of solar panels; a two-storey terracotta block along the south-east side; an ivy wall along the street with a hedge at its foot; paving in rings in front.",
+  "palette": {
+    "wall": "EFA283",
+    "trim": "F2DEC4",
+    "accent": "C9544A",
+    "podium": "EFA283"
+  },
+  "use": "shrine",
+  "roof": {
+    "colour": "E9DCC2"
+  },
+  "tiles": {
+    "arcade": {
+      "kind": "arcade",
+      "m": [
+        8.0,
+        5.8
+      ],
+      "fit": true,
+      "seed": 29,
+      "p": 0.5,
+      "bays": 2,
+      "lc": "warm"
+    },
+    "ivy": {
+      "kind": "ivy",
+      "m": [
+        6.0,
+        6.0
+      ],
+      "seed": 7
+    }
+  },
+  "body": {
+    "podium": 5.8,
+    "podium_mat": "arcade",
+    "floors_mat": "arcade"
+  },
+  "features": [
+    {
+      "type": "deck",
+      "poly": [
+        [
+          -45,
+          -17
+        ],
+        [
+          -24,
+          -38
+        ],
+        [
+          -3,
+          -43
+        ],
+        [
+          8,
+          -34
+        ],
+        [
+          3,
+          -25
+        ],
+        [
+          -25,
+          2
+        ]
+      ],
+      "z": 11.6,
+      "colour": "E9DCC2",
+      "top_mat": "roofdeck"
+    },
+    {
+      "type": "dome",
+      "at": [
+        -14.7,
+        -23.1
+      ],
+      "r": 10.0,
+      "drum": 3.2,
+      "rise": 8.6,
+      "colour": "C4614A",
+      "colour2": "B3563F",
+      "ribs": 12,
+      "z": 11.6
+    },
+    {
+      "type": "dome",
+      "at": [
+        16.1,
+        29.0
+      ],
+      "r": 4.0,
+      "drum": 3.4,
+      "rise": 3.0,
+      "colour": "7F95B4",
+      "colour2": "7089AA",
+      "ribs": 8,
+      "z": 11.6
+    },
+    {
+      "type": "dome",
+      "at": [
+        35.4,
+        9.1
+      ],
+      "r": 4.0,
+      "drum": 3.4,
+      "rise": 3.0,
+      "colour": "7F95B4",
+      "colour2": "7089AA",
+      "ribs": 8,
+      "z": 11.6
+    },
+    {
+      "type": "arch_facade",
+      "at": [
+        30.5,
+        22.0
+      ],
+      "facing": 43.4,
+      "width": 26.0,
+      "height": 22.5,
+      "colours": [
+        "E9987A",
+        "F6C9AE",
+        "E9987A",
+        "F6C9AE"
+      ]
+    },
+    {
+      "type": "solar",
+      "at": [
+        -1.7,
+        14.4
+      ],
+      "axis": 43.4,
+      "length": 33,
+      "width": 7.5,
+      "z": 11.6
+    },
+    {
+      "type": "solar",
+      "at": [
+        16.4,
+        -7.5
+      ],
+      "axis": 43.4,
+      "length": 34,
+      "width": 5.8,
+      "z": 11.6
+    },
+    {
+      "type": "deck",
+      "poly": [
+        [
+          12.7,
+          -23.1
+        ],
+        [
+          41.1,
+          0.5
+        ],
+        [
+          47.6,
+          -6.4
+        ],
+        [
+          19.2,
+          -30.0
+        ]
+      ],
+      "z": 9.0,
+      "from": 0,
+      "wall": "D4876A",
+      "wall_mat": "arcade",
+      "colour": "D98F70",
+      "top_mat": "roofdeck"
+    },
+    {
+      "type": "rings",
+      "at": [
+        43.0,
+        33.5
+      ],
+      "r0": 2.5,
+      "r1": 15.0,
+      "n": 7
+    },
+    {
+      "type": "belt",
+      "z": 5.5,
+      "h": 0.45,
+      "out": 0.45,
+      "colour": "F6D0B5"
+    },
+    {
+      "type": "piers",
+      "bay": 4.0,
+      "width": 0.7,
+      "depth": 0.5,
+      "colour": "F6C9AE",
+      "from": 0.0,
+      "to_below": 0.7,
+      "street_only": true
+    },
+    {
+      "type": "ivy",
+      "line": [
+        [
+          19.2,
+          -30.0
+        ],
+        [
+          47.6,
+          -6.4
+        ]
+      ],
+      "height": 9.5,
+      "mat": "ivy"
+    }
+  ],
+  "facade": false,
+  "night": {
+    "wash": {
+      "color": "amber",
+      "height": 22,
+      "strength": 0.7
+    },
+    "lit": 0.6
+  },
+  "ref": []
+}

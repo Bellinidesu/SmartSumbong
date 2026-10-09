@@ -340,7 +340,35 @@ def photo(lit, ref='FFFFFF', seed=1, bays=3, floors=3, bay_w=4.0, floor_h=3.4, w
     return weather(im, seed, wear, 6, .08)
 
 
-KINDS = dict(photo=photo, brickbay=brickbay, arcade=arcade, loggia=loggia, curtain=curtain, band=band, stucco=stucco, board=board, terrazzo=terrazzo, stone=stone, timber=timber, shopfront=shopfront)
+def ivy(lit, seed=7, ref='FFFFFF', leaf='557C42', leaf2='7FA05A', wall='C9805F', bloom='D94F8E', gaps=.18, blooms=.012, **kw):
+    """A wall hidden under climbing plant (absolute colours, the vertex colour is white): leaves of two greens, a little of the wall showing through, scattered pink bloom, a hedge band at the foot."""
+    if lit:
+        return Image.new('RGB', (INNER * SS, INNER * SS), (0, 0, 0))
+    S = INNER * SS
+    rnd = random.Random(seed)
+    A = _hexmul(leaf, 'FFFFFF'), _hexmul(leaf2, 'FFFFFF'), _hexmul(wall, 'FFFFFF'), _hexmul(bloom, 'FFFFFF')
+    im = Image.new('RGB', (S, S), _g(A[0], .9))
+    d = ImageDraw.Draw(im)
+    for _ in range(int(900 * (1 - gaps))):
+        x, y, r = rnd.random() * S, rnd.random() * S * .86, (.012 + rnd.random() * .02) * S
+        c = A[1] if rnd.random() < .5 else A[0]
+        d.ellipse([x - r, y - r * .8, x + r, y + r * .8], fill=_g(c, .75 + .3 * rnd.random()))
+        d.ellipse([x - r + S, y - r * .8, x + r + S, y + r * .8], fill=_g(c, .8)) if x < r else None
+    for _ in range(int(120 * gaps * 4)):
+        x, y, r = rnd.random() * S, rnd.random() * S * .86, (.01 + rnd.random() * .016) * S
+        d.ellipse([x - r, y - r, x + r, y + r], fill=_g(A[2], .85))
+    for _ in range(int(blooms * 5000)):
+        x, y, r = rnd.random() * S, rnd.random() * S * .8, (.004 + rnd.random() * .006) * S
+        d.ellipse([x - r, y - r, x + r, y + r], fill=_g(A[3], .95))
+    d.rectangle([0, S * .88, S, S], fill=_g(A[0], .62))                       # the hedge at its foot
+    for _ in range(160):
+        x, y = rnd.random() * S, S * (.86 + rnd.random() * .14)
+        r = (.012 + rnd.random() * .012) * S
+        d.ellipse([x - r, y - r, x + r, y + r], fill=_g(A[1], .55 + .3 * rnd.random()))
+    return im
+
+
+KINDS = dict(ivy=ivy, photo=photo, brickbay=brickbay, arcade=arcade, loggia=loggia, curtain=curtain, band=band, stucco=stucco, board=board, terrazzo=terrazzo, stone=stone, timber=timber, shopfront=shopfront)
 
 
 def register(slug, name, spec, ref='FFFFFF'):
@@ -349,7 +377,7 @@ def register(slug, name, spec, ref='FFFFFF'):
     kind = spec['kind']
     fn = KINDS[kind]
     kw = {k: v for k, v in spec.items() if k not in ('kind', 'm', 'fit', 'graded')}
-    if kind == 'photo':
+    if kind in ('photo', 'ivy'):
         kw['ref'] = ref
         kw.setdefault('bay_w', spec['m'][0] / kw.get('bays', 3))
     full = '%s/%s' % (slug, name)

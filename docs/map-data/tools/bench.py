@@ -50,7 +50,7 @@ def shoot(name, port, out):
     urls = []
     for night in (0, 1):
         for az, _ in VIEWS:
-            urls.append('http://127.0.0.1:%d/?name=%s&az=%d&pitch=26&night=%d' % (port, urllib.parse.quote(name), az, night))
+            urls.append('http://127.0.0.1:%d/?name=%s&az=%d&pitch=%s&night=%d' % (port, urllib.parse.quote(name), az, os.environ.get('BENCH_PITCH', '26'), night))
     subprocess.run(['node', os.path.join(BENCH, 'shoot.mjs'), out] + urls, check=True)
 
 

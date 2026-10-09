@@ -384,7 +384,8 @@ def main():
         if PL.plain(bld[bi][4], bld[bi][5]):
             print('  plain (airfield side):', name)
             continue
-        if SH.find((bdoc.get('info', {}).get(str(bi)) or [''])[0], bi):
+        _sh = SH.find((bdoc.get('info', {}).get(str(bi)) or [''])[0], bi)
+        if _sh and _sh.get('tier') != 'plain':
             continue          # this building has a sheet of its own: drawn from it below
         taken.add(bi)
         done.add(name)
@@ -455,6 +456,10 @@ def main():
         kind = _zone.kind_of(nm, cls, area, b[1], None, lng0, lat0)
         m = Mesh()
         sh = SH.find(nm, bi)
+        if sh and sh.get('tier') == 'plain':
+            sh = None
+        if sh is None and not os.environ.get('SS_ZONE'):
+            continue          # a building that is not a landmark stays the plain coloured building of the map (accurate footprint and height, no model)
         if sh:
             try:
                 extra = _sheet.build(m, ring, ctx, sh, float(b[1]), nm or None)

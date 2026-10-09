@@ -21,6 +21,7 @@ sys.path.insert(0, HERE)
 import atlas
 import facade
 import tiles_lib
+import hero
 from meshlib import MAT, TILE_M, _ccw, rgb
 from models_common import C
 
@@ -101,7 +102,7 @@ def build(m, ring, ctx, sh, h, name):
     podium_col = _hex(pal.get('podium', 'F4F1EA'))
     mats = sh['mats']
     body = sh.get('body', {})
-    pod = float(body.get('podium', 6.0)) if h > 12 else min(4.2, h * .4)
+    pod = float(body['podium']) if 'podium' in body else (6.0 if h > 12 else min(4.2, h * .4))
     band_h = float(body.get('band', 3.4)) if body.get('band_mat') else 0.0
     top = h - band_h - .7
     def sel(k, default):
@@ -119,7 +120,7 @@ def build(m, ring, ctx, sh, h, name):
     m.prism(list(poly.exterior.coords)[:-1], h - .7, h + .45, 'plain', trim, 'roofdeck', roof_col, top=True, cell=4)
     MXm, MYm = 111320 * math.cos(math.radians(14.525)), 110574
     inside = Polygon(ring).buffer(-1.5)
-    hips = _roof_zones(m, ctx, ring, roof.get('zones', []), h)
+    hips = _roof_zones(m, ctx, ring, roof.get('zones', []), h, bool(roof.get('overlays')))
     for o in roof.get('plant', [])[:10]:                                                # the plant on the roof, where the satellite sees it
         x, y = (o['lng'] - ctx['lng']) * MXm, (o['lat'] - ctx['lat']) * MYm
         if inside.is_empty or not inside.contains(Point(x, y)):
@@ -142,6 +143,20 @@ def build(m, ring, ctx, sh, h, name):
             _vault(m, ctx, ft, h, mats)
         elif t == 'piers':
             _piers(m, es, ft, h, pod, trim)
+        elif t == 'dome':
+            hero.dome(m, ctx, sh, ft, mats)
+        elif t == 'arch_facade':
+            hero.arch_facade(m, ctx, sh, ft, mats)
+        elif t == 'solar':
+            hero.solar(m, ctx, sh, ft)
+        elif t == 'deck':
+            hero.deck(m, ctx, sh, ft, mats)
+        elif t == 'ivy':
+            hero.ivy(m, ctx, sh, ft, mats)
+        elif t == 'rings':
+            hero.rings(m, ctx, sh, ft)
+        elif t == 'belt':
+            hero.belt(m, ring, ft)
     fa = sh.get('facade')
     if fa is not False:
         flags = dict(awnings=True, entrance=False, sign=False, balconies=False, ac=False, belts=False, pilasters=False)
@@ -211,7 +226,7 @@ def _roof_sign(m, F, ft, h, name, accent):
 ZONE_COL = dict(tile=C['rooftile'], solar=rgb('2E3A66'), green=rgb('62A072'), water=rgb('A9D4F0'), red=rgb('C9544A'))
 
 
-def _roof_zones(m, ctx, ring, zones, h):
+def _roof_zones(m, ctx, ring, zones, h, overlays=False):
     """A pitched roof shows in the picture as a sunny slope (tile colour) and a shaded one (dark, or covered in solar panels): the two together are one hip. Tile and solar regions that touch
     are merged and a hip is built over each merged region's own outline; the zones left over are laid flat on the roof."""
     from shapely.geometry import Polygon as P
@@ -227,6 +242,10 @@ def _roof_zones(m, ctx, ring, zones, h):
             if g.geom_type != 'Polygon' or g.area < 300 or not has_tile:
                 continue
             rect = g.minimum_rotated_rectangle
+            fp = P(ring).buffer(2.0)
+            if rect.intersection(fp).area / rect.area < .82:
+                print('    roof zone not built: its outline is not a rectangle inside the footprint (%.0f%% inside)' % (100 * rect.intersection(fp).area / rect.area))
+                continue
             xs, ys = rect.exterior.coords.xy
             e0, e1 = math.hypot(xs[1] - xs[0], ys[1] - ys[0]), math.hypot(xs[2] - xs[1], ys[2] - ys[1])
             L, W = max(e0, e1), min(e0, e1)
@@ -234,7 +253,7 @@ def _roof_zones(m, ctx, ring, zones, h):
             c = rect.centroid
             m.hip(c.x, c.y, L, W, th, h + .45, min(9.0, W * .26), 'tile', ZONE_COL['tile'], over=.6, ridge=.4)
             hips.append(rect)
-    for z in zones:
+    for z in (zones if overlays else []):          # flat colour patches from the satellite picture are off unless a sheet asks for them: shadows and trees fool them
         if z['cls'] in ('tile', 'solar') and any(r.buffer(2).contains(loc(z).centroid) for r in hips):
             continue
         _zone(m, ctx, ring, z, h, hips)
