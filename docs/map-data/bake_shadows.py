@@ -32,8 +32,17 @@ sys.path.insert(0, HERE)
 from boundary import Boundary
 
 MAP = os.path.normpath(os.path.join(HERE, '..', '..', 'admin', 'assets', 'map'))
-AZ = 200.0                                      # the sun, degrees clockwise from north
-LEN = 0.75                                      # shadow length as a share of the height (a low-slung afternoon sun, softened)
+# The look can be tried with other values: BAKE_AZ (sun azimuth), BAKE_LEN (shadow length per height), BAKE_SIGMA (shadow softness in pixels),
+# BAKE_SHALPHA (shadow strength), BAKE_AO (ambient occlusion strength), BAKE_SUFFIX (writes shadows<suffix>.png and nothing else),
+# BAKE_TONE=0 and BAKE_FOG=0 (leave the building tones and the fog alone).
+AZ = float(os.environ.get('BAKE_AZ', 200))     # the sun, degrees clockwise from north
+LEN = float(os.environ.get('BAKE_LEN', .75))   # shadow length as a share of the height (a low-slung afternoon sun, softened)
+SIGMA = float(os.environ.get('BAKE_SIGMA', .9))
+SHALPHA = float(os.environ.get('BAKE_SHALPHA', .62))
+AOK = float(os.environ.get('BAKE_AO', 1))
+SUFFIX = os.environ.get('BAKE_SUFFIX', '')
+WRITE_TONE = os.environ.get('BAKE_TONE', '1') != '0' and not SUFFIX
+WRITE_FOG = os.environ.get('BAKE_FOG', '1') != '0' and not SUFFIX
 PX = 1.5                                        # ground picture, metres per pixel
 FOG_PX = 5.0                                    # fog picture, metres per pixel
 FOG_RANGE = 300.0                               # metres over which the ground beyond the boundary fades out
@@ -96,59 +105,65 @@ def main():
         td.ellipse([cxp - rr, cyp - rr, cxp + rr, cyp + rr], fill=210)
 
     f = np.asarray(foot, dtype=np.float32) / 255
-    shadow = gaussian_filter(np.asarray(sh, dtype=np.float32) / 255, 0.9)
+    shadow = gaussian_filter(np.asarray(sh, dtype=np.float32) / 255, SIGMA)
     trees = gaussian_filter(np.asarray(tr, dtype=np.float32) / 255, 0.8)
     near = gaussian_filter(f, 2.0)                  # about 3 m: the dark line at the foot of a wall
     wide = gaussian_filter(f, 7.0)                  # about 10 m: lanes and courtyards, where less sky is seen
     ao = np.clip(near * .5 + wide * .42, 0, 1) * (1 - np.clip(f, 0, 1))
     soft = gaussian_filter(inside, 2.0)             # nothing outside the boundary, with a soft edge
-    alpha = np.clip(np.maximum.reduce([shadow * .62, trees * .36, ao * .5]), 0, 1) * soft
+    alpha = np.clip(np.maximum.reduce([shadow * SHALPHA, trees * .36, np.clip(ao * AOK, 0, 1) * .5]), 0, 1) * soft
     img = np.zeros((H, W, 4), dtype=np.uint8)
     img[..., 0], img[..., 1], img[..., 2] = 12, 14, 34
     img[..., 3] = (alpha * 255).astype(np.uint8)
-    Image.fromarray(img, 'RGBA').save(os.path.join(MAP, 'shadows.png'), optimize=True)
-    print('wrote shadows.png', os.path.getsize(os.path.join(MAP, 'shadows.png')) // 1024, 'KB')
+    out = os.path.join(MAP, 'shadows%s.png' % SUFFIX)
+    Image.fromarray(img, 'RGBA').save(out, optimize=True)
+    print('wrote', os.path.basename(out), os.path.getsize(out) // 1024, 'KB')
+    if not WRITE_TONE and not WRITE_FOG:
+        return
 
-    # ---- a tone for every building: crowded, and in the shade of a taller neighbour on the sun side, is darker ----
-    sx, sy = -ex, -ny                               # towards the sun
-    cell = 60.0
-    grid = {}
-    for i, b in enumerate(bld):
-        grid.setdefault((int(b[4] * MX // cell), int(b[5] * MY // cell)), []).append(i)
-    tones = 0
-    for i, b in enumerate(bld):
-        hb, cxm, cym = b[1], b[4] * MX, b[5] * MY
-        shade = 0.0
-        for gx in range(int(cxm // cell) - 1, int(cxm // cell) + 2):
-            for gy in range(int(cym // cell) - 1, int(cym // cell) + 2):
-                for j in grid.get((gx, gy), []):
-                    if j == i:
-                        continue
-                    o = bld[j]
-                    hn = o[1]
-                    if hn <= hb + 1.5:
-                        continue
-                    dx, dy = o[4] * MX - cxm, o[5] * MY - cym
-                    along = dx * sx + dy * sy       # how far towards the sun the neighbour stands
-                    across = abs(dx * -sy + dy * sx)
-                    reach = min(60.0, hn * LEN)
-                    half = (o[7] + b[7]) / 2 + 2    # its width, ours and a little more
-                    if along <= 0 or across > half + 3 or along - o[6] / 2 > reach:
-                        continue
-                    shade = max(shade, min(1.0, (1 - max(0.0, along - o[6] / 2) / reach)) * min(1.0, (hn - hb) / max(hn, 1)))
-        px_, py_ = int((b[4] - w) * MX / PX), int((n - b[5]) * MY / PX)
-        dens = float(wide[min(H - 1, max(0, py_)), min(W - 1, max(0, px_))])
-        tone = max(.62, min(1.0, 1 - .36 * shade - .10 * min(1.0, dens * 1.6)))
-        t = round(tone, 2)
-        if len(b) > 10:
-            b[10] = t
-        else:
-            b.append(t)
-        tones += tone < .97
-    bdoc['fields'] = bdoc['fields'].rstrip(']') + ', baked tone 0.62 to 1]' if 'baked tone' not in bdoc['fields'] else bdoc['fields']
-    json.dump(bdoc, open(bpath, 'w', encoding='utf-8'), separators=(',', ':'))
-    print('tone: %d of %d buildings shaded below 0.97' % (tones, len(bld)))
+    if WRITE_TONE:
+        # ---- a tone for every building: crowded, and in the shade of a taller neighbour on the sun side, is darker ----
+        sx, sy = -ex, -ny                               # towards the sun
+        cell = 60.0
+        grid = {}
+        for i, b in enumerate(bld):
+            grid.setdefault((int(b[4] * MX // cell), int(b[5] * MY // cell)), []).append(i)
+        tones = 0
+        for i, b in enumerate(bld):
+            hb, cxm, cym = b[1], b[4] * MX, b[5] * MY
+            shade = 0.0
+            for gx in range(int(cxm // cell) - 1, int(cxm // cell) + 2):
+                for gy in range(int(cym // cell) - 1, int(cym // cell) + 2):
+                    for j in grid.get((gx, gy), []):
+                        if j == i:
+                            continue
+                        o = bld[j]
+                        hn = o[1]
+                        if hn <= hb + 1.5:
+                            continue
+                        dx, dy = o[4] * MX - cxm, o[5] * MY - cym
+                        along = dx * sx + dy * sy       # how far towards the sun the neighbour stands
+                        across = abs(dx * -sy + dy * sx)
+                        reach = min(60.0, hn * LEN)
+                        half = (o[7] + b[7]) / 2 + 2    # its width, ours and a little more
+                        if along <= 0 or across > half + 3 or along - o[6] / 2 > reach:
+                            continue
+                        shade = max(shade, min(1.0, (1 - max(0.0, along - o[6] / 2) / reach)) * min(1.0, (hn - hb) / max(hn, 1)))
+            px_, py_ = int((b[4] - w) * MX / PX), int((n - b[5]) * MY / PX)
+            dens = float(wide[min(H - 1, max(0, py_)), min(W - 1, max(0, px_))])
+            tone = max(.62, min(1.0, 1 - .36 * shade - .10 * min(1.0, dens * 1.6)))
+            t = round(tone, 2)
+            if len(b) > 10:
+                b[10] = t
+            else:
+                b.append(t)
+            tones += tone < .97
+        bdoc['fields'] = bdoc['fields'].rstrip(']') + ', baked tone 0.62 to 1]' if 'baked tone' not in bdoc['fields'] else bdoc['fields']
+        json.dump(bdoc, open(bpath, 'w', encoding='utf-8'), separators=(',', ':'))
+        print('tone: %d of %d buildings shaded below 0.97' % (tones, len(bld)))
 
+    if not WRITE_FOG:
+        return
     # ---- the fog of war: nothing outside the boundary, and its edge fades out ----
     m = 300.0
     fw, fs, fe, fn = min(bw, MAP_AREA[0]) - m / MX, min(bs, MAP_AREA[1]) - m / MY, max(be, MAP_AREA[2]) + m / MX, max(bn, MAP_AREA[3]) + m / MY

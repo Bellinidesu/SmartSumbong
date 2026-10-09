@@ -46,12 +46,43 @@
       rk: { blue: '#2F5FB5', green: '#2F7F6F', white: '#F2EEE7', tan: '#D7C3A4', cream: '#EFE6D4', grey: '#B5B8C0', red: '#B5473A' },
     },
   };
-  const pal = () => isDark() ? PAL.night : PAL.day;
+  // ---- looks: the lighting and shading of the City view, day and night. Everything here is baked or plain colour:
+  // a tone per building, roofs painted in a lit half and a shaded half, shadows laid on the ground. Nothing is a texture. ----
+  const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  const mixAll = (arr, b, t) => arr.map(c => mix(c, b, t));
+  const LOOKS = {
+    steps: { mode: 'steps', vg: true, toneK: 1 },     // the roofs as stepped slabs (what the City view had)
+    // Apple Maps: soft, pastel, a high even light, every roof a gentle two-tone
+    apple: { mode: 'halves', lit: 1.05, shade: .86, vg: true, toneK: .8, az: 200,
+      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .3, position: [1.2, 200, 56] }, wall: { lo: ['#F1EEE9'], mid: ['#EAE7E3'], hi: ['#DEE2E9'] }, roofs: mixAll(PAL.day.roofs, '#F0E9DD', .5), roofFlat: '#F4F1EC', bake: .5 },
+      night: { light: { anchor: 'map', color: '#C9D3FF', intensity: .4, position: [1.3, 200, 52] }, wall: { lo: ['#565F8E'], mid: ['#5A6492'], hi: ['#6A75A4'] }, roofs: mixAll(PAL.night.roofs, '#7078A8', .38), roofFlat: '#6B749F', bake: .8 } },
+    // two-tone roofs in the roofs' own colours, a strong lit side and shaded side
+    halves: { mode: 'halves', lit: 1.12, shade: .72, vg: true, toneK: 1, az: 200 },
+    // a low warm sun by day, blue hour by night: long soft shadows
+    golden: { mode: 'halves', lit: 1.15, shade: .7, vg: true, toneK: 1.1, az: 235, img: 'shadows-golden.png',
+      day: { light: { anchor: 'map', color: '#FFD9A8', intensity: .62, position: [1.5, 235, 64] }, sky: { 'sky-color': '#E9A978', 'horizon-color': '#FBE3C4', 'fog-color': '#F3DEC6', 'sky-horizon-blend': .6, 'horizon-fog-blend': .8, 'fog-ground-blend': .5 },
+        wall: { lo: ['#F4E6D0'], mid: ['#EBDCC6'], hi: ['#E0D6CB'] }, roofFlat: '#F0E2CD', bake: .85 },
+      night: { light: { anchor: 'map', color: '#A6B8FF', intensity: .52, position: [1.4, 235, 50] }, wall: { lo: ['#4D5688'], mid: ['#515A8C'], hi: ['#5C679A'] }, bake: 1 } },
+    // clay: one material, only light and shade tell the buildings apart
+    clay: { mode: 'halves', lit: 1.08, shade: .8, vg: true, toneK: 1.5, az: 200, img: 'shadows-ao.png',
+      day: { wall: { lo: ['#E9DECF'], mid: ['#E4D9CA'], hi: ['#DCD3C8'] }, roofs: ['#D5C5AE', '#D9C9B2', '#D1C1AA', '#D7C7B0', '#CFBFA8', '#DBCBB4', '#D3C3AC', '#DDCDB6'], roofFlat: '#E2D6C5', bake: .8 },
+      night: { wall: { lo: ['#4A5070'], mid: ['#4D5373'], hi: ['#565D7F'] }, roofs: ['#41486A', '#444B6D', '#3E4567', '#434A6C', '#3C4365', '#464D6F', '#40476A', '#484F71'], roofFlat: '#515879', bake: 1 } },
+    // toon: three bands of tone, flat colour, hard shadows
+    toon: { mode: 'halves', lit: 1.18, shade: .66, vg: false, toneStep: true, az: 200, img: 'shadows-hard.png',
+      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .25, position: [1.2, 200, 50] }, wall: { lo: ['#F6EFE3'], mid: ['#EFE9E0'], hi: ['#E3E8F0'] }, bake: .45 },
+      night: { light: { anchor: 'map', color: '#C9D3FF', intensity: .3, position: [1.3, 200, 50] }, wall: { lo: ['#5C6696'], mid: ['#606A9A'], hi: ['#6E79A8'] }, bake: .7 } },
+  };
+  let LOOK = 'steps';
+  try { LOOK = localStorage.getItem('ss-look') || 'steps'; } catch (e) { /* the default look */ }
+  const look = () => LOOKS[LOOK] || LOOKS.steps;
+  const pal = () => { const base = isDark() ? PAL.night : PAL.day, o = look()[isDark() ? 'night' : 'day'] || {}; return Object.assign({}, base, o, { wall: Object.assign({}, base.wall, o.wall || {}) }); };
   const H = ['coalesce', ['get', 'render_height'], 6], MH = ['coalesce', ['get', 'render_min_height'], 0];
   // a plain colour times the tone baked into each building (field 10 of buildings.json): the shading, without a texture
-  const TONE = ['coalesce', ['get', 'k'], 1];
+  const KTONE = ['coalesce', ['get', 'k'], 1];
+  const toneExpr = () => look().toneStep ? ['step', KTONE, .7, .78, .82, .9, 1] : ['^', KTONE, look().toneK || 1];
+  const HALF = ['coalesce', ['get', 's'], 1];   // a roof half's lit or shaded factor (1 for everything else)
   const ch = (hex, i) => parseInt(hex.substr(1 + i * 2, 2), 16);
-  const shaded = f => ['rgb', ['min', 255, ['*', f(0), TONE]], ['min', 255, ['*', f(1), TONE]], ['min', 255, ['*', f(2), TONE]]];
+  const shaded = f => { const t = toneExpr(); return ['rgb', ['min', 255, ['*', f(0), t, HALF]], ['min', 255, ['*', f(1), t, HALF]], ['min', 255, ['*', f(2), t, HALF]]]; };
   const roofColour = p => shaded(i => ['case', ['has', 'rk'], ['match', ['get', 'rk']].concat(...Object.keys(p.rk).map(k => [k, ch(p.rk[k], i)]), [ch(p.rk.grey, i)]),
     ['match', ['get', 'c'], -1, ch(p.roofFlat, i)].concat(...p.roofs.map((c, j) => [j, ch(c, i)]), [ch(p.roofs[0], i)])]);
   const wallKey = p => shaded(i => ['match', ['get', 'w']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]));
@@ -100,7 +131,9 @@
   ];
   const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
   const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) { const ax = ring[i], ay = ring[i + 1], bx = ring[j], by = ring[j + 1]; if ((ay > pt[1]) !== (by > pt[1]) && pt[0] < (bx - ax) * (pt[1] - ay) / (by - ay) + ax) c = !c; } return c; };
-  function bldShapes(d, lms) {
+  function bldShapes(d, lms, lk) {
+    lk = lk || LOOKS.steps;
+    const sun = (lk.az === undefined ? 200 : lk.az) * Math.PI / 180, sx = Math.sin(sun), sy = Math.cos(sun);
     const walls = [], roofs = [], lmWalls = [], trim = [], spec = new Map();
     (lms || []).forEach(l => {
       const m = MODELS.find(([re]) => re.test(l.n)); if (!m) return;
@@ -113,6 +146,11 @@
       if (best >= 0) spec.set(best, m[1]);
     });
     const box = (x0, y0, co, si, u, v, hl, hw) => [[-hl, -hw], [hl, -hw], [hl, hw], [-hl, hw], [-hl, -hw]].map(([a, b]) => [(x0 + (u + a) * co - (v + b) * si) / MX, (y0 + (u + a) * si + (v + b) * co) / MY]);
+    // a pitched roof as two flat halves, one painted lit and one shaded: plain colours and one more polygon, no steps
+    const halves = (x0, y0, co, si, hl, hw, h, rise, props) => [1, -1].map(side => {
+      const lit = (-si * side) * sx + (co * side) * sy > 0, q = [[-hl, 0], [hl, 0], [hl, side * hw], [-hl, side * hw], [-hl, 0]].map(([a, b]) => [(x0 + a * co - b * si) / MX, (y0 + a * si + b * co) / MY]);
+      return { type: 'Feature', properties: Object.assign({ b: h, t: h + rise, s: lit ? (lk.lit || 1.1) : (lk.shade || .75) }, props), geometry: { type: 'Polygon', coordinates: [q] } };
+    });
     d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone], idx) => {
       const kk = tone || 1;
       const poly = []; for (let i = 0; i < ring.length; i += 2) poly.push([ring[i], ring[i + 1]]); poly.push(poly[0]);
@@ -137,6 +175,10 @@
               if (inRing([cxm, cym], ring)) trim.push({ type: 'Feature', properties: { b: h, t: h + 1.4 + hit01(k, cx) * 1.4, k: 'p' }, geometry: { type: 'Polygon', coordinates: [q] } });
             }
           }
+        } else if (lk.mode === 'halves') {
+          halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.8, Math.min(2.4, W * .2)) * .6, { rk: m.rk, k: kk }).forEach(f => roofs.push(f));
+        } else if (lk.mode === 'flat') {
+          roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
         } else {
           const R = Math.max(.8, Math.min(2.4, W * .2)), step = R / 3;
           for (let k = 0; k < 3; k++) {
@@ -153,6 +195,8 @@
       }
       walls.push({ type: 'Feature', properties: { h, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } });
       if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
+      if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: kk }).forEach(f => roofs.push(f)); return; }
+      if (lk.mode === 'flat') { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: ci, k: kk }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
       const R = Math.max(.7, Math.min(2.4, W * .2)), step = R / 3;
       for (let k = 0; k < 3; k++) {
         const hl = (L + .6) / 2 * (rt === 2 ? 1 - k * .3 : 1), hw = (W + .8) / 2 * (1 - k * .36);
@@ -163,7 +207,7 @@
     return [fc(walls), fc(roofs), fc(lmWalls), fc(trim)];
   }
 
-  let ready = null, on = false, TREES = [], FOG = null;
+  let ready = null, on = false, TREES = [], FOG = null, BLD = null, LMS = [], BAKE = null;
   const ngon = (cx, cy, r, n, rot) => {   // metres to degrees at this latitude
     const out = []; for (let i = 0; i <= n; i++) { const a = rot + i / n * Math.PI * 2; out.push([cx + Math.cos(a) * r / 107500, cy + Math.sin(a) * r / 110574]); } return out;
   };
@@ -238,7 +282,8 @@
       const firstLabel = (lyrs.find(l => l.type === 'symbol') || {}).id, hide = { visibility: 'none' }, src = map.getSource('openmaptiles');
       // the buildings: walls with windows by height, then their roofs (the map tiles' plain 3D buildings stay hidden underneath)
       if (bld && bld.b) {
-        const [walls, roofs, lmw, trim] = bldShapes(bld, lms);
+        BLD = bld; LMS = lms; BAKE = bake;
+        const [walls, roofs, lmw, trim] = bldShapes(bld, lms, look());
         map.addSource('cd-bld', { type: 'geojson', data: walls }); map.addSource('cd-roofs', { type: 'geojson', data: roofs }); map.addSource('cd-lm', { type: 'geojson', data: lmw }); map.addSource('cd-trim', { type: 'geojson', data: trim });
         const wall = (id, k, flt) => map.addLayer({ id, type: 'fill-extrusion', source: 'cd-bld', minzoom: 15, filter: flt, layout: hide,
           paint: { 'fill-extrusion-pattern': wallName(k), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
@@ -357,6 +402,18 @@
       win.push(dt > 28 ? 1 : 0); if (win.length > 90) win.shift();
       if (win.length === 90 && win.reduce((a, b) => a + b, 0) > 22) { slow = true; detail(); } }); }
   map.on('idle', () => { if (on && !clipped) clip(); });
+  // swap the lighting and shading for another look (and the roofs, which are built differently in each)
+  const EXTR = ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim'];
+  function applyLook() {
+    if (!ready || !BLD) return;
+    const [walls, roofs, lmw, trim] = bldShapes(BLD, LMS, look());
+    ['cd-bld', 'cd-roofs', 'cd-lm', 'cd-trim'].forEach((id, i) => { const src = map.getSource(id); if (src) src.setData([walls, roofs, lmw, trim][i]); });
+    EXTR.forEach(id => set(id, 'fill-extrusion-vertical-gradient', look().vg !== false));
+    if (BAKE && BAKE.bounds && map.getSource('cd-bake')) { const [bw, bs, be, bn] = BAKE.bounds; map.getSource('cd-bake').updateImage({ url: 'assets/map/' + (look().img || 'shadows.png'), coordinates: [[bw, bn], [be, bn], [be, bs], [bw, bs]] }); }
+    paint(); if (on) detail();
+  }
+  window.sdCityLook = name => { if (!LOOKS[name]) return false; LOOK = name; try { localStorage.setItem('ss-look', name); } catch (e) { /* this visit only */ } applyLook(); return true; };
+  window.sdCityLooks = () => Object.keys(LOOKS);
   async function show(want) {
     on = want; await init(); if (want !== on) return;
     LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', want ? 'visible' : 'none'); });
