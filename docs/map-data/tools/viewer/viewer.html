@@ -274,6 +274,7 @@ textarea { width:100%; min-height:64px; background:#0f1224; color:var(--ink); bo
   const want = new URLSearchParams(location.search).get('name');
   const first = list.find(m => m.name === want) || list.find(m => m.sheet) || list[0];
   if (first) await select(first.name);
+  { const q = new URLSearchParams(location.search); ['yaw', 'pitch', 'dist', 'tx', 'ty', 'tz'].forEach(k => { if (q.get(k) !== null) cam[k] = +q.get(k); }); if (q.get('night') === '1') setNight(true); if (q.get('ctx') === '0') { showCtx = false; $('bCtx').classList.remove('on'); } dirty = true; }
   requestAnimationFrame(tick);
   window.__ready = true;
 })().catch(e => { document.getElementById('hud').textContent = 'error: ' + (e.stack || e); window.__error = String(e && e.stack || e); });

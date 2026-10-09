@@ -17,7 +17,7 @@
   },
   "parts_only": true,
   "height": 24.0,
-  "about": "Rebuilt from Ace's 21 Street View shots (positions and headings read off their URLs), the Google aerial and the satellite rotated to the building's own axis (u along it, v across it, metres). A cruciform church of terracotta and cream: a long semicircular barrel-vaulted nave with buttress ribs (u -16 to 36), a barrel arm at each of the other three sides of the crossing (SW, NW, SE), each ending in a stepped concentric arch with a stained-glass window; a big maroon ribbed dome on a drum over the crossing; two small maroon domes flanking the front (NE) with a wide stepped pediment, a planted porch deck below it and cobbled rings on the ramps either side; flat aisle roofs with the solar strips; a two-storey terracotta trellis annex with a hedge along each long side (Resort Dr and Portwood St). Heights are estimated from the photographs (nave crown about 17 m, big dome about 26 m).",
+  "about": "Rebuilt from Ace's 21 Street View shots (positions and headings read off their URLs), the Google aerial and the satellite rotated to the building's own axis (u along it, v across it, metres). A cruciform church of terracotta and cream: a long semicircular barrel-vaulted nave with buttress ribs (u -16 to 36), a barrel arm at each of the other three sides of the crossing (SW, NW, SE), each ending in a stepped concentric arch with a stained-glass window; a big maroon ribbed dome on a drum over the crossing; two small maroon domes flanking the front (NE) with a wide stepped pediment, a planted porch deck below it and cobbled rings on the ramps either side; flat aisle roofs with the solar strips; a two-storey terracotta trellis annex with a hedge along each long side (Resort Dr and Portwood St). Heights are estimated from the photographs (nave crown about 17 m, big dome about 26 m). Niches: an arched statue niche (cream surround, dark recess, bronze saint on a sill) on the outer face of each front tower, the south-east one with its little balcony; small arched stained-glass niches on the front faces of the towers; a framed stained-glass arch with two small side arches on the end of each arm; arched windows round every drum; the saint on a plinth at the apex of the pediment; a small stained-glass arch on the end wall of each low corner block. Second pass over every shot: a colonnade porch (slab on four round columns over a dark ground floor with a glazed shop front, a fascia lettered MILITARY ORDINARIATE OF THE PHILIPPINES, palms on its roof), the pediment lettered SHRINE OF ST. THERESE, arched windows behind the wire mesh of both trellis annexes, hedges three metres high, louvred vents in the corner blocks and blue louvre panels on the tower walls, the steel-framed billboard standing on the south-east annex.",
   "palette": {
     "wall": "D98B66",
     "trim": "EAD9C0",
@@ -121,48 +121,6 @@
           "ribs": 12
         },
         {
-          "type": "dome",
-          "at": [
-            31,
-            11
-          ],
-          "r": 4.4,
-          "z": 8.5,
-          "base": 0,
-          "drum": 3.4,
-          "rise": 3.2,
-          "colour": "A8503F",
-          "colour2": "9A4637",
-          "ribs": 8
-        },
-        {
-          "type": "dome",
-          "at": [
-            31.5,
-            -17
-          ],
-          "r": 4.4,
-          "z": 8.5,
-          "base": 0,
-          "drum": 3.4,
-          "rise": 3.2,
-          "colour": "A8503F",
-          "colour2": "9A4637",
-          "ribs": 8
-        },
-        {
-          "type": "box",
-          "u0": 33,
-          "u1": 45,
-          "v0": -9,
-          "v1": 4,
-          "z1": 6.5,
-          "colour": "D98B66",
-          "roof": "C9A98A",
-          "planters": true,
-          "green": "4F8A47"
-        },
-        {
           "type": "box",
           "u0": -10,
           "u1": 33,
@@ -186,7 +144,10 @@
             "+v"
           ],
           "bay": 4.0,
-          "planters": true
+          "planters": true,
+          "arches": true,
+          "arch_z": 2.2,
+          "arch_h": 3.8
         },
         {
           "type": "box",
@@ -211,7 +172,10 @@
             "-v"
           ],
           "bay": 4.0,
-          "planters": true
+          "planters": true,
+          "arches": true,
+          "arch_z": 2.2,
+          "arch_h": 3.8
         },
         {
           "type": "box",
@@ -258,21 +222,6 @@
           "z": 9.0
         },
         {
-          "type": "pediment",
-          "u": 34,
-          "v": -5.2,
-          "facing": 0,
-          "width": 22,
-          "z": 6.5,
-          "wall": 3.0,
-          "arch": [
-            "E9987A",
-            "F6C9AE"
-          ],
-          "steps": 4,
-          "cross": true
-        },
-        {
           "type": "rings",
           "at": [
             43,
@@ -293,6 +242,207 @@
           "n": 6
         },
         {
+          "type": "box",
+          "u0": 26,
+          "u1": 36,
+          "v0": 6,
+          "v1": 16,
+          "z1": 10.0,
+          "colour": "D98B66",
+          "roof": "D98B66"
+        },
+        {
+          "type": "box",
+          "u0": 26.5,
+          "u1": 36.5,
+          "v0": -22,
+          "v1": -12,
+          "z1": 10.0,
+          "colour": "D98B66",
+          "roof": "D98B66"
+        },
+        {
+          "type": "dome",
+          "at": [
+            31,
+            11
+          ],
+          "r": 4.4,
+          "z": 10.0,
+          "drum": 3.4,
+          "rise": 3.2,
+          "colour": "A8503F",
+          "colour2": "9A4637",
+          "ribs": 8
+        },
+        {
+          "type": "dome",
+          "at": [
+            31.5,
+            -17
+          ],
+          "r": 4.4,
+          "z": 10.0,
+          "drum": 3.4,
+          "rise": 3.2,
+          "colour": "A8503F",
+          "colour2": "9A4637",
+          "ribs": 8
+        },
+        {
+          "type": "pediment",
+          "u": 36,
+          "v": -5.2,
+          "facing": 0,
+          "width": 19,
+          "z": 6.5,
+          "wall": 4.5,
+          "arch": [
+            "E9987A",
+            "F6C9AE"
+          ],
+          "steps": 4,
+          "cross": true
+        },
+        {
+          "type": "statue",
+          "u": 35.2,
+          "v": -5.2,
+          "facing": 0,
+          "z": 20.2,
+          "h": 3.4
+        },
+        {
+          "type": "niche",
+          "u": 31,
+          "v": 16,
+          "facing": 90,
+          "z": 6.6,
+          "w": 2.3,
+          "h": 3.8
+        },
+        {
+          "type": "niche",
+          "u": 31.5,
+          "v": -22,
+          "facing": 270,
+          "z": 6.6,
+          "w": 2.3,
+          "h": 3.8,
+          "balcony": true
+        },
+        {
+          "type": "niche",
+          "u": 36,
+          "v": 11,
+          "facing": 0,
+          "z": 6.8,
+          "w": 1.6,
+          "h": 2.6,
+          "statue": false,
+          "recess": "3B4A66"
+        },
+        {
+          "type": "niche",
+          "u": 36.5,
+          "v": -17,
+          "facing": 0,
+          "z": 6.8,
+          "w": 1.6,
+          "h": 2.6,
+          "statue": false,
+          "recess": "3B4A66"
+        },
+        {
+          "type": "niche",
+          "u": -35,
+          "v": -33,
+          "facing": 270,
+          "z": 0.6,
+          "w": 3.6,
+          "h": 4.6,
+          "statue": false,
+          "recess": "33466F"
+        },
+        {
+          "type": "niche",
+          "u": -33,
+          "v": 25,
+          "facing": 90,
+          "z": 0.6,
+          "w": 3.6,
+          "h": 4.6,
+          "statue": false,
+          "recess": "33466F"
+        },
+        {
+          "type": "box",
+          "u0": 36,
+          "u1": 44.5,
+          "v0": -22,
+          "v1": 16,
+          "z0": 5.6,
+          "z1": 6.5,
+          "colour": "E39A74",
+          "roof": "C9A98A",
+          "planters": true,
+          "green": "4F8A47"
+        },
+        {
+          "type": "box",
+          "u0": 36,
+          "u1": 38,
+          "v0": -22,
+          "v1": 16,
+          "z0": 0,
+          "z1": 5.6,
+          "colour": "3A3430",
+          "roof": "3A3430"
+        },
+        {
+          "type": "box",
+          "u0": 38,
+          "u1": 39.2,
+          "v0": -9,
+          "v1": 7,
+          "z0": 0,
+          "z1": 4.6,
+          "colour": "BFD6DA",
+          "roof": "BFD6DA"
+        },
+        {
+          "type": "columns",
+          "u": 43.6,
+          "vs": [
+            -21,
+            -9,
+            7,
+            15
+          ],
+          "z1": 5.6,
+          "r": 0.6
+        },
+        {
+          "type": "sign",
+          "text": "MILITARY ORDINARIATE OF THE PHILIPPINES",
+          "u": 44.5,
+          "v": -1,
+          "facing": 0,
+          "z": 5.0,
+          "w": 22,
+          "h": 1.5
+        },
+        {
+          "type": "sign",
+          "text": "SHRINE OF ST. THERESE",
+          "u": 36.25,
+          "v": -5.2,
+          "facing": 0,
+          "z": 7.2,
+          "w": 11,
+          "h": 1.3
+        },
+        {
           "type": "hedge",
           "line": [
             [
@@ -304,7 +454,7 @@
               30.2
             ]
           ],
-          "height": 1.8
+          "height": 3.0
         },
         {
           "type": "hedge",
@@ -318,7 +468,119 @@
               -35.2
             ]
           ],
-          "height": 1.8
+          "height": 3.0
+        },
+        {
+          "type": "billboard",
+          "u": 15,
+          "v": -33.2,
+          "facing": 270,
+          "z": 7.5,
+          "w": 14,
+          "h": 8
+        },
+        {
+          "type": "louvres",
+          "u": -42,
+          "v": -33.1,
+          "facing": 270,
+          "z": 1.0,
+          "w": 4.2,
+          "h": 3.2
+        },
+        {
+          "type": "louvres",
+          "u": -44,
+          "v": 25.1,
+          "facing": 90,
+          "z": 1.0,
+          "w": 4.2,
+          "h": 3.2
+        },
+        {
+          "type": "louvres",
+          "u": 20,
+          "v": -22.1,
+          "facing": 270,
+          "z": 1.0,
+          "w": 2.2,
+          "h": 4.2,
+          "dark": "3F5F8F",
+          "slat": "7FA0CF"
+        },
+        {
+          "type": "louvres",
+          "u": 30,
+          "v": 29.1,
+          "facing": 90,
+          "z": 1.0,
+          "w": 2.2,
+          "h": 4.2,
+          "dark": "3F5F8F",
+          "slat": "7FA0CF"
+        },
+        {
+          "type": "palm",
+          "u": 41.5,
+          "v": -20,
+          "z": 6.5,
+          "h": 5.5
+        },
+        {
+          "type": "palm",
+          "u": 42.3,
+          "v": -16,
+          "z": 6.5,
+          "h": 6.3
+        },
+        {
+          "type": "palm",
+          "u": 41.5,
+          "v": -12,
+          "z": 6.5,
+          "h": 7.1
+        },
+        {
+          "type": "palm",
+          "u": 42.3,
+          "v": 9,
+          "z": 6.5,
+          "h": 5.5
+        },
+        {
+          "type": "palm",
+          "u": 41.5,
+          "v": 13,
+          "z": 6.5,
+          "h": 6.3
+        },
+        {
+          "type": "palm",
+          "u": -4,
+          "v": 22,
+          "z": 7.5,
+          "h": 4.5
+        },
+        {
+          "type": "palm",
+          "u": 6,
+          "v": 23,
+          "z": 7.5,
+          "h": 4.5
+        },
+        {
+          "type": "palm",
+          "u": 16,
+          "v": 22,
+          "z": 7.5,
+          "h": 4.5
+        },
+        {
+          "type": "palm",
+          "u": 26,
+          "v": 23,
+          "z": 7.5,
+          "h": 4.5
         }
       ]
     }
