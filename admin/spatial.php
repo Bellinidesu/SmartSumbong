@@ -104,7 +104,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
   <div class="p-map-legend lg-card" id="map-legend" hidden>
     <h3><?= e(t('Complaint type', 'Uri ng sumbong')) ?></h3>
     <?php foreach (category_colours() as $c => $hex): ?>
-      <div class="lg-cat" data-cat="<?= e($c) ?>" style="--c:<?= e($hex) ?>" role="button" tabindex="0"><span class="lg-ic" data-glyph="<?= e($c) ?>"></span><span class="lg-t"><?= e(category_label($c)) ?></span><b class="lg-n">0</b></div>
+      <div class="lg-cat" data-cat="<?= e($c) ?>" style="--c:<?= e($hex) ?>"><span class="lg-ic" data-glyph="<?= e($c) ?>"></span><span class="lg-t"><?= e(category_label($c)) ?></span><b class="lg-n">0</b></div>
     <?php endforeach; ?>
     <div id="lg-flood" hidden>
       <div class="lg-sep"></div>
@@ -1683,7 +1683,11 @@ function layerSync() {
 
 // Legend rows: each category's symbol and how many are on the map; press one to show only that category.
 document.querySelectorAll('#map-legend .lg-ic').forEach(el => { el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PIN_GLYPH[el.dataset.glyph] || PIN_GLYPH.other).replace(/__C__/g, '#fff') + '</svg>'; });
-document.querySelectorAll('#map-legend .lg-cat').forEach(row => {
+// The legend is only a legend (Ace, 9 Oct 2026). Pressing a row to filter by it is kept behind this switch; the type filter is in the filter card.
+const LEGEND_FILTERS = false;
+if (LEGEND_FILTERS) document.getElementById('map-legend').classList.add('lg-live');
+if (LEGEND_FILTERS) document.querySelectorAll('#map-legend .lg-cat').forEach(row => {
+  row.setAttribute('role', 'button'); row.tabIndex = 0;
   const go = () => { const sel = document.getElementById('f-category'), v = row.dataset.cat === sel.value ? '' : row.dataset.cat; sel.value = v; sel.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('f-apply').click(); document.querySelectorAll('#map-legend .lg-cat').forEach(r => r.classList.toggle('on', !!v && r.dataset.cat === v)); };
   row.addEventListener('click', go); row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
 });

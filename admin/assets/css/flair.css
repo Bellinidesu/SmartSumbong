@@ -1187,11 +1187,12 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 /* Legend */
 #s-spatial .p-map-legend.lg-card { padding: 14px 10px 12px 12px; width: 288px; gap: 3px; }
 #s-spatial .p-map-legend h3 { margin: 0 0 6px 4px; font: 800 11px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
-#s-spatial .lg-cat { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 6px 10px 6px 6px; border-radius: 12px; border: 1px solid transparent; cursor: pointer; transition: background .2s, border-color .2s, opacity .2s; }
-#s-spatial .lg-cat:hover, #s-spatial .lg-cat:focus-visible { background: color-mix(in srgb, var(--c) 14%, transparent); border-color: color-mix(in srgb, var(--c) 34%, transparent); outline: 0; }
+#s-spatial .lg-cat { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 6px 10px 6px 6px; border-radius: 12px; border: 1px solid transparent; cursor: default; transition: background .2s, border-color .2s, opacity .2s; }
+#s-spatial .lg-live .lg-cat { cursor: pointer; }
+#s-spatial .lg-live .lg-cat:hover, #s-spatial .lg-live .lg-cat:focus-visible { background: color-mix(in srgb, var(--c) 14%, transparent); border-color: color-mix(in srgb, var(--c) 34%, transparent); outline: 0; }
 #s-spatial .lg-cat.on { background: color-mix(in srgb, var(--c) 20%, transparent); border-color: var(--c); } #s-spatial .lg-cat.zero { opacity: .5; }
 .lg-ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(145deg, color-mix(in srgb, var(--c) 78%, #fff), color-mix(in srgb, var(--c) 66%, #000)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.25), 0 2px 8px color-mix(in srgb, var(--c) 36%, transparent); transition: transform .3s cubic-bezier(.2,1.6,.4,1); } .lg-ic svg { width: 16px; height: 16px; }
-#s-spatial .lg-cat:hover .lg-ic { transform: scale(1.12) rotate(-6deg); }
+#s-spatial .lg-live .lg-cat:hover .lg-ic { transform: scale(1.12) rotate(-6deg); }
 .lg-t { font: 700 13px Urbanist, sans-serif; } .lg-n { font: 800 12px Inter, sans-serif; color: var(--p-muted); font-variant-numeric: tabular-nums; min-width: 18px; text-align: right; }
 #s-spatial .p-map-legend .lg-sep { margin: 8px 4px; }
 #s-spatial .p-legend-count { margin: 8px 4px 0; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.1); font: 700 11.5px Inter, sans-serif; }
