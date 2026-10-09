@@ -1212,3 +1212,54 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 #s-spatial .p-dock-btn .p-cnt { box-shadow: 0 0 0 2px rgba(21,22,29,.9), 0 0 10px rgba(229,56,59,.6); }
 @media (prefers-reduced-motion: reduce) { #s-spatial .p-pin-row, .fw-level::after, .fw-chip .fw-dot, .fw-level .fw-dot { animation: none; } }
 #s-spatial .p-map-legend .lg-cat { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; } .lg-t { flex: 1; min-width: 0; }
+
+/* ======================= Frosted glass, final pass (dark mode) =======================
+   One material for every glass surface, the way a phone's does it:
+   - a deep blur with the colours behind pushed up, so the map glows through instead of greying out
+   - a lit edge: a bright hairline along the top and left, a faint one on the bottom and right
+   - an inner glow, and a soft sheen of light falling from the top-left corner
+   Panels (big) blur 26, controls (small) blur 14; the opacity set by the readability pass is unchanged. */
+:root[data-theme="dark"] #s-spatial {
+  --g-edge: inset 1px 1px 0 rgba(255,255,255,.27), inset -1px -1px 0 rgba(255,255,255,.07), inset 0 0 26px rgba(255,255,255,.045);
+  --g-sheen: linear-gradient(152deg, rgba(255,255,255,.17) 0%, rgba(255,255,255,.05) 24%, rgba(255,255,255,0) 50%), radial-gradient(130% 70% at 0% 0%, rgba(255,255,255,.10), rgba(255,255,255,0) 62%);
+}
+:root[data-theme="dark"] #s-spatial .p-map-search, :root[data-theme="dark"] #s-spatial .cs-sheet, :root[data-theme="dark"] #s-spatial .ss-qv,
+:root[data-theme="dark"] #s-spatial .ss-lyr, :root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend,
+:root[data-theme="dark"] #s-spatial .fw-card, :root[data-theme="dark"] #s-spatial .lyc, :root[data-theme="dark"] .sdp-pop {
+  -webkit-backdrop-filter: blur(26px) saturate(1.9) brightness(1.06); backdrop-filter: blur(26px) saturate(1.9) brightness(1.06);
+  border-color: transparent; isolation: isolate; position: relative;
+  box-shadow: 0 18px 48px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25), var(--g-edge);
+}
+:root[data-theme="dark"] .sdp-pop { position: fixed; }
+:root[data-theme="dark"] #s-spatial .p-map-search, :root[data-theme="dark"] #s-spatial .cs-sheet, :root[data-theme="dark"] #s-spatial .ss-qv, :root[data-theme="dark"] #s-spatial .ss-lyr, :root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend { position: absolute; }
+:root[data-theme="dark"] #s-spatial .lyc, :root[data-theme="dark"] #s-spatial .fw-card { position: relative; }
+:root[data-theme="dark"] #s-spatial .p-map-search::after, :root[data-theme="dark"] #s-spatial .cs-sheet::after, :root[data-theme="dark"] #s-spatial .ss-qv::after, :root[data-theme="dark"] #s-spatial .ss-lyr::after,
+:root[data-theme="dark"] #s-spatial .p-map-stats::after, :root[data-theme="dark"] #s-spatial .p-map-legend::after, :root[data-theme="dark"] #s-spatial .fw-card::after, :root[data-theme="dark"] #s-spatial .lyc::after, :root[data-theme="dark"] .sdp-pop::after {
+  content: ""; display: block; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--g-sheen); width: auto; height: auto; transform: none; right: 0; bottom: 0; left: 0; top: 0; border: 0; opacity: 1;
+}
+/* the controls: small, so a lighter blur and the same lit edge */
+:root[data-theme="dark"] #s-spatial .fw-chip, :root[data-theme="dark"] #s-spatial .p-dock-btn, :root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group {
+  -webkit-backdrop-filter: blur(14px) saturate(1.8) brightness(1.06); backdrop-filter: blur(14px) saturate(1.8) brightness(1.06);
+  border-color: transparent; box-shadow: 0 8px 22px rgba(0,0,0,.4), var(--g-edge);
+  background-image: var(--g-sheen);
+}
+:root[data-theme="dark"] #s-spatial .p-dock-btn.on { background-image: none; }
+:root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group button { background: transparent; }
+/* the Look around bars share the material */
+:root[data-theme="dark"] .lk-bar, :root[data-theme="dark"] .lk-ti, :root[data-theme="dark"] .lk-hd, :root[data-theme="dark"] .lk-back, :root[data-theme="dark"] .lk-dist, :root[data-theme="dark"] .lk-tag {
+  -webkit-backdrop-filter: blur(20px) saturate(1.8); backdrop-filter: blur(20px) saturate(1.8); box-shadow: var(--g-edge), 0 8px 24px rgba(0,0,0,.4); background-image: linear-gradient(152deg, rgba(255,255,255,.14), rgba(255,255,255,0) 50%);
+}
+/* picked-up fixes: the active tray tile and the layer row keep their own glow on top of the material */
+:root[data-theme="dark"] .ss-lyr { background-color: var(--gl-panel, rgba(21,22,29,.88)); }
+/* hover: the material firms up a little and the edge brightens */
+:root[data-theme="dark"] #s-spatial .p-map-stats:hover, :root[data-theme="dark"] #s-spatial .p-map-legend:hover, :root[data-theme="dark"] #s-spatial .fw-card:hover, :root[data-theme="dark"] #s-spatial .lyc:hover { box-shadow: 0 18px 48px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.25), inset 1px 1px 0 rgba(255,255,255,.4), inset -1px -1px 0 rgba(255,255,255,.1), inset 0 0 26px rgba(255,255,255,.06); }
+/* while the map moves: no blur, same material colour and edge, so nothing pops */
+#s-spatial.ss-dragging .p-map-search, #s-spatial.ss-dragging .cs-sheet, #s-spatial.ss-dragging .ss-qv, #s-spatial.ss-dragging .ss-lyr { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial *, :root[data-theme="dark"] .sdp-pop, :root[data-theme="dark"] .lk-bar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
+/* measured: blur 26 dropped frames while the camera flew under open panels (p95 33 ms); 20 with a lighter saturation holds 60 fps */
+:root[data-theme="dark"] #s-spatial .p-map-search, :root[data-theme="dark"] #s-spatial .cs-sheet, :root[data-theme="dark"] #s-spatial .ss-qv, :root[data-theme="dark"] #s-spatial .ss-lyr, :root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend, :root[data-theme="dark"] #s-spatial .fw-card, :root[data-theme="dark"] #s-spatial .lyc, :root[data-theme="dark"] .sdp-pop { -webkit-backdrop-filter: blur(20px) saturate(1.7); backdrop-filter: blur(20px) saturate(1.7); }
+:root[data-theme="dark"] #s-spatial .fw-chip, :root[data-theme="dark"] #s-spatial .p-dock-btn, :root[data-theme="dark"] #s-spatial .maplibregl-ctrl-group { -webkit-backdrop-filter: blur(12px) saturate(1.6); backdrop-filter: blur(12px) saturate(1.6); }
+/* the incidents list: its muted bits lifted */
+:root[data-theme="dark"] .lv-meta em, :root[data-theme="dark"] #s-spatial .p-pin-body small { color: #C9CEDB; }
+:root[data-theme="dark"] #s-spatial .p-pin-body a { color: #A9C5FF; }
+.lv-n { color: #20130A; }
