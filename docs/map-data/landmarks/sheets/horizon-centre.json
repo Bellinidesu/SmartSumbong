@@ -1,0 +1,129 @@
+{
+  "name": "Horizon Centre",
+  "match": {
+    "name": "Horizon Centre"
+  },
+  "about": "Street frames: an office tower in teal-green glass with fine horizontal banding over a plain concrete podium, name on the parapet.",
+  "palette": {
+    "wall": "8DB9B2",
+    "trim": "DDE3E2",
+    "accent": "2FA6AB",
+    "podium": "BDBDB8"
+  },
+  "use": "office",
+  "tiles": {
+    "curtain": {
+      "kind": "curtain",
+      "m": [
+        3.0,
+        3.6
+      ],
+      "fit": true,
+      "graded": true,
+      "seed": 81,
+      "p": 0.4,
+      "bays": 2,
+      "jit": 0.1,
+      "lc": "cool"
+    },
+    "concrete": {
+      "kind": "board",
+      "m": [
+        6.0,
+        4.0
+      ],
+      "fit": true,
+      "seed": 83
+    }
+  },
+  "body": {
+    "podium": 8.0,
+    "podium_mat": "concrete",
+    "floors_mat": "curtain",
+    "grade": 0.3
+  },
+  "features": [
+    {
+      "type": "roof_sign",
+      "text": "HORIZON",
+      "at": 0.5,
+      "width": 10.0,
+      "neon": "teal"
+    }
+  ],
+  "facade": false,
+  "night": {
+    "wash": {
+      "color": "teal",
+      "height": 34,
+      "strength": 0.5
+    }
+  },
+  "ref": [],
+  "roof": {
+    "colour": "DADEDD",
+    "from": "satellite (esri, 0.29 m a pixel)",
+    "plant": [
+      {
+        "lng": 121.017774,
+        "lat": 14.5190496,
+        "m2": 54.6,
+        "dl": 9.7
+      },
+      {
+        "lng": 121.0176559,
+        "lat": 14.5192772,
+        "m2": 53.0,
+        "dl": 41.5
+      },
+      {
+        "lng": 121.0176691,
+        "lat": 14.5191473,
+        "m2": 39.7,
+        "dl": 27.5
+      },
+      {
+        "lng": 121.0174471,
+        "lat": 14.5190565,
+        "m2": 31.5,
+        "dl": 50.0
+      },
+      {
+        "lng": 121.0175418,
+        "lat": 14.5192142,
+        "m2": 26.2,
+        "dl": 44.1
+      },
+      {
+        "lng": 121.0176752,
+        "lat": 14.5189822,
+        "m2": 24.0,
+        "dl": -68.4
+      },
+      {
+        "lng": 121.0180389,
+        "lat": 14.5189317,
+        "m2": 23.6,
+        "dl": 72.0
+      },
+      {
+        "lng": 121.0175493,
+        "lat": 14.5189536,
+        "m2": 20.6,
+        "dl": 52.8
+      },
+      {
+        "lng": 121.0178252,
+        "lat": 14.5189436,
+        "m2": 18.9,
+        "dl": 5.7
+      },
+      {
+        "lng": 121.0178036,
+        "lat": 14.5190954,
+        "m2": 18.0,
+        "dl": -56.1
+      }
+    ]
+  }
+}

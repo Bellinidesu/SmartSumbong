@@ -1,0 +1,163 @@
+{
+  "name": "Belmont Hotel",
+  "match": {
+    "name": "Belmont Hotel"
+  },
+  "about": "Read from the hotel's own site photos and street frames: a grey and white block of stacked balconies with yellow and red frames, a blue glass tower on one side, lit in colour at night (GMA: 'Jenga on steroids with colourful lights'); floor-to-ceiling glass in every room (Inquirer); 10 storeys. The pool and plant on the podium roof are visible in the satellite view.",
+  "palette": {
+    "wall": "D4D4D8",
+    "trim": "F4F1EA",
+    "accent": "E9A92E",
+    "podium": "C9CBD2"
+  },
+  "use": "hotel",
+  "tiles": {
+    "balc": {
+      "kind": "loggia",
+      "m": [
+        6.4,
+        3.4
+      ],
+      "fit": true,
+      "seed": 41,
+      "p": 0.7,
+      "bays": 2,
+      "wear": 0.5,
+      "lc": "bright"
+    },
+    "glass": {
+      "kind": "curtain",
+      "m": [
+        3.2,
+        3.4
+      ],
+      "fit": true,
+      "graded": true,
+      "seed": 43,
+      "p": 0.6,
+      "bays": 2,
+      "lc": "cool"
+    },
+    "base": {
+      "kind": "shopfront",
+      "m": [
+        8.0,
+        4.2
+      ],
+      "fit": true,
+      "seed": 45,
+      "p": 0.8,
+      "bays": 2
+    }
+  },
+  "body": {
+    "podium": 5.0,
+    "podium_mat": "base",
+    "floors_mat": "balc"
+  },
+  "features": [
+    {
+      "type": "corner_tower",
+      "end": "end",
+      "size": [
+        8.0,
+        7.0
+      ],
+      "proud": 1.6,
+      "extra": 3.0,
+      "mat": "glass"
+    },
+    {
+      "type": "canopy",
+      "at": 0.5,
+      "colour": "accent",
+      "width": 9.0
+    },
+    {
+      "type": "roof_sign",
+      "text": "BELMONT HOTEL",
+      "at": 0.5,
+      "width": 14.0,
+      "neon": "violet"
+    }
+  ],
+  "facade": {
+    "awnings": false,
+    "entrance": false,
+    "sign": false
+  },
+  "night": {
+    "wash": {
+      "color": "rose",
+      "height": 28,
+      "strength": 0.55
+    }
+  },
+  "ref": [],
+  "roof": {
+    "colour": "E1E3E1",
+    "from": "satellite (esri, 0.29 m a pixel)",
+    "plant": [
+      {
+        "lng": 121.0165654,
+        "lat": 14.5210307,
+        "m2": 40.4,
+        "dl": -0.4
+      },
+      {
+        "lng": 121.0166138,
+        "lat": 14.5208636,
+        "m2": 25.6,
+        "dl": 13.1
+      },
+      {
+        "lng": 121.016454,
+        "lat": 14.5210433,
+        "m2": 14.9,
+        "dl": -5.8
+      },
+      {
+        "lng": 121.0166776,
+        "lat": 14.5209082,
+        "m2": 12.4,
+        "dl": -28.3
+      },
+      {
+        "lng": 121.016689,
+        "lat": 14.5208171,
+        "m2": 9.4,
+        "dl": 74.2
+      },
+      {
+        "lng": 121.0165804,
+        "lat": 14.5209054,
+        "m2": 9.3,
+        "dl": 42.6
+      },
+      {
+        "lng": 121.0167446,
+        "lat": 14.5208718,
+        "m2": 6.6,
+        "dl": 51.9
+      },
+      {
+        "lng": 121.0165767,
+        "lat": 14.520936,
+        "m2": 6.4,
+        "dl": 40.0
+      },
+      {
+        "lng": 121.0165383,
+        "lat": 14.5210711,
+        "m2": 5.8,
+        "dl": -80.3
+      },
+      {
+        "lng": 121.016544,
+        "lat": 14.521102,
+        "m2": 5.1,
+        "dl": 5.2
+      }
+    ]
+  }
+}

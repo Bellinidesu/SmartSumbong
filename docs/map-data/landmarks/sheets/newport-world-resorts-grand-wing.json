@@ -1,0 +1,140 @@
+{
+  "name": "Newport World Resorts - Grand Wing",
+  "match": {
+    "name": "Newport World Resorts - Grand Wing"
+  },
+  "about": "Owner's photos (Wikipedia): the Resorts World front, cream and pink Venetian-style storeys with arched windows and a red-lit name; an arcaded ground floor. Blue glass at the foot of the wing in street frames.",
+  "palette": {
+    "wall": "EBCDBF",
+    "trim": "F4F1EA",
+    "accent": "C9544A",
+    "podium": "E7D6C0"
+  },
+  "use": "mall",
+  "tiles": {
+    "arcade": {
+      "kind": "arcade",
+      "m": [
+        8.0,
+        5.6
+      ],
+      "fit": true,
+      "seed": 91,
+      "p": 0.9,
+      "bays": 2
+    },
+    "upper": {
+      "kind": "loggia",
+      "m": [
+        6.4,
+        3.8
+      ],
+      "fit": true,
+      "seed": 93,
+      "p": 0.6,
+      "bays": 2,
+      "wear": 0.5,
+      "lc": "bright"
+    }
+  },
+  "body": {
+    "podium": 7.0,
+    "podium_mat": "arcade",
+    "floors_mat": "upper"
+  },
+  "features": [
+    {
+      "type": "canopy",
+      "at": 0.3,
+      "colour": "accent",
+      "width": 12.0,
+      "z": 5.2
+    },
+    {
+      "type": "roof_sign",
+      "text": "NEWPORT WORLD RESORTS",
+      "at": 0.5,
+      "width": 22.0,
+      "neon": "amber"
+    }
+  ],
+  "facade": {
+    "awnings": true,
+    "entrance": false,
+    "sign": false
+  },
+  "night": {
+    "wash": {
+      "color": "rose",
+      "height": 24,
+      "strength": 0.6
+    }
+  },
+  "ref": [],
+  "roof": {
+    "colour": "DBDCDB",
+    "from": "satellite (esri, 0.29 m a pixel)",
+    "plant": [
+      {
+        "lng": 121.0186016,
+        "lat": 14.5189539,
+        "m2": 35.5,
+        "dl": 75.2
+      },
+      {
+        "lng": 121.018734,
+        "lat": 14.518918,
+        "m2": 27.8,
+        "dl": -36.7
+      },
+      {
+        "lng": 121.0186694,
+        "lat": 14.5188323,
+        "m2": 27.0,
+        "dl": 45.7
+      },
+      {
+        "lng": 121.0187463,
+        "lat": 14.518793,
+        "m2": 19.5,
+        "dl": 32.3
+      },
+      {
+        "lng": 121.0188192,
+        "lat": 14.5187594,
+        "m2": 18.3,
+        "dl": 35.3
+      },
+      {
+        "lng": 121.0189,
+        "lat": 14.5186649,
+        "m2": 11.1,
+        "dl": 50.9
+      },
+      {
+        "lng": 121.0186992,
+        "lat": 14.5189541,
+        "m2": 10.8,
+        "dl": -33.1
+      },
+      {
+        "lng": 121.0192713,
+        "lat": 14.5183457,
+        "m2": 9.9,
+        "dl": 93.1
+      },
+      {
+        "lng": 121.0188021,
+        "lat": 14.5187954,
+        "m2": 9.7,
+        "dl": -7.3
+      },
+      {
+        "lng": 121.0187615,
+        "lat": 14.5187461,
+        "m2": 8.4,
+        "dl": 81.5
+      }
+    ]
+  }
+}

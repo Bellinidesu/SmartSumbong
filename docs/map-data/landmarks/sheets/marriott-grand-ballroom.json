@@ -1,0 +1,140 @@
+{
+  "name": "Marriott Grand Ballroom",
+  "match": {
+    "name": "Marriott Grand Ballroom"
+  },
+  "about": "Street frames: tan stone cladding with tall vertical fins and glazing between them, a stone podium and a canopy over GRAND BALLROOM in lit letters, palms along the front. Three-level ballroom by Gettys Group (press), the tower above it is the hotel.",
+  "palette": {
+    "wall": "DCC7A6",
+    "trim": "F1E6D2",
+    "accent": "8E6A48",
+    "podium": "CDB48E"
+  },
+  "use": "hotel",
+  "tiles": {
+    "stone": {
+      "kind": "stone",
+      "m": [
+        6.0,
+        4.0
+      ],
+      "fit": true,
+      "seed": 51,
+      "wear": 0.7,
+      "rows": 4
+    },
+    "fins": {
+      "kind": "curtain",
+      "m": [
+        6.0,
+        3.6
+      ],
+      "fit": true,
+      "graded": true,
+      "seed": 53,
+      "p": 0.5,
+      "bays": 3,
+      "lc": "warm"
+    }
+  },
+  "body": {
+    "podium": 9.0,
+    "podium_mat": "stone",
+    "floors_mat": "fins"
+  },
+  "features": [
+    {
+      "type": "canopy",
+      "at": 0.5,
+      "colour": "trim",
+      "width": 14.0,
+      "z": 6.0
+    },
+    {
+      "type": "roof_sign",
+      "text": "GRAND BALLROOM",
+      "at": 0.5,
+      "width": 16.0,
+      "neon": "amber"
+    }
+  ],
+  "facade": {
+    "awnings": false,
+    "entrance": false,
+    "sign": false
+  },
+  "night": {
+    "wash": {
+      "color": "amber",
+      "height": 22,
+      "strength": 0.5
+    }
+  },
+  "ref": [],
+  "roof": {
+    "colour": "DDD5D2",
+    "from": "satellite (esri, 0.29 m a pixel)",
+    "plant": [
+      {
+        "lng": 121.0177248,
+        "lat": 14.5204753,
+        "m2": 58.3,
+        "dl": 57.4
+      },
+      {
+        "lng": 121.0175786,
+        "lat": 14.5206242,
+        "m2": 55.4,
+        "dl": 39.3
+      },
+      {
+        "lng": 121.0178285,
+        "lat": 14.5207214,
+        "m2": 54.7,
+        "dl": 74.8
+      },
+      {
+        "lng": 121.0174767,
+        "lat": 14.5207315,
+        "m2": 51.1,
+        "dl": 45.7
+      },
+      {
+        "lng": 121.0176602,
+        "lat": 14.5206751,
+        "m2": 44.2,
+        "dl": 26.1
+      },
+      {
+        "lng": 121.0166928,
+        "lat": 14.5214788,
+        "m2": 41.9,
+        "dl": 57.5
+      },
+      {
+        "lng": 121.0167472,
+        "lat": 14.5218312,
+        "m2": 39.3,
+        "dl": 18.9
+      },
+      {
+        "lng": 121.0165397,
+        "lat": 14.5216547,
+        "m2": 38.3,
+        "dl": 68.7
+      },
+      {
+        "lng": 121.0166025,
+        "lat": 14.521807,
+        "m2": 36.8,
+        "dl": 68.1
+      },
+      {
+        "lng": 121.016796,
+        "lat": 14.5215226,
+        "m2": 29.2,
+        "dl": 45.3
+      }
+    ]
+  }
+}

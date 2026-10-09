@@ -1,22 +1,177 @@
 {
   "name": "Plaza 66",
-  "match": { "name": "Plaza 66" },
+  "match": {
+    "name": "Plaza 66"
+  },
   "about": "Cream block of recessed balconies between paired pilasters, a blue band under the cornice and a blue glass corner tower, shops below. Read from Mapillary street views (building 2032, faces 0 and 1); the signature is Ace's to confirm.",
-  "palette": { "wall": "EADFC6", "trim": "F4F1EA", "accent": "3F67B0", "podium": "E3D6B8" },
+  "palette": {
+    "wall": "EADFC6",
+    "trim": "F4F1EA",
+    "accent": "3F67B0",
+    "podium": "E3D6B8"
+  },
   "use": "commercial-residential",
   "tiles": {
-    "loggia":  { "kind": "loggia", "m": [6.4, 3.4], "fit": true, "seed": 3, "p": 0.55, "wear": 1.0, "lc": "warm" },
-    "band":    { "kind": "band", "m": [7.2, 3.4], "fit": true, "seed": 9, "p": 0.30, "n": 6 },
-    "shops":   { "kind": "shopfront", "m": [8.0, 4.2], "fit": true, "seed": 21, "p": 0.75, "bays": 2 },
-    "tower":   { "kind": "curtain", "m": [3.2, 3.4], "fit": true, "graded": true, "seed": 5, "p": 0.35, "bays": 2, "lc": "cool" }
+    "loggia": {
+      "kind": "loggia",
+      "m": [
+        6.4,
+        3.4
+      ],
+      "fit": true,
+      "seed": 3,
+      "p": 0.55,
+      "wear": 1.0,
+      "lc": "warm"
+    },
+    "band": {
+      "kind": "band",
+      "m": [
+        7.2,
+        3.4
+      ],
+      "fit": true,
+      "seed": 9,
+      "p": 0.3,
+      "n": 6
+    },
+    "shops": {
+      "kind": "shopfront",
+      "m": [
+        8.0,
+        4.2
+      ],
+      "fit": true,
+      "seed": 21,
+      "p": 0.75,
+      "bays": 2
+    },
+    "tower": {
+      "kind": "curtain",
+      "m": [
+        3.2,
+        3.4
+      ],
+      "fit": true,
+      "graded": true,
+      "seed": 5,
+      "p": 0.35,
+      "bays": 2,
+      "lc": "cool"
+    }
   },
-  "body": { "podium": 6.0, "podium_mat": "shops", "floors_mat": "loggia", "band": 3.4, "band_mat": "band", "band_colour": "accent" },
+  "body": {
+    "podium": 6.0,
+    "podium_mat": "shops",
+    "floors_mat": "loggia",
+    "band": 3.4,
+    "band_mat": "band",
+    "band_colour": "accent"
+  },
   "features": [
-    { "type": "corner_tower", "end": "start", "size": [8.0, 7.0], "proud": 1.8, "extra": 5.0, "mat": "tower" },
-    { "type": "canopy", "at": 0.55, "colour": "accent", "width": 10.0 },
-    { "type": "roof_sign", "text": "PLAZA 66", "at": 0.5, "width": 16.0, "neon": "blue" }
+    {
+      "type": "corner_tower",
+      "end": "start",
+      "size": [
+        8.0,
+        7.0
+      ],
+      "proud": 1.8,
+      "extra": 5.0,
+      "mat": "tower"
+    },
+    {
+      "type": "canopy",
+      "at": 0.55,
+      "colour": "accent",
+      "width": 10.0
+    },
+    {
+      "type": "roof_sign",
+      "text": "PLAZA 66",
+      "at": 0.5,
+      "width": 16.0,
+      "neon": "blue"
+    }
   ],
-  "facade": { "awnings": true, "entrance": false, "sign": false },
-  "night": { "wash": { "color": "blue", "height": 24, "strength": 0.55 }, "lit": 0.45 },
-  "ref": []
+  "facade": {
+    "awnings": true,
+    "entrance": false,
+    "sign": false
+  },
+  "night": {
+    "wash": {
+      "color": "blue",
+      "height": 24,
+      "strength": 0.55
+    },
+    "lit": 0.45
+  },
+  "ref": [],
+  "roof": {
+    "colour": "EAE8E5",
+    "from": "satellite (esri, 0.29 m a pixel)",
+    "plant": [
+      {
+        "lng": 121.0134251,
+        "lat": 14.5239087,
+        "m2": 56.8,
+        "dl": -53.6
+      },
+      {
+        "lng": 121.0139654,
+        "lat": 14.5234504,
+        "m2": 46.9,
+        "dl": -32.4
+      },
+      {
+        "lng": 121.0130615,
+        "lat": 14.5246268,
+        "m2": 31.7,
+        "dl": 81.4
+      },
+      {
+        "lng": 121.0136432,
+        "lat": 14.5239028,
+        "m2": 29.2,
+        "dl": -25.5
+      },
+      {
+        "lng": 121.0137544,
+        "lat": 14.5237839,
+        "m2": 25.6,
+        "dl": -9.4
+      },
+      {
+        "lng": 121.0137811,
+        "lat": 14.5236415,
+        "m2": 22.5,
+        "dl": 52.0
+      },
+      {
+        "lng": 121.0134492,
+        "lat": 14.5240722,
+        "m2": 17.1,
+        "dl": -43.1
+      },
+      {
+        "lng": 121.0134768,
+        "lat": 14.5238681,
+        "m2": 15.0,
+        "dl": 41.1
+      },
+      {
+        "lng": 121.0135845,
+        "lat": 14.523955,
+        "m2": 14.0,
+        "dl": -52.6
+      },
+      {
+        "lng": 121.0138338,
+        "lat": 14.5237915,
+        "m2": 13.6,
+        "dl": 39.2
+      }
+    ]
+  }
 }

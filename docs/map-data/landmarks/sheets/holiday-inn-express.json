@@ -1,0 +1,132 @@
+{
+  "name": "Holiday Inn Express",
+  "match": {
+    "name": "Holiday Inn Express"
+  },
+  "about": "Street frames: planted ground floor behind a low wall, a dark timber-louvred band above it with the hotel name, blue-green glass in the floors above.",
+  "palette": {
+    "wall": "B5C9CC",
+    "trim": "E7E3DA",
+    "accent": "3B8F6A",
+    "podium": "4A3A30"
+  },
+  "use": "hotel",
+  "tiles": {
+    "louvres": {
+      "kind": "timber",
+      "m": [
+        6.0,
+        3.4
+      ],
+      "fit": true,
+      "seed": 71,
+      "slats": 14
+    },
+    "glass": {
+      "kind": "curtain",
+      "m": [
+        3.2,
+        3.4
+      ],
+      "fit": true,
+      "graded": true,
+      "seed": 73,
+      "p": 0.55,
+      "bays": 2,
+      "lc": "cool"
+    }
+  },
+  "body": {
+    "podium": 6.0,
+    "podium_mat": "louvres",
+    "floors_mat": "glass"
+  },
+  "features": [
+    {
+      "type": "roof_sign",
+      "text": "HOLIDAY INN EXPRESS",
+      "at": 0.5,
+      "width": 16.0,
+      "neon": "teal"
+    }
+  ],
+  "facade": {
+    "awnings": false,
+    "entrance": false,
+    "sign": false
+  },
+  "night": {
+    "wash": {
+      "color": "teal",
+      "height": 26,
+      "strength": 0.5
+    }
+  },
+  "ref": [],
+  "roof": {
+    "colour": "D2D8D9",
+    "from": "satellite (esri, 0.29 m a pixel)",
+    "plant": [
+      {
+        "lng": 121.0197465,
+        "lat": 14.5180765,
+        "m2": 14.7,
+        "dl": 58.4
+      },
+      {
+        "lng": 121.0195409,
+        "lat": 14.5179352,
+        "m2": 6.0,
+        "dl": 73.0
+      },
+      {
+        "lng": 121.0193204,
+        "lat": 14.5180267,
+        "m2": 5.3,
+        "dl": -39.3
+      },
+      {
+        "lng": 121.0194975,
+        "lat": 14.5178848,
+        "m2": 4.6,
+        "dl": -42.8
+      },
+      {
+        "lng": 121.0194033,
+        "lat": 14.5177927,
+        "m2": 3.7,
+        "dl": -39.7
+      },
+      {
+        "lng": 121.0193127,
+        "lat": 14.5177087,
+        "m2": 3.5,
+        "dl": 34.2
+      },
+      {
+        "lng": 121.019514,
+        "lat": 14.5180073,
+        "m2": 3.4,
+        "dl": 58.8
+      },
+      {
+        "lng": 121.019472,
+        "lat": 14.5176318,
+        "m2": 3.3,
+        "dl": 40.2
+      },
+      {
+        "lng": 121.0196008,
+        "lat": 14.5181507,
+        "m2": 3.0,
+        "dl": -44.9
+      },
+      {
+        "lng": 121.0198477,
+        "lat": 14.517983,
+        "m2": 3.0,
+        "dl": 56.8
+      }
+    ]
+  }
+}

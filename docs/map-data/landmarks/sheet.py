@@ -112,7 +112,17 @@ def build(m, ring, ctx, sh, h, name):
     if band_h:
         m.prism(ring, top, h - .7, sel('band_mat', 'plain'), accent if body.get('band_colour', 'accent') == 'accent' else wall, 'plain', wall, top=False, cell=4)
     poly = Polygon(ring).buffer(.35, join_style=2)                                       # the cornice
-    m.prism(list(poly.exterior.coords)[:-1], h - .7, h + .45, 'plain', trim, 'roofdeck', C['white'], top=True, cell=4)
+    roof = sh.get('roof') or {}
+    roof_col = _hex(roof['colour']) if roof.get('colour') else C['white']               # read off the satellite view (tools/sat.py --apply), softened to our palette
+    m.prism(list(poly.exterior.coords)[:-1], h - .7, h + .45, 'plain', trim, 'roofdeck', roof_col, top=True, cell=4)
+    MXm, MYm = 111320 * math.cos(math.radians(14.525)), 110574
+    inside = Polygon(ring).buffer(-1.5)
+    for o in roof.get('plant', [])[:10]:                                                # the plant on the roof, where the satellite sees it
+        x, y = (o['lng'] - ctx['lng']) * MXm, (o['lat'] - ctx['lat']) * MYm
+        if inside.is_empty or not inside.contains(Point(x, y)):
+            continue
+        side = max(1.2, min(6.0, math.sqrt(o['m2'])))
+        m.box(x, y, h + .45, side, side * .8, 1.2 + min(2.2, side * .35), ctx['th'], 'louvre', C['grey'], 'plain', C['slate'], True, 4)
     fe, es = front_edge(ring, ctx.get('others', []))
     F = es[fe]
     for ft in sh.get('features', []):

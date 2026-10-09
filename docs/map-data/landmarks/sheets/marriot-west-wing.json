@@ -1,0 +1,131 @@
+{
+  "name": "Marriot West Wing",
+  "match": {
+    "name": "Marriot West Wing"
+  },
+  "about": "Street frames: cream and terracotta wing with a window grid and a living wall of dark green planting on the corner, a stone porte-cochere.",
+  "palette": {
+    "wall": "DDBFA2",
+    "trim": "F1E6D2",
+    "accent": "3F7A52",
+    "podium": "CDB48E"
+  },
+  "use": "hotel",
+  "tiles": {
+    "grid": {
+      "kind": "brickbay",
+      "m": [
+        5.6,
+        3.4
+      ],
+      "fit": true,
+      "seed": 61,
+      "p": 0.6,
+      "bays": 2,
+      "wear": 0.6
+    },
+    "base": {
+      "kind": "shopfront",
+      "m": [
+        8.0,
+        4.2
+      ],
+      "fit": true,
+      "seed": 63,
+      "p": 0.7,
+      "bays": 2
+    }
+  },
+  "body": {
+    "podium": 5.0,
+    "podium_mat": "base",
+    "floors_mat": "grid"
+  },
+  "features": [
+    {
+      "type": "canopy",
+      "at": 0.4,
+      "colour": "trim",
+      "width": 8.0
+    }
+  ],
+  "facade": {
+    "awnings": false,
+    "entrance": false,
+    "sign": false
+  },
+  "night": {
+    "wash": {
+      "color": "green",
+      "height": 24,
+      "strength": 0.45
+    }
+  },
+  "ref": [],
+  "roof": {
+    "colour": "E0E1DD",
+    "from": "satellite (esri, 0.29 m a pixel)",
+    "plant": [
+      {
+        "lng": 121.0179083,
+        "lat": 14.5215767,
+        "m2": 26.6,
+        "dl": 63.3
+      },
+      {
+        "lng": 121.0179244,
+        "lat": 14.5213419,
+        "m2": 22.6,
+        "dl": 20.1
+      },
+      {
+        "lng": 121.0178796,
+        "lat": 14.5213198,
+        "m2": 18.2,
+        "dl": 5.8
+      },
+      {
+        "lng": 121.0179781,
+        "lat": 14.5214464,
+        "m2": 15.5,
+        "dl": -63.8
+      },
+      {
+        "lng": 121.0182203,
+        "lat": 14.5212733,
+        "m2": 13.5,
+        "dl": 49.8
+      },
+      {
+        "lng": 121.0180577,
+        "lat": 14.5211191,
+        "m2": 9.0,
+        "dl": 63.6
+      },
+      {
+        "lng": 121.0181776,
+        "lat": 14.5213053,
+        "m2": 6.0,
+        "dl": 43.6
+      },
+      {
+        "lng": 121.0180329,
+        "lat": 14.5213062,
+        "m2": 5.3,
+        "dl": -43.5
+      },
+      {
+        "lng": 121.0180745,
+        "lat": 14.5211713,
+        "m2": 4.2,
+        "dl": -41.4
+      },
+      {
+        "lng": 121.017984,
+        "lat": 14.5212935,
+        "m2": 3.7,
+        "dl": 42.3
+      }
+    ]
+  }
+}
