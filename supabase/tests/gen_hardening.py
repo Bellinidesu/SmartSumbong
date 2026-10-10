@@ -1,4 +1,4 @@
-"""03_hardening.sql: checks for 0107-0112 (login lockout, SMS codes, cron-only
+"""03_hardening.sql: checks for 0107-0113 (login lockout, SMS codes, cron-only
 sweeps, daily filing limit, notification retention, sign-out on access
 changes), same rolled-back pattern as 01_lifecycle.sql."""
 import os
@@ -177,6 +177,14 @@ step('filing can be paused, with the reason shown to residents', 'pg',
      "    update public.operational_settings set filing_paused = false where id = 1;")
 step('only admins see the alerts', 'res',
      "if exists (select 1 from public.system_alerts) then raise exception 'resident sees alerts'; end if;")
+
+# ---- 0113: tracking IDs past 9,999
+step('the 10,000th complaint gets its own tracking ID', 'pg',
+     "perform setval('public.report_seq', 9999);\n"
+     "    insert into public.reports (resident_id, category, subject, description, latitude, longitude)\n"
+     "      values (v_res2, 'street_obstruction', 'Sweep 10000', 'Automated sweep, rolled back.', 14.5269, 121.0155);\n"
+     "    if (select tracking_id from public.reports where subject = 'Sweep 10000') <> 'BRG-' || to_char(now(), 'YYYY') || '-10000' then\n"
+     "      raise exception 'got %', (select tracking_id from public.reports where subject = 'Sweep 10000'); end if;")
 
 # ---- 0108: notification retention, sign-out on access changes
 step('old read notifications are purged, recent ones kept', 'pg',

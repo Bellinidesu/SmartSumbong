@@ -40,7 +40,7 @@ done
 [ $fail = 0 ] && "${psql[@]}" -f "$root/supabase/seed.sql" >/dev/null 2>&1 || true
 
 if [ $fail = 0 ]; then
-  for f in "$root"/supabase/tests/0*.sql; do
+  for f in "$root"/supabase/tests/0*.sql "$root"/supabase/tests/perf/*.sql; do
     out=$("${psql[@]}" -f "$f" 2>&1 || true)
     okc=$(printf '%s\n' "$out" | grep -cE '^ok' || true)
     bad=$(printf '%s\n' "$out" | grep -E '^(FAIL|BAD)' || true)

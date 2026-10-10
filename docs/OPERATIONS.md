@@ -148,6 +148,13 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
 - **Errors** — portal crashes and browser errors go to `portal_errors`,
   grouped, newest in Settings → System status. App crashes go to Firebase
   Crashlytics.
+- **Performance budgets** (CI) — the sign-in page under 320 KB as a
+  browser receives it, each portal script under 8 KB and stylesheet under
+  20 KB compressed, each photo under 160 KB
+  (`.github/scripts/perf-budget.sh`); the arm64 release APK under 60 MB
+  (app-size job, size in each run's summary); and the most-run queries
+  within their time at 50,000 complaints (`supabase/tests/perf`). Raise a
+  budget on purpose, in the pull request that needs it.
 - **Speed and quality** — `?_trace=1` on any portal page lists each database
   call's time in the page source. Lighthouse: 100 on performance,
   accessibility and best practices.

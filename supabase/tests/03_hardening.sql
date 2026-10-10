@@ -427,6 +427,18 @@ begin
     v_log := v_log || E'\n' || 'FAIL only admins see the alerts: ' || left(sqlerrm, 220);
   end;
   begin
+        perform setval('public.report_seq', 9999);
+    insert into public.reports (resident_id, category, subject, description, latitude, longitude)
+      values (v_res2, 'street_obstruction', 'Sweep 10000', 'Automated sweep, rolled back.', 14.5269, 121.0155);
+    if (select tracking_id from public.reports where subject = 'Sweep 10000') <> 'BRG-' || to_char(now(), 'YYYY') || '-10000' then
+      raise exception 'got %', (select tracking_id from public.reports where subject = 'Sweep 10000'); end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  the 10,000th complaint gets its own tracking ID';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL the 10,000th complaint gets its own tracking ID: ' || left(sqlerrm, 220);
+  end;
+  begin
         insert into public.notifications (user_id, kind, message, is_read, created_at) values
       (v_res, 'status_change', 'Sweep old read', true, now() - interval '91 days'),
       (v_res, 'status_change', 'Sweep old unread', false, now() - interval '91 days'),
