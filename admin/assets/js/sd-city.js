@@ -90,7 +90,9 @@
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])],
     ['+', p.scool[i], ['*', ['coalesce', ['get', 's2'], 0], p.swarm[i] - p.scool[i]]]],
     i => ['*', p.glow[i], ['+', ['*', ['coalesce', ['get', 'g'], 0], .8], ['*', ['coalesce', ['get', 'w'], 0], 1.8]]]);
-  const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey, p.trim];
+  const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey,
+    'dw', isDark() ? '#232A55' : '#8A93A8', 'aw', isDark() ? '#8A4672' : '#E0705F', 'aw2', isDark() ? '#3F6E8F' : '#4F8CC4', 'aw3', isDark() ? '#8F7A35' : '#F2C14E',
+    'ac', isDark() ? '#4A5080' : '#D9DDE6', 'sd', isDark() ? '#9AA0C8' : '#F4F6FA', 'sl', isDark() ? '#1E2650' : '#46567E', 'bc', p.trim, p.trim];
   const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
   const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
   const areaColour = p => ['match', ['get', 'k']].concat(...Object.keys(p.area).filter(k => k !== 'other').map(k => [k, p.area[k]]), [p.area.other]);
@@ -194,6 +196,33 @@
     const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall) => {
       const A = L * W;
       const co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY, T = (b, t, rg) => trim.push({ type: 'Feature', properties: { b, t, k: 'p' }, geometry: { type: 'Polygon', coordinates: rg } });
+      // ---- details by rule, everywhere: doors and windows, awnings, balconies, air-conditioners, dishes, antennas, solar panels (all thin prisms on the footprint's own edges, placed by hash) ----
+      const pts = []; for (let i = 0; i < ring.length; i += 2) pts.push([ring[i] * MX, ring[i + 1] * MY]);
+      let ar = 0; for (let i = 0; i < pts.length; i++) { const j = (i + 1) % pts.length; ar += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1]; }
+      const sg = ar > 0 ? 1 : -1, edges = [];
+      for (let i = 0; i < pts.length; i++) { const a_ = pts[i], b_ = pts[(i + 1) % pts.length], dx = b_[0] - a_[0], dy = b_[1] - a_[1], ln = Math.hypot(dx, dy); if (ln >= 3) edges.push({ a: a_, u: [dx / ln, dy / ln], n: [sg * dy / ln, -sg * dx / ln], ln }); }
+      edges.sort((p_, q_) => q_.ln - p_.ln);
+      const pl = (e, t0, t1, z0, z1, d, k) => { const p0 = [e.a[0] + e.u[0] * t0, e.a[1] + e.u[1] * t0], p1 = [e.a[0] + e.u[0] * t1, e.a[1] + e.u[1] * t1];
+        const pp = [p0, p1, [p1[0] + e.n[0] * d, p1[1] + e.n[1] * d], [p0[0] + e.n[0] * d, p0[1] + e.n[1] * d], p0].map(([x, y]) => [x / MX, y / MY]);
+        trim.push({ type: 'Feature', properties: { b: z0, t: z1, k }, geometry: { type: 'Polygon', coordinates: [pp] } }); };
+      const e0 = edges[0], hh = k_ => hit01(cx + k_ * 1.7, cy - k_ * 2.3);
+      if (e0 && A >= 45 && A < 260 && h < 12) {            // a house: a door and windows on its longest wall, an air-conditioner, sometimes a dish
+        const tm = (.25 + hh(1) * .5) * e0.ln;
+        pl(e0, tm - .5, tm + .5, 0, 2.1, .14, 'dw');
+        [-1, 1].forEach((sd, i) => { const tw = tm + sd * (1.6 + hh(2 + i) * .8); if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 1.0, 1.9, .12, 'dw'); });
+        if (h >= 5.5) [-1, 0, 1].forEach((sd, i) => { const tw = tm + sd * 2.0; if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 4.2, 5.1, .12, 'dw'); });
+        if (hh(4) > .5) { const tw = e0.ln * (.15 + hh(5) * .7); pl(e0, tw - .4, tw + .4, 2.2 + (h >= 5.5 ? 3.2 : 0), 3.0 + (h >= 5.5 ? 3.2 : 0), .4, 'ac'); }
+        if (flat && hh(6) > .7 && A >= 70) { const su = (hh(7) - .5) * L * .3, sv = (hh(8) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .4, t: h + 1.5, k: 'sd' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, .45, .45)] } }); }
+      }
+      if (e0 && flat && A >= 60 && A < 700 && h < 9) {     // a small shop block: an awning along its longest wall, striped by hash
+        const aw = ['aw', 'aw2', 'aw3'][Math.floor(hh(9) * 3)];
+        pl(e0, .6, e0.ln - .6, 2.7, 2.98, 1.0, aw);
+      }
+      if (e0 && flat && A >= 250 && h >= 9 && h < 32) {    // a mid-rise block: balconies and air-conditioners on its two longest walls, solar panels on some roofs
+        edges.slice(0, 2).forEach(e => { let c_ = 0; for (let z = 3.4; z < h - 1 && c_ < 60; z += 3.2 * (h > 20 ? 2 : 1)) for (let t = 2.2; t < e.ln - 2.2 && c_ < 60; t += 4.6) { pl(e, t, t + 2.2, z, z + .13, .9, 'bc'); c_++; } });
+        if (hh(10) > .45) { const su = (hh(11) - .5) * L * .3, sv = (hh(12) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .5, t: h + 1.0, k: 'sl' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, Math.min(L * .22, 9), Math.min(W * .2, 5))] } }); }
+      }
+      if (flat && A >= 120 && hh(13) > .6) { const au = (hh(14) - .5) * L * .5, av = (hh(15) - .5) * W * .5, ax_ = (x0 + au * co - av * si) / MX, ay_ = (y0 + au * si + av * co) / MY; if (inRing([ax_, ay_], ring)) trim.push({ type: 'Feature', properties: { b: h, t: h + 3.5 + hh(16) * 3, k: 'sp' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, au, av, .12, .12)] } }); }   // an antenna mast
       if (A >= 45 && A < 260 && h < 12) {   // a house: a flat roof gets a low rim, a water tank and a stair head; a pitched one a chimney (placed by hash, so the same every time)
         const u1 = hit01(cx, cy + 3), u2 = hit01(cx + 5, cy);
         if (flat) {
