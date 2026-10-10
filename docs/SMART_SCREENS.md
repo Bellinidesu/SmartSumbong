@@ -56,7 +56,15 @@ A card near the top of the case, above the timeline:
   merge button: the admin opens the other case and decides.
 - **Usually resolved in**: "about 7 hours (most within 20)" from
   `smart_eta(category)`, or "target: 48 hours" when the basis is `target`.
-- One call fills the card: `smart_case_card(report)` (0124).
+- **Similar past cases** (0127): up to 3 rows from the card's `similar`.
+  Each has the tracking ID as a link, "120 m away", "resolved in 2 days",
+  and how it ended (referred to …, the closing remark, or the tanod's
+  field report). Above them, the card's `referral` line if there is one:
+  "Usually referred to City Veterinary Office (3 of 3)."
+- **Deadline risk** (0127): if the card's `deadline_risk` is set, a line
+  in the risk's colour: "Likely to miss its deadline: 5 h left, such
+  cases usually take 48 h."
+- One call fills the card: `smart_case_card(report)` (0124, extended in 0127).
 
 ### 3. Case Assign (`case.php`, the roster): who to send
 
@@ -87,6 +95,13 @@ A card near the top of the case, above the timeline:
 - **Recurring problems**: the count from `smart_patterns()`; it links to
   Spatial Distribution with the panel open.
 - One call fills both: `smart_summary()` (0124).
+- Two more tiles (0127): **Likely to miss the deadline** (the count of
+  `smart_deadline_risk()` with risk high; links to a list), and
+  **Spikes** (`smart_spikes()`: "Animal welfare: 6 this week, usually
+  0.5, mostly Purok 3").
+- **Storm mode banner**: while `smart_rules.storm_mode` is on, a banner at
+  the top of every portal page says "Storm mode until Oct 12 18:00:
+  PAGASA orange rainfall warning", with a button to end it.
 
 ### 6. Settings → SMART (`settings.php`, a new section)
 
@@ -104,6 +119,15 @@ A card near the top of the case, above the timeline:
   dispatch, time to resolve) and `smart_factor_stats(90)` (per factor).
   One sentence above them: "If admins often lower reports with a factor,
   it may be worth fewer points."
+
+### 6b. Settings → SMART: storm mode and the digest (0127)
+
+- **Storm mode**: a switch, a required reason, and hours (default 24).
+  It calls `smart_storm_mode(on, reason, hours)`. Show what it does in
+  one sentence: "Flood zones and flood, live-wire and collapse reports
+  count double until it ends."
+- **Morning digest**: an on/off switch (`smart_rules.digest_enabled`)
+  and a preview box showing `smart_digest_preview()`.
 
 ### 7. Residents and Personnel (`residents.php`, `personnel.php`): ID checks
 
@@ -143,6 +167,20 @@ linked to its report. Only check that the bell opens the case.
 - Nothing for now. If the barangay wants it later, an **Urgent** label on
   a ticket (the effective level only, no score or reasons) is the most to
   show.
+
+## Next ideas (not built)
+
+- **Report completeness (resident app)**: before sending, a gentle nudge
+  when a report is thin: a very short description, no photo for a kind
+  that usually has one, or no landmark. These are plain rules on the
+  form; the resident can still send.
+- **Duty coverage (Personnel)**: when and where reports come in (hour of
+  day, area), set against who is on duty then, to plan shifts. Plain
+  counts, a heat table.
+- **Feedback mood (Dashboard)**: positive and negative words in
+  residents' ratings, using an English and Tagalog word list (salamat,
+  mabilis, wala pa rin, bagal), beside the stars, to see what people
+  praise and what they complain about.
 
 ## Build order
 

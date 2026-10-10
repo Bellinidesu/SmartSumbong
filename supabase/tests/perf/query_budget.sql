@@ -100,7 +100,13 @@ begin
     ('admin', 'admin: SMART case card (one call for the case page)',
        $q$ select public.smart_case_card((select report_id from public.report_triage order by computed_at desc limit 1)) $q$, 150),
     ('admin', 'admin: SMART dashboard tiles',
-       $q$ select public.smart_summary() $q$, 300)
+       $q$ select public.smart_summary() $q$, 300),
+    ('admin', 'admin: SMART deadline risk, every open case',
+       $q$ select count(*) from public.smart_deadline_risk() $q$, 500),
+    ('admin', 'admin: SMART spikes',
+       $q$ select count(*) from public.smart_spikes() $q$, 300),
+    ('admin', 'admin: SMART morning digest text',
+       $q$ select public.smart_digest_preview() $q$, 1000)
   ) as t(who, label, sql, budget_ms)
   loop
     perform set_config('request.jwt.claims', json_build_object('sub', case when r.who = 'admin' then v_adm else v_res end, 'role', 'authenticated')::text, true);

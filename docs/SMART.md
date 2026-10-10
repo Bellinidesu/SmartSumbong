@@ -5,7 +5,7 @@ read and change, and every result lists the reasons behind it. Nothing
 learns or changes on its own. The rules live in one database row
 (`smart_rules`); the code is `supabase/migrations/0122_smart_triage.sql`.
 
-Status (10 Oct 2026): database only (migrations 0121–0126), tested, not
+Status (10 Oct 2026): database only (migrations 0121–0127), tested, not
 deployed, and not shown in the portal or the app yet.
 
 ## 1. Triage: a score from 0 to 100 for every report
@@ -188,6 +188,60 @@ only means nothing looked wrong.
 Real government verification (PSA, LTO) is not available for free (see
 0039), and SMART does not claim it.
 
+## 11. Storm mode (0127)
+
+This is one switch for a typhoon signal or heavy-rainfall warning. An
+admin turns it on with a reason ("PAGASA orange rainfall warning") for a
+number of hours (24 by default, a week at most). While it is on, hazard
+zone points and the flooding, live-wire and collapse words count double
+(`storm_multiplier`, `storm_labels`), and the word cap rises with them.
+Every open report is scored again when it starts and when it ends, and
+the admins are told both times. It ends on its own when its hours are
+up. A flood report in a high flood zone goes from 55 (high) to 85
+(urgent).
+
+## 12. Deadline risk (0127)
+
+These are cases with a deadline that will probably miss it, flagged
+before it happens:
+
+- **High:** even a typical case of this kind here would not finish in the
+  time left.
+- **Medium:** a slow one would not (80th percentile), or the tanod has 3
+  or more jobs in hand.
+
+The typical and slow times come from section 4 (the barangay's own closed
+cases, or the SLA target). The watcher tells the admins once about each
+high-risk case: "BRG-2026-0412 will probably miss its deadline (5 h left;
+such cases usually take 48 h)."
+
+## 13. Spikes (0127)
+
+A spike is a kind of complaint well above its usual week: at least 4 in
+the last 7 days, at least double the weekly average of the 8 weeks
+before, and at least 3 standard deviations above it (Poisson). The most
+common place label is given for context: "6 animal welfare reports in
+the last 7 days, 12 times the usual week; mostly Purok 3." The admins are
+told once per kind per week.
+
+## 14. Similar past cases and the usual office (0127)
+
+The case card shows up to 3 finished cases of the same kind from the last
+year that are most like this one: the same words as SMART reads them, or
+close by. Each shows how it ended: the outside office it went to, the
+closing remark, the tanod's field report, and the days it took. If one
+office took at least 3 of this kind and at least 40% of those referred,
+the card says so: "Usually referred to City Veterinary Office (3 of 3
+referred cases this year)." This is the barangay's own memory, read back
+to it; nothing is invented.
+
+## 15. Morning digest (0127)
+
+One message to the admins at 07:00 (Manila). It says what is open,
+waiting for a tanod (urgent and high), overdue, due today, likely to miss
+its deadline, filed yesterday and recurring, plus the top spike and
+whether storm mode is on. It can be switched off (`digest_enabled`).
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
@@ -207,6 +261,11 @@ than the barangay really is:
 | Possible duplicates | 6 ms |
 | Recurring problems, 90 days (the watcher's main step) | 50 ms |
 | Calibration, 90 days | 8 ms |
+| Case card, everything included | 52 ms |
+| Morning digest | 76 ms |
+
+All SMART functions run with JIT off: they are short queries, and JIT
+compiling cost about 55 ms a call for nothing.
 
 These times are checked against budgets in `supabase/tests/perf/query_budget.sql`.
 
@@ -232,6 +291,12 @@ These times are checked against budgets in `supabase/tests/perf/query_budget.sql
 | `submit_id_reading(type, name, number)` | the app, for the signed-in account | stores what OCR read; flags worked out here |
 | `smart_verify(user)` | admins | an account's ID checks: level, flags, reasons, what was read |
 | `smart_verify_queue(role)` | admins | pending accounts, problems first |
+| `smart_storm_mode(on, reason, hours)` | admins | storm mode on or off; open reports re-scored |
+| `smart_deadline_risk()` | admins | open cases likely to miss their deadline |
+| `smart_spikes()` | admins | kinds of complaint well above their usual week |
+| `smart_similar_cases(report)` | admins | similar finished cases and how they ended |
+| `smart_digest_preview()` | admins | the morning digest as it would read now |
+| `smart_morning_digest()` | pg_cron, 07:00 Manila | sends the digest |
 
 What the screens show, and where, is in `docs/SMART_SCREENS.md`.
 | `smart_rules` (table) | admins read and update | the rules |
