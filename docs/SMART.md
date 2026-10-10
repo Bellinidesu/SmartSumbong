@@ -5,7 +5,7 @@ read and change, and every result lists the reasons behind it. Nothing
 learns or changes on its own. The rules live in one database row
 (`smart_rules`); the code is `supabase/migrations/0122_smart_triage.sql`.
 
-Status (10 Oct 2026): database only (migrations 0121–0128), tested, not
+Status (10 Oct 2026): database only (migrations 0121–0129), tested, not
 deployed, and not shown in the portal or the app yet.
 
 ## 1. Triage: a score from 0 to 100 for every report
@@ -297,6 +297,44 @@ incident, 0 job(s) in hand, 2 case(s) closed nearby." The resident's
 timeline is unchanged. `smart_rules.smart_routing` switches it off, back
 to nearest-only. Admins' own dispatches are untouched.
 
+## 21. The SMART queue (0129)
+
+Every open case goes in one order, by what it needs and how badly, with
+the reasons.
+
+**Next action.** Each case is at one stage:
+
+- decide an escalation request;
+- approve or return a tanod's resolution;
+- review the complaint;
+- assign a tanod;
+- wait for the tanod to accept;
+- reply to the resident (their message is the last one);
+- follow up.
+
+**Priority:**
+
+| Part | Points |
+|---|---|
+| Urgency | the SMART score; an admin's level counts as low 10, normal 35, high 55, urgent 80 |
+| Waiting at this stage | 1 an hour, 40 at most (`queue_aging_minutes`, `queue_aging_cap`) |
+| Past its deadline | +20 |
+| Likely to miss it (section 12) | +15 |
+| Quiet for days (section 17) | +10 |
+
+Waiting time is what makes it fair: a low case gains a point an hour,
+so it never waits forever, but the cap keeps a fresh urgent case ahead
+of it. A fire just filed (75) comes before a stabbing (60), which comes
+before a clearance request waiting 50 hours (10 + 40), which comes
+before fresh rubbish (25).
+
+**The dispatch waiting line.** When no tanod is free, reports wait and the
+system tries again every two minutes. Before, the next free tanod went to
+whichever report had waited longest. Now they go to the report highest
+in this queue, so a fire filed 20 minutes ago goes before a cedula
+request waiting 3 hours. `smart_rules.smart_queue` switches the waiting
+line back to first come, first served.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
@@ -320,6 +358,7 @@ than the barangay really is:
 | Morning digest | 76 ms (211 ms with quiet cases and new words) |
 | New words to learn, 30 days | 49 ms |
 | Quiet cases | 101 ms |
+| The queue, 25,000 open cases at once | 419 ms (a few ms at the barangay's real size) |
 
 All SMART functions run with JIT off: they are short queries, and JIT
 compiling cost about 55 ms a call for nothing.
@@ -359,6 +398,7 @@ These times are checked against budgets in `supabase/tests/perf/query_budget.sql
 | `smart_stuck_cases()` | admins | open cases with no update for `stuck_days` |
 | `smart_time_patterns(days, kind)` | admins | weekday and hour blocks well above usual |
 | `smart_sla_scorecard(month)` | admins | on-time share per kind, against last month |
+| `smart_queue(stage, limit)` | admins | open cases by priority, with stage, next action and reasons |
 
 What the screens show, and where, is in `docs/SMART_SCREENS.md`.
 | `smart_rules` (table) | admins read and update | the rules |

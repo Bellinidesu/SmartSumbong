@@ -114,7 +114,9 @@ begin
     ('admin', 'admin: SMART weekly patterns, 90 days',
        $q$ select count(*) from public.smart_time_patterns(90) $q$, 300),
     ('admin', 'admin: SMART scorecard, this month',
-       $q$ select count(*) from public.smart_sla_scorecard() $q$, 300)
+       $q$ select count(*) from public.smart_sla_scorecard() $q$, 300),
+    ('admin', 'admin: SMART queue, top 50 of every open case',
+       $q$ select count(*) from public.smart_queue(null, 50) $q$, 600)
   ) as t(who, label, sql, budget_ms)
   loop
     perform set_config('request.jwt.claims', json_build_object('sub', case when r.who = 'admin' then v_adm else v_res end, 'role', 'authenticated')::text, true);

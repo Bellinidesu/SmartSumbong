@@ -26,6 +26,21 @@ what it must not do.
 
 ## Portal
 
+### 0. Case Reports (`cases.php`): the **Next up** view (0129)
+
+This is the admin's work list, from `smart_queue(stage, 50)`, and is
+meant to be the first tab of Case Reports.
+
+- One row per case, highest priority first: tracking ID, subject, level
+  badge, the **next action** as the row's button ("Assign a tanod",
+  "Reply to the resident", "Approve or return the resolution"), and
+  "waiting 3 h".
+- The priority as a small bar, with its parts on hover or tap:
+  "Urgent 75 · waiting +12 · overdue +20".
+- Stage chips to narrow the list: Review, Assign, Approve, Reply,
+  Escalation, Waiting for accept, Follow up. Each shows its count.
+- The existing date-sorted list stays as the second tab.
+
 ### 1. Case Reports (`cases.php`): urgency in the list
 
 - A **SMART** column: the level badge with the score as small text
@@ -186,7 +201,8 @@ linked to its report. Only check that the bell opens the case.
 
 - Nothing for now. If the barangay wants it later, an **Urgent** label on
   a ticket (the effective level only, no score or reasons) is the most to
-  show.
+  show. Tickets could also be sorted urgent first when a tanod has
+  several, using the same effective level.
 
 ## Next ideas (not built)
 
