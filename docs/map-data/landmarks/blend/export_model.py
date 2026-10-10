@@ -16,7 +16,7 @@ dg = bpy.context.evaluated_depsgraph_get()
 P, N, C, M, UV, names = [], [], [], [], [], []
 mat_index = {}
 for ob in bpy.context.scene.objects:
-    if ob.type != 'MESH' or ob.hide_render or ob.name.startswith('_'):
+    if ob.type not in ('MESH', 'FONT', 'CURVE') or ob.hide_render or ob.name.startswith('_'):
         continue
     ev = ob.evaluated_get(dg)
     me = ev.to_mesh()
