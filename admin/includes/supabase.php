@@ -494,7 +494,7 @@ function cloudinary_upload_fields(string $publicId): array
     foreach ($params as $k => $v) {
         $pairs[] = "$k=$v";
     }
-    return $params + ['api_key' => $key, 'signature' => sha1(implode('&', $pairs) . $secret)];
+    return $params + ['api_key' => $key, 'signature' => hash('sha256', implode('&', $pairs) . $secret)];
 }
 
 function cloudinary_preset_fields(string $publicId): array

@@ -28,7 +28,7 @@ async function rows(path) {
 async function makePrivate(publicId) {
   const params = { from_public_id: publicId, to_public_id: publicId, timestamp: String(Math.floor(Date.now() / 1000)), to_type: "authenticated", type: "upload" };
   const toSign = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("&");
-  const body = new URLSearchParams({ ...params, api_key: KEY, signature: createHash("sha1").update(toSign + SECRET).digest("hex") });
+  const body = new URLSearchParams({ ...params, api_key: KEY, signature: createHash("sha256").update(toSign + SECRET).digest("hex") });
   const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/rename`, { method: "POST", body });
   const json = await res.json();
   if (!res.ok) throw new Error(json?.error?.message ?? `HTTP ${res.status}`);

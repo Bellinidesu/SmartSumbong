@@ -74,10 +74,13 @@ async function caller(req: Request): Promise<{ id: string; role: string } | null
 const PRIVATE_URL =
   /^https:\/\/res\.cloudinary\.com\/([a-z0-9_-]+)\/image\/authenticated\/v[0-9]+\/((ids|selfies)\/[0-9a-f-]{36}\.(jpg|jpeg|png|webp))$/;
 
-/** Cloudinary's signed delivery link: SHA-1 of the asset path and the secret. */
+/**
+ * Cloudinary's signed delivery link: SHA-256 of the asset path and the
+ * secret, its first 8 characters (the account signs with SHA-256).
+ */
 export async function signedView(url: string): Promise<string> {
   const m = PRIVATE_URL.exec(url)!;
-  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(m[2] + API_SECRET));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(m[2] + API_SECRET));
   const sig = btoa(String.fromCharCode(...new Uint8Array(digest))).slice(0, 8)
     .replace(/\//g, "_").replace(/\+/g, "-");
   return url.replace("/image/authenticated/", `/image/authenticated/s--${sig}--/`);
@@ -110,10 +113,10 @@ async function takeSlot(bucket: string, max: number): Promise<boolean> {
   return (await res.json()) === true;
 }
 
-/** Cloudinary's signature: SHA-1 of the sorted params, then the secret. */
+/** Cloudinary's signature: SHA-256 of the sorted params, then the secret. */
 export async function sign(params: Record<string, string>): Promise<string> {
   const text = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("&") + API_SECRET;
-  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 

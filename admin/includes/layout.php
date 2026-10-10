@@ -747,7 +747,7 @@ function safe_error(Throwable $e): string
         if (stripos($msg, $needle) !== false) {
             error_log('SmartSumbong: ' . $msg);
             return t('That action could not be completed. Reference: ', 'Hindi natapos ang aksyong iyon. Reference: ')
-                 . substr(sha1($msg), 0, 8)
+                 . substr(hash('sha256', $msg), 0, 8)
                  . t(' — give this to whoever maintains the system.', ' — ibigay ito sa nangangalaga ng system.');
         }
     }
@@ -813,7 +813,7 @@ function cld_thumb(?string $url, int $w, bool $square = false): string
 
 /**
  * A link that opens a private identity photo (0110): Cloudinary's signed
- * delivery URL, the SHA-1 of the transformation and asset path with the API
+ * delivery URL, the SHA-256 of the transformation and asset path with the API
  * secret. The stored address alone opens nothing. Without the secret in
  * the environment the stored address comes back unchanged (and will not
  * load), which is the safe way to fail.
@@ -824,7 +824,7 @@ function cld_private_url(string $url, string $transformation = ''): string
     $secret = env('CLOUDINARY_API_SECRET', '');
     if ($secret === '') return $url;
     $toSign = ($transformation !== '' ? $transformation . '/' : '') . $m[3];
-    $sig = substr(strtr(base64_encode(sha1($toSign . $secret, true)), '+/', '-_'), 0, 8);
+    $sig = substr(strtr(base64_encode(hash('sha256', $toSign . $secret, true)), '+/', '-_'), 0, 8);
     return $m[1] . 's--' . $sig . '--/' . ($transformation !== '' ? $transformation . '/' : '') . $m[2] . '/' . $m[3];
 }
 

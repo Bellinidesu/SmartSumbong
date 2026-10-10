@@ -91,6 +91,14 @@ portal photo all upload. Only once no phone runs an older build, delete
 until then both the app and the portal fall back to them if a signature
 is ever refused.
 
+**SHA-256 signing.** Every Cloudinary signature (uploads, private photo
+links, cleanup, the privatize script, the portal) uses SHA-256. The
+Cloudinary account must be set to match: Cloudinary console → Settings →
+Security → signature algorithm **SHA-256**. Switch it in the same sitting
+as deploying `sign-upload`/`media-cleanup` and the portal. While the two
+disagree, uploads fall back to the unsigned presets (if they still exist)
+and private ID photos will not open in the portal until both match.
+
 **Private identity photos (0110).** New registration IDs and selfies are
 stored as Cloudinary *authenticated* assets: their stored address opens
 nothing. The portal signs a viewing link each time it shows one (needs

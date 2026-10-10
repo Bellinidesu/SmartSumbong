@@ -19,10 +19,10 @@ Deno.test("only identity photos parse; evidence never does", () => {
   assertEquals(parse(AVATAR.replace("/avatars/", "/reports/")), null);
 });
 
-Deno.test("API signature matches Cloudinary's documented example", async () => {
+Deno.test("API signature matches Cloudinary's SDK (SHA-256)", async () => {
   assertEquals(
     await apiSignature({ eager: "w_400,h_300,c_pad|w_260,h_200,c_crop", public_id: "sample_image", timestamp: "1315060510" }, "abcd"),
-    "bfd09f95f331f558cbd1320e67aa8d488770583e",
+    "cc927e1290f9e3ae4c1a741eda21a4630b4ce80f9ce0bc0296337d25cf40f91e",
   );
 });
 

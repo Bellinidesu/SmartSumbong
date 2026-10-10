@@ -39,19 +39,20 @@ function supabase(opts: { slot?: boolean; owns?: string } = {}) {
 
 const as = (token: string) => ({ Authorization: `Bearer ${token}` });
 
-Deno.test("upload signature matches Cloudinary's documented example", async () => {
+Deno.test("upload signature matches Cloudinary's SDK (SHA-256)", async () => {
   Deno.env.set("CLOUDINARY_API_SECRET", "abcd");
   assertEquals(
     await sign({ eager: "w_400,h_300,c_pad|w_260,h_200,c_crop", public_id: "sample_image", timestamp: "1315060510" }),
-    "bfd09f95f331f558cbd1320e67aa8d488770583e",
+    // cloudinary@2.5.1 api_sign_request(..., "abcd") with signature_algorithm "sha256"
+    "cc927e1290f9e3ae4c1a741eda21a4630b4ce80f9ce0bc0296337d25cf40f91e",
   );
 });
 
 Deno.test("viewing link matches Cloudinary's own SDK", async () => {
-  // cloudinary@2.5.1: url(id, {type: "authenticated", sign_url: true, version: 17}) with secret "abcd"
+  // cloudinary@2.5.1, signature_algorithm "sha256": url(id, {type: "authenticated", sign_url: true, version: 17}), secret "abcd"
   assertEquals(
     await signedView(ID),
-    "https://res.cloudinary.com/nwb2kryl/image/authenticated/s--hWnktPX4--/v17/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg",
+    "https://res.cloudinary.com/nwb2kryl/image/authenticated/s--6FzBtDs2--/v17/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg",
   );
 });
 
@@ -114,7 +115,7 @@ Deno.test("a private ID opens only for its owner or an administrator", async () 
     assertEquals((await handler(post({ view: ID }))).status, 403);
     const admin = await handler(post({ view: ID }, as("adm-token")));
     assertEquals(admin.status, 200);
-    assert((await admin.json()).url.includes("/s--hWnktPX4--/"));
+    assert((await admin.json()).url.includes("/s--6FzBtDs2--/"));
   } finally { s.restore(); }
   s = supabase({ owns: "u-res" });
   try {

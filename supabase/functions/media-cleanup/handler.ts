@@ -35,7 +35,7 @@ export function parse(url: string): { cloud: string; type: string; publicId: str
 
 export async function apiSignature(params: Record<string, string>, secret: string): Promise<string> {
   const text = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("&") + secret;
-  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
