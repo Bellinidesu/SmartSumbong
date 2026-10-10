@@ -3,7 +3,7 @@ import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1.0.14";
 import { type Call, json, post, setEnv, stubFetch } from "../_test/stub.ts";
 
 setEnv({ SUPABASE_URL: "https://sb.test", SUPABASE_SERVICE_ROLE_KEY: "service-key", SEMAPHORE_API_KEY: "sms-key" });
-const { handler } = await import("./handler.ts");
+const { handler, sixDigits } = await import("./handler.ts");
 
 /** One resident, +639171234567, and the database's answer to a guess. */
 function supabase(outcome: "ok" | "wrong" | "expired", left = 4) {
@@ -70,4 +70,8 @@ Deno.test("bad input is refused before anything is looked up", async () => {
     assertEquals((await handler(post({ action: "verify", mobile: "09171234567", code: "12", password: "x" }))).status, 400);
     assertEquals(s.calls.length, 0);
   } finally { s.restore(); }
+});
+
+Deno.test("codes are six digits", () => {
+  for (let i = 0; i < 1000; i++) assertMatch(sixDigits(), /^\d{6}$/);
 });

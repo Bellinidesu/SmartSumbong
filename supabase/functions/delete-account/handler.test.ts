@@ -40,7 +40,9 @@ Deno.test("signed out, nothing is deleted", async () => {
   const s = world(false);
   try {
     assertEquals((await handler(post({}))).status, 401);
-    assertEquals((await handler(post({}, { Authorization: "Bearer someone-else" }))).status, 400);
+    const refused = await handler(post({}, { Authorization: "Bearer someone-else" }));
+    assertEquals(refused.status, 400);
+    assertEquals((await refused.json()).error.includes("Could not identify"), false, "no internal detail in the answer");
     assertEquals(s.calls.filter((c) => c.url.pathname.startsWith("/auth/v1/admin")).length, 0);
   } finally { s.restore(); }
 });

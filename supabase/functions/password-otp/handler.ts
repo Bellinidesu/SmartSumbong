@@ -71,9 +71,18 @@ async function hmac(text: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function sixDigits(): string {
-  const n = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
-  return n.toString().padStart(6, "0");
+/**
+ * A uniform 6-digit code. Draws are rejected above the largest multiple of
+ * a million that fits in 32 bits, so every code is equally likely (a plain
+ * % 1_000_000 would favour the low codes very slightly).
+ */
+export function sixDigits(): string {
+  const limit = 4_294_000_000; // 4,294 x 1,000,000 <= 2^32
+  let n: number;
+  do {
+    n = crypto.getRandomValues(new Uint32Array(1))[0];
+  } while (n >= limit);
+  return (n % 1_000_000).toString().padStart(6, "0");
 }
 
 /**

@@ -146,6 +146,7 @@ export async function handler(req: Request): Promise<Response> {
   } catch (e) {
     console.error("delete-account failed:", e);
     await logError("delete-account", e);
-    return json({ error: String(e) }, 400);
+    // The details stay in the logs; the app shows its own message.
+    return json({ error: "Your account could not be deleted. Try again, or visit the barangay hall." }, 400);
   }
 }
