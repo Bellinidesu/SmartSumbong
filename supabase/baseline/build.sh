@@ -12,7 +12,7 @@ set -eu
 check_only=""; [ "${1:-}" = "--check" ] && check_only=1
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
-bin=/usr/lib/postgresql/16/bin
+bin=/usr/lib/postgresql/${PGVER:-16}/bin
 dir=${PGSCRATCH:-/var/tmp/smartsumbong-base}
 port=55435
 as_pg() { if [ "$(id -u)" = 0 ]; then su postgres -c "$*"; else bash -c "$*"; fi; }

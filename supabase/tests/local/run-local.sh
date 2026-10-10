@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Applies every migration to a throwaway local PostgreSQL 16 (PostGIS and
-# pg_cron installed) and runs the rolled-back checks in supabase/tests.
+# Applies every migration to a throwaway local PostgreSQL (16 by default,
+# PGVER=17 for the version Supabase runs; PostGIS and pg_cron installed)
+# and runs the rolled-back checks in supabase/tests.
 # Nothing touches the live project.
 #
 #   apt-get install postgresql-16 postgresql-16-postgis-3 postgresql-16-cron
@@ -11,7 +12,7 @@
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
-bin=/usr/lib/postgresql/16/bin
+bin=/usr/lib/postgresql/${PGVER:-16}/bin
 dir=${PGSCRATCH:-/var/tmp/smartsumbong-pg}
 port=${PGPORT_LOCAL:-55433}
 as_pg() { if [ "$(id -u)" = 0 ]; then su postgres -c "$*"; else bash -c "$*"; fi; }

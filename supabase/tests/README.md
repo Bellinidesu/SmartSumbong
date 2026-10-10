@@ -25,9 +25,10 @@ Every line of the raised message must start with `ok`; CI fails on any `FAIL` or
 
 ## Locally, without the live project
 
-`bash supabase/tests/local/run-local.sh` builds a throwaway PostgreSQL 16
+`bash supabase/tests/local/run-local.sh` builds a throwaway PostgreSQL (16 by
+default; `PGVER=17` matches Supabase, as CI does)
 (PostGIS and pg_cron), adds the parts of Supabase the migrations rely on
 (`local/supabase_stub.sql`: the `auth` schema, API roles, a no-op `net`),
 applies every migration in order and runs these checks. Needs
-`postgresql-16 postgresql-16-postgis-3 postgresql-16-cron`. `KEEP_DB=1`
+`postgresql-NN postgresql-NN-postgis-3 postgresql-NN-cron` for that version. `KEEP_DB=1`
 leaves the database running for poking at.

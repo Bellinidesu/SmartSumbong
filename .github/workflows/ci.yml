@@ -55,7 +55,7 @@ jobs:
           exit $fail
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '22'
+          node-version: '24'
       - name: Portal scripts parse
         run: for f in admin/assets/js/*.js; do node --check "$f"; done
       - name: Web manifest is valid JSON
@@ -141,13 +141,20 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: PostgreSQL 16 with PostGIS and pg_cron
+      - name: PostgreSQL 17 (the version Supabase runs) with PostGIS and pg_cron
         run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -q
-          sudo apt-get install -y -q postgresql-16 postgresql-16-postgis-3 postgresql-16-cron
+          sudo apt-get install -y -q postgresql-17 postgresql-17-postgis-3 postgresql-17-cron
       - name: Every migration, then every rolled-back check
+        env:
+          PGVER: '17'
         run: bash supabase/tests/local/run-local.sh
       - name: The baseline still matches the migrations
+        env:
+          PGVER: '17'
         run: bash supabase/baseline/build.sh --check
 
   staging:
