@@ -105,14 +105,31 @@ A card near the top of the case, above the timeline:
   One sentence above them: "If admins often lower reports with a factor,
   it may be worth fewer points."
 
-### 7. Notifications (portal bell)
+### 7. Residents and Personnel (`residents.php`, `personnel.php`): ID checks
+
+Only once the barangay turns ID reading back on (`ID_OCR_ENABLED`):
+
+- In the pending list, a level badge from `smart_verify_queue(role)`
+  (**Problem**, **Check**, **Ready**, **No reading**), with problems
+  sorted first.
+- On the account, the reasons one per line next to the ID photo and
+  what was read: "Name on the ID: SANTOS, MARIA. Not found: REYES, ANA."
+  A reused number links to the other account.
+- **Quick Verify** only for **Ready**, and only with the ID photo on
+  screen. It replaces `account_ocr_is_clean()` and the client's flags.
+- Add labels for the two new flags in `ocr_flag_label()`:
+  `number_format` ("ID number has the wrong shape" / "Mali ang anyo ng
+  numero ng ID") and `number_reused` ("ID number is on another account" /
+  "Nasa ibang account ang numero ng ID").
+
+### 8. Notifications (portal bell)
 
 The watcher's messages already arrive as notifications; an urgent one is
 linked to its report. Only check that the bell opens the case.
 
 ## Resident app
 
-### 8. Report view (`report_view_screen.dart`) and Report submitted (`report_submitted_screen.dart`)
+### 9. Report view (`report_view_screen.dart`) and Report submitted (`report_submitted_screen.dart`)
 
 - One line under the status: "Similar complaints are usually resolved in
   about 7 hours" / "Karaniwang naaayos ang ganitong sumbong sa loob ng
@@ -134,4 +151,5 @@ linked to its report. Only check that the bell opens the case.
 2. Case Reports column and sort (1), and the dashboard tiles (5).
 3. Settings → SMART (6), so the barangay can tune the rules itself.
 4. Recurring problems on the map (4).
-5. The resident's estimate (8).
+5. The resident's estimate (9).
+6. ID checks (7), when the barangay turns ID reading back on.

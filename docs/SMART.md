@@ -5,7 +5,7 @@ read and change, and every result lists the reasons behind it. Nothing
 learns or changes on its own. The rules live in one database row
 (`smart_rules`); the code is `supabase/migrations/0122_smart_triage.sql`.
 
-Status (10 Oct 2026): database only (migrations 0121–0125), tested, not
+Status (10 Oct 2026): database only (migrations 0121–0126), tested, not
 deployed, and not shown in the portal or the app yet.
 
 ## 1. Triage: a score from 0 to 100 for every report
@@ -155,6 +155,39 @@ shows the words: "counterflow" and "tricycle", filed as Other, suggest
 Traffic violation. It is a suggestion on the case card; the admin changes
 the kind, and the score is not affected.
 
+## 10. SMART Verify: ID checks (0126)
+
+The line SMART draws for OCR is that a model may read, but rules decide.
+
+- **Reading (on the phone).** When the barangay turns ID reading back on
+  (`ID_OCR_ENABLED`, `kIdOcrEnabled`; off since Rose, 27–30 Sep 2026), the
+  app reads the ID photo with Google ML Kit on the phone. That is offline
+  and free, and the photo does not leave the phone for it. The app sends
+  only what it read: the ID type it recognised, the name and the number.
+- **Deciding (on the server).** `submit_id_reading` stores the reading and
+  works out the checks itself:
+
+| Check | Result |
+|---|---|
+| The card reads like the ID type chosen | ok, or **check** if not |
+| Name on the ID covers the registered name: every surname word and one given-name word, exact or one letter off, with OCR's digit-for-letter slips fixed (CRU2 is read as CRUZ) | ok; **check** if partly; **problem** if none of it |
+| ID number shape for the type: PhilSys 16 digits, LTO licence one letter and ten digits, passport P1234567A or EB1234567 | ok, or **check**; other ID types have no fixed shape to check |
+| The same ID number on another account | **problem**, naming that account |
+| Nothing could be read | **check** |
+
+Each account gets a level: **problem**, **check**, **ready**, or **no
+reading**. The admin sees the reasons beside the photo.
+
+**Why the server.** Before 0126 the app worked out the flags itself and
+wrote them to the account, so a modified app could look "clean". Now only
+`submit_id_reading` can change the reading, and the server computes the
+flags. The phone could still misreport what it read, so **a reading never
+verifies anyone**: the admin always looks at the ID photo, and "ready"
+only means nothing looked wrong.
+
+Real government verification (PSA, LTO) is not available for free (see
+0039), and SMART does not claim it.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
@@ -196,6 +229,9 @@ These times are checked against budgets in `supabase/tests/perf/query_budget.sql
 | `smart_preview(kind, subject, description, lat, lng)` | admins | the score a complaint would get; saves nothing |
 | `smart_read(text)` | admins | how SMART reads a text, word by word |
 | `smart_lexicon` (table) | admins read and edit | spellings, synonyms and forms |
+| `submit_id_reading(type, name, number)` | the app, for the signed-in account | stores what OCR read; flags worked out here |
+| `smart_verify(user)` | admins | an account's ID checks: level, flags, reasons, what was read |
+| `smart_verify_queue(role)` | admins | pending accounts, problems first |
 
 What the screens show, and where, is in `docs/SMART_SCREENS.md`.
 | `smart_rules` (table) | admins read and update | the rules |
