@@ -238,6 +238,30 @@ def z_gas(m, ring, ctx, p):
     m.box(kx, ky, 0, 5.0, 4.0, 3.2, th, 'plain', C['white'], 'roofdeck', C['grey'], True, 40.0)
 
 
+def z_toll(m, ring, ctx, p):
+    """A toll plaza: a flat canopy across the lanes on columns, a blue band on its edges, a raised island between every two lanes with a booth on it, a gantry sign over the middle.
+    th is the direction ACROSS the road (the canopy's long side); the lanes run along the short side."""
+    th, cx, cy = ctx['th'], ctx['cx'], ctx['cy']
+    c, s_ = math.cos(th), math.sin(th)
+    lanes = 5
+    lw = 3.3
+    cl, cw = lanes * lw + 2.6, 7.0
+    z = 5.4
+    m.slab(cx, cy, cl, cw, th, z, .55, C['white'])
+    for sy in (-1, 1):                                             # the blue band on both long edges
+        m.box(cx - s_ * sy * (cw / 2), cy + c * sy * (cw / 2), z + .55, cl, .3, .5, th, 'plain', C['blue'], 'plain', C['blue'], True, 40.0)
+    for k in range(lanes + 1):                                     # an island between every two lanes (the outer two are the kerbs), a booth on each inner island
+        u = (k - lanes / 2) * lw
+        ix, iy = cx + c * u, cy + s_ * u
+        m.box(ix, iy, 0, 1.3, cw * .8, .3, th + math.pi / 2, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
+        if 0 < k < lanes:
+            m.box(ix, iy, .3, 1.5, 2.6, 2.5, th + math.pi / 2, 'plain', C['white'], 'roofdeck', C['grey'], True, 40.0)
+            m.column(ix + s_ * 0.0, iy, .3, z, .22, C['white'])
+    for sx in (-1, 1):
+        m.column(cx + c * sx * (cl / 2 - .6), cy + s_ * sx * (cl / 2 - .6), 0, z, .32, C['white'])
+    m.box(cx, cy, z + 1.05, cl * .38, .35, 1.1, th, 'plain', C['blue'], 'plain', C['blue'], True, 40.0)   # the sign over the middle
+
+
 def z_church(m, ring, ctx, p):
     """A church: a nave under a gabled roof, a square bell tower with a pointed top at the front end, a cross."""
     h = max(p['h'], 7.0)
@@ -279,7 +303,7 @@ def z_civic(m, ring, ctx, p):
     m.prism(list(poly.exterior.coords)[:-1], h - .5, h + .6, 'plain', C['white'], 'plain', C['white'], top=True, cell=5)
 
 
-TEMPLATES = dict(gas=z_gas, church=z_church, school=z_school, civic=z_civic, hotel=z_hotel, condo=z_condo, office=z_office, mall=z_mall, parking=z_parking, hangar=z_hangar, generic=z_generic)
+TEMPLATES = dict(toll=z_toll, gas=z_gas, church=z_church, school=z_school, civic=z_civic, hotel=z_hotel, condo=z_condo, office=z_office, mall=z_mall, parking=z_parking, hangar=z_hangar, generic=z_generic)
 
 
 def kind_of(name, cls, area, h, floors, lng, lat):

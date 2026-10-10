@@ -553,6 +553,23 @@ def main():
             I.append(Ix)
             voff += len(P)
             ioff += len(Ix)
+    # toll plazas: a canopy over the lanes at every toll booth of the open data inside the boundary (sweep_toll.py gives the road's direction there)
+    TOLL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'poi-toll.json')
+    for tl in (json.load(open(TOLL, encoding='utf-8')) if SW and os.path.exists(TOLL) else []):
+        lng0, lat0 = tl['at']
+        if not _bd.inside(lng0, lat0):
+            continue
+        ctx2 = dict(cx=0.0, cy=0.0, L=20.0, W=7.0, th=tl['ang'] + math.pi / 2, lng=lng0, lat=lat0, tcol=_zone.TYPECOL['gas'], others=[])
+        m = Mesh()
+        _zone.z_toll(m, [(-10, -3.5), (10, -3.5), (10, 3.5), (-10, 3.5)], ctx2, {'h': 6})
+        P, N, U, M, Cc, Ix = m.arrays()
+        if len(P):
+            models.append({'name': tl.get('name', 'Toll gate'), 'template': 'toll', 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': round(float(P[:, 2].max()), 1), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+            V.append((P, U, M, Cc, N))
+            I.append(Ix)
+            voff += len(P)
+            ioff += len(Ix)
+            print('toll plaza modelled: %s' % tl.get('name', 'Toll gate'))
     # landmarks modelled in Blender (blend/): a sheet with "blend": "<name>.npz" is taken from the file exported by blend/export_model.py, in the map's own frame
     import blend_import
     for sh_ in (SH.items if HEROES else []):
