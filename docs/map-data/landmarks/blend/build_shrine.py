@@ -239,7 +239,7 @@ def stepped(u, v, facing, width, z, wall_h, k=4, glass=True, cross=False):
     if not glass:
         return
     off = k * .6 + .1
-    for (du, w, h, base) in ((0, width * .34, wall_h * .5 + width * .17, 1.0), (-width * .31, width * .13 * 2, wall_h * .22 + width * .13, 1.0), (width * .31, width * .13 * 2, wall_h * .22 + width * .13, 1.0)):
+    for (du, w, h, base) in ((0, width * .25, wall_h * .62 + width * .12, 1.2), (-width * .40, width * .11, wall_h * .3 + width * .06, 1.0), (width * .40, width * .11, wall_h * .3 + width * .06, 1.0)):
         for (m_, grow, d) in ((M['cream'], .3, 0.0), (M['glass'], 0.0, .14)):
             h_ = h + grow * (.7 if w < 4 else 1)
             ww = w + grow
@@ -384,8 +384,9 @@ for (cx_, cy_, ztop, lr) in ((-26, -5.6, big[2], 1.2), (31, 11, 10 + 3.4 + 3.2, 
     box('lc_h', cx_ - .07, cx_ + .07, cy_ - .5, cy_ + .5, ztop + lr * 3 + 1.2, ztop + lr * 3 + 1.35, M['cross'])
 
 # ---- the trellis annexes along both long sides: a two-storey terracotta block with a hedge in front, arched windows cut behind a wire mesh, planters on the roof
-annex_nw = box('annex_nw', -10, 36, 15, 29, 0, 7.5, M['wall'])
-annex_se = box('annex_se', 7, 30, -34, -24, 0, 7.5, M['wall'])
+M['trellis'] = mat('plain.trellis', '4A4A3C')
+annex_nw = box('annex_nw', -10, 36, 15, 29, 0, 7.5, M['trellis'])
+annex_se = box('annex_se', 7, 30, -34, -24, 0, 7.5, M['trellis'])
 for (host, u0, u1, v, facing) in ((annex_nw, -10, 36, 29, 90), (annex_se, 7, 30, -34, 270)):
     n = int((u1 - u0) // 4)
     for k in range(n):
@@ -395,14 +396,16 @@ for (host, u0, u1, v, facing) in ((annex_nw, -10, 36, 29, 90), (annex_se, 7, 30,
         uu = u0 + (u1 - u0) * k / n
         nx_, ny_ = facing_vec(facing)
         box('post', uu - .25, uu + .25, v + ny_ * .25 - .25, v + ny_ * .25 + .25, 0, 7.3, M['wall'])
-    mesh = box('mesh', u0, u1, v + (facing == 90) * .05 - (facing == 270) * .05 - .04, v + (facing == 90) * .05 - (facing == 270) * .05 + .04, 2.6, 6.6, M['green'])
+    ny2 = 1 if facing == 90 else -1
+    for zr in (2.7, 5.2, 7.2):                                   # the horizontal rails between the posts and the cornice band
+        box('rail', u0, u1, v + ny2 * .25 - .22, v + ny2 * .25 + .22, zr, zr + (.7 if zr > 7 else .35), M['wall'])
     va, vb = (15.3, 28.7) if facing == 90 else (-33.7, -24.3)
     for (a0, a1, b0, b1) in ((u0 + .3, u1 - .3, va, va + .6), (u0 + .3, u1 - .3, vb - .6, vb), (u0 + .3, u0 + .9, va, vb), (u1 - .9, u1 - .3, va, vb)):
         box('planter', a0, a1, b0, b1, 7.5, 8.05, M['dark'])
 box('solar', -9, 29, 17, 28, 8.1, 8.25, M['solar'])
 box('aisle_roof_se', 7, 30, -34, -24, 7.5, 7.7, M['terracotta'])
-hedge(-12, 30.2, 37, 30.2, 3.0)
-hedge(7, -35.2, 31, -35.2, 3.0)
+hedge(-12, 30.2, 37, 30.2, 2.4)
+hedge(7, -35.2, 31, -35.2, 2.4)
 
 # ---- the low corner blocks at the south-west end, their arched windows and louvres
 blk_nw = box('corner_nw', -51, -34, 7.5, 25, 0, 6.0, M['wall'])
