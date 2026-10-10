@@ -371,7 +371,9 @@ def main():
     models, V, I = [], [], []
     taken, done = set(), set()
     voff = ioff = 0
-    for f in sorted(lms, key=lambda f: 0 if 'Terminal 3' in f['properties']['name'] else 1):   # the biggest building belongs to Terminal 3
+    # the hand-built landmark models and the hero sheets are off in the sweep (SS_SWEEP=1): every building is the generic model of what it is, or plain. SS_HEROES=1 brings them back.
+    HEROES = bool(os.environ.get('SS_HEROES')) or not os.environ.get('SS_SWEEP')
+    for f in (sorted(lms, key=lambda f: 0 if 'Terminal 3' in f['properties']['name'] else 1) if HEROES else []):   # the biggest building belongs to Terminal 3
         name = f['properties']['name']
         if name in done:
             continue
@@ -470,16 +472,18 @@ def main():
         ring = [(q[0] - ox, q[1] - oy) for q in ring]
         lng0 += ox / MX
         lat0 += oy / MY
-        ctx = dict(cx=0.0, cy=0.0, L=b[6], W=b[7], th=b[8], lng=lng0, lat=lat0, style=style)
+        ctx = dict(cx=-ox, cy=-oy, L=b[6], W=b[7], th=b[8], lng=lng0, lat=lat0, style=style)      # the bounding box's centre is not the footprint's centroid: the templates are placed on it
         ctx['others'] = [Polygon([(q[0] - lng0 * MX, q[1] - lat0 * MY) for q in allpolys[j].exterior.coords]) for j in range(len(bld)) if j != bi and abs(bld[j][4] - lng0) < .0009 and abs(bld[j][5] - lat0) < .0009]
         kind = _zone.kind_of(nm, cls, area, b[1], None, lng0, lat0)
         if SW and ptype:
             kind = _zone.KIND_OF_TYPE.get(ptype, kind)
+            if kind == 'church' and area > 1800:
+                kind = 'civic'                  # a worship place that large is a hall or a complex, not a chapel with a tower
             ctx['tcol'] = _zone.TYPECOL.get(ptype)
         elif SW and kind in ('hangar', 'mall', 'office', 'condo', 'hotel', 'parking'):
             ctx['tcol'] = _zone.TYPECOL.get({'mall': 'mall', 'condo': 'condo'}.get(kind, kind))
         m = Mesh()
-        sh = SH.find(nm, bi)
+        sh = SH.find(nm, bi) if HEROES else None
         if sh and sh.get('blend'):
             continue          # modelled in Blender: taken from its export below
         if sh and sh.get('tier') == 'plain':
@@ -551,7 +555,7 @@ def main():
             ioff += len(Ix)
     # landmarks modelled in Blender (blend/): a sheet with "blend": "<name>.npz" is taken from the file exported by blend/export_model.py, in the map's own frame
     import blend_import
-    for sh_ in SH.items:
+    for sh_ in (SH.items if HEROES else []):
         if not sh_.get('blend'):
             continue
         got = blend_import.load(sh_, HERE)
@@ -639,6 +643,38 @@ def main():
         voff += len(P)
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles  h %.0f m' % (t['name'], 'tower', len(P), len(Ix) // 3, t['h']))
+    # two models standing on each other (a building drawn twice in the open data, a part inside its whole): the smaller goes, and its plain building is hidden too, so nothing fights
+    HIDE = []
+    from shapely.strtree import STRtree as _T
+    fps = {}
+    for k_, md_ in enumerate(models):
+        r_ = md_['replaces']
+        if r_ >= 0 and not md_.get('furniture'):
+            q_ = bld[r_]
+            fps[k_] = Polygon([(q_[0][i] * MX, q_[0][i + 1] * MY) for i in range(0, len(q_[0]), 2)]).buffer(0)
+    ks = list(fps)
+    tr = _T([fps[k_] for k_ in ks])
+    drop = set()
+    for a_i, k_ in enumerate(ks):
+        for j in tr.query(fps[k_]):
+            k2 = ks[j]
+            if k2 <= k_ or k_ in drop or k2 in drop:
+                continue
+            if fps[k_].intersection(fps[k2]).area > .15 * min(fps[k_].area, fps[k2].area):
+                small = k_ if fps[k_].area <= fps[k2].area else k2
+                drop.add(small)
+                HIDE.append(models[small]['replaces'])
+                print('  two models on each other: %s goes (smaller)' % models[small]['name'])
+    if drop:
+        keep = [k_ for k_ in range(len(models)) if k_ not in drop]
+        models[:] = [models[k_] for k_ in keep]
+        V[:] = [V[k_] for k_ in keep]
+        I[:] = [I[k_] for k_ in keep]
+        voff = ioff = 0
+        for md_, (P_, *_r), Ix_ in zip(models, V, I):
+            md_['voff'], md_['ioff'] = voff, ioff
+            voff += len(P_)
+            ioff += len(Ix_)
     # one binary: vertices (x y z u v as float32, mat r g b as uint8) then triangles (uint32)
     vb = bytearray()
     for P, U, M, Cc, N in V:
@@ -661,7 +697,7 @@ def main():
     A2.save(os.path.join(MAP, 'landmarks3d-atlas2.png'), optimize=True)       # the landmarks' own tiles, finer (tile ids from 100)
     E2.save(os.path.join(MAP, 'landmarks3d-emis2.png'), optimize=True)
     meta = {'about': 'Landmark models drawn by docs/map-data/landmarks/models.py. Vertex: float32 x y z (metres, east north up from the model origin), float32 u v (tile units), uint8 material, uint8 r g b (albedo); 24 bytes. Then uint32 triangle indices, per model offset by voff.',
-            'vertexBytes': 24, 'vertices': voff, 'indices': ioff, 'indexOffsetBytes': voff * 24, 'tiles': rects, 'models': models}
+            'vertexBytes': 24, 'vertices': voff, 'indices': ioff, 'indexOffsetBytes': voff * 24, 'tiles': rects, 'models': models, 'hide': HIDE}
     json.dump(meta, open(os.path.join(MAP, 'landmarks3d.json'), 'w'), separators=(',', ':'))
     print('wrote landmarks3d.json/.bin:', len(models), 'models,', voff, 'vertices,', ioff // 3, 'triangles,', os.path.getsize(os.path.join(MAP, 'landmarks3d.bin.gz')) // 1024, 'KB zipped')
 

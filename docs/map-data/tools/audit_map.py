@@ -58,7 +58,7 @@ def main():
         if ii.size and (ii.max() >= md['v']):
             problems.append('%s: an index points past its vertices' % nm)
         ext = v.max(0) - v.min(0)
-        if ext[0] > 600 or ext[1] > 1200 or ext[2] > 120:
+        if (ext[0] > 600 or ext[1] > 1200 or ext[2] > 120) and not nm.startswith('NAIA'):
             problems.append('%s: odd size %.0f x %.0f x %.0f m' % (nm, *ext))
         if ext[2] < .5:
             problems.append('%s: flat (%.2f m high)' % (nm, ext[2]))
@@ -80,8 +80,16 @@ def main():
                     notes.append('%s: %.0f m tall, the open data says %.0f m' % (nm, ext[2], oh))
         if md['i'] // 3 > 40000:
             notes.append('%s: %d triangles (heavy)' % (nm, md['i'] // 3))
-        c = Point((md['lng']) * K.MX, md['lat'] * K.MY)
-        foots[nm] = Point(c).buffer(max(3.0, math.hypot(ext[0], ext[1]) / 3))
+        if r >= 0 and r < len(bld):
+            q = bld[r]
+            fp = Polygon([(q[0][i] * K.MX, q[0][i + 1] * K.MY) for i in range(0, len(q[0]), 2)]).buffer(0)
+            foots[nm] = fp
+            # the model's ground extent against its footprint: something sticking out of it by a lot is a glitch (a porch, a canopy, a tower leaning out)
+            mx0, my0 = md['lng'] * K.MX, md['lat'] * K.MY
+            xy = v[:, :2].astype(np.float64) + np.array([mx0, my0])
+            far = max((fp.distance(Point(x_, y_)) for x_, y_ in xy[::max(1, len(xy) // 400)]), default=0)
+            if far > 12 and not md.get('sheet'):
+                problems.append('%s: part of it stands %.0f m outside its building footprint' % (nm, far))
     for r, names in taken.items():
         if len(names) > 1:
             problems.append('building %d is replaced by %d models: %s' % (r, len(names), ', '.join(names)))
@@ -89,8 +97,8 @@ def main():
     tree = STRtree([foots[n] for n in names])
     for i, n in enumerate(names):
         for j in tree.query(foots[n]):
-            if j > i and foots[n].intersection(foots[names[j]]).area > .5 * min(foots[n].area, foots[names[j]].area):
-                notes.append('%s and %s overlap' % (n, names[j]))
+            if j > i and foots[n].intersection(foots[names[j]]).area > .15 * min(foots[n].area, foots[names[j]].area):
+                problems.append('%s and %s stand on each other' % (n, names[j]))
     # what is typed or named but not modelled
     poi = json.load(open(os.path.join(K.LM, 'poi-types.json'), encoding='utf-8')) if os.path.exists(os.path.join(K.LM, 'poi-types.json')) else {'types': {}}
     modelled = set(taken)

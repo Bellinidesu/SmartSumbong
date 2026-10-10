@@ -125,6 +125,7 @@
       map = m;
       if (!data) return false;
       data.models.forEach(md => { if (shown(md)) window.sdModels.replaces.add(md.replaces); });
+      (data.hide || []).forEach(i => window.sdModels.replaces.add(i));
       if (!m.getLayer(ID)) m.addLayer(layer, before);
       m.setLayoutProperty(ID, 'visibility', 'none');
       return true;
@@ -134,5 +135,5 @@
     show(on, isNight) { night = !!isNight; if (map && map.getLayer(ID)) { map.setLayoutProperty(ID, 'visibility', on ? 'visible' : 'none'); map.triggerRepaint(); } },
   };
   // the buildings these models replace are known as soon as the data is: sd-city.js asks before it builds the plain ones
-  ready.then(ok => { if (ok) data.models.forEach(md => { if (shown(md)) window.sdModels.replaces.add(md.replaces); }); });
+  ready.then(ok => { if (ok) { data.models.forEach(md => { if (shown(md)) window.sdModels.replaces.add(md.replaces); }); (data.hide || []).forEach(i => window.sdModels.replaces.add(i)); } });
 })();

@@ -94,6 +94,26 @@ class Mesh:
                     self.tri(a, b, c)
                     self.tri(a, c, d)
 
+    def grid4(self, p0, p1, p2, p3, nu, nv, n, mat, col, uv0=(0., 0.), uvs=(1., 1.)):
+        """The quad p0 p1 p2 p3 cut into nu x nv cells with every point placed bilinearly between the four corners: right for any quad (a hip's trapezoid too), where the parallelogram
+        grid (origin plus two edge vectors) would carry the far corners off the quad."""
+        rows = []
+        for j in range(nv + 1):
+            t = j / nv
+            row = []
+            for i in range(nu + 1):
+                sx = i / nu
+                a_ = [p0[k] * (1 - sx) + p1[k] * sx for k in range(3)]
+                b_ = [p3[k] * (1 - sx) + p2[k] * sx for k in range(3)]
+                p = tuple(a_[k] * (1 - t) + b_[k] * t for k in range(3))
+                row.append(self._v(p, n, (uv0[0] + uvs[0] * sx, uv0[1] + uvs[1] * t), mat, col))
+            rows.append(row)
+        for j in range(nv):
+            for i in range(nu):
+                a, b, c, d = rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]
+                self.tri(a, b, c)
+                self.tri(a, c, d)
+
     def quad(self, p0, p1, p2, p3, mat, col, n=None, uv=None, cell=CELL):
         """A planar quad p0 p1 p2 p3 (counter-clockwise seen from outside), cut into cells."""
         du = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
@@ -105,7 +125,7 @@ class Mesh:
         nu, nv = max(1, math.ceil(lu / cell)), max(1, math.ceil(lv / cell))
         u0 = uv[0] if uv else 0.0
         v0 = uv[1] if uv else 0.0
-        self.grid(p0, du, dv, nu, nv, n, mat, col, (u0, v0), (lu / tw, lv / th))
+        self.grid4(p0, p1, p2, p3, nu, nv, n, mat, col, (u0, v0), (lu / tw, lv / th))
 
     def wall(self, p0, p1, z0, z1, mat, col, u_start=0.0, cell=CELL):
         """A vertical wall along p0 -> p1 (the outside on the right of the direction of travel)."""

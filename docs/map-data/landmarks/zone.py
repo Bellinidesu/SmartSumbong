@@ -11,7 +11,7 @@ import math
 import re
 import zlib
 
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
 
 from meshlib import MAT, rgb, _ccw
 from models_common import C, front_of
@@ -78,6 +78,26 @@ def floors_of(h):
     return max(2, int(round((h - 1.2) / 3.4)))
 
 
+def front_on_edge(ring, ctx):
+    """Where the front of a building really is: the OBB's front point (front_of) moved onto the footprint's own edge, with the unit vector out of the building there. An L-shaped or
+    curved footprint has no front at its bounding box, so a canopy or a door put there would stand in the air or in the street."""
+    from shapely.geometry import Point as _P
+    fr, half, across, along = front_of(ctx)
+    poly = Polygon(ring)
+    c = _P(ctx['cx'] + fr[0] * half, ctx['cy'] + fr[1] * half)
+    ex = poly.exterior
+    q = ex.interpolate(ex.project(c))
+    nx, ny = c.x - q.x, c.y - q.y
+    ln = math.hypot(nx, ny)
+    if ln < .5:
+        nx, ny = fr
+    else:
+        nx, ny = nx / ln, ny / ln
+        if poly.contains(_P(q.x + nx * .5, q.y + ny * .5)):
+            nx, ny = -nx, -ny
+    return (q.x, q.y), (nx, ny), (-ny, nx), across
+
+
 def crown(m, ring, h, ctx, col, big=True):
     """A cornice band, a setback of mechanical floor with louvres, and rooftop plant."""
     poly = Polygon(ring).buffer(.4, join_style=2)
@@ -92,19 +112,20 @@ def crown(m, ring, h, ctx, col, big=True):
         for k in range(min(4, int(inner.area // 400) + 1)):
             u = zlib.crc32(('%d%.4f' % (k, ctx['lng'])).encode()) % 100 / 100 - .5
             v = zlib.crc32(('%d%.4f' % (k + 9, ctx['lat'])).encode()) % 100 / 100 - .5
-            m.box(ctx['cx'] + u * ctx['L'] * .5 * math.cos(ctx['th']) - v * ctx['W'] * .5 * math.sin(ctx['th']), ctx['cy'] + u * ctx['L'] * .5 * math.sin(ctx['th']) + v * ctx['W'] * .5 * math.cos(ctx['th']),
-                  h + 4.2, 3.2, 2.4, 1.6, ctx['th'], 'louvre', C['grey'], 'plain', C['grey'])
+            px_, py_ = ctx['cx'] + u * ctx['L'] * .5 * math.cos(ctx['th']) - v * ctx['W'] * .5 * math.sin(ctx['th']), ctx['cy'] + u * ctx['L'] * .5 * math.sin(ctx['th']) + v * ctx['W'] * .5 * math.cos(ctx['th'])
+            if inner.contains(Point(px_, py_)):
+                m.box(px_, py_, h + 4.2, 3.2, 2.4, 1.6, ctx['th'], 'louvre', C['grey'], 'plain', C['grey'])
     else:
         for k in range(min(3, int(Polygon(ring).area // 500) + 1)):
-            m.box(ctx['cx'] + (k - 1) * ctx['L'] * .2 * math.cos(ctx['th']), ctx['cy'] + (k - 1) * ctx['L'] * .2 * math.sin(ctx['th']), h + .5, 3.0, 2.2, 1.5, ctx['th'], 'louvre', C['grey'], 'plain', C['grey'])
+            qx_, qy_ = ctx['cx'] + (k - 1) * ctx['L'] * .2 * math.cos(ctx['th']), ctx['cy'] + (k - 1) * ctx['L'] * .2 * math.sin(ctx['th'])
+            if Polygon(ring).buffer(-1.5).contains(Point(qx_, qy_)):
+                m.box(qx_, qy_, h + .5, 3.0, 2.2, 1.5, ctx['th'], 'louvre', C['grey'], 'plain', C['grey'])
 
 
 def porte_cochere(m, ring, ctx, h):
-    fr, half, across, along = front_of(ctx)
-    nx, ny = fr
-    ux, uy = along
+    (qx, qy), (nx, ny), (ux, uy), across = front_on_edge(ring, ctx)
     w = min(11.0, across * 1.2)
-    cx, cy = ctx['cx'] + nx * (half + 3.2), ctx['cy'] + ny * (half + 3.2)
+    cx, cy = qx + nx * 3.2, qy + ny * 3.2
     th = math.atan2(uy, ux)
     m.slab(cx, cy, w, 6.4, th, 4.6, .45, C['white'])
     for sgn in (-1, 1):
@@ -184,8 +205,8 @@ def z_hangar(m, ring, ctx, p):
     m.prism(ring, 0, h, 'panel', C['sheetwhite'], 'plain', C['grey'], top=False, cell=5)
     cx, cy, L, W, th = ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th']
     m.barrel(cx, cy, L, W, th, h, min(W * .28, 6.0), 'sheet', C['roofgrey'], seg=10)
-    fr, half, across, along = front_of(ctx)
-    m.vprism([(-across * .8, 0), (across * .8, 0), (across * .8, h * .85), (-across * .8, h * .85)], (ctx['cx'] + fr[0] * (half + .08), ctx['cy'] + fr[1] * (half + .08), 0), along, fr, 0, .3, 'panel', C['slate'])
+    (qx, qy), fr, along, across = front_on_edge(ring, ctx)
+    m.vprism([(-across * .8, 0), (across * .8, 0), (across * .8, h * .85), (-across * .8, h * .85)], (qx + fr[0] * .08, qy + fr[1] * .08, 0), along, fr, 0, .3, 'panel', C['slate'])
 
 
 def z_generic(m, ring, ctx, p):
@@ -224,7 +245,10 @@ def z_church(m, ring, ctx, p):
     col = seen(ctx, PASTELS, 21)
     m.prism(ring, 0, h, 'plain', col, 'plain', col, top=False, cell=5)
     L, W, th, cx, cy = ctx['L'], ctx['W'], ctx['th'], ctx['cx'], ctx['cy']
-    m.gable(cx, cy, L, W, th, h, min(4.5, W * .32), 'tile', C['terra'], over=.4, gable_col=col)
+    if Polygon(ring).area / max(L * W, 1) > .78:                      # a roof over the bounding box only when the footprint is nearly a rectangle
+        m.gable(cx, cy, L, W, th, h, min(4.5, W * .32), 'tile', C['terra'], over=.4, gable_col=col)
+    else:
+        m.cap(ring, h, MAT['roofdeck'], C['white'], True)
     c, s_ = math.cos(th), math.sin(th)
     tx, ty = cx + c * (L / 2 - 2.2), cy + s_ * (L / 2 - 2.2)
     th_ = h + min(4.0, h * .5)                                 # the tower stands above the nave in proportion, not by a fixed amount
@@ -239,7 +263,10 @@ def z_school(m, ring, ctx, p):
     ring = _ccw(ring)
     col = seen(ctx, PASTELS, 22)
     m.prism(ring, 0, h, 'plain', col, 'plain', col, top=False, cell=5)
-    m.hip(ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th'], h, min(2.4, ctx['W'] * .18), 'sheet', C['rooftile'], over=.5)
+    if Polygon(ring).area / max(ctx['L'] * ctx['W'], 1) > .78:
+        m.hip(ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th'], h, min(2.4, ctx['W'] * .18), 'sheet', C['rooftile'], over=.5)
+    else:
+        m.cap(ring, h, MAT['roofdeck'], C['white'], True)
 
 
 def z_civic(m, ring, ctx, p):
