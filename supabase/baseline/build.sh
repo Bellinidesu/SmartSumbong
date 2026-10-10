@@ -136,7 +136,7 @@ if diff -q "$dir.migrated.txt" "$dir.baseline.txt" >/dev/null; then
 else
   echo "schema fingerprint DIFFERS from the migrations (rebuild: bash supabase/baseline/build.sh):"; diff "$dir.migrated.txt" "$dir.baseline.txt" | head -20; fail=1
 fi
-for f in "$root"/supabase/tests/0*.sql; do
+for f in "$root"/supabase/tests/[0-9][0-9]_*.sql; do
   log=$("${psql[@]}" -f "$f" 2>&1 || true)
   okc=$(printf '%s\n' "$log" | grep -cE '^ok' || true)
   bad=$(printf '%s\n' "$log" | grep -E '^(FAIL|BAD)' || true)

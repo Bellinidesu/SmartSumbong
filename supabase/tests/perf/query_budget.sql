@@ -106,7 +106,15 @@ begin
     ('admin', 'admin: SMART spikes',
        $q$ select count(*) from public.smart_spikes() $q$, 300),
     ('admin', 'admin: SMART morning digest text',
-       $q$ select public.smart_digest_preview() $q$, 1000)
+       $q$ select public.smart_digest_preview() $q$, 1000),
+    ('admin', 'admin: SMART new words to learn, 30 days',
+       $q$ select count(*) from public.smart_word_suggestions(30) $q$, 1000),
+    ('admin', 'admin: SMART quiet cases',
+       $q$ select count(*) from public.smart_stuck_cases() $q$, 500),
+    ('admin', 'admin: SMART weekly patterns, 90 days',
+       $q$ select count(*) from public.smart_time_patterns(90) $q$, 300),
+    ('admin', 'admin: SMART scorecard, this month',
+       $q$ select count(*) from public.smart_sla_scorecard() $q$, 300)
   ) as t(who, label, sql, budget_ms)
   loop
     perform set_config('request.jwt.claims', json_build_object('sub', case when r.who = 'admin' then v_adm else v_res end, 'role', 'authenticated')::text, true);

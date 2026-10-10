@@ -129,6 +129,26 @@ A card near the top of the case, above the timeline:
 - **Morning digest**: an on/off switch (`smart_rules.digest_enabled`)
   and a preview box showing `smart_digest_preview()`.
 
+### 6c. Settings → SMART: words to learn (0128)
+
+- A list from `smart_word_suggestions(30)`. Each row has the word, how many
+  reports, its usual kind ("100% public safety"), an example subject, and
+  "likely a spelling of basura" when there is one.
+- Buttons per word: **Means…** (pick a known word; spelling, synonym or
+  form), **Word for…** (pick a kind), **Urgent word for…** (pick a group),
+  and **Not a word to learn**. Each calls `smart_teach_word`.
+
+### 6d. Dashboard: scorecard and the week (0128)
+
+- **Scorecard**: one row per kind from `smart_sla_scorecard()`, with
+  on-time %, last month's %, an up or down arrow with the change, and
+  overdue now.
+- **When complaints come in**: the top rows of `smart_time_patterns(90)`,
+  for example "Peace and order · Saturday 21:00–00:00 · Purok 2 · 8×
+  usual". Personnel can use it to plan duty.
+- **Quiet cases**: a tile with the count of `smart_stuck_cases()`, which
+  links to the list (tracking ID, days quiet, last update).
+
 ### 7. Residents and Personnel (`residents.php`, `personnel.php`): ID checks
 
 Only once the barangay turns ID reading back on (`ID_OCR_ENABLED`):

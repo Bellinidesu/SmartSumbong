@@ -5,7 +5,7 @@ read and change, and every result lists the reasons behind it. Nothing
 learns or changes on its own. The rules live in one database row
 (`smart_rules`); the code is `supabase/migrations/0122_smart_triage.sql`.
 
-Status (10 Oct 2026): database only (migrations 0121–0127), tested, not
+Status (10 Oct 2026): database only (migrations 0121–0128), tested, not
 deployed, and not shown in the portal or the app yet.
 
 ## 1. Triage: a score from 0 to 100 for every report
@@ -242,6 +242,61 @@ waiting for a tanod (urgent and high), overdue, due today, likely to miss
 its deadline, filed yesterday and recurring, plus the top spike and
 whether storm mode is on. It can be switched off (`digest_enabled`).
 
+## 16. SMART learns new words (0128)
+
+This is how the rules grow without AI. SMART lists words residents keep
+using (in at least 3 reports in the last 30 days) that it does not know:
+not a rule word, not in the word list, not reachable by grammar, and not
+a common word like "ang", "kanto" or "bahay". For each it shows the kind
+of complaint they mostly come with ("nagliliyab: 3 reports, 100% public
+safety") and, when there is one, a known word one or two letters away
+("basuraa: likely basura"). An admin teaches the word in one step:
+
+- as a **spelling**, **synonym** or **form** of a known word, which goes
+  into the word list (nagliliyab → sunog);
+- as a word of a **kind** of complaint, for the category hint;
+- as an **urgent** word of a group, such as fire;
+- or **dismisses** it, so it is not suggested again.
+
+Open reports are scored again at once. A person approves every word; the
+morning digest says how many are waiting.
+
+## 17. Quiet cases (0128)
+
+These are open cases with no update of any kind (status, tanod step or
+note, message, dispatch, detail request) for 3 days (`stuck_days`), even
+when no deadline has passed. The watcher tells the admins once per quiet
+spell: "BRG-2026-0388 has had no update for 5 days (last: status:
+validated)." The digest counts them.
+
+## 18. The week (0128)
+
+`smart_time_patterns(days, kind)` shows when each kind comes in, by
+weekday and 3-hour block (Manila time), where a block has at least 5
+reports and at least twice the kind's average block, with the most common
+place. For example, "Peace and order: Saturday 21:00–00:00, 6 reports,
+8.4 times usual, Purok 2." This is for planning patrols and duty.
+
+## 19. Scorecard (0128)
+
+`smart_sla_scorecard(month)` gives, per kind, the cases finished that
+month, how many were within their deadline (or the SLA target when there
+was none), the share, last month's share and the change, plus open cases
+overdue now. Referred cases are left out, since another office finished
+them.
+
+## 20. SMART routing of the system's own dispatches (0128)
+
+When the system dispatches by itself (an admin sends a dispatch "back to
+the system", or a sweep retries), it now takes SMART's first choice
+instead of only the nearest tanod. The tanods it can choose from are
+exactly the same as before. Only the order changes: distance, jobs in
+hand, cases closed nearby and location age (section 3). The tanod's
+instructions say why: "Automatic dispatch — SMART pick: 330 m from the
+incident, 0 job(s) in hand, 2 case(s) closed nearby." The resident's
+timeline is unchanged. `smart_rules.smart_routing` switches it off, back
+to nearest-only. Admins' own dispatches are untouched.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
@@ -262,7 +317,9 @@ than the barangay really is:
 | Recurring problems, 90 days (the watcher's main step) | 50 ms |
 | Calibration, 90 days | 8 ms |
 | Case card, everything included | 52 ms |
-| Morning digest | 76 ms |
+| Morning digest | 76 ms (211 ms with quiet cases and new words) |
+| New words to learn, 30 days | 49 ms |
+| Quiet cases | 101 ms |
 
 All SMART functions run with JIT off: they are short queries, and JIT
 compiling cost about 55 ms a call for nothing.
@@ -297,6 +354,11 @@ These times are checked against budgets in `supabase/tests/perf/query_budget.sql
 | `smart_similar_cases(report)` | admins | similar finished cases and how they ended |
 | `smart_digest_preview()` | admins | the morning digest as it would read now |
 | `smart_morning_digest()` | pg_cron, 07:00 Manila | sends the digest |
+| `smart_word_suggestions(days)` | admins | words to learn, with their kind and a likely spelling |
+| `smart_teach_word(word, as, target)` | admins | teach (spelling, synonym, form, category, urgent) or dismiss |
+| `smart_stuck_cases()` | admins | open cases with no update for `stuck_days` |
+| `smart_time_patterns(days, kind)` | admins | weekday and hour blocks well above usual |
+| `smart_sla_scorecard(month)` | admins | on-time share per kind, against last month |
 
 What the screens show, and where, is in `docs/SMART_SCREENS.md`.
 | `smart_rules` (table) | admins read and update | the rules |

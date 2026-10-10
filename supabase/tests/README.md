@@ -15,6 +15,7 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 | `07_smart_language.sql` | 11 checks (0125): Tagalog word forms and the linker, negation and where it stops, texting spellings and one-letter slips, no over-reading of near words, phrases, duplicates by meaning, the word list edited by admins only, smart_read admins only |
 | `08_smart_verify.sql` | 10 checks (0126): residents cannot write ID flags (email still theirs), a good reading is ready, another person's name / wrong type / bad number shape, the same ID number on two accounts, unreadable IDs, re-check requests cleared, the queue and its order, residents kept out |
 | `09_smart_foresight.sql` | 11 checks (0127): storm mode (doubles flood and zone points, needs a reason, admins only, ends on its own), deadline risk (told once), spikes (told once, with the place), similar past cases with how they ended and the usual office, the morning digest (content, schedule, switch), residents kept out |
+| `10_smart_learning.sql` | 10 checks (0128): new words suggested with their kind and a likely spelling, taught (word list, kind, urgent group) or dismissed with open reports re-scored, admins only; quiet cases (told once, cleared by a message); weekly patterns; the scorecard; SMART routing of the system's dispatches (free tanod over the nearest busy one) and the switch back to nearest-only; the digest's new lines |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times
