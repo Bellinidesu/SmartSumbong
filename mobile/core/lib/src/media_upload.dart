@@ -94,6 +94,16 @@
 // exactly as before — a deliberate no-regression default, not a silent
 // success.
 
+// SIGNED UPLOADS (0109). Each upload first asks the sign-upload Edge
+// Function for a signature; the function picks the file name, the formats
+// and the resize the presets used to apply, and only signs folders the
+// caller may write to (registration's ID and selfie are rationed per
+// network address, since no account exists yet). If the function cannot be
+// reached or is not deployed, the upload uses the unsigned preset as
+// before, which keeps working until the barangay deletes those presets in
+// Cloudinary. A refusal from the function (403/429) is shown, not retried
+// unsigned.
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -104,6 +114,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'video_location_strip.dart';
@@ -146,6 +157,11 @@ class UploadedMedia {
         'mime_type': mimeType,
         'bytes': bytes,
       };
+}
+
+/// Cloudinary refused a signed upload's signature (see [MediaUploader]).
+class _SignatureRejected implements Exception {
+  const _SignatureRejected();
 }
 
 class MediaUploadException implements Exception {
@@ -333,6 +349,40 @@ class MediaUploader {
     return File(out.path);
   }
 
+  /// Signed upload fields from the sign-upload Edge Function (0109), or null
+  /// to use the unsigned preset: the function is not deployed yet, the app
+  /// is offline, or Supabase is not set up (tests). A refusal (403/429) is
+  /// thrown with the function's own message.
+  Future<Map<String, String>?> _signedFields(MediaKind kind, {required bool video}) async {
+    final SupabaseClient client;
+    try {
+      client = Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+    try {
+      final res = await client.functions.invoke(
+        'sign-upload',
+        body: {'folder': kind.folder, 'video': video},
+      );
+      final fields = (res.data is Map) ? (res.data as Map)['fields'] : null;
+      if (fields is! Map) return null;
+      return fields.map((k, v) => MapEntry('$k', '$v'));
+    } on FunctionException catch (e) {
+      if (e.status == 403 || e.status == 429) {
+        final details = e.details;
+        throw MediaUploadException(
+          details is Map && details['message'] is String
+              ? details['message'] as String
+              : 'This upload was not allowed. Please sign in again.',
+        );
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Upload one file. Retries transient failures with backoff; does not
   /// retry anything Cloudinary rejected on the merits.
   Future<UploadedMedia> upload(
@@ -360,12 +410,18 @@ class MediaUploader {
     // names. That is obscurity, not access control. Say so in the
     // defence; the alternative is Cloudinary's authenticated delivery
     // type, which needs the API secret to sign every view.
-    final publicId = '${kind.folder}/${_uuid.v4()}';
+    var signed = await _signedFields(kind, video: false);
+    var publicId = signed?['public_id'] ?? '${kind.folder}/${_uuid.v4()}';
 
     Object? lastError;
     for (var attempt = 1; attempt <= attempts; attempt++) {
       try {
-        return await _postOnce(file, publicId, length, onProgress);
+        return await _postOnce(file, publicId, length, onProgress, signed);
+      } on _SignatureRejected {
+        lastError = 'signature rejected';
+        signed = null;
+        publicId = '${kind.folder}/${_uuid.v4()}';
+        continue;
       } on MediaUploadException catch (e) {
         lastError = e;
         if (!e.isRetryable || attempt == attempts) rethrow;
@@ -396,15 +452,21 @@ class MediaUploader {
     String publicId,
     int length,
     void Function(int sent, int total)? onProgress,
+    Map<String, String>? signed,
   ) async {
-    final request = http.MultipartRequest('POST', _endpoint)
-      ..fields['upload_preset'] = uploadPreset
-      ..fields['public_id'] = publicId
-      // `source` is one of the parameters unsigned uploads do allow, and
-      // it tags the asset in the Cloudinary console with where it came
-      // from. Useful when the barangay asks what is filling the quota.
-      ..fields['source'] = 'smartsumbong-mobile'
-      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+    final request = http.MultipartRequest('POST', _endpoint);
+    if (signed != null) {
+      request.fields.addAll(signed);
+    } else {
+      request.fields
+        ..['upload_preset'] = uploadPreset
+        ..['public_id'] = publicId
+        // `source` is one of the parameters unsigned uploads do allow, and
+        // it tags the asset in the Cloudinary console with where it came
+        // from. Useful when the barangay asks what is filling the quota.
+        ..['source'] = 'smartsumbong-mobile';
+    }
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
 
     onProgress?.call(0, length);
 
@@ -436,6 +498,11 @@ class MediaUploader {
       );
     }
 
+    // A signature Cloudinary will not take (a clock or key problem on the
+    // signing side) falls back to the unsigned preset while it exists.
+    if (signed != null && streamed.statusCode == 401) {
+      throw const _SignatureRejected();
+    }
     if (streamed.statusCode != 200) {
       final message =
           (json['error'] as Map<String, dynamic>?)?['message'] as String? ??
@@ -490,12 +557,18 @@ class MediaUploader {
       );
     }
 
-    final publicId = '${kind.folder}/${_uuid.v4()}';
+    var signed = await _signedFields(kind, video: true);
+    var publicId = signed?['public_id'] ?? '${kind.folder}/${_uuid.v4()}';
 
     Object? lastError;
     for (var attempt = 1; attempt <= attempts; attempt++) {
       try {
-        return await _postVideoOnce(file, publicId, length, onProgress);
+        return await _postVideoOnce(file, publicId, length, onProgress, signed);
+      } on _SignatureRejected {
+        lastError = 'signature rejected';
+        signed = null;
+        publicId = '${kind.folder}/${_uuid.v4()}';
+        continue;
       } on MediaUploadException catch (e) {
         lastError = e;
         if (!e.isRetryable || attempt == attempts) rethrow;
@@ -526,12 +599,18 @@ class MediaUploader {
     String publicId,
     int length,
     void Function(int sent, int total)? onProgress,
+    Map<String, String>? signed,
   ) async {
-    final request = http.MultipartRequest('POST', _videoEndpoint)
-      ..fields['upload_preset'] = videoUploadPreset ?? uploadPreset
-      ..fields['public_id'] = publicId
-      ..fields['source'] = 'smartsumbong-mobile'
-      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+    final request = http.MultipartRequest('POST', _videoEndpoint);
+    if (signed != null) {
+      request.fields.addAll(signed);
+    } else {
+      request.fields
+        ..['upload_preset'] = videoUploadPreset ?? uploadPreset
+        ..['public_id'] = publicId
+        ..['source'] = 'smartsumbong-mobile';
+    }
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
 
     onProgress?.call(0, length);
 
@@ -565,6 +644,11 @@ class MediaUploader {
       );
     }
 
+    // A signature Cloudinary will not take (a clock or key problem on the
+    // signing side) falls back to the unsigned preset while it exists.
+    if (signed != null && streamed.statusCode == 401) {
+      throw const _SignatureRejected();
+    }
     if (streamed.statusCode != 200) {
       final message =
           (json['error'] as Map<String, dynamic>?)?['message'] as String? ??

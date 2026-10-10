@@ -1,4 +1,4 @@
-"""03_hardening.sql: checks for 0107-0108 (login lockout, SMS codes, cron-only
+"""03_hardening.sql: checks for 0107-0109 (login lockout, SMS codes, cron-only
 sweeps, daily filing limit, notification retention, sign-out on access
 changes), same rolled-back pattern as 01_lifecycle.sql."""
 import os
@@ -85,6 +85,11 @@ step('one more than the limit is refused', 'res2',
      "perform public.file_report('street_obstruction', 'Sweep limit 3', 'Automated sweep, rolled back.', 14.5269, 121.0155, false, '[]'::jsonb, gen_random_uuid());", fail=True)
 step('a resend of a filed outbox report still answers', 'res2',
      "if (select subject from public.file_report('street_obstruction', 'Sweep limit 1', 'Automated sweep, rolled back.', 14.5269, 121.0155, false, '[]'::jsonb, k1)) <> 'Sweep limit 1' then raise exception 'wrong report'; end if;")
+
+# ---- 0109: upload signing rate limit
+step('the app cannot take rate slots itself', 'res', "perform public.take_rate_slot('upload-ids:x', 10, interval '1 hour');", fail=True)
+step('ten registration uploads an hour per address, then refused', 'pg',
+     "if (select count(*) filter (where ok) from (select public.take_rate_slot('upload-ids:sweep', 10, interval '1 hour') as ok from generate_series(1, 12)) t) <> 10 then raise exception 'not 10'; end if;")
 
 # ---- 0108: notification retention, sign-out on access changes
 step('old read notifications are purged, recent ones kept', 'pg',

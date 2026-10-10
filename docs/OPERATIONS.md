@@ -61,6 +61,17 @@ that header to the Database Webhook first or pushes stop); `SEMAPHORE_API_KEY` a
 `password-otp` (SMS reset is switched off in the app until Semaphore credits
 are bought).
 
+**Signed uploads (0109).** `sign-upload` needs `CLOUDINARY_API_KEY` and
+`CLOUDINARY_API_SECRET` as Supabase secrets; until they are set it answers
+503 and the app keeps using the unsigned presets. The portal signs on its
+own whenever the same two values are in Render's environment. Rollout:
+push 0109, set the secrets, deploy `sign-upload`, release the app, check
+that a new complaint photo, a tanod proof photo, a registration ID and a
+portal photo all upload. Only once no phone runs an older build, delete
+`smartsumbong_unsigned` and `smartsumbong_unsigned_video` in Cloudinary;
+until then both the app and the portal fall back to them if a signature
+is ever refused.
+
 Supabase Auth → URL Configuration: Site URL and redirect URL are the
 Singapore portal.
 

@@ -205,6 +205,25 @@ begin
     v_log := v_log || E'\n' || 'FAIL a resend of a filed outbox report still answers: ' || left(sqlerrm, 220);
   end;
   begin
+    perform set_config('request.jwt.claims', json_build_object('sub', v_res::text, 'role', 'authenticated')::text, true);
+    perform set_config('request.jwt.claim.sub', v_res::text, true);
+    execute 'set local role authenticated';
+    perform public.take_rate_slot('upload-ids:x', 10, interval '1 hour');
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'BAD the app cannot take rate slots itself (should have been refused)';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  the app cannot take rate slots itself (refused: ' || left(sqlerrm, 120) || ')';
+  end;
+  begin
+        if (select count(*) filter (where ok) from (select public.take_rate_slot('upload-ids:sweep', 10, interval '1 hour') as ok from generate_series(1, 12)) t) <> 10 then raise exception 'not 10'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  ten registration uploads an hour per address, then refused';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL ten registration uploads an hour per address, then refused: ' || left(sqlerrm, 220);
+  end;
+  begin
         insert into public.notifications (user_id, kind, message, is_read, created_at) values
       (v_res, 'status_change', 'Sweep old read', true, now() - interval '91 days'),
       (v_res, 'status_change', 'Sweep old unread', false, now() - interval '91 days'),

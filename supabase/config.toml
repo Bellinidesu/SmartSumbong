@@ -14,6 +14,11 @@ verify_jwt = false
 [functions.delete-account]
 verify_jwt = true
 
+[functions.sign-upload]
+# Registration uploads its ID photo before any account exists; the
+# function checks the caller itself and rations signed-out callers.
+verify_jwt = false
+
 # send-dispatch-push is left out on purpose: whether it needs verify_jwt
 # depends on which key the Database Webhook sends (a legacy JWT key works
 # with true; an sb_secret_ key only with false). Check the webhook's
