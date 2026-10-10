@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../i18n.dart';
 import '../theme.dart';
+import 'd_ui.dart' show DTr;
 
 class DDayNight extends StatelessWidget {
   const DDayNight({super.key});
@@ -20,7 +21,9 @@ class DDayNight extends StatelessWidget {
     final dark = context.isDark;
     return Semantics(
       button: true,
-      label: dark ? 'Switch to light mode' : 'Switch to dark mode',
+      label: dark
+          ? context.tr('Switch to light mode', 'Lumipat sa maliwanag na mode')
+          : context.tr('Switch to dark mode', 'Lumipat sa madilim na mode'),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => AppThemeScope.controllerOf(context).set(dark ? ThemeMode.light : ThemeMode.dark),

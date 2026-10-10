@@ -427,9 +427,9 @@ class TanodStrings {
   String get navStatus => _t('Status', 'Status');
   String get dutyCurrent => _t('current', 'kasalukuyan');
 
-  String get homeWelcome => _t('Welcome!', 'Welcome!');
+  String get homeWelcome => _t('Welcome!', 'Maligayang pagdating!');
   String homeWelcomeName(String name) =>
-      _t('Welcome, $name!', 'Welcome, $name!');
+      _t('Welcome, $name!', 'Maligayang pagdating, $name!');
   String get homeHowAreYou =>
       _t('How are you doing today?', 'Kumusta ka ngayong araw?');
   String get homeStatusQuestion =>
@@ -493,11 +493,11 @@ class TanodStrings {
       'Tickets appear here once you accept them from Home.',
       'Lalabas dito ang mga ticket kapag tinanggap mo na ang mga ito '
       'mula sa Home.');
-  String get reportsUserLabel => _t('User: ', 'User: ');
+  String get reportsUserLabel => _t('User: ', 'Nag-ulat: ');
   String get reportsFilerAnonymous => _t('Anonymous', 'Anonymous');
   String get reportsDescriptionLabel =>
       _t('Description: ', 'Deskripsyon: ');
-  String get reportsDeadlineLabel => _t('Deadline: ', 'Deadline: ');
+  String get reportsDeadlineLabel => _t('Deadline: ', 'Takdang petsa: ');
   /// The admin's target date has passed (0072).
   String get ticketOverdue => _t('Overdue', 'Lampas na');
   String get reportsDeadlineNotSet => _t('not set', 'hindi pa naitatakda');
@@ -510,7 +510,7 @@ class TanodStrings {
       _t('Submit an update', 'Magsumite ng Update');
 
   // ---------- dispatch order ----------
-  String get dispatchBarrierLabel => _t('Dispatch order', 'Dispatch order');
+  String get dispatchBarrierLabel => _t('Dispatch order', 'Utos ng dispatch');
   String get dispatchAcceptStale => _t(
       'This ticket is no longer yours to accept. It may have timed out '
       'or been reassigned.',

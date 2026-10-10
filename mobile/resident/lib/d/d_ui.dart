@@ -688,7 +688,9 @@ class DBell extends StatelessWidget {
     return Semantics(
       container: true,
       button: true,
-      label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
+      label: unread > 0
+          ? context.tr('Notifications, $unread unread', 'Mga Notification, $unread hindi pa nababasa')
+          : context.tr('Notifications', 'Mga Notification'),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
