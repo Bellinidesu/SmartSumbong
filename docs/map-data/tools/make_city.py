@@ -54,7 +54,7 @@ def main():
             continue
         t = time.time()
         print('\n=== %s: %s' % (n, what), flush=True)
-        r = subprocess.run([sys.executable] + cmd, cwd=wd, env=dict(os.environ, PYTHONIOENCODING='utf-8', **({'SS_SWEEP': '1'} if n == 'models' else {})))
+        r = subprocess.run([sys.executable] + cmd, cwd=wd, env=dict(os.environ, PYTHONIOENCODING='utf-8', **({'SS_SWEEP': '1', 'SS_AIRFIELD': '1'} if n == 'models' else {})))
         if r.returncode:
             raise SystemExit('step "%s" failed (%d); fix it and rerun with --from %s' % (n, r.returncode, n))
         print('--- %s done in %.0f s' % (n, time.time() - t), flush=True)
