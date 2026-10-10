@@ -94,7 +94,7 @@
   const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey,
     'dw', isDark() ? '#232A55' : '#8A93A8', 'aw', isDark() ? '#8A4672' : '#E0705F', 'aw2', isDark() ? '#3F6E8F' : '#4F8CC4', 'aw3', isDark() ? '#8F7A35' : '#F2C14E',
     'ac', isDark() ? '#4A5080' : '#D9DDE6', 'sd', isDark() ? '#9AA0C8' : '#F4F6FA', 'sl', isDark() ? '#1E2650' : '#46567E', 'bc', p.trim,
-    'g_f', '#FF9A3D', 'g_c', '#B8794A', 'g_s', '#4F8CFF', 'g_h', '#F0524F', 'g_e', '#9B6BFF', 'g_l', '#D56FE0', 'g_b', '#34B36B', 'g_w', '#22B8CF', 'g_g', '#6B7FD6', 'g_v', '#E4A8C8', 'g_a', '#8E97AB', p.trim];
+    ...SIGNS, ...SIGNS.map((v, i) => i % 2 === 0 ? 'gr' + v.slice(1) : (isDark() ? v : p.trim)), p.trim];   // 'gr_x': the roof rim of a building with a place in it: the group's colour at night, the plain trim by day
   const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
   const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
   const areaColour = p => ['match', ['get', 'k']].concat(...Object.keys(p.area).filter(k => k !== 'other').map(k => [k, p.area[k]]), [p.area.other]);
@@ -140,10 +140,13 @@
   const COMM = new Set(['commercial', 'retail', 'hotel', 'parking', 'supermarket', 'office', 'pop-up_store']);
   const COMM_NAME = /mall|hotel|resort|inn|suites|mansion|residences|plaza|centre|center|market|store|shop|bank|casino|theat|garage|carpark|parking|office|airlines|express|marriott|belmont|sheraton|okura|holiday|newport/i;
   // colour by what is in the building (places.json, first group found): food, cafe, shop, health, education, lodging, bank, worship, government, services, auto; the soft pastels of the plain map
-  const GORDER = 'fcshelbwgva';
-  const GDAY = ['#F4D9BC', '#E7CDB5', '#EBD8AE', '#F6C9C6', '#F7E3A3', '#DCCBEA', '#C6E4CF', '#C5E6EC', '#C9D3F0', '#F0D2E2', '#D3D6DC'];
-  const GNIGHT = ['#7A6890', '#6F6385', '#6B6489', '#8A5F86', '#8C86A0', '#7A62A0', '#4F7F8E', '#4D86A3', '#5D6EA8', '#8A6597', '#5F6788'];
-  const wgrp = idx => { const g = PLACES[idx]; return g ? GORDER.indexOf(g[0]) + 1 : 0; };
+  let SIGNS = ['g_f', '#FF9A3D', 'g_c', '#B8794A', 'g_s', '#4F8CFF', 'g_h', '#F0524F', 'g_e', '#9B6BFF', 'g_l', '#D56FE0', 'g_b', '#34B36B', 'g_w', '#22B8CF', 'g_g', '#6B7FD6', 'g_v', '#E4A8C8', 'g_a', '#8E97AB'];   // the legend (legend.json) replaces these
+  let GORDER = 'fcshelbwgva';
+  let GDAY = ['#F4D9BC', '#E7CDB5', '#EBD8AE', '#F6C9C6', '#F7E3A3', '#DCCBEA', '#C6E4CF', '#C5E6EC', '#C9D3F0', '#F0D2E2', '#D3D6DC'];
+  let GNIGHT = ['#7A6890', '#6F6385', '#6B6489', '#8A5F86', '#8C86A0', '#7A62A0', '#4F7F8E', '#4D86A3', '#5D6EA8', '#8A6597', '#5F6788'];
+  // a wall takes the colour of what mainly goes on in the building: lodging first, then health, education, worship, government, bank, shop, cafe, food; offices, services and car parks do not tint a wall (their sign still shows)
+  const WALL_PRIORITY = 'lhewgbscf';
+  const wgrp = idx => { const g = PLACES[idx]; if (!g) return 0; for (const k of WALL_PRIORITY) if (g.indexOf(k) >= 0) return GORDER.indexOf(k) + 1; return 0; };
   const gcol = i => { const G = isDark() ? GNIGHT : GDAY; return ['match', ['get', 'wg']].concat(...G.map((c, j) => [j + 1, ch(c, i)]), [ch(G[0], i)]); };
   const comm = (d, idx) => { const t = d.info && d.info[idx]; return (t && (COMM.has(t[1]) || COMM_NAME.test(t[0] || ''))) || /[fcslbv]/.test(PLACES[idx] || '') ? 1 : 0; };
   const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
@@ -232,6 +235,7 @@
         const aw = grp ? 'g_' + grp[0] : ['aw', 'aw2', 'aw3'][Math.floor(hh(9) * 3)];
         pl(e0, .6, e0.ln - .6, 2.7, 2.98, 1.0, aw);
       }
+      if (grp && flat && A >= 60) trim.push({ type: 'Feature', properties: { b: h, t: h + .45, k: 'gr_' + grp[0] }, geometry: { type: 'Polygon', coordinates: [poly, shrink(poly, x0, y0, co, si, L, W, .5).reverse()] } });
       if (e0 && grp) grp.split('').forEach((g, i) => { const e = edges[Math.min(i, edges.length - 1)], w_ = Math.min(5.5, e.ln * .6); pl(e, e.ln / 2 - w_ / 2, e.ln / 2 + w_ / 2, 3.15, 3.95, .18, 'g_' + g); });
       if (e0 && !off.has('highrise_extras') && flat && A >= 250 && h >= 9 && h < 32) {    // a mid-rise block: balconies and air-conditioners on its two longest walls, solar panels on some roofs
         edges.slice(0, 2).forEach(e => { let c_ = 0; for (let z = 3.4; z < h - 1 && c_ < 60; z += 3.2 * (h > 20 ? 2 : 1)) for (let t = 2.2; t < e.ln - 2.2 && c_ < 60; t += 4.6) { pl(e, t, t + 2.2, z, z + .13, .9, 'bc'); c_++; } });
@@ -396,11 +400,12 @@
       if (window.sdModels) await window.sdModels.ready;
       const bake = await fetch('assets/map/shadows.json').then(r => r.json()).catch(() => null);
       const faces = bake && bake.faces ? await fetch('assets/map/' + bake.faces).then(r => r.json()).catch(() => null) : null;
-      const [detail, bld, lmj, zn, pl] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null), fetch('assets/map/zones.json').then(r => r.json()).catch(() => null), fetch('assets/map/places.json').then(r => r.json()).catch(() => null)));
+      const [detail, bld, lmj, zn, pl, lg] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null), fetch('assets/map/zones.json').then(r => r.json()).catch(() => null), fetch('assets/map/places.json').then(r => r.json()).catch(() => null), fetch('assets/map/legend.json').then(r => r.json()).catch(() => null)));
       QZ = (zn && zn.quiet) || [];
       ZN = ((zn && zn.zones) || []).map(z => ({ ring: z.ring, off: new Set(z.off) }));
       COREOFF = new Set((zn && zn.core_off) || []);
       PLACES = (pl && pl.p) || {};
+      if (lg && lg.groups) { GORDER = lg.groups.map(g => g.k).join(''); GDAY = lg.groups.map(g => g.day); GNIGHT = lg.groups.map(g => g.night); SIGNS = lg.groups.flatMap(g => ['g_' + g.k, g.sign]); }   // one legend for the walls, the signs and the glow
       const lms = lmj ? lmj.features.map(f => ({ n: (f.properties && f.properties.name) || '', c: f.geometry.coordinates })).filter(x => x.n) : [];
       if (WINDOWS) addWalls();
       await addPoiImages();

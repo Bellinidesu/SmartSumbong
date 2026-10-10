@@ -760,9 +760,15 @@ def main():
         return out
     az, el = math.radians(200), math.radians(58)
     SUN = np.array([math.sin(az) * math.cos(el), math.cos(az) * math.cos(el), math.sin(el)])
+    # the night glow from the legend (legend.py): a model's group (what is in it, else its type) picks one of the eight wash colours; a band under the roof edge and a band along the storefront take it,
+    # a landmark takes amber all the way up; the airfield side and Villamor stay plain
+    import legend as _lg
+    _plj = os.path.join(MAP, 'places.json')
+    _pl = json.load(open(_plj, encoding='utf-8')).get('p', {}) if os.path.exists(_plj) else {}
+    _lmre = re.compile(_lg.LANDMARKS, re.I)
     LB = bytearray()
     V2 = []
-    for P, U, M, Cc, N in V:
+    for (P, U, M, Cc, N), _md in zip(V, models):
         Ns = smooth_normals(P, np.asarray(N, dtype=np.float64)) if len(P) else N
         V2.append((P, U, M, Cc, Ns))
         if len(P):
@@ -772,6 +778,17 @@ def main():
             rec = np.zeros((len(P), 8), dtype=np.uint8)
             rec[:, 0] = rec[:, 1] = rec[:, 2] = day
             rec[:, 3] = rec[:, 4] = rec[:, 5] = ngt
+            if not _md.get('furniture') and not PL.plain(_md['lng'], _md['lat']):
+                g_ = (_pl.get(str(_md.get('replaces', -1)), '') or '')[:1] or _lg.BY_TEMPLATE.get(_md.get('template'), '')
+                lm_ = bool(_lmre.search(_md.get('name', '') or ''))
+                slot = _lg.LANDMARK_GLOW if lm_ else _lg.GLOW.get(g_, 0)
+                if slot and _md.get('template') != 'hangar':
+                    zz = P[:, 2]
+                    amt = np.where(zz > _md.get('height', 10) - 1.4, .55, 0.0) + np.where(zz < 4.6, .7, 0.0)
+                    if lm_:
+                        amt = amt + np.where(zz >= 4.6, .25, 0.0)
+                    rec[:, 6] = (np.clip(amt, 0, 1) * 255).astype(np.uint8)
+                    rec[:, 7] = slot
             LB += rec.tobytes()
     V[:] = V2
     import gzip as _gz
