@@ -118,10 +118,12 @@ def light(m, x, y, k, h=.36):
     m.box(x, y, 0, .34, .34, h, 0, 'glow%d' % k, COL['white'], 'glow%d' % k, COL['white'], True, 40.0)
 
 
-def build(m, origin, boundary):
+def build(m, origin, boundary, quiet=None):
     q = '[out:json][timeout:120];(nwr["aeroway"](%s,%s,%s,%s););out geom;' % infra.BBOX
     els = infra.overpass('aeroway', q)
     poly = local_polygon(boundary, origin)
+    if quiet is not None:                              # Villamor Air Base: plain, no apron, stand, aircraft, marking or light inside it
+        poly = poly.difference(Polygon([infra.loc(x, y, origin) for x, y in quiet.exterior.coords]).buffer(0))
     pp = prep(poly)
     L = lambda e: [infra.loc(g['lon'], g['lat'], origin) for g in e.get('geometry', [])]
     N = lambda e: infra.loc(e['lon'], e['lat'], origin)

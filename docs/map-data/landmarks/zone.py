@@ -98,8 +98,13 @@ def front_on_edge(ring, ctx):
     return (q.x, q.y), (nx, ny), (-ny, nx), across
 
 
-def entrance(m, ring, ctx, depth, width, zc, col, roof_col=None, pole=0.0):
+QUIET = None          # a shapely polygon in degrees, set by models.py: no entrance, porch or flagpole is added to a building inside it
+
+
+def entrance(m, ring, ctx, depth, width, zc, col, roof_col=None, pole=0.0, keep=False):
     """A porch or portico on the footprint's own front edge: a slab roof on four columns, two steps, a dark door, and optionally a flagpole beside it."""
+    if QUIET is not None and not keep and ctx.get('lng') is not None and QUIET.contains(Point(ctx['lng'], ctx['lat'])):
+        return
     (qx, qy), fr, al, across = front_on_edge(ring, ctx)
     width = max(3.0, min(width, across * 1.6))
     tf = math.atan2(al[1], al[0])
@@ -309,7 +314,7 @@ def z_church(m, ring, ctx, p):
     m.box(tx, ty, 0, 3.6, 3.6, th_, th, 'plain', col, 'plain', col, True, 6.0)
     m.hip(tx, ty, 3.6, 3.6, th, th_, 3.0, 'tile', C['terra'], over=.2)
     m.cylinder(tx, ty, th_ + 2.8, th_ + 4.4, .1, 'plain', C['yellow'], seg=6)
-    entrance(m, ring, ctx, 2.8, 5.0, min(h * .7, 6.0), C['white'])            # the porch on the front, an arched door in it
+    entrance(m, ring, ctx, 2.8, 5.0, min(h * .7, 6.0), C['white'], keep=True)   # the porch on the front, an arched door in it
 
 
 def z_school(m, ring, ctx, p):

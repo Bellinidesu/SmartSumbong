@@ -361,6 +361,7 @@ def main():
     sys.path.insert(0, os.path.join(HERE, '..'))
     import plain as _plain
     PL = _plain.load()
+    QUIET = _plain.villamor()                    # Villamor Air Base: plain (docs/map-data/zones/villamor-air-base.md): no cars, lamps, entrances, airfield dressing or house detail inside it
     import sheet as _sheet
     SH = _sheet.Sheets()
     try:
@@ -433,6 +434,7 @@ def main():
         print('%-42s %-9s %6d vertices %6d triangles  h %.0f m' % (name, tname, len(P), len(Ix) // 3, height))
     # the rest of the Newport - NAIA zone: every building that is big, or tall, or named, by what it is (zone.py)
     import zone as _zone
+    _zone.QUIET = QUIET
     ZONE = (121.0105, 14.5120, 121.0240, 14.5262)
     info = bdoc.get('info', {})
     nz = 0
@@ -458,6 +460,10 @@ def main():
         nm, cls = (info.get(str(bi)) or ['', ''])
         area = b[6] * b[7]
         ptype = POI.get('types', {}).get(str(bi))
+        if re.search(r'hangar|air rescue group', nm or '', re.I):
+            ptype = 'hangar'                 # a hangar named a hangar is a hangar, tagged or not
+        elif re.search(r'aerospace museum|air reserve center', nm or '', re.I):
+            ptype = 'civic'                  # typed hotel by the tags' guess: a museum and an office
         if ptype == 'condo' and cls in ('residential', '') and b[1] < 10:
             ptype = None                     # a house tagged residential is a house, not a condominium
         if PL.plain(b[4], b[5]) and not (SW and ptype):      # the airfield side stays plain, except what the open data says is a hangar, a school, a chapel...: type it, model it
@@ -602,6 +608,8 @@ def main():
         lng0, lat0 = 121.0135, 14.5240
         m = Mesh()
         for lng, lat, br, white in lamps:
+            if QUIET is not None and QUIET.contains(Point(lng, lat)):
+                continue
             x, y = (lng - lng0) * MX, (lat - lat0) * MY
             sq = [(x - .09, y - .09), (x + .09, y - .09), (x + .09, y + .09), (x - .09, y + .09)]
             m.prism(sq, 0, 7.2, 'plain', C['slate'], 'plain', C['slate'], top=False, cell=8.0)
@@ -619,7 +627,7 @@ def main():
     from shapely.strtree import STRtree as _ST
     _fp = [Polygon([(q_[0][i] , q_[0][i + 1]) for i in range(0, len(q_[0]), 2)]).buffer(0) for q_ in bld]
     _tree = _ST(_fp)
-    _blocked = lambda lng, lat: any(_fp[j].buffer(1.2 / MX).contains(Point(lng, lat)) for j in _tree.query(Point(lng, lat).buffer(2.5 / MX)))
+    _blocked = lambda lng, lat: (QUIET is not None and QUIET.contains(Point(lng, lat))) or any(_fp[j].buffer(1.2 / MX).contains(Point(lng, lat)) for j in _tree.query(Point(lng, lat).buffer(2.5 / MX)))
     lng0, lat0 = 121.0135, 14.5240
     m = Mesh()
     ncars = cars.build(m, (lng0, lat0), _bd, _blocked)
@@ -649,7 +657,7 @@ def main():
     import airfield
     m = Mesh()
     if AIRFIELD:
-        airfield.build(m, (lng0, lat0), Boundary())
+        airfield.build(m, (lng0, lat0), Boundary(), quiet=QUIET)
     P, N, U, M, Cc, Ix = m.arrays()
     if len(P):
         models.append({'name': 'Airfield', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': float(P[:, 2].max()), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})

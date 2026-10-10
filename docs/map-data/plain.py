@@ -103,3 +103,19 @@ if __name__ == '__main__':
     d = json.load(open(os.path.join(HERE, '..', '..', 'admin', 'assets', 'map', 'buildings.json'), encoding='utf-8'))
     n = sum(1 for b in d['b'] if p.plain(b[4], b[5]))
     print('buildings that go plain:', n, 'of', len(d['b']))
+
+
+def villamor():
+    """The Villamor Air Base polygon (OSM way 43762468) as a shapely polygon in degrees, from the same caches; None if it is not there. The 'quiet' zone of docs/map-data/zones/villamor-air-base.md."""
+    for f in os.listdir(CACHE):
+        if not f.endswith('.json'):
+            continue
+        try:
+            els = json.load(open(os.path.join(CACHE, f), encoding='utf-8'))
+        except Exception:
+            continue
+        if isinstance(els, list):
+            for e in els:
+                if e.get('id') == VILLAMOR_WAY and e.get('geometry'):
+                    return _poly(e)
+    return None

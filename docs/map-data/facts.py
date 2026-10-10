@@ -4,6 +4,7 @@ and 1.2 m of roof) instead of a size-based guess. Added to as better sources are
 """
 FLOORS = [
     # (a pattern in the building's name, floors, where it was found)
+    (r'^Philippine Air Force Headquarters$', 5, 'a stand-in of five floors (no source gives it): the 31 m Newport-side guess was wrong for the base'),
     (r'Marriott Grand Ballroom', None, 'OpenStreetMap: height 36 m'),
     (r'Marriot(t)? West Wing', 10, 'Overture Maps: 10 floors'),
     (r'Manila Marriott', 8, 'hotel booking listings (Marriott, Traveloka): 8 floors'),
