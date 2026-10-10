@@ -20,15 +20,42 @@ when something breaks. Written for whoever maintains it next (October 2026).
    - **portal** — every PHP and JS file parses; the portal starts and answers
      (login, sign-in redirect, ping, 404 page, security headers, a nonce on
      every script, no inline event handlers);
-   - **mobile** — `flutter analyze` with no findings allowed, unit tests;
-   - **database** — the 126 rolled-back system checks in `supabase/tests`
-     against the real project.
+   - **mobile** — `flutter analyze` with no findings allowed, all tests;
+   - **functions** — the Edge Functions type-check, lint and pass their tests;
+   - **database** — every migration applied to a throwaway PostgreSQL in the
+     runner, every rolled-back check in `supabase/tests`, and the baseline
+     still matching the migrations. The live project is never touched;
+   - **staging** — after a merge to `main` only, and only if a staging
+     project is configured (repository variable `STAGING_PROJECT_REF`,
+     secrets `SUPABASE_ACCESS_TOKEN` and `STAGING_DB_PASSWORD`): migrations
+     pushed to staging, then the same checks there. The script refuses the
+     production project.
+
+   **Security** (`.github/workflows/security.yml`), on pull requests, merges
+   and every Monday: gitleaks over the whole history (`.gitleaks.toml` lists
+   the public client keys), osv-scanner over the lockfiles, CodeQL over the
+   JavaScript, TypeScript and workflows. Actions are pinned to commit hashes
+   and tools to exact versions; Dependabot proposes updates weekly
+   (Flutter packages, Actions, the Docker base image).
 3. Merge when CI is green. Render deploys the portal automatically **only
    after CI passes** (Auto-Deploy: *After CI checks pass*), and checks
    `/admin/ping.php` before switching traffic to the new version.
-4. Database changes: `supabase db push --linked` (each migration is a new
-   numbered file; never edit an applied one). Functions:
+4. Database changes and Edge Functions: Actions → **Deploy** → Run
+   workflow on main (`.github/workflows/deploy.yml`), first with *apply*
+   off to see which migrations would run, then with it on. It pushes the
+   migrations, sets the function secrets it holds, sets up the photo
+   cleanup (below) and deploys every function. Run Actions → Nightly
+   backup first. Each migration is a new numbered file; never edit an
+   applied one. By hand, the same is `supabase db push --linked` and
    `supabase functions deploy <name> --project-ref xmkpokcnjzgxgwysperh --use-api`.
+   Each function's logic is in `handler.ts` (tested by `handler.test.ts`
+   with every outside call stubbed); `index.ts` only serves it. Locally:
+   `deno check supabase/functions/*/index.ts && deno lint supabase/functions
+   && deno test --allow-env supabase/functions`.
+   Push the migrations before deploying a function that uses what they add
+   (for example `password-otp` needs 0107's `otp_attempt`).
+   `supabase/config.toml` pins each function's JWT check; never run
+   `supabase config push` from it.
 
 Rules the code must keep (CI enforces most of them):
 
@@ -47,18 +74,88 @@ Render environment variables (smartsumbong-ph): `SUPABASE_URL`,
 `CLOUDINARY_API_SECRET`.
 
 GitHub Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
-`BACKUP_PASSPHRASE` (also `SUPABASE_URL`, `SUPABASE_ANON_KEY` for the daily
+`BACKUP_PASSPHRASE` (the nightly backup), `CLOUDINARY_API_KEY` and
+`CLOUDINARY_API_SECRET` (the Deploy workflow passes them to the functions), `STAGING_DB_PASSWORD` and the
+variable `STAGING_PROJECT_REF` (optional staging checks) (also `SUPABASE_URL`, `SUPABASE_ANON_KEY` for the daily
 keep-awake job).
 
 Supabase secrets (Edge Functions): FCM service account values for
-`send-dispatch-push`; `SEMAPHORE_API_KEY` and the OTP secret for
+`send-dispatch-push`, and optionally `PUSH_WEBHOOK_SECRET` (0107: once set,
+the function only answers a caller sending it as `x-webhook-secret`, so add
+that header to the Database Webhook first or pushes stop); `SEMAPHORE_API_KEY` and the OTP secret for
 `password-otp` (SMS reset is switched off in the app until Semaphore credits
 are bought).
+
+**Signed uploads (0109).** `sign-upload` needs `CLOUDINARY_API_KEY` and
+`CLOUDINARY_API_SECRET` as Supabase secrets; until they are set it answers
+503 and the app keeps using the unsigned presets. The portal signs on its
+own whenever the same two values are in Render's environment. Rollout:
+push 0109, set the secrets, deploy `sign-upload`, release the app, check
+that a new complaint photo, a tanod proof photo, a registration ID and a
+portal photo all upload. Only once no phone runs an older build, delete
+`smartsumbong_unsigned` and `smartsumbong_unsigned_video` in Cloudinary;
+until then both the app and the portal fall back to them if a signature
+is ever refused.
+
+**SHA-256 signing.** Every Cloudinary signature (uploads, private photo
+links, cleanup, the privatize script, the portal) uses SHA-256. The
+Cloudinary account must be set to match: Cloudinary console → Settings →
+Security → signature algorithm **SHA-256**. Switch it in the same sitting
+as deploying `sign-upload`/`media-cleanup` and the portal. While the two
+disagree, uploads fall back to the unsigned presets (if they still exist)
+and private ID photos will not open in the portal until both match.
+
+**Private identity photos (0110).** New registration IDs and selfies are
+stored as Cloudinary *authenticated* assets: their stored address opens
+nothing. The portal signs a viewing link each time it shows one (needs
+`CLOUDINARY_API_SECRET` in Render); the app asks `sign-upload` for one when
+it re-reads its own ID. Profile pictures go to the public `avatars/`
+folder. Photos uploaded before 0110 stay public until moved, once, with
+`node scripts/privatize-identity-photos.mjs` (dry run) and then `--apply`
+(it needs the Supabase service key and the Cloudinary key and secret in
+its environment; run it from a trusted machine, never commit them).
+
+**Identity photo cleanup (0111).** When an account is deleted, an ID is
+replaced or declined, or a profile picture changes, the old photo's
+address is queued in `media_trash`. A week later the `media-cleanup`
+function deletes the file from Cloudinary if nothing uses it any more
+(evidence photos are never queued). The Deploy workflow
+switches it on by itself the first time (a made-up secret, stored both as
+the function secret and in Vault, so the two always match). By hand, once:
+1. `supabase secrets set MEDIA_CLEANUP_SECRET=<long random string>` (the
+   Cloudinary key and secret are already set for `sign-upload`), then
+   deploy `media-cleanup`.
+2. In the SQL editor, store where to call it, in Vault:
+   `select vault.create_secret('https://xmkpokcnjzgxgwysperh.supabase.co/functions/v1/media-cleanup', 'media_cleanup_url');`
+   `select vault.create_secret('<the same long random string>', 'media_cleanup_secret');`
+
+The daily `media-cleanup` job does nothing until both are there.
+
+**Bot check on sign-in (CAPTCHA).** Built in but off. To switch it on:
+1. Cloudflare → Turnstile → add a widget (mode *Invisible* or *Managed*)
+   for `smartsumbong-ph.onrender.com`; note the site key and secret key.
+2. Render: add `TURNSTILE_SITE_KEY` (the portal then loads the widget on
+   every page with a password form and on login / forgot-password).
+3. App: build with `--dart-define=TURNSTILE_SITE_KEY=<site key>` (and
+   `TURNSTILE_BASE_URL` if the widget's domain is not the portal's).
+4. Only once every phone runs that build: Supabase → Authentication →
+   Bot and Abuse Protection → enable CAPTCHA, provider Turnstile, paste the
+   secret key. From then on sign-in, sign-up and password-reset links
+   without a valid token are refused; until then tokens are sent and
+   ignored. Turning it off again is the same switch.
 
 Supabase Auth → URL Configuration: Site URL and redirect URL are the
 Singapore portal.
 
 ## Monitoring
+
+When something is wrong, `docs/INCIDENTS.md` says what to do.
+
+- **Health check** (0112, hourly) — failed scheduled jobs, the database
+  past 80% of 500 MB, identity photos the cleanup missed, and Edge Function
+  failures each raise one alert: every admin is notified once and it shows
+  under Settings → System status → *Needs attention* until it clears.
+  Edge Function errors are also listed under *Recent errors*.
 
 - **Uptime** — the database pings `/admin/ping.php` every 10 minutes
   (`keep-portal-awake`, which also stops Render's free plan from sleeping).
@@ -67,6 +164,13 @@ Singapore portal.
 - **Errors** — portal crashes and browser errors go to `portal_errors`,
   grouped, newest in Settings → System status. App crashes go to Firebase
   Crashlytics.
+- **Performance budgets** (CI) — the sign-in page under 320 KB as a
+  browser receives it, each portal script under 8 KB and stylesheet under
+  20 KB compressed, each photo under 160 KB
+  (`.github/scripts/perf-budget.sh`); the arm64 release APK under 60 MB
+  (app-size job, size in each run's summary); and the most-run queries
+  within their time at 50,000 complaints (`supabase/tests/perf`). Raise a
+  budget on purpose, in the pull request that needs it.
 - **Speed and quality** — `?_trace=1` on any portal page lists each database
   call's time in the page source. Lighthouse: 100 on performance,
   accessibility and best practices.

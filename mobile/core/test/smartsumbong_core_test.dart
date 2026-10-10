@@ -3,7 +3,11 @@
 // in, and how photos are asked for. Each one mirrors something on the
 // server, so a change on one side without the other fails here first.
 
+import 'dart:io';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartsumbong_core/smartsumbong_core.dart';
 
@@ -102,6 +106,55 @@ void main() {
       expect((await SavedLogins.read('resident'))!.password, 'new');
       await SavedLogins.updatePassword('resident', '+639999999999', 'other');
       expect((await SavedLogins.read('resident'))!.password, 'new');
+    });
+  });
+
+  group('MediaUploader (0109)', () {
+    test('without the signing function it uploads through the unsigned preset', () async {
+      final dir = await Directory.systemTemp.createTemp('upload');
+      final photo = File('${dir.path}/p.jpg')..writeAsBytesSync([0xff, 0xd8, 0xff, 0xd9]);
+      http.MultipartRequest? sent;
+      final uploader = MediaUploader(
+        cloudName: 'nwb2kryl',
+        uploadPreset: 'smartsumbong_unsigned',
+        client: MockClient.streaming((request, _) async {
+          sent = request as http.MultipartRequest;
+          final id = sent!.fields['public_id']!;
+          return http.StreamedResponse(
+            Stream.value('{"secure_url":"https://res.cloudinary.com/nwb2kryl/image/upload/v1/$id.jpg","format":"jpg","bytes":4,"public_id":"$id"}'.codeUnits),
+            200,
+          );
+        }),
+      );
+      final media = await uploader.upload(photo, kind: MediaKind.reportPhoto);
+      expect(sent!.fields['upload_preset'], 'smartsumbong_unsigned');
+      expect(sent!.fields.containsKey('signature'), isFalse);
+      expect(media.publicId, startsWith('reports/'));
+      await dir.delete(recursive: true);
+    });
+
+    test('a private ID photo is stored without its signature (0110)', () async {
+      final dir = await Directory.systemTemp.createTemp('upload');
+      final photo = File('${dir.path}/id.jpg')..writeAsBytesSync([0xff, 0xd8, 0xff, 0xd9]);
+      final uploader = MediaUploader(
+        cloudName: 'nwb2kryl',
+        uploadPreset: 'smartsumbong_unsigned',
+        client: MockClient.streaming((request, _) async {
+          final id = (request as http.MultipartRequest).fields['public_id']!;
+          return http.StreamedResponse(
+            Stream.value('{"secure_url":"https://res.cloudinary.com/nwb2kryl/image/authenticated/s--Ab3_-xYz--/v17/$id.jpg","format":"jpg","bytes":4,"public_id":"$id"}'.codeUnits),
+            200,
+          );
+        }),
+      );
+      final media = await uploader.upload(photo, kind: MediaKind.identityCard);
+      expect(media.mediaUrl, matches(RegExp(r'^https://res\.cloudinary\.com/nwb2kryl/image/authenticated/v17/ids/[0-9a-f-]{36}\.jpg$')));
+      await dir.delete(recursive: true);
+    });
+
+    test('public photos need no signed link to open', () async {
+      const url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v1/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg';
+      expect(await viewableMediaUrl(url), url);
     });
   });
 }

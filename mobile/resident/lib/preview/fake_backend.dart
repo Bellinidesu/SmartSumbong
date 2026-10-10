@@ -20,6 +20,9 @@ class DemoBackend extends http.BaseClient {
   DemoBackend({required String role}) : _me = role == 'tanod' ? demoTanodId : demoResidentId;
 
   final _t = buildDemoTables();
+
+  /// Every RPC called, in order ("rpc accept_dispatch"), for tests to check.
+  final calls = <String>[];
   String _me;
   var _seq = 200;
 
@@ -64,7 +67,10 @@ class DemoBackend extends http.BaseClient {
     final path = request.url.path;
     try {
       if (path.contains('/auth/v1/')) return _auth(request, path, data);
-      if (path.contains('/rest/v1/rpc/')) return _rpc(path.split('/rpc/').last, data);
+      if (path.contains('/rest/v1/rpc/')) {
+        calls.add('rpc ${path.split('/rpc/').last}');
+        return _rpc(path.split('/rpc/').last, data);
+      }
       if (path.contains('/rest/v1/')) return _table(request, path.split('/rest/v1/').last, data);
       if (path.contains('/functions/v1/')) return _json(200, <String, dynamic>{});
     } catch (e) {

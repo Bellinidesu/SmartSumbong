@@ -1157,7 +1157,8 @@ class _ReportCard extends StatelessWidget {
       color: d.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: onAddDetails != null ? DColors.orange : d.line, width: onAddDetails != null ? 1.6 : 1)),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
+      child: Stack(children: [
+        InkWell(
         onTap: onView,
         child: IntrinsicHeight(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -1183,7 +1184,9 @@ class _ReportCard extends StatelessWidget {
                       ),
                     ],
                     const Spacer(),
-                    _CardMenu(onView: onView, onCancel: onCancel, onReopen: onReopen, onAppeal: onAppeal, onAddDetails: onAddDetails),
+                    // The menu's place; the menu itself is laid over the
+                    // corner below, so its 44 touch area adds no height.
+                    const SizedBox(width: 32, height: 24),
                   ]),
                   const SizedBox(height: 6),
                   Text(report.subject, style: DType.h3(d.ink).copyWith(fontSize: 17)),
@@ -1233,6 +1236,12 @@ class _ReportCard extends StatelessWidget {
           ]),
         ),
       ),
+        Positioned(
+          top: 2,
+          right: 0,
+          child: _CardMenu(onView: onView, onCancel: onCancel, onReopen: onReopen, onAppeal: onAppeal, onAddDetails: onAddDetails),
+        ),
+      ]),
     );
   }
 
@@ -1441,14 +1450,15 @@ class _CardMenu extends StatelessWidget {
         ],
       ],
       // The dots are drawn at the frame's size inside a finger-sized
-      // target.
+      // target (44, accessibility).
       child: const SizedBox(
-        width: 32,
-        height: 24,
+        width: 44,
+        height: 44,
         child: Align(
           alignment: Alignment.topRight,
           child: Padding(
-            padding: EdgeInsets.only(top: 2),
+            // Where the dots sat before (the card's 12/4 padding, then 2).
+            padding: EdgeInsets.only(top: 12, right: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

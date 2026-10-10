@@ -27,6 +27,11 @@
     Require all denied
 </FilesMatch>
 
+# MapLibre 6 loads its worker as a module (maplibre-gl-worker.mjs); browsers
+# refuse a module served with a non-JavaScript type, and older mime.types
+# lists do not know .mjs.
+AddType text/javascript .mjs
+
 # Friendly error pages (industry pass 3) instead of Apache's defaults.
 ErrorDocument 403 /admin/error.php
 ErrorDocument 404 /admin/error.php
@@ -43,6 +48,10 @@ RewriteRule ^$ index.php [L]
 # Browsers ask for /favicon.ico on their own; answer with the seal instead
 # of the 403 below (it showed as a console error in Lighthouse, 7 Oct 2026).
 RewriteRule ^favicon\.ico$ admin/assets/img/favicon-64.png [L]
+
+# The portal's server-side code is only ever loaded by its pages, never
+# fetched (backend review, 10 Oct 2026).
+RewriteRule ^admin/includes/ - [F]
 
 # Block everything except the two things this project actually serves.
 RewriteCond %{REQUEST_URI} !^/admin/

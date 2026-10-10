@@ -161,7 +161,14 @@ final class Supabase
         return $client->request('POST', '/auth/v1/token?grant_type=password', [
             'email'    => $email,
             'password' => $password,
-        ]);
+        ] + self::captcha());
+    }
+
+    /** The bot-check token the submitting form carried (turnstile.js), if any. */
+    private static function captcha(): array
+    {
+        $token = $_POST['cf-turnstile-response'] ?? '';
+        return is_string($token) && $token !== '' ? ['gotrue_meta_security' => ['captcha_token' => $token]] : [];
     }
 
     public static function refresh(string $refreshToken): array
@@ -191,7 +198,7 @@ final class Supabase
         $client->request('POST', '/auth/v1/recover', [
             'email'       => $email,
             'redirect_to' => $redirectTo,
-        ]);
+        ] + self::captcha());
     }
 
     /**
@@ -430,21 +437,26 @@ function cloudinary_upload_files(string $field, int $max = 6, string $folder = '
             bin2hex(random_bytes(4)), bin2hex(random_bytes(2)), substr(bin2hex(random_bytes(2)), 1),
             dechex(8 + random_int(0, 3)), substr(bin2hex(random_bytes(2)), 1), bin2hex(random_bytes(6)));
 
-        $ch = curl_init('https://api.cloudinary.com/v1_1/' . rawurlencode(cloudinary_cloud()) . '/image/upload');
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 60,
-            CURLOPT_POSTFIELDS     => [
-                'upload_preset' => cloudinary_preset(),
-                'public_id'     => $folder . '/' . $uuid,
-                'source'        => 'smartsumbong-portal',
-                'file'          => new CURLFile($f['tmp_name'][$i], $mime, 'photo.' . $allowed[$mime]),
-            ],
-        ]);
-        $body = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
+        $post = static function (array $fields) use ($f, $i, $mime, $allowed): array {
+            $ch = curl_init('https://api.cloudinary.com/v1_1/' . rawurlencode(cloudinary_cloud()) . '/image/upload');
+            curl_setopt_array($ch, [
+                CURLOPT_POST           => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 60,
+                CURLOPT_POSTFIELDS     => $fields + ['file' => new CURLFile($f['tmp_name'][$i], $mime, 'photo.' . $allowed[$mime])],
+            ]);
+            $body = curl_exec($ch);
+            $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            curl_close($ch);
+            return [$code, $body];
+        };
+        $fields = cloudinary_upload_fields($folder . '/' . $uuid);
+        [$code, $body] = $post($fields);
+        if ($code === 401 && isset($fields['signature'])) {
+            // Cloudinary refused the signature (a key or clock problem):
+            // the unsigned preset, while it still exists.
+            [$code, $body] = $post(cloudinary_preset_fields($folder . '/' . $uuid));
+        }
         $json = is_string($body) ? json_decode($body, true) : null;
         if ($code !== 200 || !is_array($json) || empty($json['secure_url'])) {
             throw new SupabaseError(t('The photo service did not accept a photo. Try again.', 'Hindi tinanggap ng serbisyo ng larawan ang isang larawan. Subukan muli.'));
@@ -456,6 +468,38 @@ function cloudinary_upload_files(string $field, int $max = 6, string $folder = '
         ];
     }
     return $out;
+}
+
+/**
+ * The fields that authorise one photo upload (0109). With the API key and
+ * secret in the environment the portal signs the upload itself, fixing the
+ * name, formats and resize the unsigned preset used to apply; without them
+ * it uses the unsigned preset as before.
+ */
+function cloudinary_upload_fields(string $publicId): array
+{
+    $key = env('CLOUDINARY_API_KEY', '');
+    $secret = env('CLOUDINARY_API_SECRET', '');
+    if ($key === '' || $secret === '') {
+        return cloudinary_preset_fields($publicId);
+    }
+    $params = [  // in sorted order: the signature covers them sorted
+        'allowed_formats' => 'jpg,png,webp',
+        'format'          => 'jpg',
+        'public_id'       => $publicId,
+        'timestamp'       => (string) time(),
+        'transformation'  => 'c_limit,w_1920,q_auto',
+    ];
+    $pairs = [];
+    foreach ($params as $k => $v) {
+        $pairs[] = "$k=$v";
+    }
+    return $params + ['api_key' => $key, 'signature' => hash('sha256', implode('&', $pairs) . $secret)];
+}
+
+function cloudinary_preset_fields(string $publicId): array
+{
+    return ['upload_preset' => cloudinary_preset(), 'public_id' => $publicId, 'source' => 'smartsumbong-portal'];
 }
 
 /**

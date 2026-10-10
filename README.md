@@ -76,6 +76,11 @@ psql "$DATABASE_URL" -f supabase/seed.sql
 cp .env.example .env    # then fill it in — .env is gitignored
 ```
 
+A new project can load `supabase/baseline/baseline.sql` (the same schema
+in one file, see its README) instead of replaying every migration.
+`bash supabase/tests/local/run-local.sh` runs the database checks locally
+without touching the live project.
+
 Then see `DEPLOY.md` for the admin portal (Render or `run-dev-server.bat`)
 and for building the Android app.
 

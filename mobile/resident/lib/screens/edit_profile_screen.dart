@@ -29,10 +29,9 @@
 // shape as email: neither is identity evidence an admin checked
 // against a government ID, so guard_privileged_user_fields() (0026)
 // never restricted them — they just didn't have columns yet. The
-// avatar upload reuses MediaKind.selfie's Cloudinary folder rather than
-// adding a new one, so is_media_url()'s folder allow-list (0018) does
-// not need widening for a photo that is, functionally, the same kind
-// of thing.
+// avatar has its own public Cloudinary folder (MediaKind.avatar, 0110):
+// the registration selfie is now stored private, a profile picture is
+// meant to be seen.
 
 import 'dart:io';
 
@@ -199,10 +198,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       String? avatarUrl = _avatarUrl;
       if (_newAvatar != null) {
         setState(() => _uploadingAvatar = true);
-        // Same folder as a registration selfie — see this file's header
-        // for why, rather than a dedicated MediaKind.avatar.
         avatarUrl = (await widget.uploader
-                .upload(_newAvatar!, kind: MediaKind.selfie))
+                .upload(_newAvatar!, kind: MediaKind.avatar))
             .mediaUrl;
         if (mounted) setState(() => _uploadingAvatar = false);
       }

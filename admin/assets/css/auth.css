@@ -1,6 +1,6 @@
 /* The signed-out pages (sign-in, forgot/reset password, request access):
    the sign-in design the preview kept 1:1, lifted out of the old app.css
-   (archived in legacy/portal-v1). */
+   (archived in git: git show b2cabf2:legacy/portal-v1/<file>). */
 /* =========================================================
    SmartSumbong admin portal
    Tokens taken from the agreed Figma file, not invented here.

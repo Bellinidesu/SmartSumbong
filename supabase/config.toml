@@ -1,0 +1,30 @@
+# Supabase CLI settings (0107). Only what deploys need is set here; the
+# CLI fills in its defaults for the rest. Do not run `supabase config push`
+# from this file: it would overwrite the live project's Auth settings
+# (redirect URLs, rate limits) with those defaults.
+project_id = "xmkpokcnjzgxgwysperh"
+
+# Whether Supabase checks the caller's JWT before the function runs.
+# Kept here so a redeploy cannot quietly change it.
+
+[functions.password-otp]
+# Forgot-password callers are signed out; the function does its own checks.
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.media-cleanup]
+# Called by pg_cron with a shared secret (x-cleanup-secret), not a JWT.
+verify_jwt = false
+
+[functions.sign-upload]
+# Registration uploads its ID photo before any account exists; the
+# function checks the caller itself and rations signed-out callers.
+verify_jwt = false
+
+# send-dispatch-push is left out on purpose: whether it needs verify_jwt
+# depends on which key the Database Webhook sends (a legacy JWT key works
+# with true; an sb_secret_ key only with false). Check the webhook's
+# Authorization header in the Dashboard, then pin it here. With
+# PUSH_WEBHOOK_SECRET set (see the function), false is safe.

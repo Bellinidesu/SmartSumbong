@@ -187,7 +187,7 @@ try {
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
         <td class="ss-online" data-admin="<?= e($a['id']) ?>"><span class="ss-dot"></span><?= e(t('Offline', 'Offline')) ?></td>
         <td class="p-right"><?php if ($a['id'] !== $admin['id']): ?>
-          <form method="post" data-native-confirm="<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>">
+          <form method="post" data-captcha data-native-confirm="<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="reset_admin">
             <input type="hidden" name="user" value="<?= e($a['id']) ?>">
@@ -202,7 +202,7 @@ try {
   <div class="p-card p-card-pad ss-addadmin">
     <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
     <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
-    <form method="post" class="ss-form" data-native-confirm="<?= e(t('Add this administrator? They get an email to set their password.', 'Idagdag ang administrator na ito? Makakatanggap sila ng email para sa password.')) ?>">
+    <form method="post" class="ss-form" data-captcha data-native-confirm="<?= e(t('Add this administrator? They get an email to set their password.', 'Idagdag ang administrator na ito? Makakatanggap sila ng email para sa password.')) ?>">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <input type="hidden" name="action" value="add_admin">
       <input class="p-input-plain" name="first_name" required maxlength="60" placeholder="<?= e(t('First name', 'Pangalan')) ?>" aria-label="<?= e(t('First name', 'Pangalan')) ?>">
@@ -221,10 +221,25 @@ $up = null;
 try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
 $errs = null;
 try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5']); } catch (SupabaseError) {}
+// 0112: what the hourly health check found and has not seen clear yet.
+$alerts = [];
+try { $alerts = $db->select('system_alerts', ['select' => 'key,message,raised_at', 'cleared_at' => 'is.null', 'order' => 'raised_at.desc']); } catch (SupabaseError) {}
 $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';
 ?>
 <section class="st-pane" data-pane="status">
   <div class="st-banner" id="st-banner"></div>
+  <?php if ($alerts): ?>
+  <div class="p-card p-card-pad st-alerts" role="alert">
+    <p class="p-eyebrow"><?= e(t('Needs attention', 'Kailangang tingnan')) ?></p>
+    <ul class="st-err-list">
+      <?php foreach ($alerts as $al): ?>
+        <li><span class="p-badge p-b-denied"><?= e(t('Open', 'Bukas')) ?></span>
+          <div><b><?= e(ucfirst((string) $al['message'])) ?></b><small><?= e(t('Since ', 'Mula ') . relative_time($al['raised_at'])) ?></small></div></li>
+      <?php endforeach; ?>
+    </ul>
+    <p class="st-note"><?= e(t('Checked every hour. An alert closes on its own once the problem is gone; see docs/INCIDENTS.md for what to do.', 'Sinusuri bawat oras. Kusang nagsasara ang alerto kapag nawala na ang problema; tingnan ang docs/INCIDENTS.md.')) ?></p>
+  </div>
+  <?php endif; ?>
   <?php if (is_array($up)): ?>
   <div class="p-card p-card-pad st-uptime">
     <p class="p-eyebrow"><?= e(t('Portal uptime', 'Uptime ng portal')) ?></p>
@@ -240,11 +255,11 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
   <div class="p-card p-card-pad st-errors">
     <p class="p-eyebrow"><?= e(t('Recent errors', 'Mga kamakailang error')) ?></p>
     <?php if (!$errs): ?>
-      <p class="p-none-line"><?= e(t('No errors recorded. Anything that goes wrong on the portal, on the server or in a browser, is listed here.', 'Walang naitalang error. Dito lalabas ang anumang mali sa portal, sa server man o sa browser.')) ?></p>
+      <p class="p-none-line"><?= e(t('No errors recorded. Anything that goes wrong on the portal, on the server, in a browser or in an Edge Function, is listed here.', 'Walang naitalang error. Dito lalabas ang anumang mali sa portal, sa server man o sa browser.')) ?></p>
     <?php else: ?>
       <ul class="st-err-list">
         <?php foreach ($errs as $er): ?>
-          <li><span class="p-badge <?= $er['source'] === 'server' ? 'p-b-denied' : 'p-b-progress' ?>"><?= e($er['source'] === 'server' ? t('Server', 'Server') : t('Browser', 'Browser')) ?></span>
+          <li><span class="p-badge <?= $er['source'] === 'browser' ? 'p-b-progress' : 'p-b-denied' ?>"><?= e(match ($er['source']) { 'server' => t('Server', 'Server'), 'function' => t('Function', 'Function'), default => t('Browser', 'Browser') }) ?></span>
             <div><b><?= e($er['message']) ?></b><small><?= e($er['page']) ?> · <?= e(sprintf(t('%d time(s)', '%d beses'), (int) $er['count'])) ?> · <?= e(relative_time($er['last_seen'])) ?></small></div></li>
         <?php endforeach; ?>
       </ul>

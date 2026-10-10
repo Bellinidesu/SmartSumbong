@@ -205,5 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   pw.addEventListener('blur', function () { warn.setAttribute('hidden', ''); });
 })();
 </script>
+<?= turnstile_tags() ?>
 </body>
 </html>

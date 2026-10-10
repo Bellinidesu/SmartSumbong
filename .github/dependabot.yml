@@ -1,5 +1,7 @@
-# Weekly pull requests for outdated dependencies (industry pass 7): the
-# Flutter packages and the GitHub Actions the workflows use.
+# Weekly pull requests for outdated dependencies: the Flutter packages,
+# the GitHub Actions the workflows use (pinned to commit hashes, which
+# Dependabot updates along with the version comment) and the portal's
+# Docker base image.
 version: 2
 updates:
   - package-ecosystem: pub
@@ -13,6 +15,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
