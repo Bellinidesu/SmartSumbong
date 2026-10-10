@@ -368,6 +368,7 @@ def main():
         APPROVALS = json.load(open(os.path.join(HERE, 'approvals.json'), encoding='utf-8'))      # written by tools/viewer.py: what Ace has looked at and passed
     except Exception:
         APPROVALS = {}
+    TEXTURES = bool(os.environ.get('SS_TEXTURES'))   # no picture on any model (windows, panels, sheets, slabs): plain colour only, as Ace asked on 10 Oct; SS_TEXTURES=1 brings the pictures back
     PROPS = bool(os.environ.get('SS_PROPS'))     # street lamps, cars, bus shelters, signals, flagpoles, airfield paint and lights: all left out (10 Oct, plain); SS_PROPS=1 brings them back
     AIRFIELD = bool(os.environ.get('SS_AIRFIELD'))     # the airfield diorama (airfield.py) is kept but off: the airfield side goes back to plain colours
     models, V, I = [], [], []
@@ -521,7 +522,7 @@ def main():
             print('  skipped', nm or bi, e)
             continue
         P, N, U, M, Cc, Ix = m.arrays()
-        if PL.plain(b[4], b[5]):
+        if PL.plain(b[4], b[5]) or not TEXTURES:
             M = np.zeros_like(M)            # the airfield side and Villamor: plain colour only, no picture on any wall or roof (10 Oct)
         if not len(P):
             continue
