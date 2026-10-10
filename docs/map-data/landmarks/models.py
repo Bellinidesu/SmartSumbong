@@ -361,7 +361,7 @@ def main():
     sys.path.insert(0, os.path.join(HERE, '..'))
     import plain as _plain
     PL = _plain.load()
-    QUIET = _plain.villamor() if os.environ.get('SS_QUIET') else None   # the Villamor plain zone is out (checklist, 10 Oct); SS_QUIET=1 brings it back
+    QUIET = None if os.environ.get('SS_NOQUIET') else _plain.villamor()   # Villamor Air Base as it was on 9 Oct (Ace, 10 Oct): plain colours and plain buildings, no models but the museum and its garden; SS_NOQUIET=1 turns the zone off
     _QUIET_OLD = _plain.villamor()                    # Villamor Air Base: plain (docs/map-data/zones/villamor-air-base.md): no cars, lamps, entrances, airfield dressing or house detail inside it
     import sheet as _sheet
     SH = _sheet.Sheets()
@@ -460,6 +460,8 @@ def main():
                 continue
         elif bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and max(ZONE[1], 14.5142) <= b[5] <= ZONE[3]):
             continue
+        if QUIET is not None and PL.plain(b[4], b[5]) and QUIET.contains(Point(b[4], b[5])):
+            continue                          # Villamor: plain, as on 9 Oct (what the zone keeps detailed, the museum and its garden, is not 'plain' and is still modelled)
         nm, cls = (info.get(str(bi)) or ['', ''])
         area = b[6] * b[7]
         ptype = POI.get('types', {}).get(str(bi))

@@ -57,6 +57,6 @@ for nm, g, off in (('Newport City', newport, ['cars_parked']),
         if p.area * 107500 * 110574 > 3000:
             zones.append({'name': nm, 'ring': ring(p), 'off': off})
 core_off = []                        # the house details, balconies, masts and chimneys are Final (checklist, 10 Oct): nothing is left out in the core
-quiet = []                           # the Villamor plain zone is out (checklist, 10 Oct)
+quiet = [ring(p) for p in polys(vil)] if vil is not None else []     # Villamor Air Base as on 9 Oct: no by-rule detail
 json.dump({'about': 'Zones of the City view (build_zones.py).', 'quiet': quiet, 'zones': zones, 'core_off': core_off, 'core_cars': ['cars_service']}, open(os.path.join(MAP, 'zones.json'), 'w'), separators=(',', ':'))
 print('zones.json: %d quiet, %d zone rings (%s), core off: %s' % (len(quiet), len(zones), ', '.join(sorted({z['name'] for z in zones})), core_off))

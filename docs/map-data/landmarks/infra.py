@@ -116,8 +116,17 @@ FULL = bool(os.environ.get('SS_INFRA'))      # elevated roads, walkways, the rai
 
 def build(m, origin, boundary=None):
     bridges, walls, nodes = load()
-    if not FULL:
-        bridges, walls = [], []
+    if not FULL:                              # the lifted roads and walkways only round NAIA Terminal 3 (Ace, 10 Oct); everything else of them, and the walls, are out
+        import json as _j
+        _b = _j.load(open(os.path.join(HERE, '..', '..', '..', 'admin', 'assets', 'map', 'buildings.json'), encoding='utf-8'))
+        _t3 = [r for i, r in enumerate(_b['b']) if (_b['info'].get(str(i)) or [''])[0] == 'NAIA Terminal 3']
+        if _t3:
+            _c = (_t3[0][4], _t3[0][5])
+            near = lambda e: any(math.hypot((p['lon'] - _c[0]) * MX, (p['lat'] - _c[1]) * MY) < 650 for p in (e.get('geometry') or []))
+            bridges = [e for e in bridges if near(e)]
+        else:
+            bridges = []
+        walls = []
     n_roads = n_walk = n_rail = 0
     for e in bridges:
         t = e.get('tags', {})
