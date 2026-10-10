@@ -22,10 +22,16 @@ const hook = (record: unknown = NOTE, secret = "hook-secret") =>
 
 function world(opts: { muted?: string[]; tokens?: string[]; stored?: boolean } = {}) {
   return stubFetch([
-    (c: Call) => c.url.pathname === "/rest/v1/notifications" ? json(opts.stored === false ? [] : [NOTE]) : undefined,
-    (c: Call) => c.url.pathname === "/rest/v1/users" ? json([{ muted_notification_kinds: opts.muted ?? [] }]) : undefined,
-    (c: Call) => c.url.pathname === "/rest/v1/device_tokens" && c.method === "GET"
-      ? json((opts.tokens ?? []).map((t) => ({ fcm_token: t }))) : undefined,
+    // One read: the notification with its owner's mutes and phones.
+    (c: Call) => c.url.pathname === "/rest/v1/notifications"
+      ? json(opts.stored === false ? [] : [{
+        ...NOTE,
+        owner: {
+          muted_notification_kinds: opts.muted ?? [],
+          device_tokens: (opts.tokens ?? []).map((t) => ({ fcm_token: t })),
+        },
+      }])
+      : undefined,
     (c: Call) => c.url.pathname === "/rest/v1/device_tokens" && c.method === "DELETE" ? json(null) : undefined,
     (c: Call) => c.url.hostname === "oauth2.googleapis.com" ? json({ access_token: "google-token" }) : undefined,
     (c: Call) => c.url.hostname === "fcm.googleapis.com"
@@ -69,5 +75,15 @@ Deno.test("pushes to every phone, drops uninstalled ones, reuses the Google toke
     s.calls.length = 0;
     await handler(hook());
     assertEquals(s.calls.filter((c) => c.url.hostname === "oauth2.googleapis.com").length, 0, "token cached");
+  } finally { s.restore(); }
+});
+
+Deno.test("one database read per push, naming the owner's link", async () => {
+  const s = world({ tokens: ["phone"] });
+  try {
+    await handler(hook());
+    const reads = s.calls.filter((c) => c.url.hostname === "sb.test" && c.method === "GET");
+    assertEquals(reads.length, 1);
+    assert(reads[0].url.searchParams.get("select")!.includes("owner:users!notifications_user_id_fkey("));
   } finally { s.restore(); }
 });

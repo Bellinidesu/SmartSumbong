@@ -175,66 +175,43 @@ async function mintAccessToken(): Promise<string> {
   return json.access_token as string;
 }
 
-// Mute preferences (migration 0044). Checked here and only here — the
-// notifications row itself always gets written by whatever RPC created
-// it; this is the one place a push is actually sent, so it's the one
-// place that needs to know a resident asked not to be buzzed for this
-// kind. Fails open (returns false, i.e. "not muted") on any lookup
-// trouble: a fetch hiccup must never silently swallow a real
-// notification the recipient didn't ask to have suppressed.
 // The notification exactly as the database holds it (security fix, 7 Oct
 // 2026). The webhook's own copy is not trusted: anyone signed in can call
 // this function, and a made-up payload used to push any text to any
 // account. Now only a real, stored notification is ever sent, to its own
 // owner; a forged call can at most repeat one.
-async function storedNotification(id: unknown): Promise<NotificationRecord | null> {
+//
+// One request (10 Oct 2026) brings along what the push needs about the
+// owner: the kinds they muted (migration 0044; checked here and only here,
+// since this is the one place a push is sent) and their phones' tokens.
+// It used to be three requests in a row for every notification.
+interface Delivery {
+  record: NotificationRecord;
+  muted: string[];
+  tokens: string[];
+}
+
+async function delivery(id: unknown): Promise<Delivery | null> {
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  // notifications has two links to users (owner and subject): name the owner's.
+  const select = "id,user_id,report_id,kind,message," +
+    "owner:users!notifications_user_id_fkey(muted_notification_kinds,device_tokens(fcm_token))";
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&select=id,user_id,report_id,kind,message`,
+    `${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&select=${encodeURIComponent(select)}`,
     { headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` } },
   );
-  if (!res.ok) throw new Error(`could not read notification ${id}: ${res.status}`);
-  const rows = (await res.json()) as NotificationRecord[];
-  return rows[0] ?? null;
-}
-
-async function isKindMuted(userId: string, kind: string): Promise<boolean> {
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=muted_notification_kinds`,
-      {
-        headers: {
-          apikey: SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-      },
-    );
-    if (!res.ok) return false;
-    const rows = (await res.json()) as
-      { muted_notification_kinds: string[] | null }[];
-    return (rows[0]?.muted_notification_kinds ?? []).includes(kind);
-  } catch (e) {
-    console.error("Could not check mute preference:", e);
-    return false;
-  }
-}
-
-async function fetchDeviceTokens(userId: string): Promise<string[]> {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/device_tokens?user_id=eq.${userId}&select=fcm_token`,
-    {
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      },
-    },
-  );
-  if (!res.ok) {
-    console.error("Could not read device_tokens:", await res.text());
-    return [];
-  }
-  const rows = (await res.json()) as { fcm_token: string }[];
-  return rows.map((r) => r.fcm_token);
+  if (!res.ok) throw new Error(`could not read notification ${id}: ${res.status} ${await res.text()}`);
+  const rows = (await res.json()) as (NotificationRecord & {
+    owner: { muted_notification_kinds: string[] | null; device_tokens: { fcm_token: string }[] | null } | null;
+  })[];
+  const row = rows[0];
+  if (!row) return null;
+  const { owner, ...record } = row;
+  return {
+    record,
+    muted: owner?.muted_notification_kinds ?? [],
+    tokens: (owner?.device_tokens ?? []).map((t) => t.fcm_token),
+  };
 }
 
 async function deleteStaleToken(token: string): Promise<void> {
@@ -336,19 +313,19 @@ export async function handler(req: Request): Promise<Response> {
       return new Response("ignored", { status: 200 });
     }
 
-    const record = await storedNotification(payload.record?.id);
-    if (!record) {
+    const found = await delivery(payload.record?.id);
+    if (!found) {
       return new Response("no such notification", { status: 200 });
     }
+    const { record, muted, tokens } = found;
 
-    if (await isKindMuted(record.user_id, record.kind)) {
+    if (muted.includes(record.kind)) {
       // Still a real notification -- the row this webhook fired for
       // already exists and already did its job as the in-app record.
       // This only skips the phone buzz the recipient asked not to get.
       return new Response("muted by recipient", { status: 200 });
     }
 
-    const tokens = await fetchDeviceTokens(record.user_id);
     if (tokens.length === 0) {
       // Normal, not an error: most users have not opened a build with
       // push wired in yet, or never granted the notification permission.
