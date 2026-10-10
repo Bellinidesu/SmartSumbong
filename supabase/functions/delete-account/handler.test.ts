@@ -1,5 +1,5 @@
 // deno test --allow-env supabase/functions
-import { assertEquals } from "jsr:@std/assert@1.0.14";
+import { assertEquals } from "jsr:@std/assert@1.0.19";
 import { type Call, json, post, setEnv, stubFetch } from "../_test/stub.ts";
 
 setEnv({ SUPABASE_URL: "https://sb.test", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key" });

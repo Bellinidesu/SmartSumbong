@@ -1,5 +1,5 @@
 // deno test --allow-env supabase/functions
-import { assert, assertEquals } from "jsr:@std/assert@1.0.14";
+import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
 import { type Call, json, post, setEnv, stubFetch } from "../_test/stub.ts";
 
 // A throwaway service-account key, so the real JWT signing runs.

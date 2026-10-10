@@ -31,15 +31,15 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Secrets present?
         run: |
           for s in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD BACKUP_PASSPHRASE; do
             [ -n "${!s}" ] || { echo "::error::Missing secret $s"; exit 1; }
           done
-      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
-          version: 2.48.3
+          version: 2.120.0
       - name: Dump and encrypt
         run: |
           supabase link --project-ref xmkpokcnjzgxgwysperh --password "$SUPABASE_DB_PASSWORD" > /dev/null
@@ -53,7 +53,7 @@ jobs:
               --symmetric --cipher-algo AES256 -o "out/smartsumbong-$stamp.tgz.gpg" dump.tgz
           rm -f roles.sql schema.sql data.sql dump.tgz
           ls -la out
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: smartsumbong-backup
           path: out/
