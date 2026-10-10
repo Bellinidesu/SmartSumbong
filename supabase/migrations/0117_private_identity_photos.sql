@@ -1,4 +1,4 @@
--- 0110: identity photos stop being public (backend review, 10 Oct 2026).
+-- 0117: identity photos stop being public (backend review, 10 Oct 2026).
 --
 -- A resident's government ID and registration selfie were stored as
 -- ordinary public Cloudinary images: anyone holding the address could open
@@ -30,6 +30,6 @@ $$;
 comment on function public.is_media_url(text) is
   'True only for delivery URLs in the barangay''s own Cloudinary cloud: '
   'public images under reports, ids, selfies, dispatch or avatars, or '
-  'private (authenticated) images under ids or selfies (0110), with a '
+  'private (authenticated) images under ids or selfies (0117), with a '
   'UUIDv4 object name, an image extension, no signature and no query '
   'string. Mirrored by _pinnedUrl in mobile/core/lib/src/media_upload.dart.';

@@ -1,4 +1,4 @@
--- 0109: signed media uploads (backend review, 10 Oct 2026).
+-- 0116: signed media uploads (backend review, 10 Oct 2026).
 --
 -- Until now every photo and video went to Cloudinary through an unsigned
 -- preset whose name ships inside the APK, so anyone could fill the
@@ -17,7 +17,7 @@ create table if not exists public.rate_limit_hits (
 );
 
 comment on table public.rate_limit_hits is
-  '0109: fixed-window counters for Edge Functions (take_rate_slot). '
+  '0116: fixed-window counters for Edge Functions (take_rate_slot). '
   'A bucket names what is limited and for whom, e.g. upload-ids:<address>.';
 
 alter table public.rate_limit_hits enable row level security;
@@ -48,7 +48,7 @@ begin
 end $$;
 
 comment on function public.take_rate_slot(text, integer, interval) is
-  '0109: true while bucket has had at most p_max calls in the current '
+  '0116: true while bucket has had at most p_max calls in the current '
   'p_window. Edge Functions only (service role).';
 
 revoke all on function public.take_rate_slot(text, integer, interval) from public, anon, authenticated;

@@ -1,4 +1,4 @@
--- 0111: identity photos are deleted from Cloudinary once nothing uses them
+-- 0118: identity photos are deleted from Cloudinary once nothing uses them
 -- (backend review, 10 Oct 2026).
 --
 -- Deleting an account cleared its ID, selfie and profile picture
@@ -21,7 +21,7 @@ create table if not exists public.media_trash (
 );
 
 comment on table public.media_trash is
-  '0111: identity-photo addresses no longer used, waiting a week before '
+  '0118: identity-photo addresses no longer used, waiting a week before '
   'media-cleanup deletes the file (if still unused).';
 
 alter table public.media_trash enable row level security;

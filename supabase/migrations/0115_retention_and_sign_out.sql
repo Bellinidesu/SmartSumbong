@@ -1,4 +1,4 @@
--- 0108: notification retention, and signing people out when their access
+-- 0115: notification retention, and signing people out when their access
 -- changes (backend review, 10 Oct 2026).
 --
 --   1. notifications grew forever: every status change, dispatch and
@@ -31,7 +31,7 @@ as $$
 $$;
 
 comment on function public.purge_old_notifications() is
-  '0108: daily. Read notifications go after 90 days, any after a year.';
+  '0115: daily. Read notifications go after 90 days, any after a year.';
 
 revoke all on function public.purge_old_notifications() from public, anon, authenticated;
 
@@ -52,7 +52,7 @@ begin
 end $$;
 
 comment on function public.end_sessions_on_access_change() is
-  '0108: ends every session of a user whose password was reset by the '
+  '0115: ends every session of a user whose password was reset by the '
   'barangay, or who was suspended or retired.';
 
 revoke all on function public.end_sessions_on_access_change() from public, anon, authenticated;

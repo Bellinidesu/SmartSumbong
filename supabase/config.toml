@@ -1,4 +1,4 @@
-# Supabase CLI settings (0107). Only what deploys need is set here; the
+# Supabase CLI settings (0114). Only what deploys need is set here; the
 # CLI fills in its defaults for the rest. Do not run `supabase config push`
 # from this file: it would overwrite the live project's Auth settings
 # (redirect URLs, rate limits) with those defaults.

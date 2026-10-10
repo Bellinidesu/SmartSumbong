@@ -29,7 +29,7 @@
 // shape as email: neither is identity evidence an admin checked
 // against a government ID, so guard_privileged_user_fields() (0026)
 // never restricted them — they just didn't have columns yet. The
-// avatar has its own public Cloudinary folder (MediaKind.avatar, 0110):
+// avatar has its own public Cloudinary folder (MediaKind.avatar, 0117):
 // the registration selfie is now stored private, a profile picture is
 // meant to be seen.
 

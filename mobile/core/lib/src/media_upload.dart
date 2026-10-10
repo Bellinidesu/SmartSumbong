@@ -94,7 +94,7 @@
 // exactly as before — a deliberate no-regression default, not a silent
 // success.
 
-// SIGNED UPLOADS (0109). Each upload first asks the sign-upload Edge
+// SIGNED UPLOADS (0116). Each upload first asks the sign-upload Edge
 // Function for a signature; the function picks the file name, the formats
 // and the resize the presets used to apply, and only signs folders the
 // caller may write to (registration's ID and selfie are rationed per
@@ -131,7 +131,7 @@ enum MediaKind {
   /// Optional registration selfie. Lands in `users.selfie_url`.
   selfie('selfies'),
 
-  /// Profile picture (0110). Public, unlike the registration selfie it
+  /// Profile picture (0117). Public, unlike the registration selfie it
   /// used to share a folder with. Lands in `users.avatar_url`.
   avatar('avatars'),
 
@@ -354,7 +354,7 @@ class MediaUploader {
     return File(out.path);
   }
 
-  /// Signed upload fields from the sign-upload Edge Function (0109), or null
+  /// Signed upload fields from the sign-upload Edge Function (0116), or null
   /// to use the unsigned preset: the function is not deployed yet, the app
   /// is offline, or Supabase is not set up (tests). A refusal (403/429) is
   /// thrown with the function's own message.
@@ -517,7 +517,7 @@ class MediaUploader {
 
     // A private (authenticated) upload comes back with a signature in its
     // address; what is stored is the address without it, which opens
-    // nothing until signed again (0110).
+    // nothing until signed again (0117).
     final url = (json['secure_url'] as String?)
         ?.replaceFirst(RegExp(r'/image/authenticated/s--[^/]+--/'), '/image/authenticated/');
     if (url == null || !_pinnedUrl.hasMatch(url)) {
@@ -725,7 +725,7 @@ class MediaUploader {
 }
 
 /// An address that opens [url]: unchanged for a public photo; for a
-/// private identity photo (0110), a signed link from sign-upload, which
+/// private identity photo (0117), a signed link from sign-upload, which
 /// only gives one to the photo's owner or an administrator. Null when no
 /// link can be had (offline, or not allowed).
 Future<String?> viewableMediaUrl(String url) async {

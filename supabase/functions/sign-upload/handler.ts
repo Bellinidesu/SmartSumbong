@@ -1,8 +1,8 @@
-// SmartSumbong — sign-upload (0109).
+// SmartSumbong — sign-upload (0116).
 //
 // POST { folder: "reports" | "dispatch" | "ids" | "selfies" | "avatars", video?: boolean }
 //   -> { ok: true, fields: { api_key, timestamp, signature, public_id, ... } }
-// POST { view: "<a stored ids/ or selfies/ address>" }               (0110)
+// POST { view: "<a stored ids/ or selfies/ address>" }               (0117)
 //   -> { ok: true, url: "<a link that opens it>" }
 //
 // The app adds `fields` and the file to its multipart POST to Cloudinary's
@@ -17,7 +17,7 @@
 //                     account exists, at most 10 per network address an hour
 //   avatars           anyone signed in (profile pictures, public)
 //
-// ids/ and selfies/ are stored private (Cloudinary "authenticated", 0110):
+// ids/ and selfies/ are stored private (Cloudinary "authenticated", 0117):
 // their stored address opens nothing. `view` signs a link for the photo's
 // owner or an administrator; the portal signs its own.
 //
@@ -171,7 +171,7 @@ export async function handler(req: Request): Promise<Response> {
       ...(video
         ? { allowed_formats: "mp4" }
         : { allowed_formats: "jpg,png,webp", format: "jpg", transformation: "c_limit,w_1920,q_auto" }),
-      // Identity photos are private (0110): only a signed link opens them.
+      // Identity photos are private (0117): only a signed link opens them.
       ...(folder === "ids" || folder === "selfies" ? { type: "authenticated" } : {}),
     };
     return json({ ok: true, fields: { ...params, api_key: API_KEY, signature: await sign(params) } });

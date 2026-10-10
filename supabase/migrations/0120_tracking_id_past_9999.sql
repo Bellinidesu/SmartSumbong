@@ -1,4 +1,4 @@
--- 0113: tracking IDs past 9,999 (backend review, 10 Oct 2026).
+-- 0120: tracking IDs past 9,999 (backend review, 10 Oct 2026).
 --
 -- assign_tracking_id() (0001) padded the counter with lpad(n, 4, '0'), and
 -- PostgreSQL's lpad also CUTS longer text to that length: report 10,000

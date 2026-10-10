@@ -53,7 +53,7 @@ when something breaks. Written for whoever maintains it next (October 2026).
    `deno check supabase/functions/*/index.ts && deno lint supabase/functions
    && deno test --allow-env supabase/functions`.
    Push the migrations before deploying a function that uses what they add
-   (for example `password-otp` needs 0107's `otp_attempt`).
+   (for example `password-otp` needs 0114's `otp_attempt`).
    `supabase/config.toml` pins each function's JWT check; never run
    `supabase config push` from it.
 
@@ -80,17 +80,17 @@ variable `STAGING_PROJECT_REF` (optional staging checks) (also `SUPABASE_URL`, `
 keep-awake job).
 
 Supabase secrets (Edge Functions): FCM service account values for
-`send-dispatch-push`, and optionally `PUSH_WEBHOOK_SECRET` (0107: once set,
+`send-dispatch-push`, and optionally `PUSH_WEBHOOK_SECRET` (0114: once set,
 the function only answers a caller sending it as `x-webhook-secret`, so add
 that header to the Database Webhook first or pushes stop); `SEMAPHORE_API_KEY` and the OTP secret for
 `password-otp` (SMS reset is switched off in the app until Semaphore credits
 are bought).
 
-**Signed uploads (0109).** `sign-upload` needs `CLOUDINARY_API_KEY` and
+**Signed uploads (0116).** `sign-upload` needs `CLOUDINARY_API_KEY` and
 `CLOUDINARY_API_SECRET` as Supabase secrets; until they are set it answers
 503 and the app keeps using the unsigned presets. The portal signs on its
 own whenever the same two values are in Render's environment. Rollout:
-push 0109, set the secrets, deploy `sign-upload`, release the app, check
+push 0116, set the secrets, deploy `sign-upload`, release the app, check
 that a new complaint photo, a tanod proof photo, a registration ID and a
 portal photo all upload. Only once no phone runs an older build, delete
 `smartsumbong_unsigned` and `smartsumbong_unsigned_video` in Cloudinary;
@@ -105,17 +105,17 @@ as deploying `sign-upload`/`media-cleanup` and the portal. While the two
 disagree, uploads fall back to the unsigned presets (if they still exist)
 and private ID photos will not open in the portal until both match.
 
-**Private identity photos (0110).** New registration IDs and selfies are
+**Private identity photos (0117).** New registration IDs and selfies are
 stored as Cloudinary *authenticated* assets: their stored address opens
 nothing. The portal signs a viewing link each time it shows one (needs
 `CLOUDINARY_API_SECRET` in Render); the app asks `sign-upload` for one when
 it re-reads its own ID. Profile pictures go to the public `avatars/`
-folder. Photos uploaded before 0110 stay public until moved, once, with
+folder. Photos uploaded before 0117 stay public until moved, once, with
 `node scripts/privatize-identity-photos.mjs` (dry run) and then `--apply`
 (it needs the Supabase service key and the Cloudinary key and secret in
 its environment; run it from a trusted machine, never commit them).
 
-**Identity photo cleanup (0111).** When an account is deleted, an ID is
+**Identity photo cleanup (0118).** When an account is deleted, an ID is
 replaced or declined, or a profile picture changes, the old photo's
 address is queued in `media_trash`. A week later the `media-cleanup`
 function deletes the file from Cloudinary if nothing uses it any more
@@ -151,7 +151,7 @@ Singapore portal.
 
 When something is wrong, `docs/INCIDENTS.md` says what to do.
 
-- **Health check** (0112, hourly) — failed scheduled jobs, the database
+- **Health check** (0119, hourly) — failed scheduled jobs, the database
   past 80% of 500 MB, identity photos the cleanup missed, and Edge Function
   failures each raise one alert: every admin is notified once and it shows
   under Settings → System status → *Needs attention* until it clears.

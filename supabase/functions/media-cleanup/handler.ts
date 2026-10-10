@@ -1,4 +1,4 @@
-// SmartSumbong — media-cleanup (0111).
+// SmartSumbong — media-cleanup (0118).
 //
 // Deletes identity photos (ids/, selfies/, avatars/) that nothing has used
 // for a week: a deleted account's ID and selfie, an ID replaced or
@@ -7,7 +7,7 @@
 // only removes the files from Cloudinary and reports back. Complaint and
 // dispatch evidence never reaches the queue.
 //
-// Called once a day by pg_cron (run_media_cleanup(), 0111) with the shared
+// Called once a day by pg_cron (run_media_cleanup(), 0118) with the shared
 // secret in x-cleanup-secret. verify_jwt is off: the secret is the check.
 // Secrets: MEDIA_CLEANUP_SECRET, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
 // plus SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets.

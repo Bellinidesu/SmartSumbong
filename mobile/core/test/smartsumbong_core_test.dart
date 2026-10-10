@@ -109,7 +109,7 @@ void main() {
     });
   });
 
-  group('MediaUploader (0109)', () {
+  group('MediaUploader (0116)', () {
     test('without the signing function it uploads through the unsigned preset', () async {
       final dir = await Directory.systemTemp.createTemp('upload');
       final photo = File('${dir.path}/p.jpg')..writeAsBytesSync([0xff, 0xd8, 0xff, 0xd9]);
@@ -133,7 +133,7 @@ void main() {
       await dir.delete(recursive: true);
     });
 
-    test('a private ID photo is stored without its signature (0110)', () async {
+    test('a private ID photo is stored without its signature (0117)', () async {
       final dir = await Directory.systemTemp.createTemp('upload');
       final photo = File('${dir.path}/id.jpg')..writeAsBytesSync([0xff, 0xd8, 0xff, 0xd9]);
       final uploader = MediaUploader(

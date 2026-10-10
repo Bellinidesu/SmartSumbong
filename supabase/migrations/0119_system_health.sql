@@ -1,11 +1,11 @@
--- 0112: health alerts beyond uptime (backend review, 10 Oct 2026).
+-- 0119: health alerts beyond uptime (backend review, 10 Oct 2026).
 --
 -- The portal's downtime (0098) and crashes (0097) already reach the
 -- admins. These did not:
 --   - a scheduled job failing (the overdue sweeps, retention, the photo
 --     cleanup): pg_cron records it in cron.job_run_details and nobody looks;
 --   - the database nearing the free plan's 500 MB;
---   - the identity-photo cleanup (0111) falling behind;
+--   - the identity-photo cleanup (0118) falling behind;
 --   - an Edge Function failing (push, sign-in codes, uploads, cleanup).
 --
 -- check_system_health() runs hourly. Each problem raises one alert, told
@@ -28,7 +28,7 @@ declare
   v_sig  text;
 begin
   if p_source not in ('server', 'browser', 'function') then return; end if;
-  -- 0112: only the Edge Functions themselves (service role) log as 'function'.
+  -- 0119: only the Edge Functions themselves (service role) log as 'function'.
   if p_source = 'function' and coalesce(auth.role(), '') <> 'service_role' then return; end if;
   v_sig := md5(p_source || '|' || v_page || '|' || v_msg);
   insert into public.portal_errors (source, page, message, detail, signature)
@@ -54,7 +54,7 @@ create table if not exists public.system_alerts (
 );
 
 comment on table public.system_alerts is
-  '0112: one row per kind of problem check_system_health() watches. Open '
+  '0119: one row per kind of problem check_system_health() watches. Open '
   'while cleared_at is null; admins are told when it opens.';
 
 alter table public.system_alerts enable row level security;

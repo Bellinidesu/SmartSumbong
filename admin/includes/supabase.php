@@ -471,7 +471,7 @@ function cloudinary_upload_files(string $field, int $max = 6, string $folder = '
 }
 
 /**
- * The fields that authorise one photo upload (0109). With the API key and
+ * The fields that authorise one photo upload (0116). With the API key and
  * secret in the environment the portal signs the upload itself, fixing the
  * name, formats and resize the unsigned preset used to apply; without them
  * it uses the unsigned preset as before.
