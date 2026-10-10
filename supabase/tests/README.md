@@ -9,6 +9,7 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 | `01_lifecycle.sql` | 102 checks: filing, review, dispatch, tanod updates, resolution and approval, ratings, reopening, escalation, appeals, cancelling, overdue follow-ups, deadline extensions, hand-ups, row-level security for every role |
 | `02_handlers_requests_accounts.sql` | 24 checks: case handlers and take-over, name/ID requests, new admins, account deletion, trail integrity, the keep-awake job |
 | `03_hardening.sql` | 44 checks (0114–0120): login lockout and its per-address limit, SMS code tries, cron-only sweeps, the daily filing limit, upload signing limits, private identity photos and their cleanup, notification retention, sign-out on reset/suspension, health alerts, pausing filing, tracking IDs past 9,999 |
+| `04_smart.sql` | 17 checks (0121–0122, docs/SMART.md): triage scores and reasons (kind, words, whole-word matching, hazard zones, nearby reports, night, word cap), possible duplicates, residents kept out, rules changed and re-scored, a broken rule never blocks filing, tanod ranking, resolution-time estimate |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

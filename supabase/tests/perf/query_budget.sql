@@ -33,6 +33,9 @@ begin
   update public.users set role = 'admin' where id = v_adm;
   select id into v_res from public.users where full_name = 'Perf, Resident 100';
 
+  -- History is loaded with SMART triage (0122) off: it scores new filings,
+  -- and its own cost is timed below on top of this volume.
+  alter table public.reports disable trigger reports_smart_triage;
   insert into public.reports (resident_id, category, subject, description, latitude, longitude, status, created_at)
   select u.id,
          (array['street_obstruction','public_safety_infrastructure','environmental_waste_hazard','animal_welfare',
@@ -43,6 +46,10 @@ begin
          now() - make_interval(hours => g % 26000)
     from generate_series(1, 50000) g
     join lateral (select id from public.users where full_name = 'Perf, Resident ' || (31 + g % 2000)) u on true;
+
+  alter table public.reports enable trigger reports_smart_triage;
+  perform public.smart_triage(id) from (select id from public.reports
+     where status in ('pending_review', 'validated', 'in_progress') order by created_at desc limit 1000) x;
 
   insert into public.notifications (user_id, kind, message, is_read, created_at)
   select u.id, 'status_change', 'Perf notification ' || g, g % 3 <> 0, now() - make_interval(hours => g % 9000)
@@ -76,7 +83,16 @@ begin
     ('admin', 'admin: resident directory',
        $q$ select count(*) from public.account_directory('resident') $q$, 300),
     ('admin', 'admin: search reports by tracking id',
-       $q$ select count(*) from public.reports where tracking_id = 'BRG-2026-0100' $q$, 50)
+       $q$ select count(*) from public.reports where tracking_id = 'BRG-2026-0100' $q$, 50),
+    ('resident', 'resident: file a report, SMART triage included',
+       $q$ insert into public.reports (resident_id, category, subject, description, latitude, longitude)
+           values (:me, 'public_safety_infrastructure', 'Sunog', 'May sunog sa kanto, may mga bata.', 14.5165, 121.0162) $q$, 150),
+    ('admin', 'admin: SMART urgent and high queue, top 50',
+       $q$ select count(*) from (select t.report_id from public.report_triage t
+             where t.level in ('urgent', 'high') order by t.score desc, t.computed_at desc limit 50) x $q$, 50),
+    ('admin', 'admin: SMART possible duplicates of a report',
+       $q$ select count(*) from public.smart_duplicates((select report_id from public.report_triage
+             order by computed_at desc limit 1)) $q$, 100)
   ) as t(who, label, sql, budget_ms)
   loop
     perform set_config('request.jwt.claims', json_build_object('sub', case when r.who = 'admin' then v_adm else v_res end, 'role', 'authenticated')::text, true);
