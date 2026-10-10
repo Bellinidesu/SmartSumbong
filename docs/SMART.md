@@ -5,7 +5,7 @@ read and change, and every result lists the reasons behind it. Nothing
 learns or changes on its own. The rules live in one database row
 (`smart_rules`); the code is `supabase/migrations/0122_smart_triage.sql`.
 
-Status (10 Oct 2026): database only (migrations 0121–0123), tested, not
+Status (10 Oct 2026): database only (migrations 0121–0124), tested, not
 deployed, and not shown in the portal or the app yet.
 
 ## 1. Triage: a score from 0 to 100 for every report
@@ -106,6 +106,15 @@ If a factor keeps turning up in reports that admins lower, it is worth too
 many points; if it keeps turning up in reports they raise, too few. People
 change the rule, not the engine.
 
+## 9. Category hint
+
+Sometimes a resident picks the wrong kind of complaint. Each kind has a
+list of words (`smart_rules.category_words`). When none of the chosen
+kind's words appear but another kind's do, SMART suggests that kind and
+shows the words: "counterflow" and "tricycle", filed as Other, suggest
+Traffic violation. It is a suggestion on the case card; the admin changes
+the kind, and the score is not affected.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
@@ -142,6 +151,11 @@ These times are checked against budgets in `supabase/tests/perf/query_budget.sql
 | `smart_patterns(days)` | admins | recurring problems |
 | `smart_calibration(days)`, `smart_factor_stats(days)` | admins | how the rules compare with people's judgement |
 | `smart_watch()` | pg_cron, every 5 minutes | messages sent |
+| `smart_case_card(report)` | admins | the case page's SMART card in one call |
+| `smart_summary()` | admins | the dashboard tiles |
+| `smart_preview(kind, subject, description, lat, lng)` | admins | the score a complaint would get; saves nothing |
+
+What the screens show, and where, is in `docs/SMART_SCREENS.md`.
 | `smart_rules` (table) | admins read and update | the rules |
 
 The hazard zones (`hazard_zones`, from `admin/assets/map/hazards.geojson`)

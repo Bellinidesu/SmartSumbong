@@ -11,6 +11,7 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 | `03_hardening.sql` | 44 checks (0114–0120): login lockout and its per-address limit, SMS code tries, cron-only sweeps, the daily filing limit, upload signing limits, private identity photos and their cleanup, notification retention, sign-out on reset/suspension, health alerts, pausing filing, tracking IDs past 9,999 |
 | `04_smart.sql` | 17 checks (0121–0122, docs/SMART.md): triage scores and reasons (kind, words, whole-word matching, hazard zones, nearby reports, night, word cap), possible duplicates, residents kept out, rules changed and re-scored, a broken rule never blocks filing, tanod ranking, resolution-time estimate |
 | `05_smart_engine.sql` | 14 checks (0123): admin overrides (reason required, kept through re-scoring, logged, cleared), the watcher (urgent reports without a tanod, told once; dispatched ones not), recurring problems (three weeks yes, one burst no, told once), residents kept out, the schedule, calibration |
+| `06_smart_screens.sql` | 7 checks (0124): Try it scores without saving, the category hint (and when it stays quiet), the case card (both levels, override, reasons, estimate, duplicates, top tanod), the dashboard tiles, residents kept out |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

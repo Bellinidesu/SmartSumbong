@@ -95,16 +95,25 @@ comment on table public.report_triage is
 
 -- ---------- 1. triage -------------------------------------------------------
 
-/** Scores one report and stores the result. Never raises: a failure here
-    must not stop a complaint from being filed. */
-create or replace function public.smart_triage(p_report uuid)
-returns public.report_triage
+/** The score itself, for a report as described: kind, words, place and
+    time, and who filed it (so their own other reports do not count as
+    backing it up). p_exclude is the report's own id, if it exists.
+    Stores nothing; smart_triage() and smart_preview() (0124) use it. */
+create or replace function public._smart_score(
+  p_category    public.complaint_category,
+  p_subject     text,
+  p_description text,
+  p_geom        geography,
+  p_at          timestamptz,
+  p_resident    uuid,
+  p_exclude     uuid default null)
+returns table (score smallint, level text, reasons jsonb)
 language plpgsql
+stable
 security definer
 set search_path = public, extensions
 as $$
 declare
-  r       public.reports%rowtype;
   k       public.smart_rules%rowtype;
   v_text  text;
   v_pts   integer;
@@ -114,22 +123,18 @@ declare
   v_lvl   smallint;
   v_haz   text;
   v_n     integer;
-  v_dups  integer;
   v_hour  integer;
   g       jsonb;
-  v_out   public.report_triage;
 begin
-  select * into r from public.reports where id = p_report;
-  if not found then return null; end if;
   select * into k from public.smart_rules where id = 1;
 
   -- the kind of complaint
-  v_pts := coalesce((k.category_points ->> r.category::text)::integer, 0);
+  v_pts := coalesce((k.category_points ->> p_category::text)::integer, 0);
   v_score := v_pts;
-  v_why := v_why || jsonb_build_object('factor', 'category', 'detail', r.category::text, 'points', v_pts);
+  v_why := v_why || jsonb_build_object('factor', 'category', 'detail', p_category::text, 'points', v_pts);
 
   -- words
-  v_text := lower(r.subject || ' ' || r.description);
+  v_text := lower(coalesce(p_subject, '') || ' ' || coalesce(p_description, ''));
   for g in select * from jsonb_array_elements(k.keyword_groups) loop
     if v_text ~ (g ->> 'pattern') then
       v_pts := least((g ->> 'points')::integer, k.keyword_cap - v_kw);
@@ -144,57 +149,82 @@ begin
   v_score := v_score + v_kw;
 
   -- hazard zone
-  select z.level, z.hazard into v_lvl, v_haz
-    from public.hazard_zones z
-   where st_intersects(z.geom, r.geom::geometry)
-   order by z.level desc, z.hazard
-   limit 1;
-  if v_lvl is not null then
-    v_pts := coalesce((k.hazard_points ->> v_lvl::text)::integer, 0);
-    v_score := v_score + v_pts;
-    v_why := v_why || jsonb_build_object('factor', 'hazard zone',
-      'detail', format('NOAH %s zone, %s', v_haz, (array['low', 'medium', 'high'])[v_lvl]), 'points', v_pts);
-  end if;
+  if p_geom is not null then
+    select z.level, z.hazard into v_lvl, v_haz
+      from public.hazard_zones z
+     where st_intersects(z.geom, p_geom::geometry)
+     order by z.level desc, z.hazard
+     limit 1;
+    if v_lvl is not null then
+      v_pts := coalesce((k.hazard_points ->> v_lvl::text)::integer, 0);
+      v_score := v_score + v_pts;
+      v_why := v_why || jsonb_build_object('factor', 'hazard zone',
+        'detail', format('NOAH %s zone, %s', v_haz, (array['low', 'medium', 'high'])[v_lvl]), 'points', v_pts);
+    end if;
 
-  -- other residents, same kind, close in place and time
-  select count(distinct o.resident_id) into v_n
-    from public.reports o
-   where o.id <> r.id
-     and o.category = r.category
-     and o.resident_id <> r.resident_id
-     and o.deleted_at is null
-     and o.status not in ('rejected', 'cancelled')
-     and o.created_at between r.created_at - make_interval(hours => k.corroboration_hours)
-                          and r.created_at + make_interval(hours => k.corroboration_hours)
-     and st_dwithin(o.geom, r.geom, k.corroboration_metres);
-  if v_n > 0 then
-    v_pts := least(v_n * k.corroboration_points, k.corroboration_cap);
-    v_score := v_score + v_pts;
-    v_why := v_why || jsonb_build_object('factor', 'nearby reports',
-      'detail', format('%s other resident%s reported this within %s m', v_n, case when v_n = 1 then '' else 's' end,
-                       k.corroboration_metres),
-      'points', v_pts);
+    -- other residents, same kind, close in place and time
+    select count(distinct o.resident_id) into v_n
+      from public.reports o
+     where o.id is distinct from p_exclude
+       and o.category = p_category
+       and o.resident_id is distinct from p_resident
+       and o.deleted_at is null
+       and o.status not in ('rejected', 'cancelled')
+       and o.created_at between p_at - make_interval(hours => k.corroboration_hours)
+                            and p_at + make_interval(hours => k.corroboration_hours)
+       and st_dwithin(o.geom, p_geom, k.corroboration_metres);
+    if v_n > 0 then
+      v_pts := least(v_n * k.corroboration_points, k.corroboration_cap);
+      v_score := v_score + v_pts;
+      v_why := v_why || jsonb_build_object('factor', 'nearby reports',
+        'detail', format('%s other resident%s reported this within %s m', v_n, case when v_n = 1 then '' else 's' end,
+                         k.corroboration_metres),
+        'points', v_pts);
+    end if;
   end if;
 
   -- night, for safety kinds
-  v_hour := extract(hour from r.created_at at time zone 'Asia/Manila');
+  v_hour := extract(hour from p_at at time zone 'Asia/Manila');
   if (v_hour >= 22 or v_hour < 5)
-     and r.category in ('peace_order_nuisance', 'public_safety_infrastructure', 'traffic_violation') then
+     and p_category in ('peace_order_nuisance', 'public_safety_infrastructure', 'traffic_violation') then
     v_score := v_score + k.night_points;
     v_why := v_why || jsonb_build_object('factor', 'night', 'detail', format('filed at %s:00', v_hour),
                                          'points', k.night_points);
   end if;
 
+  v_score := greatest(0, least(100, v_score));
+  return query select v_score::smallint,
+         case when v_score >= k.urgent_from then 'urgent'
+              when v_score >= k.high_from   then 'high'
+              when v_score >= k.normal_from then 'normal'
+              else 'low' end,
+         v_why;
+end $$;
+
+revoke all on function public._smart_score(public.complaint_category, text, text, geography, timestamptz, uuid, uuid)
+  from public, anon, authenticated;
+
+/** Scores one report and stores the result. Never raises: a failure here
+    must not stop a complaint from being filed. */
+create or replace function public.smart_triage(p_report uuid)
+returns public.report_triage
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  r      public.reports%rowtype;
+  s      record;
+  v_dups integer;
+  v_out  public.report_triage;
+begin
+  select * into r from public.reports where id = p_report;
+  if not found then return null; end if;
+  select * into s from public._smart_score(r.category, r.subject, r.description, r.geom, r.created_at, r.resident_id, r.id);
   select count(*) into v_dups from public.smart_duplicates_of(r.id);
 
-  v_score := greatest(0, least(100, v_score));
   insert into public.report_triage as t (report_id, score, level, reasons, possible_duplicates, computed_at)
-  values (r.id, v_score,
-          case when v_score >= k.urgent_from then 'urgent'
-               when v_score >= k.high_from   then 'high'
-               when v_score >= k.normal_from then 'normal'
-               else 'low' end,
-          v_why, v_dups, now())
+  values (r.id, s.score, s.level, s.reasons, v_dups, now())
   on conflict (report_id) do update
      set score = excluded.score, level = excluded.level, reasons = excluded.reasons,
          possible_duplicates = excluded.possible_duplicates, computed_at = excluded.computed_at
