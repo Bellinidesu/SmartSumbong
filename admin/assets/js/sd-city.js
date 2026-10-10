@@ -81,10 +81,11 @@
     ['match', ['get', 'c'], -1, ch(p.roofFlat, i)].concat(...p.roofs.map((c, j) => [j, ch(c, i)]), [ch(p.roofs[0], i)])]);
   const wallKey = p => shaded(i => ['match', ['get', 'w']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]), i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
   // houses in a set of pastels (one for each, from where it stands), towers in neutrals; at night a house with its lights on adds warmth
-  const wallPlain = p => shaded(i => ['case', ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+  const wallPlain = p => shaded(i => ['case', ['==', ['coalesce', ['get', 'wt'], 0], 1], ch(p.wk.tan, i), ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
   // a wall face: its house's plain colour, the tone baked for the face, leaning warm where the sun reaches it and cool where only the sky does
   const faceColour = p => shaded(i => ['*', ['case', ['has', 'lw'], ['match', ['get', 'lw']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]),
+    ['==', ['coalesce', ['get', 'wt'], 0], 1], ch(p.wk.tan, i),
     ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])],
     ['+', p.scool[i], ['*', ['coalesce', ['get', 's2'], 0], p.swarm[i] - p.scool[i]]]],
@@ -131,6 +132,9 @@
     [/Prayer Room/, { w: 'white', rk: 'grey', type: 'gable' }],
     [/Shrine|Chapel|Church|Ang Dating/, { w: 'white', rk: 'grey', type: 'gable', tower: 1 }],
   ];
+  // commercial blocks (shops, malls, hotels, offices, car parks) are tan, the rest stay in the neighbourhood's pastels and greys
+  const COMM = new Set(['commercial', 'retail', 'hotel', 'parking', 'supermarket', 'office', 'pop-up_store']);
+  const comm = (d, idx) => { const t = d.info && d.info[idx]; return t && COMM.has(t[1]) ? 1 : 0; };
   const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
   const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) { const ax = ring[i], ay = ring[i + 1], bx = ring[j], by = ring[j + 1]; if ((ay > pt[1]) !== (by > pt[1]) && pt[0] < (bx - ax) * (pt[1] - ay) / (by - ay) + ax) c = !c; } return c; };
   // A thin plate over each wall face (outside it by a hand's width), in two bands: the foot, and the rest of the wall. Its colour is the
@@ -147,14 +151,14 @@
       if (tone[0].length !== k) return;
       const nb = tone.length;
       let area = 0; for (let i = 0; i < k; i++) { const j = (i + 1) % k; area += ring[2 * i] * MX * ring[2 * j + 1] * MY - ring[2 * j] * MX * ring[2 * i + 1] * MY; }
-      const sg = area > 0 ? 1 : -1, wi = Math.min(7, Math.floor(hit01(b[4], b[5]) * 8)), g = b[12] || 0;
+      const sg = area > 0 ? 1 : -1, wi = Math.min(7, Math.floor(hit01(b[4], b[5]) * 8)), g = b[12] || 0, wt = comm(d, idx);
       for (let i = 0; i < k; i++) {
         const j = (i + 1) % k, x0 = ring[2 * i] * MX, y0 = ring[2 * i + 1] * MY, x1 = ring[2 * j] * MX, y1 = ring[2 * j + 1] * MY, dx = x1 - x0, dy = y1 - y0, ln = Math.hypot(dx, dy);
         if (ln < 1.4) continue;
         const nx = sg * dy / ln * .15, ny = -sg * dx / ln * .15, ox = nx * .8, oy = ny * .8;   // the plate stands 12 cm clear of the wall: closer than that and the depth buffer cannot tell the two surfaces apart at a distance
         const quad = [[x0 + ox, y0 + oy], [x1 + ox, y1 + oy], [x1 + nx + ox, y1 + ny + oy], [x0 + nx + ox, y0 + ny + oy], [x0 + ox, y0 + oy]].map(([a, c]) => [a / MX, c / MY]);
         const bands = []; for (let t = 0; t < nb; t++) bands.push([BANDS[t], t === nb - 1 ? h : Math.min(BANDS[t + 1], h), t]);
-        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35, s2: sunS ? dig(sunS[up][i]) / 35 : 0 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
+        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, wt, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35, s2: sunS ? dig(sunS[up][i]) / 35 : 0 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
       }
     });
     return { type: 'FeatureCollection', features: out };
@@ -179,6 +183,31 @@
       const lit = (-si * side) * sx + (co * side) * sy > 0, q = [[-hl, 0], [hl, 0], [hl, side * hw], [-hl, side * hw], [-hl, 0]].map(([a, b]) => [(x0 + a * co - b * si) / MX, (y0 + a * si + b * co) / MY]);
       return { type: 'Feature', properties: Object.assign({ b: h, t: h + rise, s: lit ? ((isDark() ? lk.litN : 0) || lk.lit || 1.1) : ((isDark() ? lk.shadeN : 0) || lk.shade || .75) }, props), geometry: { type: 'Polygon', coordinates: [q] } };
     });
+    // Apple's plain buildings are low-poly but detailed: a parapet and roof boxes on flat roofs, a ledge where the podium ends and a crown set in from the edge on tall compact ones.
+    // All stacked prisms, set out the same way every time, all within the footprint (the boxes and the crown rise a few metres over the roof, as plant and crowns do).
+    const shrink = (poly, x0, y0, co, si, L, W, dd) => poly.map(([lng, lat]) => {
+      const u = (lng * MX - x0) * co + (lat * MY - y0) * si, v = -(lng * MX - x0) * si + (lat * MY - y0) * co, fu = 1 - dd / Math.max(2, L / 2), fv = 1 - dd / Math.max(2, W / 2);
+      const uu = u * fu, vv = v * fv; return [(x0 + uu * co - vv * si) / MX, (y0 + uu * si + vv * co) / MY];
+    });
+    const polyArea = rg => { let a = 0; const n = rg.length / 2; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a += rg[2 * i] * MX * rg[2 * j + 1] * MY - rg[2 * j] * MX * rg[2 * i + 1] * MY; } return Math.abs(a) / 2; };
+    const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall) => {
+      const A = L * W; if (A < 260 || h < 5) return;
+      const co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY, T = (b, t, rg) => trim.push({ type: 'Feature', properties: { b, t, k: 'p' }, geometry: { type: 'Polygon', coordinates: rg } });
+      if (flat) {
+        T(h, h + .9, [poly, shrink(poly, x0, y0, co, si, L, W, 1.1).reverse()]);
+        const n = Math.min(6, Math.floor(A / 450));
+        for (let k = 0; k < n; k++) {
+          const u = (hit01(cx, k + 1) - .5) * L * .72, v = (hit01(cy, k + 7) - .5) * W * .72, hl = 1.3 + hit01(cx + k, cy) * 2, hw = 1.2 + hit01(cy + k, cx) * 1.6;
+          const cxm = (x0 + u * co - v * si) / MX, cym = (y0 + u * si + v * co) / MY;
+          if (inRing([cxm, cym], ring) && inRing([(x0 + (u + hl) * co - (v + hw) * si) / MX, (y0 + (u + hl) * si + (v + hw) * co) / MY], ring)) T(h, h + 1.4 + hit01(k, cx) * 1.4, [box(x0, y0, co, si, u, v, hl, hw)]);
+        }
+      }
+      if (tall && A >= 900 && polyArea(ring) / A > .72) {
+        const hp = Math.min(12, Math.max(6, h * .3));
+        T(hp, hp + .7, [shrink(poly, x0, y0, co, si, L, W, -.55), poly.slice().reverse()]);     // the ledge where the podium ends
+        if (flat) T(h, h + 2.4, [shrink(poly, x0, y0, co, si, L, W, Math.min(4, Math.min(L, W) * .12))]);   // the crown, set in from the edge
+      }
+    };
     d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone, rtone, lit], idx) => {
       if (window.sdModels && window.sdModels.replaces.has(idx)) return;   // drawn as a model
       const kk = tone || 1, rr = rtone || kk, gg = lit || 0, wi = Math.min(7, Math.floor(hit01(cx, cy) * 8));
@@ -222,7 +251,8 @@
         }
         return;
       }
-      walls.push({ type: 'Feature', properties: { h, k: kk, g: gg, wi }, geometry: { type: 'Polygon', coordinates: [poly] } });
+      walls.push({ type: 'Feature', properties: { h, k: kk, g: gg, wi, wt: comm(d, idx) }, geometry: { type: 'Polygon', coordinates: [poly] } });
+      topDetail(poly, ring, h, L, W, cx, cy, th, !rt, h >= 20);
       if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
       if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: rr }).forEach(f => roofs.push(f)); return; }
       if (lk.mode === 'flat') { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: ci, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
