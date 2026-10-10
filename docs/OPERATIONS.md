@@ -82,6 +82,20 @@ folder. Photos uploaded before 0110 stay public until moved, once, with
 (it needs the Supabase service key and the Cloudinary key and secret in
 its environment; run it from a trusted machine, never commit them).
 
+**Identity photo cleanup (0111).** When an account is deleted, an ID is
+replaced or declined, or a profile picture changes, the old photo's
+address is queued in `media_trash`. A week later the `media-cleanup`
+function deletes the file from Cloudinary if nothing uses it any more
+(evidence photos are never queued). To switch it on, once:
+1. `supabase secrets set MEDIA_CLEANUP_SECRET=<long random string>` (the
+   Cloudinary key and secret are already set for `sign-upload`), then
+   deploy `media-cleanup`.
+2. In the SQL editor, store where to call it, in Vault:
+   `select vault.create_secret('https://xmkpokcnjzgxgwysperh.supabase.co/functions/v1/media-cleanup', 'media_cleanup_url');`
+   `select vault.create_secret('<the same long random string>', 'media_cleanup_secret');`
+
+The daily `media-cleanup` job does nothing until both are there.
+
 **Bot check on sign-in (CAPTCHA).** Built in but off. To switch it on:
 1. Cloudflare → Turnstile → add a widget (mode *Invisible* or *Managed*)
    for `smartsumbong-ph.onrender.com`; note the site key and secret key.

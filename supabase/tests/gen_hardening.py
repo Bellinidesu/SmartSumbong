@@ -1,4 +1,4 @@
-"""03_hardening.sql: checks for 0107-0110 (login lockout, SMS codes, cron-only
+"""03_hardening.sql: checks for 0107-0111 (login lockout, SMS codes, cron-only
 sweeps, daily filing limit, notification retention, sign-out on access
 changes), same rolled-back pattern as 01_lifecycle.sql."""
 import os
@@ -102,6 +102,39 @@ step('only identity photos may be private', 'pg',
 step('a profile picture in avatars/ is accepted', 'res',
      f"update public.users set avatar_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/{U}.jpg' where id = v_res;\n    execute 'reset role';\n"
      "    if (select avatar_url from public.users where id = v_res) is null then raise exception 'not saved'; end if;")
+
+# ---- 0111: identity photo cleanup
+A1 = "https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg"
+A2 = "https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e13.jpg"
+step('a replaced profile picture is queued for deletion', 'pg',
+     f"update public.users set avatar_url = '{A1}' where id = v_res2;\n"
+     f"    update public.users set avatar_url = '{A2}' where id = v_res2;\n"
+     f"    if not exists (select 1 from public.media_trash where url = '{A1}') then raise exception 'not queued'; end if;\n"
+     f"    if exists (select 1 from public.media_trash where url = '{A2}') then raise exception 'current one queued'; end if;")
+step('nothing is deleted within the first week', 'pg',
+     f"if '{A1}' = any (array(select public.media_trash_due())) then raise exception 'due too soon'; end if;")
+step('after a week an unused photo is due', 'pg',
+     f"update public.media_trash set queued_at = now() - interval '8 days' where url = '{A1}';\n"
+     f"    if not ('{A1}' = any (array(select public.media_trash_due()))) then raise exception 'not due'; end if;")
+step('a photo back in use is never due', 'pg',
+     f"update public.users set avatar_url = '{A1}' where id = v_tan;\n"
+     f"    if '{A1}' = any (array(select public.media_trash_due())) then raise exception 'in-use photo due'; end if;\n"
+     f"    perform public.media_trash_done(array[]::text[]);\n"
+     f"    if exists (select 1 from public.media_trash where url = '{A1}') then raise exception 'not dropped from queue'; end if;")
+step('complaint evidence is never queued', 'pg',
+     "perform public.queue_media_trash('https://res.cloudinary.com/nwb2kryl/image/upload/v17/reports/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e14.jpg');\n"
+     "    if exists (select 1 from public.media_trash where url like '%/reports/%') then raise exception 'evidence queued'; end if;")
+step('a deleted account queues its ID and selfie', 'pg',
+     "perform set_config('request.jwt.claims', '', true); perform set_config('request.jwt.claim.sub', '', true);\n"
+     "    delete from public.media_trash;\n"
+     "    update public.users set id_image_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e15.jpg' where id = v_res2;\n"
+     "    update public.users set id_image_url = null, selfie_url = null where id = v_res2;\n"
+     "    if not exists (select 1 from public.media_trash where url like '%/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e15.jpg') then raise exception 'ID not queued'; end if;\n"
+    "    if not exists (select 1 from public.media_trash where url like '%/selfies/%') then raise exception 'selfie not queued'; end if;")
+step('the app cannot read or clear the queue', 'res', "perform public.media_trash_due();", fail=True)
+step('cleanup job scheduled, and idle without its Vault secrets', 'pg',
+     "if not exists (select 1 from cron.job where jobname = 'media-cleanup' and active) then raise exception 'no job'; end if;\n"
+     "    perform public.run_media_cleanup();")
 
 # ---- 0108: notification retention, sign-out on access changes
 step('old read notifications are purged, recent ones kept', 'pg',

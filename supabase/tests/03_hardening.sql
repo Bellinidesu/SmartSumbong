@@ -261,6 +261,87 @@ begin
     v_log := v_log || E'\n' || 'FAIL a profile picture in avatars/ is accepted: ' || left(sqlerrm, 220);
   end;
   begin
+        update public.users set avatar_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg' where id = v_res2;
+    update public.users set avatar_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e13.jpg' where id = v_res2;
+    if not exists (select 1 from public.media_trash where url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg') then raise exception 'not queued'; end if;
+    if exists (select 1 from public.media_trash where url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e13.jpg') then raise exception 'current one queued'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a replaced profile picture is queued for deletion';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a replaced profile picture is queued for deletion: ' || left(sqlerrm, 220);
+  end;
+  begin
+        if 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg' = any (array(select public.media_trash_due())) then raise exception 'due too soon'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  nothing is deleted within the first week';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL nothing is deleted within the first week: ' || left(sqlerrm, 220);
+  end;
+  begin
+        update public.media_trash set queued_at = now() - interval '8 days' where url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg';
+    if not ('https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg' = any (array(select public.media_trash_due()))) then raise exception 'not due'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  after a week an unused photo is due';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL after a week an unused photo is due: ' || left(sqlerrm, 220);
+  end;
+  begin
+        update public.users set avatar_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg' where id = v_tan;
+    if 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg' = any (array(select public.media_trash_due())) then raise exception 'in-use photo due'; end if;
+    perform public.media_trash_done(array[]::text[]);
+    if exists (select 1 from public.media_trash where url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg') then raise exception 'not dropped from queue'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a photo back in use is never due';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a photo back in use is never due: ' || left(sqlerrm, 220);
+  end;
+  begin
+        perform public.queue_media_trash('https://res.cloudinary.com/nwb2kryl/image/upload/v17/reports/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e14.jpg');
+    if exists (select 1 from public.media_trash where url like '%/reports/%') then raise exception 'evidence queued'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  complaint evidence is never queued';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL complaint evidence is never queued: ' || left(sqlerrm, 220);
+  end;
+  begin
+        perform set_config('request.jwt.claims', '', true); perform set_config('request.jwt.claim.sub', '', true);
+    delete from public.media_trash;
+    update public.users set id_image_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e15.jpg' where id = v_res2;
+    update public.users set id_image_url = null, selfie_url = null where id = v_res2;
+    if not exists (select 1 from public.media_trash where url like '%/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e15.jpg') then raise exception 'ID not queued'; end if;
+    if not exists (select 1 from public.media_trash where url like '%/selfies/%') then raise exception 'selfie not queued'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a deleted account queues its ID and selfie';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a deleted account queues its ID and selfie: ' || left(sqlerrm, 220);
+  end;
+  begin
+    perform set_config('request.jwt.claims', json_build_object('sub', v_res::text, 'role', 'authenticated')::text, true);
+    perform set_config('request.jwt.claim.sub', v_res::text, true);
+    execute 'set local role authenticated';
+    perform public.media_trash_due();
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'BAD the app cannot read or clear the queue (should have been refused)';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  the app cannot read or clear the queue (refused: ' || left(sqlerrm, 120) || ')';
+  end;
+  begin
+        if not exists (select 1 from cron.job where jobname = 'media-cleanup' and active) then raise exception 'no job'; end if;
+    perform public.run_media_cleanup();
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  cleanup job scheduled, and idle without its Vault secrets';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL cleanup job scheduled, and idle without its Vault secrets: ' || left(sqlerrm, 220);
+  end;
+  begin
         insert into public.notifications (user_id, kind, message, is_read, created_at) values
       (v_res, 'status_change', 'Sweep old read', true, now() - interval '91 days'),
       (v_res, 'status_change', 'Sweep old unread', false, now() - interval '91 days'),
