@@ -95,7 +95,7 @@
   const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src + '?v=' + (window.SD_MAPV || ''); });
   // The landmark models are a flag, off by default: the City view is the plain coloured buildings of the open data (OpenStreetMap, Overture), by day and by night. The models, their
   // light and their pictures are not even downloaded until it is on: add ?models=1 to the page address, or set localStorage ss-models to 1.
-  const ON = (() => { try { return !(/[?&]models=0\b/.test(location.search) || localStorage.getItem('ss-models') === '0'); } catch (e) { return true; } })();
+  const ON = (() => { try { return /[?&]models=(1|all)(&|$)/.test(location.search) || ['1', 'all'].includes(localStorage.getItem('ss-models')) || window.SD_MODELS_ALL === true; } catch (e) { return false; } })();   // plain by default again (10 Oct, Ace): the models are opt-in
   // a landmark drawn from a sheet is shown on the map only once it is approved (tools/viewer.py); ?models=all shows the drafts too
   const ALL = (() => { try { return window.SD_MODELS_ALL === true || /[?&]models=all\b/.test(location.search) || localStorage.getItem('ss-models') === 'all'; } catch (e) { return false; } })();
   const shown = md => ALL || !md.sheet || md.approved;
