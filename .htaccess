@@ -27,6 +27,11 @@
     Require all denied
 </FilesMatch>
 
+# MapLibre 6 loads its worker as a module (maplibre-gl-worker.mjs); browsers
+# refuse a module served with a non-JavaScript type, and older mime.types
+# lists do not know .mjs.
+AddType text/javascript .mjs
+
 # Friendly error pages (industry pass 3) instead of Apache's defaults.
 ErrorDocument 403 /admin/error.php
 ErrorDocument 404 /admin/error.php
