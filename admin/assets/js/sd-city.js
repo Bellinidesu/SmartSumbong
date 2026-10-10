@@ -134,7 +134,8 @@
   ];
   // commercial blocks (shops, malls, hotels, offices, car parks) are tan, the rest stay in the neighbourhood's pastels and greys
   const COMM = new Set(['commercial', 'retail', 'hotel', 'parking', 'supermarket', 'office', 'pop-up_store']);
-  const comm = (d, idx) => { const t = d.info && d.info[idx]; return t && COMM.has(t[1]) ? 1 : 0; };
+  const COMM_NAME = /mall|hotel|resort|inn|suites|mansion|residences|plaza|centre|center|market|store|shop|bank|casino|theat|garage|carpark|parking|office|airlines|express|marriott|belmont|sheraton|okura|holiday|newport/i;
+  const comm = (d, idx) => { const t = d.info && d.info[idx]; return t && (COMM.has(t[1]) || COMM_NAME.test(t[0] || '')) ? 1 : 0; };
   const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
   const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) { const ax = ring[i], ay = ring[i + 1], bx = ring[j], by = ring[j + 1]; if ((ay > pt[1]) !== (by > pt[1]) && pt[0] < (bx - ax) * (pt[1] - ay) / (by - ay) + ax) c = !c; } return c; };
   // A thin plate over each wall face (outside it by a hand's width), in two bands: the foot, and the rest of the wall. Its colour is the

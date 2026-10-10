@@ -98,6 +98,27 @@ def front_on_edge(ring, ctx):
     return (q.x, q.y), (nx, ny), (-ny, nx), across
 
 
+def entrance(m, ring, ctx, depth, width, zc, col, roof_col=None, pole=0.0):
+    """A porch or portico on the footprint's own front edge: a slab roof on four columns, two steps, a dark door, and optionally a flagpole beside it."""
+    (qx, qy), fr, al, across = front_on_edge(ring, ctx)
+    width = max(3.0, min(width, across * 1.6))
+    tf = math.atan2(al[1], al[0])
+    mx, my = qx + fr[0] * depth / 2, qy + fr[1] * depth / 2
+    m.slab(mx, my, width, depth, tf, zc, .45, col)
+    for sx in (-1, 1):
+        m.column(qx + fr[0] * (depth - .45) + al[0] * sx * (width / 2 - .45), qy + fr[1] * (depth - .45) + al[1] * sx * (width / 2 - .45), 0, zc, .24, C['white'])
+    if width > 6.5:
+        for sx in (-.33, .33):
+            m.column(qx + fr[0] * (depth - .45) + al[0] * sx * width, qy + fr[1] * (depth - .45) + al[1] * sx * width, 0, zc, .24, C['white'])
+    m.box(qx + fr[0] * (depth + .35), qy + fr[1] * (depth + .35), 0, width * .8, .7, .3, tf, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
+    m.box(qx + fr[0] * (depth + .8), qy + fr[1] * (depth + .8), 0, width * .6, .6, .15, tf, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
+    m.vprism([(-.9, 0), (.9, 0), (.9, 2.2), (-.9, 2.2)], (qx + fr[0] * .06, qy + fr[1] * .06, 0), al, fr, 0, .25, 'panel', C['slate'])
+    if pole:
+        px, py = qx + fr[0] * (depth + 1.6) + al[0] * (width / 2 + 1.4), qy + fr[1] * (depth + 1.6) + al[1] * (width / 2 + 1.4)
+        m.cylinder(px, py, 0, pole, .09, 'plain', C['grey'], seg=6)
+        m.box(px + al[0] * .5, py + al[1] * .5, pole - 1.3, 1.0, .05, .7, tf, 'plain', C['red'], 'plain', C['red'], True, 40.0)
+
+
 def crown(m, ring, h, ctx, col, big=True):
     """A cornice band, a setback of mechanical floor with louvres, and rooftop plant."""
     poly = Polygon(ring).buffer(.4, join_style=2)
@@ -238,6 +259,11 @@ def z_gas(m, ring, ctx, p):
     for sy in (-1, 1):                                      # the red band along both long edges, and two pump islands
         m.box(cx - s_ * sy * (cw / 2), cy + c * sy * (cw / 2), z + .5, cl, .3, .5, th, 'plain', C['red'], 'plain', C['red'], True, 40.0)
         m.box(cx - s_ * sy * (cw * .22), cy + c * sy * (cw * .22), 0, cl * .6, 1.0, .35, th, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
+    for sy in (-1, 1):                                      # the pumps: three on each island
+        for k in (-1, 0, 1):
+            m.box(cx - s_ * sy * (cw * .22) + c * k * cl * .2, cy + c * sy * (cw * .22) + s_ * k * cl * .2, .35, .7, .5, 1.3, th, 'plain', C['white'], 'plain', C['red'], True, 40.0)
+    m.cylinder(cx - c * (cl / 2 + 1.2) + s_ * (cw / 2 + 1.0), cy - s_ * (cl / 2 + 1.2) - c * (cw / 2 + 1.0), 0, 7.0, .12, 'plain', C['grey'], seg=6)   # the price pole
+    m.box(cx - c * (cl / 2 + 1.2) + s_ * (cw / 2 + 1.0), cy - s_ * (cl / 2 + 1.2) - c * (cw / 2 + 1.0), 6.6, 1.6, .25, 2.2, th, 'plain', C['red'], 'plain', C['red'], True, 40.0)
     kx, ky = cx + c * (cl / 2 + 2.6), cy + s_ * (cl / 2 + 2.6)
     m.box(kx, ky, 0, 5.0, 4.0, 3.2, th, 'plain', C['white'], 'roofdeck', C['grey'], True, 40.0)
 
@@ -283,6 +309,7 @@ def z_church(m, ring, ctx, p):
     m.box(tx, ty, 0, 3.6, 3.6, th_, th, 'plain', col, 'plain', col, True, 6.0)
     m.hip(tx, ty, 3.6, 3.6, th, th_, 3.0, 'tile', C['terra'], over=.2)
     m.cylinder(tx, ty, th_ + 2.8, th_ + 4.4, .1, 'plain', C['yellow'], seg=6)
+    entrance(m, ring, ctx, 2.8, 5.0, min(h * .7, 6.0), C['white'])            # the porch on the front, an arched door in it
 
 
 def z_school(m, ring, ctx, p):
@@ -295,6 +322,7 @@ def z_school(m, ring, ctx, p):
         m.hip(ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th'], h, min(2.4, ctx['W'] * .18), 'sheet', C['rooftile'], over=.5)
     else:
         m.cap(ring, h, MAT['roofdeck'], C['white'], True)
+    entrance(m, ring, ctx, 2.6, 6.0, min(3.6, h * .8), C['white'], pole=7.5)
 
 
 def z_civic(m, ring, ctx, p):
@@ -305,6 +333,7 @@ def z_civic(m, ring, ctx, p):
     m.prism(ring, 0, h, 'plain', col, 'roofdeck', C['white'], top=True, cell=5)
     poly = Polygon(ring).buffer(.25, join_style=2)
     m.prism(list(poly.exterior.coords)[:-1], h - .5, h + .6, 'plain', C['white'], 'plain', C['white'], top=True, cell=5)
+    entrance(m, ring, ctx, 3.4, 9.0, min(h * .6, 5.2), C['white'], pole=9.0)
 
 
 # The facade kit: Apple's plain buildings are detailed by shape, not by picture, so every type that stands on a footprint gets thin ribs and floor lines laid along its own edges
