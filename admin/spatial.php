@@ -554,11 +554,30 @@ function setPinsSource(want) {
 
 // The outline and the big type follow the theme.
 function outlineLook() {
-  if (!map.getLayer('outline')) return;
-  const dark = isDark();
-  map.setPaintProperty('outline', 'line-color', dark ? '#FF9D3C' : '#14181d');
-  map.setLayoutProperty('outline-glow', 'visibility', dark ? 'visible' : 'none');
+  // No line round the barangay any more (Ace, 10 Oct): what is outside is fog of war, soft at its edge, and it breathes slowly.
+  ['outline', 'outline-glow'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none'); });
+  if (!map.getLayer('fog-edge') && map.getSource('fog')) {
+    map.addLayer({ id: 'fog-edge', type: 'line', source: 'fog', filter: ['==', ['get', 'role'], 'outline'], layout: { 'line-cap': 'round', 'line-join': 'round' },
+                   paint: { 'line-color': '#0d1117', 'line-width': 140, 'line-blur': 120, 'line-opacity': .3 } }, 'outline');
+  }
+  if (map.getLayer('fog-edge')) map.setPaintProperty('fog-edge', 'line-color', isDark() ? '#070A18' : '#0d1117');
 }
+// The fog creeps: its opacity swells and ebbs over about nine seconds (flat view and City view alike); not at all for anyone who asked for less motion.
+(function () {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const t0 = performance.now();
+  const tick = now => {
+    const k = (Math.sin((now - t0) / 9000 * Math.PI * 2) + 1) / 2;       // 0..1
+    try {
+      if (map.getLayer('fog') && map.getLayoutProperty('fog', 'visibility') !== 'none') map.setPaintProperty('fog', 'fill-opacity', .42 + .12 * k);
+      if (map.getLayer('fog-edge')) map.setPaintProperty('fog-edge', 'line-opacity', .24 + .14 * k);
+      if (map.getLayer('cd-fog-far') && map.getLayoutProperty('cd-fog-far', 'visibility') !== 'none') map.setPaintProperty('cd-fog-far', 'fill-opacity', .9 + .06 * k);
+      ['cd-fog-d', 'cd-fog-n'].forEach(id => { if (map.getLayer(id) && map.getLayoutProperty(id, 'visibility') !== 'none') map.setPaintProperty(id, 'raster-opacity', .88 + .12 * k); });
+    } catch (e) { /* the map is not ready yet */ }
+    setTimeout(() => requestAnimationFrame(tick), 120);                 // about eight updates a second: slow movement does not need more
+  };
+  requestAnimationFrame(tick);
+})();
 function bigLabelLook() {
   if (!map.getLayer('biglab')) return;
   const dark = isDark(), m = dark ? 1.45 : 1;
@@ -636,6 +655,7 @@ async function loadBoundary() {
       { type: 'Feature', properties: { role: 'outline' }, geometry: { type: 'MultiLineString', coordinates: rings } },
     ] });
     map.setLayoutProperty('fog', 'visibility', document.getElementById('f-fog').checked ? 'visible' : 'none');
+    outlineLook();
     if (loaded && CLIP_PINS) draw();   // the pins outside the boundary come off
 
     // The outline is drawn, but the view stays on the residential area.
