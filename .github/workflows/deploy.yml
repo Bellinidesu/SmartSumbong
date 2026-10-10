@@ -68,6 +68,40 @@ jobs:
       - name: Link
         run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" > /dev/null
 
+      - name: Cloudinary signatures on the real account
+        # Uploads a 1-pixel private test image with a SHA-256 signature, asks
+        # for it through a SHA-256 and a SHA-1 signed link, then deletes it.
+        # Says which ones this Cloudinary account accepts; changes nothing.
+        if: ${{ env.CLOUDINARY_API_KEY != '' && env.CLOUDINARY_API_SECRET != '' }}
+        env:
+          CLOUD: nwb2kryl
+        run: |
+          echo "::add-mask::$CLOUDINARY_API_SECRET"
+          sign() { printf '%s%s' "$1" "$CLOUDINARY_API_SECRET" | sha256sum | cut -d' ' -f1; }
+          link() { printf '%s%s' "$2" "$CLOUDINARY_API_SECRET" | openssl dgst "-$1" -binary | base64 | tr '+/' '-_' | cut -c1-8; }
+          ts=$(date +%s); id="smartsumbong-signature-check-$ts"
+          png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+          up=$(curl -sS "https://api.cloudinary.com/v1_1/$CLOUD/image/upload" \
+            -F "file=$png" -F "public_id=$id" -F "type=authenticated" -F "timestamp=$ts" \
+            -F "api_key=$CLOUDINARY_API_KEY" -F "signature=$(sign "public_id=$id&timestamp=$ts&type=authenticated")")
+          ver=$(echo "$up" | jq -r '.version // empty')
+          if [ -z "$ver" ]; then
+            echo "::warning::A SHA-256 signed upload was refused: $(echo "$up" | jq -c '.error // .')"
+            exit 0
+          fi
+          echo "SHA-256 signed upload: accepted"
+          for algo in sha256 sha1; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              "https://res.cloudinary.com/$CLOUD/image/authenticated/s--$(link $algo "$id.png")--/v$ver/$id.png")
+            echo "private link signed with $algo: HTTP $code"
+            [ "$algo" = sha256 ] && [ "$code" != 200 ] && echo "::warning::This account refuses SHA-256 private links (HTTP $code): private ID photos would not open."
+          done
+          ts=$(date +%s)
+          curl -sS -o /dev/null "https://api.cloudinary.com/v1_1/$CLOUD/image/destroy" \
+            -F "public_id=$id" -F "type=authenticated" -F "timestamp=$ts" \
+            -F "api_key=$CLOUDINARY_API_KEY" -F "signature=$(sign "public_id=$id&timestamp=$ts&type=authenticated")"
+          echo "test image deleted"
+
       - name: Migrations that would run
         if: ${{ !inputs.apply }}
         run: supabase db push --linked --dry-run
