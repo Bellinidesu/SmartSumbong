@@ -1,0 +1,311 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GPU bake</title>
+<script>
+// The GPU bake page (docs/map-data/gpu/bake.mjs opens it in a headless browser on the machine's graphics card).
+// A heightfield path tracer in fragment shaders. A "probe" (a ground pixel, a point on a wall face, a point on a roof) fires cosine
+// weighted rays over its hemisphere:
+//   * a ray that escapes brings back a physical sky (a blue dome, a pale horizon, a warm haze round the sun);
+//   * a ray that hits a wall, a roof or the ground brings back that surface's colour lit by the sun (a shadow ray, the sun a disc),
+//     by the sky and, below 7 m, by the light the ground itself received in the round before: three bounces in all;
+//   * a tree is not a wall: a ray that meets a crown goes through it, dimmed and tinted green, so shade under a tree is dappled;
+//   * at night the lamps light every probe they can see, and the windows that are lit are emitters: a ray that hits a lit wall
+//     brings back its warm light, so a lit house lights the lane beside it.
+// Output: for the ground, a ready overlay (blue shadows, a warm wash where the sun shines); for the other probes, the light they
+// received, the same under an open sky, and the share of the sun that reaches them.
+const log = s => { window.__status = s; };
+const VS = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }`;
+const COMMON = `#version 300 es
+precision highp float; precision highp int; precision highp sampler2D;
+uniform sampler2D u_h, u_wall, u_roof, u_prev, u_acc, u_probes;
+uniform ivec2 u_hs, u_out;
+uniform float u_px;
+uniform vec3 u_sun;
+uniform int u_mode, u_flat, u_pass, u_rays, u_nprobes, u_bounce;
+out vec4 o;
+const float PI = 3.14159265;
+const vec3 SUNE = vec3(1.0, .94, .82) * 1.1;
+const vec3 TREE_T = vec3(.5, .62, .42);
+float H(vec2 q) { if (u_flat == 1) return 0.; ivec2 i = ivec2(floor(q)); if (i.x < 0 || i.y < 0 || i.x >= u_hs.x || i.y >= u_hs.y) return 0.; return texelFetch(u_h, i, 0).r; }
+bool isTree(vec2 q) { ivec2 i = ivec2(floor(q)); if (i.x < 0 || i.y < 0 || i.x >= u_hs.x || i.y >= u_hs.y) return false; return texelFetch(u_roof, i, 0).a < .5 && texelFetch(u_h, i, 0).r > .5; }
+float Hs(vec2 q, bool ignoreTrees) { return (ignoreTrees && isTree(q)) ? 0. : H(q); }
+uint seed;
+float rnd() { seed = seed * 747796405u + 2891336453u; uint w = ((seed >> ((seed >> 28u) + 4u)) ^ seed) * 277803737u; return float((w >> 22u) ^ w) / 4294967295.; }
+float vdc(uint b) { b = (b << 16u) | (b >> 16u); b = ((b & 0x55555555u) << 1u) | ((b & 0xAAAAAAAAu) >> 1u); b = ((b & 0x33333333u) << 2u) | ((b & 0xCCCCCCCCu) >> 2u); b = ((b & 0x0F0F0F0Fu) << 4u) | ((b & 0xF0F0F0F0u) >> 4u); b = ((b & 0x00FF00FFu) << 8u) | ((b & 0xFF00FF00u) >> 8u); return float(b) * 2.3283064365386963e-10; }
+
+// the sky: blue overhead, pale at the horizon, a warm haze round the sun
+vec3 skyL(vec3 d) {
+  float z = clamp(d.z, 0., 1.);
+  vec3 c = mix(vec3(.84, .90, 1.0), vec3(.30, .50, .98), pow(z, .5));
+  float g = max(dot(d, u_sun), 0.);
+  c += vec3(1.0, .76, .46) * (pow(g, 10.) * .30 + pow(g, 140.) * .7);
+  return c * .75;
+}
+// a ray through the height field. thr: how much of the ray's light is left after crowns; hit position out
+bool trace(vec3 o, vec3 d, out vec3 hp, out vec3 thr) {
+  thr = vec3(1.);
+  bool ig = isTree(o.xy / u_px);
+  if (ig) thr *= TREE_T;
+  float t = .6, pt = 0.;
+  for (int i = 0; i < 110; i++) {
+    vec3 p = o + d * t;
+    if (p.z > 80. && d.z > 0.) return false;
+    if (p.z < Hs(p.xy / u_px, ig)) {
+      float lo = pt, hi = t;
+      for (int k = 0; k < 5; k++) { float m = .5 * (lo + hi); vec3 q = o + d * m; if (q.z < Hs(q.xy / u_px, ig)) hi = m; else lo = m; }
+      hp = o + d * hi;
+      if (!ig && isTree(hp.xy / u_px)) { thr *= TREE_T; ig = true; pt = hi; t = hi + .2; continue; }
+      return true;
+    }
+    pt = t; t += max(.75, t * .06);
+    if (t > 130.) return false;
+  }
+  return false;
+}
+// the fraction of the sun's disc that reaches a point (crowns let some through)
+float sunVis(vec3 o, int n) {
+  float v = 0.;
+  for (int k = 0; k < n; k++) {
+    vec3 d = normalize(u_sun + vec3(rnd() - .5, rnd() - .5, rnd() - .5) * .24);
+    float t = .8, th = 1.; bool hit = false; bool ig = isTree(o.xy / u_px);
+    if (ig) th *= .5;
+    for (int i = 0; i < 70; i++) {
+      vec3 p = o + d * t; if (p.z > 80.) break;
+      if (p.z < Hs(p.xy / u_px, ig)) { hit = true; break; }
+      if (!ig && isTree(p.xy / u_px) && p.z < H(p.xy / u_px)) { th *= .5; ig = true; }
+      t += max(.8, t * .08); if (t > 110.) break;
+    }
+    v += hit ? 0. : th;
+  }
+  return v / float(n);
+}
+vec3 prevE(vec2 q) { ivec2 i = clamp(ivec2(floor(q)), ivec2(0), u_hs - 1); vec4 a = texelFetch(u_prev, i, 0); return a.a > 0. ? a.rgb / a.a : skyL(vec3(0., 0., 1.)); }
+// the light a surface point returns towards the ray that hit it
+vec3 shadeHit(vec3 hp) {
+  vec2 q = hp.xy / u_px;
+  float h0 = H(q);
+  vec2 g = vec2(H(q + vec2(1., 0.)) - H(q - vec2(1., 0.)), H(q + vec2(0., 1.)) - H(q - vec2(0., 1.)));
+  vec3 n = vec3(0., 0., 1.), alb;
+  ivec2 ti = clamp(ivec2(floor(q)), ivec2(0), u_hs - 1);
+  if (h0 < .4) { alb = vec3(.5, .49, .47); }
+  else if (length(g) > 2.2 && hp.z < h0 - .05) { n = vec3(normalize(-g), 0.); alb = texelFetch(u_wall, ti, 0).rgb * .8; }
+  else { alb = texelFetch(u_roof, ti, 0).rgb * .9; }
+  vec3 po = hp + n * .5 + vec3(0., 0., .05);
+  float cs = max(dot(n, u_sun), 0.);
+  float vis = cs > 0. ? sunVis(po, 1) : 0.;
+  vec3 amb = mix(skyL(vec3(.9, 0., .35)), skyL(vec3(0., 0., 1.)), n.z) * (.5 + .5 * n.z);
+  if (u_bounce > 0 && hp.z < 7.) { vec2 fq = q + (n.z > .5 ? vec2(0.) : n.xy * 2.5); amb = mix(amb, prevE(fq), .85); }
+  return alb * (SUNE * cs * vis + amb);
+}
+void basis(vec3 n, out vec3 t, out vec3 b) { t = abs(n.z) < .99 ? normalize(cross(n, vec3(0., 0., 1.))) : vec3(1., 0., 0.); b = cross(n, t); }
+vec3 cosDir(vec3 n, vec3 t, vec3 b, int i, int total, float r2, float r3) {
+  float u1 = (float(i) + r2) / float(total), u2 = fract(vdc(uint(i)) + r3), r = sqrt(u1), ph = 2. * PI * u2;
+  return t * (r * cos(ph)) + b * (r * sin(ph)) + n * sqrt(max(1. - u1, 0.));
+}
+vec3 probeDay(vec3 org, vec3 n) {
+  vec3 t, b; basis(n, t, b);
+  float r2 = rnd(), r3 = rnd();
+  vec3 sum = vec3(0.), o2 = org + n * .15;
+  for (int i = 0; i < 256; i++) {
+    if (i >= u_rays) break;
+    vec3 d = cosDir(n, t, b, i, u_rays, r2, r3), hp, thr;
+    if (trace(o2, d, hp, thr)) sum += thr * shadeHit(hp); else sum += thr * skyL(d);
+  }
+  float cs = max(dot(n, u_sun), 0.);
+  return sum / float(u_rays) + SUNE * cs * (cs > 0. ? sunVis(o2, 4) : 0.);
+}
+`;
+const FS_TRACE = COMMON + `
+void main() {
+  ivec2 px = ivec2(gl_FragCoord.xy);
+  seed = uint(px.x) * 1973u + uint(px.y) * 9277u + uint(u_pass) * 26699u + 1u; rnd(); rnd();
+  vec3 org, n;
+  if (u_mode == 0) { org = vec3((vec2(px) + vec2(rnd(), rnd())) * u_px, .06); n = vec3(0., 0., 1.); }
+  else {
+    int idx = px.y * u_out.x + px.x;
+    if (idx >= u_nprobes) { o = texelFetch(u_acc, px, 0); return; }
+    int a = 2 * idx, b = a + 1;
+    vec4 p0 = texelFetch(u_probes, ivec2(a % 2048, a / 2048), 0), p1 = texelFetch(u_probes, ivec2(b % 2048, b / 2048), 0);
+    org = p0.xyz; n = normalize(p1.xyz);
+    if (u_mode == 2) { float cs = max(dot(n, u_sun), 0.); o = texelFetch(u_acc, px, 0) + vec4(cs > 0. ? sunVis(org + n * .15, 24) : 0., 0., 0., 1.); return; }
+  }
+  o = texelFetch(u_acc, px, 0) + vec4(probeDay(org, n), 1.);
+}`;
+const FS_NIGHT = COMMON + `
+uniform sampler2D u_lamps; uniform int u_nl;
+const float LH = 7.5;
+vec3 lampLight(vec3 org, vec3 n) {
+  vec2 acc = vec2(0.);
+  for (int i = 0; i < 4096; i++) {
+    if (i >= u_nl) break;
+    vec4 L = texelFetch(u_lamps, ivec2(i % 2048, i / 2048), 0);
+    vec2 dxy = L.xy - org.xy;
+    if (dot(dxy, dxy) > 676.) continue;
+    vec3 d = vec3(L.xy, LH) - org;
+    float dist = length(d), c = dot(n, d / dist);
+    if (c <= 0.) continue;
+    bool vis = true;
+    for (int s = 1; s <= 20; s++) { vec3 p = org + d * (float(s) / 21.); if (p.z + .2 < H(p.xy / u_px)) { vis = false; break; } }
+    if (!vis) continue;
+    float e = L.z * c * 1.6 / (1. + (dist / 7.) * (dist / 7.));
+    if (L.w > .5) acc.y += e; else acc.x += e;
+  }
+  // the lit windows: a ray that hits a lit wall brings back its light
+  float win = 0.;
+  vec3 t, b; basis(n, t, b);
+  float r2 = rnd(), r3 = rnd();
+  for (int i = 0; i < 512; i++) {
+    if (i >= u_rays) break;
+    vec3 d = cosDir(n, t, b, i, u_rays, r2, r3);
+    float tt = .6;
+    for (int k = 0; k < 60; k++) {
+      vec3 p = org + n * .15 + d * tt;
+      if (p.z > 80. && d.z > 0.) break;
+      if (p.z < H(p.xy / u_px)) {
+        vec2 q = p.xy / u_px; ivec2 ti = clamp(ivec2(floor(q)), ivec2(0), u_hs - 1);
+        vec2 gg = vec2(H(q + vec2(1., 0.)) - H(q - vec2(1., 0.)), H(q + vec2(0., 1.)) - H(q - vec2(0., 1.)));
+        if (length(gg) > 2.2 && p.z < H(q) - .05) { float lit = texelFetch(u_wall, ti, 0).a; float band = step(1.2, p.z) * (1. - smoothstep(14., 30., p.z)); win += lit * (.35 + .65 * band) * (.55 + .45 * step(.5, fract(p.z / 3.1))); }
+        break;
+      }
+      tt += max(.75, tt * .06); if (tt > 70.) break;
+    }
+  }
+  return vec3(acc, win / float(max(u_rays, 1)));
+}
+void main() {
+  ivec2 px = ivec2(gl_FragCoord.xy);
+  seed = uint(px.x) * 1973u + uint(px.y) * 9277u + 7u; rnd(); rnd();
+  vec3 org, n;
+  if (u_mode == 0) { org = vec3((vec2(px) + .5) * u_px, .3); n = vec3(0., 0., 1.); }
+  else {
+    int idx = px.y * u_out.x + px.x;
+    if (idx >= u_nprobes) { o = vec4(0.); return; }
+    int a = 2 * idx, b = a + 1;
+    vec4 p0 = texelFetch(u_probes, ivec2(a % 2048, a / 2048), 0), p1 = texelFetch(u_probes, ivec2(b % 2048, b / 2048), 0);
+    org = p0.xyz; n = normalize(p1.xyz);
+  }
+  o = vec4(lampLight(org, n), 1.);
+}`;
+const FS_NIGHTG = COMMON + `
+uniform float u_k, u_kw;
+void main() { vec4 a = texelFetch(u_acc, ivec2(gl_FragCoord.xy), 0); o = vec4(1. - exp(-u_k * a.x), 1. - exp(-u_k * a.y), 1. - exp(-u_kw * a.z), 1.); }`;
+const FS_GROUND = COMMON + `
+uniform vec3 u_E0;
+void main() {
+  ivec2 px = ivec2(gl_FragCoord.xy);
+  vec4 a = texelFetch(u_acc, px, 0);
+  vec3 E = a.rgb / max(a.a, 1.);
+  vec3 r = clamp(E / u_E0, 0., 1.2);
+  float m = min(min(r.r, r.g), r.b);
+  float shade = clamp(1. - m, 0., .86);
+  // identity: the shade leans blue and violet where the sky is what lights it, and the open ground gets a warm wash where the sun shines
+  vec3 tint = shade > .001 ? vec3(.957, .949, .933) * (r - m) / shade : vec3(0.);
+  tint = mix(tint, vec3(.16, .17, .42), .55 * smoothstep(.0, .5, shade));
+  float lit = smoothstep(.9, 1.0, (r.r + r.g + r.b) / 3.) * smoothstep(.04, .0, shade);
+  float wash = lit * .075;
+  vec3 warm = vec3(1., .82, .58);
+  float al = shade + wash * (1. - shade);
+  vec3 col = al > .001 ? (tint * shade + warm * wash * (1. - shade)) / al : vec3(0.);
+  o = vec4(clamp(col, 0., 1.), al);
+}`;
+
+(async () => {
+  try {
+    const meta = await (await fetch('/in/meta.json')).json();
+    const c = document.createElement('canvas'); c.width = 4; c.height = 4; document.body.appendChild(c);
+    const gl = c.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
+    if (!gl || !gl.getExtension('EXT_color_buffer_float')) throw new Error('no float render targets');
+    const rinfo = gl.getExtension('WEBGL_debug_renderer_info');
+    window.__gpu = rinfo ? gl.getParameter(rinfo.UNMASKED_RENDERER_WEBGL) : '?';
+    const W = meta.w, Hh = meta.h;
+    const bin = async n => new Uint8Array(await (await fetch('/in/' + n)).arrayBuffer());
+    const mk = (w, h, ifmt, fmt, type, data) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, ifmt, w, h, 0, fmt, type, data); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+    log('loading inputs');
+    const tH = mk(W, Hh, gl.R32F, gl.RED, gl.FLOAT, new Float32Array((await bin('hmap.f32')).buffer));
+    const tWall = mk(W, Hh, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, await bin('wall.rgba'));
+    const tRoof = mk(W, Hh, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, await bin('roof.rgba'));
+    const np = meta.probes;
+    let tProbes = null;
+    if (np > 0) {
+      const raw = new Float32Array((await bin('probes.f32')).buffer), rows = Math.ceil(2 * np / 2048), full = new Float32Array(2048 * rows * 4);
+      full.set(raw); tProbes = mk(2048, rows, gl.RGBA32F, gl.RGBA, gl.FLOAT, full);
+    }
+    const mkProg = (vs, fs) => { const p = gl.createProgram(); [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]].forEach(([t, s]) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); gl.attachShader(p, o); }); gl.bindAttribLocation(p, 0, 'p'); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; };
+    const progT = mkProg(VS, FS_TRACE), progG = mkProg(VS, FS_GROUND), progN = mkProg(VS, FS_NIGHT), progNG = mkProg(VS, FS_NIGHTG);
+    const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    const target = (w, h, f32) => { const t = f32 ? mk(w, h, gl.RGBA32F, gl.RGBA, gl.FLOAT, null) : mk(w, h, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, null); const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); return { t, f, w, h }; };
+    const INTS = new Set(['u_hs', 'u_out', 'u_mode', 'u_flat', 'u_pass', 'u_rays', 'u_nprobes', 'u_bounce', 'u_nl']);
+    const setU = (p, o) => { gl.useProgram(p); for (const k in o) { const l = gl.getUniformLocation(p, k), v = o[k]; if (l === null) continue; if (typeof v === 'number') (INTS.has(k) ? gl.uniform1i : gl.uniform1f).call(gl, l, v); else if (INTS.has(k)) gl.uniform2i(l, v[0], v[1]); else gl.uniform3f(l, v[0], v[1], v[2]); } };
+    const bindTex = (p, name, tex, unit) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(gl.getUniformLocation(p, name), unit); };
+
+    // `passes` passes of `rays` rays over a target, in strips so no single draw runs long
+    async function run(mode, w, h, passes, rays, flat, prev, label) {
+      let A = target(w, h, true), B = target(w, h, true);
+      for (const x of [A, B]) { gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); }
+      const t0 = performance.now(), strip = mode === 0 ? 40 : 96;
+      for (let ps = 0; ps < passes; ps++) {
+        gl.useProgram(progT);
+        bindTex(progT, 'u_h', tH, 0); bindTex(progT, 'u_wall', tWall, 1); bindTex(progT, 'u_roof', tRoof, 2); bindTex(progT, 'u_acc', A.t, 3);
+        bindTex(progT, 'u_prev', prev ? prev.t : A.t, 4); if (tProbes) bindTex(progT, 'u_probes', tProbes, 5);
+        setU(progT, { u_hs: [W, Hh], u_out: [w, h], u_px: meta.px, u_sun: meta.sun, u_mode: mode, u_flat: flat ? 1 : 0, u_pass: ps, u_rays: rays, u_nprobes: np, u_bounce: prev ? 1 : 0 });
+        gl.bindFramebuffer(gl.FRAMEBUFFER, B.f); gl.viewport(0, 0, w, h); gl.enable(gl.SCISSOR_TEST);
+        for (let y = 0; y < h; y += strip) { gl.scissor(0, y, w, Math.min(strip, h - y)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish(); await new Promise(r => setTimeout(r, 0)); }
+        gl.disable(gl.SCISSOR_TEST); [A, B] = [B, A];
+        log(label + ' pass ' + (ps + 1) + '/' + passes + ' (' + ((performance.now() - t0) / 1000).toFixed(0) + ' s)');
+      }
+      return A;
+    }
+    const readF = t => { gl.bindFramebuffer(gl.FRAMEBUFFER, t.f); const a = new Float32Array(t.w * t.h * 4); gl.readPixels(0, 0, t.w, t.h, gl.RGBA, gl.FLOAT, a); return a; };
+    const outs = {};
+    const stash = (name, bytes) => { outs[name] = bytes; };
+    const PASSES = meta.passes, RAYS = meta.rays;
+    let g3 = null;
+    if (meta.ground || np > 0) {
+      const g1 = await run(0, W, Hh, Math.max(1, Math.floor(PASSES / 3)), RAYS, false, null, 'ground, first bounce');
+      const g2 = await run(0, W, Hh, Math.max(1, Math.floor(PASSES / 2)), RAYS, false, g1, 'ground, second bounce');
+      g3 = await run(0, W, Hh, PASSES, RAYS, false, g2, 'ground, third bounce');
+    }
+    if (meta.ground) {
+      // an open field under the same sky and sun, for what every pixel is compared with
+      const flat = await run(0, 4, 4, 4, 64, true, null, 'open field'); const fe = readF(flat); const E0 = [fe[0] / fe[3], fe[1] / fe[3], fe[2] / fe[3]];
+      const outT = target(W, Hh, false); gl.bindFramebuffer(gl.FRAMEBUFFER, outT.f); gl.viewport(0, 0, W, Hh);
+      gl.useProgram(progG); bindTex(progG, 'u_acc', g3.t, 0); setU(progG, { u_hs: [W, Hh], u_out: [W, Hh], u_sun: meta.sun, u_E0: E0 }); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish();
+      const px = new Uint8Array(W * Hh * 4); gl.readPixels(0, 0, W, Hh, gl.RGBA, gl.UNSIGNED_BYTE, px); stash('ground.rgba', px);
+    }
+    if (np > 0) {
+      const pw = 2048, ph = Math.ceil(np / pw);
+      const real = await run(1, pw, ph, PASSES, RAYS, false, g3, 'probes');
+      const flat = await run(1, pw, ph, 2, 64, true, null, 'probes, open sky');
+      const sunp = await run(2, pw, ph, 2, 1, false, null, 'probes, sun');
+      const a = readF(real), b = readF(flat), sv = readF(sunp), res = new Float32Array(np * (meta.rgb ? 7 : 3));
+      const lum = (x, i) => (x[i * 4] * .2126 + x[i * 4 + 1] * .7152 + x[i * 4 + 2] * .0722) / Math.max(x[i * 4 + 3], 1);
+      for (let i = 0; i < np; i++) {
+        if (meta.rgb) { const wa = Math.max(a[i * 4 + 3], 1), wb = Math.max(b[i * 4 + 3], 1); for (let k = 0; k < 3; k++) { res[7 * i + k] = a[i * 4 + k] / wa; res[7 * i + 3 + k] = b[i * 4 + k] / wb; } res[7 * i + 6] = sv[i * 4] / Math.max(sv[i * 4 + 3], 1); }
+        else { res[3 * i] = lum(a, i); res[3 * i + 1] = lum(b, i); res[3 * i + 2] = sv[i * 4] / Math.max(sv[i * 4 + 3], 1); }
+      }
+      stash('probes.f32', new Uint8Array(res.buffer));
+    }
+    if (meta.night) {
+      const nl = meta.lamps, lraw = new Float32Array((await bin('lamps.f32')).buffer), lrows = Math.ceil(nl / 2048), lfull = new Float32Array(2048 * lrows * 4);
+      lfull.set(lraw); const tLamps = mk(2048, lrows, gl.RGBA32F, gl.RGBA, gl.FLOAT, lfull);
+      const nightRun = async (mode, w, h, rays, label) => {
+        const T = target(w, h, true); gl.bindFramebuffer(gl.FRAMEBUFFER, T.f); gl.viewport(0, 0, w, h); gl.useProgram(progN);
+        bindTex(progN, 'u_h', tH, 0); bindTex(progN, 'u_wall', tWall, 1); bindTex(progN, 'u_lamps', tLamps, 2); if (tProbes) bindTex(progN, 'u_probes', tProbes, 5);
+        setU(progN, { u_hs: [W, Hh], u_out: [w, h], u_px: meta.px, u_sun: meta.sun, u_mode: mode, u_flat: 0, u_nprobes: np, u_nl: nl, u_rays: rays });
+        gl.enable(gl.SCISSOR_TEST); const t0 = performance.now(), strip = mode === 0 ? 16 : 128;
+        for (let y = 0; y < h; y += strip) { gl.scissor(0, y, w, Math.min(strip, h - y)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish(); await new Promise(r => setTimeout(r, 0)); log(label + ' ' + Math.min(100, Math.round(100 * (y + strip) / h)) + '% (' + ((performance.now() - t0) / 1000).toFixed(0) + ' s)'); }
+        gl.disable(gl.SCISSOR_TEST); return T;
+      };
+      const NG = await nightRun(0, W, Hh, meta.nightRays, 'night ground, lamps and lit windows');
+      const outN = target(W, Hh, false); gl.bindFramebuffer(gl.FRAMEBUFFER, outN.f); gl.viewport(0, 0, W, Hh);
+      gl.useProgram(progNG); bindTex(progNG, 'u_acc', NG.t, 0); setU(progNG, { u_k: meta.nightK, u_kw: meta.nightKw }); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish();
+      const npx = new Uint8Array(W * Hh * 4); gl.readPixels(0, 0, W, Hh, gl.RGBA, gl.UNSIGNED_BYTE, npx); stash('night.rgba', npx);
+      if (np > 0) { const pw = 2048, ph = Math.ceil(np / pw), NP = await nightRun(1, pw, ph, meta.nightRays, 'night, wall faces'); const a = readF(NP), res = new Float32Array(np * 3); for (let i = 0; i < np; i++) { res[3 * i] = a[i * 4]; res[3 * i + 1] = a[i * 4 + 1]; res[3 * i + 2] = a[i * 4 + 2]; } stash('nprobes.f32', new Uint8Array(res.buffer)); }
+    }
+    window.__outs = Object.keys(outs).map(n => ({ name: n, bytes: outs[n].length }));
+    window.__get = (name, i, size) => { const u = outs[name].subarray(i * size, (i + 1) * size); let s = ''; for (let k = 0; k < u.length; k += 0x8000) s += String.fromCharCode.apply(null, u.subarray(k, k + 0x8000)); return btoa(s); };
+    log('done');
+  } catch (e) { window.__error = String(e && e.stack || e); log('error'); }
+})();
+</script>

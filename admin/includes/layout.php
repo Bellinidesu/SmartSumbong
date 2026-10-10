@@ -326,6 +326,15 @@ window.SS_PRESENCE = <?= json_encode([
   <div class="p-actions"><button class="p-btn p-btn-ghost" type="button" data-p-close><?= e(t('Cancel', 'Kanselahin')) ?></button><button class="p-btn p-btn-primary" type="button" id="p-mc-go"></button></div>
 </div></div>
 <div class="p-toast" id="p-toast" role="status"></div>
+<script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
+<script>
+// Every dropdown and month box on the pills and report bands is the portal's own glass picker; the real controls stay underneath, so forms, auto-submit and the keyboard behave as before.
+(function () {
+  if (!window.sdPickers) return;
+  document.querySelectorAll('.p-pill-select select, .p-band select').forEach(function (s) { if (!s.dataset.native) sdPickers.select(s); });
+  document.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
+})();
+</script>
 <?= prefs_script() ?>
 <?php idle_timeout(); ?>
 <?php if (current_admin()): ?>

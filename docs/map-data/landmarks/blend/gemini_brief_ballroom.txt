@@ -1,0 +1,19 @@
+TASK: write a Blender (bpy, version 4.5, run with --background) Python script for one building. Use ONLY the data below (all in metres, x east, y north, origin = the building's middle). Do not invent coordinates.
+
+DATA (checked against OpenStreetMap way 310487805, 'Marriott Grand Ballroom', building=commercial, height 36 m)
+BUILDING_RING (28 nodes, closed polygon, in order): [[-95.46, 60.93], [-17.34, -17.68], [35.07, -70.43], [35.7, -74.54], [39.15, -77.96], [42.62, -78.77], [46.6, -77.84], [53.09, -71.48], [55.54, -73.31], [64.16, -65.24], [57.76, -58.14], [64.16, -51.28], [49.87, -36.65], [56.28, -28.85], [53.43, -17.02], [46.69, -0.98], [42.38, 7.41], [23.26, 28.51], [4.66, 46.51], [-9.32, 58.11], [-42.69, 74.97], [-69.01, 87.08], [-78.27, 79.25], [-83.81, 84.79], [-93.9, 76.22], [-89.37, 70.91], [-95.79, 64.56], [-95.46, 60.93]]
+WEST_WING_RING (the neighbouring Marriott West Wing, height 35.2 m): [[59.45, 58.86], [38.44, 39.51], [76.48, -1.51], [97.6, 17.84]]
+BRIDGE_ENDS (nearest points of the two polygons, gap 18.6 m): [[24.631101111466872, 26.9969124763624], [38.44, 39.51]]
+LONG_AXIS_ANGLE_RAD: 2.3400   CENTROID: [-9.06, 11.61]
+
+WHAT TO BUILD
+1. Extrude BUILDING_RING to 33.5 m (the top 2.5 m is the roof).
+2. A roof slab 2.5 m thick over it with a 4 m overhang all round. Tilt: the overhang slopes, the roof does NOT tilt as a whole: 212 m long, a whole-roof tilt of 5 degrees lifts one end 9 m, which is wrong. Keep the roof level over the building and let only the 4 m cantilever angle down about 5 degrees at its outer edge.
+3. An enclosed truss skybridge, 5 m wide, 4.5 m tall, floor 6 m above ground, between BRIDGE_ENDS, its ends ending flush in the two walls (it must touch both buildings, not float, not end inside them). Also extrude WEST_WING_RING to 35.2 m so the bridge has something to attach to.
+
+RULES FOR THE SCRIPT
+- No shapely or other libraries (Blender's Python has only bpy, bmesh, mathutils, math, json).
+- Every object gets a material named 'plain.<name>' with material.diffuse_color set to a flat RGBA colour (viewport colour; do not use node materials: the exporter reads diffuse_color). Use: plain.stone DCC9A8, plain.roof A9ADB4, plain.glass 7F98B0, plain.steel C9CDD2, plain.wing D9A590.
+- Objects whose name starts with an underscore are skipped by the exporter.
+- Print the bridge length and both end heights so I can check it. End with nothing that needs a GUI (no view3d calls).
+Return one complete script.

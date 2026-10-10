@@ -1,0 +1,6 @@
+mapillary-js 4.1.2 (MIT), dist/mapillary.js, with one change.
+
+The filter compiler (class Ht, createFilter) built its test with new Function(...),
+which the portal's content-security policy (no unsafe-eval) refuses. createFilter now
+returns a closure from _fn() that does the same comparisons (==, !=, >, >=, <, <=, in,
+!in, all) without evaluating a string. Nothing else is changed.
