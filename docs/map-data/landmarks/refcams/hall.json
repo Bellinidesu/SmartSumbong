@@ -1,0 +1,90 @@
+{
+ "landmark": "Barangay 183 Hall",
+ "anchor": [
+  121.012595,
+  14.525072
+ ],
+ "note": "read off the address bars of Ace's Street View screenshots",
+ "cams": [
+  {
+   "file": "85f42f1c67.jpg",
+   "n": 266,
+   "lat": 14.5250246,
+   "lng": 121.0128127,
+   "heading": 193.03,
+   "tilt": 80.59,
+   "fov": 90,
+   "height": 2.5
+  },
+  {
+   "file": "afcf4743a5.jpg",
+   "n": 267,
+   "lat": 14.5250246,
+   "lng": 121.0128127,
+   "heading": 293.29,
+   "tilt": 92.34,
+   "fov": 90,
+   "height": 2.5
+  },
+  {
+   "file": "e804649d83.jpg",
+   "n": 268,
+   "lat": 14.5251619,
+   "lng": 121.0126714,
+   "heading": 312.24,
+   "tilt": 114.77,
+   "fov": 83.6,
+   "height": 2.5
+  },
+  {
+   "file": "d2fd87cc0b.jpg",
+   "n": 269,
+   "lat": 14.524943,
+   "lng": 121.0127982,
+   "heading": 332.27,
+   "tilt": 95.51,
+   "fov": 90,
+   "height": 2.5
+  },
+  {
+   "file": "3a1c8b5d78.jpg",
+   "n": 270,
+   "lat": 14.5249828,
+   "lng": 121.0125644,
+   "heading": 34.79,
+   "tilt": 103.39,
+   "fov": 90,
+   "height": 2.5
+  },
+  {
+   "file": "62be8550df.jpg",
+   "n": 271,
+   "lat": 14.5249956,
+   "lng": 121.0124311,
+   "heading": 31.32,
+   "tilt": 101.46,
+   "fov": 90,
+   "height": 2.5
+  },
+  {
+   "file": "cfe46bac69.jpg",
+   "n": 272,
+   "lat": 14.5251683,
+   "lng": 121.0122405,
+   "heading": 106.12,
+   "tilt": 97.34,
+   "fov": 75,
+   "height": 2.5
+  },
+  {
+   "file": "d9ec0f3b89.jpg",
+   "n": 273,
+   "lat": 14.5255673,
+   "lng": 121.0122617,
+   "heading": 145.4,
+   "tilt": 98.87,
+   "fov": 43.6,
+   "height": 2.5
+  }
+ ]
+}
