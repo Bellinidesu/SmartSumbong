@@ -51,7 +51,13 @@ portal uses now (`nearest_available_tanod`). Each one starts at 100 points:
 - minus 1 for every 20 m of distance (50 at most);
 - minus 15 for each job already in hand;
 - plus 5 for each case they closed within 300 m in the last 90 days (20 at most);
-- minus 10 if their location is not recent.
+- minus 10 if their last location reading is older than the barangay's
+  freshness setting (15 minutes).
+
+There is no tracking: live tracking was removed at the barangay's request
+(0072). The app sends one reading when a tanod goes on duty, opens the app
+or takes a dispatch step, and the ranking shows how old it is ("last
+reading 6 min ago").
 
 The admin sees the ranking with the four reasons and still chooses.
 

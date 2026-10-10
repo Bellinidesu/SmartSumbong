@@ -336,7 +336,10 @@ grant execute on function public.smart_duplicates(uuid) to authenticated;
 /** Tanods who can take the report (nearest_available_tanod, 0067), scored:
     start at 100; minus 1 per 20 m (at most 50); minus 15 per job in hand;
     plus 5 per case they closed within 300 m in the last 90 days (at most
-    20); minus 10 without a location from the last few minutes. */
+    20); minus 10 when their last location reading is older than
+    operational_settings.location_freshness_minutes. The app sends one
+    reading at a time (going on duty, opening the app, each dispatch step);
+    there is no tracking. */
 create or replace function public.smart_tanod_ranking(p_report uuid)
 returns table (tanod_id uuid, full_name text, score integer, metres integer,
                active_jobs integer, closed_nearby integer, location_fresh boolean, reasons jsonb)
@@ -359,7 +362,8 @@ begin
              where d.tanod_id = n.tanod_id and d.state = 'resolved'
                and d.resolved_at > now() - interval '90 days'
                and st_dwithin(o.geom, (select geom from public.reports where id = p_report), 300)) as nearby,
-           public.location_is_fresh(u.last_location_at) as fresh
+           public.location_is_fresh(u.last_location_at) as fresh,
+           u.last_location_at as fix_at
       from public.nearest_available_tanod(p_report) n
       join public.users u on u.id = n.tanod_id
   ), s as (
@@ -380,7 +384,14 @@ begin
            jsonb_build_object('factor', 'workload', 'detail', s.active || ' job(s) in hand', 'points', -s.load_pen),
            jsonb_build_object('factor', 'knows the area', 'detail', s.nearby || ' case(s) closed within 300 m, last 90 days',
              'points', s.area_bonus),
-           jsonb_build_object('factor', 'location', 'detail', case when s.fresh then 'live' else 'not recent' end,
+           -- One reading at a time, never tracking (live tracking was removed
+           -- in 0072): the age of the tanod's last reading.
+           jsonb_build_object('factor', 'location', 'detail', case
+               when s.fix_at is null then 'no location yet'
+               when s.fix_at > now() - interval '2 minutes' then 'last reading just now'
+               when s.fix_at > now() - interval '2 hours'
+                 then 'last reading ' || floor(extract(epoch from now() - s.fix_at) / 60) || ' min ago'
+               else 'last reading over 2 hours ago' end,
              'points', -s.stale_pen))
     from s
    order by 3 desc, s.metres nulls last;
