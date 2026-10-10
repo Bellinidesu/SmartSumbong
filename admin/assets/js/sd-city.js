@@ -92,7 +92,8 @@
     i => ['*', p.glow[i], ['+', ['*', ['coalesce', ['get', 'g'], 0], .8], ['*', ['coalesce', ['get', 'w'], 0], 1.8]]]);
   const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey,
     'dw', isDark() ? '#232A55' : '#8A93A8', 'aw', isDark() ? '#8A4672' : '#E0705F', 'aw2', isDark() ? '#3F6E8F' : '#4F8CC4', 'aw3', isDark() ? '#8F7A35' : '#F2C14E',
-    'ac', isDark() ? '#4A5080' : '#D9DDE6', 'sd', isDark() ? '#9AA0C8' : '#F4F6FA', 'sl', isDark() ? '#1E2650' : '#46567E', 'bc', p.trim, p.trim];
+    'ac', isDark() ? '#4A5080' : '#D9DDE6', 'sd', isDark() ? '#9AA0C8' : '#F4F6FA', 'sl', isDark() ? '#1E2650' : '#46567E', 'bc', p.trim,
+    'g_f', '#FF9A3D', 'g_c', '#B8794A', 'g_s', '#4F8CFF', 'g_h', '#F0524F', 'g_e', '#9B6BFF', 'g_l', '#D56FE0', 'g_b', '#34B36B', 'g_w', '#22B8CF', 'g_g', '#6B7FD6', 'g_v', '#E4A8C8', 'g_a', '#8E97AB', p.trim];
   const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
   const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
   const areaColour = p => ['match', ['get', 'k']].concat(...Object.keys(p.area).filter(k => k !== 'other').map(k => [k, p.area[k]]), [p.area.other]);
@@ -137,7 +138,7 @@
   // commercial blocks (shops, malls, hotels, offices, car parks) are tan, the rest stay in the neighbourhood's pastels and greys
   const COMM = new Set(['commercial', 'retail', 'hotel', 'parking', 'supermarket', 'office', 'pop-up_store']);
   const COMM_NAME = /mall|hotel|resort|inn|suites|mansion|residences|plaza|centre|center|market|store|shop|bank|casino|theat|garage|carpark|parking|office|airlines|express|marriott|belmont|sheraton|okura|holiday|newport/i;
-  const comm = (d, idx) => { const t = d.info && d.info[idx]; return t && (COMM.has(t[1]) || COMM_NAME.test(t[0] || '')) ? 1 : 0; };
+  const comm = (d, idx) => { const t = d.info && d.info[idx]; return (t && (COMM.has(t[1]) || COMM_NAME.test(t[0] || ''))) || /[fcslbv]/.test(PLACES[idx] || '') ? 1 : 0; };
   const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
   const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) { const ax = ring[i], ay = ring[i + 1], bx = ring[j], by = ring[j + 1]; if ((ay > pt[1]) !== (by > pt[1]) && pt[0] < (bx - ax) * (pt[1] - ay) / (by - ay) + ax) c = !c; } return c; };
   // A thin plate over each wall face (outside it by a hand's width), in two bands: the foot, and the rest of the wall. Its colour is the
@@ -193,7 +194,7 @@
       const uu = u * fu, vv = v * fv; return [(x0 + uu * co - vv * si) / MX, (y0 + uu * si + vv * co) / MY];
     });
     const polyArea = rg => { let a = 0; const n = rg.length / 2; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a += rg[2 * i] * MX * rg[2 * j + 1] * MY - rg[2 * j] * MX * rg[2 * i + 1] * MY; } return Math.abs(a) / 2; };
-    const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall) => {
+    const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall, idx) => {
       if (QZ.some(z => inRing([cx, cy], z))) return;   // a quiet zone (Villamor Air Base): footprint, height and colour only
       const A = L * W;
       const co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY, T = (b, t, rg) => trim.push({ type: 'Feature', properties: { b, t, k: 'p' }, geometry: { type: 'Polygon', coordinates: rg } });
@@ -215,10 +216,12 @@
         if (hh(4) > .5) { const tw = e0.ln * (.15 + hh(5) * .7); pl(e0, tw - .4, tw + .4, 2.2 + (h >= 5.5 ? 3.2 : 0), 3.0 + (h >= 5.5 ? 3.2 : 0), .4, 'ac'); }
         if (flat && hh(6) > .7 && A >= 70) { const su = (hh(7) - .5) * L * .3, sv = (hh(8) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .4, t: h + 1.5, k: 'sd' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, .45, .45)] } }); }
       }
-      if (e0 && flat && A >= 60 && A < 700 && h < 9) {     // a small shop block: an awning along its longest wall, striped by hash
-        const aw = ['aw', 'aw2', 'aw3'][Math.floor(hh(9) * 3)];
+      const grp = PLACES[idx] || '';                       // what is in it (places.json): an awning and a sign board in the colour of each kind of place, one wall each
+      if (e0 && (grp || (flat && A >= 60 && A < 700 && h < 9))) {
+        const aw = grp ? 'g_' + grp[0] : ['aw', 'aw2', 'aw3'][Math.floor(hh(9) * 3)];
         pl(e0, .6, e0.ln - .6, 2.7, 2.98, 1.0, aw);
       }
+      if (e0 && grp) grp.split('').forEach((g, i) => { const e = edges[Math.min(i, edges.length - 1)], w_ = Math.min(5.5, e.ln * .6); pl(e, e.ln / 2 - w_ / 2, e.ln / 2 + w_ / 2, 3.15, 3.95, .18, 'g_' + g); });
       if (e0 && flat && A >= 250 && h >= 9 && h < 32) {    // a mid-rise block: balconies and air-conditioners on its two longest walls, solar panels on some roofs
         edges.slice(0, 2).forEach(e => { let c_ = 0; for (let z = 3.4; z < h - 1 && c_ < 60; z += 3.2 * (h > 20 ? 2 : 1)) for (let t = 2.2; t < e.ln - 2.2 && c_ < 60; t += 4.6) { pl(e, t, t + 2.2, z, z + .13, .9, 'bc'); c_++; } });
         if (hh(10) > .45) { const su = (hh(11) - .5) * L * .3, sv = (hh(12) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .5, t: h + 1.0, k: 'sl' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, Math.min(L * .22, 9), Math.min(W * .2, 5))] } }); }
@@ -297,7 +300,7 @@
         return;
       }
       walls.push({ type: 'Feature', properties: { h, k: kk, g: gg, wi, wt: comm(d, idx) }, geometry: { type: 'Polygon', coordinates: [poly] } });
-      topDetail(poly, ring, h, L, W, cx, cy, th, !rt, h >= 20);
+      topDetail(poly, ring, h, L, W, cx, cy, th, !rt, h >= 20, idx);
       if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
       if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: rr }).forEach(f => roofs.push(f)); return; }
       if (lk.mode === 'flat') { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: ci, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
@@ -313,6 +316,7 @@
 
   let prepared = false;
   const live = () => on || prepared;   // the layers are built and kept ready (at no opacity) once loaded, so a tilt has nothing left to build
+  let PLACES = {};   // what is in each building (places.json): a string of group letters
   let QZ = [];   // the quiet zones (zones.json): no by-rule detail there
   let ready = null, on = false, TREES = [], FOG = null, FACES = null, BLD = null, LMS = [], BAKE = null;
   const ngon = (cx, cy, r, n, rot) => {   // metres to degrees at this latitude
@@ -380,8 +384,9 @@
       if (window.sdModels) await window.sdModels.ready;
       const bake = await fetch('assets/map/shadows.json').then(r => r.json()).catch(() => null);
       const faces = bake && bake.faces ? await fetch('assets/map/' + bake.faces).then(r => r.json()).catch(() => null) : null;
-      const [detail, bld, lmj, zn] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null), fetch('assets/map/zones.json').then(r => r.json()).catch(() => null)));
+      const [detail, bld, lmj, zn, pl] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null), fetch('assets/map/zones.json').then(r => r.json()).catch(() => null), fetch('assets/map/places.json').then(r => r.json()).catch(() => null)));
       QZ = (zn && zn.quiet) || [];
+      PLACES = (pl && pl.p) || {};
       const lms = lmj ? lmj.features.map(f => ({ n: (f.properties && f.properties.name) || '', c: f.geometry.coordinates })).filter(x => x.n) : [];
       if (WINDOWS) addWalls();
       await addPoiImages();

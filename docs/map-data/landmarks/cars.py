@@ -23,6 +23,49 @@ def car(m, x, y, th, col):
     m.box(x - c * .25, y - s * .25, 1.0, 2.2, 1.6, .62, th, 'plain', GLASS, 'plain', col, True, 40.0)  # the cabin, a little back of the middle
 
 
+JEEP = [rgb('E4572E'), rgb('F2C14E'), rgb('3A4C86'), rgb('2FA6AB'), rgb('C9544A'), rgb('4C9A6A')]
+
+
+def jeepney(m, x, y, th, col):
+    """A jeepney: a long coloured body, a pale roof, a darker stripe along it."""
+    c, s = math.cos(th), math.sin(th)
+    m.box(x, y, .35, 7.0, 2.0, 1.15, th, 'plain', col, 'plain', col, True, 40.0)
+    m.box(x - c * .3, y - s * .3, 1.5, 6.0, 1.85, .7, th, 'plain', GLASS, 'plain', rgb('EDEDED'), True, 40.0)
+    m.box(x, y, .35, 7.05, 2.05, .22, th, 'plain', rgb('2B2F3B'), 'plain', rgb('2B2F3B'), True, 40.0)
+
+
+def motorcycle(m, x, y, th, col):
+    m.box(x, y, .3, 1.9, .55, .55, th, 'plain', col, 'plain', col, True, 40.0)
+    m.box(x - math.cos(th) * .1, y - math.sin(th) * .1, .85, .7, .45, .35, th, 'plain', rgb('2B2F3B'), 'plain', rgb('2B2F3B'), True, 40.0)
+
+
+def tricycle(m, x, y, th, col):
+    """A tricycle: a motorcycle with a covered sidecar."""
+    c, s = math.cos(th), math.sin(th)
+    motorcycle(m, x, y, th, rgb('2B2F3B'))
+    m.box(x - s * .95, y + c * .95, .35, 1.7, 1.1, .75, th, 'plain', col, 'plain', col, True, 40.0)
+    m.box(x - s * .95, y + c * .95, 1.1, 1.5, 1.2, .55, th, 'plain', GLASS, 'plain', rgb('F4F1EA'), True, 40.0)
+
+
+def vehicle(m, x, y, th, key, parked):
+    r = _h(*key, 'v')
+    col = BODY[int(_h(*key, 'c') * len(BODY))]
+    if parked:
+        if r < .40:
+            motorcycle(m, x, y, th, col)
+        elif r < .52:
+            tricycle(m, x, y, th, JEEP[int(_h(*key, 'j') * len(JEEP))])
+        else:
+            car(m, x, y, th, col)
+    else:
+        if r < .24:
+            jeepney(m, x, y, th, JEEP[int(_h(*key, 'j') * len(JEEP))])
+        elif r < .36:
+            motorcycle(m, x, y, th, col)
+        else:
+            car(m, x, y, th, col)
+
+
 def build(m, origin, boundary, blocked):
     """blocked(lng, lat) -> True where a building stands. Returns the number of cars."""
     ways = infra.overpass('roads', Q)
@@ -54,7 +97,7 @@ def build(m, origin, boundary, blocked):
                     if boundary is None or boundary.inside(lng, lat):
                         if not blocked(lng, lat):
                             th = math.atan2(uy, ux) + (math.pi if side < 0 and not parked else 0)
-                            car(m, x, y, th, BODY[int(_h(*key, 'c') * len(BODY))])
+                            vehicle(m, x, y, th, key, parked)
                             n += 1
                 pos += step
             d += ln
