@@ -174,6 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
         'not_activated' => s.loginErrorNotActivated,
         'suspended' => s.loginErrorSuspended,
         'rate_limited' => s.loginErrorRateLimited,
+        'captcha' => s.loginErrorCaptcha,
         'bad_credentials' => s.loginErrorBadCredentials,
         _ => e.message,
       };

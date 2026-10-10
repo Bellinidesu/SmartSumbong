@@ -385,6 +385,7 @@ window.SS_PRESENCE = <?= json_encode([
   });
 })();
 </script>
+<?= turnstile_tags() ?>
 </body>
 </html>
 <?php

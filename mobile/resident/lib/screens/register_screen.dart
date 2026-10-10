@@ -387,6 +387,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'selfie_required' => s.registerSelfieRequired,
         'photos_rejected' => s.registerPhotosRejected,
         'password_short' => s.registerPasswordTooShort,
+        'captcha' => s.loginErrorCaptcha,
         'role_unavailable' || 'create_failed' => s.registerSomethingWentWrong,
         _ => e.message,
       };

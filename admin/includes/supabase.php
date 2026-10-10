@@ -161,7 +161,14 @@ final class Supabase
         return $client->request('POST', '/auth/v1/token?grant_type=password', [
             'email'    => $email,
             'password' => $password,
-        ]);
+        ] + self::captcha());
+    }
+
+    /** The bot-check token the submitting form carried (turnstile.js), if any. */
+    private static function captcha(): array
+    {
+        $token = $_POST['cf-turnstile-response'] ?? '';
+        return is_string($token) && $token !== '' ? ['gotrue_meta_security' => ['captcha_token' => $token]] : [];
     }
 
     public static function refresh(string $refreshToken): array
@@ -191,7 +198,7 @@ final class Supabase
         $client->request('POST', '/auth/v1/recover', [
             'email'       => $email,
             'redirect_to' => $redirectTo,
-        ]);
+        ] + self::captcha());
     }
 
     /**

@@ -198,6 +198,9 @@ class Strings {
   String get loginErrorSuspended => _t(
       'This account has been suspended. Please contact the barangay.',
       'Sinuspinde ang account na ito. Makipag-ugnayan sa barangay.');
+  String get loginErrorCaptcha => _t(
+      'We could not confirm this is a real phone. Check your connection and try again.',
+      'Hindi makumpirma na totoong telepono ito. Suriin ang koneksyon at subukan ulit.');
   String get loginErrorRateLimited => _t(
       'Too many attempts. Please wait a few minutes and try again.',
       'Masyadong maraming pagsubok. Maghintay ng ilang minuto at subukan ulit.');

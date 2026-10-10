@@ -12,6 +12,7 @@
 
 import 'dart:async';
 
+import 'package:cloudflare_turnstile/cloudflare_turnstile.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -69,6 +70,25 @@ const _uploadPreset = String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET');
 // not break.
 const _videoUploadPresetRaw =
     String.fromEnvironment('CLOUDINARY_UPLOAD_PRESET_VIDEO');
+
+// Optional (backend review, 10 Oct 2026): Cloudflare Turnstile, the bot
+// check Supabase Auth asks for once CAPTCHA protection is switched on in
+// its dashboard. Unset, sign-in and sign-up send no token, as before. The
+// base URL must be one of the widget's allowed domains in Cloudflare.
+const _turnstileSiteKey = String.fromEnvironment('TURNSTILE_SITE_KEY');
+const _turnstileBaseUrl = String.fromEnvironment('TURNSTILE_BASE_URL',
+    defaultValue: 'https://smartsumbong-ph.onrender.com');
+
+/// A fresh Turnstile token, solved invisibly in the background.
+Future<String?> _turnstileToken() async {
+  final turnstile = CloudflareTurnstile.invisible(
+      siteKey: _turnstileSiteKey, baseUrl: _turnstileBaseUrl);
+  try {
+    return await turnstile.getToken();
+  } finally {
+    await turnstile.dispose();
+  }
+}
 
 /// Lets a push notification tap navigate before any screen's own
 /// BuildContext exists yet (a cold start from a killed state).
@@ -195,7 +215,8 @@ class SmartSumbongApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = AuthService(Supabase.instance.client);
+    final auth = AuthService(Supabase.instance.client,
+        captcha: _turnstileSiteKey.isEmpty ? null : _turnstileToken);
     final uploader = MediaUploader(
       cloudName: _cloudName,
       uploadPreset: _uploadPreset,

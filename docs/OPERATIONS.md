@@ -72,6 +72,19 @@ portal photo all upload. Only once no phone runs an older build, delete
 until then both the app and the portal fall back to them if a signature
 is ever refused.
 
+**Bot check on sign-in (CAPTCHA).** Built in but off. To switch it on:
+1. Cloudflare → Turnstile → add a widget (mode *Invisible* or *Managed*)
+   for `smartsumbong-ph.onrender.com`; note the site key and secret key.
+2. Render: add `TURNSTILE_SITE_KEY` (the portal then loads the widget on
+   every page with a password form and on login / forgot-password).
+3. App: build with `--dart-define=TURNSTILE_SITE_KEY=<site key>` (and
+   `TURNSTILE_BASE_URL` if the widget's domain is not the portal's).
+4. Only once every phone runs that build: Supabase → Authentication →
+   Bot and Abuse Protection → enable CAPTCHA, provider Turnstile, paste the
+   secret key. From then on sign-in, sign-up and password-reset links
+   without a valid token are refused; until then tokens are sent and
+   ignored. Turning it off again is the same switch.
+
 Supabase Auth → URL Configuration: Site URL and redirect URL are the
 Singapore portal.
 

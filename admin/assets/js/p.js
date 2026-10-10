@@ -26,7 +26,8 @@
   });
   document.addEventListener('submit', function (e) {
     var m = e.target.getAttribute && e.target.getAttribute('data-native-confirm');
-    if (m && !window.confirm(m)) { e.preventDefault(); e.stopImmediatePropagation(); }
+    // tsOk: the same submit coming back with its bot-check token (turnstile.js).
+    if (m && !e.target.dataset.tsOk && !window.confirm(m)) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('button[data-native-confirm], a[data-native-confirm], input[data-native-confirm]');
