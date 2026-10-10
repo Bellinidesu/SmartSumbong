@@ -521,6 +521,8 @@ def main():
             print('  skipped', nm or bi, e)
             continue
         P, N, U, M, Cc, Ix = m.arrays()
+        if PL.plain(b[4], b[5]):
+            M = np.zeros_like(M)            # the airfield side and Villamor: plain colour only, no picture on any wall or roof (10 Oct)
         if not len(P):
             continue
         taken.add(bi)
@@ -680,6 +682,7 @@ def main():
     if AIRFIELD:
         airfield.build(m, (lng0, lat0), Boundary(), quiet=QUIET)
     P, N, U, M, Cc, Ix = m.arrays()
+    M = np.zeros_like(M)                    # plain: the apron's slab joints and every other picture off
     if len(P):
         models.append({'name': 'Airfield', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': float(P[:, 2].max()), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
         V.append((P, U, M, Cc, N))
@@ -699,6 +702,7 @@ def main():
         m = Mesh()
         airfield.tower_mesh(m, t['kind'], t['h'])
         P, N, U, M, Cc, Ix = m.arrays()
+        M = np.zeros_like(M)
         if not len(P):
             continue
         if best:
