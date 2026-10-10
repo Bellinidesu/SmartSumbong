@@ -33,14 +33,18 @@ def clean(m, close, opn, min_m2):
         if (lab == k).sum() * v.mpp ** 2 >= min_m2:
             out |= lab == k
     return out
-solar = clean(solar, 6, 3, 40)
+solar = clean(solar, 12, 3, 40)
 tile = clean(tile, 3, 2, 40)
+sky = inside & (lum > 118) & (g >= r) & (b >= r - 4) & ((a.max(-1) - a.min(-1)) / np.maximum(a.max(-1), 1) < .25) & ~solar
+sky = clean(sky, 2, 2, 20)
+# the roofs in the picture lie off the footprint (the picture's lean and its registration): slide them back by sat.fit's offset, so they stand on the walls OpenStreetMap draws
+SHIFT = (4.0, -0.6)
 
 def to_local(px, py):
     lg, lt = v.ll(px, py)
-    return [round((lg - o_lng) * K.MX, 2), round((lt - o_lat) * K.MY, 2)]
+    return [round((lg - o_lng) * K.MX + SHIFT[0], 2), round((lt - o_lat) * K.MY + SHIFT[1], 2)]
 
-def polys(m, simplify_m, min_m2):
+def polys(m, simplify_m, min_m2, rect=False):
     res = []
     lab, n = ndimage.label(m)
     for k in range(1, n + 1):
@@ -50,18 +54,39 @@ def polys(m, simplify_m, min_m2):
         if sq is None or sq.is_empty:
             continue
         for p in (sq.geoms if isinstance(sq, MultiPolygon) else [sq]):
+            if rect:
+                rr = p.minimum_rotated_rectangle
+                if p.area / max(rr.area, 1) > .6:
+                    p = rr          # a field of panels is a rectangle: the stripes between them made the colour patchy
+                else:
+                    p = p.convex_hull
             p = p.simplify(simplify_m / v.mpp)
             if p.area * v.mpp ** 2 >= min_m2:
                 res.append({'m2': round(p.area * v.mpp ** 2, 1), 'ring': [to_local(x, y) for x, y in list(p.exterior.coords)[:-1]]})
     return res
 
-out = {'solar': polys(solar, 0.8, 25), 'tile': polys(tile, 1.0, 40), 'mpp': v.mpp}
+out = {'solar': polys(solar, 0.8, 25, True), 'tile': polys(tile, 1.0, 40), 'sky': polys(sky, 0.6, 15, True), 'shift': SHIFT, 'mpp': v.mpp}
+# keep each zone to the footprint (the walls the map draws); what falls outside it is the picture's lean over the street
+foot = Polygon(ring).buffer(0)
+# the shaded slope of a tile roof reads brown, not terracotta, so the colour test left holes: the tile roof is the tile and the solar fields together with the gaps closed, minus the flat/glass areas
+_t = unary_union([Polygon(z['ring']).buffer(0) for z in out['tile'] + out['solar']]).buffer(3.5).buffer(-3.5)
+_f = unary_union([Polygon(z['ring']).buffer(0) for z in out['sky']])
+_t = _t.difference(_f)
+out['tile'] = [{'m2': 0, 'ring': [[round(x, 2), round(y, 2)] for x, y in list(p.exterior.coords)[:-1]]} for p in (_t.geoms if hasattr(_t, 'geoms') else [_t]) if p.geom_type == 'Polygon' and p.area > 20]
+for key in ('solar', 'tile', 'sky'):
+    kept = []
+    for z in out[key]:
+        c = Polygon(z['ring']).buffer(0).intersection(foot)
+        for p in (c.geoms if hasattr(c, 'geoms') else [c]):
+            if p.geom_type == 'Polygon' and p.area >= 8:
+                kept.append({'m2': round(p.area, 1), 'ring': [[round(x, 2), round(y, 2)] for x, y in list(p.exterior.coords)[:-1]]})
+    out[key] = kept
 json.dump(out, open(os.path.join(HERE, '..', 'landmarks', 'blend', 'ballroom_roof.json'), 'w'))
-print('solar fields %d (%.0f m2), tile areas %d (%.0f m2)' % (len(out['solar']), sum(s['m2'] for s in out['solar']), len(out['tile']), sum(s['m2'] for s in out['tile'])))
+print('clipped: solar %d (%.0f m2), tile %d (%.0f m2), skylights %d (%.0f m2)' % (len(out['solar']), sum(q['m2'] for q in out['solar']), len(out['tile']), sum(q['m2'] for q in out['tile']), len(out['sky']), sum(q['m2'] for q in out['sky'])))
 im = v.im.copy(); d = ImageDraw.Draw(im, 'RGBA')
 def back(rg):
-    return [((o_lng + x / K.MX), (o_lat + y / K.MY)) for x, y in rg]
-for key, col in (('tile', (255, 140, 0, 90)), ('solar', (0, 200, 255, 110))):
+    return [((o_lng + (x - SHIFT[0]) / K.MX), (o_lat + (y - SHIFT[1]) / K.MY)) for x, y in rg]
+for key, col in (('tile', (255, 140, 0, 90)), ('solar', (0, 200, 255, 110)), ('sky', (120, 255, 120, 130))):
     for s in out[key]:
         d.polygon([v.px(*p) for p in back(s['ring'])], fill=col, outline=col[:3] + (255,))
 d.line([v.px(o_lng + x / K.MX, o_lat + y / K.MY) for x, y in ring], fill=(255, 255, 0, 255), width=2)
