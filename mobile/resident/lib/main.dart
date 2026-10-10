@@ -12,7 +12,6 @@
 
 import 'dart:async';
 
-import 'package:cloudflare_turnstile/cloudflare_turnstile.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -51,6 +50,7 @@ import 'screens/settings_screen.dart';
 import 'screens/terms_privacy_screen.dart';
 import 'screens/theme_screen.dart';
 import 'screens/verification_pending_screen.dart';
+import 'turnstile.dart';
 import 'tanod/duty.dart';
 import 'tanod/tanod_outbox.dart';
 import 'tanod/screens/extra_admin_services_screen.dart';
@@ -79,16 +79,12 @@ const _turnstileSiteKey = String.fromEnvironment('TURNSTILE_SITE_KEY');
 const _turnstileBaseUrl = String.fromEnvironment('TURNSTILE_BASE_URL',
     defaultValue: 'https://smartsumbong-ph.onrender.com');
 
-/// A fresh Turnstile token, solved invisibly in the background.
-Future<String?> _turnstileToken() async {
-  final turnstile = CloudflareTurnstile.invisible(
-      siteKey: _turnstileSiteKey, baseUrl: _turnstileBaseUrl);
-  try {
-    return await turnstile.getToken();
-  } finally {
-    await turnstile.dispose();
-  }
-}
+/// A fresh Turnstile token (turnstile.dart), over whatever screen is open.
+Future<String?> _turnstileToken() => turnstileToken(
+      siteKey: _turnstileSiteKey,
+      baseUrl: _turnstileBaseUrl,
+      overlay: navigatorKey.currentState?.overlay,
+    );
 
 /// Lets a push notification tap navigate before any screen's own
 /// BuildContext exists yet (a cold start from a killed state).

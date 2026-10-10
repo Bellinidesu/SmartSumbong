@@ -58,9 +58,9 @@ dependencies:
   image_picker: ^1.2.4
   package_info_plus: ^10.2.2
   supabase_flutter: ^2.18.2
-  # Bot check for Supabase Auth's CAPTCHA protection; only used when the
-  # app is built with TURNSTILE_SITE_KEY (see main.dart).
-  cloudflare_turnstile: ^3.8.1
+  # Bot check for Supabase Auth's CAPTCHA protection (lib/turnstile.dart);
+  # only used when the app is built with TURNSTILE_SITE_KEY (see main.dart).
+  webview_flutter: ^4.14.1
   # local_auth (Face ID / fingerprint unlock) is not listed here: it
   # arrives through smartsumbong_core, same as flutter_secure_storage
   # and supabase_flutter already do, because nothing in this app imports
