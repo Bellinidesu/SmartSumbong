@@ -5,7 +5,7 @@ read and change, and every result lists the reasons behind it. Nothing
 learns or changes on its own. The rules live in one database row
 (`smart_rules`); the code is `supabase/migrations/0122_smart_triage.sql`.
 
-Status (10 Oct 2026): database only (migrations 0121–0124), tested, not
+Status (10 Oct 2026): database only (migrations 0121–0125), tested, not
 deployed, and not shown in the portal or the app yet.
 
 ## 1. Triage: a score from 0 to 100 for every report
@@ -35,11 +35,51 @@ If a rule is ever broken (a mistyped word pattern, for example), the report
 is still filed, just not scored. Scoring can never stop a resident from
 filing.
 
+### Reading the words (0125)
+
+SMART reads complaints the way residents write them, using Tagalog grammar
+and a word list, not a model. Each word goes through these steps:
+
+1. **Known word**: it is in the rules' word lists.
+2. **Word list** (`smart_lexicon`, admins edit it):
+   - a texting spelling: snog → sunog, kuryinte → kuryente;
+   - the same meaning: garbage → basura, drainage → kanal, fire → sunog;
+   - a form the grammar steps miss: nangangagat → kagat.
+3. **Grammar**: prefixes (na-, nag-, ma-, naka-…), the infixes -um- and
+   -in-, the suffixes -an and -in, a repeated first syllable, and the
+   linker -ng are taken off. The result only counts if it is a known word:
+   nasusunog → sunog, binaha → baha, sinaksak → saksak, duguan → dugo,
+   batang → bata.
+4. **Guess**: one letter away from exactly one known word of five letters
+   or more (kurynte → kuryente). If two words are that close, nothing is
+   guessed.
+
+**Negation.** walang, wala, hindi, di, huwag, no, not, never and without
+cancel the next two words (ignoring little words like na, ng, po, ang).
+They stop at a comma or full stop and at pero / but. "Walang sunog,
+nag-iihaw lang" is not counted as a fire; "Hindi sunog, pero may usok na
+makapal" still counts the smoke. A cancelled word shows in the reasons as
+"not counted".
+
+**Phrases.** A rule word with a space ("live wire", "walang helmet") is
+matched as written, so a negation word inside it is part of the phrase.
+
+**Limits.** SMART does not understand sentences. "Usok lang galing sa
+ihawan" (just smoke from a grill) still counts the smoke. That is why the
+reasons are shown and admins can change the level.
+
+The reasons say how each word was read: "nasusunog → sunog (grammar)",
+"snog → sunog (spelling)". `smart_read(text)` shows the whole reading,
+word by word, for Settings → SMART → Try it.
+
 ## 2. Possible duplicates
 
 These are earlier open reports of the same kind, filed within 100 m and
 72 hours, that are either worded alike (text similarity of 0.3 or more,
-using PostgreSQL's `pg_trgm`) or within 25 m of each other. The admin sees
+using PostgreSQL's `pg_trgm`) or within 25 m of each other. "Worded alike"
+compares the words as written and also the words as SMART reads them
+(0125), so "garbage sa drainage" and "basura sa imburnal" are found as the
+same problem. The admin sees
 up to five, each with distance, hours apart and similarity, and decides
 whether they are the same problem. Nothing is merged automatically.
 
@@ -154,6 +194,8 @@ These times are checked against budgets in `supabase/tests/perf/query_budget.sql
 | `smart_case_card(report)` | admins | the case page's SMART card in one call |
 | `smart_summary()` | admins | the dashboard tiles |
 | `smart_preview(kind, subject, description, lat, lng)` | admins | the score a complaint would get; saves nothing |
+| `smart_read(text)` | admins | how SMART reads a text, word by word |
+| `smart_lexicon` (table) | admins read and edit | spellings, synonyms and forms |
 
 What the screens show, and where, is in `docs/SMART_SCREENS.md`.
 | `smart_rules` (table) | admins read and update | the rules |

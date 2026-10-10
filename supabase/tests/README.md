@@ -12,6 +12,7 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 | `04_smart.sql` | 17 checks (0121–0122, docs/SMART.md): triage scores and reasons (kind, words, whole-word matching, hazard zones, nearby reports, night, word cap), possible duplicates, residents kept out, rules changed and re-scored, a broken rule never blocks filing, tanod ranking, resolution-time estimate |
 | `05_smart_engine.sql` | 14 checks (0123): admin overrides (reason required, kept through re-scoring, logged, cleared), the watcher (urgent reports without a tanod, told once; dispatched ones not), recurring problems (three weeks yes, one burst no, told once), residents kept out, the schedule, calibration |
 | `06_smart_screens.sql` | 7 checks (0124): Try it scores without saving, the category hint (and when it stays quiet), the case card (both levels, override, reasons, estimate, duplicates, top tanod), the dashboard tiles, residents kept out |
+| `07_smart_language.sql` | 11 checks (0125): Tagalog word forms and the linker, negation and where it stops, texting spellings and one-letter slips, no over-reading of near words, phrases, duplicates by meaning, the word list edited by admins only, smart_read admins only |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

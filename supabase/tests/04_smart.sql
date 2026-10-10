@@ -173,7 +173,7 @@ begin
 
   -- 10. a broken rule never stops a filing
   begin
-    update public.smart_rules set keyword_groups = '[{"label": "broken", "points": 5, "pattern": "(["}]';
+    update public.smart_rules set keyword_groups = '"not a list"';
     insert into public.reports (resident_id, category, subject, description, latitude, longitude)
     values (v_b, 'other', 'Something', 'A complaint while the rules are broken.', dry_lat, dry_lng + 0.004)
     returning id into r_bad;
