@@ -567,7 +567,7 @@
     if (has('cd-fog-d')) map.setLayoutProperty('cd-fog-d', 'visibility', live() && dim && !night ? 'visible' : 'none');
     if (has('cd-fog-far') && FOG) { map.setLayoutProperty('cd-fog-far', 'visibility', live() && dim ? 'visible' : 'none'); map.setPaintProperty('cd-fog-far', 'fill-color', night ? '#0E1226' : '#EEF2F8'); map.setPaintProperty('cd-fog-far', 'fill-opacity', night ? FOG.alpha.night : FOG.alpha.day); }
     if (has('fog')) map.setLayoutProperty('fog', 'visibility', (GROUND_BACK ? !on : true) && dim ? 'visible' : 'none');
-    if (has('fog-edge')) map.setLayoutProperty('fog-edge', 'visibility', dim ? 'visible' : 'none');
+    for (let j = 1; j <= 6; j++) if (has('fog-s' + j)) map.setLayoutProperty('fog-s' + j, 'visibility', dim ? 'visible' : 'none');
     if (!GROUND_BACK) ['cd-fog-n', 'cd-fog-d', 'cd-fog-far'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', 'none'); });
   }
   // nothing outside the boundary: places, lane lines and landmark badges are cut to it
