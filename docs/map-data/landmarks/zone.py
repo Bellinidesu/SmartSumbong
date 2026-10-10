@@ -204,9 +204,13 @@ def z_hangar(m, ring, ctx, p):
     ring = _ccw(ring)
     m.prism(ring, 0, h, 'panel', C['sheetwhite'], 'plain', C['grey'], top=False, cell=5)
     cx, cy, L, W, th = ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th']
-    m.barrel(cx, cy, L, W, th, h, min(W * .28, 6.0), 'sheet', C['roofgrey'], seg=10)
+    if Polygon(ring).area / max(L * W, 1) > .93:                      # a barrel roof over the bounding box only where the footprint is nearly a rectangle (it stood 25 m off a bent one)
+        m.barrel(cx, cy, L, W, th, h, min(W * .28, 6.0), 'sheet', C['roofgrey'], seg=10)
+    else:
+        m.cap(ring, h, MAT['roofdeck'], C['roofgrey'], True)
     (qx, qy), fr, along, across = front_on_edge(ring, ctx)
-    m.vprism([(-across * .8, 0), (across * .8, 0), (across * .8, h * .85), (-across * .8, h * .85)], (qx + fr[0] * .08, qy + fr[1] * .08, 0), along, fr, 0, .3, 'panel', C['slate'])
+    dw = min(across * .8, 7.0)                                       # a hangar door is 14 m wide at most, however wide the bounding box of a bent footprint is
+    m.vprism([(-dw, 0), (dw, 0), (dw, h * .85), (-dw, h * .85)], (qx + fr[0] * .08, qy + fr[1] * .08, 0), along, fr, 0, .3, 'panel', C['slate'])
 
 
 def z_generic(m, ring, ctx, p):

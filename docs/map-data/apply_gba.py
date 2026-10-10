@@ -8,13 +8,19 @@ d = json.load(open(P, encoding='utf-8'))
 idx = gba.Index(gba.load((121.0007, 14.5126, 121.0304, 14.5412)))
 n = tall = 0
 changed = []
-for b in d['b']:
+KEEP = {'hangar', 'warehouse', 'industrial', 'service', 'garage', 'garages'}   # long-span sheds: the atlas reads 3 m for a hangar, our footprint guess (8 to 13 m) is nearer
+for i, b in enumerate(d['b']):
     if not b[9] or (len(b) > 13 and b[13]):
+        continue
+    nm_cls = (d['info'].get(str(i)) or ['', ''])
+    if nm_cls[1] in KEEP or 'hangar' in nm_cls[0].lower():
         continue
     ring = [(b[0][k], b[0][k + 1]) for k in range(0, len(b[0]), 2)]
     h = gba.height(idx, ring)
     if h is None:
         continue
+    if b[6] * b[7] >= 900:
+        h = max(h, b[1])                   # a wide roof is what the atlas reads lowest: never below our own guess for a big building
     if abs(h - b[1]) > .05:
         changed.append((b[1], h))
     b[1] = h

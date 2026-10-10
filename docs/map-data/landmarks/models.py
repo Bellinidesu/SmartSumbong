@@ -455,11 +455,13 @@ def main():
                 continue
         elif bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and max(ZONE[1], 14.5142) <= b[5] <= ZONE[3]):
             continue
-        if PL.plain(b[4], b[5]):
-            continue
         nm, cls = (info.get(str(bi)) or ['', ''])
         area = b[6] * b[7]
         ptype = POI.get('types', {}).get(str(bi))
+        if ptype == 'condo' and cls in ('residential', '') and b[1] < 10:
+            ptype = None                     # a house tagged residential is a house, not a condominium
+        if PL.plain(b[4], b[5]) and not (SW and ptype):      # the airfield side stays plain, except what the open data says is a hangar, a school, a chapel...: type it, model it
+            continue
         if SW and not (ptype or nm or area >= 900):
             continue
         if not SW and not (area >= 260 or b[1] >= 14 or nm):
