@@ -10,32 +10,36 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.2
-  image_picker: ^1.1.2
+  http: ^1.6.0
+  image_picker: ^1.2.4
   # Only to switch on Android's system photo picker (Android 9-12 get it
   # from Google Play services); versions follow image_picker's.
   image_picker_android: any
   image_picker_platform_interface: any
-  uuid: ^4.5.1
-  flutter_image_compress: ^2.4.0
-  path_provider: ^2.1.4
-  supabase_flutter: ^2.8.0
-  permission_handler: ^11.3.1
+  uuid: ^4.6.0
+  flutter_image_compress: ^2.5.1
+  path_provider: ^2.1.6
+  supabase_flutter: ^2.18.2
+  # 12.x, not 13: permission_handler 13 (via permission_handler_android 14)
+  # requires Android compileSdk 37, the same step flutter_secure_storage 11
+  # needs (below); Flutter 3.47 builds against 36. Move both together when
+  # Flutter's Android baseline reaches 37.
+  permission_handler: ^12.0.1
 
   # Push notifications (FCM) + the local-notification display FCM itself
   # does not do while the app is in the foreground.
-  firebase_core: ^4.14.0
-  firebase_messaging: ^16.6.0
-  flutter_local_notifications: ^22.3.0
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
+  flutter_local_notifications: ^22.3.1
 
   # Crash visibility — rides on the same Firebase project as the above.
-  firebase_crashlytics: ^5.3.0
+  firebase_crashlytics: ^5.4.0
 
   # Video playback for report/dispatch evidence, and image caching so a
   # reopened report does not re-download every photo from Cloudinary.
-  video_player: ^2.14.0
-  chewie: ^1.15.0
-  cached_network_image: ^3.4.1
+  video_player: ^2.14.1
+  chewie: ^1.17.2
+  cached_network_image: ^4.0.4
 
   # Session tokens in the OS keystore instead of plain SharedPreferences.
   # Pinned below 11.0.0 deliberately: that release bumped its required
@@ -52,8 +56,8 @@ dependencies:
   # App version shown in Settings, useful now that builds are distributed
   # as a manually-shared APK rather than through a store with its own
   # version tracking.
-  package_info_plus: ^10.2.1
-  device_info_plus: ^13.2.0
+  package_info_plus: ^10.2.2
+  device_info_plus: ^13.3.0
 
   # Face ID / fingerprint unlock (biometric_auth.dart, biometric_lock_
   # gate.dart), shared by both apps -- reads whatever biometric the
@@ -66,7 +70,7 @@ dependencies:
   # per-handset UI preference, not a credential, so it follows the same
   # plain-SharedPreferences pattern as each app's own "remember me" and
   # onboarding-seen flags rather than needing the Keystore's guarantees.
-  shared_preferences: ^2.3.3
+  shared_preferences: ^2.5.6
 
   # On-device OCR triage for ID photos at registration (id_ocr.dart,
   # migration 0039) -- reads what an ID photo says, entirely on the
