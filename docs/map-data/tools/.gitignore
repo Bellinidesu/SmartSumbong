@@ -3,3 +3,4 @@ bench/out/
 __pycache__/
 inbox/
 match-out/
+sfm-out/
