@@ -47,7 +47,7 @@ def main():
     bi, b = K.building_named(name)
     o = (b[4], b[5])
     slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
-    work = os.path.join(OUT, slug)
+    work = os.path.join(OUT, slug + ('-panos' if '--panos' in a else ''))
     imgdir = os.path.join(work, 'images')
     os.makedirs(imgdir, exist_ok=True)
     sel = []
@@ -56,12 +56,27 @@ def main():
         if not g:
             continue
         x, y = (g['coordinates'][0] - o[0]) * K.MX, (g['coordinates'][1] - o[1]) * K.MY
-        if math.hypot(x, y) < radius and i.get('camera_type') in ('perspective',) and i.get('thumb_1024_url'):
+        if math.hypot(x, y) < radius and i.get('camera_type') in ('perspective',) and '--panos' not in a and i.get('thumb_1024_url'):
             sel.append(i)
-    print('perspective frames:', len(sel))
+    if '--panos' in a:
+        sel = []
+        for i in K.mly_index():
+            g = i.get('computed_geometry')
+            if g and i.get('is_pano') and i.get('thumb_1024_url') and math.hypot((g['coordinates'][0] - o[0]) * K.MX, (g['coordinates'][1] - o[1]) * K.MY) < radius:
+                sel.append(i)
+    print('frames:', len(sel))
 
     def get(i):
         p = os.path.join(imgdir, 'p_%s.jpg' % i['id'])
+        if i.get('is_pano'):
+            if not os.path.exists(p.replace('.jpg', '_0.jpg')):
+                try:
+                    full = Image.open(__import__('io').BytesIO(K.get(R.pano_url(i['id'])['thumb_2048_url']))).convert('RGB')
+                except Exception:
+                    return None
+                for k, yaw in enumerate((0, 60, 120, 180, 240, 300)):
+                    pano_views(full, yaw).save(p.replace('.jpg', '_%d.jpg' % k), quality=92)
+            return p
         if not os.path.exists(p):
             try:
                 open(p, 'wb').write(K.get(i['thumb_1024_url']))

@@ -7,6 +7,7 @@ The landmark engine, one command for everything about designing a landmark.
     engine.py refs <name>         reference search: photos, street views, models, ranked, one board         (refsearch.py)
     engine.py finder              Google image search on a page of ours: press + on a picture to put it on a landmark's board       (finder.py)
     engine.py match <name>        the reference match: the model seen from where each photograph was taken, beside the photograph and blended           (match.py)
+    engine.py shots <name>        a page of Google Street View links round the building: click, screenshot, paste into the finder      (shotlist.py)
     engine.py viewer              the 3D viewer: turn every landmark model, compare with the references, approve or send back             (viewer.py)
     engine.py sources <name>      what the owners, builders and open databases say about the area (OSM links, Wikidata facts); --grab takes their pictures   (sources.py)
     engine.py suggest <name>      colours, floor height, bay width and glass read off the street view         (suggest.py)
@@ -196,6 +197,8 @@ def main():
         return run('finder.py', *rest)
     if c == 'match' and name:
         return run('match.py', *rest)
+    if c == 'shots' and name:
+        return run('shotlist.py', *rest)
     if c == 'viewer':
         return run('viewer.py', *rest)
     if c == 'sources' and name:
