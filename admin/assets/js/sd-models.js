@@ -20,7 +20,7 @@
     float g = dot(l, vec3(.333)); l = mix(vec3(g), l, mix(1.0, .5, u_night)) * mix(1.0, .72, u_night); v_light = l; }`;
   const FS = `#version 300 es
   precision highp float;
-  uniform sampler2D u_atlas, u_emis, u_atlas2, u_emis2; uniform vec4 u_tiles[256]; uniform float u_night; uniform vec3 u_wash[8];
+  uniform sampler2D u_atlas, u_emis, u_atlas2, u_emis2; uniform vec4 u_tiles[256]; uniform float u_night; uniform float u_dce; uniform vec3 u_wash[8];
   in vec2 v_uv; in float v_mat; in vec3 v_alb; in vec3 v_light; in vec2 v_x;
   out vec4 o;
   void main() {
@@ -33,6 +33,7 @@
     // a landmark's own colour of night light up its walls (v_x: how much, and which of the eight colours); nothing live, baked into the vertices
     int wi = int(v_x.y * 255.0 + .5); vec3 wc = u_wash[wi] * v_x.x * (.35 + .65 * dot(base, vec3(.333)));
     vec3 c = base * v_alb * v_light + u_night * (em + wc);
+    if (u_dce > .5) c *= vec3(.84, .86, 1.0);      // the DCE look: a cool dusk tint on the models
     o = vec4(c, 1.0);
   }`;
 
@@ -45,7 +46,7 @@
     onAdd(m, gl) {
       const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
       const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p); gl_.prog = p;
-      const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_atlas2', 'u_emis2', 'u_tiles', 'u_wash'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
+      const L = {}; ['u_m', 'u_night', 'u_grow', 'u_atlas', 'u_emis', 'u_atlas2', 'u_emis2', 'u_tiles', 'u_wash', 'u_dce'].forEach(n => { L[n] = gl.getUniformLocation(p, n); });
       ['a_pos', 'a_uv', 'a_mc', 'a_day', 'a_night', 'a_x'].forEach(n => { L[n] = gl.getAttribLocation(p, n); }); gl_.loc = L;
       gl_.vbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.vbuf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes), gl.STATIC_DRAW);
       gl_.ibuf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes), gl.STATIC_DRAW);
@@ -64,7 +65,7 @@
       const g = grow; if (!gl_.ready || g <= .001) return;
       const main = (args && args.defaultProjectionData && args.defaultProjectionData.mainMatrix) || (args && args.mainMatrix) || args, L = gl_.loc;
       gl.useProgram(gl_.prog);
-      gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform1f(L.u_grow, g); gl.uniform4fv(L.u_tiles, gl_.tiles); gl.uniform3fv(L.u_wash, WASH);
+      gl.uniform1f(L.u_night, night ? 1 : 0); gl.uniform1f(L.u_dce, (/[?&]look=dce\b/.test(location.search) || (function () { try { return localStorage.getItem('ss-dce') === '1'; } catch (e) { return false; } })()) ? 1 : 0); gl.uniform1f(L.u_grow, g); gl.uniform4fv(L.u_tiles, gl_.tiles); gl.uniform3fv(L.u_wash, WASH);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl_.tex); gl.uniform1i(L.u_atlas, 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gl_.texE); gl.uniform1i(L.u_emis, 1);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, gl_.tex2); gl.uniform1i(L.u_atlas2, 2);
@@ -98,7 +99,7 @@
   const ON = (() => { try { return !(/[?&]models=0(&|$)/.test(location.search) || localStorage.getItem('ss-models') === '0'); } catch (e) { return true; } })();   // on again (10 Oct, Ace): the type models (gas station, hangar, toll plaza, church, school...) are part of the style; ?models=0 turns them off; unapproved landmark drafts stay hidden without ?models=all
   // a landmark drawn from a sheet is shown on the map only once it is approved (tools/viewer.py); ?models=all shows the drafts too
   const ALL = (() => { try { return window.SD_MODELS_ALL === true || /[?&]models=all\b/.test(location.search) || localStorage.getItem('ss-models') === 'all'; } catch (e) { return false; } })();
-  const shown = md => ALL || !md.sheet || md.approved;
+  const shown = md => (ALL || !md.sheet || md.approved) && !(window.sdModels && window.sdModels.skip && window.sdModels.skip.has(md.replaces));   // skip: the DCE look draws a safe-point building as a plain bright one, not as its model
   const ready = (async () => {
     if (!ON) return false;
     try {
