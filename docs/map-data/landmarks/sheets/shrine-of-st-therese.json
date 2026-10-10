@@ -594,5 +594,6 @@
     },
     "lit": 0.6
   },
-  "ref": []
+  "ref": [],
+  "blend": "shrine.npz"
 }

@@ -460,6 +460,8 @@ def main():
         kind = _zone.kind_of(nm, cls, area, b[1], None, lng0, lat0)
         m = Mesh()
         sh = SH.find(nm, bi)
+        if sh and sh.get('blend'):
+            continue          # modelled in Blender: taken from its export below
         if sh and sh.get('tier') == 'plain':
             sh = None
         if sh is None and not os.environ.get('SS_ZONE'):
@@ -501,6 +503,28 @@ def main():
         ioff += len(Ix)
         nz += 1
     print('zone buildings modelled: %d' % nz)
+    # landmarks modelled in Blender (blend/): a sheet with "blend": "<name>.npz" is taken from the file exported by blend/export_model.py, in the map's own frame
+    import blend_import
+    for sh_ in SH.items:
+        if not sh_.get('blend'):
+            continue
+        got = blend_import.load(sh_, HERE)
+        if not got:
+            continue
+        P, N, U, M, Cc, Ix = got
+        bi_ = next((i for i, q in enumerate(bld) if abs(q[4] - sh_['anchor'][0]) < .0006 and abs(q[5] - sh_['anchor'][1]) < .0006 and (sh_.get('match') or {}).get('name') and re.fullmatch(sh_['match']['name'], (bdoc.get('info', {}).get(str(i)) or [''])[0] or '')), -1)
+        ent = {'name': sh_['name'], 'template': 'sheet', 'lng': sh_['anchor'][0], 'lat': sh_['anchor'][1], 'replaces': bi_, 'height': round(float(P[:, 2].max()), 1), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff,
+               'sheet': True, 'blend': True, 'approved': (APPROVALS.get(sh_['name']) or {}).get('status') == 'approved'}
+        if sh_.get('night', {}).get('wash'):
+            w_ = sh_['night']['wash']
+            ent['wash'] = {'c': _sheet.WASH.get(w_.get('color', 'blue'), 4), 'h': float(w_.get('height', 20)), 's': float(w_.get('strength', .5))}
+        models.append(ent)
+        V.append((P, U, M, Cc, N))
+        I.append(Ix)
+        taken.add(bi_)
+        voff += len(P)
+        ioff += len(Ix)
+        print('%-42s blender   %6d vertices %6d triangles' % (sh_['name'], len(P), len(Ix) // 3))
     # street lamps: a pole and a lamp head for every lamp (city-detail.json), as one more model at the middle of the map
     det = json.load(open(os.path.join(MAP, 'city-detail.json'), encoding='utf-8'))
     lamps = det.get('lamps', [])
