@@ -11,6 +11,9 @@
 #      0111), so the two never disagree;
 #   3. deploys every Edge Function (their JWT settings come from
 #      supabase/config.toml).
+# "photos" runs scripts/privatize-identity-photos.mjs (dry-run lists, apply
+# moves); it needs the Cloudinary secrets here and the account already on
+# SHA-256 signing.
 # The portal is not deployed here: Render does that itself after CI passes.
 # Take a backup first (Actions -> Nightly backup -> Run workflow).
 #
@@ -26,6 +29,11 @@ on:
         description: Apply (off = only list the migrations that would run)
         type: boolean
         default: false
+      photos:
+        description: Move identity photos uploaded before 0110 to private storage
+        type: choice
+        options: [skip, dry-run, apply]
+        default: skip
 
 permissions:
   contents: read
@@ -113,3 +121,21 @@ jobs:
         run: |
           supabase migration list --linked | tail -n 12
           supabase functions list --project-ref "$PROJECT_REF"
+
+      - name: Identity photos to private storage
+        if: ${{ inputs.photos != 'skip' }}
+        env:
+          SUPABASE_URL: https://xmkpokcnjzgxgwysperh.supabase.co
+          CLOUDINARY_CLOUD_NAME: nwb2kryl
+          PHOTOS: ${{ inputs.photos }}
+        run: |
+          key=$(supabase projects api-keys --project-ref "$PROJECT_REF" -o json |
+            jq -r '(map(select(.name == "service_role")) + map(select(.type == "secret")))[0].api_key')
+          [ -n "$key" ] && [ "$key" != null ] || { echo "::error::No service key found"; exit 1; }
+          echo "::add-mask::$key"
+          export SUPABASE_SERVICE_ROLE_KEY="$key"
+          if [ "$PHOTOS" = apply ]; then
+            node scripts/privatize-identity-photos.mjs --apply
+          else
+            node scripts/privatize-identity-photos.mjs
+          fi
