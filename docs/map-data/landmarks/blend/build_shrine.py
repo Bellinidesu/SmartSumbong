@@ -193,7 +193,235 @@ for k in range(4):
     cyl.location = (36 + k * .6, -5.2, 11.0)
     boolean(cyl, box('_pb%d' % k, 30, 50, -30, 30, 0, 11.0, M['arch1']))
 
-# the hedges, the rings, the palms: left to the next pass in this file (the sheet has them)
+# ================================================================ the rest of the Street View shots, in the same plan
+def mesh_obj(name, verts, faces, material, uvs=None):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.update()
+    if uvs:
+        uv = me.uv_layers.new(name='uv')
+        for poly in me.polygons:
+            for li, vi in zip(poly.loop_indices, poly.vertices):
+                uv.data[li].uv = uvs[vi]
+    ob = bpy.data.objects.new(name, me)
+    return link(ob, material)
+
+
+def cut(host, holder):
+    """Subtract an arch cutter (a holder with a leg and a top) from a wall."""
+    for ch in list(holder.children):
+        md = host.modifiers.new('cut', 'BOOLEAN')
+        md.operation = 'DIFFERENCE'
+        md.object = ch
+        md.solver = 'EXACT'
+        ch.hide_render = True
+        ch.name = '_' + ch.name
+
+
+def facing_vec(f):
+    return math.cos(math.radians(f)), math.sin(math.radians(f))
+
+
+def stepped(u, v, facing, width, z, wall_h, k=4, glass=True, cross=False):
+    """Concentric stepped arches standing on a wall end, each a little proud of the one behind and lighter at the edge; a framed stained-glass arch with two small side arches."""
+    nx, ny = facing_vec(facing)
+    px, py = -ny, nx
+    for i in range(k):
+        R = width / 2 - i * .9
+        cy_ = cylinder('step', 0, 0, 0, .6, R, M['arch1'] if i % 2 == 0 else M['arch2'], 40)
+        cy_.rotation_euler = Euler((math.pi / 2, 0, math.radians(facing) - math.pi / 2))
+        cy_.location = (u + nx * (.3 + i * .6), v + ny * (.3 + i * .6), z + wall_h)
+        boolean(cy_, box('_sb%d' % i, -60, 60, -60, 60, z + wall_h - 40, z + wall_h, M['arch1']))
+        lg = box('step_leg', -R, R, -.3, .3, z, z + wall_h, M['arch1'] if i % 2 == 0 else M['arch2'])
+        lg.location = (u + nx * (.3 + i * .6), v + ny * (.3 + i * .6), z + wall_h / 2)
+        lg.scale = (2 * R, .6, wall_h)
+        lg.rotation_euler = Euler((0, 0, math.radians(facing) - math.pi / 2))
+    if not glass:
+        return
+    off = k * .6 + .1
+    for (du, w, h, base) in ((0, width * .34, wall_h * .5 + width * .17, 1.0), (-width * .31, width * .13 * 2, wall_h * .22 + width * .13, 1.0), (width * .31, width * .13 * 2, wall_h * .22 + width * .13, 1.0)):
+        for (m_, grow, d) in ((M['cream'], .3, 0.0), (M['glass'], 0.0, .14)):
+            h_ = h + grow * (.7 if w < 4 else 1)
+            ww = w + grow
+            Rr = ww / 2
+            leg = max(.2, h_ - Rr)
+            cx, cy = u + nx * (off + d) + px * du, v + ny * (off + d) + py * du
+            b = box('gw', -ww / 2, ww / 2, -.07, .07, 0, leg, m_)
+            b.location = (cx, cy, z + base + leg / 2 - grow * .3)
+            b.scale = (ww, .14, leg)
+            b.rotation_euler = Euler((0, 0, math.radians(facing) - math.pi / 2))
+            t = cylinder('gwt', 0, 0, -.07, .07, Rr, m_, 20)
+            t.rotation_euler = Euler((math.pi / 2, 0, math.radians(facing) - math.pi / 2))
+            t.location = (cx, cy, z + base + leg - grow * .3)
+    if cross:
+        top = z + wall_h + width / 2
+        box('cross_v', u - .15, u + .15, v - .15, v + .15, top, top + 3.2, M['cross'])
+        box('cross_h', u - .15, u + .15, v - 1.0, v + 1.0, top + 2.0, top + 2.4, M['cross'])
+
+
+def niche(u, v, facing, z, w, h, host, statue=True, recess='recess', balcony=False):
+    nx, ny = facing_vec(facing)
+    holder = arch_cutter('niche', u, v, z, w, h, 1.6, facing)
+    cut(host, holder)
+    # a cream frame proud of the wall round the opening
+    R = w / 2 + .22
+    leg = max(.3, h - w / 2)
+    fr = box('frame', -R, R, -.08, .08, 0, leg, M['cream'])
+    fr.location = (u + nx * .05, v + ny * .05, z - .1 + leg / 2)
+    fr.scale = (2 * R, .16, leg + .1)
+    fr.rotation_euler = Euler((0, 0, math.radians(facing) - math.pi / 2))
+    ft = cylinder('frame_t', 0, 0, -.08, .08, R, M['cream'], 20)
+    ft.rotation_euler = Euler((math.pi / 2, 0, math.radians(facing) - math.pi / 2))
+    ft.location = (u + nx * .05, v + ny * .05, z + leg - .1)
+    if statue:
+        box('saint', u - nx * .3 - .3, u - nx * .3 + .3, v - ny * .3 - .22, v - ny * .3 + .22, z + .2, z + 2.7, M['bronze'])
+    else:
+        gl_ = box('niche_glass', u - nx * .5 - .3, u - nx * .5 + .3, v - ny * .5 - .3, v - ny * .5 + .3, z + .2, z + h - .3, M[recess] if recess in M else M['glass'])
+    if balcony:
+        b = box('balcony', u + nx * .5 - (w + .8) / 2, u + nx * .5 + (w + .8) / 2, v + ny * .5 - .5, v + ny * .5 + .5, z - 1.2, z - 1.02, M['cream'])
+        b.rotation_euler = Euler((0, 0, 0))
+
+
+def palm(u, v, z, h):
+    cylinder('palm_trunk', u, v, z, z + h, .17, M['trunk'], 6)
+    for k in range(9):
+        a = 2 * math.pi * k / 9 + u * 1.7 + v * 2.3
+        L = 2.6 * (.85 + .3 * ((k * 37) % 7) / 7)
+        ca, sa = math.cos(a), math.sin(a)
+        tip = (u + ca * L, v + sa * L, z + h - .9)
+        mid = (u + ca * L * .55, v + sa * L * .55, z + h + .25)
+        wl = (-sa * .42, ca * .42)
+        mesh_obj('frond', [(u, v, z + h), (mid[0] + wl[0], mid[1] + wl[1], mid[2]), tip, (mid[0] - wl[0], mid[1] - wl[1], mid[2])], [(0, 1, 2, 3)], M['leaf'])
+
+
+def sign(text, u, v, facing, z, w, h):
+    nx, ny = facing_vec(facing)
+    px, py = -ny, nx
+    sm = mat('sign:' + text, 'FFFFFF')
+    a = (u - px * w / 2, v - py * w / 2, z)
+    b = (u + px * w / 2, v + py * w / 2, z)
+    verts = [a, b, (b[0], b[1], z + h), (a[0], a[1], z + h)]
+    mesh_obj('sign', verts, [(0, 1, 2, 3)], sm, uvs=[(0, 0), (1, 0), (1, 1), (0, 1)])
+
+
+def louvres(u, v, facing, z, w, h, dark='3A4048', slat='DADDE0'):
+    nx, ny = facing_vec(facing)
+    th = math.radians(facing)
+    dm, sm = mat('plain.l_dark_' + dark, dark), mat('plain.l_slat_' + slat, slat)
+    pb = box('louvre_back', 0, 0, 0, 0, 0, 0, dm)
+    pb.scale = (.1, w, h)
+    pb.location = (u + nx * .06, v + ny * .06, z + h / 2)
+    pb.rotation_euler = Euler((0, 0, th))
+    n = max(3, int(h / .32))
+    for k in range(n):
+        sl = box('slat', 0, 0, 0, 0, 0, 0, sm)
+        sl.scale = (.08, w - .2, .12)
+        sl.location = (u + nx * .14, v + ny * .14, z + .1 + k * (h - .2) / n)
+        sl.rotation_euler = Euler((0, 0, th))
+
+
+def hedge(u0, v0, u1, v1, h, w=1.4):
+    ln = math.hypot(u1 - u0, v1 - v0)
+    b = box('hedge', 0, 0, 0, 0, 0, 0, M['green'])
+    b.scale = (ln, w, h)
+    b.location = ((u0 + u1) / 2, (v0 + v1) / 2, h / 2)
+    b.rotation_euler = Euler((0, 0, math.atan2(v1 - v0, u1 - u0)))
+
+
+def rings(u, v, r0, r1, n, z=.1):
+    for i in range(n, 0, -1):
+        R = r0 + (r1 - r0) * i / n
+        cylinder('ring', u, v, z, z + .02 * (n - i + 1), R, M['ring_d'] if i % 2 == 0 else M['ring_p'], 40)
+
+
+# ---- the porch: a colonnade, a dark ground floor with the glazed shop front, the fascia and its lettering, palms on its roof
+box('porch_back', 36, 38, -22, 16, 0, 5.6, M['dark'])
+box('shop_glass', 38, 39.2, -9, 7, 0, 4.6, M['cream'])
+box('porch_parapet', 36, 44.5, -22, 16, 6.5, 7.0, M['green'])
+box('fascia', 44.4, 44.8, -22, 16, 4.6, 5.6, M['wall'])
+sign('MILITARY ORDINARIATE OF THE PHILIPPINES', 44.85, -1, 0, 4.7, 22, 1.2)
+sign('SHRINE OF ST. THERESE', 36.8, -5.2, 0, 7.3, 11, 1.3)
+for k, vv in enumerate((-20, -16, -12, 9, 13)):
+    palm(41.5 + (k % 2) * .8, vv, 6.5, 5.5 + (k % 3) * .8)
+
+# ---- the pediment's saint on its plinth, and the cross
+box('plinth', 35.4, 36.4, -5.8, -4.6, 20.3, 21.2, M['cream'])
+box('saint_top', 35.6, 36.2, -5.5, -4.9, 21.2, 24.0, M['arch2'])
+box('cross_v', 35.85, 36.15, -5.35, -5.05, 24.0, 26.0, M['cross'])
+box('cross_h', 35.85, 36.15, -5.9, -4.5, 25.2, 25.5, M['cross'])
+
+# ---- the stepped arch on the end of every arm, with its stained glass
+stepped(-51, -5.2, 180, 19.2, 0, 7.5)
+stepped(-24.2, 27, 90, 17.6, 0, 7.5)
+stepped(-23.2, -32.5, 270, 18.1, 0, 7.5)
+
+# ---- the niches: the statue niche in each front tower (cut), the small stained-glass ones, the arched windows of the corner blocks
+towers = [o for o in root.children if o.name.startswith('tower')]
+t_nw = min(towers, key=lambda o: (o.location.x - 31) ** 2 + (o.location.y - 11) ** 2)
+t_se = min(towers, key=lambda o: (o.location.x - 31.5) ** 2 + (o.location.y + 17) ** 2)
+# (the first two statue niches were already cut above; the small stained-glass niches on the tower fronts)
+niche(36, 11, 0, 6.8, 1.6, 2.6, t_nw, statue=False, recess='glass')
+niche(36.5, -17, 0, 6.8, 1.6, 2.6, t_se, statue=False, recess='glass')
+
+# ---- the dome drums: eight framed arched windows each, a lantern and a cross on the big dome and each small one
+for (cx_, cy_, R, z0, dh) in ((-26, -5.6, 9.8, 12.5, 3.0), (31, 11, 4.4, 10.0, 3.4), (31.5, -17, 4.4, 10.0, 3.4)):
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        w_ = min(1.3, R * .26)
+        for (mm, off, hh, ww) in ((M['cream'], .04, dh * .6, w_), (M['glass'], .09, dh * .46, w_ * .7)):
+            b = box('dw', 0, 0, 0, 0, 0, 0, mm)
+            b.scale = (.1, ww, hh)
+            b.location = (cx_ + math.cos(a) * (R + off), cy_ + math.sin(a) * (R + off), z0 + dh * .2 + hh / 2 + (0 if mm is M['cream'] else dh * .06))
+            b.rotation_euler = Euler((0, 0, a))
+big = (-26, -5.6, 12.5 + 3.0 + .35 + 7.0)
+for (cx_, cy_, ztop, lr) in ((-26, -5.6, big[2], 1.2), (31, 11, 10 + 3.4 + 3.2, .6), (31.5, -17, 10 + 3.4 + 3.2, .6)):
+    cylinder('lantern', cx_, cy_, ztop - .1, ztop + lr * 3, lr, M['drum'], 10)
+    box('lc_v', cx_ - .07, cx_ + .07, cy_ - .07, cy_ + .07, ztop + lr * 3, ztop + lr * 3 + 2.0, M['cross'])
+    box('lc_h', cx_ - .07, cx_ + .07, cy_ - .5, cy_ + .5, ztop + lr * 3 + 1.2, ztop + lr * 3 + 1.35, M['cross'])
+
+# ---- the trellis annexes along both long sides: a two-storey terracotta block with a hedge in front, arched windows cut behind a wire mesh, planters on the roof
+annex_nw = box('annex_nw', -10, 36, 15, 29, 0, 7.5, M['wall'])
+annex_se = box('annex_se', 7, 30, -34, -24, 0, 7.5, M['wall'])
+for (host, u0, u1, v, facing) in ((annex_nw, -10, 36, 29, 90), (annex_se, 7, 30, -34, 270)):
+    n = int((u1 - u0) // 4)
+    for k in range(n):
+        uu = u0 + (u1 - u0) * (k + .5) / n
+        cut(host, arch_cutter('win', uu, v, 2.2, 2.4, 3.8, 1.6, facing))
+    for k in range(n + 1):
+        uu = u0 + (u1 - u0) * k / n
+        nx_, ny_ = facing_vec(facing)
+        box('post', uu - .25, uu + .25, v + ny_ * .25 - .25, v + ny_ * .25 + .25, 0, 7.3, M['wall'])
+    mesh = box('mesh', u0, u1, v + (facing == 90) * .05 - (facing == 270) * .05 - .04, v + (facing == 90) * .05 - (facing == 270) * .05 + .04, 2.6, 6.6, M['green'])
+    va, vb = (15.3, 28.7) if facing == 90 else (-33.7, -24.3)
+    for (a0, a1, b0, b1) in ((u0 + .3, u1 - .3, va, va + .6), (u0 + .3, u1 - .3, vb - .6, vb), (u0 + .3, u0 + .9, va, vb), (u1 - .9, u1 - .3, va, vb)):
+        box('planter', a0, a1, b0, b1, 7.5, 8.05, M['dark'])
+box('solar', -9, 29, 17, 28, 8.1, 8.25, M['solar'])
+box('aisle_roof_se', 7, 30, -34, -24, 7.5, 7.7, M['terracotta'])
+hedge(-12, 30.2, 37, 30.2, 3.0)
+hedge(7, -35.2, 31, -35.2, 3.0)
+
+# ---- the low corner blocks at the south-west end, their arched windows and louvres
+blk_nw = box('corner_nw', -51, -34, 7.5, 25, 0, 6.0, M['wall'])
+blk_se = box('corner_se', -51, -32, -33, -15, 0, 6.0, M['wall'])
+box('corner_nw_roof', -51, -34, 7.5, 25, 6.0, 6.2, M['terracotta'])
+box('corner_se_roof', -51, -32, -33, -15, 6.0, 6.2, M['terracotta'])
+niche(-33, 25, 90, 0.6, 3.6, 4.6, blk_nw, statue=False, recess='glass')
+niche(-35, -33, 270, 0.6, 3.6, 4.6, blk_se, statue=False, recess='glass')
+louvres(-44, -33.1, 270, 1.0, 4.2, 3.2)
+louvres(-44, 25.1, 90, 1.0, 4.2, 3.2)
+louvres(20, -34.1, 270, 1.0, 2.2, 4.2, '3F5F8F', '7FA0CF')
+louvres(30, 29.1, 90, 1.0, 2.2, 4.2, '3F5F8F', '7FA0CF')
+
+# ---- the billboard on its steel frame, the paving rings on both ramps
+bb = box('billboard', 0, 0, 0, 0, 0, 0, mat('plain.bill', 'D9B592'))
+bb.scale = (14, .25, 8)
+bb.location = (15, -33.2, 7.7 + 1.0 + 4)
+for k in range(4):
+    box('bb_brace', 15 - 7 + (k + .5) * 3.5 - .05, 15 - 7 + (k + .5) * 3.5 + .05, -33.0, -32.8, 8.7, 16.7, M['steel'])
+for vv in (-6.5, 6.5):
+    box('bb_leg', 15 + vv - .1, 15 + vv + .1, -33.5, -33.3, 7.5, 8.9, M['steel'])
+rings(43, 21, 2.5, 12, 6)
+rings(44, -24, 2.5, 12, 6)
 
 bpy.ops.object.select_all(action='DESELECT')
 if BLEND:

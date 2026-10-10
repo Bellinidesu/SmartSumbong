@@ -13,7 +13,7 @@ import numpy as np
 
 out = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else 'model.npz'
 dg = bpy.context.evaluated_depsgraph_get()
-P, N, C, M, names = [], [], [], [], []
+P, N, C, M, UV, names = [], [], [], [], [], []
 mat_index = {}
 for ob in bpy.context.scene.objects:
     if ob.type != 'MESH' or ob.hide_render or ob.name.startswith('_'):
@@ -25,6 +25,7 @@ for ob in bpy.context.scene.objects:
         me.calc_normals_split()
     except Exception:
         pass
+    uvl = me.uv_layers.active
     mw = ob.matrix_world
     nm = mw.to_3x3().inverted().transposed()
     mats = [s.material for s in ob.material_slots]
@@ -42,7 +43,8 @@ for ob in bpy.context.scene.objects:
             N.append((n.x, n.y, n.z))
             C.append(col)
             M.append(mat_index[key])
+            UV.append(tuple(uvl.data[li].uv) if uvl else (0.0, 0.0))
     ev.to_mesh_clear()
 P = np.asarray(P, dtype=np.float32)
-np.savez_compressed(out, p=P, n=np.asarray(N, dtype=np.float32), c=np.round(np.asarray(C) * 255).astype(np.uint8), m=np.asarray(M, dtype=np.uint16), names=np.asarray(names))
+np.savez_compressed(out, p=P, n=np.asarray(N, dtype=np.float32), c=np.round(np.asarray(C) * 255).astype(np.uint8), m=np.asarray(M, dtype=np.uint16), uv=np.asarray(UV, dtype=np.float32), names=np.asarray(names))
 print('exported', len(P) // 3, 'triangles,', len(names), 'materials ->', out)

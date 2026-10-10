@@ -17,11 +17,16 @@ def load(sh, here):
     N = d['n'].astype(np.float64)
     C = d['c'].astype(np.uint8)
     names = [str(x) for x in d['names']]
+    import atlas
     ids = []
     for nm in names:
         base = nm.split('.')[0].split(':')[0]
-        ids.append(MAT.get(base, MAT['plain']))
+        if nm.startswith('sign:'):
+            ids.append(atlas.sign_id(nm[5:]) or MAT['plain'])
+        else:
+            ids.append(MAT.get(base, MAT['plain']))
     M = np.asarray([ids[i] for i in d['m']], dtype=np.uint8)
-    U = np.zeros((len(P), 2), dtype=np.float32)
+    U = d['uv'].astype(np.float32) if 'uv' in d.files else np.zeros((len(P), 2), dtype=np.float32)
+    C = np.where(np.asarray([n.startswith('sign:') for n in names])[d['m']][:, None], 255, C).astype(np.uint8)
     Ix = np.arange(len(P), dtype=np.uint32)
     return P, N, U, M, C, Ix
