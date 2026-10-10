@@ -35,7 +35,7 @@
       wpal: ['#554C86', '#5A5090', '#4A5C90', '#4F6A92', '#654F90', '#505890', '#655A88', '#4C6090'], wtall: ['#4C5490', '#5A64A0'], glow: [255, 150, 46],
       scool: [.97, .98, 1.04], swarm: [.97, .98, 1.04],
       bake: .95, haloText: 'rgba(18,21,42,.92)', poiStroke: '#14172A',
-      wk: { cream: '#6E749D', white: '#7C82AC', tan: '#6B6489' }, trim: '#8189B2', tower: '#767CA6',
+      wk: { cream: '#6E749D', white: '#7C82AC', tan: '#6B6489', sky: '#5D74AA', rose: '#8E5F86', sand: '#8F8A86', lilac: '#7A66A6' }, trim: '#8189B2', tower: '#767CA6',
       rk: { blue: '#3B5391', green: '#2E6B5B', white: '#8D93B8', tan: '#7A7396', cream: '#8087AE', grey: '#6B7096', red: '#8C4650' },
     },
     day: {
@@ -48,7 +48,7 @@
       wpal: ['#F5C2A6', '#F8DC9C', '#BEE2CB', '#B8D6F2', '#D3C2F0', '#F1ECE4', '#EBC590', '#D0D0D6'], wtall: ['#E6E4E2', '#D8DDE8'], glow: [0, 0, 0],
       scool: [.94, .97, 1.05], swarm: [1.07, 1.02, .90],
       bake: .6, haloText: 'rgba(255,255,255,.95)', poiStroke: '#FFFFFF',
-      wk: { cream: '#EDE4D0', white: '#F3F0EA', tan: '#D9C6A5' }, trim: '#C9C4BA', tower: '#E9E4D8',
+      wk: { cream: '#EDE4D0', white: '#F3F0EA', tan: '#D9C6A5', sky: '#CBD8EE', rose: '#F2CFCB', sand: '#F3E1A6', lilac: '#DDD0EE' }, trim: '#C9C4BA', tower: '#E9E4D8',
       rk: { blue: '#2F5FB5', green: '#2F7F6F', white: '#F2EEE7', tan: '#D7C3A4', cream: '#EFE6D4', grey: '#B5B8C0', red: '#B5473A' },
     },
   };
@@ -81,10 +81,11 @@
     ['match', ['get', 'c'], -1, ch(p.roofFlat, i)].concat(...p.roofs.map((c, j) => [j, ch(c, i)]), [ch(p.roofs[0], i)])]);
   const wallKey = p => shaded(i => ['match', ['get', 'w']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]), i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
   // houses in a set of pastels (one for each, from where it stands), towers in neutrals; at night a house with its lights on adds warmth
-  const wallPlain = p => shaded(i => ['case', ['==', ['coalesce', ['get', 'wt'], 0], 1], ch(p.wk.tan, i), ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+  const wallPlain = p => shaded(i => ['case', ['>', ['coalesce', ['get', 'wg'], 0], 0], gcol(i), ['==', ['coalesce', ['get', 'wt'], 0], 1], ch(p.wk.tan, i), ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
   // a wall face: its house's plain colour, the tone baked for the face, leaning warm where the sun reaches it and cool where only the sky does
   const faceColour = p => shaded(i => ['*', ['case', ['has', 'lw'], ['match', ['get', 'lw']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]),
+    ['>', ['coalesce', ['get', 'wg'], 0], 0], gcol(i),
     ['==', ['coalesce', ['get', 'wt'], 0], 1], ch(p.wk.tan, i),
     ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
     ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])],
@@ -127,17 +128,23 @@
   // a bell tower on the churches. Each is one of the buildings in the file, found by the landmark's own position.
   const MX = 107500, MY = 110574;
   const MODELS = [
-    [/^Barangay 183 Hall/, { w: 'cream', rk: 'blue', type: 'gable' }],
+    [/^Barangay 183 Hall/, { w: 'sky', rk: 'blue', type: 'gable' }],
     [/Terminal|One-Stop|Bureau of Immigration/, { w: 'white', rk: 'white', type: 'flat', parapet: 1, boxes: 1 }],
     [/Mall|Supermarket|Post Exchange/, { w: 'tan', rk: 'tan', type: 'flat', parapet: 1, boxes: 1 }],
-    [/Hospital/, { w: 'cream', rk: 'cream', type: 'flat', parapet: 1, boxes: 1 }],
-    [/School|College|Aeronautics/, { w: 'cream', rk: 'green', type: 'gable' }],
+    [/Hospital/, { w: 'rose', rk: 'cream', type: 'flat', parapet: 1, boxes: 1 }],
+    [/School|College|Aeronautics/, { w: 'sand', rk: 'green', type: 'gable' }],
     [/Prayer Room/, { w: 'white', rk: 'grey', type: 'gable' }],
-    [/Shrine|Chapel|Church|Ang Dating/, { w: 'white', rk: 'grey', type: 'gable', tower: 1 }],
+    [/Shrine|Chapel|Church|Ang Dating/, { w: 'lilac', rk: 'grey', type: 'gable', tower: 1 }],
   ];
   // commercial blocks (shops, malls, hotels, offices, car parks) are tan, the rest stay in the neighbourhood's pastels and greys
   const COMM = new Set(['commercial', 'retail', 'hotel', 'parking', 'supermarket', 'office', 'pop-up_store']);
   const COMM_NAME = /mall|hotel|resort|inn|suites|mansion|residences|plaza|centre|center|market|store|shop|bank|casino|theat|garage|carpark|parking|office|airlines|express|marriott|belmont|sheraton|okura|holiday|newport/i;
+  // colour by what is in the building (places.json, first group found): food, cafe, shop, health, education, lodging, bank, worship, government, services, auto; the soft pastels of the plain map
+  const GORDER = 'fcshelbwgva';
+  const GDAY = ['#F4D9BC', '#E7CDB5', '#EBD8AE', '#F6C9C6', '#F7E3A3', '#DCCBEA', '#C6E4CF', '#C5E6EC', '#C9D3F0', '#F0D2E2', '#D3D6DC'];
+  const GNIGHT = ['#7A6890', '#6F6385', '#6B6489', '#8A5F86', '#8C86A0', '#7A62A0', '#4F7F8E', '#4D86A3', '#5D6EA8', '#8A6597', '#5F6788'];
+  const wgrp = idx => { const g = PLACES[idx]; return g ? GORDER.indexOf(g[0]) + 1 : 0; };
+  const gcol = i => { const G = isDark() ? GNIGHT : GDAY; return ['match', ['get', 'wg']].concat(...G.map((c, j) => [j + 1, ch(c, i)]), [ch(G[0], i)]); };
   const comm = (d, idx) => { const t = d.info && d.info[idx]; return (t && (COMM.has(t[1]) || COMM_NAME.test(t[0] || ''))) || /[fcslbv]/.test(PLACES[idx] || '') ? 1 : 0; };
   const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
   const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) { const ax = ring[i], ay = ring[i + 1], bx = ring[j], by = ring[j + 1]; if ((ay > pt[1]) !== (by > pt[1]) && pt[0] < (bx - ax) * (pt[1] - ay) / (by - ay) + ax) c = !c; } return c; };
@@ -155,14 +162,14 @@
       if (tone[0].length !== k) return;
       const nb = tone.length;
       let area = 0; for (let i = 0; i < k; i++) { const j = (i + 1) % k; area += ring[2 * i] * MX * ring[2 * j + 1] * MY - ring[2 * j] * MX * ring[2 * i + 1] * MY; }
-      const sg = area > 0 ? 1 : -1, wi = Math.min(7, Math.floor(hit01(b[4], b[5]) * 8)), g = b[12] || 0, wt = comm(d, idx);
+      const sg = area > 0 ? 1 : -1, wi = Math.min(7, Math.floor(hit01(b[4], b[5]) * 8)), g = b[12] || 0, wt = comm(d, idx), wg = wgrp(idx);
       for (let i = 0; i < k; i++) {
         const j = (i + 1) % k, x0 = ring[2 * i] * MX, y0 = ring[2 * i + 1] * MY, x1 = ring[2 * j] * MX, y1 = ring[2 * j + 1] * MY, dx = x1 - x0, dy = y1 - y0, ln = Math.hypot(dx, dy);
         if (ln < 1.4) continue;
         const nx = sg * dy / ln * .15, ny = -sg * dx / ln * .15, ox = nx * .8, oy = ny * .8;   // the plate stands 12 cm clear of the wall: closer than that and the depth buffer cannot tell the two surfaces apart at a distance
         const quad = [[x0 + ox, y0 + oy], [x1 + ox, y1 + oy], [x1 + nx + ox, y1 + ny + oy], [x0 + nx + ox, y0 + ny + oy], [x0 + ox, y0 + oy]].map(([a, c]) => [a / MX, c / MY]);
         const bands = []; for (let t = 0; t < nb; t++) bands.push([BANDS[t], t === nb - 1 ? h : Math.min(BANDS[t + 1], h), t]);
-        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, wt, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35, s2: sunS ? dig(sunS[up][i]) / 35 : 0 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
+        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, wt, wg, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35, s2: sunS ? dig(sunS[up][i]) / 35 : 0 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
       }
     });
     return { type: 'FeatureCollection', features: out };
@@ -196,7 +203,8 @@
     const polyArea = rg => { let a = 0; const n = rg.length / 2; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a += rg[2 * i] * MX * rg[2 * j + 1] * MY - rg[2 * j] * MX * rg[2 * i + 1] * MY; } return Math.abs(a) / 2; };
     const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall, idx) => {
       if (QZ.some(z => inRing([cx, cy], z))) return;   // a quiet zone (Villamor Air Base): footprint, height and colour only
-      const off = (ZN.find(z => inRing([cx, cy], z.ring)) || { off: COREOFF }).off;   // what this zone leaves out
+      let off = (ZN.find(z => inRing([cx, cy], z.ring)) || { off: COREOFF }).off;   // what this zone leaves out
+      if (!PROPS) off = new Set([...off, 'house_gadgets', 'chimneys', 'tanks_all', 'highrise_extras', 'doors']);   // the big removal (10 Oct): no small props anywhere; shape stays (rims, parapets, ledges, crowns), colour-coded awnings and signs stay
       const A = L * W;
       const co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY, T = (b, t, rg) => trim.push({ type: 'Feature', properties: { b, t, k: 'p' }, geometry: { type: 'Polygon', coordinates: rg } });
       // ---- details by rule, everywhere: doors and windows, awnings, balconies, air-conditioners, dishes, antennas, solar panels (all thin prisms on the footprint's own edges, placed by hash) ----
@@ -211,9 +219,11 @@
       const e0 = edges[0], hh = k_ => hit01(cx + k_ * 1.7, cy - k_ * 2.3);
       if (e0 && A >= 45 && A < 260 && h < 12) {            // a house: a door and windows on its longest wall, an air-conditioner, sometimes a dish
         const tm = (.25 + hh(1) * .5) * e0.ln;
+        if (!off.has('doors')) {
         pl(e0, tm - .5, tm + .5, 0, 2.1, .14, 'dw');
         [-1, 1].forEach((sd, i) => { const tw = tm + sd * (1.6 + hh(2 + i) * .8); if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 1.0, 1.9, .12, 'dw'); });
         if (h >= 5.5) [-1, 0, 1].forEach((sd, i) => { const tw = tm + sd * 2.0; if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 4.2, 5.1, .12, 'dw'); });
+        }
         if (!off.has('house_gadgets') && hh(4) > .5) { const tw = e0.ln * (.15 + hh(5) * .7); pl(e0, tw - .4, tw + .4, 2.2 + (h >= 5.5 ? 3.2 : 0), 3.0 + (h >= 5.5 ? 3.2 : 0), .4, 'ac'); }
         if (!off.has('house_gadgets') && flat && hh(6) > .7 && A >= 70) { const su = (hh(7) - .5) * L * .3, sv = (hh(8) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .4, t: h + 1.5, k: 'sd' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, .45, .45)] } }); }
       }
@@ -233,8 +243,8 @@
         if (flat) {
           if (A >= 70) T(h, h + .4, [poly, shrink(poly, x0, y0, co, si, L, W, .45).reverse()]);
           const tu = (u1 - .5) * L * .45, tv = (u2 - .5) * W * .45, cxm = (x0 + tu * co - tv * si) / MX, cym = (y0 + tu * si + tv * co) / MY;
-          if (inRing([cxm, cym], ring) && (!off.has('tanks_most') || u1 > .66)) { T(h, h + 1.6, [box(x0, y0, co, si, tu, tv, .55, .55)]); T(h + 1.6, h + 1.9, [box(x0, y0, co, si, tu, tv, .7, .7)]); }
-          if (!off.has('tanks_most') && u1 > .55 && A >= 90) { const su = -tu * .8 + L * .12, sv = -tv * .8, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) T(h, h + 2.3, [box(x0, y0, co, si, su, sv, 1.0, .9)]); }
+          if (inRing([cxm, cym], ring) && !off.has('tanks_all') && (!off.has('tanks_most') || u1 > .66)) { T(h, h + 1.6, [box(x0, y0, co, si, tu, tv, .55, .55)]); T(h + 1.6, h + 1.9, [box(x0, y0, co, si, tu, tv, .7, .7)]); }
+          if (!off.has('tanks_all') && !off.has('tanks_most') && u1 > .55 && A >= 90) { const su = -tu * .8 + L * .12, sv = -tv * .8, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) T(h, h + 2.3, [box(x0, y0, co, si, su, sv, 1.0, .9)]); }
         } else if (!off.has('chimneys') && u1 > .35) {
           const cu = (u2 - .5) * L * .5, cxm = (x0 + cu * co) / MX, cym = (y0 + cu * si) / MY;
           if (inRing([cxm, cym], ring)) T(h, h + Math.max(.8, Math.min(2.4, W * .2)) * .6 + .9, [box(x0, y0, co, si, cu, W * .12, .28, .28)]);
@@ -300,7 +310,7 @@
         }
         return;
       }
-      walls.push({ type: 'Feature', properties: { h, k: kk, g: gg, wi, wt: comm(d, idx) }, geometry: { type: 'Polygon', coordinates: [poly] } });
+      walls.push({ type: 'Feature', properties: { h, k: kk, g: gg, wi, wt: comm(d, idx), wg: wgrp(idx) }, geometry: { type: 'Polygon', coordinates: [poly] } });
       topDetail(poly, ring, h, L, W, cx, cy, th, !rt, h >= 20, idx);
       if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
       if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: rr }).forEach(f => roofs.push(f)); return; }
@@ -317,6 +327,7 @@
 
   let prepared = false;
   const live = () => on || prepared;   // the layers are built and kept ready (at no opacity) once loaded, so a tilt has nothing left to build
+  const PROPS = (() => { try { return /[?&]props=1/.test(location.search); } catch (e) { return false; } })();   // ?props=1 brings the small props back
   let PLACES = {};   // what is in each building (places.json): a string of group letters
   let QZ = [], ZN = [], COREOFF = new Set();   // the quiet zones, and the zones with what each leaves out (zones.json; outside every zone is the residential core)   // the quiet zones (zones.json): no by-rule detail there
   let ready = null, on = false, TREES = [], FOG = null, FACES = null, BLD = null, LMS = [], BAKE = null;
@@ -538,8 +549,13 @@
   }
   // the fog of war follows the Dim outside switch in Layers; the flat map's own dim hands over to it while the map is tilted
   // the night's light only at night, the day's bounce only by day
+  // The ground goes back to plain (Ace, 10 Oct): the day and night colours we chose, none of the baked pictures (shadow, glow, bounce, fog), lane lines, crossings, tree shadows, area outlines.
+  // ?ground=1 in the page address brings them back.
+  const GROUND_BACK = (() => { try { return /[?&]ground=1/.test(location.search); } catch (e) { return false; } })();
+  const GROUND_FLAT = ['cd-glow', 'cd-bounce', 'cd-bake', 'cd-bake-u', 'cd-cross', 'cd-lane', 'cd-area-line', 'cd-tshadow', 'cd-fog-n', 'cd-fog-d', 'cd-fog-far'];
   function lightUpdate() {
     const night = isDark();
+    if (!GROUND_BACK) { GROUND_FLAT.forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', 'none'); }); return; }
     ['cd-glow'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', live() && night ? 'visible' : 'none'); });
     if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', live() && !night && !has('cd-bake-u') ? 'visible' : 'none');   // the ray-traced day ground has its own bounce
     if (has('cd-bake-u')) { map.setLayoutProperty('cd-bake-u', 'visibility', live() && !night ? 'visible' : 'none'); if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', live() && night ? 'visible' : 'none'); }
@@ -550,7 +566,9 @@
     if (has('cd-fog-n')) map.setLayoutProperty('cd-fog-n', 'visibility', live() && dim && night ? 'visible' : 'none');
     if (has('cd-fog-d')) map.setLayoutProperty('cd-fog-d', 'visibility', live() && dim && !night ? 'visible' : 'none');
     if (has('cd-fog-far') && FOG) { map.setLayoutProperty('cd-fog-far', 'visibility', live() && dim ? 'visible' : 'none'); map.setPaintProperty('cd-fog-far', 'fill-color', night ? '#0E1226' : '#EEF2F8'); map.setPaintProperty('cd-fog-far', 'fill-opacity', night ? FOG.alpha.night : FOG.alpha.day); }
-    if (has('fog')) map.setLayoutProperty('fog', 'visibility', !on && dim ? 'visible' : 'none');
+    if (has('fog')) map.setLayoutProperty('fog', 'visibility', (GROUND_BACK ? !on : true) && dim ? 'visible' : 'none');
+    if (has('fog-edge')) map.setLayoutProperty('fog-edge', 'visibility', dim ? 'visible' : 'none');
+    if (!GROUND_BACK) ['cd-fog-n', 'cd-fog-d', 'cd-fog-far'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', 'none'); });
   }
   // nothing outside the boundary: places, lane lines and landmark badges are cut to it
   let clipped = false;

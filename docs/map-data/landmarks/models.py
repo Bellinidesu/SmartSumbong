@@ -368,6 +368,7 @@ def main():
         APPROVALS = json.load(open(os.path.join(HERE, 'approvals.json'), encoding='utf-8'))      # written by tools/viewer.py: what Ace has looked at and passed
     except Exception:
         APPROVALS = {}
+    PROPS = bool(os.environ.get('SS_PROPS'))     # street lamps, cars, bus shelters, signals, flagpoles, airfield paint and lights: all left out (10 Oct, plain); SS_PROPS=1 brings them back
     AIRFIELD = bool(os.environ.get('SS_AIRFIELD'))     # the airfield diorama (airfield.py) is kept but off: the airfield side goes back to plain colours
     models, V, I = [], [], []
     taken, done = set(), set()
@@ -607,7 +608,7 @@ def main():
     _zj0 = json.load(open(os.path.join(MAP, 'zones.json'), encoding='utf-8'))
     _nolamp = [Polygon([(z['ring'][k], z['ring'][k + 1]) for k in range(0, len(z['ring']), 2)]).buffer(0) for z in _zj0.get('zones', []) if 'lamps' in z['off']]
     lamps = [l_ for l_ in lamps if not any(pg_.contains(Point(l_[0], l_[1])) for pg_ in _nolamp)]
-    if lamps:
+    if lamps and PROPS:
         lng0, lat0 = 121.0135, 14.5240
         m = Mesh()
         for lng, lat, br, white in lamps:
@@ -650,7 +651,7 @@ def main():
         return any(_fp[j].buffer(1.2 / MX).contains(Point(lng, lat)) for j in _tree.query(Point(lng, lat).buffer(2.5 / MX)))
     lng0, lat0 = 121.0135, 14.5240
     m = Mesh()
-    ncars = cars.build(m, (lng0, lat0), _bd, _blocked)
+    ncars = cars.build(m, (lng0, lat0), _bd, _blocked) if PROPS else 0
     P, N, U, M, Cc, Ix = m.arrays()
     if len(P):
         models.append({'name': 'Cars', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': 1.7, 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
@@ -740,6 +741,37 @@ def main():
             md_['voff'], md_['ioff'] = voff, ioff
             voff += len(P_)
             ioff += len(Ix_)
+    # Smooth the curves (10 Oct): a vertex shared by faces that meet at a shallow angle (a barrel, a cylinder, a dome, a tower) gets one averaged normal; a real edge (a wall corner) keeps its own.
+    # The light is then worked out here, not path-traced: the same soft sun as the plain buildings (from the south-south-west, high) and a quiet night, per vertex, so a curve shades as a curve.
+    def smooth_normals(P, N, cos_crease=.82):
+        key = np.round(P * 50).astype(np.int64)
+        _, inv = np.unique(key, axis=0, return_inverse=True)
+        inv = inv.reshape(-1)
+        S = np.zeros((inv.max() + 1, 3))
+        np.add.at(S, inv, N)
+        Gn = S / np.maximum(np.linalg.norm(S, axis=1, keepdims=True), 1e-9)
+        ok = (N * Gn[inv]).sum(1) > cos_crease
+        out = N.astype(np.float64).copy()
+        out[ok] = Gn[inv][ok]
+        return out
+    az, el = math.radians(200), math.radians(58)
+    SUN = np.array([math.sin(az) * math.cos(el), math.cos(az) * math.cos(el), math.sin(el)])
+    LB = bytearray()
+    V2 = []
+    for P, U, M, Cc, N in V:
+        Ns = smooth_normals(P, np.asarray(N, dtype=np.float64)) if len(P) else N
+        V2.append((P, U, M, Cc, Ns))
+        if len(P):
+            sd = np.clip(Ns @ SUN, 0, 1)
+            day = np.clip(255 * (.62 + .30 * sd + .06 * np.clip(Ns[:, 2], 0, 1)), 0, 240).astype(np.uint8)
+            ngt = np.clip(95 * (.8 + .25 * np.clip(Ns[:, 2], 0, 1)), 0, 120).astype(np.uint8)
+            rec = np.zeros((len(P), 8), dtype=np.uint8)
+            rec[:, 0] = rec[:, 1] = rec[:, 2] = day
+            rec[:, 3] = rec[:, 4] = rec[:, 5] = ngt
+            LB += rec.tobytes()
+    V[:] = V2
+    import gzip as _gz
+    open(os.path.join(MAP, 'landmarks3d-light.bin.gz'), 'wb').write(_gz.compress(bytes(LB), 9))
     # one binary: vertices (x y z u v as float32, mat r g b as uint8) then triangles (uint32)
     vb = bytearray()
     for P, U, M, Cc, N in V:

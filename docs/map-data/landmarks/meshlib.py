@@ -306,7 +306,7 @@ class Mesh:
                 self.tri(pts[a], pts[b], pts[c])
                 self.tri(pts[a], pts[c], pts[d])
 
-    def barrel(self, cx, cy, L, W, th, z, rise, mat, col, seg=12):
+    def barrel(self, cx, cy, L, W, th, z, rise, mat, col, seg=20):
         """A barrel vault over a rectangle: a half cylinder along the long side."""
         c, s = math.cos(th), math.sin(th)
         R = lambda u, v, zz: (cx + u * c - v * s, cy + u * s + v * c, zz)

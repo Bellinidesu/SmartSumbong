@@ -601,7 +601,7 @@ function runIntro() {
     introHide = false;
     frame(850, u => {
       const o = Math.min(1, u * 2);
-      if (map.getLayer('pins')) { map.setPaintProperty('pins', 'icon-opacity', o * heatK); map.setPaintProperty('pins', 'icon-translate', [0, -120 * (1 - back(u))]); }
+      if (map.getLayer('pins')) { map.setPaintProperty('pins', 'icon-opacity', Math.max(0, Math.min(1, o * heatK))); map.setPaintProperty('pins', 'icon-translate', [0, -120 * (1 - back(u))]); }
       document.getElementById('map').classList.toggle('dm-hide', false);
     }, () => { if (map.getLayer('pins')) map.setPaintProperty('pins', 'icon-translate', [0, 0]); heatBlend(); });
   }, 2700);

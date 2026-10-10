@@ -19,6 +19,7 @@ from meshlib import MAT, rgb
 import aircraft
 
 Z_SURF, Z_MARK = .10, .17
+PROPS = bool(os.environ.get('SS_PROPS'))     # paint (markings, stand lines), lights, helipad paint and ground vehicles are left out unless SS_PROPS=1: the ground is plain (10 Oct)
 # The map can only be moved over this box (admin/spatial.php, AREA); nothing outside it can ever be seen, so nothing outside it is drawn. A margin of 40 m.
 AREA = (121.002663 - .0004, 14.514585 - .0004, 121.028423 + .0004, 14.539225 + .0004)
 
@@ -45,6 +46,8 @@ def local_polygon(boundary, origin):
 
 def ribbon(m, pts, w, z, col, mat=0, cell=14.0):
     """A flat strip w metres wide along a polyline, at height z (no sides: it is paint or a thin layer)."""
+    if z >= Z_MARK - 1e-9 and not PROPS:
+        return
     for i in range(len(pts) - 1):
         (x0, y0), (x1, y1) = pts[i], pts[i + 1]
         dx, dy = x1 - x0, y1 - y0
@@ -108,6 +111,8 @@ def inside_runs(pts, pp):
 
 # ---------------------------------------------------------------- the airfield
 def helipad(m, x, y):
+    if not PROPS:
+        return
     m.cylinder(x, y, Z_SURF, Z_SURF + .04, 6.4, 'plain', COL['white'], seg=24)
     m.cylinder(x, y, Z_SURF + .04, Z_SURF + .08, 5.7, 'plain', COL['apron'], seg=24)
     for dx, L_, W_ in ((-1.3, .7, 4.4), (1.3, .7, 4.4), (0, 2.0, .7)):
@@ -115,6 +120,8 @@ def helipad(m, x, y):
 
 
 def light(m, x, y, k, h=.36):
+    if not PROPS:
+        return
     m.box(x, y, 0, .34, .34, h, 0, 'glow%d' % k, COL['white'], 'glow%d' % k, COL['white'], True, 40.0)
 
 
@@ -234,7 +241,8 @@ def build(m, origin, boundary, quiet=None):
             continue
         placed.append((cx, cy, S['span']))
         aircraft.airliner(m, nx, ny, th, tp, aircraft.livery_of(tp, x, y))
-        aircraft.ground_support(m, nx, ny, th, tp)
+        if PROPS:
+            aircraft.ground_support(m, nx, ny, th, tp)
         cnt('aircraft')
         cnt(tp)
     for e in by.get('helipad', []):

@@ -98,6 +98,8 @@ def front_on_edge(ring, ctx):
     return (q.x, q.y), (nx, ny), (-ny, nx), across
 
 
+import os as _os
+PROPS = bool(_os.environ.get('SS_PROPS'))     # flagpoles are small props: left out unless SS_PROPS=1
 QUIET = None          # a shapely polygon in degrees, set by models.py: no entrance, porch or flagpole is added to a building inside it
 
 
@@ -118,7 +120,7 @@ def entrance(m, ring, ctx, depth, width, zc, col, roof_col=None, pole=0.0, keep=
     m.box(qx + fr[0] * (depth + .35), qy + fr[1] * (depth + .35), 0, width * .8, .7, .3, tf, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
     m.box(qx + fr[0] * (depth + .8), qy + fr[1] * (depth + .8), 0, width * .6, .6, .15, tf, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
     m.vprism([(-.9, 0), (.9, 0), (.9, 2.2), (-.9, 2.2)], (qx + fr[0] * .06, qy + fr[1] * .06, 0), al, fr, 0, .25, 'panel', C['slate'])
-    if pole:
+    if pole and PROPS:
         px, py = qx + fr[0] * (depth + 1.6) + al[0] * (width / 2 + 1.4), qy + fr[1] * (depth + 1.6) + al[1] * (width / 2 + 1.4)
         m.cylinder(px, py, 0, pole, .09, 'plain', C['grey'], seg=6)
         m.box(px + al[0] * .5, py + al[1] * .5, pole - 1.3, 1.0, .05, .7, tf, 'plain', C['red'], 'plain', C['red'], True, 40.0)
@@ -230,8 +232,8 @@ def z_hangar(m, ring, ctx, p):
     ring = _ccw(ring)
     m.prism(ring, 0, h, 'panel', C['sheetwhite'], 'plain', C['grey'], top=False, cell=5)
     cx, cy, L, W, th = ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th']
-    if Polygon(ring).area / max(L * W, 1) > .93:                      # a barrel roof over the bounding box only where the footprint is nearly a rectangle (it stood 25 m off a bent one)
-        m.barrel(cx, cy, L, W, th, h, min(W * .28, 6.0), 'sheet', C['roofgrey'], seg=10)
+    if Polygon(ring).area / max(L * W, 1) > .995:                      # a barrel roof over the bounding box only where the footprint is nearly a rectangle (it stood 25 m off a bent one)
+        m.barrel(cx, cy, L, W, th, h, min(W * .28, 6.0), 'sheet', C['roofgrey'], seg=20)
     else:
         m.cap(ring, h, MAT['roofdeck'], C['roofgrey'], True)
     (qx, qy), fr, along, across = front_on_edge(ring, ctx)

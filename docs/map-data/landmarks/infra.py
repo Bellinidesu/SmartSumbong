@@ -17,6 +17,7 @@ from meshlib import Mesh, rgb
 MX, MY = 111320 * math.cos(math.radians(14.525)), 110574
 BBOX = (14.5019, 120.9996, 14.5309, 121.0328)          # south, west, north, east
 CACHE = os.path.join(HERE, 'osm-cache')
+PROPS = bool(os.environ.get('SS_PROPS'))     # the small props (bus shelters, signals, flagpoles) are left out unless SS_PROPS=1 (10 Oct: plain; water towers stay, they are landmarks)
 MIRRORS = ['overpass.openstreetmap.fr', 'overpass-api.de', 'z.overpass-api.de']
 UA = 'SmartSumbong/1.0 (barangay portal; contact acelediac@gmail.com)'
 
@@ -214,6 +215,8 @@ def build(m, origin, boundary=None):
         if lng is None or (boundary and not boundary.inside(lng, lat, 30)):
             continue
         x, y = loc(lng, lat, origin)
+        if not PROPS and t.get('man_made') != 'water_tower':
+            continue
         if t.get('highway') == 'bus_stop' or t.get('amenity') == 'shelter':
             # a shelter: a roof on two posts and a glass back, a pole with the stop's sign beside it
             m.box(x, y, 2.3, 3.0, 1.5, .18, 0.0, 'plain', COL['shelterroof'], 'plain', COL['shelterroof'], True)
