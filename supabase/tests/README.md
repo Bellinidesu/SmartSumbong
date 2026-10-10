@@ -12,7 +12,9 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 
 Regenerate after editing the generators: `python gen_lifecycle.py && python gen_handlers.py && python gen_hardening.py`.
 
-Run against the linked project: `supabase db query --linked -f supabase/tests/01_lifecycle.sql`.
+CI runs them locally (see below) on every push, and against a staging
+project after a merge when one is configured (`.github/scripts/db-checks.sh`,
+which refuses production).
 Every line of the raised message must start with `ok`; CI fails on any `FAIL` or `BAD`.
 
 ## Locally, without the live project

@@ -1,0 +1,19 @@
+# Secret scanning (security.yml). Uses gitleaks' default rules, minus the
+# keys that are public by design and ship inside every copy of the app:
+#   - the Firebase Android/iOS API keys (google-services.json,
+#     firebase_options.dart): identifiers, not secrets. Restrict them in
+#     Google Cloud Console -> Credentials to the app's package name and
+#     signing certificate, which is what actually protects them.
+#   - the Supabase anon/publishable key (dart_defines.json): meant for
+#     clients; row-level security is what protects the data.
+# Anything else gitleaks finds is a real leak: rotate it, then remove it.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Client keys that are public by design"
+paths = [
+  '''mobile/resident/android/app/google-services\.json''',
+  '''mobile/resident/lib/firebase_options\.dart''',
+  '''mobile/resident/dart_defines\.json''',
+]

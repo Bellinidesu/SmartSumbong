@@ -20,9 +20,23 @@ when something breaks. Written for whoever maintains it next (October 2026).
    - **portal** — every PHP and JS file parses; the portal starts and answers
      (login, sign-in redirect, ping, 404 page, security headers, a nonce on
      every script, no inline event handlers);
-   - **mobile** — `flutter analyze` with no findings allowed, unit tests;
-   - **database** — the 126 rolled-back system checks in `supabase/tests`
-     against the real project.
+   - **mobile** — `flutter analyze` with no findings allowed, all tests;
+   - **functions** — the Edge Functions type-check, lint and pass their tests;
+   - **database** — every migration applied to a throwaway PostgreSQL in the
+     runner, every rolled-back check in `supabase/tests`, and the baseline
+     still matching the migrations. The live project is never touched;
+   - **staging** — after a merge to `main` only, and only if a staging
+     project is configured (repository variable `STAGING_PROJECT_REF`,
+     secrets `SUPABASE_ACCESS_TOKEN` and `STAGING_DB_PASSWORD`): migrations
+     pushed to staging, then the same checks there. The script refuses the
+     production project.
+
+   **Security** (`.github/workflows/security.yml`), on pull requests, merges
+   and every Monday: gitleaks over the whole history (`.gitleaks.toml` lists
+   the public client keys), osv-scanner over the lockfiles, CodeQL over the
+   JavaScript, TypeScript and workflows. Actions are pinned to commit hashes
+   and tools to exact versions; Dependabot proposes updates weekly
+   (Flutter packages, Actions, the Docker base image).
 3. Merge when CI is green. Render deploys the portal automatically **only
    after CI passes** (Auto-Deploy: *After CI checks pass*), and checks
    `/admin/ping.php` before switching traffic to the new version.
@@ -55,7 +69,8 @@ Render environment variables (smartsumbong-ph): `SUPABASE_URL`,
 `CLOUDINARY_API_SECRET`.
 
 GitHub Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
-`BACKUP_PASSPHRASE` (also `SUPABASE_URL`, `SUPABASE_ANON_KEY` for the daily
+`BACKUP_PASSPHRASE` (the nightly backup), `STAGING_DB_PASSWORD` and the
+variable `STAGING_PROJECT_REF` (optional staging checks) (also `SUPABASE_URL`, `SUPABASE_ANON_KEY` for the daily
 keep-awake job).
 
 Supabase secrets (Edge Functions): FCM service account values for

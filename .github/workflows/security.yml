@@ -1,0 +1,67 @@
+# Security scanning: on every pull request, on pushes to main, and weekly
+# (new advisories appear for code that has not changed).
+#
+#   secrets   gitleaks over the whole git history (.gitleaks.toml lists the
+#             client keys that are public by design).
+#   deps      osv-scanner over the lockfiles and vendored libraries, against
+#             the OSV advisory database.
+#   codeql    GitHub's static analysis of the portal's JavaScript, the Edge
+#             Functions' TypeScript and these workflows; results appear
+#             under Security -> Code scanning.
+
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 1 * * 1' # Mondays, 09:17 Philippine time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks 8.28.0
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz | tar xz gitleaks
+          ./gitleaks git --redact --no-banner -c .gitleaks.toml .
+
+  deps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: osv-scanner 2.2.3
+        run: |
+          curl -sSfL -o osv-scanner https://github.com/google/osv-scanner/releases/download/v2.2.3/osv-scanner_linux_amd64
+          chmod +x osv-scanner
+          ./osv-scanner scan source -r .
+
+  codeql:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: /language:${{ matrix.language }}

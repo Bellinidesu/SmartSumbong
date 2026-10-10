@@ -1,15 +1,21 @@
-# Checks every push and pull request (industry pass 7, 7 Oct 2026).
+# Checks every push and pull request.
 #
-#   portal    every PHP file parses, every portal script parses, and the
-#             portal actually starts: login page, sign-in redirect, ping,
-#             friendly 404, security headers and script nonces.
-#   mobile    flutter analyze (no findings allowed) and the unit tests, for
-#             the shared core and the resident app.
-#   database  the 126 rolled-back checks in supabase/tests, against the
-#             real project. Needs two repository secrets (Settings ->
-#             Secrets and variables -> Actions): SUPABASE_ACCESS_TOKEN
-#             (supabase.com -> Account -> Access tokens) and
-#             SUPABASE_DB_PASSWORD. Without them the job says so and skips.
+#   portal     every PHP file parses, every portal script parses, the portal
+#              starts and answers (login, sign-in redirect, ping, 404,
+#              security headers, script nonces), and stays within its
+#              asset budget.
+#   mobile     flutter analyze (no findings allowed) and the tests, for the
+#              shared core and the resident app.
+#   functions  the Edge Functions type-check, lint and pass their tests.
+#   database   every migration applied to a throwaway PostgreSQL in the
+#              runner, then every rolled-back check in supabase/tests; and
+#              the one-file baseline still matches the migrations. Nothing
+#              touches the live project.
+#   staging    the same checks against a staging Supabase project, only
+#              when STAGING_PROJECT_REF and its two secrets are set.
+#
+# Actions are pinned to commit hashes (Dependabot keeps them current) and
+# every tool to an exact version, so a run means the same thing next month.
 #
 # Render deploys smartsumbong-ph only after these pass when its Auto-Deploy
 # is set to "After CI checks pass".
@@ -22,17 +28,20 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   portal:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: '8.5'
           extensions: curl, mbstring
@@ -41,7 +50,7 @@ jobs:
           fail=0
           while IFS= read -r f; do php -l "$f" > /dev/null || fail=1; done < <(git ls-files '*.php')
           exit $fail
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
       - name: Portal scripts parse
@@ -55,12 +64,13 @@ jobs:
         run: bash .github/scripts/portal-smoke.sh
 
   mobile:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
+          flutter-version: '3.47.7'
           channel: stable
           cache: true
       - name: Core - analyze and test
@@ -68,33 +78,65 @@ jobs:
         run: flutter pub get && flutter analyze && flutter test
       - name: Resident app - analyze and test
         working-directory: mobile/resident
-        run: flutter pub get && flutter analyze && flutter test test/widget_test.dart
+        run: flutter pub get && flutter analyze && flutter test
+
+  functions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.5.4
+      - name: Type-check
+        run: deno check supabase/functions/*/index.ts
+      - name: Lint
+        run: deno lint supabase/functions
+      - name: Test
+        run: deno test --allow-env supabase/functions
 
   database:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: PostgreSQL 16 with PostGIS and pg_cron
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-16-postgis-3 postgresql-16-cron
+      - name: Every migration, then every rolled-back check
+        run: bash supabase/tests/local/run-local.sh
+      - name: The baseline still matches the migrations
+        run: bash supabase/baseline/build.sh --check
+
+  staging:
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    # One at a time across all runs: the checks share throwaway test
-    # accounts, so two at once (a push and its pull request) collide.
+    needs: database
+    # Applies migrations, so only what has been merged.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # One at a time: the checks share throwaway test accounts.
     concurrency:
-      group: database-checks
+      group: staging-checks
       cancel-in-progress: false
     env:
+      STAGING_PROJECT_REF: ${{ vars.STAGING_PROJECT_REF }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Secrets present?
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Staging configured?
         id: have
         run: |
-          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
+          if [ -n "$STAGING_PROJECT_REF" ] && [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
             echo "yes=1" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Add SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD to run the database checks."
+            echo "No staging project configured (variable STAGING_PROJECT_REF, secrets SUPABASE_ACCESS_TOKEN and STAGING_DB_PASSWORD); skipped."
           fi
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         if: steps.have.outputs.yes
         with:
-          version: latest
-      - name: Rolled-back system checks
+          version: 2.48.3
+      - name: Migrations, then rolled-back checks, on staging
         if: steps.have.outputs.yes
         run: bash .github/scripts/db-checks.sh

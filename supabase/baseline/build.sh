@@ -3,11 +3,13 @@
 # supabase/migrations produces, as one file, then proves it by loading it
 # into a clean database and running every check in supabase/tests.
 #
-#   bash supabase/baseline/build.sh
+#   bash supabase/baseline/build.sh           rebuild, then prove
+#   bash supabase/baseline/build.sh --check   only prove the committed file (CI)
 #
 # Needs what supabase/tests/local/run-local.sh needs (PostgreSQL 16,
 # PostGIS, pg_cron). Run it after adding a migration, and commit both.
 set -eu
+check_only=""; [ "${1:-}" = "--check" ] && check_only=1
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 bin=/usr/lib/postgresql/16/bin
@@ -66,6 +68,7 @@ fingerprint | sort > "$dir.migrated.txt"
 
 # 2. The result as one file.
 out="$here/baseline.sql"
+if [ -z "$check_only" ]; then
 q() { psql -h "$dir" -p "$port" -U postgres -d postgres -X -At -c "$1"; }
 {
   cat <<HEAD
@@ -98,7 +101,8 @@ HEAD
       --exclude-table-data=public.spatial_ref_sys \
     | sed -e 's/^CREATE SCHEMA public;$/CREATE SCHEMA IF NOT EXISTS public;/' \
           -e '/^COMMENT ON SCHEMA public IS/d' \
-          -e '/^-- Dumped \(from\|by\)/d'
+          -e '/^-- Dumped \(from\|by\)/d' \
+          -e '/^\\\(un\)\?restrict /d'
   echo
   echo "-- Triggers on auth.users (signup and the synthetic sign-in address)."
   q "select pg_get_triggerdef(t.oid) || ';' from pg_trigger t where t.tgrelid = 'auth.users'::regclass and not t.tgisinternal order by t.tgname" \
@@ -116,6 +120,7 @@ HEAD
   echo "alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;"
   echo "alter default privileges in schema public grant all on functions to anon, authenticated, service_role;"
 } > "$out"
+fi
 
 # 3. Proof: a clean database from the baseline alone passes every check.
 fresh
@@ -125,7 +130,7 @@ fingerprint | sort > "$dir.baseline.txt"
 if diff -q "$dir.migrated.txt" "$dir.baseline.txt" >/dev/null; then
   echo "schema fingerprint: identical ($(wc -l < "$dir.baseline.txt") objects)"
 else
-  echo "schema fingerprint DIFFERS from the migrations:"; diff "$dir.migrated.txt" "$dir.baseline.txt" | head -20; fail=1
+  echo "schema fingerprint DIFFERS from the migrations (rebuild: bash supabase/baseline/build.sh):"; diff "$dir.migrated.txt" "$dir.baseline.txt" | head -20; fail=1
 fi
 for f in "$root"/supabase/tests/0*.sql; do
   log=$("${psql[@]}" -f "$f" 2>&1 || true)
