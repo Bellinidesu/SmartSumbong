@@ -1,4 +1,5 @@
 # Golf course, schools and the edge strips: what to keep, what to remove
+n> **Applied 10 Oct 2026** (zones.json, tools/build_zones.py), with real zone polygons: Newport: no balconies/solar/masts, no parked vehicles. Residential core: no air-conditioners/dishes, chimneys, most tanks, generic awnings, vehicles on service lanes. Airfield and golf: no vehicles, no street lamps. The numbered lists below are the proposals; items not named here were not applied.
 
 Same method as Villamor Air Base: the zone starts from everything the pipeline draws there now (10 Oct 2026), and this list says what goes. Numbers are for Ace to pick; nothing below is applied yet.
 
