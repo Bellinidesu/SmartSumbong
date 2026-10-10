@@ -40,6 +40,8 @@
 // zero reports, one with at least one) before trusting this in
 // production — see the deploy notes.
 
+import { logError } from "../_shared/log.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -143,6 +145,7 @@ export async function handler(req: Request): Promise<Response> {
     return json({ ok: true, hard_deleted: eligibleForHardDelete });
   } catch (e) {
     console.error("delete-account failed:", e);
+    await logError("delete-account", e);
     return json({ error: String(e) }, 400);
   }
 }

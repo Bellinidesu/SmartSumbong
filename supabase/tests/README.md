@@ -8,7 +8,7 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 |---|---|
 | `01_lifecycle.sql` | 102 checks: filing, review, dispatch, tanod updates, resolution and approval, ratings, reopening, escalation, appeals, cancelling, overdue follow-ups, deadline extensions, hand-ups, row-level security for every role |
 | `02_handlers_requests_accounts.sql` | 24 checks: case handlers and take-over, name/ID requests, new admins, account deletion, trail integrity, the keep-awake job |
-| `03_hardening.sql` | 36 checks (0107–0111): login lockout and its per-address limit, SMS code tries, cron-only sweeps, the daily filing limit, upload signing limits, private identity photos and their cleanup, notification retention, sign-out on reset/suspension |
+| `03_hardening.sql` | 43 checks (0107–0112): login lockout and its per-address limit, SMS code tries, cron-only sweeps, the daily filing limit, upload signing limits, private identity photos and their cleanup, notification retention, sign-out on reset/suspension, health alerts, pausing filing |
 
 Regenerate after editing the generators: `python gen_lifecycle.py && python gen_handlers.py && python gen_hardening.py`.
 

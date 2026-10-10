@@ -19,6 +19,8 @@
 // Secrets: SEMAPHORE_API_KEY (set with `supabase secrets set`), plus the
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets.
 
+import { logError } from "../_shared/log.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SEMAPHORE_API_KEY = Deno.env.get("SEMAPHORE_API_KEY") ?? "";
@@ -165,6 +167,7 @@ async function verify(mobile: string, code: string, password: string): Promise<R
   });
   if (!upd.ok) {
     console.error("password update failed:", upd.status, (await upd.text()).slice(0, 300));
+    await logError("password-otp", `password update failed (HTTP ${upd.status})`);
     return json({ ok: false, message: "Your password could not be changed. Try again." }, 500);
   }
 
@@ -193,6 +196,7 @@ async function textCode(mobile: string, code: string): Promise<boolean> {
     if (sms.ok && Array.isArray(parsed) && parsed[0]?.message_id) return true;
   } catch { /* falls through */ }
   console.error("semaphore refused:", sms.status, body.slice(0, 300));
+  await logError("password-otp", `the SMS provider refused a code (HTTP ${sms.status})`);
   return false;
 }
 
@@ -308,6 +312,7 @@ export async function handler(req: Request): Promise<Response> {
     return json({ ok: false, message: "Unknown action" }, 400);
   } catch (e) {
     console.error(e);
+    await logError("password-otp", e);
     return json({ ok: false, message: "Something went wrong. Try again, or visit the barangay hall." }, 500);
   }
 }

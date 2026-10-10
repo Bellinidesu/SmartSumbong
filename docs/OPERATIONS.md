@@ -133,6 +133,14 @@ Singapore portal.
 
 ## Monitoring
 
+When something is wrong, `docs/INCIDENTS.md` says what to do.
+
+- **Health check** (0112, hourly) — failed scheduled jobs, the database
+  past 80% of 500 MB, identity photos the cleanup missed, and Edge Function
+  failures each raise one alert: every admin is notified once and it shows
+  under Settings → System status → *Needs attention* until it clears.
+  Edge Function errors are also listed under *Recent errors*.
+
 - **Uptime** — the database pings `/admin/ping.php` every 10 minutes
   (`keep-portal-awake`, which also stops Render's free plan from sleeping).
   Two misses in a row notify every admin; recovery is announced too.

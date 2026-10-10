@@ -342,6 +342,91 @@ begin
     v_log := v_log || E'\n' || 'FAIL cleanup job scheduled, and idle without its Vault secrets: ' || left(sqlerrm, 220);
   end;
   begin
+        perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+    perform public.log_portal_error('function', 'sign-upload', 'Sweep forged');
+    perform set_config('request.jwt.claims', '', true);
+    if exists (select 1 from public.portal_errors where message = 'Sweep forged') then raise exception 'logged'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a browser cannot log errors as an Edge Function';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a browser cannot log errors as an Edge Function: ' || left(sqlerrm, 220);
+  end;
+  begin
+        perform set_config('request.jwt.claims', '{"role": "service_role"}', true);
+    perform public.log_portal_error('function', 'send-dispatch-push', 'Sweep FCM refused');
+    perform set_config('request.jwt.claims', '', true);
+    perform public.check_system_health();
+    if not exists (select 1 from public.system_alerts where key = 'functions' and cleared_at is null) then raise exception 'no alert'; end if;
+    if not exists (select 1 from public.notifications where user_id = v_adm and message like 'System check: Edge Functions failed%') then raise exception 'admin not told'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  an Edge Function failure is logged and raises one alert';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL an Edge Function failure is logged and raises one alert: ' || left(sqlerrm, 220);
+  end;
+  begin
+        perform public.check_system_health();
+    if (select count(*) from public.notifications where user_id = v_adm and message like 'System check: Edge Functions%') <> 1 then raise exception 'told twice'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a second check does not tell the admins again';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a second check does not tell the admins again: ' || left(sqlerrm, 220);
+  end;
+  begin
+        insert into cron.job_run_details (jobid, runid, job_pid, database, username, command, status, return_message, start_time, end_time)
+      select jobid, 999999, 0, 'postgres', 'postgres', command, 'failed', 'Sweep: relation missing', now(), now() from cron.job where jobname = 'purge-old-notifications';
+    perform public.check_system_health();
+    if not exists (select 1 from public.system_alerts where key = 'job:purge-old-notifications' and cleared_at is null) then raise exception 'no alert'; end if;
+    delete from cron.job_run_details where runid = 999999;
+    perform public.check_system_health();
+    if exists (select 1 from public.system_alerts where key = 'job:purge-old-notifications' and cleared_at is null) then raise exception 'not cleared'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a failed scheduled job raises its own alert, and clears';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a failed scheduled job raises its own alert, and clears: ' || left(sqlerrm, 220);
+  end;
+  begin
+        if not exists (select 1 from cron.job where jobname = 'system-health' and active) then raise exception 'no job'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  health check scheduled hourly';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL health check scheduled hourly: ' || left(sqlerrm, 220);
+  end;
+  begin
+        update public.operational_settings set filing_paused = true, filing_paused_message = 'Sweep paused for repairs' where id = 1;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_res::text, 'role', 'authenticated')::text, true);
+    perform set_config('request.jwt.claim.sub', v_res::text, true);
+    execute 'set local role authenticated';
+    begin
+      perform public.file_report('street_obstruction', 'Sweep paused', 'Automated sweep, rolled back.', 14.5269, 121.0155, false, '[]'::jsonb, gen_random_uuid());
+      raise exception 'filed while paused';
+    exception when check_violation then
+      if sqlerrm <> 'Sweep paused for repairs' then raise exception 'message was %', sqlerrm; end if;
+    end;
+    execute 'reset role';
+    update public.operational_settings set filing_paused = false where id = 1;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  filing can be paused, with the reason shown to residents';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL filing can be paused, with the reason shown to residents: ' || left(sqlerrm, 220);
+  end;
+  begin
+    perform set_config('request.jwt.claims', json_build_object('sub', v_res::text, 'role', 'authenticated')::text, true);
+    perform set_config('request.jwt.claim.sub', v_res::text, true);
+    execute 'set local role authenticated';
+    if exists (select 1 from public.system_alerts) then raise exception 'resident sees alerts'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  only admins see the alerts';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL only admins see the alerts: ' || left(sqlerrm, 220);
+  end;
+  begin
         insert into public.notifications (user_id, kind, message, is_read, created_at) values
       (v_res, 'status_change', 'Sweep old read', true, now() - interval '91 days'),
       (v_res, 'status_change', 'Sweep old unread', false, now() - interval '91 days'),

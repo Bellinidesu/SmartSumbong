@@ -42,6 +42,7 @@ Deno.test("deletes what is due and reports back only what is gone", async () => 
       ? (new URLSearchParams(c.body).get("type") === "upload" ? json({ result: "ok" }) : json({ error: { message: "boom" } }, 500))
       : undefined,
     (c: Call) => c.url.pathname === "/rest/v1/rpc/media_trash_done" ? json(null) : undefined,
+    (c: Call) => c.url.pathname === "/rest/v1/rpc/log_portal_error" ? json(null) : undefined,
   ]);
   try {
     const res = await handler(run("cleanup-secret"));
@@ -50,5 +51,7 @@ Deno.test("deletes what is due and reports back only what is gone", async () => 
     assertEquals(JSON.parse(done.body).p_urls, [AVATAR]);
     const destroyed = s.calls.find((c) => c.url.pathname.endsWith("/destroy"))!;
     assertEquals(new URLSearchParams(destroyed.body).get("public_id"), "avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11");
+    const logged = s.calls.find((c) => c.url.pathname.endsWith("log_portal_error"))!;
+    assertEquals(JSON.parse(logged.body).p_source, "function", "the refused delete is logged for the health check");
   } finally { s.restore(); }
 });

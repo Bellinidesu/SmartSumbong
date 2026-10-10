@@ -29,6 +29,8 @@
 // CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET (`supabase secrets set`),
 // plus SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets.
 
+import { logError } from "../_shared/log.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const API_KEY = Deno.env.get("CLOUDINARY_API_KEY") ?? "";
@@ -172,6 +174,7 @@ export async function handler(req: Request): Promise<Response> {
     return json({ ok: true, fields: { ...params, api_key: API_KEY, signature: await sign(params) } });
   } catch (e) {
     console.error(e);
+    await logError("sign-upload", e);
     return json({ ok: false, message: "Something went wrong. Try again." }, 500);
   }
 }

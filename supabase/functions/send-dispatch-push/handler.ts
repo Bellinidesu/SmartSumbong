@@ -56,6 +56,8 @@
 // them against, and collapsing unrelated account updates into one another
 // would drop information a resident hasn't seen yet.
 
+import { logError } from "../_shared/log.ts";
+
 interface NotificationRecord {
   id: string;
   user_id: string;
@@ -307,6 +309,7 @@ async function sendToToken(
   // A refused access token is not kept for the rest of its 50 minutes.
   if (res.status === 401) cachedToken = null;
   console.error(`FCM send failed for one token (status ${res.status}):`, body);
+  await logError("send-dispatch-push", `FCM refused a push (HTTP ${res.status})`);
 }
 
 // Optional shared secret (0107). When PUSH_WEBHOOK_SECRET is set, only a
@@ -363,6 +366,7 @@ export async function handler(req: Request): Promise<Response> {
     // the notifications insert itself failed. The row already exists and
     // already serves its purpose as the in-app record either way.
     console.error("send-dispatch-push failed:", e);
+    await logError("send-dispatch-push", e);
     return new Response("error, see function logs", { status: 200 });
   }
 }

@@ -12,6 +12,8 @@
 // Secrets: MEDIA_CLEANUP_SECRET, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
 // plus SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets.
 
+import { logError } from "../_shared/log.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CLEANUP_SECRET = Deno.env.get("MEDIA_CLEANUP_SECRET") ?? "";
@@ -54,6 +56,7 @@ async function destroy(url: string): Promise<boolean> {
   const json = await res.json().catch(() => ({}));
   if (res.ok && (json.result === "ok" || json.result === "not found")) return true;
   console.error("destroy failed:", url, res.status, JSON.stringify(json).slice(0, 200));
+  await logError("media-cleanup", `Cloudinary refused to delete a photo (HTTP ${res.status})`);
   return false;
 }
 
@@ -75,6 +78,7 @@ export async function handler(req: Request): Promise<Response> {
     return Response.json({ due: urls.length, deleted: gone.length });
   } catch (e) {
     console.error("media-cleanup failed:", e);
+    await logError("media-cleanup", e);
     return new Response("error, see function logs", { status: 500 });
   }
 }

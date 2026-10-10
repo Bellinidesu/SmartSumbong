@@ -1,4 +1,4 @@
-"""03_hardening.sql: checks for 0107-0111 (login lockout, SMS codes, cron-only
+"""03_hardening.sql: checks for 0107-0112 (login lockout, SMS codes, cron-only
 sweeps, daily filing limit, notification retention, sign-out on access
 changes), same rolled-back pattern as 01_lifecycle.sql."""
 import os
@@ -135,6 +135,48 @@ step('the app cannot read or clear the queue', 'res', "perform public.media_tras
 step('cleanup job scheduled, and idle without its Vault secrets', 'pg',
      "if not exists (select 1 from cron.job where jobname = 'media-cleanup' and active) then raise exception 'no job'; end if;\n"
      "    perform public.run_media_cleanup();")
+
+# ---- 0112: system health
+step('a browser cannot log errors as an Edge Function', 'pg',
+     "perform set_config('request.jwt.claims', '{\"role\": \"anon\"}', true);\n"
+     "    perform public.log_portal_error('function', 'sign-upload', 'Sweep forged');\n"
+     "    perform set_config('request.jwt.claims', '', true);\n"
+     "    if exists (select 1 from public.portal_errors where message = 'Sweep forged') then raise exception 'logged'; end if;")
+step('an Edge Function failure is logged and raises one alert', 'pg',
+     "perform set_config('request.jwt.claims', '{\"role\": \"service_role\"}', true);\n"
+     "    perform public.log_portal_error('function', 'send-dispatch-push', 'Sweep FCM refused');\n"
+     "    perform set_config('request.jwt.claims', '', true);\n"
+     "    perform public.check_system_health();\n"
+     "    if not exists (select 1 from public.system_alerts where key = 'functions' and cleared_at is null) then raise exception 'no alert'; end if;\n"
+     "    if not exists (select 1 from public.notifications where user_id = v_adm and message like 'System check: Edge Functions failed%') then raise exception 'admin not told'; end if;")
+step('a second check does not tell the admins again', 'pg',
+     "perform public.check_system_health();\n"
+     "    if (select count(*) from public.notifications where user_id = v_adm and message like 'System check: Edge Functions%') <> 1 then raise exception 'told twice'; end if;")
+step('a failed scheduled job raises its own alert, and clears', 'pg',
+     "insert into cron.job_run_details (jobid, runid, job_pid, database, username, command, status, return_message, start_time, end_time)\n"
+     "      select jobid, 999999, 0, 'postgres', 'postgres', command, 'failed', 'Sweep: relation missing', now(), now() from cron.job where jobname = 'purge-old-notifications';\n"
+     "    perform public.check_system_health();\n"
+     "    if not exists (select 1 from public.system_alerts where key = 'job:purge-old-notifications' and cleared_at is null) then raise exception 'no alert'; end if;\n"
+     "    delete from cron.job_run_details where runid = 999999;\n"
+     "    perform public.check_system_health();\n"
+     "    if exists (select 1 from public.system_alerts where key = 'job:purge-old-notifications' and cleared_at is null) then raise exception 'not cleared'; end if;")
+step('health check scheduled hourly', 'pg',
+     "if not exists (select 1 from cron.job where jobname = 'system-health' and active) then raise exception 'no job'; end if;")
+step('filing can be paused, with the reason shown to residents', 'pg',
+     "update public.operational_settings set filing_paused = true, filing_paused_message = 'Sweep paused for repairs' where id = 1;\n"
+     "    perform set_config('request.jwt.claims', json_build_object('sub', v_res::text, 'role', 'authenticated')::text, true);\n"
+     "    perform set_config('request.jwt.claim.sub', v_res::text, true);\n"
+     "    execute 'set local role authenticated';\n"
+     "    begin\n"
+     "      perform public.file_report('street_obstruction', 'Sweep paused', 'Automated sweep, rolled back.', 14.5269, 121.0155, false, '[]'::jsonb, gen_random_uuid());\n"
+     "      raise exception 'filed while paused';\n"
+     "    exception when check_violation then\n"
+     "      if sqlerrm <> 'Sweep paused for repairs' then raise exception 'message was %', sqlerrm; end if;\n"
+     "    end;\n"
+     "    execute 'reset role';\n"
+     "    update public.operational_settings set filing_paused = false where id = 1;")
+step('only admins see the alerts', 'res',
+     "if exists (select 1 from public.system_alerts) then raise exception 'resident sees alerts'; end if;")
 
 # ---- 0108: notification retention, sign-out on access changes
 step('old read notifications are purged, recent ones kept', 'pg',
