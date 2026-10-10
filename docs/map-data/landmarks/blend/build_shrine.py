@@ -336,11 +336,15 @@ def rings(u, v, r0, r1, n, z=.1):
 
 # ---- the porch: a colonnade, a dark ground floor with the glazed shop front, the fascia and its lettering, palms on its roof
 box('porch_back', 36, 38, -22, 16, 0, 5.6, M['dark'])
+box('porch_floor', 36, 44.5, -22, 16, 0, .15, M['dark'])
+box('porch_end_nw', 36, 44.5, 15.6, 16, 0, 5.6, M['wall'])
+box('porch_end_se', 36, 44.5, -22, -21.6, 0, 5.6, M['wall'])
+box('porch_ceiling', 36, 44.5, -22, 16, 5.3, 5.6, M['terracotta'])
 box('shop_glass', 38, 39.2, -9, 7, 0, 4.6, M['cream'])
 box('porch_parapet', 36, 44.5, -22, 16, 6.5, 7.0, M['green'])
 box('fascia', 44.4, 44.8, -22, 16, 4.6, 5.6, M['wall'])
-sign('MILITARY ORDINARIATE OF THE PHILIPPINES', 44.85, -1, 0, 4.7, 22, 1.2)
-sign('SHRINE OF ST. THERESE', 36.8, -5.2, 0, 7.3, 11, 1.3)
+sign('MILITARY ORDINARIATE OF THE PHILIPPINES', 44.85, -3, 0, 4.2, 12.8, 1.7)
+sign('SHRINE OF ST. THERESE', 36.8, -5.2, 0, 7.4, 9.6, 1.28)
 for k, vv in enumerate((-20, -16, -12, 9, 13)):
     palm(41.5 + (k % 2) * .8, vv, 6.5, 5.5 + (k % 3) * .8)
 
