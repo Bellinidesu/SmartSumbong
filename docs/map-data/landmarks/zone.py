@@ -346,12 +346,21 @@ KIT = dict(
 )
 
 
+ENTRANCE = dict(mall=(4.0, 12.0, 5.5), condo=(3.0, 7.0, 4.2), hotel=(4.5, 10.0, 5.5), office=(3.5, 8.0, 4.5), parking=(3.0, 6.0, 3.6))
+
+
 def p_wall(h):
     return min(h, 9.0)
 
 
 def facade_kit(m, ring, ctx, kind, h):
     """Ribs and floor lines along every long enough edge of the footprint, outward of the wall by a hand's depth."""
+    ent = ENTRANCE.get(kind)
+    if ent and h >= 8:
+        try:
+            entrance(m, _ccw(ring), ctx, ent[0], ent[1], ent[2], C['white'])      # a canopy on columns, steps and a door on the front edge
+        except Exception:
+            pass
     spec = KIT.get(kind)
     if not spec or h < 5:
         return
