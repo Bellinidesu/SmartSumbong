@@ -116,17 +116,23 @@ FULL = bool(os.environ.get('SS_INFRA'))      # elevated roads, walkways, the rai
 
 def build(m, origin, boundary=None):
     bridges, walls, nodes = load()
-    if not FULL:                              # the lifted roads and walkways only round NAIA Terminal 3 (Ace, 10 Oct); everything else of them, and the walls, are out
+    allb = bridges                            # every bridge way, to tell where a deck really continues
+    if not FULL:                              # the lifted roads and walkways of NAIA Terminal 3 only (Ace, 10 Oct): the ways that come within 70 m of the terminal building; Andrews Avenue's, and the walls, are out
         import json as _j
+        from shapely.geometry import Polygon as _P, LineString as _L
         _b = _j.load(open(os.path.join(HERE, '..', '..', '..', 'admin', 'assets', 'map', 'buildings.json'), encoding='utf-8'))
         _t3 = [r for i, r in enumerate(_b['b']) if (_b['info'].get(str(i)) or [''])[0] == 'NAIA Terminal 3']
         if _t3:
-            _c = (_t3[0][4], _t3[0][5])
-            near = lambda e: any(math.hypot((p['lon'] - _c[0]) * MX, (p['lat'] - _c[1]) * MY) < 650 for p in (e.get('geometry') or []))
-            bridges = [e for e in bridges if near(e)]
+            _r = _t3[0][0]
+            _poly = _P([(_r[k] * MX, _r[k + 1] * MY) for k in range(0, len(_r), 2)]).buffer(0)
+            bridges = [e for e in bridges if len(e.get('geometry') or []) > 1 and _L([(g['lon'] * MX, g['lat'] * MY) for g in e['geometry']]).distance(_poly) <= 70.0]
         else:
             bridges = []
         walls = []
+    ends = {}
+    for e in allb:
+        for g_ in (e.get('geometry') or []):
+            ends.setdefault((round(g_['lon'], 6), round(g_['lat'], 6)), set()).add(e['id'])
     n_roads = n_walk = n_rail = 0
     for e in bridges:
         t = e.get('tags', {})
@@ -146,14 +152,19 @@ def build(m, origin, boundary=None):
         deck = max(1, layer) * 6.0 + (0 if walk else 1.0)
         # a ramp climbs from the ground over its first and last 90 m (unless its end is a bridge's); everything else is level
         total = sum(math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]) for i in range(len(pts) - 1))
-        link = (t.get('highway', '').endswith('_link')) and total > 40
+        # a deck's end that meets no other deck comes down to the ground over up to 90 m (it was left hanging in the air, 13 m up, where OpenStreetMap ends the bridge and the approach is not a bridge)
+        k0 = (round(g[0]['lon'], 6), round(g[0]['lat'], 6)); k1 = (round(g[-1]['lon'], 6), round(g[-1]['lat'], 6))
+        free0 = not (ends.get(k0, set()) - {e['id']}); free1 = not (ends.get(k1, set()) - {e['id']})
+        R = max(12.0, min(90.0, total * .45))
         zs, d = [], 0.0
         for i, (x, y) in enumerate(pts):
             if i:
                 d += math.hypot(x - pts[i - 1][0], y - pts[i - 1][1])
             z = deck
-            if link:
-                z = deck * min(1.0, min(d, total - d) / 90.0 + .08)
+            if free0:
+                z = min(z, deck * min(1.0, d / R + .08))
+            if free1:
+                z = min(z, deck * min(1.0, (total - d) / R + .08))
             zs.append(max(z, .4))
         # sample long segments so that a climb is smooth and the deck is lit in many places
         P2, Z2 = [pts[0]], [zs[0]]
