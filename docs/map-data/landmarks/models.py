@@ -505,6 +505,7 @@ def main():
             if sh:
                 raise StopIteration
             _zone.TEMPLATES[kind](m, ring, ctx, {'h': float(b[1])})
+            _zone.facade_kit(m, ring, ctx, kind, float(b[1]))
             if kind != 'parking' and not SW:
                 facade.apply(m, ring, ctx, 'condo' if kind in ('condo',) else kind, float(b[1]), nm or None, None)
         except StopIteration:

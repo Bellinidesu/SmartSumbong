@@ -307,6 +307,57 @@ def z_civic(m, ring, ctx, p):
     m.prism(list(poly.exterior.coords)[:-1], h - .5, h + .6, 'plain', C['white'], 'plain', C['white'], top=True, cell=5)
 
 
+# The facade kit: Apple's plain buildings are detailed by shape, not by picture, so every type that stands on a footprint gets thin ribs and floor lines laid along its own edges
+# (pilasters, floor ledges, buttresses), as boxes: twelve triangles each. kind -> (bottom, top as a function of h, pilaster spacing m, pilaster half-width, depth, floor spacing m, pilaster colour)
+KIT = dict(
+    condo=(4.6, lambda h: h - 1.2, 5.0, .3, .32, 3.2, 'white'), hotel=(4.0, lambda h: h - 1.2, 5.5, .3, .32, 3.4, 'white'), office=(5.0, lambda h: h - 1.2, 0, 0, 0, 3.8, 'slate'),
+    mall=(0.0, lambda h: h - .6, 7.0, .35, .35, 5.0, 'white'), civic=(0.0, lambda h: h, 6.0, .35, .35, 3.6, 'white'), school=(0.0, lambda h: h, 5.0, .28, .28, 3.4, 'white'),
+    hangar=(0.0, lambda h: p_wall(h), 6.0, .3, .45, 0, 'slate'), church=(0.0, lambda h: h * .8, 5.0, .4, .6, 0, 'white'),
+)
+
+
+def p_wall(h):
+    return min(h, 9.0)
+
+
+def facade_kit(m, ring, ctx, kind, h):
+    """Ribs and floor lines along every long enough edge of the footprint, outward of the wall by a hand's depth."""
+    spec = KIT.get(kind)
+    if not spec or h < 5:
+        return
+    z0, ztop, sp, hw, dep, fl, ccol = spec
+    z1 = ztop(h)
+    if z1 - z0 < 3:
+        return
+    ring = _ccw(ring)
+    col = C.get(ccol, C['white'])
+    n_pil = 0
+    for i in range(len(ring)):
+        (x0, y0), (x1, y1) = ring[i], ring[(i + 1) % len(ring)]
+        E = math.hypot(x1 - x0, y1 - y0)
+        if E < 6.0:
+            continue
+        ux, uy = (x1 - x0) / E, (y1 - y0) / E
+        nx, ny = uy, -ux                                   # outward for a counter-clockwise ring
+        th = math.atan2(uy, ux)
+        if sp:
+            cnt = int(E // sp)
+            for k in range(cnt):
+                t = (k + .5) / cnt * E
+                if n_pil >= 70:
+                    break
+                m.box(x0 + ux * t + nx * dep / 2, y0 + uy * t + ny * dep / 2, z0, hw * 2, dep, z1 - z0, th, 'plain', col, 'plain', col, True, 40.0)
+                n_pil += 1
+        if fl:
+            step = fl * (2 if h > 28 else 1)
+            z = z0 + step
+            nl_ = 0
+            while z < z1 - .4 and nl_ < 18:
+                m.box(x0 + ux * E / 2 + nx * .13, y0 + uy * E / 2 + ny * .13, z, E, .26, .22, th, 'plain', col, 'plain', col, True, 40.0)
+                z += step
+                nl_ += 1
+
+
 TEMPLATES = dict(toll=z_toll, gas=z_gas, church=z_church, school=z_school, civic=z_civic, hotel=z_hotel, condo=z_condo, office=z_office, mall=z_mall, parking=z_parking, hangar=z_hangar, generic=z_generic)
 
 
