@@ -614,6 +614,23 @@ def main():
         voff += len(P)
         ioff += len(Ix)
         print('%-42s %-9s %6d vertices %6d triangles' % ('Street lamps (%d)' % len(lamps), 'furniture', len(P), len(Ix) // 3))
+    # cars on the streets (cars.py): along the kerb of the small streets, in the lanes of the main roads, never in a building
+    import cars
+    from shapely.strtree import STRtree as _ST
+    _fp = [Polygon([(q_[0][i] , q_[0][i + 1]) for i in range(0, len(q_[0]), 2)]).buffer(0) for q_ in bld]
+    _tree = _ST(_fp)
+    _blocked = lambda lng, lat: any(_fp[j].buffer(1.2 / MX).contains(Point(lng, lat)) for j in _tree.query(Point(lng, lat).buffer(2.5 / MX)))
+    lng0, lat0 = 121.0135, 14.5240
+    m = Mesh()
+    ncars = cars.build(m, (lng0, lat0), _bd, _blocked)
+    P, N, U, M, Cc, Ix = m.arrays()
+    if len(P):
+        models.append({'name': 'Cars', 'template': 'furniture', 'furniture': True, 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': 1.7, 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+        V.append((P, U, M, Cc, N))
+        I.append(Ix)
+        voff += len(P)
+        ioff += len(Ix)
+        print('%-42s %-9s %6d vertices %6d triangles' % ('Cars (%d)' % ncars, 'furniture', len(P), len(Ix) // 3))
     # elevated roads, walkways, the rail viaduct, walls, bus shelters, signals, flagpoles, water towers: what OpenStreetMap maps in the zone
     import infra
     from boundary import Boundary
