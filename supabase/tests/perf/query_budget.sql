@@ -92,7 +92,11 @@ begin
              where t.level in ('urgent', 'high') order by t.score desc, t.computed_at desc limit 50) x $q$, 50),
     ('admin', 'admin: SMART possible duplicates of a report',
        $q$ select count(*) from public.smart_duplicates((select report_id from public.report_triage
-             order by computed_at desc limit 1)) $q$, 100)
+             order by computed_at desc limit 1)) $q$, 100),
+    ('admin', 'admin: SMART recurring problems, 90 days (the watcher runs this every 5 min)',
+       $q$ select count(*) from public.smart_patterns(90) $q$, 300),
+    ('admin', 'admin: SMART calibration, 90 days',
+       $q$ select count(*) from public.smart_calibration(90) $q$, 300)
   ) as t(who, label, sql, budget_ms)
   loop
     perform set_config('request.jwt.claims', json_build_object('sub', case when r.who = 'admin' then v_adm else v_res end, 'role', 'authenticated')::text, true);

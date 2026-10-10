@@ -5,8 +5,8 @@ read and change, and every result lists the reasons behind it. Nothing
 learns or changes on its own. The rules live in one database row
 (`smart_rules`); the code is `supabase/migrations/0122_smart_triage.sql`.
 
-Prototype status (10 Oct 2026): database only, tested, not deployed, and
-not shown in the portal or the app yet.
+Status (10 Oct 2026): database only (migrations 0121–0123), tested, not
+deployed, and not shown in the portal or the app yet.
 
 ## 1. Triage: a score from 0 to 100 for every report
 
@@ -62,10 +62,48 @@ to resolve the same kind of complaint over the last 180 days. With fewer
 than 5 closed cases it shows the SLA target instead and says so. Only
 totals are shown, so residents can see it for their own report.
 
+## 5. Admins have the last word
+
+An admin can raise or lower any report's level (`smart_override`) and must
+give a reason. The computed score stays visible beside the override, and
+re-scoring never undoes it. Every override, including clearing one, is kept
+(`smart_overrides`) with the score and reasons of that moment. That record
+is what calibration (section 8) reads.
+
+## 6. Recurring problems
+
+These are places where the same kind of problem keeps coming back: at
+least 3 reports of one kind within 60 m of each other, filed in at least 2
+different weeks, over the last 90 days. Three reports in one afternoon are
+one event, not a pattern. Each recurring problem shows how many reports
+and residents, how many weeks, how many are still open, whether it is in a
+hazard zone, and the latest tracking IDs. A recurring blocked canal in a
+flood zone, for example, is a case for a permanent fix rather than another
+clean-up.
+
+## 7. The watcher
+
+Every 5 minutes, `smart_watch()` tells the admins, once each, about:
+- an **urgent** report with no tanod after 15 minutes, or a **high** one
+  after 60 minutes (a notification that opens the case);
+- a recurring problem it has not seen before.
+
+## 8. Checking the rules (calibration)
+
+- `smart_calibration(days)` shows, for each computed level, how many
+  reports it covered, how many admins raised or lowered, and the median
+  time to the first dispatch and to resolution.
+- `smart_factor_stats(days)` shows the same for each factor: each kind, each
+  word group, hazard zones, nearby reports and night.
+
+If a factor keeps turning up in reports that admins lower, it is worth too
+many points; if it keeps turning up in reports they raise, too few. People
+change the rule, not the engine.
+
 ## Changing the rules
 
-An admin edits `smart_rules`: points, word lists, radii, cut-offs, and the
-duplicate settings. Then `select smart_retriage();` scores every open
+An admin edits `smart_rules`: points, word lists, radii, cut-offs,
+duplicate and recurring-problem settings, and the watcher's minutes. Then `select smart_retriage();` scores every open
 report again. Residents cannot read scores or change rules; tanods see
 nothing new.
 
@@ -79,6 +117,8 @@ than the barangay really is:
 | Filing a report, scoring included | 36 ms |
 | Urgent and high queue, top 50 | 0.4 ms |
 | Possible duplicates | 6 ms |
+| Recurring problems, 90 days (the watcher's main step) | 50 ms |
+| Calibration, 90 days | 8 ms |
 
 These times are checked against budgets in `supabase/tests/perf/query_budget.sql`.
 
@@ -91,6 +131,11 @@ These times are checked against budgets in `supabase/tests/perf/query_budget.sql
 | `smart_tanod_ranking(report)` | admins | tanods, score, reasons |
 | `smart_eta(category)` | signed-in users | median and 80th-percentile hours, case count, basis |
 | `smart_retriage(report or null)` | admins | how many were scored |
+| `smart_override(report, level or null, reason)` | admins | the triage row |
+| `smart_overrides` (table) | admins read | every override |
+| `smart_patterns(days)` | admins | recurring problems |
+| `smart_calibration(days)`, `smart_factor_stats(days)` | admins | how the rules compare with people's judgement |
+| `smart_watch()` | pg_cron, every 5 minutes | messages sent |
 | `smart_rules` (table) | admins read and update | the rules |
 
 The hazard zones (`hazard_zones`, from `admin/assets/map/hazards.geojson`)
