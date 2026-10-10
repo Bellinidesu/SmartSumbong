@@ -132,5 +132,29 @@ void main() {
       expect(media.publicId, startsWith('reports/'));
       await dir.delete(recursive: true);
     });
+
+    test('a private ID photo is stored without its signature (0110)', () async {
+      final dir = await Directory.systemTemp.createTemp('upload');
+      final photo = File('${dir.path}/id.jpg')..writeAsBytesSync([0xff, 0xd8, 0xff, 0xd9]);
+      final uploader = MediaUploader(
+        cloudName: 'nwb2kryl',
+        uploadPreset: 'smartsumbong_unsigned',
+        client: MockClient.streaming((request, _) async {
+          final id = (request as http.MultipartRequest).fields['public_id']!;
+          return http.StreamedResponse(
+            Stream.value('{"secure_url":"https://res.cloudinary.com/nwb2kryl/image/authenticated/s--Ab3_-xYz--/v17/$id.jpg","format":"jpg","bytes":4,"public_id":"$id"}'.codeUnits),
+            200,
+          );
+        }),
+      );
+      final media = await uploader.upload(photo, kind: MediaKind.identityCard);
+      expect(media.mediaUrl, matches(RegExp(r'^https://res\.cloudinary\.com/nwb2kryl/image/authenticated/v17/ids/[0-9a-f-]{36}\.jpg$')));
+      await dir.delete(recursive: true);
+    });
+
+    test('public photos need no signed link to open', () async {
+      const url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v1/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg';
+      expect(await viewableMediaUrl(url), url);
+    });
   });
 }

@@ -805,9 +805,27 @@ function handler_cell(array $r, string $me): string
 function cld_thumb(?string $url, int $w, bool $square = false): string
 {
     $url = (string) $url;
+    $t = ($square ? "c_fill,g_face,w_$w,h_$w" : "c_limit,w_$w") . ',q_auto,f_auto';
+    if (str_contains($url, '/image/authenticated/')) return cld_private_url($url, $t);
     if (!preg_match('#^https://res\.cloudinary\.com/[^/]+/image/upload/#', $url)) return $url;
-    $t = $square ? "c_fill,g_face,w_$w,h_$w" : "c_limit,w_$w";
-    return preg_replace('#/image/upload/#', "/image/upload/$t,q_auto,f_auto/", $url, 1);
+    return preg_replace('#/image/upload/#', "/image/upload/$t/", $url, 1);
+}
+
+/**
+ * A link that opens a private identity photo (0110): Cloudinary's signed
+ * delivery URL, the SHA-1 of the transformation and asset path with the API
+ * secret. The stored address alone opens nothing. Without the secret in
+ * the environment the stored address comes back unchanged (and will not
+ * load), which is the safe way to fail.
+ */
+function cld_private_url(string $url, string $transformation = ''): string
+{
+    if (!preg_match('#^(https://res\.cloudinary\.com/[^/]+/image/authenticated/)(v[0-9]+)/(.+)$#', $url, $m)) return $url;
+    $secret = env('CLOUDINARY_API_SECRET', '');
+    if ($secret === '') return $url;
+    $toSign = ($transformation !== '' ? $transformation . '/' : '') . $m[3];
+    $sig = substr(strtr(base64_encode(sha1($toSign . $secret, true)), '+/', '-_'), 0, 8);
+    return $m[1] . 's--' . $sig . '--/' . ($transformation !== '' ? $transformation . '/' : '') . $m[2] . '/' . $m[3];
 }
 
 /**

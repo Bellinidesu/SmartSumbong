@@ -224,6 +224,43 @@ begin
     v_log := v_log || E'\n' || 'FAIL ten registration uploads an hour per address, then refused: ' || left(sqlerrm, 220);
   end;
   begin
+        if not (public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg') and public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/selfies/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg')) then raise exception 'refused'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a private ID or selfie address is accepted';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a private ID or selfie address is accepted: ' || left(sqlerrm, 220);
+  end;
+  begin
+        if public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/s--Ab3_-xYz--/v17/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg') then raise exception 'accepted'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a signed (shareable) address is never stored';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a signed (shareable) address is never stored: ' || left(sqlerrm, 220);
+  end;
+  begin
+        if public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/reports/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg') then raise exception 'accepted'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  only identity photos may be private';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL only identity photos may be private: ' || left(sqlerrm, 220);
+  end;
+  begin
+    perform set_config('request.jwt.claims', json_build_object('sub', v_res::text, 'role', 'authenticated')::text, true);
+    perform set_config('request.jwt.claim.sub', v_res::text, true);
+    execute 'set local role authenticated';
+    update public.users set avatar_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg' where id = v_res;
+    execute 'reset role';
+    if (select avatar_url from public.users where id = v_res) is null then raise exception 'not saved'; end if;
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'ok  a profile picture in avatars/ is accepted';
+  exception when others then
+    execute 'reset role';
+    v_log := v_log || E'\n' || 'FAIL a profile picture in avatars/ is accepted: ' || left(sqlerrm, 220);
+  end;
+  begin
         insert into public.notifications (user_id, kind, message, is_read, created_at) values
       (v_res, 'status_change', 'Sweep old read', true, now() - interval '91 days'),
       (v_res, 'status_change', 'Sweep old unread', false, now() - interval '91 days'),

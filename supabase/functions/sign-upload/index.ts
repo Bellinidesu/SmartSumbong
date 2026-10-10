@@ -1,7 +1,9 @@
 // SmartSumbong — sign-upload (0109).
 //
-// POST { folder: "reports" | "dispatch" | "ids" | "selfies", video?: boolean }
+// POST { folder: "reports" | "dispatch" | "ids" | "selfies" | "avatars", video?: boolean }
 //   -> { ok: true, fields: { api_key, timestamp, signature, public_id, ... } }
+// POST { view: "<a stored ids/ or selfies/ address>" }               (0110)
+//   -> { ok: true, url: "<a link that opens it>" }
 //
 // The app adds `fields` and the file to its multipart POST to Cloudinary's
 // image or video upload endpoint, instead of an unsigned preset. This
@@ -13,6 +15,11 @@
 //   dispatch          a signed-in tanod (field proof)
 //   ids, selfies      anyone signed in; or, during registration, before any
 //                     account exists, at most 10 per network address an hour
+//   avatars           anyone signed in (profile pictures, public)
+//
+// ids/ and selfies/ are stored private (Cloudinary "authenticated", 0110):
+// their stored address opens nothing. `view` signs a link for the photo's
+// owner or an administrator; the portal signs its own.
 //
 // Video only for reports and dispatch, as before. Answers 403/429 with a
 // message the app can show; the app falls back to the unsigned preset only
@@ -43,8 +50,8 @@ function json(body: unknown, status = 200): Response {
 
 const service = { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` };
 
-/** The signed-in caller's role, or null when signed out (or not allowed in). */
-async function callerRole(req: Request): Promise<string | null> {
+/** The signed-in caller, or null when signed out (or not allowed in). */
+async function caller(req: Request): Promise<{ id: string; role: string } | null> {
   const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token || token === SERVICE_ROLE_KEY) return null;
   const who = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -59,7 +66,36 @@ async function callerRole(req: Request): Promise<string | null> {
   );
   const u = res.ok ? (await res.json())[0] : null;
   if (!u || u.is_suspended || u.is_retired) return null;
-  return u.role as string;
+  return { id, role: u.role as string };
+}
+
+const PRIVATE_URL =
+  /^https:\/\/res\.cloudinary\.com\/([a-z0-9_-]+)\/image\/authenticated\/v[0-9]+\/((ids|selfies)\/[0-9a-f-]{36}\.(jpg|jpeg|png|webp))$/;
+
+/** Cloudinary's signed delivery link: SHA-1 of the asset path and the secret. */
+async function signedView(url: string): Promise<string> {
+  const m = PRIVATE_URL.exec(url)!;
+  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(m[2] + API_SECRET));
+  const sig = btoa(String.fromCharCode(...new Uint8Array(digest))).slice(0, 8)
+    .replace(/\//g, "_").replace(/\+/g, "-");
+  return url.replace("/image/authenticated/", `/image/authenticated/s--${sig}--/`);
+}
+
+/** May this caller see this private photo? Their own, or any for an admin. */
+async function mayView(who: { id: string; role: string }, url: string): Promise<boolean> {
+  if (who.role === "admin") return true;
+  const enc = encodeURIComponent(url);
+  const quoted = encodeURIComponent(`"${url}"`); // inside or=(), values with . and : are quoted
+  const own = await fetch(
+    `${SUPABASE_URL}/rest/v1/users?id=eq.${who.id}&or=(id_image_url.eq.${quoted},selfie_url.eq.${quoted})&select=id`,
+    { headers: service },
+  );
+  if (own.ok && (await own.json()).length) return true;
+  const asked = await fetch(
+    `${SUPABASE_URL}/rest/v1/profile_requests?user_id=eq.${who.id}&id_image_url=eq.${enc}&select=id`,
+    { headers: service },
+  );
+  return asked.ok && (await asked.json()).length > 0;
 }
 
 async function takeSlot(bucket: string, max: number): Promise<boolean> {
@@ -85,16 +121,26 @@ Deno.serve(async (req: Request) => {
   if (!API_KEY || !API_SECRET) return json({ ok: false, message: "Uploads are not signed here yet." }, 503);
   try {
     const body = await req.json().catch(() => ({}));
+
+    if (typeof body.view === "string") {
+      const who = await caller(req);
+      if (!who) return json({ ok: false, message: "Sign in again, then try." }, 403);
+      if (!PRIVATE_URL.test(body.view) || !await mayView(who, body.view)) {
+        return json({ ok: false, message: "That photo is not yours to open." }, 403);
+      }
+      return json({ ok: true, url: await signedView(body.view) });
+    }
+
     const folder = String(body.folder ?? "");
     const video = body.video === true;
-    if (!["reports", "dispatch", "ids", "selfies"].includes(folder)) {
+    if (!["reports", "dispatch", "ids", "selfies", "avatars"].includes(folder)) {
       return json({ ok: false, message: "Unknown folder" }, 400);
     }
     if (video && folder !== "reports" && folder !== "dispatch") {
       return json({ ok: false, message: "Only photos can be sent here." }, 400);
     }
 
-    const role = await callerRole(req);
+    const role = (await caller(req))?.role ?? null;
     const allowed =
       folder === "reports" ? role === "resident"
       : folder === "dispatch" ? role === "tanod"
@@ -120,6 +166,8 @@ Deno.serve(async (req: Request) => {
       ...(video
         ? { allowed_formats: "mp4" }
         : { allowed_formats: "jpg,png,webp", format: "jpg", transformation: "c_limit,w_1920,q_auto" }),
+      // Identity photos are private (0110): only a signed link opens them.
+      ...(folder === "ids" || folder === "selfies" ? { type: "authenticated" } : {}),
     };
     return json({ ok: true, fields: { ...params, api_key: API_KEY, signature: await sign(params) } });
   } catch (e) {

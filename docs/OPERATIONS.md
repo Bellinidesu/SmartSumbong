@@ -72,6 +72,16 @@ portal photo all upload. Only once no phone runs an older build, delete
 until then both the app and the portal fall back to them if a signature
 is ever refused.
 
+**Private identity photos (0110).** New registration IDs and selfies are
+stored as Cloudinary *authenticated* assets: their stored address opens
+nothing. The portal signs a viewing link each time it shows one (needs
+`CLOUDINARY_API_SECRET` in Render); the app asks `sign-upload` for one when
+it re-reads its own ID. Profile pictures go to the public `avatars/`
+folder. Photos uploaded before 0110 stay public until moved, once, with
+`node scripts/privatize-identity-photos.mjs` (dry run) and then `--apply`
+(it needs the Supabase service key and the Cloudinary key and secret in
+its environment; run it from a trusted machine, never commit them).
+
 **Bot check on sign-in (CAPTCHA).** Built in but off. To switch it on:
 1. Cloudflare → Turnstile → add a widget (mode *Invisible* or *Managed*)
    for `smartsumbong-ph.onrender.com`; note the site key and secret key.

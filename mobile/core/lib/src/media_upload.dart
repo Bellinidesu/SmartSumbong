@@ -131,6 +131,10 @@ enum MediaKind {
   /// Optional registration selfie. Lands in `users.selfie_url`.
   selfie('selfies'),
 
+  /// Profile picture (0110). Public, unlike the registration selfie it
+  /// used to share a folder with. Lands in `users.avatar_url`.
+  avatar('avatars'),
+
   /// Tanod field proof. Attached to `dispatch_media`.
   fieldProof('dispatch');
 
@@ -237,8 +241,9 @@ class MediaUploader {
   /// cannot point at a host the attacker controls, nor at an asset they
   /// named themselves.
   static final _pinnedUrl = RegExp(
-    r'^https://res\.cloudinary\.com/nwb2kryl/image/upload/v[0-9]+/'
-    r'(reports|ids|selfies|dispatch)/'
+    r'^https://res\.cloudinary\.com/nwb2kryl/image/'
+    r'(upload/v[0-9]+/(reports|ids|selfies|dispatch|avatars)|'
+    r'authenticated/v[0-9]+/(ids|selfies))/'
     r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
     r'\.(jpg|jpeg|png|webp)$',
   );
@@ -510,7 +515,11 @@ class MediaUploader {
       throw MediaUploadException(_friendly(message));
     }
 
-    final url = json['secure_url'] as String?;
+    // A private (authenticated) upload comes back with a signature in its
+    // address; what is stored is the address without it, which opens
+    // nothing until signed again (0110).
+    final url = (json['secure_url'] as String?)
+        ?.replaceFirst(RegExp(r'/image/authenticated/s--[^/]+--/'), '/image/authenticated/');
     if (url == null || !_pinnedUrl.hasMatch(url)) {
       throw MediaUploadException(
         'The media service returned an address this app will not accept. '
@@ -713,6 +722,22 @@ class MediaUploader {
   }
 
   void dispose() => _client.close();
+}
+
+/// An address that opens [url]: unchanged for a public photo; for a
+/// private identity photo (0110), a signed link from sign-upload, which
+/// only gives one to the photo's owner or an administrator. Null when no
+/// link can be had (offline, or not allowed).
+Future<String?> viewableMediaUrl(String url) async {
+  if (!url.contains('/image/authenticated/')) return url;
+  try {
+    final res = await Supabase.instance.client.functions
+        .invoke('sign-upload', body: {'view': url});
+    final data = res.data;
+    return data is Map && data['url'] is String ? data['url'] as String : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 /// A Cloudinary image URL resized for display (branch B): at most

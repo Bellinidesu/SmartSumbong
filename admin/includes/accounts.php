@@ -180,7 +180,7 @@ function render_account_screen(string $role): void
         <?php foreach ($requests as $r): ?>
           <div class="ss-req">
             <?php if ($r['kind'] === 'id_document'): ?>
-              <a href="<?= e($r['id_image_url']) ?>" target="_blank" rel="noopener"><img src="<?= e(cld_thumb($r['id_image_url'], 480)) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" class="ss-req-img"></a>
+              <a href="<?= e(cld_private_url((string) $r['id_image_url'])) ?>" target="_blank" rel="noopener"><img src="<?= e(cld_thumb($r['id_image_url'], 480)) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" class="ss-req-img"></a>
             <?php else: ?>
               <span class="p-chip"><?= e(t('Name', 'Pangalan')) ?></span>
             <?php endif; ?>
@@ -998,7 +998,7 @@ function render_account_detail(
           <?php if (empty($p['id_image_url'])): ?>
             <p class="p-none-line"><?= e(t('No identification was uploaded. This account cannot be verified until one is.', 'Walang na-upload na ID. Hindi maveberipika ang account na ito hangga\'t walang ID.')) ?></p>
           <?php else: ?>
-            <a class="p-id-shot" href="<?= e($p['id_image_url']) ?>" target="_blank" rel="noopener">
+            <a class="p-id-shot" href="<?= e(cld_private_url((string) $p['id_image_url'])) ?>" target="_blank" rel="noopener">
               <img src="<?= e(cld_thumb($p['id_image_url'], 1000)) ?>" alt="<?= e(t('Identification submitted by ', 'ID na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>
@@ -1079,7 +1079,7 @@ function render_account_detail(
               <?= e(t('Not submitted. Registration does not currently ask for one.', 'Hindi isinumite. Hindi ito kasalukuyang hinihingi sa rehistro.')) ?>
             </p>
           <?php else: ?>
-            <a class="p-id-shot p-id-shot--square" href="<?= e($p['selfie_url']) ?>" target="_blank" rel="noopener">
+            <a class="p-id-shot p-id-shot--square" href="<?= e(cld_private_url((string) $p['selfie_url'])) ?>" target="_blank" rel="noopener">
               <img src="<?= e(cld_thumb($p['selfie_url'], 600)) ?>" alt="<?= e(t('Selfie submitted by ', 'Selfie na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>

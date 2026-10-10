@@ -30,6 +30,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'auth.dart' show IdDocumentType;
+import 'media_upload.dart' show viewableMediaUrl;
 
 const bool kIdOcrEnabled = false;
 
@@ -270,7 +271,10 @@ Future<IdOcrResult?> runIdOcrFromUrl(
 }) async {
   File? temp;
   try {
-    final response = await http.get(Uri.parse(imageUrl));
+    // A private ID photo (0110) needs a signed link first.
+    final link = await viewableMediaUrl(imageUrl);
+    if (link == null) return null;
+    final response = await http.get(Uri.parse(link));
     if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
       return null;
     }

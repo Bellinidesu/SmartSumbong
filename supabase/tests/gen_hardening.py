@@ -1,4 +1,4 @@
-"""03_hardening.sql: checks for 0107-0109 (login lockout, SMS codes, cron-only
+"""03_hardening.sql: checks for 0107-0110 (login lockout, SMS codes, cron-only
 sweeps, daily filing limit, notification retention, sign-out on access
 changes), same rolled-back pattern as 01_lifecycle.sql."""
 import os
@@ -90,6 +90,18 @@ step('a resend of a filed outbox report still answers', 'res2',
 step('the app cannot take rate slots itself', 'res', "perform public.take_rate_slot('upload-ids:x', 10, interval '1 hour');", fail=True)
 step('ten registration uploads an hour per address, then refused', 'pg',
      "if (select count(*) filter (where ok) from (select public.take_rate_slot('upload-ids:sweep', 10, interval '1 hour') as ok from generate_series(1, 12)) t) <> 10 then raise exception 'not 10'; end if;")
+
+# ---- 0110: private identity photos
+U = "0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11"
+step('a private ID or selfie address is accepted', 'pg',
+     f"if not (public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/ids/{U}.jpg') and public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/selfies/{U}.jpg')) then raise exception 'refused'; end if;")
+step('a signed (shareable) address is never stored', 'pg',
+     f"if public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/s--Ab3_-xYz--/v17/ids/{U}.jpg') then raise exception 'accepted'; end if;")
+step('only identity photos may be private', 'pg',
+     f"if public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/reports/{U}.jpg') then raise exception 'accepted'; end if;")
+step('a profile picture in avatars/ is accepted', 'res',
+     f"update public.users set avatar_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/{U}.jpg' where id = v_res;\n    execute 'reset role';\n"
+     "    if (select avatar_url from public.users where id = v_res) is null then raise exception 'not saved'; end if;")
 
 # ---- 0108: notification retention, sign-out on access changes
 step('old read notifications are purged, recent ones kept', 'pg',
