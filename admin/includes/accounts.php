@@ -294,7 +294,7 @@ function render_account_screen(string $role): void
       </table>
     </div></div>
 
-    <script src="assets/vendor/supabase/supabase.js"></script>
+    <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
     // Realtime for the verification queue — explicit ask, 6 Sep 2026: "the
     // entire system needs to work realtime," and this is exactly the
@@ -1302,7 +1302,7 @@ function render_account_detail(
     })();
     </script>
 
-    <script src="assets/vendor/supabase/supabase.js"></script>
+    <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
     // Same polling idiom as the list view above, and the same reason:
     // public.users carries no realtime push (0046's privacy decision).

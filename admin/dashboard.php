@@ -201,7 +201,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   </div>
 </div>
 
-<script src="assets/vendor/supabase/supabase.js"></script>
+<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
 <script>
 (function () {
   var M = {
