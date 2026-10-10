@@ -28,6 +28,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from boundary import Boundary
 import re as _re
 import facts as _facts
+try:
+    import gba as _gba
+    _GBA = _gba.Index(_gba.load((121.0007, 14.5126, 121.0304, 14.5412)))   # the Global Building Atlas's heights (gba.py): for the buildings no tag gives a height for
+except Exception as _e:
+    print('no atlas heights (%s): heights are guessed from the footprint' % _e)
+    _gba = _GBA = None
 
 BBOX = (121.0007, 14.5126, 121.0304, 14.5412)   # west, south, east, north (the map area and a margin for the tilted horizon)
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'admin', 'assets', 'map', 'buildings.json')
@@ -183,6 +189,7 @@ def main():
             h = parse_num(t.get('height')) or parse_num(p.get('height'))
             lv = parse_num(t.get('building:levels')) or parse_num(p.get('num_floors'))
             est = 0
+            gba_h = False
             if h:
                 stats['real_h'] += 1
             elif lv:
@@ -200,6 +207,10 @@ def main():
                     h = (3.4, 6.4, 6.4, 9.6)[int(u * 4)]
                 else:
                     h = 3.4 if u < .7 else 6.4
+                gh = _gba.height(_GBA, ring) if _GBA else None
+                gba_h = bool(gh)
+                if gh:
+                    h = gh
             kind = (t.get('building') or p.get('class') or '').lower()
             name = ((p.get('names') or {}).get('primary') or t.get('name') or '')
             cls = (p.get('class') or t.get('building') or '')
@@ -210,7 +221,7 @@ def main():
                     stats['real_h'] += 1
                     break
             # the Newport side, where nothing says how tall a wide building is, is hotels, condominiums and malls, not sheds: a stand-in
-            if est and 121.0140 < cx < 121.0240 and 14.5120 < cy < 14.5262 and a >= 1200 and 'hangar' not in name.lower():
+            if est and not gba_h and 121.0140 < cx < 121.0240 and 14.5120 < cy < 14.5262 and a >= 1200 and 'hangar' not in name.lower():
                 h = 31.0 if a >= 2500 else 24.0 if a >= 1700 else 17.0
             civic = kind in ('commercial', 'retail', 'industrial', 'warehouse', 'office', 'public', 'civic', 'school', 'hospital', 'hotel', 'supermarket', 'terminal', 'train_station', 'transportation', 'government', 'hangar', 'roof', 'garage', 'garages', 'parking', 'service')
             shape = (t.get('roof:shape') or '').lower()
