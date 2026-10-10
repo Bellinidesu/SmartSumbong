@@ -11,6 +11,27 @@ import common as K, sat
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 D = json.load(open(os.path.join(HERE, '..', 'landmarks', 'blend', 'way310487805.json')))
+OUTJ = os.path.join(HERE, '..', 'landmarks', 'blend', 'ballroom_roof.json')
+if '--smooth' in sys.argv:
+    # no picture needed: the colour test leaves ragged tile outlines, and a hip roof over a ragged outline is lumpy; round them off (in, then out) and straighten
+    R = json.load(open(OUTJ))
+    out_ = []
+    for z in R['tile']:
+        p = Polygon(z['ring']).buffer(0).buffer(-3.0).buffer(3.0).simplify(1.0)
+        for q in (p.geoms if hasattr(p, 'geoms') else [p]):
+            if q.geom_type == 'Polygon' and q.area > 40:
+                out_.append({'m2': round(q.area, 1), 'ring': [[round(x, 2), round(y, 2)] for x, y in list(q.exterior.coords)[:-1]]})
+    # the big central roof is one clean hip: its outline becomes the tightest rectangle round it, cut to the footprint
+    if out_:
+        big = max(out_, key=lambda q: q['m2'])
+        rect = Polygon(big['ring']).minimum_rotated_rectangle.intersection(Polygon(D['ring']).buffer(0)).simplify(0.5)
+        if rect.geom_type == 'Polygon':
+            big['ring'] = [[round(x, 2), round(y, 2)] for x, y in list(rect.exterior.coords)[:-1]]
+            big['m2'] = round(rect.area, 1)
+    R['tile'] = out_
+    json.dump(R, open(OUTJ, 'w'))
+    print('tile outlines smoothed: %d roofs, %.0f m2' % (len(out_), sum(q['m2'] for q in out_)))
+    sys.exit(0)
 o_lng, o_lat = D['origin']
 ring = D['ring']
 pad = 30 / K.MX
