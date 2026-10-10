@@ -12,7 +12,9 @@
 // way whether or not the number has an account, so the endpoint cannot be
 // used to find out who is registered. Codes are stored as an HMAC keyed
 // with the service role key, expire after 10 minutes, allow 5 tries and
-// work once; at most 3 codes per account per hour.
+// work once; at most 3 codes per account per hour. Guesses are checked and
+// counted in the database (otp_attempt, 0107), so parallel tries cannot
+// share a count; a reset by code signs the account out everywhere.
 //
 // Secrets: SEMAPHORE_API_KEY (set with `supabase secrets set`), plus the
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets.
@@ -72,6 +74,30 @@ function sixDigits(): string {
   return n.toString().padStart(6, "0");
 }
 
+/**
+ * One guess at the newest live code (0107). The database checks it and
+ * counts a wrong one under a row lock, so guesses sent in parallel cannot
+ * share a try the way a read-then-write from here could.
+ */
+async function attempt(userId: string, purpose: "password" | "mobile", hash: string) {
+  const res = await rest("rpc/otp_attempt", {
+    method: "POST",
+    body: JSON.stringify({ p_user: userId, p_purpose: purpose, p_hash: hash, p_max: MAX_TRIES }),
+  });
+  if (!res.ok) throw new Error(`otp_attempt failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  const row = (await res.json())[0];
+  return {
+    outcome: row?.outcome as "ok" | "wrong" | "expired",
+    attempts_left: Number(row?.attempts_left ?? 0),
+    otp_id: row?.otp_id as string,
+    new_mobile: (row?.new_mobile ?? null) as string | null,
+  };
+}
+
+function wrongTry(left: number): Response {
+  return json({ ok: false, message: left > 0 ? `That code is not right. ${left} ${left === 1 ? "try" : "tries"} left.` : "Too many wrong tries. Ask for a new code." }, 400);
+}
+
 /** The account a resident or tanod signs in with, or null. Admins reset by email. */
 async function findAccount(mobile: string) {
   const res = await rest(
@@ -113,22 +139,7 @@ async function send(mobile: string): Promise<Response> {
   if (!ins.ok) throw new Error(`could not store the code: ${ins.status}`);
   const row = (await ins.json())[0];
 
-  const form = new URLSearchParams({
-    apikey: SEMAPHORE_API_KEY,
-    number: "0" + mobile.slice(3),
-    message: `Your SmartSumbong code is ${code}. It expires in ${CODE_MINUTES} minutes. Do not share it with anyone.`,
-  });
-  const sms = await fetch("https://api.semaphore.co/api/v4/messages", { method: "POST", body: form });
-  const smsBody = await sms.text();
-  let accepted = sms.ok;
-  try {
-    const parsed = JSON.parse(smsBody);
-    if (!Array.isArray(parsed) || !parsed[0]?.message_id) accepted = false;
-  } catch {
-    accepted = false;
-  }
-  if (!accepted) {
-    console.error("semaphore refused:", sms.status, smsBody.slice(0, 300));
+  if (!await textCode(mobile, code)) {
     await rest(`password_otps?id=eq.${row.id}`, { method: "DELETE" });
     return json({ ok: false, message: "We couldn't send the code right now. Try again in a few minutes, or visit the barangay hall." }, 502);
   }
@@ -143,19 +154,9 @@ async function verify(mobile: string, code: string, password: string): Promise<R
   const wrong = json({ ok: false, message: "That code is wrong or has expired. Ask for a new one." }, 400);
   if (!user) return wrong;
 
-  const res = await rest(
-    `password_otps?user_id=eq.${user.id}&purpose=eq.password&used_at=is.null&order=created_at.desc&limit=1&select=id,code_hash,expires_at,attempts`);
-  const otp = (await res.json())[0];
-  if (!otp || new Date(otp.expires_at).getTime() < Date.now() || otp.attempts >= MAX_TRIES) return wrong;
-
-  if (otp.code_hash !== await hmac(`${user.id}:${code}`)) {
-    await rest(`password_otps?id=eq.${otp.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ attempts: otp.attempts + 1 }),
-    });
-    const left = MAX_TRIES - otp.attempts - 1;
-    return json({ ok: false, message: left > 0 ? `That code is not right. ${left} ${left === 1 ? "try" : "tries"} left.` : "Too many wrong tries. Ask for a new code." }, 400);
-  }
+  const otp = await attempt(user.id, "password", await hmac(`${user.id}:${code}`));
+  if (otp.outcome === "expired") return wrong;
+  if (otp.outcome !== "ok") return wrongTry(otp.attempts_left);
 
   const upd = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${user.id}`, {
     method: "PUT",
@@ -167,8 +168,11 @@ async function verify(mobile: string, code: string, password: string): Promise<R
     return json({ ok: false, message: "Your password could not be changed. Try again." }, 500);
   }
 
-  await rest(`password_otps?id=eq.${otp.id}`, { method: "PATCH", body: JSON.stringify({ used_at: new Date().toISOString() }) });
+  await rest(`password_otps?id=eq.${otp.otp_id}`, { method: "PATCH", body: JSON.stringify({ used_at: new Date().toISOString() }) });
   await rest(`users?id=eq.${user.id}`, { method: "PATCH", body: JSON.stringify({ must_change_password: false }) });
+  // Whoever knew the old password is signed out everywhere (0107).
+  const out = await rest("rpc/revoke_user_sessions", { method: "POST", body: JSON.stringify({ p_user: user.id }) });
+  if (!out.ok) console.error("could not end old sessions:", out.status, (await out.text()).slice(0, 200));
   await rest("account_audit", {
     method: "POST",
     body: JSON.stringify({ subject_id: user.id, actor_id: user.id, action: "password_reset", detail: "Password reset with an SMS code" }),
@@ -260,16 +264,16 @@ async function mobileVerify(req: Request, code: string): Promise<Response> {
   const user = await caller(req);
   if (!user) return json({ ok: false, message: "Sign in again, then try." }, 401);
   const wrong = json({ ok: false, message: "That code is wrong or has expired. Ask for a new one." }, 400);
+  // The hash binds the code to the number it was sent to; read that number
+  // first, then let otp_attempt check and count the guess under a lock.
   const res = await rest(
-    `password_otps?user_id=eq.${user.id}&purpose=eq.mobile&used_at=is.null&order=created_at.desc&limit=1&select=id,code_hash,expires_at,attempts,new_mobile`);
-  const otp = (await res.json())[0];
-  if (!otp || !otp.new_mobile || new Date(otp.expires_at).getTime() < Date.now() || otp.attempts >= MAX_TRIES) return wrong;
-  if (otp.code_hash !== await hmac(`${user.id}:${otp.new_mobile}:${code}`)) {
-    await rest(`password_otps?id=eq.${otp.id}`, { method: "PATCH", body: JSON.stringify({ attempts: otp.attempts + 1 }) });
-    const left = MAX_TRIES - otp.attempts - 1;
-    return json({ ok: false, message: left > 0 ? `That code is not right. ${left} ${left === 1 ? "try" : "tries"} left.` : "Too many wrong tries. Ask for a new code." }, 400);
-  }
-  const mobile = otp.new_mobile as string;
+    `password_otps?user_id=eq.${user.id}&purpose=eq.mobile&used_at=is.null&order=created_at.desc&limit=1&select=new_mobile`);
+  const pending = (await res.json())[0];
+  if (!pending?.new_mobile) return wrong;
+  const otp = await attempt(user.id, "mobile", await hmac(`${user.id}:${pending.new_mobile}:${code}`));
+  if (otp.outcome === "wrong") return wrongTry(otp.attempts_left);
+  if (otp.outcome !== "ok" || !otp.new_mobile) return wrong;
+  const mobile = otp.new_mobile;
   // The app signs in with an address made from the number (auth.dart, authEmailFor).
   if (!await setSignIn(user.id, mobile)) return json({ ok: false, message: "Your number could not be changed. Try again." }, 500);
   const row = await rest(`users?id=eq.${user.id}`, { method: "PATCH", body: JSON.stringify({ mobile_number: mobile }) });
@@ -278,7 +282,7 @@ async function mobileVerify(req: Request, code: string): Promise<Response> {
     await setSignIn(user.id, user.mobile_number);
     return json({ ok: false, message: "Another account already uses that number." }, 409);
   }
-  await rest(`password_otps?id=eq.${otp.id}`, { method: "PATCH", body: JSON.stringify({ used_at: new Date().toISOString() }) });
+  await rest(`password_otps?id=eq.${otp.otp_id}`, { method: "PATCH", body: JSON.stringify({ used_at: new Date().toISOString() }) });
   await rest("account_audit", {
     method: "POST",
     body: JSON.stringify({ subject_id: user.id, actor_id: user.id, action: "mobile_changed", detail: "Mobile number changed with an SMS code" }),

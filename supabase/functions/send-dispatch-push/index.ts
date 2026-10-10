@@ -113,9 +113,20 @@ function pemToDer(pem: string): ArrayBuffer {
 
 /// Signs a Google service-account JWT and exchanges it for an OAuth2
 /// access token scoped to Firebase Cloud Messaging. Tokens are valid for
-/// an hour; this function is short-lived enough that minting a fresh one
-/// per invocation is simpler and safer than caching one across calls.
+/// an hour. A warm function instance serves many notifications in a row
+/// (one per row inserted), so the token is kept for 50 minutes rather than
+/// minted per call: one RSA signature and one round trip to Google saved
+/// on almost every push (0107). A cold instance simply mints a new one.
+let cachedToken: { value: string; until: number } | null = null;
+
 async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < cachedToken.until) return cachedToken.value;
+  const value = await mintAccessToken();
+  cachedToken = { value, until: Date.now() + 50 * 60_000 };
+  return value;
+}
+
+async function mintAccessToken(): Promise<string> {
   const header = base64UrlEncode(
     new TextEncoder().encode(JSON.stringify({ alg: "RS256", typ: "JWT" })),
   );
@@ -293,10 +304,28 @@ async function sendToToken(
     await deleteStaleToken(token);
     return;
   }
+  // A refused access token is not kept for the rest of its 50 minutes.
+  if (res.status === 401) cachedToken = null;
   console.error(`FCM send failed for one token (status ${res.status}):`, body);
 }
 
+// Optional shared secret (0107). When PUSH_WEBHOOK_SECRET is set, only a
+// caller sending it in x-webhook-secret is served; add that header to the
+// Database Webhook (Dashboard -> Database -> Webhooks) before setting it,
+// or pushes stop. Unset, the function behaves as before.
+const WEBHOOK_SECRET = Deno.env.get("PUSH_WEBHOOK_SECRET") ?? "";
+
+function sameSecret(sent: string): boolean {
+  if (sent.length !== WEBHOOK_SECRET.length) return false;
+  let diff = 0;
+  for (let i = 0; i < sent.length; i++) diff |= sent.charCodeAt(i) ^ WEBHOOK_SECRET.charCodeAt(i);
+  return diff === 0;
+}
+
 Deno.serve(async (req: Request) => {
+  if (WEBHOOK_SECRET && !sameSecret(req.headers.get("x-webhook-secret") ?? "")) {
+    return new Response("forbidden", { status: 403 });
+  }
   try {
     const payload = (await req.json()) as WebhookPayload;
 

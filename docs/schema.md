@@ -1,14 +1,15 @@
 # SmartSumbong — Schema Reference
 
-Mirrors `supabase/migrations/` (0001–0087, all applied to the live project as
-of 5 October 2026). If the manuscript's Data Dictionary and this file
+Mirrors `supabase/migrations/` (0001–0107; there is no 0048, the number was
+skipped). The tables and functions below were last checked against 0087
+(5 October 2026), plus the 0107 additions. If the manuscript's Data Dictionary and this file
 disagree, one of them is wrong — fix both in the same sitting.
 
 Actor naming is **`tanod`** throughout, per the panel revision.
 
 ---
 
-## Tables (27)
+## Tables (28)
 
 | Table | Purpose | Since |
 |---|---|---|
@@ -28,6 +29,7 @@ Actor naming is **`tanod`** throughout, per the panel revision.
 | `account_audit` | Hash-chained log of account changes | 0014 |
 | `hotline_groups`, `hotline_numbers` | The resident app's emergency hotline list | 0025 |
 | `login_attempts` | Lockout after repeated failures | 0031 |
+| `login_failure_sources` | Failed sign-ins reported per network address, 15-minute window; past 20 they stop counting toward a lockout | 0107 |
 | `device_tokens` | FCM push tokens | 0035 |
 | `retirement_requests` | A tanod's request to retire, and the admin's decision | 0052 |
 | `detail_requests` | "More details needed" asked of the resident, and the answer | 0065 |

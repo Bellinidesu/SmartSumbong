@@ -29,6 +29,10 @@ when something breaks. Written for whoever maintains it next (October 2026).
 4. Database changes: `supabase db push --linked` (each migration is a new
    numbered file; never edit an applied one). Functions:
    `supabase functions deploy <name> --project-ref xmkpokcnjzgxgwysperh --use-api`.
+   Push the migrations before deploying a function that uses what they add
+   (for example `password-otp` needs 0107's `otp_attempt`).
+   `supabase/config.toml` pins each function's JWT check; never run
+   `supabase config push` from it.
 
 Rules the code must keep (CI enforces most of them):
 
@@ -51,7 +55,9 @@ GitHub Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
 keep-awake job).
 
 Supabase secrets (Edge Functions): FCM service account values for
-`send-dispatch-push`; `SEMAPHORE_API_KEY` and the OTP secret for
+`send-dispatch-push`, and optionally `PUSH_WEBHOOK_SECRET` (0107: once set,
+the function only answers a caller sending it as `x-webhook-secret`, so add
+that header to the Database Webhook first or pushes stop); `SEMAPHORE_API_KEY` and the OTP secret for
 `password-otp` (SMS reset is switched off in the app until Semaphore credits
 are bought).
 
