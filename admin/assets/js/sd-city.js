@@ -192,8 +192,22 @@
     });
     const polyArea = rg => { let a = 0; const n = rg.length / 2; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a += rg[2 * i] * MX * rg[2 * j + 1] * MY - rg[2 * j] * MX * rg[2 * i + 1] * MY; } return Math.abs(a) / 2; };
     const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall) => {
-      const A = L * W; if (A < 260 || h < 5) return;
+      const A = L * W;
       const co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY, T = (b, t, rg) => trim.push({ type: 'Feature', properties: { b, t, k: 'p' }, geometry: { type: 'Polygon', coordinates: rg } });
+      if (A >= 45 && A < 260 && h < 12) {   // a house: a flat roof gets a low rim, a water tank and a stair head; a pitched one a chimney (placed by hash, so the same every time)
+        const u1 = hit01(cx, cy + 3), u2 = hit01(cx + 5, cy);
+        if (flat) {
+          if (A >= 70) T(h, h + .4, [poly, shrink(poly, x0, y0, co, si, L, W, .45).reverse()]);
+          const tu = (u1 - .5) * L * .45, tv = (u2 - .5) * W * .45, cxm = (x0 + tu * co - tv * si) / MX, cym = (y0 + tu * si + tv * co) / MY;
+          if (inRing([cxm, cym], ring)) { T(h, h + 1.6, [box(x0, y0, co, si, tu, tv, .55, .55)]); T(h + 1.6, h + 1.9, [box(x0, y0, co, si, tu, tv, .7, .7)]); }
+          if (u1 > .55 && A >= 90) { const su = -tu * .8 + L * .12, sv = -tv * .8, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) T(h, h + 2.3, [box(x0, y0, co, si, su, sv, 1.0, .9)]); }
+        } else if (u1 > .35) {
+          const cu = (u2 - .5) * L * .5, cxm = (x0 + cu * co) / MX, cym = (y0 + cu * si) / MY;
+          if (inRing([cxm, cym], ring)) T(h, h + Math.max(.8, Math.min(2.4, W * .2)) * .6 + .9, [box(x0, y0, co, si, cu, W * .12, .28, .28)]);
+        }
+        return;
+      }
+      if (A < 260 || h < 5) return;
       if (flat) {
         T(h, h + .9, [poly, shrink(poly, x0, y0, co, si, L, W, 1.1).reverse()]);
         const n = Math.min(6, Math.floor(A / 450));

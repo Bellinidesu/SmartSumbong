@@ -341,6 +341,7 @@ def z_civic(m, ring, ctx, p):
 KIT = dict(
     condo=(4.6, lambda h: h - 1.2, 5.0, .3, .32, 3.2, 'white'), hotel=(4.0, lambda h: h - 1.2, 5.5, .3, .32, 3.4, 'white'), office=(5.0, lambda h: h - 1.2, 0, 0, 0, 3.8, 'slate'),
     mall=(0.0, lambda h: h - .6, 7.0, .35, .35, 5.0, 'white'), civic=(0.0, lambda h: h, 6.0, .35, .35, 3.6, 'white'), school=(0.0, lambda h: h, 5.0, .28, .28, 3.4, 'white'),
+    parking=(0.0, lambda h: h, 4.0, .25, .3, 3.0, 'white'),
     hangar=(0.0, lambda h: p_wall(h), 6.0, .3, .45, 0, 'slate'), church=(0.0, lambda h: h * .8, 5.0, .4, .6, 0, 'white'),
 )
 
