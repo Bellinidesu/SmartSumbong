@@ -66,7 +66,7 @@ def vehicle(m, x, y, th, key, parked):
             car(m, x, y, th, col)
 
 
-def build(m, origin, boundary, blocked):
+def build(m, origin, boundary, blocked):  # blocked(lng, lat, parked, highway) -> True where no vehicle goes: a building, a quiet zone, or what the zone's list leaves out
     """blocked(lng, lat) -> True where a building stands. Returns the number of cars."""
     ways = infra.overpass('roads', Q)
     n = 0
@@ -95,7 +95,7 @@ def build(m, origin, boundary, blocked):
                     x, y = ax + ux * pos - uy * off * side, ay + uy * pos + ux * off * side
                     lng, lat = origin[0] + x / infra.MX, origin[1] + y / infra.MY
                     if boundary is None or boundary.inside(lng, lat):
-                        if not blocked(lng, lat):
+                        if not blocked(lng, lat, parked, hw):
                             th = math.atan2(uy, ux) + (math.pi if side < 0 and not parked else 0)
                             vehicle(m, x, y, th, key, parked)
                             n += 1

@@ -604,6 +604,9 @@ def main():
     # street lamps: a pole and a lamp head for every lamp (city-detail.json), as one more model at the middle of the map
     det = json.load(open(os.path.join(MAP, 'city-detail.json'), encoding='utf-8'))
     lamps = det.get('lamps', [])
+    _zj0 = json.load(open(os.path.join(MAP, 'zones.json'), encoding='utf-8'))
+    _nolamp = [Polygon([(z['ring'][k], z['ring'][k + 1]) for k in range(0, len(z['ring']), 2)]).buffer(0) for z in _zj0.get('zones', []) if 'lamps' in z['off']]
+    lamps = [l_ for l_ in lamps if not any(pg_.contains(Point(l_[0], l_[1])) for pg_ in _nolamp)]
     if lamps:
         lng0, lat0 = 121.0135, 14.5240
         m = Mesh()
@@ -627,7 +630,24 @@ def main():
     from shapely.strtree import STRtree as _ST
     _fp = [Polygon([(q_[0][i] , q_[0][i + 1]) for i in range(0, len(q_[0]), 2)]).buffer(0) for q_ in bld]
     _tree = _ST(_fp)
-    _blocked = lambda lng, lat: (QUIET is not None and QUIET.contains(Point(lng, lat))) or any(_fp[j].buffer(1.2 / MX).contains(Point(lng, lat)) for j in _tree.query(Point(lng, lat).buffer(2.5 / MX)))
+    # the zones (tools/build_zones.py, zones.json): each leaves some things out; outside every zone is the residential core (no vehicles on its service lanes)
+    _zj = json.load(open(os.path.join(MAP, 'zones.json'), encoding='utf-8'))
+    _zr = [(Polygon([(z['ring'][k], z['ring'][k + 1]) for k in range(0, len(z['ring']), 2)]).buffer(0), set(z['off'])) for z in _zj.get('zones', [])]
+
+    def _off(lng, lat):
+        pt = Point(lng, lat)
+        for pg_, off_ in _zr:
+            if pg_.contains(pt):
+                return off_
+        return set(_zj.get('core_cars', []))
+
+    def _blocked(lng, lat, parked=False, hw=''):
+        if QUIET is not None and QUIET.contains(Point(lng, lat)):
+            return True
+        off_ = _off(lng, lat)
+        if 'cars_all' in off_ or (parked and 'cars_parked' in off_) or ('cars_service' in off_ and hw in ('service', 'living_street')):
+            return True
+        return any(_fp[j].buffer(1.2 / MX).contains(Point(lng, lat)) for j in _tree.query(Point(lng, lat).buffer(2.5 / MX)))
     lng0, lat0 = 121.0135, 14.5240
     m = Mesh()
     ncars = cars.build(m, (lng0, lat0), _bd, _blocked)

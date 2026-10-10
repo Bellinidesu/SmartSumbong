@@ -196,6 +196,7 @@
     const polyArea = rg => { let a = 0; const n = rg.length / 2; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a += rg[2 * i] * MX * rg[2 * j + 1] * MY - rg[2 * j] * MX * rg[2 * i + 1] * MY; } return Math.abs(a) / 2; };
     const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall, idx) => {
       if (QZ.some(z => inRing([cx, cy], z))) return;   // a quiet zone (Villamor Air Base): footprint, height and colour only
+      const off = (ZN.find(z => inRing([cx, cy], z.ring)) || { off: COREOFF }).off;   // what this zone leaves out
       const A = L * W;
       const co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY, T = (b, t, rg) => trim.push({ type: 'Feature', properties: { b, t, k: 'p' }, geometry: { type: 'Polygon', coordinates: rg } });
       // ---- details by rule, everywhere: doors and windows, awnings, balconies, air-conditioners, dishes, antennas, solar panels (all thin prisms on the footprint's own edges, placed by hash) ----
@@ -213,28 +214,28 @@
         pl(e0, tm - .5, tm + .5, 0, 2.1, .14, 'dw');
         [-1, 1].forEach((sd, i) => { const tw = tm + sd * (1.6 + hh(2 + i) * .8); if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 1.0, 1.9, .12, 'dw'); });
         if (h >= 5.5) [-1, 0, 1].forEach((sd, i) => { const tw = tm + sd * 2.0; if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 4.2, 5.1, .12, 'dw'); });
-        if (hh(4) > .5) { const tw = e0.ln * (.15 + hh(5) * .7); pl(e0, tw - .4, tw + .4, 2.2 + (h >= 5.5 ? 3.2 : 0), 3.0 + (h >= 5.5 ? 3.2 : 0), .4, 'ac'); }
-        if (flat && hh(6) > .7 && A >= 70) { const su = (hh(7) - .5) * L * .3, sv = (hh(8) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .4, t: h + 1.5, k: 'sd' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, .45, .45)] } }); }
+        if (!off.has('house_gadgets') && hh(4) > .5) { const tw = e0.ln * (.15 + hh(5) * .7); pl(e0, tw - .4, tw + .4, 2.2 + (h >= 5.5 ? 3.2 : 0), 3.0 + (h >= 5.5 ? 3.2 : 0), .4, 'ac'); }
+        if (!off.has('house_gadgets') && flat && hh(6) > .7 && A >= 70) { const su = (hh(7) - .5) * L * .3, sv = (hh(8) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .4, t: h + 1.5, k: 'sd' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, .45, .45)] } }); }
       }
       const grp = PLACES[idx] || '';                       // what is in it (places.json): an awning and a sign board in the colour of each kind of place, one wall each
-      if (e0 && (grp || (flat && A >= 60 && A < 700 && h < 9))) {
+      if (e0 && (grp || (!off.has('awn_generic') && flat && A >= 60 && A < 700 && h < 9))) {
         const aw = grp ? 'g_' + grp[0] : ['aw', 'aw2', 'aw3'][Math.floor(hh(9) * 3)];
         pl(e0, .6, e0.ln - .6, 2.7, 2.98, 1.0, aw);
       }
       if (e0 && grp) grp.split('').forEach((g, i) => { const e = edges[Math.min(i, edges.length - 1)], w_ = Math.min(5.5, e.ln * .6); pl(e, e.ln / 2 - w_ / 2, e.ln / 2 + w_ / 2, 3.15, 3.95, .18, 'g_' + g); });
-      if (e0 && flat && A >= 250 && h >= 9 && h < 32) {    // a mid-rise block: balconies and air-conditioners on its two longest walls, solar panels on some roofs
+      if (e0 && !off.has('highrise_extras') && flat && A >= 250 && h >= 9 && h < 32) {    // a mid-rise block: balconies and air-conditioners on its two longest walls, solar panels on some roofs
         edges.slice(0, 2).forEach(e => { let c_ = 0; for (let z = 3.4; z < h - 1 && c_ < 60; z += 3.2 * (h > 20 ? 2 : 1)) for (let t = 2.2; t < e.ln - 2.2 && c_ < 60; t += 4.6) { pl(e, t, t + 2.2, z, z + .13, .9, 'bc'); c_++; } });
         if (hh(10) > .45) { const su = (hh(11) - .5) * L * .3, sv = (hh(12) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .5, t: h + 1.0, k: 'sl' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, Math.min(L * .22, 9), Math.min(W * .2, 5))] } }); }
       }
-      if (flat && A >= 120 && hh(13) > .6) { const au = (hh(14) - .5) * L * .5, av = (hh(15) - .5) * W * .5, ax_ = (x0 + au * co - av * si) / MX, ay_ = (y0 + au * si + av * co) / MY; if (inRing([ax_, ay_], ring)) trim.push({ type: 'Feature', properties: { b: h, t: h + 3.5 + hh(16) * 3, k: 'sp' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, au, av, .12, .12)] } }); }   // an antenna mast
+      if (!off.has('highrise_extras') && flat && A >= 120 && hh(13) > .6) { const au = (hh(14) - .5) * L * .5, av = (hh(15) - .5) * W * .5, ax_ = (x0 + au * co - av * si) / MX, ay_ = (y0 + au * si + av * co) / MY; if (inRing([ax_, ay_], ring)) trim.push({ type: 'Feature', properties: { b: h, t: h + 3.5 + hh(16) * 3, k: 'sp' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, au, av, .12, .12)] } }); }   // an antenna mast
       if (A >= 45 && A < 260 && h < 12) {   // a house: a flat roof gets a low rim, a water tank and a stair head; a pitched one a chimney (placed by hash, so the same every time)
         const u1 = hit01(cx, cy + 3), u2 = hit01(cx + 5, cy);
         if (flat) {
           if (A >= 70) T(h, h + .4, [poly, shrink(poly, x0, y0, co, si, L, W, .45).reverse()]);
           const tu = (u1 - .5) * L * .45, tv = (u2 - .5) * W * .45, cxm = (x0 + tu * co - tv * si) / MX, cym = (y0 + tu * si + tv * co) / MY;
-          if (inRing([cxm, cym], ring)) { T(h, h + 1.6, [box(x0, y0, co, si, tu, tv, .55, .55)]); T(h + 1.6, h + 1.9, [box(x0, y0, co, si, tu, tv, .7, .7)]); }
-          if (u1 > .55 && A >= 90) { const su = -tu * .8 + L * .12, sv = -tv * .8, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) T(h, h + 2.3, [box(x0, y0, co, si, su, sv, 1.0, .9)]); }
-        } else if (u1 > .35) {
+          if (inRing([cxm, cym], ring) && (!off.has('tanks_most') || u1 > .66)) { T(h, h + 1.6, [box(x0, y0, co, si, tu, tv, .55, .55)]); T(h + 1.6, h + 1.9, [box(x0, y0, co, si, tu, tv, .7, .7)]); }
+          if (!off.has('tanks_most') && u1 > .55 && A >= 90) { const su = -tu * .8 + L * .12, sv = -tv * .8, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) T(h, h + 2.3, [box(x0, y0, co, si, su, sv, 1.0, .9)]); }
+        } else if (!off.has('chimneys') && u1 > .35) {
           const cu = (u2 - .5) * L * .5, cxm = (x0 + cu * co) / MX, cym = (y0 + cu * si) / MY;
           if (inRing([cxm, cym], ring)) T(h, h + Math.max(.8, Math.min(2.4, W * .2)) * .6 + .9, [box(x0, y0, co, si, cu, W * .12, .28, .28)]);
         }
@@ -317,7 +318,7 @@
   let prepared = false;
   const live = () => on || prepared;   // the layers are built and kept ready (at no opacity) once loaded, so a tilt has nothing left to build
   let PLACES = {};   // what is in each building (places.json): a string of group letters
-  let QZ = [];   // the quiet zones (zones.json): no by-rule detail there
+  let QZ = [], ZN = [], COREOFF = new Set();   // the quiet zones, and the zones with what each leaves out (zones.json; outside every zone is the residential core)   // the quiet zones (zones.json): no by-rule detail there
   let ready = null, on = false, TREES = [], FOG = null, FACES = null, BLD = null, LMS = [], BAKE = null;
   const ngon = (cx, cy, r, n, rot) => {   // metres to degrees at this latitude
     const out = []; for (let i = 0; i <= n; i++) { const a = rot + i / n * Math.PI * 2; out.push([cx + Math.cos(a) * r / 107500, cy + Math.sin(a) * r / 110574]); } return out;
@@ -386,6 +387,8 @@
       const faces = bake && bake.faces ? await fetch('assets/map/' + bake.faces).then(r => r.json()).catch(() => null) : null;
       const [detail, bld, lmj, zn, pl] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null), fetch('assets/map/zones.json').then(r => r.json()).catch(() => null), fetch('assets/map/places.json').then(r => r.json()).catch(() => null)));
       QZ = (zn && zn.quiet) || [];
+      ZN = ((zn && zn.zones) || []).map(z => ({ ring: z.ring, off: new Set(z.off) }));
+      COREOFF = new Set((zn && zn.core_off) || []);
       PLACES = (pl && pl.p) || {};
       const lms = lmj ? lmj.features.map(f => ({ n: (f.properties && f.properties.name) || '', c: f.geometry.coordinates })).filter(x => x.n) : [];
       if (WINDOWS) addWalls();
