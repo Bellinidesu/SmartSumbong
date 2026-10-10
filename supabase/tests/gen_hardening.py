@@ -1,4 +1,4 @@
-"""03_hardening.sql: checks for 0107-0113 (login lockout, SMS codes, cron-only
+"""03_hardening.sql: checks for 0114-0120 (login lockout, SMS codes, cron-only
 sweeps, daily filing limit, notification retention, sign-out on access
 changes), same rolled-back pattern as 01_lifecycle.sql."""
 import os
@@ -33,7 +33,7 @@ def anon(sql):
             "    execute 'set local role anon';\n    " + sql)
 
 
-# ---- 0107: login lockout
+# ---- 0114: login lockout
 step('signed out, nobody can clear a number', 'pg', anon("perform public.clear_login_attempts('+639999999903');"), fail=True)
 step('a failed sign-in is counted', 'pg',
      "perform set_config('request.headers', '{\"cf-connecting-ip\": \"203.0.113.7\"}', true);\n"
@@ -55,7 +55,7 @@ step('five failures still lock a number', 'pg',
      "    perform public.register_login_failure('+639999999950') from generate_series(1, 5);\n"
      "    if not (select locked from public.check_login_lockout('+639999999950')) then raise exception 'not locked'; end if;")
 
-# ---- 0107: SMS codes and sessions
+# ---- 0114: SMS codes and sessions
 step('the app cannot call otp_attempt', 'res', "perform public.otp_attempt(v_res, 'password', 'x');", fail=True)
 step('the app cannot end sessions', 'res', "perform public.revoke_user_sessions(v_res);", fail=True)
 step('a wrong code counts one try', 'pg',
@@ -70,7 +70,7 @@ step('revoke_user_sessions ends every session', 'pg',
      "insert into auth.sessions (user_id) values (v_res), (v_res);\n    perform public.revoke_user_sessions(v_res);\n"
      "    if exists (select 1 from auth.sessions where user_id = v_res) then raise exception 'sessions left'; end if;")
 
-# ---- 0107: cron-only sweeps, daily filing limit
+# ---- 0114: cron-only sweeps, daily filing limit
 step('the app cannot run the overdue sweep', 'res', "perform public.sweep_overdue_reports();", fail=True)
 step('the app cannot run the verification sweep', 'adm', "perform public.sweep_overdue_verifications();", fail=True)
 step('resident files up to the daily limit', 'pg',
@@ -86,12 +86,12 @@ step('one more than the limit is refused', 'res2',
 step('a resend of a filed outbox report still answers', 'res2',
      "if (select subject from public.file_report('street_obstruction', 'Sweep limit 1', 'Automated sweep, rolled back.', 14.5269, 121.0155, false, '[]'::jsonb, k1)) <> 'Sweep limit 1' then raise exception 'wrong report'; end if;")
 
-# ---- 0109: upload signing rate limit
+# ---- 0116: upload signing rate limit
 step('the app cannot take rate slots itself', 'res', "perform public.take_rate_slot('upload-ids:x', 10, interval '1 hour');", fail=True)
 step('ten registration uploads an hour per address, then refused', 'pg',
      "if (select count(*) filter (where ok) from (select public.take_rate_slot('upload-ids:sweep', 10, interval '1 hour') as ok from generate_series(1, 12)) t) <> 10 then raise exception 'not 10'; end if;")
 
-# ---- 0110: private identity photos
+# ---- 0117: private identity photos
 U = "0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11"
 step('a private ID or selfie address is accepted', 'pg',
      f"if not (public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/ids/{U}.jpg') and public.is_media_url('https://res.cloudinary.com/nwb2kryl/image/authenticated/v17/selfies/{U}.jpg')) then raise exception 'refused'; end if;")
@@ -103,7 +103,7 @@ step('a profile picture in avatars/ is accepted', 'res',
      f"update public.users set avatar_url = 'https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/{U}.jpg' where id = v_res;\n    execute 'reset role';\n"
      "    if (select avatar_url from public.users where id = v_res) is null then raise exception 'not saved'; end if;")
 
-# ---- 0111: identity photo cleanup
+# ---- 0118: identity photo cleanup
 A1 = "https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e12.jpg"
 A2 = "https://res.cloudinary.com/nwb2kryl/image/upload/v17/avatars/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e13.jpg"
 step('a replaced profile picture is queued for deletion', 'pg',
@@ -136,7 +136,7 @@ step('cleanup job scheduled, and idle without its Vault secrets', 'pg',
      "if not exists (select 1 from cron.job where jobname = 'media-cleanup' and active) then raise exception 'no job'; end if;\n"
      "    perform public.run_media_cleanup();")
 
-# ---- 0112: system health
+# ---- 0119: system health
 step('a browser cannot log errors as an Edge Function', 'pg',
      "perform set_config('request.jwt.claims', '{\"role\": \"anon\"}', true);\n"
      "    perform public.log_portal_error('function', 'sign-upload', 'Sweep forged');\n"
@@ -178,7 +178,7 @@ step('filing can be paused, with the reason shown to residents', 'pg',
 step('only admins see the alerts', 'res',
      "if exists (select 1 from public.system_alerts) then raise exception 'resident sees alerts'; end if;")
 
-# ---- 0113: tracking IDs past 9,999
+# ---- 0120: tracking IDs past 9,999
 step('the 10,000th complaint gets its own tracking ID', 'pg',
      "perform setval('public.report_seq', 9999);\n"
      "    insert into public.reports (resident_id, category, subject, description, latitude, longitude)\n"
@@ -186,7 +186,7 @@ step('the 10,000th complaint gets its own tracking ID', 'pg',
      "    if (select tracking_id from public.reports where subject = 'Sweep 10000') <> 'BRG-' || to_char(now(), 'YYYY') || '-10000' then\n"
      "      raise exception 'got %', (select tracking_id from public.reports where subject = 'Sweep 10000'); end if;")
 
-# ---- 0108: notification retention, sign-out on access changes
+# ---- 0115: notification retention, sign-out on access changes
 step('old read notifications are purged, recent ones kept', 'pg',
      "insert into public.notifications (user_id, kind, message, is_read, created_at) values\n"
      "      (v_res, 'status_change', 'Sweep old read', true, now() - interval '91 days'),\n"

@@ -812,7 +812,7 @@ function cld_thumb(?string $url, int $w, bool $square = false): string
 }
 
 /**
- * A link that opens a private identity photo (0110): Cloudinary's signed
+ * A link that opens a private identity photo (0117): Cloudinary's signed
  * delivery URL, the SHA-256 of the transformation and asset path with the API
  * secret. The stored address alone opens nothing. Without the secret in
  * the environment the stored address comes back unchanged (and will not

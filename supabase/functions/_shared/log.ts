@@ -1,5 +1,5 @@
 // Records an Edge Function failure in portal_errors (source 'function',
-// 0112), so it shows under Settings -> System status -> Recent errors and
+// 0119), so it shows under Settings -> System status -> Recent errors and
 // raises the hourly health alert. Never throws: logging must not turn one
 // failure into two. Only the error's message is kept (no request bodies).
 export async function logError(fn: string, e: unknown): Promise<void> {

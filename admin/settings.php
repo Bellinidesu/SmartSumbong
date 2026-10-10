@@ -221,7 +221,7 @@ $up = null;
 try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
 $errs = null;
 try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5']); } catch (SupabaseError) {}
-// 0112: what the hourly health check found and has not seen clear yet.
+// 0119: what the hourly health check found and has not seen clear yet.
 $alerts = [];
 try { $alerts = $db->select('system_alerts', ['select' => 'key,message,raised_at', 'cleared_at' => 'is.null', 'order' => 'raised_at.desc']); } catch (SupabaseError) {}
 $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';

@@ -1,4 +1,4 @@
--- 0107: backend review fixes (10 Oct 2026).
+-- 0114: backend review fixes (10 Oct 2026).
 --
 --   1. Login lockout (0031). The app calls these three functions itself,
 --      with the public key, so anyone could too:
@@ -36,7 +36,7 @@ create table if not exists public.login_failure_sources (
 );
 
 comment on table public.login_failure_sources is
-  '0107: how many failed sign-ins each network address has reported in the '
+  '0114: how many failed sign-ins each network address has reported in the '
   'current 15-minute window. Read and written only by register_login_failure.';
 
 alter table public.login_failure_sources enable row level security;
@@ -150,7 +150,7 @@ begin
 end $$;
 
 comment on function public.clear_login_attempts(text) is
-  'Call once sign-in succeeds. 0107: clears only the signed-in caller''s own '
+  'Call once sign-in succeeds. 0114: clears only the signed-in caller''s own '
   'number; anyone else''s, or a call made while signed out, does nothing.';
 
 revoke all on function public.clear_login_attempts(text) from public, anon;
@@ -191,7 +191,7 @@ begin
 end $$;
 
 comment on function public.otp_attempt(uuid, text, text, integer) is
-  '0107: checks one guess at the newest live SMS code, counting a wrong one '
+  '0114: checks one guess at the newest live SMS code, counting a wrong one '
   'under a row lock so parallel guesses cannot share a try. password-otp only.';
 
 revoke all on function public.otp_attempt(uuid, text, text, integer) from public, anon, authenticated;
@@ -209,7 +209,7 @@ as $$
 $$;
 
 comment on function public.revoke_user_sessions(uuid) is
-  '0107: signs a user out on every device. Called by password-otp after an '
+  '0114: signs a user out on every device. Called by password-otp after an '
   'SMS password reset.';
 
 revoke all on function public.revoke_user_sessions(uuid) from public, anon, authenticated;
@@ -227,7 +227,7 @@ alter table public.operational_settings
     check (max_reports_per_day between 1 and 200);
 
 comment on column public.operational_settings.max_reports_per_day is
-  '0107: most reports one resident may file in any 24 hours.';
+  '0114: most reports one resident may file in any 24 hours.';
 
 create or replace function public.enforce_daily_report_limit()
 returns trigger

@@ -6,7 +6,7 @@
 -- Like the checks in supabase/tests it ends by raising, so nothing is kept;
 -- run it with supabase/tests/local/run-local.sh (CI database job).
 -- Found on its first run: tracking IDs broke at the 10,000th complaint
--- (fixed in 0113).
+-- (fixed in 0120).
 do $perf$
 declare
   v_log   text := '';

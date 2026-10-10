@@ -118,7 +118,7 @@ function pemToDer(pem: string): ArrayBuffer {
 /// an hour. A warm function instance serves many notifications in a row
 /// (one per row inserted), so the token is kept for 50 minutes rather than
 /// minted per call: one RSA signature and one round trip to Google saved
-/// on almost every push (0107). A cold instance simply mints a new one.
+/// on almost every push (0114). A cold instance simply mints a new one.
 let cachedToken: { value: string; until: number } | null = null;
 
 async function getAccessToken(): Promise<string> {
@@ -289,7 +289,7 @@ async function sendToToken(
   await logError("send-dispatch-push", `FCM refused a push (HTTP ${res.status})`);
 }
 
-// Optional shared secret (0107). When PUSH_WEBHOOK_SECRET is set, only a
+// Optional shared secret (0114). When PUSH_WEBHOOK_SECRET is set, only a
 // caller sending it in x-webhook-secret is served; add that header to the
 // Database Webhook (Dashboard -> Database -> Webhooks) before setting it,
 // or pushes stop. Unset, the function behaves as before.

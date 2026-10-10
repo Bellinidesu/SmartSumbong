@@ -271,7 +271,7 @@ Future<IdOcrResult?> runIdOcrFromUrl(
 }) async {
   File? temp;
   try {
-    // A private ID photo (0110) needs a signed link first.
+    // A private ID photo (0117) needs a signed link first.
     final link = await viewableMediaUrl(imageUrl);
     if (link == null) return null;
     final response = await http.get(Uri.parse(link));

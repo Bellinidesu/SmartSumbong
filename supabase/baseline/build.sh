@@ -43,7 +43,9 @@ select 'col ' || c.oid::regclass || '.' || a.attname || ' ' || format_type(a.att
   left join pg_attrdef d on d.adrelid = c.oid and d.adnum = a.attnum
  where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','v','m','p')
    and not exists (select 1 from pg_depend e where e.objid = c.oid and e.deptype = 'e');
-select 'acl ' || c.oid::regclass || ' ' || coalesce(c.relacl::text, '') || ' rls=' || c.relrowsecurity
+-- MAINTAIN ('m') exists from PostgreSQL 17 only: a baseline dumped on 16
+-- cannot express it on a partial grant (look_shares), so it is left out.
+select 'acl ' || c.oid::regclass || ' ' || regexp_replace(coalesce(c.relacl::text, ''), '(=[arwdDxt*]*)m', '\1', 'g') || ' rls=' || c.relrowsecurity
   from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','v','m','S','p')
    and not exists (select 1 from pg_depend e where e.objid = c.oid and e.deptype = 'e');
 select 'pol ' || schemaname || '.' || tablename || ' ' || policyname || ' ' || cmd || ' ' || roles::text || ' ' || coalesce(qual, '') || ' ' || coalesce(with_check, '') from pg_policies where schemaname = 'public';

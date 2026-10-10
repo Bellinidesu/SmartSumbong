@@ -1,4 +1,4 @@
-// One-off (0110): moves identity photos uploaded before private storage
+// One-off (0117): moves identity photos uploaded before private storage
 // (public ids/ and selfies/ assets) to Cloudinary "authenticated" delivery,
 // and updates the stored addresses. Safe to run more than once.
 //
@@ -7,7 +7,7 @@
 //   node scripts/privatize-identity-photos.mjs            # dry run: lists what it would move
 //   node scripts/privatize-identity-photos.mjs --apply    # moves them
 //
-// A selfie that is also someone's profile picture (before 0110 avatars
+// A selfie that is also someone's profile picture (before 0117 avatars
 // shared the selfies/ folder) is left public. Node 18+, no packages.
 import { createHash } from "node:crypto";
 

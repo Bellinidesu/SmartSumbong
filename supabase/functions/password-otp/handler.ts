@@ -13,7 +13,7 @@
 // used to find out who is registered. Codes are stored as an HMAC keyed
 // with the service role key, expire after 10 minutes, allow 5 tries and
 // work once; at most 3 codes per account per hour. Guesses are checked and
-// counted in the database (otp_attempt, 0107), so parallel tries cannot
+// counted in the database (otp_attempt, 0114), so parallel tries cannot
 // share a count; a reset by code signs the account out everywhere.
 //
 // Secrets: SEMAPHORE_API_KEY (set with `supabase secrets set`), plus the
@@ -86,7 +86,7 @@ export function sixDigits(): string {
 }
 
 /**
- * One guess at the newest live code (0107). The database checks it and
+ * One guess at the newest live code (0114). The database checks it and
  * counts a wrong one under a row lock, so guesses sent in parallel cannot
  * share a try the way a read-then-write from here could.
  */
@@ -182,7 +182,7 @@ async function verify(mobile: string, code: string, password: string): Promise<R
 
   await rest(`password_otps?id=eq.${otp.otp_id}`, { method: "PATCH", body: JSON.stringify({ used_at: new Date().toISOString() }) });
   await rest(`users?id=eq.${user.id}`, { method: "PATCH", body: JSON.stringify({ must_change_password: false }) });
-  // Whoever knew the old password is signed out everywhere (0107).
+  // Whoever knew the old password is signed out everywhere (0114).
   const out = await rest("rpc/revoke_user_sessions", { method: "POST", body: JSON.stringify({ p_user: user.id }) });
   if (!out.ok) console.error("could not end old sessions:", out.status, (await out.text()).slice(0, 200));
   await rest("account_audit", {
