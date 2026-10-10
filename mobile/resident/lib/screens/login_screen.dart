@@ -253,30 +253,35 @@ class _LoginScreenState extends State<LoginScreen> {
                   onToggleObscure: () => setState(() => _obscure = !_obscure),
                 ),
                 const SizedBox(height: 6),
-                Row(children: [
-                  InkWell(
-                    onTap: _busy ? null : () => setState(() => _remember = !_remember),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            color: _remember ? DColors.orange : Colors.transparent,
-                            border: Border.all(color: _remember ? DColors.orange : Colors.white70, width: 2),
+                // A Wrap, not a Row: on a narrow phone or with large text
+                // the two controls stack instead of overflowing.
+                Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                  // Read out as a checkbox, ticked or not (TalkBack).
+                  Semantics(
+                    checked: _remember,
+                    child: InkWell(
+                      onTap: _busy ? null : () => setState(() => _remember = !_remember),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              color: _remember ? DColors.orange : Colors.transparent,
+                              border: Border.all(color: _remember ? DColors.orange : Colors.white70, width: 2),
+                            ),
+                            child: _remember ? const Icon(Icons.check_rounded, size: 14, color: Color(0xFF141B34)) : null,
                           ),
-                          child: _remember ? const Icon(Icons.check_rounded, size: 14, color: Color(0xFF141B34)) : null,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(s.loginRememberMe, style: DType.body(cardText, size: 13, w: FontWeight.w600)),
-                      ]),
+                          const SizedBox(width: 8),
+                          Text(s.loginRememberMe, style: DType.body(cardText, size: 13, w: FontWeight.w600)),
+                        ]),
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   TextButton(
                     onPressed: _busy ? null : _forgotPassword,
                     style: TextButton.styleFrom(foregroundColor: cardText, padding: const EdgeInsets.symmetric(horizontal: 4)),
