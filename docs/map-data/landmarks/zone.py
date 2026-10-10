@@ -24,9 +24,18 @@ def pick(ctx, pool, salt=0):
     return pool[zlib.crc32(('%.5f,%.5f,%d' % (ctx['lng'], ctx['lat'], salt)).encode()) % len(pool)]
 
 
+# What a building is, in plain colour (the map's own pastels, one for each kind), and the model that stands for it
+TYPECOL = dict(gas='F4F1EA', worship='EBC9A8', school='F2D98A', health='E6F0EE', safety='B9C9E0', civic='EBA7A4', shop='E8C9A0', mall='E3CFA6', hotel='C9D3E0', hangar='D9DBE0',
+               warehouse='D2D4D8', parking='9CA3B5', office='C6D2E0', condo='E7DCC4', terminal='E3E6EC')
+KIND_OF_TYPE = dict(gas='gas', worship='church', school='school', health='civic', safety='civic', civic='civic', shop='generic', mall='mall', hotel='hotel', parking='parking', hangar='hangar',
+                    warehouse='hangar', office='office', condo='condo', terminal='mall')
+
+
 def seen(ctx, pool, salt=0):
     """The building's own wall colour as the street shows it (tools/stylise.py reads it from Mapillary's 360 panoramas), drawn in our palette: the hue
     it really has, softened to a pastel, light as our baked shading wants it. Where nothing was seen, the barangay's pastel for that place."""
+    if ctx.get('tcol'):
+        return rgb(ctx['tcol'])
     st = ctx.get('style')
     if st and st.get('wall'):
         r, g, b = [max(0, min(255, v)) / 255 for v in st['wall']]
@@ -189,7 +198,61 @@ def z_generic(m, ring, ctx, p):
         m.prism(list(poly.exterior.coords)[:-1], h - .5, h + .6, 'plain', C['white'], 'plain', C['white'], top=True, cell=5)
 
 
-TEMPLATES = dict(hotel=z_hotel, condo=z_condo, office=z_office, mall=z_mall, parking=z_parking, hangar=z_hangar, generic=z_generic)
+def z_gas(m, ring, ctx, p):
+    """A filling station: a flat canopy on columns over the forecourt, a red band on its edge, two pump islands under it, a small kiosk at one end."""
+    L, W, th, cx, cy = ctx['L'], ctx['W'], ctx['th'], ctx['cx'], ctx['cy']
+    c, s_ = math.cos(th), math.sin(th)
+    big = L > 14 and W > 9
+    cl, cw = (min(L, 26.0), min(W, 14.0)) if big else (max(L, 9.0), max(W, 7.0))
+    z = 5.2
+    m.slab(cx, cy, cl, cw, th, z, .5, C['white'])
+    m.box(cx, cy, z + .5, cl, .25, .45, th, 'plain', C['red'], 'plain', C['red'], True, 40.0) if False else None
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            m.column(cx + c * sx * (cl / 2 - 1.0) - s_ * sy * (cw / 2 - 1.0), cy + s_ * sx * (cl / 2 - 1.0) + c * sy * (cw / 2 - 1.0), 0, z, .3, C['white'])
+    for sy in (-1, 1):                                      # the red band along both long edges, and two pump islands
+        m.box(cx - s_ * sy * (cw / 2), cy + c * sy * (cw / 2), z + .5, cl, .3, .5, th, 'plain', C['red'], 'plain', C['red'], True, 40.0)
+        m.box(cx - s_ * sy * (cw * .22), cy + c * sy * (cw * .22), 0, cl * .6, 1.0, .35, th, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
+    kx, ky = cx + c * (cl / 2 + 2.6), cy + s_ * (cl / 2 + 2.6)
+    m.box(kx, ky, 0, 5.0, 4.0, 3.2, th, 'plain', C['white'], 'roofdeck', C['grey'], True, 40.0)
+
+
+def z_church(m, ring, ctx, p):
+    """A church: a nave under a gabled roof, a square bell tower with a pointed top at the front end, a cross."""
+    h = max(p['h'], 7.0)
+    ring = _ccw(ring)
+    col = seen(ctx, PASTELS, 21)
+    m.prism(ring, 0, h, 'plain', col, 'plain', col, top=False, cell=5)
+    L, W, th, cx, cy = ctx['L'], ctx['W'], ctx['th'], ctx['cx'], ctx['cy']
+    m.gable(cx, cy, L, W, th, h, min(4.5, W * .32), 'tile', C['terra'], over=.4, gable_col=col)
+    c, s_ = math.cos(th), math.sin(th)
+    tx, ty = cx + c * (L / 2 - 2.2), cy + s_ * (L / 2 - 2.2)
+    th_ = h + min(4.0, h * .5)                                 # the tower stands above the nave in proportion, not by a fixed amount
+    m.box(tx, ty, 0, 3.6, 3.6, th_, th, 'plain', col, 'plain', col, True, 6.0)
+    m.hip(tx, ty, 3.6, 3.6, th, th_, 3.0, 'tile', C['terra'], over=.2)
+    m.cylinder(tx, ty, th_ + 2.8, th_ + 4.4, .1, 'plain', C['yellow'], seg=6)
+
+
+def z_school(m, ring, ctx, p):
+    """A school: a long low block of classrooms with a ribbon of windows, a low hipped roof."""
+    h = p['h']
+    ring = _ccw(ring)
+    col = seen(ctx, PASTELS, 22)
+    m.prism(ring, 0, h, 'plain', col, 'plain', col, top=False, cell=5)
+    m.hip(ctx['cx'], ctx['cy'], ctx['L'], ctx['W'], ctx['th'], h, min(2.4, ctx['W'] * .18), 'sheet', C['rooftile'], over=.5)
+
+
+def z_civic(m, ring, ctx, p):
+    """A civic or health building: a plain block with a flat roof and a coloured parapet."""
+    h = p['h']
+    ring = _ccw(ring)
+    col = seen(ctx, PASTELS, 23)
+    m.prism(ring, 0, h, 'plain', col, 'roofdeck', C['white'], top=True, cell=5)
+    poly = Polygon(ring).buffer(.25, join_style=2)
+    m.prism(list(poly.exterior.coords)[:-1], h - .5, h + .6, 'plain', C['white'], 'plain', C['white'], top=True, cell=5)
+
+
+TEMPLATES = dict(gas=z_gas, church=z_church, school=z_school, civic=z_civic, hotel=z_hotel, condo=z_condo, office=z_office, mall=z_mall, parking=z_parking, hangar=z_hangar, generic=z_generic)
 
 
 def kind_of(name, cls, area, h, floors, lng, lat):

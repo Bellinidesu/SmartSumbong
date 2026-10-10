@@ -27,6 +27,7 @@ STEPS = [
     ('faces',    DM, ['bake_detail.py'],                          'per-wall tones in five height bands'),
     ('gpu',      DM, ['bake_gpu.py'],                             'GPU path-traced ground pictures, day and night'),
     ('styles',   HERE, ['stylise.py', '--min-h', '8'],            'what the real walls look like, from 360 street views (a few numbers per building)'),
+    ('types',    LM, ['sweep_types.py'],                          'what every building is, from the open data (OpenStreetMap tags): gas, worship, school, health...'),
     ('models',   LM, ['models.py'],                               'the landmark models (a flag, off in the map by default: ?models=1; bake with SS_MODELS=1)'),
     ('light',    LM, ['bake_models.py'],                          'path-traced light baked into every model vertex'),
     ('wash',     LM, ['wash.py'],                                 'the night wash of each landmark (the colour that climbs its walls), from its sheet'),
@@ -53,7 +54,7 @@ def main():
             continue
         t = time.time()
         print('\n=== %s: %s' % (n, what), flush=True)
-        r = subprocess.run([sys.executable] + cmd, cwd=wd, env=dict(os.environ, PYTHONIOENCODING='utf-8'))
+        r = subprocess.run([sys.executable] + cmd, cwd=wd, env=dict(os.environ, PYTHONIOENCODING='utf-8', **({'SS_SWEEP': '1'} if n == 'models' else {})))
         if r.returncode:
             raise SystemExit('step "%s" failed (%d); fix it and rerun with --from %s' % (n, r.returncode, n))
         print('--- %s done in %.0f s' % (n, time.time() - t), flush=True)

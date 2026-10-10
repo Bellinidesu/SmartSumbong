@@ -50,7 +50,7 @@
       gl_.vbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.vbuf); gl.bufferData(gl.ARRAY_BUFFER, bin.subarray(0, data.indexOffsetBytes), gl.STATIC_DRAW);
       gl_.ibuf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl_.ibuf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bin.subarray(data.indexOffsetBytes), gl.STATIC_DRAW);
       gl_.lbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gl_.lbuf);
-      const lb = lightBin && lightBin.length === data.vertices * 8 ? lightBin : (() => { const f = new Uint8Array(data.vertices * 8).fill(204); for (let i = 6; i < f.length; i += 8) { f[i] = 0; f[i + 1] = 0; } return f; })();
+      const lb = lightBin && lightBin.length === data.vertices * 8 ? lightBin : (() => { const f = new Uint8Array(data.vertices * 8); for (let i = 0; i < f.length; i += 8) { f[i] = f[i + 1] = f[i + 2] = 215; f[i + 3] = f[i + 4] = f[i + 5] = 95; } return f; })();
       gl.bufferData(gl.ARRAY_BUFFER, lb, gl.STATIC_DRAW);
       const tex = (img, mip) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
@@ -95,7 +95,7 @@
   const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src + '?v=' + (window.SD_MAPV || ''); });
   // The landmark models are a flag, off by default: the City view is the plain coloured buildings of the open data (OpenStreetMap, Overture), by day and by night. The models, their
   // light and their pictures are not even downloaded until it is on: add ?models=1 to the page address, or set localStorage ss-models to 1.
-  const ON = (() => { try { return window.SD_MODELS === true || /[?&]models=1/.test(location.search) || localStorage.getItem('ss-models') === '1'; } catch (e) { return false; } })();
+  const ON = (() => { try { return !(/[?&]models=0\b/.test(location.search) || localStorage.getItem('ss-models') === '0'); } catch (e) { return true; } })();
   // a landmark drawn from a sheet is shown on the map only once it is approved (tools/viewer.py); ?models=all shows the drafts too
   const ALL = (() => { try { return window.SD_MODELS_ALL === true || /[?&]models=all\b/.test(location.search) || localStorage.getItem('ss-models') === 'all'; } catch (e) { return false; } })();
   const shown = md => ALL || !md.sheet || md.approved;

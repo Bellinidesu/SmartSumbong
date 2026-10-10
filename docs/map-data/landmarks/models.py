@@ -438,14 +438,29 @@ def main():
         styles = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'facade-style.json')))
     except Exception:
         styles = {}
+    SW = bool(os.environ.get('SS_SWEEP'))        # the sweep: every typed building of the barangay, not only the Newport zone (sweep_types.py)
+    POI = {}
+    if SW:
+        try:
+            POI = json.load(open(os.path.join(HERE, 'poi-types.json'), encoding='utf-8'))
+        except Exception:
+            POI = {}
+    from boundary import Boundary as _B
+    _bd = _B()
     for bi, b in enumerate(bld):
-        if bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and max(ZONE[1], 14.5142) <= b[5] <= ZONE[3]):     # (the map cannot be moved south of 14.5146)
+        if SW:
+            if bi in taken or not _bd.inside(b[4], b[5]):
+                continue
+        elif bi in taken or not (ZONE[0] <= b[4] <= ZONE[2] and max(ZONE[1], 14.5142) <= b[5] <= ZONE[3]):
             continue
         if PL.plain(b[4], b[5]):
             continue
         nm, cls = (info.get(str(bi)) or ['', ''])
         area = b[6] * b[7]
-        if not (area >= 260 or b[1] >= 14 or nm):
+        ptype = POI.get('types', {}).get(str(bi))
+        if SW and not (ptype or nm or area >= 900):
+            continue
+        if not SW and not (area >= 260 or b[1] >= 14 or nm):
             continue
         lng0, lat0 = b[4], b[5]
         style = styles.get('%.5f,%.5f' % (b[4], b[5]))
@@ -458,13 +473,18 @@ def main():
         ctx = dict(cx=0.0, cy=0.0, L=b[6], W=b[7], th=b[8], lng=lng0, lat=lat0, style=style)
         ctx['others'] = [Polygon([(q[0] - lng0 * MX, q[1] - lat0 * MY) for q in allpolys[j].exterior.coords]) for j in range(len(bld)) if j != bi and abs(bld[j][4] - lng0) < .0009 and abs(bld[j][5] - lat0) < .0009]
         kind = _zone.kind_of(nm, cls, area, b[1], None, lng0, lat0)
+        if SW and ptype:
+            kind = _zone.KIND_OF_TYPE.get(ptype, kind)
+            ctx['tcol'] = _zone.TYPECOL.get(ptype)
+        elif SW and kind in ('hangar', 'mall', 'office', 'condo', 'hotel', 'parking'):
+            ctx['tcol'] = _zone.TYPECOL.get({'mall': 'mall', 'condo': 'condo'}.get(kind, kind))
         m = Mesh()
         sh = SH.find(nm, bi)
         if sh and sh.get('blend'):
             continue          # modelled in Blender: taken from its export below
         if sh and sh.get('tier') == 'plain':
             sh = None
-        if sh is None and not os.environ.get('SS_ZONE'):
+        if sh is None and not (os.environ.get('SS_ZONE') or SW):
             continue          # a building that is not a landmark stays the plain coloured building of the map (accurate footprint and height, no model)
         if sh:
             try:
@@ -479,7 +499,7 @@ def main():
             if sh:
                 raise StopIteration
             _zone.TEMPLATES[kind](m, ring, ctx, {'h': float(b[1])})
-            if kind != 'parking':
+            if kind != 'parking' and not SW:
                 facade.apply(m, ring, ctx, 'condo' if kind in ('condo',) else kind, float(b[1]), nm or None, None)
         except StopIteration:
             pass
@@ -503,6 +523,32 @@ def main():
         ioff += len(Ix)
         nz += 1
     print('zone buildings modelled: %d' % nz)
+    for ex in (POI.get('extra', []) if SW else []):
+        if ex.get('ring'):
+            lng0 = sum(p_[0] for p_ in ex['ring']) / len(ex['ring'])
+            lat0 = sum(p_[1] for p_ in ex['ring']) / len(ex['ring'])
+            rr = [((p_[0] - lng0) * MX, (p_[1] - lat0) * MY) for p_ in ex['ring']]
+        else:
+            lng0, lat0 = ex['at']
+            rr = [(-10, -6), (10, -6), (10, 6), (-10, 6)]
+        if not _bd.inside(lng0, lat0) or PL.plain(lng0, lat0):
+            continue
+        from meshlib import _obb as _ob
+        poly_ = Polygon(rr).buffer(0)
+        mr = poly_.minimum_rotated_rectangle
+        xs_, ys_ = mr.exterior.coords.xy
+        e0, e1 = math.hypot(xs_[1] - xs_[0], ys_[1] - ys_[0]), math.hypot(xs_[2] - xs_[1], ys_[2] - ys_[1])
+        th_ = math.atan2(ys_[1] - ys_[0], xs_[1] - xs_[0]) if e0 >= e1 else math.atan2(ys_[2] - ys_[1], xs_[2] - xs_[1])
+        ctx2 = dict(cx=mr.centroid.x, cy=mr.centroid.y, L=max(e0, e1), W=min(e0, e1), th=th_, lng=lng0, lat=lat0, tcol=_zone.TYPECOL['gas'], others=[])
+        m = Mesh()
+        _zone.z_gas(m, rr, ctx2, {'h': 5})
+        P, N, U, M, Cc, Ix = m.arrays()
+        if len(P):
+            models.append({'name': ex.get('name', 'Gas station'), 'template': 'gas', 'lng': lng0, 'lat': lat0, 'replaces': -1, 'height': round(float(P[:, 2].max()), 1), 'v': int(len(P)), 'i': int(len(Ix)), 'voff': voff, 'ioff': ioff})
+            V.append((P, U, M, Cc, N))
+            I.append(Ix)
+            voff += len(P)
+            ioff += len(Ix)
     # landmarks modelled in Blender (blend/): a sheet with "blend": "<name>.npz" is taken from the file exported by blend/export_model.py, in the map's own frame
     import blend_import
     for sh_ in SH.items:
