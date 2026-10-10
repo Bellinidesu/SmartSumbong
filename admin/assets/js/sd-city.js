@@ -331,7 +331,7 @@
 
   let prepared = false;
   const live = () => on || prepared;   // the layers are built and kept ready (at no opacity) once loaded, so a tilt has nothing left to build
-  const PROPS = (() => { try { return /[?&]props=1/.test(location.search); } catch (e) { return false; } })();   // ?props=1 brings the small props back
+  const PROPS = (() => { try { return !/[?&]props=0/.test(location.search); } catch (e) { return true; } })();   // the building details are Final (checklist, 10 Oct); ?props=0 leaves them out
   let PLACES = {};   // what is in each building (places.json): a string of group letters
   let QZ = [], ZN = [], COREOFF = new Set();   // the quiet zones, and the zones with what each leaves out (zones.json; outside every zone is the residential core)   // the quiet zones (zones.json): no by-rule detail there
   let ready = null, on = false, TREES = [], FOG = null, FACES = null, BLD = null, LMS = [], BAKE = null;
@@ -556,15 +556,15 @@
   // the night's light only at night, the day's bounce only by day
   // The ground goes back to plain (Ace, 10 Oct): the day and night colours we chose, none of the baked pictures (shadow, glow, bounce, fog), lane lines, crossings, tree shadows, area outlines.
   // ?ground=1 in the page address brings them back.
+  // (checklist, 10 Oct) the baked shadows, glow, bounce, lane lines, crossings and tree shadows are Final and back; only the first baked fog pictures stay off (the soft-step fog of war is the fog); ?ground=1 brings the fog pictures too
   const GROUND_BACK = (() => { try { return /[?&]ground=1/.test(location.search); } catch (e) { return false; } })();
-  const GROUND_FLAT = ['cd-glow', 'cd-bounce', 'cd-bake', 'cd-bake-u', 'cd-cross', 'cd-lane', 'cd-area-line', 'cd-tshadow', 'cd-fog-n', 'cd-fog-d', 'cd-fog-far'];
   function lightUpdate() {
     const night = isDark();
-    if (!GROUND_BACK) { GROUND_FLAT.forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', 'none'); }); return; }
     ['cd-glow'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', live() && night ? 'visible' : 'none'); });
     if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', live() && !night && !has('cd-bake-u') ? 'visible' : 'none');   // the ray-traced day ground has its own bounce
     if (has('cd-bake-u')) { map.setLayoutProperty('cd-bake-u', 'visibility', live() && !night ? 'visible' : 'none'); if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', live() && night ? 'visible' : 'none'); }
     else if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', live() ? 'visible' : 'none');
+    if (!GROUND_BACK) ['cd-fog-n', 'cd-fog-d', 'cd-fog-far'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', 'none'); });
   }
   function fogUpdate() {
     const dim = document.getElementById('f-fog') ? document.getElementById('f-fog').checked : true, night = isDark();

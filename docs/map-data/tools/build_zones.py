@@ -48,7 +48,7 @@ for f in os.listdir(plain.CACHE):
             if e.get('id') == 128616401 and e.get('geometry'):
                 golf = plain._poly(e)
 zones = []
-for nm, g, off in (('Newport City', newport, ['highrise_extras', 'cars_parked']),
+for nm, g, off in (('Newport City', newport, ['cars_parked']),
                    ('NAIA Terminal 3 and the airfield', airfield, ['cars_all', 'lamps', 'hangar_rules']),
                    ('Golf course and its edges', golf.buffer(20 * M) if golf is not None else None, ['cars_all', 'lamps'])):
     if g is None or g.is_empty:
@@ -56,7 +56,7 @@ for nm, g, off in (('Newport City', newport, ['highrise_extras', 'cars_parked'])
     for p in polys(g):
         if p.area * 107500 * 110574 > 3000:
             zones.append({'name': nm, 'ring': ring(p), 'off': off})
-core_off = ['house_gadgets', 'chimneys', 'tanks_most', 'awn_generic']
-quiet = [ring(p) for p in polys(vil)] if vil is not None else []
+core_off = []                        # the house details, balconies, masts and chimneys are Final (checklist, 10 Oct): nothing is left out in the core
+quiet = []                           # the Villamor plain zone is out (checklist, 10 Oct)
 json.dump({'about': 'Zones of the City view (build_zones.py).', 'quiet': quiet, 'zones': zones, 'core_off': core_off, 'core_cars': ['cars_service']}, open(os.path.join(MAP, 'zones.json'), 'w'), separators=(',', ':'))
 print('zones.json: %d quiet, %d zone rings (%s), core off: %s' % (len(quiet), len(zones), ', '.join(sorted({z['name'] for z in zones})), core_off))

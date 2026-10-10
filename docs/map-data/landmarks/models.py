@@ -361,7 +361,8 @@ def main():
     sys.path.insert(0, os.path.join(HERE, '..'))
     import plain as _plain
     PL = _plain.load()
-    QUIET = _plain.villamor()                    # Villamor Air Base: plain (docs/map-data/zones/villamor-air-base.md): no cars, lamps, entrances, airfield dressing or house detail inside it
+    QUIET = _plain.villamor() if os.environ.get('SS_QUIET') else None   # the Villamor plain zone is out (checklist, 10 Oct); SS_QUIET=1 brings it back
+    _QUIET_OLD = _plain.villamor()                    # Villamor Air Base: plain (docs/map-data/zones/villamor-air-base.md): no cars, lamps, entrances, airfield dressing or house detail inside it
     import sheet as _sheet
     SH = _sheet.Sheets()
     try:
@@ -568,7 +569,7 @@ def main():
             ioff += len(Ix)
     # toll plazas: a canopy over the lanes at every toll booth of the open data inside the boundary (sweep_toll.py gives the road's direction there)
     TOLL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'poi-toll.json')
-    for tl in (json.load(open(TOLL, encoding='utf-8')) if SW and os.path.exists(TOLL) else []):
+    for tl in (json.load(open(TOLL, encoding='utf-8')) if SW and os.path.exists(TOLL) and os.environ.get('SS_TOLL') else []):   # toll plazas are out (checklist, 10 Oct); SS_TOLL=1 brings them back
         lng0, lat0 = tl['at']
         if not _bd.inside(lng0, lat0):
             continue

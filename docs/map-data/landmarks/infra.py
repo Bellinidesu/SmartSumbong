@@ -111,8 +111,13 @@ def piers(m, pts, zs, thick, every=30.0, w=1.7, col=None, skip_low=2.5):
         d += seg
 
 
+FULL = bool(os.environ.get('SS_INFRA'))      # elevated roads, walkways, the rail viaduct, walls, fences and hedges are out of the build (checklist, 10 Oct); SS_INFRA=1 brings them back
+
+
 def build(m, origin, boundary=None):
     bridges, walls, nodes = load()
+    if not FULL:
+        bridges, walls = [], []
     n_roads = n_walk = n_rail = 0
     for e in bridges:
         t = e.get('tags', {})

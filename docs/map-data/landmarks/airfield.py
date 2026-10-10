@@ -19,6 +19,7 @@ from meshlib import MAT, rgb
 import aircraft
 
 Z_SURF, Z_MARK = .10, .17
+FULL = bool(os.environ.get('SS_AIRFIELD_FULL'))
 PROPS = bool(os.environ.get('SS_PROPS'))     # paint (markings, stand lines), lights, helipad paint and ground vehicles are left out unless SS_PROPS=1: the ground is plain (10 Oct)
 # The map can only be moved over this box (admin/spatial.php, AREA); nothing outside it can ever be seen, so nothing outside it is drawn. A margin of 40 m.
 AREA = (121.002663 - .0004, 14.514585 - .0004, 121.028423 + .0004, 14.539225 + .0004)
@@ -138,6 +139,8 @@ def build(m, origin, boundary, quiet=None):
     by = {}
     for e in els:
         by.setdefault(e['tags'].get('aeroway'), []).append(e)
+    if not FULL:                                         # the diorama is out of the build (checklist, 10 Oct): only the jet bridges stay; SS_AIRFIELD_FULL=1 brings the rest back
+        by = {'jet_bridge': by.get('jet_bridge', [])}
     st = {}
     cnt = lambda k: st.__setitem__(k, st.get(k, 0) + 1)
     for e in by.get('apron', []):                        # aprons: slab concrete, cut to the boundary

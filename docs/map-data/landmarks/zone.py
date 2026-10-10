@@ -120,7 +120,7 @@ def entrance(m, ring, ctx, depth, width, zc, col, roof_col=None, pole=0.0, keep=
     m.box(qx + fr[0] * (depth + .35), qy + fr[1] * (depth + .35), 0, width * .8, .7, .3, tf, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
     m.box(qx + fr[0] * (depth + .8), qy + fr[1] * (depth + .8), 0, width * .6, .6, .15, tf, 'plain', C['grey'], 'plain', C['grey'], True, 40.0)
     m.vprism([(-.9, 0), (.9, 0), (.9, 2.2), (-.9, 2.2)], (qx + fr[0] * .06, qy + fr[1] * .06, 0), al, fr, 0, .25, 'panel', C['slate'])
-    if pole and PROPS:
+    if pole:
         px, py = qx + fr[0] * (depth + 1.6) + al[0] * (width / 2 + 1.4), qy + fr[1] * (depth + 1.6) + al[1] * (width / 2 + 1.4)
         m.cylinder(px, py, 0, pole, .09, 'plain', C['grey'], seg=6)
         m.box(px + al[0] * .5, py + al[1] * .5, pole - 1.3, 1.0, .05, .7, tf, 'plain', C['red'], 'plain', C['red'], True, 40.0)
