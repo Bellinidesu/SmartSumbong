@@ -29,6 +29,10 @@ when something breaks. Written for whoever maintains it next (October 2026).
 4. Database changes: `supabase db push --linked` (each migration is a new
    numbered file; never edit an applied one). Functions:
    `supabase functions deploy <name> --project-ref xmkpokcnjzgxgwysperh --use-api`.
+   Each function's logic is in `handler.ts` (tested by `handler.test.ts`
+   with every outside call stubbed); `index.ts` only serves it. Locally:
+   `deno check supabase/functions/*/index.ts && deno lint supabase/functions
+   && deno test --allow-env supabase/functions`.
    Push the migrations before deploying a function that uses what they add
    (for example `password-otp` needs 0107's `otp_attempt`).
    `supabase/config.toml` pins each function's JWT check; never run
