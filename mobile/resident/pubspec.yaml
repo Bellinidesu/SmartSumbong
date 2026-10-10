@@ -39,7 +39,7 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.9
+  cupertino_icons: ^2.0.0
   smartsumbong_core:
    path: ../core
   exif: ^3.3.0
@@ -72,7 +72,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   # Tests only: its in-memory mock (the app gets it through smartsumbong_core).
-  flutter_secure_storage: 10.3.1
+  flutter_secure_storage: ^11.2.0
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -178,3 +178,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+dependency_overrides:
+  # chewie (video playback, already at its latest) still asks for 1.x; it
+  # only uses the icon font, and 2.x keeps those icons.
+  cupertino_icons: ^2.0.0

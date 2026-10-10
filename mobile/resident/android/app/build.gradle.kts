@@ -19,7 +19,11 @@ val releaseKey = Properties().apply {
 
 android {
     namespace = "ph.smartsumbong.resident"
-    compileSdk = flutter.compileSdkVersion
+    // 37, one above Flutter 3.47's default: flutter_secure_storage 11 and
+    // permission_handler 13 (permission_handler_android 14) compile against
+    // it. targetSdk stays Flutter's (36): moving it opts into Android 17
+    // runtime behaviour, which needs testing on a phone first.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
     compileOptions {
         // Required by flutter_local_notifications.

@@ -20,11 +20,9 @@ dependencies:
   flutter_image_compress: ^2.5.1
   path_provider: ^2.1.6
   supabase_flutter: ^2.18.2
-  # 12.x, not 13: permission_handler 13 (via permission_handler_android 14)
-  # requires Android compileSdk 37, the same step flutter_secure_storage 11
-  # needs (below); Flutter 3.47 builds against 36. Move both together when
-  # Flutter's Android baseline reaches 37.
-  permission_handler: ^12.0.1
+  # 13.x (permission_handler_android 14) compiles against Android API 37,
+  # like flutter_secure_storage 11; see the app's compileSdk.
+  permission_handler: ^13.0.2
 
   # Push notifications (FCM) + the local-notification display FCM itself
   # does not do while the app is in the foreground.
@@ -42,13 +40,9 @@ dependencies:
   cached_network_image: ^4.0.4
 
   # Session tokens in the OS keystore instead of plain SharedPreferences.
-  # Pinned below 11.0.0 deliberately: that release bumped its required
-  # Android compileSdk to 37, which this project's Android Gradle Plugin
-  # (9.0.1) does not yet officially support (its own docs cap recommended
-  # compileSdk at 36). 10.3.1 is the last release before that bump and
-  # covers everything this app actually uses (plain read/write/delete,
-  # no biometric options, no encryptedSharedPreferences param).
-  flutter_secure_storage: 10.3.1
+  # 11.x compiles against Android API 37; the app sets compileSdk 37 for it
+  # (android/app/build.gradle.kts).
+  flutter_secure_storage: ^11.2.0
 
   # Distinguishing "no signal" from a real server error.
   connectivity_plus: ^7.3.1
