@@ -40,8 +40,13 @@ when something breaks. Written for whoever maintains it next (October 2026).
 3. Merge when CI is green. Render deploys the portal automatically **only
    after CI passes** (Auto-Deploy: *After CI checks pass*), and checks
    `/admin/ping.php` before switching traffic to the new version.
-4. Database changes: `supabase db push --linked` (each migration is a new
-   numbered file; never edit an applied one). Functions:
+4. Database changes and Edge Functions: Actions → **Deploy** → Run
+   workflow on main (`.github/workflows/deploy.yml`), first with *apply*
+   off to see which migrations would run, then with it on. It pushes the
+   migrations, sets the function secrets it holds, sets up the photo
+   cleanup (below) and deploys every function. Run Actions → Nightly
+   backup first. Each migration is a new numbered file; never edit an
+   applied one. By hand, the same is `supabase db push --linked` and
    `supabase functions deploy <name> --project-ref xmkpokcnjzgxgwysperh --use-api`.
    Each function's logic is in `handler.ts` (tested by `handler.test.ts`
    with every outside call stubbed); `index.ts` only serves it. Locally:
@@ -69,7 +74,8 @@ Render environment variables (smartsumbong-ph): `SUPABASE_URL`,
 `CLOUDINARY_API_SECRET`.
 
 GitHub Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
-`BACKUP_PASSPHRASE` (the nightly backup), `STAGING_DB_PASSWORD` and the
+`BACKUP_PASSPHRASE` (the nightly backup), `CLOUDINARY_API_KEY` and
+`CLOUDINARY_API_SECRET` (the Deploy workflow passes them to the functions), `STAGING_DB_PASSWORD` and the
 variable `STAGING_PROJECT_REF` (optional staging checks) (also `SUPABASE_URL`, `SUPABASE_ANON_KEY` for the daily
 keep-awake job).
 
@@ -113,7 +119,9 @@ its environment; run it from a trusted machine, never commit them).
 replaced or declined, or a profile picture changes, the old photo's
 address is queued in `media_trash`. A week later the `media-cleanup`
 function deletes the file from Cloudinary if nothing uses it any more
-(evidence photos are never queued). To switch it on, once:
+(evidence photos are never queued). The Deploy workflow
+switches it on by itself the first time (a made-up secret, stored both as
+the function secret and in Vault, so the two always match). By hand, once:
 1. `supabase secrets set MEDIA_CLEANUP_SECRET=<long random string>` (the
    Cloudinary key and secret are already set for `sign-upload`), then
    deploy `media-cleanup`.

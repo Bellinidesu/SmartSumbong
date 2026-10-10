@@ -1,0 +1,115 @@
+# Production deploy of the database and Edge Functions (10 Oct 2026).
+#
+# Run by hand (Actions -> Deploy -> Run workflow), from main only, after the
+# PR is merged and CI is green. With "apply" off (the default) it only shows
+# which migrations would run; with it on it:
+#   1. applies the new migrations (supabase db push);
+#   2. sets the Edge Function secrets it can: the Cloudinary key and secret
+#      when they are GitHub secrets here, and the photo-cleanup secret,
+#      which it makes up once and stores both as a function secret and in
+#      Vault together with the function's address (docs/OPERATIONS.md,
+#      0111), so the two never disagree;
+#   3. deploys every Edge Function (their JWT settings come from
+#      supabase/config.toml).
+# The portal is not deployed here: Render does that itself after CI passes.
+# Take a backup first (Actions -> Nightly backup -> Run workflow).
+#
+# Secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD (as for the backup);
+# optional CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply (off = only list the migrations that would run)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  PROJECT_REF: xmkpokcnjzgxgwysperh
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Secrets present?
+        run: |
+          for s in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD; do
+            [ -n "${!s}" ] || { echo "::error::Missing secret $s"; exit 1; }
+          done
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.120.0
+      - name: Link
+        run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" > /dev/null
+
+      - name: Migrations that would run
+        if: ${{ !inputs.apply }}
+        run: supabase db push --linked --dry-run
+
+      - name: Apply migrations
+        if: ${{ inputs.apply }}
+        run: supabase db push --linked
+
+      - name: Function secrets and Vault
+        if: ${{ inputs.apply }}
+        run: |
+          # SQL through the Management API (the database itself is not
+          # reachable from a runner over IPv4).
+          sql() {
+            jq -n --arg q "$1" '{query: $q}' | curl -sSf -X POST \
+              "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              -H 'Content-Type: application/json' --data-binary @-
+          }
+          if [ -n "$CLOUDINARY_API_KEY" ] && [ -n "$CLOUDINARY_API_SECRET" ]; then
+            supabase secrets set --project-ref "$PROJECT_REF" \
+              "CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY" "CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET" > /dev/null
+            echo "Cloudinary key and secret set for sign-upload and media-cleanup."
+          else
+            echo "::warning::CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET are not GitHub secrets here: sign-upload keeps answering 503 and the app keeps the unsigned presets."
+          fi
+          have=$(sql "select count(*) as n from vault.secrets where name in ('media_cleanup_url', 'media_cleanup_secret')" | jq -r '.[0].n')
+          if [ "$have" = "2" ]; then
+            echo "Photo cleanup already configured."
+          else
+            secret=$(openssl rand -hex 32)
+            echo "::add-mask::$secret"
+            supabase secrets set --project-ref "$PROJECT_REF" "MEDIA_CLEANUP_SECRET=$secret" > /dev/null
+            url="https://$PROJECT_REF.supabase.co/functions/v1/media-cleanup"
+            sql "delete from vault.secrets where name in ('media_cleanup_url', 'media_cleanup_secret');
+                 select vault.create_secret('$url', 'media_cleanup_url');
+                 select vault.create_secret('$secret', 'media_cleanup_secret');" > /dev/null
+            echo "Photo cleanup configured: function secret and Vault entries set together."
+          fi
+
+      - name: Deploy Edge Functions
+        if: ${{ inputs.apply }}
+        run: |
+          for f in supabase/functions/*/index.ts; do
+            name=$(basename "$(dirname "$f")")
+            supabase functions deploy "$name" --project-ref "$PROJECT_REF" --use-api
+          done
+
+      - name: Check
+        if: ${{ inputs.apply }}
+        run: |
+          supabase migration list --linked | tail -n 12
+          supabase functions list --project-ref "$PROJECT_REF"
