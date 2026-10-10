@@ -44,6 +44,10 @@ RewriteRule ^$ index.php [L]
 # of the 403 below (it showed as a console error in Lighthouse, 7 Oct 2026).
 RewriteRule ^favicon\.ico$ admin/assets/img/favicon-64.png [L]
 
+# The portal's server-side code is only ever loaded by its pages, never
+# fetched (backend review, 10 Oct 2026).
+RewriteRule ^admin/includes/ - [F]
+
 # Block everything except the two things this project actually serves.
 RewriteCond %{REQUEST_URI} !^/admin/
 RewriteCond %{REQUEST_URI} !^/index\.php$
