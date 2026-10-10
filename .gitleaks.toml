@@ -4,8 +4,12 @@
 #     firebase_options.dart): identifiers, not secrets. Restrict them in
 #     Google Cloud Console -> Credentials to the app's package name and
 #     signing certificate, which is what actually protects them.
-#   - the Supabase anon/publishable key (dart_defines.json): meant for
-#     clients; row-level security is what protects the data.
+#   - the Supabase publishable key (sb_publishable_..., in
+#     dart_defines.json and once in admin/map.html): meant for clients;
+#     row-level security is what protects the data. Matched by its prefix,
+#     so a secret key (sb_secret_...) or service-role JWT is still caught.
+# The same files from the former separate tanod app (mobile/tanod, removed)
+# are in the history too.
 # Anything else gitleaks finds is a real leak: rotate it, then remove it.
 [extend]
 useDefault = true
@@ -13,7 +17,10 @@ useDefault = true
 [allowlist]
 description = "Client keys that are public by design"
 paths = [
-  '''mobile/resident/android/app/google-services\.json''',
-  '''mobile/resident/lib/firebase_options\.dart''',
-  '''mobile/resident/dart_defines\.json''',
+  '''mobile/(resident|tanod)/android/app/google-services\.json''',
+  '''mobile/(resident|tanod)/lib/firebase_options\.dart''',
+  '''mobile/(resident|tanod)/dart_defines\.json''',
+]
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_-]+''',
 ]
