@@ -350,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 title: s.homeReportTitle,
                 body: s.homeReportBody,
                 actions: [
-                  DButton(s.homeReportIssue, small: true, textColour: Colors.white, onTap: () => Navigator.of(context).pushNamed('/submit-report')),
+                  DButton(s.homeReportIssue, small: true, onTap: () => Navigator.of(context).pushNamed('/submit-report')),
                   DButton(s.homeViewReports, small: true, kind: DButtonKind.white, onTap: () => Navigator.of(context).pushReplacementNamed('/reports')),
                 ],
               ),

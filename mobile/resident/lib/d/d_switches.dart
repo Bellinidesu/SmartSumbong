@@ -22,12 +22,20 @@ class DDayNight extends StatelessWidget {
       button: true,
       label: dark ? 'Switch to light mode' : 'Switch to dark mode',
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => AppThemeScope.controllerOf(context).set(dark ? ThemeMode.light : ThemeMode.dark),
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(end: dark ? 1.0 : 0.0),
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-          builder: (_, night, _) => CustomPaint(size: const Size(52, 28), painter: _DayNightPainter(night)),
+        // 52x28 drawn, 44 high to touch (accessibility).
+        child: SizedBox(
+          height: 44,
+          child: Center(
+            widthFactor: 1,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: dark ? 1.0 : 0.0),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              builder: (_, night, _) => CustomPaint(size: const Size(52, 28), painter: _DayNightPainter(night)),
+            ),
+          ),
         ),
       ),
     );
@@ -99,10 +107,7 @@ class DFlags extends StatelessWidget {
     final lang = AppLocaleScope.of(context);
     Widget btn(AppLocale l, bool us, String code) {
       final on = lang == l;
-      return GestureDetector(
-        onTap: () => AppLocaleScope.controllerOf(context).set(l),
-        behavior: HitTestBehavior.opaque,
-        child: Container(
+      return Container(
           height: 28,
           constraints: const BoxConstraints(minWidth: 58),
           padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -120,14 +125,35 @@ class DFlags extends StatelessWidget {
             const SizedBox(width: 6),
             Text(code, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: .72, color: on ? const Color(0xFF00308F) : Colors.white)),
           ]),
-        ),
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: const Color(0xFF00308F), borderRadius: BorderRadius.circular(10)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [btn(AppLocale.en, true, 'EN'), btn(AppLocale.fil, false, 'PH')]),
+    // The pill is drawn 34 high; each half is touched over the full 44
+    // (accessibility), and read out as a selectable button.
+    Widget half(AppLocale l, String label) => Expanded(
+          child: Semantics(
+            button: true,
+            selected: lang == l,
+            label: label,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => AppLocaleScope.controllerOf(context).set(l),
+            ),
+          ),
+        );
+
+    return SizedBox(
+      height: 44,
+      child: Stack(alignment: Alignment.center, children: [
+        ExcludeSemantics(
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(color: const Color(0xFF00308F), borderRadius: BorderRadius.circular(10)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [btn(AppLocale.en, true, 'EN'), btn(AppLocale.fil, false, 'PH')]),
+          ),
+        ),
+        Positioned.fill(child: Row(children: [half(AppLocale.en, 'English'), half(AppLocale.fil, 'Filipino')])),
+      ]),
     );
   }
 }

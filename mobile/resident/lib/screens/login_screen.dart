@@ -263,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: _busy ? null : () => setState(() => _remember = !_remember),
                       borderRadius: BorderRadius.circular(8),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 150),

@@ -130,7 +130,8 @@ class DBarTab extends StatelessWidget {
           // B1 (Ace, 7 Oct 2026): a short orange line over the active tab,
           // the others a little quieter.
           child: Opacity(
-            opacity: active ? 1 : .62,
+            // .82, not quieter: inactive labels keep 4.5:1 contrast (WCAG AA).
+            opacity: active ? 1 : .82,
             child: Column(children: [
             const SizedBox(height: 5),
             AnimatedContainer(
