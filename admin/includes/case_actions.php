@@ -42,6 +42,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             switch ($act) {
+                // 0123: an admin sets a case's level over SMART's, with a reason that stays on the record; 'use computed' clears it.
+                case 'smart_override':
+                    $lv = (string) ($_POST['level'] ?? '');
+                    if (!in_array($lv, ['', 'low', 'normal', 'high', 'urgent'], true)) { $lv = ''; }
+                    $db->rpc('smart_override', ['p_report' => $id, 'p_level' => $lv === '' ? null : $lv, 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);
+                    $flash = $lv === '' ? t('SMART\'s own level is back in use for this case.', 'Ginagamit na muli ang antas ng SMART sa kasong ito.')
+                                        : t('The level was changed and your reason was kept on the record.', 'Binago ang antas at itinago ang iyong dahilan sa talaan.');
+                    break;
+
                 // 0087: taking, releasing and taking over a case.
                 case 'take_over':
                     $db->rpc('take_over_case', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);

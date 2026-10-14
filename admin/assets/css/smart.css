@@ -21,3 +21,20 @@
 .ss-bar{width:140px;height:8px;border-radius:99px;background:var(--p-surface-2);overflow:hidden}
 .ss-bar i{display:block;height:100%;border-radius:99px;background:var(--p-orange)}
 .ss-why{display:block;margin-top:4px;color:var(--p-muted);font-size:12px;max-width:260px}
+/* the SMART card on a case */
+.ss-smartcard{border-left:4px solid var(--p-orange)}
+.ss-sc-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:2px 0 6px}
+.ss-sc-head .p-badge{font-size:14px;padding:5px 12px}
+.ss-sc-head .ss-score{font-size:20px}
+.ss-sc-set{margin:0;color:var(--p-muted);font-size:13px}
+.ss-reasons{list-style:none;margin:8px 0;padding:0;display:grid;gap:4px}
+.ss-reasons li{display:flex;justify-content:space-between;gap:12px;padding:7px 10px;border-radius:8px;background:var(--p-surface-2);border:1px solid var(--p-line);font-size:14px}
+.ss-reasons b{font-variant-numeric:tabular-nums;color:var(--p-blue)}
+.ss-risk{margin:8px 0;padding:8px 12px;border-radius:8px;font-weight:600;font-size:14px;background:#FFF1D6;color:#7A4B00}
+.ss-risk--high{background:#FDE3E1;color:#8A1C14}
+.ss-sc-sub{margin:12px 0 4px}
+.ss-sc-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px}
+.ss-sc-list li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.ss-sc-list span{color:var(--p-muted)}
+.ss-sc-line{margin:10px 0 0;font-size:14px}
+.ss-sc-change{margin-top:12px}

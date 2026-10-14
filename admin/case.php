@@ -136,6 +136,8 @@ try {
         // hashes) and it makes the guarantee visible rather than a claim
         // in a document nobody reads. Optional: a failure shows no badge.
         'trail' => ['rpc/verify_report_trail', ['p_report' => $id], true],
+        // 0124/0127: everything SMART knows about this case, in one call. Optional: no card if it fails.
+        'smart' => ['rpc/smart_case_card', ['p_report' => $id], true],
     ]);
     $report = $first['report'][0] ?? null;
 
@@ -145,6 +147,7 @@ try {
         $dispatches = $first['dispatches'];
         $feedback   = $first['feedback'][0] ?? null;
         $trail      = $first['trail'] instanceof SupabaseError ? [] : (array) $first['trail'];
+        $smart      = ($first['smart'] ?? null) instanceof SupabaseError ? null : (is_array($first['smart'] ?? null) ? $first['smart'] : null);
     }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
@@ -553,6 +556,78 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
 
   </div>
+  <!-- ---------- SMART: the level, the reasons and what else it found (0122-0129) ---------- -->
+  <?php if (!empty($smart) && ($smart['score'] ?? null) !== null):
+      $sLv = (string) ($smart['effective_level'] ?? 'low'); $ov = $smart['override'] ?? null; $dups = (array) ($smart['duplicates'] ?? []);
+      $eta = $smart['eta'] ?? null; $sim = (array) ($smart['similar'] ?? []); $refr = $smart['referral'] ?? null; $risk = $smart['deadline_risk'] ?? null;
+      $lvName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
+  ?>
+  <section class="p-card p-card-pad ss-smartcard" aria-labelledby="smart-h">
+    <p class="p-eyebrow" id="smart-h">SMART &middot; <?= e(t('why this level', 'bakit ganito ang antas')) ?></p>
+    <div class="ss-sc-head">
+      <?= smart_badge(['effective_level' => $sLv, 'score' => (int) $smart['score'], 'override_level' => $ov['level'] ?? null, 'possible_duplicates' => 0]) ?>
+      <?php if ($ov): ?>
+        <p class="ss-sc-set"><?= e(sprintf(t('Set to %s by %s: "%s"', 'Itinakda sa %s ni %s: "%s"'), $lvName[$ov['level']] ?? $ov['level'], (string) ($ov['by'] ?? t('an admin', 'isang admin')), (string) ($ov['reason'] ?? ''))) ?>
+          &middot; <?= e(t('computed', 'kinompyut')) ?>: <?= e($lvName[(string) ($smart['level'] ?? '')] ?? '') ?> <?= (int) $smart['score'] ?></p>
+      <?php endif; ?>
+    </div>
+    <?php if (!empty($smart['reasons'])): ?>
+      <ul class="ss-reasons">
+        <?php foreach ((array) $smart['reasons'] as $rs): ?>
+          <li><span><?= e((string) ($rs['detail'] ?? $rs['factor'] ?? '')) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <?php if (!empty($risk)): ?>
+      <p class="ss-risk ss-risk--<?= e((string) ($risk['risk'] ?? 'high')) ?>"><?= e(sprintf(t('Likely to miss its deadline: %s h left, such cases usually take %s h.', 'Maaaring lumampas sa takdang oras: %s oras na lang, karaniwang %s oras ang ganitong kaso.'), (string) round((float) ($risk['hours_left'] ?? 0)), (string) round((float) ($risk['typical_hours'] ?? 0)))) ?></p>
+    <?php endif; ?>
+    <?php if ($dups): ?>
+      <p class="p-label ss-sc-sub"><?= e(t('Possible duplicates', 'Maaaring doble')) ?></p>
+      <ul class="ss-sc-list">
+        <?php foreach (array_slice($dups, 0, 5) as $d): ?>
+          <li><a class="p-mono-id" href="case.php?id=<?= e($d['report_id']) ?>"><?= e($d['tracking_id']) ?></a>
+            <span><?= (int) $d['metres'] ?> m <?= e(t('away', 'ang layo')) ?> &middot; <?= e((string) round((float) $d['hours_apart'])) ?> <?= e(t('h earlier', 'oras ang pagitan')) ?> &middot; <?= e(status_label((string) $d['status'])) ?> &middot;
+              <?= e(((float) ($d['similarity'] ?? 0)) >= .5 ? t('Very alike', 'Magkamukhang-magkamukha') : t('Alike', 'Magkamukha')) ?></span></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <?php if (!empty($eta)): ?>
+      <p class="ss-sc-line"><b><?= e(t('Usually resolved in', 'Karaniwang nalulutas sa')) ?></b>
+        <?= ($eta['basis'] ?? '') === 'target'
+            ? e(sprintf(t('target: %s hours', 'target: %s oras'), (string) ($eta['sla_hours'] ?? '')))
+            : e(sprintf(t('about %s hours (most within %s)', 'mga %s oras (karamihan sa loob ng %s)'), (string) round((float) ($eta['median_hours'] ?? 0)), (string) round((float) ($eta['p80_hours'] ?? 0)))) ?></p>
+    <?php endif; ?>
+    <?php if ($refr && !empty($refr['office'])): ?>
+      <p class="ss-sc-line"><?= e(sprintf(t('Usually referred to %s (%s of %s)', 'Karaniwang inire-refer sa %s (%s sa %s)'), (string) $refr['office'], (string) ($refr['cases'] ?? ''), (string) ($refr['of_referred'] ?? ''))) ?></p>
+    <?php endif; ?>
+    <?php if ($sim): ?>
+      <p class="p-label ss-sc-sub"><?= e(t('Similar past cases', 'Mga katulad na nakaraang kaso')) ?></p>
+      <ul class="ss-sc-list">
+        <?php foreach (array_slice($sim, 0, 3) as $c2): $ended = trim((string) ($c2['referred_to'] ? t('referred to ', 'inire-refer sa ') . $c2['referred_to'] : ($c2['closing_remark'] ?: ($c2['field_report'] ?? '')))); ?>
+          <li><a class="p-mono-id" href="case.php?id=<?= e($c2['report_id']) ?>"><?= e($c2['tracking_id']) ?></a>
+            <span><?= (int) $c2['metres'] ?> m &middot; <?= e(sprintf(t('resolved in %s days', 'nalutas sa %s araw'), (string) round((float) $c2['days_to_resolve'], 1))) ?><?= $ended !== '' ? ' &middot; ' . e(mb_strimwidth($ended, 0, 90, '…')) : '' ?></span></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <details class="p-fix ss-sc-change">
+      <summary><?= e(t('Change level', 'Baguhin ang antas')) ?></summary>
+      <form method="post" class="p-ctl-stack" data-keep>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="smart_override">
+        <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+        <div class="p-cfield"><label class="p-flabel" for="so-level"><?= e(t('Level', 'Antas')) ?></label>
+          <select class="p-input-plain" id="so-level" name="level">
+            <?php foreach (['low', 'normal', 'high', 'urgent'] as $o): ?><option value="<?= e($o) ?>" <?= $sLv === $o ? 'selected' : '' ?>><?= e($lvName[$o]) ?></option><?php endforeach; ?>
+            <option value=""><?= e(t('Use computed', 'Gamitin ang kinompyut')) ?></option>
+          </select></div>
+        <div class="p-cfield"><label class="p-flabel" for="so-reason"><?= e(t('Why (kept on the record)', 'Bakit (itatago sa talaan)')) ?></label>
+          <input class="p-input-plain" id="so-reason" name="reason" required minlength="3" maxlength="300" placeholder="<?= e(t('e.g. already handled by the BFP', 'hal. hawak na ng BFP')) ?>"></div>
+        <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save level', 'I-save ang antas')) ?></button>
+      </form>
+    </details>
+  </section>
+  <?php endif; ?>
+
   <!-- ---------- timeline ---------- -->
   <section class="p-card p-card-pad">
     <p class="p-eyebrow"><?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?></p>
@@ -603,6 +678,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                        'repeat' => 1, 'last_at' => null];
     }
     usort($timeline, fn($a, $b) => strcmp((string) $a['created_at'], (string) $b['created_at']));
+    // Defense, 7 Sep: a long timeline is paged, not scrolled: 10 entries a page, opening on the newest page.
+    $tlPer = 10; $tlTotal = count($timeline); $tlPages = max(1, (int) ceil($tlTotal / $tlPer));
+    $tlPage = isset($_GET['tl']) ? max(1, min($tlPages, (int) $_GET['tl'])) : $tlPages;
+    $timelineAll = $timeline; $timeline = array_slice($timeline, ($tlPage - 1) * $tlPer, $tlPer);
     ?>
     <ul class="p-timeline">
       <?php foreach ($timeline as $l): ?>
@@ -625,11 +704,14 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </li>
       <?php endforeach; ?>
 
+      <?php if ($tlPage === $tlPages): ?>
       <li class="p-now">
         <span class="p-tl-dot p-orange" aria-hidden="true"><svg width="13" height="13"><use href="#i-clock"/></svg></span>
         <small class="p-tl-when"><?= e(t('Today', 'Ngayon')) ?> &middot; <?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A')) ?></small>
       </li>
+      <?php endif; ?>
     </ul>
+    <?= pager($tlTotal, $tlPage, 'tl', $tlPer) ?>
   </section>
 
   <!-- ---------- resident feedback ---------- -->

@@ -56,6 +56,26 @@ function pager(int $total, int $page, string $param = 'page', ?int $per = null):
     return $o . '<span class="of">' . $from1 . '&ndash;' . $to1 . ' ' . e(t('of', 'sa')) . ' ' . $total . '</span></nav>';
 }
 
+/** SMART's level for a case, always with its word beside the colour (Urgent red, High orange, Normal blue, Low grey). */
+function smart_badge(?array $tr): string
+{
+    if (!$tr || empty($tr['effective_level'])) { return '<span class="p-sub">' . e(t('Not scored', 'Walang marka')) . '</span>'; }
+    $lv = $tr['effective_level'];
+    $cls = ['urgent' => 'denied', 'high' => 'pending', 'normal' => 'progress', 'low' => 'grey'][$lv] ?? 'grey';
+    $lab = ['urgent' => t('Urgent', 'Apurahan'), 'high' => t('High', 'Mataas'), 'normal' => t('Normal', 'Karaniwan'), 'low' => t('Low', 'Mababa')][$lv] ?? $lv;
+    $o = '<span class="p-badge p-b-' . $cls . '">' . e($lab) . '</span><small class="ss-score"> ' . (int) $tr['score'] . '</small>';
+    if (!empty($tr['override_level'])) { $o .= '<small class="ss-set" title="' . e(t('Set by an admin', 'Itinakda ng admin')) . '">' . e(t('set by admin', 'itinakda ng admin')) . '</small>'; }
+    if ((int) ($tr['possible_duplicates'] ?? 0) > 0) { $o .= '<span class="p-badge p-b-violet ss-dup">' . e(t('Possible duplicate', 'Maaaring doble')) . '</span>'; }
+    return $o;
+}
+function waiting_text(?string $iso): string
+{
+    if (!$iso) { return ''; }
+    $h = (int) floor((time() - strtotime($iso)) / 3600);
+    return $h < 1 ? t('under 1 h', 'wala pang 1 oras') : ($h < 48 ? $h . ' ' . t('h', 'oras') : (int) floor($h / 24) . ' ' . t('days', 'araw'));
+}
+
+
 function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();
