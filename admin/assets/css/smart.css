@@ -94,3 +94,5 @@
 .ss-head--card{margin:0 0 8px}
 .ss-head--card .p-eyebrow{margin:0}
 @media (max-width:640px){.ss-head{flex-wrap:wrap}}
+.ss-stages a,.ss-stages a:hover{text-decoration:none}
+.ss-stages .p-chip{text-decoration:none}

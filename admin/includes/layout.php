@@ -14,6 +14,7 @@ function nav_items(): array
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
+        ['notifications.php', t('Notifications', 'Mga Abiso'),                'i-bell'],
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
         ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'i-brief'],
@@ -332,6 +333,7 @@ function nav_counts(): array
     try {
         $memo = db()->selectMany([
             'cases.php'               => ['reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review'], true],
+            'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false'], true],
             'residents.php'           => ['users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending'], true],
             'retirement-requests.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
             'spatial.php'             => ['reports', ['deleted_at' => 'is.null',

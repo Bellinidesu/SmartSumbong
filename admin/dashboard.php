@@ -176,13 +176,13 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <?php endif; ?>
 <?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
 <div class="ss-tiles">
-  <a class="p-card ss-tile<?= $uw > 0 ? ' hot' : '' ?>" href="cases.php?tab=next&amp;stage=dispatch"><span><?= e(t('Urgent, waiting for a tanod', 'Madalian, naghihintay ng tanod')) ?></span><b><?= $uw ?></b>
+  <a class="p-card ss-tile<?= $uw > 0 ? ' hot' : '' ?>" href="notifications.php?tab=next&amp;stage=dispatch"><span><?= e(t('Urgent, waiting for a tanod', 'Madalian, naghihintay ng tanod')) ?></span><b><?= $uw ?></b>
     <span><?= (int) ($smSum['urgent_waiting'] ?? 0) ?> <?= e(t('urgent', 'madalian')) ?> · <?= (int) ($smSum['high_waiting'] ?? 0) ?> <?= e(t('high', 'mataas')) ?></span></a>
-  <a class="p-card ss-tile<?= $smRisk > 0 ? ' hot' : '' ?>" href="cases.php?tab=next"><span><?= e(t('Likely to miss the deadline', 'Maaaring lumampas sa takdang oras')) ?></span><b><?= $smRisk ?></b>
+  <a class="p-card ss-tile<?= $smRisk > 0 ? ' hot' : '' ?>" href="notifications.php?tab=next"><span><?= e(t('Likely to miss the deadline', 'Maaaring lumampas sa takdang oras')) ?></span><b><?= $smRisk ?></b>
     <span><?= e(t('open cases at high risk', 'bukas na kasong mataas ang panganib')) ?></span></a>
   <a class="p-card ss-tile" href="spatial.php"><span><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?></span><b><?= (int) ($smSum['recurring'] ?? 0) ?></b>
     <span><?= (int) ($smSum['recurring_open'] ?? 0) ?> <?= e(t('still open', 'bukas pa')) ?></span></a>
-  <a class="p-card ss-tile" href="cases.php?tab=next&amp;stage=follow_up"><span><?= e(t('Quiet cases', 'Tahimik na kaso')) ?></span><b><?= count((array) $sm['quiet']) ?></b>
+  <a class="p-card ss-tile" href="notifications.php?tab=next&amp;stage=follow_up"><span><?= e(t('Quiet cases', 'Tahimik na kaso')) ?></span><b><?= count((array) $sm['quiet']) ?></b>
     <span><?= e(t('open with no news for days', 'bukas na walang balita nang ilang araw')) ?></span></a>
 </div>
 <?php endif; ?>
