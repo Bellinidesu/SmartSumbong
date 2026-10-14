@@ -38,10 +38,10 @@ begin
     execute 'set local role authenticated';
     j := public.smart_preview('public_safety_infrastructure', 'Sunog', 'May sunog sa likod ng bahay, may bata sa loob.', lat + 0.002, lng);
     execute 'reset role';
-    if (j ->> 'score')::integer <> 75 or j ->> 'level' <> 'urgent' then raise exception '%', j; end if;
+    if (j ->> 'score')::integer not in (75, 80) or j ->> 'level' <> 'urgent' then raise exception '%', j; end if;  -- 80 when the check runs at night: the night factor adds 5
     if not j -> 'reasons' @> '[{"factor": "words", "detail": "fire"}]' then raise exception '%', j; end if;
     if (select count(*) from public.report_triage) <> n then raise exception 'saved something'; end if;
-    v_log := v_log || E'\n' || 'ok  Try it scores a sentence like a filed report (75, urgent) and saves nothing';
+    v_log := v_log || E'\n' || 'ok  Try it scores a sentence like a filed report (75, or 80 at night; urgent) and saves nothing';
   exception when others then execute 'reset role'; v_log := v_log || E'\n' || 'FAIL preview: ' || sqlerrm; end;
 
   begin
