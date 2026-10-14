@@ -86,3 +86,11 @@
 :root[data-theme="dark"] .ss-storm{background:#3B3115;color:#F5DFA0;border-color:#6B5A22}
 :root[data-theme="dark"] .ss-tile.hot b{color:#FF8A7A}
 .st-pane .ss-two{margin:0}
+/* the engine mark (Ace's logo, 14 Oct) on its own dark chip */
+.ss-engine{display:inline-flex;align-items:center;justify-content:center;flex:none;padding:6px 14px;border-radius:12px;background:#0B0C10;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.ss-engine img{display:block;height:auto}
+.ss-head{display:flex;align-items:center;gap:14px;margin:0 0 14px}
+.ss-head p{margin:0;color:var(--p-muted);font-size:14px;min-width:0}
+.ss-head--card{margin:0 0 8px}
+.ss-head--card .p-eyebrow{margin:0}
+@media (max-width:640px){.ss-head{flex-wrap:wrap}}

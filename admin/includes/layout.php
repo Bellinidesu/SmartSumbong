@@ -56,6 +56,13 @@ function pager(int $total, int $page, string $param = 'page', ?int $per = null):
     return $o . '<span class="of">' . $from1 . '&ndash;' . $to1 . ' ' . e(t('of', 'sa')) . ' ' . $total . '</span></nav>';
 }
 
+/** The SMART engine's mark. Its glow is made for a dark ground, so it always sits on its own dark chip, in either theme. */
+function smart_logo(int $height = 34): string
+{
+    $w = (int) round($height * 840 / 328);
+    return '<span class="ss-engine" role="img" aria-label="SMART engine"><img src="assets/img/smart-engine.webp" width="' . $w . '" height="' . $height . '" alt="" decoding="async"></span>';
+}
+
 /** SMART's level for a case, always with its word beside the colour (Urgent red, High orange, Normal blue, Low grey). */
 function smart_badge(?array $tr): string
 {

@@ -171,6 +171,9 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <?= !empty($smStorm['storm_reason']) ? '· ' . e($smStorm['storm_reason']) : '' ?></span>
     <a class="p-btn p-btn-ghost p-btn-sm" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a></div>
 <?php endif; ?>
+<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score'])): ?>
+<div class="ss-head"><?= smart_logo(40) ?><p><?= e(t('What the engine sees across open cases, right now.', 'Ang nakikita ng engine sa mga bukás na kaso, ngayon.')) ?></p></div>
+<?php endif; ?>
 <?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
 <div class="ss-tiles">
   <a class="p-card ss-tile<?= $uw > 0 ? ' hot' : '' ?>" href="cases.php?tab=next&amp;stage=dispatch"><span><?= e(t('Urgent, waiting for a tanod', 'Madalian, naghihintay ng tanod')) ?></span><b><?= $uw ?></b>
