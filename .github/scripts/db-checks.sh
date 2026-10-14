@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# Runs the rolled-back system checks in supabase/tests against the linked
-# project (CI, industry pass 7). Each script ends by raising, so nothing is
-# saved; its message is the log. Any FAIL or BAD line fails the build.
+# Applies the migrations to the STAGING Supabase project and runs the
+# rolled-back system checks in supabase/tests there (CI, staging job).
+# Each script ends by raising, so nothing is saved; its message is the log.
+# Any FAIL or BAD line fails the build. Refuses to run against production:
+# everyday checks run locally (supabase/tests/local/run-local.sh).
 set -u
-supabase link --project-ref xmkpokcnjzgxgwysperh --password "$SUPABASE_DB_PASSWORD" > /dev/null
+PRODUCTION=xmkpokcnjzgxgwysperh
+ref=${STAGING_PROJECT_REF:-}
+if [ -z "$ref" ] || [ "$ref" = "$PRODUCTION" ]; then
+  echo "STAGING_PROJECT_REF must name a staging project, never production ($PRODUCTION)."; exit 1
+fi
+supabase link --project-ref "$ref" --password "$SUPABASE_DB_PASSWORD" > /dev/null || exit 1
+supabase db push --linked --include-all --yes || exit 1
 fail=0
 for f in supabase/tests/0*.sql; do
   out=$(supabase db query --linked -f "$f" 2>&1 || true)

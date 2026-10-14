@@ -40,7 +40,7 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
         'deleted_at': null,
       };
 
-  final reports = [
+  final reports = <Map<String, dynamic>>[
     report(103, 'BRG-2026-0103', 'public_safety_infrastructure', 'Poor Street Lighting',
         'The streetlight at the corner of 10th Street has been out for a week. It is very dark at night.', 'in_progress',
         lat: 14.5262, lng: 121.0168, label: '10th Street', ago: 1),
@@ -61,7 +61,7 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
         lat: 14.5277, lng: 121.0141, label: '12th Street', ago: 20),
   ];
 
-  final users = [
+  final users = <Map<String, dynamic>>[
     {
       'id': demoResidentId, 'role': 'resident', 'full_name': 'Rose Besarra', 'mobile_number': '+639171234567', 'email': 'rose@example.com',
       'address': '12 Manlunas St., Barangay 183', 'avatar_url': null, 'verification_status': 'verified',
@@ -80,7 +80,7 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
 
   Map<String, dynamic> rep(int n) => reports.firstWhere((r) => r['id'] == _id('b1000000', n));
 
-  final dispatches = [
+  final dispatches = <Map<String, dynamic>>[
     {
       'id': _id('c1000000', 1), 'report_id': _id('b1000000', 101), 'tanod_id': demoTanodId, 'state': 'assigned', 'step': null,
       'accept_due_at': _in(minutes: 9), 'assigned_at': _ago(minutes: 1), 'accepted_at': null, 'resolved_at': null,
@@ -103,19 +103,19 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
     },
   ];
 
-  final reportMedia = [
+  final reportMedia = <Map<String, dynamic>>[
     {'report_id': _id('b1000000', 103), 'media_url': 'https://picsum.photos/seed/streetlight/800/600', 'mime_type': 'image/jpeg'},
     {'report_id': _id('b1000000', 101), 'media_url': 'https://picsum.photos/seed/drain/800/600', 'mime_type': 'image/jpeg'},
     {'report_id': _id('b1000000', 101), 'media_url': 'https://picsum.photos/seed/flood/800/600', 'mime_type': 'image/jpeg'},
   ];
 
-  final dispatchMedia = [
+  final dispatchMedia = <Map<String, dynamic>>[
     {'id': _id('d1000000', 1), 'dispatch_id': _id('c1000000', 3), 'update_id': null, 'media_url': 'https://picsum.photos/seed/cleared/800/600', 'mime_type': 'image/jpeg'},
   ];
 
   Map<String, dynamic> log(int n, int reportN, String? old, String status, String? remark, {int hours = 0, int days = 0}) =>
       {'id': _id('e1000000', n), 'report_id': _id('b1000000', reportN), 'old_status': old, 'new_status': status, 'remark': remark, 'created_at': _ago(days: days, hours: hours)};
-  final statusLogs = [
+  final statusLogs = <Map<String, dynamic>>[
     log(1, 103, null, 'pending_review', 'Report submitted', days: 1),
     log(2, 103, 'pending_review', 'validated', 'Validated by the barangay', hours: 20),
     log(3, 103, 'validated', 'assigned', 'Assigned to a tanod', hours: 3),
@@ -136,7 +136,7 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
         'id': _id('f1000000', n), 'user_id': demoResidentId, 'kind': kind, 'message': message,
         'is_read': read, 'created_at': _ago(days: days, hours: hours), 'report_id': reportN == 0 ? null : _id('b1000000', reportN),
       };
-  final notifications = [
+  final notifications = <Map<String, dynamic>>[
     notif(1, 'assignment', 'A tanod is on your report BRG-2026-0103.', 103, hours: 3),
     notif(2, 'status_change', 'BRG-2026-0103 is now In Progress.', 103, hours: 2),
     notif(3, 'status_change', 'BRG-2026-0101 is under review.', 101, days: 2, read: true),
@@ -148,17 +148,17 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
     {'id': _id('f1000000', 21), 'user_id': demoTanodId, 'kind': 'status_change', 'message': 'The barangay approved your report for BRG-2026-0088.', 'is_read': true, 'created_at': _ago(days: 2), 'report_id': null},
   ];
 
-  final reportMessages = [
+  final reportMessages = <Map<String, dynamic>>[
     {'id': _id('g1000000', 1), 'report_id': _id('b1000000', 103), 'from_barangay': false, 'body': 'Is there an update? It is still dark at night.', 'created_at': _ago(hours: 5)},
     {'id': _id('g1000000', 2), 'report_id': _id('b1000000', 103), 'from_barangay': true, 'body': 'We are sorry for the inconvenience. A tanod is on the way and your report is now in progress.', 'created_at': _ago(hours: 4)},
   ];
 
-  final dispatchUpdates = [
+  final dispatchUpdates = <Map<String, dynamic>>[
     {'id': _id('h1000000', 1), 'dispatch_id': _id('c1000000', 2), 'author_id': demoTanodId, 'kind': 'step', 'step': 'accepted', 'body': null, 'created_at': _ago(hours: 2, minutes: 50)},
     {'id': _id('h1000000', 2), 'dispatch_id': _id('c1000000', 2), 'author_id': null, 'kind': 'note', 'step': null, 'body': 'Please take a photo of the post number.', 'created_at': _ago(hours: 2, minutes: 30)},
   ];
 
-  final hotlineGroups = [
+  final hotlineGroups = <Map<String, dynamic>>[
     {'id': 'hg1', 'parent_id': null, 'name': 'National emergency', 'display': 'inline', 'sort_order': 1, 'is_active': true},
     {'id': 'hg2', 'parent_id': null, 'name': 'Fire', 'display': 'inline', 'sort_order': 2, 'is_active': true},
     {'id': 'hg3', 'parent_id': null, 'name': 'Barangay 183 Hotline', 'display': 'inline', 'sort_order': 3, 'is_active': true},
@@ -167,7 +167,7 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
     {'id': 'hg5a', 'parent_id': 'hg5', 'name': 'Disaster Risk Reduction (CDRRMO)', 'display': 'inline', 'sort_order': 1, 'is_active': true},
     {'id': 'hg5b', 'parent_id': 'hg5', 'name': 'City Health Office', 'display': 'inline', 'sort_order': 2, 'is_active': true},
   ];
-  final hotlineNumbers = [
+  final hotlineNumbers = <Map<String, dynamic>>[
     {'group_id': 'hg1', 'label': '911', 'number': '911', 'carrier': null, 'sort_order': 1, 'is_active': true},
     {'group_id': 'hg2', 'label': 'Fire Protection Pasay City', 'number': '(02) 8831 5555', 'carrier': null, 'sort_order': 1, 'is_active': true},
     {'group_id': 'hg3', 'label': null, 'number': '0927 126 9625', 'carrier': 'Globe', 'sort_order': 1, 'is_active': true},

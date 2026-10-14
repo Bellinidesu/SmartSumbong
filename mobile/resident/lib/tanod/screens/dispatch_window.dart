@@ -28,6 +28,24 @@ const bool kResolveBeforeArrival = false;
 /// under it. Off: the map keeps Open in Maps only. True brings it back.
 const bool kMapNavigatePill = false;
 
+/// J1 (Ace, 7 Oct 2026): the next step pinned at the bottom where the chat
+/// bar was, two equal buttons under it, the barangay's instructions as
+/// their own card under the steps, the case card open. False puts back
+/// the step buttons in the page.
+const bool kJobPinnedDock = true;
+
+/// The case on a tanod's map wears the resident's badge (Ace, 7 Oct
+/// 2026): round, the category's colour and symbol, a blue dot because the
+/// tanod is on it.
+BrgyMapPin _casePin(LatLng at, ComplaintCategory? cat) => BrgyMapPin(
+      id: 'case',
+      point: at,
+      glyph: categoryGlyph(cat ?? ComplaintCategory.other),
+      bodyColour: categoryColour(cat ?? ComplaintCategory.other),
+      dotColour: const Color(0xFF356CF9),
+      pulse: true,
+    );
+
 MediaUploader _proofUploader() => MediaUploader(
   cloudName: _cloudName,
   uploadPreset: _uploadPreset,
@@ -307,6 +325,10 @@ class _DispatchWindowState extends State<DispatchWindow>
   /// admin's approval) and this tanod's escalation request, if one waits.
   String? _reportStatus;
   Map<String, dynamic>? _escalation;
+
+  /// Bellinist (9 Oct 2026): the admin's Look around, sent to this tanod for
+  /// this case: a note, the street view to open, which way the spot lies.
+  Map<String, dynamic>? _look;
   List<_Post> _posts = const [];
   String? _step;
   String _state = 'accepted';
@@ -314,7 +336,7 @@ class _DispatchWindowState extends State<DispatchWindow>
   bool _sending = false;
   bool _stepping = false;
   bool _changed = false;
-  bool _caseOpen = false;
+  bool _caseOpen = kJobPinnedDock;
   String? _error;
 
   bool _navStarting = false;
@@ -431,7 +453,7 @@ class _DispatchWindowState extends State<DispatchWindow>
             .from('reports')
             .select(
               'tracking_id, subject, description, created_at, '
-              'latitude, longitude, location_label, status',
+              'latitude, longitude, location_label, status, category',
             )
             .eq('id', widget.ticket.reportId)
             .single(),
@@ -505,6 +527,28 @@ class _DispatchWindowState extends State<DispatchWindow>
         ],
       ]..sort((a, b) => a.at.compareTo(b.at));
 
+      Map<String, dynamic>? look;
+      try {
+        look = await client
+            .from('look_shares')
+            .select('id, message, mapillary_image_id, spot_dir, spot_metres, image_captured_at, read_at')
+            .eq('report_id', widget.ticket.reportId)
+            .eq('tanod_id', me ?? '')
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+        if (look != null && look['read_at'] == null) {
+          // Seen: the barangay can tell the note arrived.
+          unawaited(client
+              .from('look_shares')
+              .update({'read_at': DateTime.now().toUtc().toIso8601String()})
+              .eq('id', look['id'] as String)
+              .then((_) {}, onError: (_) {}));
+        }
+      } catch (_) {
+        look = null;
+      }
+
       final d = got[2] as Map<String, dynamic>;
       if (!mounted) return;
       final grew = posts.length > _posts.length;
@@ -520,6 +564,7 @@ class _DispatchWindowState extends State<DispatchWindow>
         _detailRequest = detail;
         _reportStatus = (got[0] as Map<String, dynamic>)['status'] as String?;
         _escalation = got[6] as Map<String, dynamic>?;
+        _look = look;
         _state = d['state'] as String? ?? 'accepted';
         _step = d['step'] as String?;
         _posts = posts;
@@ -670,6 +715,7 @@ class _DispatchWindowState extends State<DispatchWindow>
           start: pos,
           step: _stepIndex,
           title: '${widget.ticket.subject} · ${widget.ticket.trackingId}',
+          category: ComplaintCategory.parse(_report?['category'] as String?),
         ),
       ),
     );
@@ -902,7 +948,9 @@ class _DispatchWindowState extends State<DispatchWindow>
                           const SizedBox(height: 16),
                           _stepper(),
                           const SizedBox(height: 16),
-                          if (_open) _stepActions(),
+                          if (!kJobPinnedDock && _open) _stepActions(),
+                          if (kJobPinnedDock && (widget.ticket.instructions ?? '').trim().isNotEmpty) _instructionsCard(),
+                          if (_look != null) _lookCard(),
                           if (kTanodNavAndChat && _open && onsite && _casePoint != null) ...[
                             const SizedBox(height: 12),
                             _againCard(),
@@ -922,7 +970,9 @@ class _DispatchWindowState extends State<DispatchWindow>
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
                 child: Text(_error!, textAlign: TextAlign.center, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
               ),
-            if (!kTanodNavAndChat && _open)
+            if (kJobPinnedDock && _open)
+              _dock()
+            else if (!kTanodNavAndChat && _open)
               const SafeArea(top: false, child: SizedBox(height: 8))
             else
               _open ? _composer() : _closedBar(),
@@ -949,7 +999,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                   controller: _mapCtl,
                   initialCenter: to,
                   initialZoom: 16.5,
-                  pins: [BrgyMapPin(id: 'case', point: to)],
+                  pins: [_casePin(to, ComplaintCategory.parse(_report?['category'] as String?))],
                   route: _route,
                   accuracyCentre: _me,
                   accuracyMetres: _me == null ? null : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),
@@ -1228,7 +1278,32 @@ class _DispatchWindowState extends State<DispatchWindow>
                     const SizedBox(height: 12),
                     _thumbs(_evidence, 64),
                   ],
-                  if (_open && !waiting)
+                  if (kJobPinnedDock && _open) ...[
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(
+                        child: DButton(
+                          _evidence.isEmpty ? context.tr('No photos', 'Walang larawan') : context.tr('Photos · ${_evidence.length}', 'Larawan · ${_evidence.length}'),
+                          kind: DButtonKind.ghost,
+                          small: true,
+                          expand: true,
+                          icon: Icons.photo_library_outlined,
+                          onTap: _evidence.isEmpty ? null : () => _openMedia(_evidence.first),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: DButton(
+                          waiting ? context.tr('Asked', 'Naitanong na') : context.tr('Ask for details', 'Humingi ng detalye'),
+                          kind: DButtonKind.ghost,
+                          small: true,
+                          expand: true,
+                          icon: Icons.help_outline_rounded,
+                          onTap: waiting ? null : _requestDetails,
+                        ),
+                      ),
+                    ]),
+                  ] else if (_open && !waiting)
                     _Link(
                       icon: Icons.help_outline,
                       label: s.dispatchRequestDetails,
@@ -1365,6 +1440,7 @@ class _DispatchWindowState extends State<DispatchWindow>
     }
     return [
       for (final p in _posts)
+        if (!(kJobPinnedDock && p.kind == 'instructions'))
         switch (p.kind) {
           'step' => _systemLine(
             p.step == 'arrived' ? s.windowStepArrived : s.windowStepOnTheWay,
@@ -1548,6 +1624,131 @@ class _DispatchWindowState extends State<DispatchWindow>
             ]),
           ]),
         ),
+      ),
+    );
+  }
+
+  /// J1: the barangay's instructions, under the steps.
+  Widget _instructionsCard() {
+    final d = context.d;
+    final amberBg = d.dark ? const Color(0xFF3A2E12) : const Color(0xFFFFF4E2);
+    final amberLine = d.dark ? const Color(0xFF6B5320) : const Color(0xFFF7C98A);
+    final amberInk = d.dark ? const Color(0xFFFFB547) : const Color(0xFFA36400);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(color: amberBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: amberLine)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(context.tr('BARANGAY INSTRUCTIONS', 'TAGUBILIN NG BARANGAY'), style: DType.label(amberInk)),
+          const SizedBox(height: 4),
+          Text(widget.ticket.instructions!.trim(), style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+
+  /// Look around, from the barangay: the admin's note, how far and which way
+  /// the spot lies from where the street view was taken, and the view itself
+  /// in the phone's browser (Mapillary opens on that very image).
+  Widget _lookCard() {
+    final d = context.d;
+    final bg = d.dark ? const Color(0xFF14264A) : const Color(0xFFEEF3FF);
+    final line = d.dark ? const Color(0xFF2B4380) : const Color(0xFFC9D8FF);
+    final ink = d.dark ? const Color(0xFF8DB2FF) : const Color(0xFF00308F);
+    final l = _look!;
+    final imageId = l['mapillary_image_id'] as String?;
+    final dir = l['spot_dir'] as String?;
+    final m = l['spot_metres'] as int?;
+    final where = dir == null || m == null
+        ? null
+        : (m < 3
+            ? context.tr('The street view was taken right at the spot.', 'Kinuha ang street view mismo sa lugar.')
+            : context.tr('From where the street view was taken, the spot is about $m m $dir.',
+                'Mula sa kinuhanan ng street view, ang lugar ay mga $m m sa $dir.'));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.threesixty_rounded, size: 18, color: ink),
+            const SizedBox(width: 8),
+            Text(context.tr('LOOK AROUND, FROM THE BARANGAY', 'LOOK AROUND, MULA SA BARANGAY'), style: DType.label(ink)),
+          ]),
+          const SizedBox(height: 6),
+          Text((l['message'] as String? ?? '').trim(), style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
+          if (where != null) ...[
+            const SizedBox(height: 6),
+            Text(where, style: DType.body(d.muted, size: 13)),
+          ],
+          if (imageId != null) ...[
+            const SizedBox(height: 10),
+            DButton(
+              context.tr('Open the street view', 'Buksan ang street view'),
+              icon: Icons.open_in_new_rounded,
+              expand: true,
+              height: 46,
+              radius: 14,
+              fontSize: 15,
+              onTap: () => launchUrl(
+                Uri.parse('https://www.mapillary.com/app/?pKey=$imageId&focus=photo'),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  /// J1: the next step pinned where the chat bar was, two equal halves
+  /// under it (like the resolve page).
+  Widget _dock() {
+    final s = context.ts;
+    final d = context.d;
+    final i = _stepIndex;
+    final esc = _escalation;
+    final pending = esc != null && esc['status'] == 'pending';
+    final escNote = esc == null
+        ? null
+        : switch (esc['status']) {
+            'pending' => s.escWaiting,
+            'denied' => s.escDenied((esc['decision_note'] as String?) ?? ''),
+            _ => null,
+          };
+    final red = d.dark ? const Color(0xFFFF8A8A) : DColors.red;
+    final Widget main = i == 0
+        ? DButton(s.windowActionOnTheWay, busy: _stepping || _navStarting, onTap: _onTheWay, expand: true, height: 54, radius: 14, fontSize: 17)
+        : i == 1
+            ? DButton(context.tr('Navigate', 'Mag-navigate'), icon: Icons.navigation_rounded, busy: _navStarting, onTap: _casePoint == null ? null : _navigate, expand: true, height: 54, radius: 14, fontSize: 17)
+            : DButton(context.tr('Resolve · add proof', 'Iresolba · maglagay ng patunay'), onTap: _resolve, expand: true, height: 54, radius: 14, fontSize: 17);
+    final Widget left = i < 2
+        ? DButton(context.tr('Already there?', 'Nandito na?'), kind: DButtonKind.ghost, small: true, expand: true, icon: Icons.place_outlined, onTap: _stepping ? null : () => _setStep('arrived'))
+        : DButton(context.ts.dispatchOpenMaps, kind: DButtonKind.ghost, small: true, expand: true, icon: Icons.map_outlined, onTap: _casePoint == null ? null : () => _openMaps(_casePoint!));
+    final Widget right = DButton(
+      pending ? context.tr('Escalation sent', 'Naipadala ang hiling') : context.tr('Escalate', 'I-escalate'),
+      kind: DButtonKind.danger,
+      small: true,
+      expand: true,
+      icon: Icons.north_east_rounded,
+      onTap: pending ? null : _requestEscalation,
+    );
+    return Container(
+      decoration: BoxDecoration(color: d.card, border: Border(top: BorderSide(color: d.line))),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+      child: SafeArea(
+        top: false,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (escNote != null) ...[
+            Text(escNote, textAlign: TextAlign.center, style: DType.body(esc?['status'] == 'denied' ? red : d.ink2, size: 12.5, w: FontWeight.w700)),
+            const SizedBox(height: 8),
+          ],
+          main,
+          const SizedBox(height: 10),
+          Row(children: [Expanded(child: left), const SizedBox(width: 10), Expanded(child: right)]),
+        ]),
       ),
     );
   }

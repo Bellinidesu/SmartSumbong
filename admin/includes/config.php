@@ -124,15 +124,35 @@ function csp_nonce(): string
     return $n ??= rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
 }
 
+/**
+ * Cloudflare Turnstile, the bot check Supabase Auth asks for once CAPTCHA
+ * protection is switched on in its dashboard (backend review, 10 Oct
+ * 2026). Unset, nothing is loaded and sign-in sends no token, as before.
+ */
+function turnstile_site_key(): string { return env('TURNSTILE_SITE_KEY', ''); }
+
+/** The hidden widget and its script, for any page with a sign-in or password form. */
+function turnstile_tags(): string
+{
+    $key = turnstile_site_key();
+    if ($key === '') return '';
+    return '<div id="ss-turnstile" data-sitekey="' . htmlspecialchars($key, ENT_QUOTES) . '"'
+         . ' style="position:fixed;right:16px;bottom:16px;z-index:9999"></div>'
+         . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>'
+         . '<script src="assets/js/turnstile.js?v=' . htmlspecialchars(asset_version('../js/turnstile.js'), ENT_QUOTES) . '" defer></script>';
+}
+
 function send_security_policy(): void
 {
     if (PHP_SAPI === 'cli' || headers_sent()) return;
     try { $sb = supabase_url(); } catch (Throwable) { $sb = ''; }
     $ws = preg_replace('#^http#', 'ws', $sb);
     $nonce = csp_nonce();
+    $ts = turnstile_site_key() !== '' ? ' https://challenges.cloudflare.com' : '';
     $policy = [
         "default-src 'self'",
-        "script-src 'self' 'nonce-{$nonce}'",
+        "script-src 'self' 'nonce-{$nonce}'{$ts}",
+        "frame-src 'self'{$ts}",
         "script-src-attr 'none'",
         "worker-src 'self' blob:",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",

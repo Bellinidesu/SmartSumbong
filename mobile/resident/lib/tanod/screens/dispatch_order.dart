@@ -470,7 +470,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
             : BrgyMap(
                 controller: _mapCtl,
                 initialCenter: p,
-                pins: [BrgyMapPin(id: 'case', point: p)],
+                pins: [_casePin(p, ComplaintCategory.parse(_report?['category'] as String?))],
                 route: _route,
                 accuracyCentre: _me,
                 accuracyMetres: _me == null ? null : (_meAccuracy ?? 15).clamp(8, 40).toDouble(),

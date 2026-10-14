@@ -30,16 +30,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  latlong2: ^0.9.1
-  geolocator: ^13.0.2
-  url_launcher: ^6.3.1
-  shared_preferences: ^2.3.3
-  http: ^1.2.2
-  share_plus: ^13.3.0
+  latlong2: ^0.10.1
+  geolocator: ^14.1.1
+  url_launcher: ^6.3.3
+  shared_preferences: ^2.5.6
+  http: ^1.6.0
+  share_plus: ^13.3.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^2.0.0
   smartsumbong_core:
    path: ../core
   exif: ^3.3.0
@@ -47,17 +47,20 @@ dependencies:
   # The report outbox (lib/outbox.dart); already in core, named here
   # because the app imports them itself.
   connectivity_plus: ^7.3.1
-  path_provider: ^2.1.4
-  uuid: ^4.5.1
+  path_provider: ^2.1.6
+  uuid: ^4.6.0
   flutter_tts: ^4.2.5
   wakelock_plus: ^1.8.0
   # Imported directly by this app, not only through smartsumbong_core;
   # same versions core pins.
-  cached_network_image: ^3.4.1
-  firebase_core: ^4.14.0
-  image_picker: ^1.1.2
-  package_info_plus: ^10.2.1
-  supabase_flutter: ^2.8.0
+  cached_network_image: ^4.0.4
+  firebase_core: ^4.15.0
+  image_picker: ^1.2.4
+  package_info_plus: ^10.2.2
+  supabase_flutter: ^2.18.2
+  # Bot check for Supabase Auth's CAPTCHA protection (lib/turnstile.dart);
+  # only used when the app is built with TURNSTILE_SITE_KEY (see main.dart).
+  webview_flutter: ^4.14.1
   # local_auth (Face ID / fingerprint unlock) is not listed here: it
   # arrives through smartsumbong_core, same as flutter_secure_storage
   # and supabase_flutter already do, because nothing in this app imports
@@ -65,9 +68,11 @@ dependencies:
   # BiometricLockGate, both from smartsumbong_core.
   
 dev_dependencies:
-  flutter_launcher_icons: ^0.14.1
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
+  # Tests only: its in-memory mock (the app gets it through smartsumbong_core).
+  flutter_secure_storage: ^11.2.0
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -173,3 +178,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+dependency_overrides:
+  # chewie (video playback, already at its latest) still asks for 1.x; it
+  # only uses the icon font, and 2.x keeps those icons.
+  cupertino_icons: ^2.0.0

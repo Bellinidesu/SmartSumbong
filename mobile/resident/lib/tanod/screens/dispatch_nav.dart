@@ -19,7 +19,11 @@ class _NavScreen extends StatefulWidget {
     required this.start,
     required this.step,
     required this.title,
+    this.category,
   });
+
+  /// For the case's badge on the map, the resident's pin.
+  final ComplaintCategory? category;
 
   final LatLng to;
   final NavRoute route;
@@ -260,7 +264,7 @@ class _NavScreenState extends State<_NavScreen> {
                 controller: _mapCtl,
                 initialCenter: LatLng(widget.start.latitude, widget.start.longitude),
                 initialZoom: 18,
-                pins: [BrgyMapPin(id: 'case', point: widget.to)],
+                pins: [_casePin(widget.to, widget.category)],
                 route: _route,
                 me: _me,
                 accuracyCentre: _me,

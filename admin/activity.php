@@ -130,7 +130,7 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
   <?php endif; ?>
 </div>
 
-<script src="assets/vendor/supabase/supabase.js"></script>
+<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
 <script>
 // New rows anywhere reload the feed (debounced), the same way Case Reports
 // keeps itself current.

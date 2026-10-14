@@ -184,9 +184,32 @@ class LoginLockedException implements Exception {
 }
 
 class AuthService {
-  AuthService(this._client);
+  AuthService(this._client, {this.captcha});
 
   final SupabaseClient _client;
+
+  /// A bot-check token for Supabase Auth's CAPTCHA protection, or null.
+  /// Set by the app when it is built with a Turnstile site key; with none,
+  /// sign-in and sign-up send no token, which is all Supabase expects
+  /// until CAPTCHA protection is switched on in its dashboard.
+  final Future<String?> Function()? captcha;
+
+  Future<String?> _captchaToken() async {
+    if (captcha == null) return null;
+    try {
+      return await captcha!();
+    } catch (_) {
+      return null; // Supabase then refuses with a captcha error, shown as such
+    }
+  }
+
+  static bool _isCaptchaError(String lowerMessage) => lowerMessage.contains('captcha');
+
+  static RegistrationException _captchaFailed() => RegistrationException(
+        'We could not confirm this is a real phone. Check your connection and try again.',
+        isRetryable: true,
+        code: 'captcha',
+      );
 
   Session? get session => _client.auth.currentSession;
   User? get user => _client.auth.currentUser;
@@ -231,6 +254,7 @@ class AuthService {
         // Synthetic. Derived from the number, never shown, never mailed.
         email: authEmailFor(mobile),
         password: password,
+        captchaToken: await _captchaToken(),
         data: {
           'full_name': fullName.trim(),
           'mobile_number': mobile,
@@ -242,6 +266,7 @@ class AuthService {
         },
       );
     } on AuthException catch (e) {
+      if (_isCaptchaError(e.message.toLowerCase())) throw _captchaFailed();
       throw _translate(e.message);
     } on PostgrestException catch (e) {
       throw _translate(e.message);
@@ -322,6 +347,7 @@ class AuthService {
       await _client.auth.signInWithPassword(
         email: authEmailFor(mobile),
         password: password,
+        captchaToken: await _captchaToken(),
       );
       // Wiped on success, not just left to expire, so a resident who
       // mistypes a few times and then gets it right is not still
@@ -337,6 +363,7 @@ class AuthService {
       rethrow;
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
+      if (_isCaptchaError(m)) throw _captchaFailed();
 
       // Should be impossible after 0022, which confirms synthetic
       // addresses at creation. If it happens, the trigger is missing or
@@ -499,14 +526,18 @@ class AuthService {
     final email = _client.auth.currentUser?.email;
     if (email == null) return false;
     try {
-      await _client.auth.signInWithPassword(email: email, password: password);
+      await _client.auth.signInWithPassword(
+          email: email, password: password, captchaToken: await _captchaToken());
       return true;
     } on AuthRetryableFetchException {
       // Offline is not a wrong password. Both callers already catch this
       // and say the check could not be made; returning false told a
       // tanod with no signal that their password was wrong.
       rethrow;
-    } on AuthException {
+    } on AuthException catch (e) {
+      // A failed bot check is not a wrong password; callers show it as
+      // "could not check".
+      if (_isCaptchaError(e.message.toLowerCase())) throw _captchaFailed();
       return false;
     }
   }

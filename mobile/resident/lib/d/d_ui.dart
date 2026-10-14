@@ -263,6 +263,34 @@ class DButton extends StatelessWidget {
                   style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: fontSize ?? (small ? 13.5 : 15), color: fg)),
             ),
           ]);
+    final enabled = onTap != null && !busy;
+    // Accessibility (WCAG 2.5.5 / Apple's 44 pt): the area a finger or a
+    // screen reader can use is at least 44 high, however small the button
+    // looks. The extra is invisible and taps there count as the button.
+    return Semantics(
+      container: true,
+      button: true,
+      enabled: enabled,
+      label: label,
+      onTap: enabled ? onTap : null,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: enabled ? onTap : null,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: _visual(enabled, h, rad, bg, side, glow, child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _visual(bool enabled, double h, double rad, Color bg, Color? side, bool glow, Widget child) {
     return Opacity(
       opacity: onTap == null && !busy ? .5 : 1,
       child: Container(
@@ -660,11 +688,16 @@ class DBell extends StatelessWidget {
     return Semantics(
       container: true,
       button: true,
-      label: unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
+      label: unread > 0
+          ? context.tr('Notifications, $unread unread', 'Mga Notification, $unread hindi pa nababasa')
+          : context.tr('Notifications', 'Mga Notification'),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: Stack(clipBehavior: Clip.none, children: [
+        // 40 drawn, 44 to touch (accessibility).
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Stack(clipBehavior: Clip.none, children: [
           Container(
             width: 40,
             height: 40,
@@ -687,6 +720,7 @@ class DBell extends StatelessWidget {
               ),
             ),
         ]),
+        ),
       ),
     );
   }

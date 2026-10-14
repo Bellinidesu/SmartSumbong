@@ -46,135 +46,8 @@ function render_account_screen(string $role): void
 
     session_start_once();
 
-    // ---------- actions ----------
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $target = (string) ($_POST['id'] ?? '');
-        $flash  = null;
-        $level  = 'ok';
-
-        if (!csrf_check($_POST['csrf'] ?? null)) {
-            $flash = t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.');
-            $level = 'error';
-        } else {
-            try {
-                $action = (string) ($_POST['action'] ?? '');
-                if (!ID_OCR_ENABLED && $action === 'request_ocr_rescan') {
-                    $action = '';   // falls through to "Unknown action."
-                }
-                switch ($action) {
-                    // 0086 (Martin): a name change or a new ID photo.
-                    case 'profile_request':
-                        $approve = ($_POST['decision'] ?? '') === 'approve';
-                        $db->rpc('decide_profile_request', [
-                            'p_request' => (string) ($_POST['request'] ?? ''),
-                            'p_approve' => $approve,
-                            'p_note'    => trim((string) ($_POST['note'] ?? '')) ?: null,
-                        ]);
-                        $flash = $approve
-                            ? t('Approved. They have been told.', 'Naaprubahan. Nasabihan na sila.')
-                            : t('Declined. They have been told why.', 'Tinanggihan. Nasabihan na sila kung bakit.');
-                        break;
-
-                    case 'approve':
-                        $db->rpc('verify_user_account', [
-                            'p_user' => $target, 'p_decision' => 'approve',
-                        ]);
-                        $flash = t('Account verified. They can file a complaint now.', 'Beripikado na ang account. Makakapagsampa na sila ng sumbong.');
-                        break;
-
-                    case 'deny':
-                        $db->rpc('verify_user_account', [
-                            'p_user'     => $target,
-                            'p_decision' => 'deny',
-                            'p_reason'   => trim((string) ($_POST['reason'] ?? '')),
-                        ]);
-                        $flash = t('Registration denied. The applicant has been told why.', 'Tinanggihan ang rehistro. Nasabihan na ang aplikante kung bakit.');
-                        break;
-
-                    case 'suspend':
-                        $db->rpc('set_account_suspension', [
-                            'p_user'    => $target,
-                            'p_suspend' => true,
-                            'p_reason'  => trim((string) ($_POST['reason'] ?? '')),
-                        ]);
-                        $flash = t('Account suspended. Any incident they were holding went back to the queue.', 'Na-suspend ang account. Ibinalik sa pila ang anumang insidenteng hawak nila.');
-                        break;
-
-                    case 'reinstate':
-                        $db->rpc('set_account_suspension', [
-                            'p_user' => $target, 'p_suspend' => false,
-                        ]);
-                        $flash = t('Account reinstated.', 'Naibalik ang account.');
-                        break;
-
-                    case 'request_ocr_rescan':
-                        // 0050. OCR runs on-device only, once, at
-                        // registration — this just flags the account so
-                        // the resident's own app re-runs it against the
-                        // already-uploaded photo next time it's open.
-                        $db->rpc('request_ocr_rescan', [
-                            'p_user' => $target,
-                        ]);
-                        $flash = t('Re-check requested. It will run automatically next time they open the app.', 'Humiling ng muling pagsuri. Awtomatiko itong tatakbo sa susunod nilang pagbukas ng app.');
-                        break;
-
-                    // 0073 — Manage User Account (3.2): correct a
-                    // resident's or tanod's name and email.
-                    case 'correct_profile':
-                        $db->rpc('admin_update_user', [
-                            'p_user'      => $target,
-                            'p_full_name' => trim((string) ($_POST['full_name'] ?? '')),
-                            'p_email'     => trim((string) ($_POST['email'] ?? '')) ?: null,
-                        ]);
-                        $flash = t('Profile corrected. The account holder has been told.', 'Naitama ang profile. Nasabihan na ang may-ari ng account.');
-                        break;
-
-                    case 'reset_password':
-                        // Re-authenticated for the same reason promote
-                        // and step_down are: this hands working
-                        // credentials for someone else's account to
-                        // whoever is at the keyboard, and the database
-                        // only knows that an admin is calling.
-                        Supabase::signIn($admin['email'], (string) ($_POST['password'] ?? ''));
-                        $issued = $db->rpc('admin_reset_password', [
-                            'p_user' => $target,
-                        ]);
-                        // The RPC returns the password once and never
-                        // stores it. If it is lost between here and the
-                        // counter, the only remedy is another reset.
-                        $_SESSION['issued_password'] = is_array($issued)
-                            ? (string) reset($issued)
-                            : (string) $issued;
-                        $flash = t('Temporary password issued. Read it to them in person and do not send it by message.',
-                                   'Naibigay ang pansamantalang password. Basahin ito sa kanila nang personal at huwag ipadala sa mensahe.');
-                        break;
-
-                    default:
-                        $flash = t('Unknown action.', 'Hindi kilalang aksyon.');
-                        $level = 'error';
-                }
-            } catch (SupabaseError $ex) {
-                // Same fix as login.php: GoTrue's own wrong-password error
-                // says "Invalid login credentials", but admin_reset_password()
-                // has its own, unrelated exception for an account with no
-                // auth.users row at all -- "has no credential to reset" --
-                // and the old broad `str_contains(..., 'credential')` check
-                // caught that one too, so a reset against a seeded test
-                // account (no real login) always came back "That password
-                // is not right," even typed correctly. Narrowed to the
-                // actual GoTrue phrase so the real reason surfaces instead.
-                $msg   = safe_error($ex);
-                $flash = str_contains(strtolower($msg), 'invalid login')
-                    ? t('That password is not right. Nothing was changed.', 'Mali ang password na iyan. Walang binago.')
-                    : $msg;
-                $level = 'error';
-            }
-        }
-
-        $_SESSION['flash'] = ['text' => $flash, 'level' => $level];
-        header('Location: ' . $self . ($target !== '' ? '?id=' . urlencode($target) : ''));
-        exit;
-    }
+    // ---------- actions ---------- (in includes/account_actions.php)
+    require __DIR__ . '/account_actions.php';
 
     $flash = $_SESSION['flash'] ?? null;
     unset($_SESSION['flash']);
@@ -307,7 +180,7 @@ function render_account_screen(string $role): void
         <?php foreach ($requests as $r): ?>
           <div class="ss-req">
             <?php if ($r['kind'] === 'id_document'): ?>
-              <a href="<?= e($r['id_image_url']) ?>" target="_blank" rel="noopener"><img src="<?= e(cld_thumb($r['id_image_url'], 480)) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" class="ss-req-img"></a>
+              <a href="<?= e(cld_private_url((string) $r['id_image_url'])) ?>" target="_blank" rel="noopener"><img src="<?= e(cld_thumb($r['id_image_url'], 480)) ?>" alt="<?= e(t('New ID photo', 'Bagong litrato ng ID')) ?>" class="ss-req-img"></a>
             <?php else: ?>
               <span class="p-chip"><?= e(t('Name', 'Pangalan')) ?></span>
             <?php endif; ?>
@@ -421,7 +294,7 @@ function render_account_screen(string $role): void
       </table>
     </div></div>
 
-    <script src="assets/vendor/supabase/supabase.js"></script>
+    <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
     // Realtime for the verification queue — explicit ask, 6 Sep 2026: "the
     // entire system needs to work realtime," and this is exactly the
@@ -1125,7 +998,7 @@ function render_account_detail(
           <?php if (empty($p['id_image_url'])): ?>
             <p class="p-none-line"><?= e(t('No identification was uploaded. This account cannot be verified until one is.', 'Walang na-upload na ID. Hindi maveberipika ang account na ito hangga\'t walang ID.')) ?></p>
           <?php else: ?>
-            <a class="p-id-shot" href="<?= e($p['id_image_url']) ?>" target="_blank" rel="noopener">
+            <a class="p-id-shot" href="<?= e(cld_private_url((string) $p['id_image_url'])) ?>" target="_blank" rel="noopener">
               <img src="<?= e(cld_thumb($p['id_image_url'], 1000)) ?>" alt="<?= e(t('Identification submitted by ', 'ID na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>
@@ -1206,7 +1079,7 @@ function render_account_detail(
               <?= e(t('Not submitted. Registration does not currently ask for one.', 'Hindi isinumite. Hindi ito kasalukuyang hinihingi sa rehistro.')) ?>
             </p>
           <?php else: ?>
-            <a class="p-id-shot p-id-shot--square" href="<?= e($p['selfie_url']) ?>" target="_blank" rel="noopener">
+            <a class="p-id-shot p-id-shot--square" href="<?= e(cld_private_url((string) $p['selfie_url'])) ?>" target="_blank" rel="noopener">
               <img src="<?= e(cld_thumb($p['selfie_url'], 600)) ?>" alt="<?= e(t('Selfie submitted by ', 'Selfie na isinumite ni ') . $p['full_name']) ?>" loading="lazy">
             </a>
           <?php endif; ?>
@@ -1429,7 +1302,7 @@ function render_account_detail(
     })();
     </script>
 
-    <script src="assets/vendor/supabase/supabase.js"></script>
+    <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
     // Same polling idiom as the list view above, and the same reason:
     // public.users carries no realtime push (0046's privacy decision).

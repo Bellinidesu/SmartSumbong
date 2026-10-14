@@ -385,7 +385,7 @@ $keep = array_filter(['q' => $search, 'status' => $filter, 'category' => $catego
   </table>
 </div></div>
 
-<script src="assets/vendor/supabase/supabase.js"></script>
+<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
 <script>
 // Realtime for the case list + notifications panel — explicit ask, 6 Sep
 // 2026: "the entire system needs to work realtime." reports, dispatches,
