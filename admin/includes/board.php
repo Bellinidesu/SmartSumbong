@@ -70,7 +70,22 @@ function render_board(array $queue, array $meta, array $admin, string $scope, bo
     $by = array_fill_keys(array_keys($cols), []);
     foreach ($rows as $q) { if (isset($by[$q['stage']])) { $by[$q['stage']][] = $q; } }
     ?>
-<div class="bd-wrap" id="board" data-sheet-ok="<?= e(t('Go to the case', 'Pumunta sa kaso')) ?>" data-sheet-cancel="<?= e(t('Cancel', 'Kanselahin')) ?>" data-sheet-close="<?= e(t('Got it', 'Sige')) ?>">
+<?php $i18n = [
+    'drop' => t('Drop to act on it', 'Bitawan para kumilos'), 'noDrop' => t('Only a tanod can fill this', 'Tanod lang ang makakapuno nito'), 'close' => t('Close', 'Isara'), 'loading' => t('Loading…', 'Naglo-load…'),
+    'openCase' => t('Open the full case', 'Buksan ang buong kaso'), 'offline' => t('Could not reach the server. Try again.', 'Hindi maabot ang server. Subukan muli.'), 'handler' => t('Handler', 'May hawak'),
+    'you' => t('you', 'ikaw'), 'nobody' => t('Nobody yet', 'Wala pa'), 'why' => t('Why the engine ranks it here', 'Bakit ito ang ranggo ng engine'),
+    'closed' => t('This case is finished.', 'Tapos na ang kasong ito.'), 'heldBy' => t('Only %s can act on this case while they handle it. You can read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo ang lahat.'),
+    'reviewHint' => t('Open the case to validate or reject it.', 'Buksan ang kaso para pagtibayin o tanggihan.'), 'passUp' => t('Pass it up', 'Ipasa pataas'), 'assign' => t('Assign a tanod', 'Magtalaga ng tanod'),
+    'chooseTanod' => t('Choose a tanod', 'Pumili ng tanod'), 'metresAway' => t('m away', 'm ang layo'), 'notLive' => t('Not reporting', 'Hindi nag-uulat'), 'recommended' => t('Recommended', 'Inirerekomenda'),
+    'noTanods' => t('No tanod accounts yet.', 'Wala pang account ng tanod.'), 'notePh' => t('What to check, who to talk to, what to bring back.', 'Ano ang titingnan, sino ang kakausapin, ano ang iuulat.'),
+    'instructions' => t('Instructions for the tanod', 'Mga tagubilin para sa tanod'), 'target' => t('Target date of resolution', 'Target na petsa ng paglutas'),
+    'womenFamily' => t('Women and Family', 'Kababaihan at Pamilya'), 'sensitive' => t('sensitive', 'sensitibo'), 'usualCommittee' => t('The usual one for this complaint', 'Ang karaniwan para sa reklamong ito'),
+    'committee' => t('Committee', 'Komite'), 'reasonPh' => t('In a few words', 'Sa ilang salita'), 'reasonK' => t('Why (the Kagawad and the resident see it)', 'Bakit (makikita ng Kagawad at ng residente)'),
+    'reasonC' => t('Why (the Chairman and the resident see it)', 'Bakit (makikita ng Punong Barangay at ng residente)'), 'standDown' => t('Any tanod on this case is stood down and told. The official becomes its handler.', 'Aalisin at sasabihan ang tanod na nasa kasong ito. Ang opisyal na ang hahawak.'),
+    'withChair' => t('This case is already with the Chairman. Send it back down from the case page.', 'Nasa Punong Barangay na ang kasong ito. Ibalik ito pababa mula sa pahina ng kaso.'),
+    'dispatch' => t('Dispatch', 'I-dispatch'), 'cancel' => t('Cancel', 'Kanselahin'), 'working' => t('Working…', 'Ginagawa…'),
+]; ?>
+<div class="bd-wrap" id="board" data-act="board-act.php" data-csrf="<?= e(csrf_token()) ?>" data-i18n="<?= e(json_encode($i18n, JSON_UNESCAPED_UNICODE)) ?>">
   <?php if ($err): ?>
     <p class="p-none-line"><?= e(t('SMART could not be reached just now. All notifications still shows everything.', 'Hindi maabot ang SMART ngayon. Ipinapakita pa rin ng Lahat ng abiso ang lahat.')) ?></p>
   <?php endif; ?>
@@ -87,7 +102,7 @@ function render_board(array $queue, array $meta, array $admin, string $scope, bo
               $href = 'case.php?id=' . rawurlencode((string) $q['report_id']);
               $short = $q['tracking_id'] ? preg_replace('/^[A-Z]+-\d{4}-/', '#', (string) $q['tracking_id']) : '';
           ?>
-            <article class="bd-card" draggable="true" data-href="<?= e($href) ?>" data-title="<?= e((string) $q['tracking_id']) ?>" style="--c:<?= e($lvC) ?>">
+            <article class="bd-card" draggable="true" data-id="<?= e((string) $q['report_id']) ?>" data-href="<?= e($href) ?>" data-title="<?= e((string) $q['tracking_id']) ?>" style="--c:<?= e($lvC) ?>">
               <div class="bd-top"><span class="bd-lv"><?= e($lvName) ?></span><span class="bd-age"><?= e(waiting_text($q['waiting_since'])) ?></span>
                 <details class="bd-menu"><summary aria-label="<?= e(t('More actions', 'Iba pang aksyon')) ?>">&#8943;</summary>
                   <div><a href="<?= e($href) ?>"><?= e(t('Open the case', 'Buksan ang kaso')) ?></a>

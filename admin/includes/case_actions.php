@@ -6,6 +6,8 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/case_ops.php';
+
 if (!isset($db, $id, $admin)) {
     http_response_code(404);  // opened directly, not from its page
     exit;
@@ -44,9 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             switch ($act) {
                 // 0130 (defense, 7 Sep): the ladder inside the barangay, several concerns in one report, and the sensitive mark.
                 case 'escalate_barangay':
-                    $comm = (string) ($_POST['committee'] ?? '');
-                    $db->rpc('escalate_in_barangay', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['reason'] ?? '')), 'p_committee' => $comm === '' ? null : $comm]);
-                    $flash = t('The case was passed up. The official has it now, and the resident was told.', 'Naipasa ang kaso pataas. Hawak na ito ng opisyal, at nasabihan ang residente.');
+                    $flash = op_escalate($db, $id, $_POST);
                     break;
 
                 case 'return_official':
@@ -110,48 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
 
                 case 'dispatch':
-                    $tanod = trim((string) ($_POST['tanod'] ?? ''));
-                    if ($tanod === '') {
-                        throw new SupabaseError(t('Choose a tanod before dispatching.', 'Pumili muna ng tanod bago mag-dispatch.'));
-                    }
-                    // Rose (2 Oct 2026): only a tanod who is on duty AND whose app
-                    // is reporting right now. On duty with the app closed is not
-                    // someone who will see the ticket.
-                    $live = null;
-                    foreach ((array) $db->rpc('tanod_roster', ['p_report' => $id]) as $t) {
-                        if (($t['tanod_id'] ?? null) === $tanod) { $live = $t; break; }
-                    }
-                    if (!$live || empty($live['assignable']) || empty($live['location_fresh'])) {
-                        throw new SupabaseError(t('That tanod is not active right now — their app is not reporting. Choose a tanod shown as ONLINE.',
-                                                  'Hindi aktibo ang tanod na iyan ngayon — hindi nag-uulat ang kanilang app. Pumili ng tanod na ONLINE.'));
-                    }
-
-                    // The target date is required (0071): set before the
-                    // dispatch, told to the resident, and on the tanod's
-                    // ticket. Instructions are checked here and by the RPC.
-                    $target = trim((string) ($_POST['target'] ?? ''));
-                    if ($target === '') {
-                        throw new SupabaseError(t('Set a target resolution date before dispatching.', 'Magtakda muna ng target na petsa bago mag-dispatch.'));
-                    }
-                    if (trim((string) ($_POST['note'] ?? '')) === '') {
-                        throw new SupabaseError(t('Write instructions for the tanod before dispatching.', 'Sumulat muna ng tagubilin para sa tanod bago mag-dispatch.'));
-                    }
-                    $iso = (new DateTimeImmutable($target, new DateTimeZone('Asia/Manila')))
-                        ->format(DateTimeInterface::ATOM);
-                    $db->rpc('set_resolution_target', [
-                        'p_report' => $id,
-                        'p_due'    => $iso,
-                        // 0079: moving an existing date later is an
-                        // extension and needs a reason.
-                        'p_reason' => trim((string) ($_POST['target_reason'] ?? '')) ?: null,
-                    ]);
-
-                    $db->rpc('admin_dispatch', [
-                        'p_report'       => $id,
-                        'p_tanod'        => $tanod,
-                        'p_instructions' => trim((string) ($_POST['note'] ?? '')) ?: null,
-                    ]);
-                    $flash = t('Dispatched. The tanod has been notified.', 'Na-dispatch. Naabisuhan na ang tanod.');
+                    $flash = op_dispatch($db, $id, $_POST);   // the same checks the work board uses (includes/case_ops.php)
                     break;
 
                 // 0057 — the resident's appeal of a denial. Grants it
