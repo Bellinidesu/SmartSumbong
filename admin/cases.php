@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/briefing.php';
 
 $admin = require_admin();
 $db    = db();
@@ -304,6 +305,7 @@ $keep = array_filter(['tab' => $tab, 'q' => $search, 'status' => $filter, 'categ
 $tabHref = fn(string $t) => '?' . http_build_query(['tab' => $t]);
 $noteBadge = $notesUnread + $escCount;
 ?>
+<?php if ($notices) { render_briefing($db, $admin); } ?>
 <?php if ($notices): ?>
 <nav class="ss-tabs" aria-label="<?= e(t('Notifications views', 'Mga tanaw ng Abiso')) ?>">
   <a href="<?= e($tabHref('next')) ?>"<?= $tab === 'next' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('Next up', 'Susunod gawin')) ?></a>
@@ -387,10 +389,12 @@ $noteBadge = $notesUnread + $escCount;
         : e(t('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
               'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) ?></p>
   <?php endif; ?>
-  <?php foreach ($notifications as $n): ?>
+  <?php $lastDay = null; foreach ($notifications as $n): $dl = day_label($n['created_at']); if ($dl !== $lastDay): $lastDay = $dl; ?>
+    <div class="ss-day"><?= e($dl) ?></div>
+  <?php endif; ?>
     <div class="p-notif p-unread">
       <span class="p-n-ico"><?= p_icon('i-bell', 18) ?></span>
-      <div><div><span class="p-unread-dot"></span><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
+      <div><div><span class="p-unread-dot"></span><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
       <?php if (!empty($n['report_id'])): ?>
         <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
       <?php elseif (!empty($n['subject_user_id'])): ?>
@@ -731,6 +735,13 @@ $noteBadge = $notesUnread + $escCount;
     }).join('');
   }
 
+  // Today / Yesterday / "Oct 12", in Manila, to group the list like a timeline.
+  function dayLabel(iso) {
+    const fmt = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(d);
+    const d = fmt(new Date(iso)), t = fmt(new Date()), y = fmt(new Date(Date.now() - 86400000));
+    return d === t ? T('Today', 'Ngayon') : d === y ? T('Yesterday', 'Kahapon')
+      : new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }).format(new Date(iso));
+  }
   function renderNotifications(rows) {
     document.getElementById('notif-count').textContent = rows.length;
     const list = document.getElementById('notif-list');
@@ -741,15 +752,19 @@ $noteBadge = $notesUnread + $escCount;
             'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) + '</p>';
       return;
     }
+    let lastDay = null;
     list.innerHTML = rows.map(n => {
+      const dl = dayLabel(n.created_at);
+      const head = dl !== lastDay ? '<div class="ss-day">' + escapeHtml(dl) + '</div>' : '';
+      lastDay = dl;
       const review = n.report_id
         ? '<a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=' + encodeURIComponent(n.report_id) + '">' + T('Review', 'Suriin') + '</a>'
         : n.subject_user_id
           ? '<a class="p-btn p-btn-sm p-btn-orange" href="' + ((n.subject && n.subject.role) === 'tanod' ? 'personnel.php' : 'residents.php') + '?id=' + encodeURIComponent(n.subject_user_id) + '">' + T('Review', 'Suriin') + '</a>'
           : '<span></span>';
-      return '<div class="p-notif p-unread">' +
+      return head + '<div class="p-notif p-unread">' +
         '<span class="p-n-ico"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg></span>' +
-        '<div><div><span class="p-unread-dot"></span><b>' + escapeHtml(n.message) + '</b></div>' +
+        '<div><div><span class="p-unread-dot"></span>' + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +
         '<div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + '</div></div>' +
         review + '</div>';
     }).join('');
