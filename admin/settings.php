@@ -26,6 +26,50 @@ $db    = db();
 
 // 0084 (Rose): add an administrator, or issue one a new temporary
 // password. The password is shown once, here, and never stored by the portal.
+// 0130 (defense, 7 Sep): the barangay's positions. Which Kagawad chairs which committee, who is the Chairman, which tanods are the
+// designated women responders, and which committee usually takes which kind of complaint. Each is one action here.
+const COMMITTEES = [
+    'peace_order'       => ['Peace and Order', 'Kapayapaan at Kaayusan'],
+    'health_sanitation' => ['Health and Sanitation', 'Kalusugan at Kalinisan'],
+    'education'         => ['Education', 'Edukasyon'],
+    'infrastructure'    => ['Infrastructure', 'Imprastraktura'],
+    'environment'       => ['Environment', 'Kapaligiran'],
+    'women_family'      => ['Women and Family', 'Kababaihan at Pamilya'],
+    'youth_sports'      => ['Youth and Sports', 'Kabataan at Palakasan'],
+    'agriculture'       => ['Agriculture', 'Agrikultura'],
+    'appropriations'    => ['Appropriations', 'Pondo'],
+];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['set_role', 'set_responder', 'set_committee_map'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            $uid = (string) ($_POST['user'] ?? '');
+            if ($_POST['action'] === 'set_role') {
+                $role = (string) ($_POST['official_role'] ?? '');
+                $comm = (string) ($_POST['committee'] ?? '');
+                $db->rpc('set_official_role', ['p_user' => $uid, 'p_role' => $role === '' ? null : $role,
+                                              'p_committee' => $role === 'kagawad' && isset(COMMITTEES[$comm]) ? $comm : null, 'p_women' => null]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Position saved.', 'Nai-save ang posisyon.')];
+            } elseif ($_POST['action'] === 'set_responder') {
+                $db->rpc('set_official_role', ['p_user' => $uid, 'p_role' => null, 'p_committee' => null, 'p_women' => !empty($_POST['on'])]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Responder designation saved.', 'Nai-save ang pagtatalaga ng responder.')];
+            } else {
+                $cat = (string) ($_POST['category'] ?? ''); $comm = (string) ($_POST['committee'] ?? '');
+                if (isset(COMMITTEES[$comm]) && preg_match('/^[a-z_]+$/', $cat)) {
+                    $db->update('committee_for_category', ['category' => 'eq.' . $cat], ['committee' => $comm]);
+                    $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Committee saved.', 'Nai-save ang komite.')];
+                }
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#admins');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['add_admin', 'reset_admin'], true)) {
     session_start_once();
     if (!csrf_check($_POST['csrf'] ?? null)) {
@@ -163,11 +207,13 @@ unset($_SESSION['st_flash']);
 $admins = [];
 try {
     $admins = $db->select('users', [
-        'select' => 'id,full_name,email,must_change_password,is_suspended,created_at',
+        'select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee',
         'role'   => 'eq.admin',
         'order'  => 'created_at.asc',
     ]);
-} catch (SupabaseError $e) { $admins = []; }
+    $tanods  = $db->select('users', ['select' => 'id,full_name,women_responder', 'role' => 'eq.tanod', 'is_suspended' => 'is.false', 'order' => 'full_name.asc']);
+    $cmap    = $db->select('committee_for_category', ['select' => 'category,committee', 'order' => 'category.asc']);
+} catch (SupabaseError $e) { $admins = []; $tanods = []; $cmap = []; }
 ?>
 <section class="st-pane" data-pane="admins" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'ok'): ?>
@@ -175,16 +221,39 @@ try {
       <?= e(!empty($stFlash['new']) ? t('Account created. A link to set a password was emailed to', 'Nagawa ang account. Naipadala ang link para magtakda ng password sa') : t('A link to set a new password was emailed to', 'Naipadala ang link para magtakda ng bagong password sa')) ?>
       <b><?= e($stFlash['who']) ?></b>. <?= e(t('Only they can see it.', 'Sila lang ang makakakita nito.')) ?>
     </div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'info'): ?>
+    <div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash): ?>
     <div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div>
   <?php endif; ?>
   <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t">
-    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Account', 'Account')) ?></th><th><?= e(t('Online now', 'Online ngayon')) ?></th><th></th></tr></thead>
+    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Account', 'Account')) ?></th><th><?= e(t('Online now', 'Online ngayon')) ?></th><th></th><th><?= e(t('Position', 'Posisyon')) ?></th></tr></thead>
     <tbody>
     <?php foreach ($admins as $a): ?>
       <tr>
         <td><span class="ss-who"><?= admin_chip($a['id'], (string) $a['full_name'], 28) ?><?= e(formal_name($a['full_name'])) ?></span><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
         <td><?= e((string) ($a['email'] ?? '')) ?></td>
+        <td>
+          <form method="post" class="ss-posform">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="set_role">
+            <input type="hidden" name="user" value="<?= e($a['id']) ?>">
+            <label class="p-sr" for="pos-<?= e($a['id']) ?>"><?= e(t('Position', 'Posisyon')) ?></label>
+            <select class="p-input-plain" id="pos-<?= e($a['id']) ?>" name="official_role" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
+              <option value=""><?= e(t('Staff', 'Kawani')) ?></option>
+              <?php foreach (['secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')] as $rv => $rl): ?>
+                <option value="<?= e($rv) ?>" <?= ($a['official_role'] ?? '') === $rv ? 'selected' : '' ?>><?= e($rl) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <select class="p-input-plain" name="committee" aria-label="<?= e(t('Committee', 'Komite')) ?>">
+              <option value=""><?= e(t('No committee', 'Walang komite')) ?></option>
+              <?php foreach (COMMITTEES as $cv => $cl): ?>
+                <option value="<?= e($cv) ?>" <?= ($a['committee'] ?? '') === $cv ? 'selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
+          </form>
+        </td>
         <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
         <td class="ss-online" data-admin="<?= e($a['id']) ?>"><span class="ss-dot"></span><?= e(t('Offline', 'Offline')) ?></td>
         <td class="p-right"><?php if ($a['id'] !== $admin['id']): ?>
@@ -200,6 +269,37 @@ try {
     <?php endforeach; ?>
     </tbody>
   </table></div></div>
+  <div class="p-card p-card-pad ss-posinfo">
+    <p class="p-eyebrow"><?= e(t('Layered escalation', 'Patong-patong na eskalasyon')) ?></p>
+    <p class="p-hint"><?= e(t('A case goes up one step at a time: the Tanod, then the Kagawad of the committee that usually takes that kind of complaint, then the Chairman. A Kagawad needs a committee; there is one Chairman. Nothing moves by itself.', 'Isang hakbang bawat akyat ng kaso: ang Tanod, saka ang Kagawad ng komiteng karaniwang may hawak ng ganoong reklamo, saka ang Punong Barangay. Kailangan ng komite ang Kagawad; iisa ang Punong Barangay. Walang kusang gumagalaw.')) ?></p>
+    <p class="p-label"><?= e(t('Which committee takes which complaint', 'Aling komite ang may hawak ng aling reklamo')) ?></p>
+    <div class="ss-cmap">
+      <?php foreach ($cmap as $m): ?>
+        <form method="post" class="ss-cmap-row">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="set_committee_map">
+          <input type="hidden" name="category" value="<?= e($m['category']) ?>">
+          <span><?= e(category_label((string) $m['category'])) ?></span>
+          <select class="p-input-plain" name="committee" data-autosubmit aria-label="<?= e(category_label((string) $m['category'])) ?>">
+            <?php foreach (COMMITTEES as $cv => $cl): ?><option value="<?= e($cv) ?>" <?= $m['committee'] === $cv ? 'selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?>
+          </select>
+        </form>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <div class="p-card p-card-pad ss-posinfo">
+    <p class="p-eyebrow"><?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?></p>
+    <p class="p-hint"><?= e(t('Tanods designated for women and children cases (the VAWC desk). Sensitive cases show them first when a tanod is chosen.', 'Mga tanod na itinalaga sa mga kaso ng kababaihan at bata (VAWC desk). Una silang ipinapakita sa mga sensitibong kaso kapag pipili ng tanod.')) ?></p>
+    <?php if (!$tanods): ?><p class="p-none-line"><?= e(t('No tanod accounts yet.', 'Wala pang account ng tanod.')) ?></p><?php endif; ?>
+    <?php foreach ($tanods as $tn): ?>
+      <form method="post" class="ss-resp-row">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="set_responder">
+        <input type="hidden" name="user" value="<?= e($tn['id']) ?>">
+        <label class="sd-c"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($tn['women_responder']) ? 'checked' : '' ?>> <?= e(formal_name($tn['full_name'])) ?></label>
+      </form>
+    <?php endforeach; ?>
+  </div>
   <div class="p-card p-card-pad ss-addadmin">
     <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
     <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
