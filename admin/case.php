@@ -70,7 +70,7 @@ unset($_SESSION['flash']);
 // ---------- data ----------
 $error = null;
 $report = null;
-$media = $logs = $dispatches = $roster = $concerns = $womenIds = [];
+$media = $logs = $dispatches = $roster = $concerns = $womenIds = $rankOf = [];
 $policy = null;
 $feedback = null;
 $proof = [];
@@ -275,6 +275,8 @@ if ($report && !$error) {
     // every screen that will not show it.
     if ($canAssign || $active) {
         $second['roster'] = ['rpc/tanod_roster', ['p_report' => $id], true];
+        // SMART's order for who to send (0128): near, free, knows the area, a fresh reading.
+        if ($canAssign) { $second['rank'] = ['rpc/smart_tanod_ranking', ['p_report' => $id], true]; }
     }
 
     try {
@@ -326,6 +328,9 @@ if ($report && !$error) {
             } else {
                 $roster = (array) $got['roster'];
             }
+        }
+        if (isset($got['rank']) && !$got['rank'] instanceof SupabaseError) {
+            foreach ((array) $got['rank'] as $i => $rk) { $rankOf[$rk['tanod_id']] = ['place' => $i, 'row' => $rk]; }
         }
     } catch (SupabaseError $ex) {
         $error = safe_error($ex);
@@ -1056,6 +1061,13 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <p class="p-none-line"><?= e(t('No tanod accounts exist yet. Add them under Personnel.', 'Wala pang account ng tanod. Idagdag sila sa Mga Tanod.')) ?></p>
         <?php endif; ?>
 
+        <?php // Recommended first (SMART), the tanods it could not rank after; a sensitive case then puts women responders ahead of that.
+          $recId = null;
+          if ($rankOf) {
+              usort($roster, fn($a, $b) => ($rankOf[$a['tanod_id']]['place'] ?? 999) <=> ($rankOf[$b['tanod_id']]['place'] ?? 999));
+              foreach ($roster as $r0) { if (!empty($r0['assignable']) && !empty($r0['location_fresh']) && isset($rankOf[$r0['tanod_id']])) { $recId = $r0['tanod_id']; break; } }
+          }
+        ?>
         <?php if (!empty($report['is_sensitive'])): usort($roster, fn($a, $b) => (int) in_array($b['tanod_id'], $womenIds, true) <=> (int) in_array($a['tanod_id'], $womenIds, true)); ?>
           <p class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b> <?= e(t('Consider elevating it first. If a tanod is needed, the designated women responders are listed first.', 'Isaalang-alang munang i-elevate. Kung kailangan ng tanod, nasa unahan ang mga itinalagang responder para sa kababaihan.')) ?></p>
         <?php endif; ?>
@@ -1067,6 +1079,15 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                      <?= $ok ? '' : 'disabled' ?>>
               <span class="p-who">
                 <?= e(formal_name($t['full_name'])) ?><?php if (in_array($t['tanod_id'], $womenIds, true)): ?> <span class="p-badge p-b-violet ss-wr"><?= e(t('Women responder', 'Responder para sa kababaihan')) ?></span><?php endif; ?>
+                <?php if ($recId !== null && $t['tanod_id'] === $recId && empty($report['is_sensitive'])): ?> <span class="p-badge p-b-done ss-rec"><?= e(t('Recommended', 'Inirerekomenda')) ?></span><?php endif; ?>
+                <?php if ($ok && isset($rankOf[$t['tanod_id']])): $rk = $rankOf[$t['tanod_id']]['row']; ?>
+                  <small class="ss-why"><?= e(implode(' · ', array_filter([
+                      $rk['metres'] !== null ? distance_label((float) $rk['metres']) : null,
+                      (int) $rk['active_jobs'] === 0 ? t('free', 'walang hawak') : (int) $rk['active_jobs'] . ' ' . t('job(s) in hand', 'kasong hawak'),
+                      (int) $rk['closed_nearby'] > 0 ? (int) $rk['closed_nearby'] . ' ' . t('closed nearby', 'natapos sa malapit') : null,
+                      !empty($rk['location_fresh']) ? t('location is fresh', 'sariwa ang lokasyon') : null,
+                  ]))) ?></small>
+                <?php endif; ?>
                 <?php if ($ok && $t['metres'] !== null): ?>
                   <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
                     <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php

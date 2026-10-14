@@ -78,7 +78,7 @@ if (!in_array($category, CATEGORIES, true)) { $category = ''; }
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
 // Rose (7 Oct 2026): Overdue and Escalated sit in the same Status menu.
 const OPEN_STATES = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
-if (!isset(STATUS_GROUPS[$filter]) && !in_array($filter, ['overdue', 'escalated'], true)) { $filter = ''; }
+if (!isset(STATUS_GROUPS[$filter]) && !in_array($filter, ['overdue', 'escalated', 'with_kagawad', 'with_chairman'], true)) { $filter = ''; }
 
 // Clicking a column heading sorts by it; clicking the same one again
 // reverses. PostgREST cannot order by an embedded resident name, so that
@@ -134,6 +134,9 @@ try {
     } elseif ($filter === 'escalated') {
         // To an outside office, or handed up to a higher official inside the barangay.
         $and[] = 'or(referred_to.not.is.null,higher_official.not.is.null)';
+    } elseif ($filter === 'with_kagawad' || $filter === 'with_chairman') {
+        // 0130: where the case sits on the ladder inside the barangay.
+        $query['tier'] = 'eq.' . ($filter === 'with_kagawad' ? 1 : 2);
     } elseif ($filter !== '') {
         $query['status'] = 'in.(' . implode(',', STATUS_GROUPS[$filter]) . ')';
     }
@@ -465,6 +468,8 @@ $noteBadge = $notesUnread + $escCount;
             'rejected'     => t('Rejected', 'Tinanggihan'),
             'overdue'      => t('Overdue', 'Lampas na sa takdang oras'),
             'escalated'    => t('Escalated', 'In-escalate'),
+            'with_kagawad'  => t('With a Kagawad', 'Nasa Kagawad'),
+            'with_chairman' => t('With the Chairman', 'Nasa Punong Barangay'),
         ] as $s => $lbl): ?>
           <option value="<?= e($s) ?>" <?= $filter === $s ? 'selected' : '' ?>><?= e($lbl) ?></option>
         <?php endforeach; ?>
@@ -769,6 +774,8 @@ $noteBadge = $notesUnread + $escCount;
     else if (TANOD === 'active') q = q.in('status', ['assigned', 'in_progress', 'offline_investigation']);
     if (STATUS === 'overdue') q = q.in('status', OPEN_STATES).lt('due_at', new Date().toISOString());
     else if (STATUS === 'escalated' && !SEARCH) q = q.or('referred_to.not.is.null,higher_official.not.is.null');
+    else if (STATUS === 'with_kagawad') q = q.eq('tier', 1);
+    else if (STATUS === 'with_chairman') q = q.eq('tier', 2);
     else if (STATUS && STATUS !== 'escalated') q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
     if (CATEGORY) q = q.eq('category', CATEGORY);
     if (WHO === 'unclaimed') q = q.is('handler_id', null);
