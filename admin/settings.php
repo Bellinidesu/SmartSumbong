@@ -491,7 +491,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <?php endforeach; ?>
     </div>
     <p class="p-eyebrow" style="margin-top:14px"><?= e(t('Where the levels start (out of 100)', 'Kung saan nagsisimula ang mga antas (sa 100)')) ?></p>
-    <div class="ss-cmap">
+    <div class="ss-cmap ss-cmap--3">
       <?php foreach (['urgent_from' => t('Urgent from', 'Madalian mula'), 'high_from' => t('High from', 'Mataas mula'), 'normal_from' => t('Normal from', 'Katamtaman mula')] as $fk => $fl): ?>
         <div class="ss-cmap-row"><label for="lv-<?= e($fk) ?>"><?= e($fl) ?></label><input class="p-input-plain" id="lv-<?= e($fk) ?>" type="number" name="<?= e($fk) ?>" min="1" max="100" value="<?= (int) $sr[$fk] ?>"></div>
       <?php endforeach; ?>
