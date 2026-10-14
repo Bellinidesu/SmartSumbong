@@ -12,6 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/briefing.php';
+require_once __DIR__ . '/includes/board.php';
 
 $admin = require_admin();
 $db    = db();
@@ -256,6 +257,14 @@ try {
             $queue = $stage === '' ? $all : array_values(array_filter($all, fn($q) => $q['stage'] === $stage));
         } catch (SupabaseError $qe) { $queueErr = true; }
     }
+    // The work board (Ace's pick): who has each case, and what this person is meant to see first.
+    $bmeta = ['owners' => [], 'committee' => [], 'me' => ['official_role' => null, 'committee' => null]]; $bscope = 'all'; $bcount = ['mine' => 0, 'free' => 0, 'all' => 0];
+    if ($tab === 'next' && $notices) {
+        $bmeta  = board_data($db, $queue, $admin);
+        $bscope = (string) ($_GET['own'] ?? (in_array($bmeta['me']['official_role'], ['kagawad', 'chairman'], true) ? 'mine' : 'all'));
+        if (!in_array($bscope, ['mine', 'free', 'all'], true)) { $bscope = 'all'; }
+        foreach (array_keys($bcount) as $sc) { $bcount[$sc] = count(array_filter($queue, fn($q) => board_visible($q, $bmeta, $admin, $sc))); }
+    }
 
     // "Needs attention" is the question an admin actually opens this page
     // with: what is late, what nobody has picked up, and what is still
@@ -308,55 +317,23 @@ $noteBadge = $notesUnread + $escCount;
 <?php if ($notices) { render_briefing($db, $admin); } ?>
 <?php if ($notices): ?>
 <nav class="ss-tabs" aria-label="<?= e(t('Notifications views', 'Mga tanaw ng Abiso')) ?>">
-  <a href="<?= e($tabHref('next')) ?>"<?= $tab === 'next' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('Next up', 'Susunod gawin')) ?></a>
+  <a href="<?= e($tabHref('next')) ?>"<?= $tab === 'next' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('Board', 'Tablero')) ?></a>
   <a href="<?= e($tabHref('notes')) ?>"<?= $tab === 'notes' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('All notifications', 'Lahat ng abiso')) ?><?php if ($noteBadge > 0): ?> <span class="p-badge-n" id="tab-notes-n"><?= $noteBadge ?></span><?php endif; ?></a>
 </nav>
 <?php endif; ?>
 
 <?php if ($tab === 'next'): ?>
-<!-- ---------- Next up: the SMART queue (0129) ---------- -->
-<div class="p-band">
-  <h2><?= e(t('Next up', 'Susunod gawin')) ?><span class="p-badge-n p-badge-n--quiet" id="queue-count"><?= count($queue) ?></span></h2>
-  <span class="p-sub ss-qnote"><?= e(t('Open cases, most pressing first. SMART gives its reasons; you decide.', 'Mga bukás na kaso, pinakamadalian muna. Nagbibigay ng dahilan ang SMART; ikaw ang magpapasya.')) ?></span>
+<!-- ---------- the work board (0129 queue, one column per stage) ---------- -->
+<div class="bd-bar">
+  <div class="bd-ttl"><h2><?= e(t('Work board', 'Tablero ng gawain')) ?></h2><span class="p-sub"><?= e(t('Drag a card to another stage: the real action opens first.', 'I-drag ang kard sa ibang yugto: bubukas muna ang tunay na aksyon.')) ?></span></div>
+  <div class="p-seg-mini bd-scope" role="group" aria-label="<?= e(t('Whose cases', 'Kaninong kaso')) ?>">
+    <?php foreach (['mine' => t('Mine', 'Akin'), 'free' => t('Unclaimed', 'Walang may hawak'), 'all' => t('Everyone', 'Lahat')] as $sc => $lb): ?>
+      <a href="?tab=next&amp;own=<?= e($sc) ?>" class="<?= $bscope === $sc ? 'p-on' : '' ?>" <?= $bscope === $sc ? 'aria-current="true"' : '' ?>><?= e($lb) ?> <b><?= (int) $bcount[$sc] ?></b></a>
+    <?php endforeach; ?>
+  </div>
 </div>
-<div class="ss-stages" role="group" aria-label="<?= e(t('Filter by what is needed', 'Salain ayon sa kailangan')) ?>">
-  <?php $stageLabel = ['review' => t('Review', 'Suriin'), 'dispatch' => t('Assign', 'Magtalaga'), 'accept' => t('Waiting for accept', 'Hinihintay ang pagtanggap'),
-                       'reply' => t('Reply', 'Sagutin'), 'approve' => t('Approve', 'Aprubahan'), 'escalation' => t('Escalation', 'Eskalasyon'), 'follow_up' => t('Follow up', 'Sundan')]; ?>
-  <a class="p-chip<?= $stage === '' ? ' p-on' : '' ?>" href="?tab=next"><?= e(t('All', 'Lahat')) ?> <span class="p-chip-num"><?= array_sum($queueStages) ?></span></a>
-  <?php foreach (QUEUE_STAGES as $sg): ?>
-    <a class="p-chip<?= $stage === $sg ? ' p-on' : '' ?>" href="?tab=next&amp;stage=<?= e($sg) ?>"><?= e($stageLabel[$sg]) ?> <span class="p-chip-num<?= $queueStages[$sg] > 0 && in_array($sg, ['escalation', 'approve', 'review'], true) ? ' p-hot' : '' ?>"><?= (int) $queueStages[$sg] ?></span></a>
-  <?php endforeach; ?>
-</div>
-<?php $qPage = array_slice($queue, ($page - 1) * PER_PAGE, PER_PAGE); ?>
-<div class="p-card p-table-card"><div class="p-tscroll">
-  <table class="p-t ss-queue-t">
-    <thead><tr>
-      <th scope="col"><?= e(t('Case', 'Kaso')) ?></th>
-      <th scope="col"><?= e(t('Level', 'Antas')) ?></th>
-      <th scope="col"><?= e(t('Next action', 'Susunod na aksyon')) ?></th>
-      <th scope="col"><?= e(t('Waiting', 'Naghihintay')) ?></th>
-      <th scope="col"><?= e(t('Priority', 'Prayoridad')) ?></th>
-    </tr></thead>
-    <tbody id="queue-tbody">
-      <?php if ($queueErr): ?>
-        <tr><td colspan="5" class="p-empty"><?= e(t('SMART could not be reached just now. All cases still shows every case.', 'Hindi maabot ang SMART ngayon. Ipinapakita pa rin ng Lahat ng kaso ang bawat kaso.')) ?></td></tr>
-      <?php elseif (!$qPage): ?>
-        <tr><td colspan="5" class="p-empty"><?= e(t('Nothing waiting on you. Every open case has someone on it.', 'Walang naghihintay sa iyo. May nakatalaga sa bawat bukás na kaso.')) ?></td></tr>
-      <?php endif; ?>
-      <?php foreach ($qPage as $q):
-          $pr = (int) $q['priority']; $why = []; foreach (($q['reasons'] ?? []) as $rs) { $why[] = ($rs['detail'] ?? $rs['factor']) . ' +' . (int) $rs['points']; } ?>
-        <tr class="p-click" data-href="case.php?id=<?= e($q['report_id']) ?>">
-          <td><span class="p-mono-id"><?= e($q['tracking_id']) ?></span><div class="p-sub"><?= e($q['subject']) ?> &middot; <?= e(category_label($q['category'])) ?></div></td>
-          <td><?= smart_badge(['effective_level' => $q['level'] === 'unscored' ? null : $q['level'], 'score' => 0]) ?></td>
-          <td><a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($q['report_id']) ?>"><?= e($q['next_action']) ?></a></td>
-          <td class="p-num"><?= e(waiting_text($q['waiting_since'])) ?></td>
-          <td><div class="ss-bar" title="<?= e(implode(' · ', $why)) ?>"><i style="width:<?= min(100, $pr) ?>%"></i></div><small class="ss-why"><?= e(implode(' · ', array_slice($why, 0, 3))) ?></small></td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
-</div></div>
-<div id="queue-pager"><?= pager(count($queue), $page) ?></div>
+<?php render_board($queue, $bmeta, $admin, $bscope, $queueErr); ?>
+<script src="assets/js/board.js?v=<?= e(asset_version('../js/board.js')) ?>"></script>
 <?php endif; ?>
 
 <?php if ($tab === 'notes'): ?>
@@ -777,6 +754,18 @@ $noteBadge = $notesUnread + $escCount;
     const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
     return h < 1 ? T('under 1 h', 'wala pang 1 oras') : h < 48 ? h + ' ' + T('h', 'oras') : Math.floor(h / 24) + ' ' + T('days', 'araw');
   }
+  async function refreshBoard() {
+    if (window.ssBoardBusy && window.ssBoardBusy()) return;   // not while a card is in someone's hand
+    try {
+      const r = await fetch(location.href, { credentials: 'same-origin', cache: 'no-store' });
+      if (!r.ok) return;
+      const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+      const nb = doc.getElementById('board'), cur = document.getElementById('board');
+      if (nb && cur) cur.innerHTML = nb.innerHTML;
+      const sc = doc.querySelector('.bd-scope'), cs = document.querySelector('.bd-scope');
+      if (sc && cs) cs.innerHTML = sc.innerHTML;
+    } catch (e) { /* keep what is on screen */ }
+  }
   async function loadQueue() {
     const { data, error } = await sb.rpc('smart_queue', { p_stage: null, p_limit: 500 });
     if (error || !Array.isArray(data)) return;   // keep what is on screen
@@ -857,7 +846,7 @@ $noteBadge = $notesUnread + $escCount;
     timerRef.id = setTimeout(fn, 250);
   };
   // only the part of the page that is on screen is refreshed
-  const kickReports = debounced(TAB === 'all' ? loadReports : TAB === 'next' ? loadQueue : () => {}, { id: null });
+  const kickReports = debounced(TAB === 'all' ? loadReports : TAB === 'next' ? refreshBoard : () => {}, { id: null });
   const kickNotifs  = debounced(TAB === 'notes' ? loadNotifications : () => {}, { id: null });
 
   let wasDown = false;
