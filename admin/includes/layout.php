@@ -76,6 +76,22 @@ function waiting_text(?string $iso): string
 }
 
 
+/** The committees a Kagawad chairs, as (English, Tagalog); the key is what the database stores (0130). */
+function committee_labels(): array
+{
+    return [
+        'peace_order'       => [t('Peace and Order', 'Kapayapaan at Kaayusan')],
+        'health_sanitation' => [t('Health and Sanitation', 'Kalusugan at Kalinisan')],
+        'education'         => [t('Education', 'Edukasyon')],
+        'infrastructure'    => [t('Infrastructure', 'Imprastraktura')],
+        'environment'       => [t('Environment', 'Kapaligiran')],
+        'women_family'      => [t('Women and Family', 'Kababaihan at Pamilya')],
+        'youth_sports'      => [t('Youth and Sports', 'Kabataan at Palakasan')],
+        'agriculture'       => [t('Agriculture', 'Agrikultura')],
+        'appropriations'    => [t('Appropriations', 'Pondo')],
+    ];
+}
+
 function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();

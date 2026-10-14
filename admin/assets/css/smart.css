@@ -38,3 +38,19 @@
 .ss-sc-list span{color:var(--p-muted)}
 .ss-sc-line{margin:10px 0 0;font-size:14px}
 .ss-sc-change{margin-top:12px}
+/* the ladder, concerns and sensitive cases on a case (0130) */
+.ss-ladder{list-style:none;display:flex;gap:6px;margin:10px 0;padding:0;font-size:13px;font-weight:700}
+.ss-ladder li{flex:1;text-align:center;padding:7px 4px;border-radius:8px;background:var(--p-surface-2);border:1px solid var(--p-line);color:var(--p-muted)}
+.ss-ladder li.past{color:var(--p-ink)}
+.ss-ladder li.now{background:var(--p-blue);border-color:var(--p-blue);color:#fff}
+.ss-sensitive{margin:10px 0;padding:10px 12px;border-radius:10px;background:#FDE3E1;color:#8A1C14;font-size:13.5px;border:1px solid #F3B8B3}
+.ss-sensitive b{display:block;margin-bottom:2px}
+.ss-wr{margin-left:6px}
+.ss-concern-list{list-style:none;margin:6px 0;padding:0;display:grid;gap:8px}
+.ss-concern-list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 14px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--p-surface-2);border:1px solid var(--p-line)}
+.ss-concern-list li.is-done{opacity:.75}
+.ss-concern-act{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ss-posform{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ss-cmap{display:grid;gap:6px;margin-top:6px}
+.ss-cmap-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.ss-resp-row{padding:4px 0}
