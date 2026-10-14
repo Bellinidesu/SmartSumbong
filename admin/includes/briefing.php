@@ -119,20 +119,34 @@ function render_briefing(Supabase $db, array $admin): void
     ?>
 <section class="ss-brief" id="ss-brief" data-now="<?= e($here) ?>" aria-label="<?= e(t('The engine\'s briefing', 'Ang briefing ng engine')) ?>">
   <div class="ss-brief-hero">
-    <?= smart_logo(44) ?>
-    <div class="ss-brief-txt">
-      <?php foreach ($periods as $key => $p): ?>
-        <div class="ss-brief-pane" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
-          <b><?= e($p['greet']) ?></b>
-          <p><?= e($p['line']) ?></p>
-        </div>
-      <?php endforeach; ?>
-      <p class="ss-thinkline" aria-live="polite"><?= e(t('Reading the day…', 'Binabasa ang araw…')) ?></p>
+    <div class="ss-clock" id="ss-clock" data-sky="day" role="group" aria-label="<?= e(t('Time and weather in Pasay', 'Oras at panahon sa Pasay')) ?>">
+      <div class="ss-sky" aria-hidden="true"><i class="ss-orb"></i><i class="ss-cloud c1"></i><i class="ss-cloud c2"></i><i class="ss-stars"></i></div>
+      <div class="ss-clock-in">
+        <div class="ss-time"><b id="ss-clock-time">--:--</b><small id="ss-clock-ampm"></small></div>
+        <div class="ss-date" id="ss-clock-date"></div>
+        <div class="ss-wx" id="ss-wx" data-state="loading"><span class="ss-wx-ic" id="ss-wx-ic"></span>
+          <span class="ss-wx-txt"><b id="ss-wx-t">--°</b><span id="ss-wx-d"><?= e(t('Checking the weather…', 'Tinitingnan ang panahon…')) ?></span></span></div>
+        <div class="ss-wx-more" id="ss-wx-more"></div>
+      </div>
     </div>
-    <div class="p-seg-mini ss-brief-tabs" role="tablist" aria-label="<?= e(t('Briefing', 'Buod ng engine')) ?>">
-      <?php foreach ($periods as $key => $p): ?>
-        <button type="button" role="tab" data-period="<?= e($key) ?>" class="<?= $key === $here ? 'p-on' : '' ?>" aria-selected="<?= $key === $here ? 'true' : 'false' ?>"><?= e($p['name']) ?><?= $key === $here ? ' <i class="ss-now" title="' . e(t('Now', 'Ngayon')) . '"></i>' : '' ?></button>
-      <?php endforeach; ?>
+    <div class="ss-brief-main">
+      <div class="ss-brief-top">
+        <?= smart_logo(36) ?>
+        <div class="p-seg-mini ss-brief-tabs" role="tablist" aria-label="<?= e(t('Briefing', 'Buod ng engine')) ?>">
+          <?php foreach ($periods as $key => $p): ?>
+            <button type="button" role="tab" data-period="<?= e($key) ?>" class="<?= $key === $here ? 'p-on' : '' ?>" aria-selected="<?= $key === $here ? 'true' : 'false' ?>"><?= e($p['name']) ?><?= $key === $here ? ' <i class="ss-now" title="' . e(t('Now', 'Ngayon')) . '"></i>' : '' ?></button>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <div class="ss-brief-txt">
+        <?php foreach ($periods as $key => $p): ?>
+          <div class="ss-brief-pane" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
+            <b><?= e($p['greet']) ?></b>
+            <p><?= e($p['line']) ?></p>
+          </div>
+        <?php endforeach; ?>
+        <p class="ss-thinkline" aria-live="polite"><?= e(t('Reading the day…', 'Binabasa ang araw…')) ?></p>
+      </div>
     </div>
   </div>
   <?php foreach ($periods as $key => $p): ?>
@@ -211,6 +225,7 @@ function render_briefing(Supabase $db, array $admin): void
       <a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Settings', 'Mga Setting')) ?></a></article>
   </section>
 </div>
+<script>window.SS_WX = {lat: 14.5194, lng: 121.0122, labels: <?= json_encode(["clear" => t("Clear", "Maaliwalas"), "mostly" => t("Mostly clear", "Halos maaliwalas"), "partly" => t("Partly cloudy", "Bahagyang maulap"), "cloudy" => t("Cloudy", "Maulap"), "fog" => t("Fog", "Hamog"), "drizzle" => t("Drizzle", "Ambon"), "rain" => t("Rain", "Ulan"), "shower" => t("Rain showers", "Pagulan"), "storm" => t("Thunderstorm", "Pagkulog at pagkidlat"), "off" => t("Weather unavailable", "Walang datos ng panahon"), "feels" => t("Feels like", "Pakiramdam"), "wind" => t("Wind", "Hangin"), "rainnow" => t("Rain now", "Ulan ngayon")], JSON_UNESCAPED_UNICODE) ?>};</script>
 <script src="assets/js/briefing.js?v=<?= e(asset_version('../js/briefing.js')) ?>"></script>
 <?php
 }
