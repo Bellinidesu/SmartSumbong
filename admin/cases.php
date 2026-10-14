@@ -766,6 +766,7 @@ $noteBadge = $notesUnread + $escCount;
       if (sc && cs) cs.innerHTML = sc.innerHTML;
     } catch (e) { /* keep what is on screen */ }
   }
+  window.ssBoardRefresh = refreshBoard;
   async function loadQueue() {
     const { data, error } = await sb.rpc('smart_queue', { p_stage: null, p_limit: 500 });
     if (error || !Array.isArray(data)) return;   // keep what is on screen
