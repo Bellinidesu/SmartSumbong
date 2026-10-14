@@ -283,7 +283,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
   </span>
   <span class="p-spacer"></span>
   <?php // Rose (30 Sep 2026): the PDF is the barangay's Complaint Summary form. ?>
-  <a class="p-btn-pdf2" target="_blank" rel="noopener" href="complaint-summary.php?month=<?= e($from->format('Y-m')) ?>"><?= p_icon('i-dl', 16) ?><?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?></a>
+  <a class="p-btn-pdf2" target="_blank" rel="noopener" href="complaint-summary.php?month=<?= e($from->format('Y-m')) ?>"><svg class="pdf-ico" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true"><path class="pg" d="M4 2h14l8 8v21a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line class="ln" x1="7" y1="16" x2="21" y2="16"/><line class="ln" x1="7" y1="21" x2="21" y2="21"/><line class="ln" x1="7" y1="26" x2="17" y2="26"/></svg><?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?></a>
 </div>
 
 <?php if ($isOngoing): ?>
@@ -489,6 +489,17 @@ foreach ($logs as $l) {
     var lb = b.closest('label'), to = f.querySelector('.p-to'); if (lb) lb.hidden = true; if (to) to.hidden = true;
     sdPickers.range(a, { from: a, to: b, onApply: function () { f.requestSubmit ? f.requestSubmit() : f.submit(); } });
     sdPickers.select(document.getElementById('category'));
+  })();
+  </script>
+  <script>
+  // The Download PDF tile: a ring pulses while the report builds, then it turns green for a moment.
+  (function () {
+    var b = document.querySelector('.p-btn-pdf2'); if (!b) return;
+    b.addEventListener('click', function () {
+      if (b.classList.contains('is-building')) return;
+      b.classList.add('is-building'); b.classList.remove('is-done');
+      setTimeout(function () { b.classList.remove('is-building'); b.classList.add('is-done'); setTimeout(function () { b.classList.remove('is-done'); }, 1800); }, 1300);
+    });
   })();
   </script>
   <?php layout_foot(); ?>

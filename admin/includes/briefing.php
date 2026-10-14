@@ -118,37 +118,41 @@ function render_briefing(Supabase $db, array $admin): void
     ];
     ?>
 <section class="ss-brief" id="ss-brief" data-now="<?= e($here) ?>" aria-label="<?= e(t('The engine\'s briefing', 'Ang briefing ng engine')) ?>">
-  <div class="ss-brief-hero">
-    <div class="ss-clock" id="ss-clock" data-sky="day" role="group" aria-label="<?= e(t('Time and weather in Pasay', 'Oras at panahon sa Pasay')) ?>">
-      <div class="ss-sky" aria-hidden="true"><i class="ss-orb"></i><i class="ss-cloud c1"></i><i class="ss-cloud c2"></i><i class="ss-stars"></i></div>
-      <div class="ss-clock-in">
-        <div class="ss-time"><b id="ss-clock-time">--:--</b><small id="ss-clock-ampm"></small></div>
-        <div class="ss-date" id="ss-clock-date"></div>
-        <div class="ss-wx" id="ss-wx" data-state="loading"><span class="ss-wx-ic" id="ss-wx-ic"></span>
-          <span class="ss-wx-txt"><b id="ss-wx-t">--°</b><span id="ss-wx-d"><?= e(t('Checking the weather…', 'Tinitingnan ang panahon…')) ?></span></span></div>
-        <div class="ss-wx-more" id="ss-wx-more"></div>
-      </div>
-    </div>
-    <div class="ss-brief-main">
-      <div class="ss-brief-top">
-        <?= smart_logo(36) ?>
-        <div class="p-seg-mini ss-brief-tabs" role="tablist" aria-label="<?= e(t('Briefing', 'Buod ng engine')) ?>">
-          <?php foreach ($periods as $key => $p): ?>
-            <button type="button" role="tab" data-period="<?= e($key) ?>" class="<?= $key === $here ? 'p-on' : '' ?>" aria-selected="<?= $key === $here ? 'true' : 'false' ?>"><?= e($p['name']) ?><?= $key === $here ? ' <i class="ss-now" title="' . e(t('Now', 'Ngayon')) . '"></i>' : '' ?></button>
-          <?php endforeach; ?>
+  <?php
+    $first = trim((string) (explode(',', (string) ($admin['full_name'] ?? ''), 2)[1] ?? ($admin['full_name'] ?? '')));
+    $hello = ['morning' => t('Good morning', 'Magandang umaga'), 'afternoon' => t('Good afternoon', 'Magandang hapon'), 'night' => t('Good evening', 'Magandang gabi')][$here];
+    $bigline = $waiting > 0 ? sprintf(t('%d cases need a tanod', '%d kaso ang kailangan ng tanod'), $waiting) : t('All quiet right now', 'Tahimik sa ngayon');
+  ?>
+  <div class="ss-bar" id="ss-bar" data-sky="day">
+    <span class="ss-brain" aria-hidden="true"><?= smart_brain(26) ?></span>
+    <div class="ss-bar-txt">
+      <?php foreach ($periods as $key => $p): ?>
+        <div class="ss-brief-pane" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
+          <b><?= e($p['greet']) ?></b>
+          <p><?= e($p['line']) ?></p>
         </div>
-      </div>
-      <div class="ss-brief-txt">
-        <?php foreach ($periods as $key => $p): ?>
-          <div class="ss-brief-pane" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
-            <b><?= e($p['greet']) ?></b>
-            <p><?= e($p['line']) ?></p>
-          </div>
-        <?php endforeach; ?>
-        <p class="ss-thinkline" aria-live="polite"><?= e(t('Reading the day…', 'Binabasa ang araw…')) ?></p>
-      </div>
+      <?php endforeach; ?>
+      <p class="ss-thinkline" aria-live="polite"><?= e(t('Reading the day…', 'Binabasa ang araw…')) ?></p>
     </div>
+    <div class="ss-gap" id="ss-clock" data-rain="0" role="group" aria-label="<?= e(t('Time and weather in Pasay', 'Oras at panahon sa Pasay')) ?>">
+      <i class="ss-orb"></i><i class="ss-cloud c1"></i><i class="ss-cloud c2"></i><i class="ss-stars"></i>
+      <div class="ss-gt"><b><span id="ss-clock-time">--:--</span> <small id="ss-clock-ampm"></small></b>
+        <small class="ss-wxl" id="ss-wx" data-state="loading"><span class="ss-wx-ic" id="ss-wx-ic"></span><span id="ss-wx-t"></span> <span id="ss-wx-d"><?= e(t('Checking the weather…', 'Tinitingnan ang panahon…')) ?></span></small></div>
+    </div>
+    <div class="p-seg-mini ss-brief-tabs" role="tablist" aria-label="<?= e(t('Briefing', 'Buod ng engine')) ?>">
+      <?php foreach ($periods as $key => $p): ?>
+        <button type="button" role="tab" data-period="<?= e($key) ?>" class="<?= $key === $here ? 'p-on' : '' ?>" aria-selected="<?= $key === $here ? 'true' : 'false' ?>"><?= e($p['name']) ?><?= $key === $here ? ' <i class="ss-now" title="' . e(t('Now', 'Ngayon')) . '"></i>' : '' ?></button>
+      <?php endforeach; ?>
+    </div>
+    <button type="button" class="ss-xp" id="ss-xp" aria-expanded="false" aria-controls="ss-alarm" aria-label="<?= e(t('Open the full briefing', 'Buksan ang buong briefing')) ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
   </div>
+  <div class="ss-alarmwrap" id="ss-alarm"><div><div class="ss-alarm">
+    <div class="ss-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="ss-alarm-eb"><?= e($hello . ($first !== '' ? ', ' . $first : '')) ?></span>
+    <div class="ss-alarm-big"><?= e($bigline) ?></div>
+    <p><?= e($periods[$here]['line']) ?></p>
+    <div class="ss-alarm-row"><button type="button" class="ss-alarm-go" id="ss-alarm-go"><?= e(t('Show me', 'Ipakita')) ?></button></div>
+  </div></div></div>
   <?php foreach ($periods as $key => $p): ?>
     <div class="ss-brief-tiles" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
       <?php foreach ($p['tiles'] as [$label, $v, $href, $hot]): ?>

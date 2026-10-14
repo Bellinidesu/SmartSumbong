@@ -393,7 +393,7 @@ $noteBadge = $notesUnread + $escCount;
     <div class="ss-day"><?= e($dl) ?></div>
   <?php endif; ?>
     <div class="p-notif p-unread">
-      <span class="p-n-ico"><?= p_icon('i-bell', 18) ?></span>
+      <span class="p-n-ico<?= str_starts_with((string) $n['message'], 'SMART') ? ' is-smart' : '' ?>"><?= str_starts_with((string) $n['message'], 'SMART') ? smart_brain(20) : p_icon('i-bell', 18) ?></span>
       <div><div><span class="p-unread-dot"></span><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
       <?php if (!empty($n['report_id'])): ?>
         <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
@@ -735,6 +735,7 @@ $noteBadge = $notesUnread + $escCount;
     }).join('');
   }
 
+  const BRAIN_SVG = <?= json_encode(smart_brain(20)) ?>;
   // Today / Yesterday / "Oct 12", in Manila, to group the list like a timeline.
   function dayLabel(iso) {
     const fmt = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(d);
@@ -763,7 +764,7 @@ $noteBadge = $notesUnread + $escCount;
           ? '<a class="p-btn p-btn-sm p-btn-orange" href="' + ((n.subject && n.subject.role) === 'tanod' ? 'personnel.php' : 'residents.php') + '?id=' + encodeURIComponent(n.subject_user_id) + '">' + T('Review', 'Suriin') + '</a>'
           : '<span></span>';
       return head + '<div class="p-notif p-unread">' +
-        '<span class="p-n-ico"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg></span>' +
+        '<span class="p-n-ico' + (String(n.message).indexOf('SMART') === 0 ? ' is-smart">' + BRAIN_SVG : '"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg>') + '</span>' +
         '<div><div><span class="p-unread-dot"></span>' + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +
         '<div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + '</div></div>' +
         review + '</div>';
