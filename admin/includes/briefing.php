@@ -123,9 +123,9 @@ function render_briefing(Supabase $db, array $admin): void
     $hello = ['morning' => t('Good morning', 'Magandang umaga'), 'afternoon' => t('Good afternoon', 'Magandang hapon'), 'night' => t('Good evening', 'Magandang gabi')][$here];
     $bigline = $waiting > 0 ? sprintf(t('%d cases need a tanod', '%d kaso ang kailangan ng tanod'), $waiting) : t('All quiet right now', 'Tahimik sa ngayon');
   ?>
-  <div class="ss-bar" id="ss-bar" data-sky="day">
+  <div class="ss-sbar" id="ss-bar" data-sky="day">
     <span class="ss-brain" aria-hidden="true"><?= smart_brain(26) ?></span>
-    <div class="ss-bar-txt">
+    <div class="ss-sbar-txt">
       <?php foreach ($periods as $key => $p): ?>
         <div class="ss-brief-pane" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
           <b><?= e($p['greet']) ?></b>
