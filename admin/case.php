@@ -100,7 +100,7 @@ try {
                       . 'resolution_submitted_at,resolution_returned_reason,is_public,'
                       . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
                       . 'higher_official,higher_official_note,handed_up_at,tier,is_sensitive,'
-                      . 'handler_id,handled_since,version,handler:users!reports_handler_id_fkey(id,full_name),'
+                      . 'handler_id,handled_since,version,handler:users!reports_handler_id_fkey(id,full_name,official_role,committee),'
                       . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
             'id'         => 'eq.' . $id,
             'deleted_at' => 'is.null',
@@ -916,9 +916,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php if ($hid === ''): ?>
       <div class="ss-handler"><div><b><?= e(t('Nobody is handling this case yet', 'Wala pang humahawak sa kasong ito')) ?></b><span class="p-hint"><?= e(t('Accepting it, or any action on it, makes it yours.', 'Kapag tinanggap mo ito o kumilos ka rito, ikaw na ang hahawak.')) ?></span></div></div>
     <?php elseif ($mine): ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
     <?php else: ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e($hName) ?></b><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
       <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
       <details class="p-fix" data-keep-details>
         <summary><?= e(t('Take over', 'Kunin')) ?></summary>
@@ -941,7 +941,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         <?= e(t('Elevate it to the Women and Family Kagawad. Do not send it to the nearest tanod; if a tanod is needed, choose a designated women responder.', 'I-elevate sa Kagawad ng Kababaihan at Pamilya. Huwag ipadala sa pinakamalapit na tanod; kung kailangan ng tanod, pumili ng itinalagang responder para sa kababaihan.')) ?></div>
     <?php endif; ?>
     <ol class="ss-ladder" aria-label="<?= e(t('Where the case is', 'Nasaan ang kaso')) ?>">
-      <?php foreach ($steps as $k => $nm): ?><li class="<?= $k === $tier ? 'now' : ($k < $tier ? 'past' : '') ?>"<?= $k === $tier ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
+      <?php foreach ($steps as $k => $nm): ?><li data-r="<?= ['staff', 'kagawad', 'chair'][$k] ?>" class="<?= $k === $tier ? 'now' : ($k < $tier ? 'past' : '') ?>"<?= $k === $tier ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
     </ol>
     <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels(); ?>
       <details class="p-fix">

@@ -171,8 +171,23 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <?= !empty($smStorm['storm_reason']) ? '· ' . e($smStorm['storm_reason']) : '' ?></span>
     <a class="p-btn p-btn-ghost p-btn-sm" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a></div>
 <?php endif; ?>
-<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score'])): ?>
-<div class="ss-head"><?= smart_logo(40) ?><p><?= e(t('What the engine sees across open cases, right now.', 'Ang nakikita ng engine sa mga bukás na kaso, ngayon.')) ?></p></div>
+<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score'])):
+    $peek = [];
+    if ($smSum !== null) {
+        $uwp = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0);
+        $peek[] = $uwp . ' ' . t('waiting for a tanod', 'naghihintay ng tanod');
+        $peek[] = $smRisk . ' ' . t('may miss the deadline', 'maaaring lumampas sa oras');
+    }
+?>
+<section class="ss-panel" id="ss-panel" aria-label="SMART engine">
+  <button type="button" class="ss-panel-btn" id="ss-panel-btn" aria-expanded="false" aria-controls="ss-panel-body">
+    <?= smart_logo(40) ?>
+    <span class="ss-panel-txt"><b><?= e(t('What the engine sees across open cases', 'Ang nakikita ng engine sa mga bukás na kaso')) ?></b>
+      <small><span class="ss-peek"><?= e(implode(' · ', $peek)) ?></span><span class="ss-thinkline"><?= e(t('Reading the open cases…', 'Binabasa ang mga bukás na kaso…')) ?></span></small></span>
+    <span class="ss-think" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="ss-chev" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+  </button>
+  <div class="ss-panel-body" id="ss-panel-body"><div class="ss-panel-in">
 <?php endif; ?>
 <?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
 <div class="ss-tiles">
@@ -206,6 +221,11 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <?php endforeach; ?></tbody></table></section>
   <?php endif; ?>
 </div>
+<?php endif; ?>
+<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score'])): ?>
+  </div></div>
+</section>
+<script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php endif; ?>
 
 <!-- ---------- reports received ---------- -->
@@ -264,6 +284,13 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   </div>
 </div>
 
+<?php
+// Once per sign-in the charts draw themselves in; later visits show them at rest.
+$intro = empty($_SESSION['dash_intro']);
+$_SESSION['dash_intro'] = true;
+?>
+<script>window.SS_INTRO = <?= $intro ? 'true' : 'false' ?>;</script>
+<script src="assets/js/dash-intro.js?v=<?= e(asset_version('../js/dash-intro.js')) ?>"></script>
 <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
 <script>
 (function () {
@@ -429,6 +456,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { render(M); }, 100); });
   window.addEventListener('themechange', function () { render(M); });
   render(M);
+  if (window.SS_INTRO && window.ssIntro) { window.ssIntro(); }
 
   // This month only: re-run dashboard_metrics when a report changes.
   if (!<?= json_encode($isCurrent) ?> || !window.supabase) return;

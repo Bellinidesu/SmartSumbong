@@ -375,10 +375,10 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 /* The rail logos are blue-lettered; they need a light ground in dark mode too (sweep 7 Oct). */
 :root[data-theme="dark"] .login-rail { background: #E9EDF6; }
 :root[data-theme="dark"] .login-rail::before { background: #00308F; opacity: .10; }
-:root[data-theme="dark"] .login-panel { background: #0B1540; }
+:root[data-theme="dark"] .login-panel { background: #14181D; }
 :root[data-theme="dark"] .login-panel-bg { opacity: .55; filter: saturate(.7) brightness(.8); }
 :root[data-theme="dark"] .login-panel::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: radial-gradient(60% 50% at 70% 30%, rgba(255,170,60,.22), transparent 70%), linear-gradient(180deg, rgba(11,21,64,.55), rgba(11,21,64,.85)); }
+  background: radial-gradient(60% 50% at 70% 30%, rgba(255,170,60,.22), transparent 70%), linear-gradient(180deg, rgba(20,24,29,.55), rgba(20,24,29,.85)); }
 :root[data-theme="dark"] .login-card { z-index: 2; }
 :root[data-theme="dark"] .login-btn { background: #FF9800; color: #fff; }
 :root[data-theme="dark"] .login-btn:hover { background: #F08A00; }

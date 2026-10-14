@@ -81,6 +81,7 @@ function attempt_login(string $email, string $password): void
 
     session_start_once();
     session_regenerate_id(true);
+    unset($_SESSION['dash_intro']);   // the dashboard animates its charts once per sign-in
     $_SESSION[SESSION_KEY] = [
         'access_token'  => $token,
         'refresh_token' => $session['refresh_token'] ?? '',

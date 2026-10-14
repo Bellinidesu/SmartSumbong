@@ -431,21 +431,21 @@ a { text-decoration: none; color: inherit; }
    ========================================================= */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas:      #0d1b33;
-  --card:        #16264a;
-  --rule:        #30416b;
-  --ink:         #eaf0ff;
-  --ink-soft:    #a8b3c7;
-  --ink-faint:   rgba(234, 240, 255, .6);
+  --canvas:      #14181D;
+  --card:        #1C2127;
+  --rule:        #34383E;
+  --ink:         #F3F3F3;
+  --ink-soft:    #C9CCD1;
+  --ink-faint:   rgba(243, 243, 243, .6);
   --orange-soft: rgba(255, 152, 0, .16);
   --shadow:      0 1px 3px rgba(0, 0, 0, .45);
 
   --chart-navy:      #7fa2ff;
   --chart-navy-fill: rgba(127, 162, 255, .14);
 
-  --dk-surface:    #16264a;
-  --dk-glass:      rgba(22, 38, 74, .96);
-  --dk-surface-2:  #1c2f59;
+  --dk-surface:    #1C2127;
+  --dk-glass:      rgba(28, 33, 39, .96);
+  --dk-surface-2:  #1E242B;
   --dk-cream:      #221f2c;
   --dk-red-bg:     rgba(239, 68, 68, .18);
   --dk-green-bg:   rgba(34, 197, 94, .17);
@@ -453,8 +453,8 @@ a { text-decoration: none; color: inherit; }
   --dk-blue-bg:    rgba(59, 130, 246, .22);
   --dk-purple-bg:  rgba(139, 92, 246, .24);
 
-  --dk-ink:        #eaf0ff;
-  --dk-ink-body:   #c5cedf;
+  --dk-ink:        #F3F3F3;
+  --dk-ink-body:   #C9CCD1;
   --dk-red-ink:    #ff9d9d;
   --dk-green-ink:  #7ee2a3;
   --dk-amber-ink:  #ffc46b;
@@ -462,15 +462,15 @@ a { text-decoration: none; color: inherit; }
   --dk-purple-ink: #cbb8ff;
   --dk-navy-ink:   #a9c1ff;
 
-  --dk-line:        #30416b;
-  --dk-line-strong: #5d71a3;
+  --dk-line:        #34383E;
+  --dk-line-strong: #5A5F68;
   --dk-red-line:    rgba(239, 68, 68, .45);
   --dk-cream-line:  rgba(255, 183, 77, .35);
 }
 :root[data-theme="dark"] body { background: var(--canvas); color: var(--ink); }
 /* The sidebar keeps the brand navy, one step deeper so it reads apart
    from the page; the active item keeps dark ink on its orange. */
-:root[data-theme="dark"] .sidebar { background: #0a2463; }
+:root[data-theme="dark"] .sidebar { background: #2A3038; }
 :root[data-theme="dark"] .nav-item.active,
 :root[data-theme="dark"] .nav-item.active svg { color: #141b34; }
 /* The barangay seals carry navy lettering: they stay on light, as the

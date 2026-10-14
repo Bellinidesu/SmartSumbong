@@ -1,0 +1,45 @@
+/* The sidebar's three bars and its shrunken state; the theme and language controls in Settings (14 Oct 2026). */
+.p-side-top{display:flex;align-items:center;gap:12px;padding:0 0 18px}
+.p-side-top .p-brand{flex:1;min-width:0;padding:0;display:grid;place-items:center}
+.p-burger{display:inline-flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;flex:none;width:44px;height:44px;padding:0;border:0;border-radius:var(--p-r);background:rgba(255,255,255,.08);cursor:pointer;transition:background .15s}
+.p-burger:hover{background:rgba(255,255,255,.18)}
+.p-burger:focus-visible{outline:3px solid rgba(255,152,0,.55);outline-offset:2px}
+.p-burger span{display:block;width:20px;height:2.5px;border-radius:2px;background:#fff;transition:width .25s,transform .25s}
+.p-burger span:nth-child(2){width:14px;align-self:flex-start;margin-left:12px}
+html[data-side="min"] .p-burger span:nth-child(2){width:20px;margin-left:0;align-self:center}
+#app.p-on{transition:grid-template-columns .28s cubic-bezier(.2,.8,.2,1)}
+@media (min-width:981px){
+  html[data-side="min"]{--p-sidebar-w:84px}
+  html[data-side="min"] .p-sidebar{padding-inline:14px}
+  html[data-side="min"] .p-side-top{justify-content:center;padding-bottom:18px}
+  html[data-side="min"] .p-side-top .p-brand{display:none}
+  html[data-side="min"] .p-nav a{justify-content:center;padding:0;gap:0}
+  html[data-side="min"] .p-nav a>span:not(.p-count){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  html[data-side="min"] .p-nav .p-count{left:auto;right:6px;top:2px}
+  html[data-side="min"] .p-side-user{flex-direction:column;padding:8px;gap:8px;align-items:center}
+  html[data-side="min"] .p-side-user .p-who{display:none}
+  html[data-side="min"] .p-side-user .p-side-me{justify-content:center}
+  html[data-side="min"] .p-side-user>button{margin:0}
+}
+@media (max-width:980px){.p-burger{display:none}.p-side-top{padding:0;justify-content:center}.p-side-top .p-brand{flex:none}}
+@media (prefers-reduced-motion:reduce){#app.p-on,.p-burger span{transition:none}}
+/* Settings: Theme and Language, two equal rows */
+.st-prefs{display:grid;gap:10px;margin-top:8px}
+.st-pref{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:52px;padding:0 4px}
+.st-pref-l{display:flex;align-items:center;gap:10px;color:var(--p-ink)}
+.st-pref-l svg{width:18px;height:18px}
+.st-pref .p-seg-mini{width:min(280px,100%);flex:none}
+.st-pref .p-seg-mini button{flex:1;height:36px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+@media (max-width:640px){.st-pref{flex-wrap:wrap}.st-pref .p-seg-mini{width:100%}}
+/* The barangay ladder's colours (Ace's pick, scheme A, 14 Oct 2026): one per rung, always with its word. */
+:root{--rk-staff:#64748B;--rk-tanod:#0E8F8A;--rk-kagawad:#6A4FD3;--rk-chair:#14213D;--rk-gold:#D4A017}
+:root[data-theme="dark"]{--rk-staff:#94A3B8;--rk-tanod:#3CC7C0;--rk-kagawad:#A592FF;--rk-chair:#F3F3F3;--rk-gold:#F0C24A}
+[data-r="staff"]{--rc:var(--rk-staff)}[data-r="tanod"]{--rc:var(--rk-tanod)}[data-r="kagawad"]{--rc:var(--rk-kagawad)}[data-r="chair"]{--rc:var(--rk-chair)}
+.rank{display:inline-flex;align-items:center;gap:7px;min-height:26px;padding:0 10px;border-radius:99px;font:700 12px Inter,sans-serif;color:var(--rc);background:color-mix(in srgb,var(--rc) 14%,transparent);border:1px solid color-mix(in srgb,var(--rc) 40%,transparent);white-space:nowrap;vertical-align:middle}
+.rank i{width:9px;height:9px;border-radius:50%;background:var(--rc)}
+.rank.chair i{box-shadow:0 0 0 2px var(--rk-gold)}
+.cdot{width:9px;height:9px;border-radius:50%;background:var(--cc);margin-left:3px}
+.ss-who+.rank{margin-left:8px}
+.ss-handler .rank{margin-left:8px}
+.ss-ladder li.now[data-r]{background:var(--rc);border-color:var(--rc);color:#fff}
+:root[data-theme="dark"] .ss-ladder li.now[data-r="chair"]{color:#14181D}

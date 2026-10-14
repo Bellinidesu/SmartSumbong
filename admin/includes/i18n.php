@@ -76,7 +76,8 @@ function theme_head(bool $fit = true): string
         . 'if(t!=="light"&&t!=="dark"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}'
         . 'document.documentElement.setAttribute("data-theme",t);'
         . 'document.documentElement.setAttribute("data-bs-theme",t);var u=null;try{u=localStorage.getItem("ss-surface");}catch(e){}'
-        . 'if(u==="solid")document.documentElement.setAttribute("data-surface","solid");})();'
+        . 'if(u==="solid")document.documentElement.setAttribute("data-surface","solid");'
+        . 'try{if(localStorage.getItem("ss-side")==="min")document.documentElement.setAttribute("data-side","min");}catch(e){}})();'
         // Screen fit (branch B): the design is drawn at 1440 wide, so on a
         // bigger screen the whole portal is scaled up rather than stretched
         // thin — 1080p and 1440p then look alike, as the Figma frame does.

@@ -132,7 +132,7 @@ try {
         'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
                   . 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
                   . 'resident:users!reports_resident_id_fkey(full_name),'
-                  . 'handler_id,handler:users!reports_handler_id_fkey(full_name),'
+                  . 'handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
                   . 'triage:report_triage(score,effective_level,override_level,possible_duplicates)',
         'deleted_at' => 'is.null',
         'order'      => $sort,
@@ -621,7 +621,13 @@ $noteBadge = $notesUnread + $escCount;
   function handlerCell(r) {
     if (!r.handler_id) return '<span class="p-sub">' + T('Nobody yet', 'Wala pa') + '</span>';
     const nm = r.handler_id === ADMIN_ID ? T('You', 'Ikaw') : window.ssName((r.handler && r.handler.full_name) || '');
-    return '<span class="ss-who">' + window.ssAvatar(r.handler_id, (r.handler && r.handler.full_name) || '', 24) + escapeHtml(nm) + '</span>';
+    return '<span class="ss-who">' + window.ssAvatar(r.handler_id, (r.handler && r.handler.full_name) || '', 24) + escapeHtml(nm) + '</span>' + rankChip(r.handler && r.handler.official_role);
+  }
+  // Which rung the handler sits on, always with its word (the colours of the ladder, 14 Oct).
+  function rankChip(role) {
+    const rank = role === 'kagawad' ? 'kagawad' : role === 'chairman' ? 'chair' : 'staff';
+    const label = rank === 'kagawad' ? T('Councilor', 'Kagawad') : rank === 'chair' ? T('Chairman', 'Punong Barangay') : role === 'secretary' ? T('Secretary', 'Kalihim') : T('Staff', 'Kawani');
+    return '<span class="rank' + (rank === 'chair' ? ' chair' : '') + '" data-r="' + rank + '"><i></i>' + escapeHtml(label) + '</span>';
   }
   const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
 
@@ -778,7 +784,7 @@ $noteBadge = $notesUnread + $escCount;
     let q = sb.from('reports')
       .select('id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
         + 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
-        + 'resident:users!reports_resident_id_fkey(full_name),handler_id,handler:users!reports_handler_id_fkey(full_name),'
+        + 'resident:users!reports_resident_id_fkey(full_name),handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
         + 'triage:report_triage(score,effective_level,override_level,possible_duplicates)', { count: 'exact' })
       .is('deleted_at', null)
       .order(SORT_COL, { ascending: SORT_ASC });
