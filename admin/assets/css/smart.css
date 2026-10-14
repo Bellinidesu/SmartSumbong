@@ -272,14 +272,10 @@
 .ss-btile:hover{box-shadow:0 8px 22px rgba(255,152,0,.18);transform:translateY(-2px)}
 /* Notifications: the Next up / All notifications switch as a quiet pill, and the section bands calmer */
 .ss-tabs{margin-top:6px}
-/* animated buttons: the PDF download (Ace to choose the look; this is variant A, a sweeping light) */
-.ss-abtn,.p-period-band .p-btn-pdf2{position:relative;overflow:hidden;isolation:isolate}
-.p-period-band .p-btn-pdf2{box-shadow:0 0 0 0 rgba(255,255,255,.55);animation:ssPdfPulse 2.8s ease-out infinite;transition:background .2s,color .2s,transform .2s}
-.p-period-band .p-btn-pdf2::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 28%,rgba(255,255,255,.6) 50%,transparent 72%);transform:translateX(-130%);animation:ssShine 3.4s ease-in-out infinite}
+/* the PDF download, locked 15 Oct: a white pill, orange words, a soft halo that breathes, the arrow bobs */
+.p-period-band .p-btn-pdf2{background:#fff;color:var(--p-orange);border-color:#fff;box-shadow:0 0 0 6px rgba(255,255,255,.28);animation:ssHalo 3s ease-in-out infinite;transition:box-shadow .2s,transform .2s}
+.p-period-band .p-btn-pdf2:hover{background:#fff;box-shadow:0 0 0 9px rgba(255,255,255,.35);transform:translateY(-1px)}
 .p-period-band .p-btn-pdf2 svg{animation:ssBob 1.7s ease-in-out infinite}
-.p-period-band .p-btn-pdf2:hover{background:#fff;color:var(--p-orange);transform:translateY(-1px);animation-play-state:paused}
-.p-period-band .p-btn-pdf2:hover svg{animation-duration:.7s}
-@keyframes ssPdfPulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}70%,100%{box-shadow:0 0 0 12px rgba(255,255,255,0)}}
-@keyframes ssShine{0%,55%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+@keyframes ssHalo{50%{box-shadow:0 0 0 10px rgba(255,255,255,.14)}}
 @keyframes ssBob{0%,100%{transform:translateY(-1px)}50%{transform:translateY(2.5px)}}
-@media (prefers-reduced-motion:reduce){.p-period-band .p-btn-pdf2,.p-period-band .p-btn-pdf2::before,.p-period-band .p-btn-pdf2 svg{animation:none}}
+@media (prefers-reduced-motion:reduce){.p-period-band .p-btn-pdf2,.p-period-band .p-btn-pdf2 svg{animation:none}}
