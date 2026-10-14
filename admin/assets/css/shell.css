@@ -31,3 +31,15 @@ html[data-side="min"] .p-burger span:nth-child(2){width:20px;margin-left:0;align
 .st-pref .p-seg-mini{width:min(280px,100%);flex:none}
 .st-pref .p-seg-mini button{flex:1;height:36px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 @media (max-width:640px){.st-pref{flex-wrap:wrap}.st-pref .p-seg-mini{width:100%}}
+/* The barangay ladder's colours (Ace's pick, scheme A, 14 Oct 2026): one per rung, always with its word. */
+:root{--rk-staff:#64748B;--rk-tanod:#0E8F8A;--rk-kagawad:#6A4FD3;--rk-chair:#14213D;--rk-gold:#D4A017}
+:root[data-theme="dark"]{--rk-staff:#94A3B8;--rk-tanod:#3CC7C0;--rk-kagawad:#A592FF;--rk-chair:#F3F3F3;--rk-gold:#F0C24A}
+[data-r="staff"]{--rc:var(--rk-staff)}[data-r="tanod"]{--rc:var(--rk-tanod)}[data-r="kagawad"]{--rc:var(--rk-kagawad)}[data-r="chair"]{--rc:var(--rk-chair)}
+.rank{display:inline-flex;align-items:center;gap:7px;min-height:26px;padding:0 10px;border-radius:99px;font:700 12px Inter,sans-serif;color:var(--rc);background:color-mix(in srgb,var(--rc) 14%,transparent);border:1px solid color-mix(in srgb,var(--rc) 40%,transparent);white-space:nowrap;vertical-align:middle}
+.rank i{width:9px;height:9px;border-radius:50%;background:var(--rc)}
+.rank.chair i{box-shadow:0 0 0 2px var(--rk-gold)}
+.cdot{width:9px;height:9px;border-radius:50%;background:var(--cc);margin-left:3px}
+.ss-who+.rank{margin-left:8px}
+.ss-handler .rank{margin-left:8px}
+.ss-ladder li.now[data-r]{background:var(--rc);border-color:var(--rc);color:#fff}
+:root[data-theme="dark"] .ss-ladder li.now[data-r="chair"]{color:#14181D}

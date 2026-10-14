@@ -100,6 +100,38 @@ function committee_labels(): array
     ];
 }
 
+/** The colour of each committee's dot (Ace, 14 Oct: shown only on a Kagawad's row in Settings and on a case's page). */
+function committee_colour(?string $c): string
+{
+    return [
+        'peace_order' => '#E5383B', 'health_sanitation' => '#1E9E4A', 'education' => '#356CF9', 'infrastructure' => '#8D6E63',
+        'environment' => '#26A69A', 'women_family' => '#EC407A', 'youth_sports' => '#FFA726', 'agriculture' => '#9CCC65',
+        'appropriations' => '#78909C',
+    ][(string) $c] ?? '#8E9ABB';
+}
+
+/** Which rung of the barangay ladder an administrator's position sits on: staff, kagawad or chair. */
+function rank_of(?string $role): string
+{
+    return match ($role) { 'kagawad' => 'kagawad', 'chairman' => 'chair', default => 'staff' };
+}
+
+/** A position as a coloured chip, its word always beside the colour. $dot adds the committee for a Kagawad. */
+function rank_chip(?string $role, ?string $committee = null, bool $dot = false): string
+{
+    $rank  = rank_of($role);
+    $label = match ($rank) {
+        'kagawad' => t('Councilor', 'Kagawad'),
+        'chair'   => t('Chairman', 'Punong Barangay'),
+        default   => $role === 'secretary' ? t('Secretary', 'Kalihim') : t('Staff', 'Kawani'),
+    };
+    $o = '<span class="rank' . ($rank === 'chair' ? ' chair' : '') . '" data-r="' . $rank . '"><i></i>' . e($label);
+    if ($dot && $rank === 'kagawad' && $committee) {
+        $o .= '<span class="cdot" style="--cc:' . committee_colour($committee) . '" aria-hidden="true"></span>' . e(committee_labels()[$committee][0] ?? '');
+    }
+    return $o . '</span>';
+}
+
 function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();

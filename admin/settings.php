@@ -287,7 +287,7 @@ try {
     <tbody>
     <?php foreach ($admins as $a): ?>
       <tr>
-        <td><span class="ss-who"><?= admin_chip($a['id'], (string) $a['full_name'], 28) ?><?= e(formal_name($a['full_name'])) ?></span><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
+        <td><span class="ss-who"><?= admin_chip($a['id'], (string) $a['full_name'], 28) ?><?= e(formal_name($a['full_name'])) ?></span> <?= rank_chip($a['official_role'] ?? null, $a['committee'] ?? null, true) ?><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
         <td><?= e((string) ($a['email'] ?? '')) ?></td>
         <td>
           <form method="post" class="ss-posform">

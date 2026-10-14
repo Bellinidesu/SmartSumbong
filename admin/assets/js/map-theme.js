@@ -66,8 +66,8 @@
           'text-optional': true,
         },
         paint: {
-          'text-color': dark() ? '#eaf0ff' : '#1f2937',
-          'text-halo-color': dark() ? 'rgba(13,27,51,.9)' : 'rgba(255,255,255,.95)',
+          'text-color': dark() ? '#F3F3F3' : '#1f2937',
+          'text-halo-color': dark() ? 'rgba(20,24,29,.9)' : 'rgba(255,255,255,.95)',
           'text-halo-width': 1.4,
         } }, before);
     }
@@ -77,8 +77,8 @@
     try { add(); } catch (e) { map.once('load', add); }
     window.addEventListener('themechange', function () {
       if (!map.getLayer('landmarks-label')) return;
-      map.setPaintProperty('landmarks-label', 'text-color', dark() ? '#eaf0ff' : '#1f2937');
-      map.setPaintProperty('landmarks-label', 'text-halo-color', dark() ? 'rgba(13,27,51,.9)' : 'rgba(255,255,255,.95)');
+      map.setPaintProperty('landmarks-label', 'text-color', dark() ? '#F3F3F3' : '#1f2937');
+      map.setPaintProperty('landmarks-label', 'text-halo-color', dark() ? 'rgba(20,24,29,.9)' : 'rgba(255,255,255,.95)');
     });
     return {
       show: function (on) {

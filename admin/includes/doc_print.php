@@ -63,7 +63,7 @@ function doc_head(string $title, bool $desk = false): void
      document itself stays a plain official form, and nothing here prints. */
   @media screen {
     :root { --d-bg: #EEF1F7; --d-tex: #00308F; --d-shadow: 0 2px 6px rgba(20,27,52,.10), 0 18px 50px rgba(20,27,52,.16); }
-    :root[data-theme="dark"] { --d-bg: #0E1322; --d-tex: #8DB2FF; --d-shadow: 0 2px 6px rgba(0,0,0,.4), 0 18px 50px rgba(0,0,0,.5); color-scheme: dark; }
+    :root[data-theme="dark"] { --d-bg: #14181D; --d-tex: #D0D4DA; --d-shadow: 0 2px 6px rgba(0,0,0,.4), 0 18px 50px rgba(0,0,0,.5); color-scheme: dark; }
     body { background: var(--d-bg); position: relative; isolation: isolate; min-height: 100vh; }
     body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--d-tex); opacity: .08;
       -webkit-mask: url("assets/img/texture-contours.webp") 0 0 / 560px 560px repeat, linear-gradient(to top, #000 0%, rgba(0,0,0,.5) 30%, transparent 60%);
