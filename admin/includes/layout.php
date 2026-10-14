@@ -36,6 +36,26 @@ function nav_icon(string $name): string
     return p_icon($map[$name] ?? 'i-doc');
 }
 
+/** Page links for a list: Previous, a window of numbers, Next. $param is the query key that holds the page. */
+function pager(int $total, int $page, string $param = 'page', ?int $per = null): string
+{
+    $per = $per ?? (defined('PER_PAGE') ? PER_PAGE : 15);
+    $pages = max(1, (int) ceil($total / $per));
+    if ($pages <= 1) { return ''; }
+    $href = function (int $n) use ($param): string { $q = $_GET; $q[$param] = $n; return '?' . http_build_query($q); };
+    $from = max(1, min($page - 2, $pages - 4)); $to = min($pages, $from + 4);
+    $o = '<nav class="ss-pager" aria-label="' . e(t('Pages', 'Mga pahina')) . '">';
+    $o .= $page > 1 ? '<a href="' . e($href($page - 1)) . '" rel="prev">&lsaquo; ' . e(t('Previous', 'Nakaraan')) . '</a>' : '<span class="off">&lsaquo; ' . e(t('Previous', 'Nakaraan')) . '</span>';
+    if ($from > 1) { $o .= '<a href="' . e($href(1)) . '">1</a>' . ($from > 2 ? '<span class="gap">&hellip;</span>' : ''); }
+    for ($i = $from; $i <= $to; $i++) {
+        $o .= $i === $page ? '<span class="on" aria-current="page">' . $i . '</span>' : '<a href="' . e($href($i)) . '">' . $i . '</a>';
+    }
+    if ($to < $pages) { $o .= ($to < $pages - 1 ? '<span class="gap">&hellip;</span>' : '') . '<a href="' . e($href($pages)) . '">' . $pages . '</a>'; }
+    $o .= $page < $pages ? '<a href="' . e($href($page + 1)) . '" rel="next">' . e(t('Next', 'Susunod')) . ' &rsaquo;</a>' : '<span class="off">' . e(t('Next', 'Susunod')) . ' &rsaquo;</span>';
+    $from1 = ($page - 1) * $per + 1; $to1 = min($total, $page * $per);
+    return $o . '<span class="of">' . $from1 . '&ndash;' . $to1 . ' ' . e(t('of', 'sa')) . ' ' . $total . '</span></nav>';
+}
+
 function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();
@@ -109,6 +129,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
+<link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?>">

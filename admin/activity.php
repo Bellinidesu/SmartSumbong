@@ -88,7 +88,10 @@ $isMine = fn(array $i) => ($i['case']['handler_id'] ?? null) === $admin['id'];
 $mineCount = count(array_filter($items, $isMine));
 if ($show === 'mine') $items = array_values(array_filter($items, $isMine));
 if ($show === 'peers') $items = array_values(array_filter($items, fn($i) => !$isMine($i) && !empty($i['case']['handler_id'])));
-$items = array_slice($items, 0, 100);
+// the panel asked for pages, not a long scroll (defense, 7 Sep): 15 to a page
+$page  = max(1, (int) ($_GET['page'] ?? 1));
+$total = count($items);
+$items = array_slice($items, ($page - 1) * 15, 15);
 $myCases = isset($got['mine']) && !$got['mine'] instanceof SupabaseError ? count((array) $got['mine']) : 0;
 
 layout_head(t('Activity', 'Aktibidad'), 'activity.php');
@@ -127,6 +130,7 @@ layout_head(t('Activity', 'Aktibidad'), 'activity.php');
         </li>
       <?php endforeach; ?>
     </ul>
+    <?= pager($total, $page, 'page', 15) ?>
   <?php endif; ?>
 </div>
 
