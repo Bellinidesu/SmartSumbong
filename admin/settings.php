@@ -28,6 +28,16 @@ $db    = db();
 // password. The password is shown once, here, and never stored by the portal.
 // 0130 (defense, 7 Sep): the barangay's positions. Which Kagawad chairs which committee, who is the Chairman, which tanods are the
 // designated women responders, and which committee usually takes which kind of complaint. Each is one action here.
+const CATEGORY_POINT_LABELS = [
+    'public_safety_infrastructure' => ['Public safety', 'Kaligtasan ng publiko'],
+    'peace_order_nuisance'         => ['Peace and order', 'Kapayapaan at kaayusan'],
+    'environmental_waste_hazard'   => ['Environment and waste', 'Kapaligiran at basura'],
+    'traffic_violation'            => ['Traffic', 'Trapiko'],
+    'street_obstruction'           => ['Street obstruction', 'Sagabal sa kalsada'],
+    'animal_welfare'               => ['Animal welfare', 'Kapakanan ng hayop'],
+    'barangay_service'             => ['Barangay service', 'Serbisyo ng barangay'],
+    'other'                        => ['Other', 'Iba pa'],
+];
 const COMMITTEES = [
     'peace_order'       => ['Peace and Order', 'Kapayapaan at Kaayusan'],
     'health_sanitation' => ['Health and Sanitation', 'Kalusugan at Kalinisan'],
@@ -67,6 +77,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         }
     }
     header('Location: settings.php#admins');
+    exit;
+}
+
+// Settings -> SMART (docs/SMART_SCREENS.md, 6 and 6b): the rules, storm mode, the digest, trying a rule, re-scoring.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['smart_rules', 'smart_storm', 'smart_digest', 'smart_try', 'smart_rescore'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            $act = (string) $_POST['action'];
+            if ($act === 'smart_rules') {
+                $pts = [];
+                foreach (array_keys(CATEGORY_POINT_LABELS) as $ck) { $pts[$ck] = max(0, min(60, (int) ($_POST['pts'][$ck] ?? 0))); }
+                $db->update('smart_rules', ['id' => 'eq.1'], [
+                    'category_points' => $pts,
+                    'urgent_from'     => max(1, min(100, (int) ($_POST['urgent_from'] ?? 70))),
+                    'high_from'       => max(1, min(100, (int) ($_POST['high_from'] ?? 45))),
+                    'normal_from'     => max(1, min(100, (int) ($_POST['normal_from'] ?? 25))),
+                    'updated_at'      => gmdate('c'),
+                    'updated_by'      => $admin['id'],
+                ]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('The rules were saved. Press "Re-score open reports" to apply them to cases already open.', 'Nai-save ang mga patakaran. Pindutin ang "Muling markahan ang mga bukas na ulat" para ilapat sa mga kasong bukas na.')];
+            } elseif ($act === 'smart_storm') {
+                $on = ($_POST['on'] ?? '') === '1';
+                $db->rpc('smart_storm_mode', ['p_on' => $on, 'p_reason' => trim((string) ($_POST['reason'] ?? '')) ?: null, 'p_hours' => max(1, min(168, (int) ($_POST['hours'] ?? 24)))]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => $on ? t('Storm mode is on.', 'Naka-on ang storm mode.') : t('Storm mode is off.', 'Naka-off ang storm mode.')];
+            } elseif ($act === 'smart_digest') {
+                $db->update('smart_rules', ['id' => 'eq.1'], ['digest_enabled' => ($_POST['on'] ?? '') === '1']);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved.', 'Nai-save.')];
+            } elseif ($act === 'smart_rescore') {
+                $n = $db->rpc('smart_retriage', []);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => sprintf(t('%d open reports were re-scored.', '%d na bukas na ulat ang muling minarkahan.'), (int) $n)];
+            } else {
+                $cat = (string) ($_POST['category'] ?? '');
+                $lat = trim((string) ($_POST['lat'] ?? '')); $lng = trim((string) ($_POST['lng'] ?? ''));
+                $_SESSION['smart_try'] = $db->rpc('smart_preview', [
+                    'p_category' => $cat, 'p_subject' => trim((string) ($_POST['subject'] ?? '')), 'p_description' => trim((string) ($_POST['description'] ?? '')),
+                    'p_lat' => is_numeric($lat) ? (float) $lat : null, 'p_lng' => is_numeric($lng) ? (float) $lng : null]);
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#smart');
     exit;
 }
 
@@ -196,6 +251,7 @@ layout_head(t('Settings', 'Mga Setting'), 'settings.php');
   <button type="button" class="p-on" role="tab" data-st="status"><?= e(t('System status', 'Kalagayan ng sistema')) ?></button>
   <button type="button" role="tab" data-st="usage"><?= e(t('Plan and usage', 'Plano at paggamit')) ?></button>
   <button type="button" role="tab" data-st="admins"><?= e(t('Administrators', 'Mga Administrator')) ?></button>
+  <button type="button" role="tab" data-st="smart">SMART</button>
   <button type="button" role="tab" data-st="look"><?= e(t('Appearance', 'Itsura')) ?></button>
 </div>
 
@@ -376,6 +432,112 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
     <p class="st-credit-line"><?= e(t('Map data © OpenStreetMap contributors (ODbL) · tiles by OpenFreeMap and OpenMapTiles · building footprints also from Overture Maps (Google Open Buildings, Microsoft ML Buildings) · tree heights from the Meta and World Resources Institute canopy height map (CC BY 4.0) · floor counts from Overture Maps and OpenStreetMap · flood hazard maps © UP NOAH Center (Project NOAH) · air quality and rain by Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · photos from Wikimedia Commons, credited where shown · icons from Lucide (ISC) and Tabler Icons (MIT).', 'Datos ng mapa © OpenStreetMap contributors (ODbL) · tiles mula sa OpenFreeMap at OpenMapTiles · mga hugis ng gusali mula rin sa Overture Maps (Google Open Buildings, Microsoft ML Buildings) · taas ng puno mula sa canopy height map ng Meta at World Resources Institute (CC BY 4.0) · mapa ng baha © UP NOAH Center (Project NOAH) · kalidad ng hangin at ulan mula sa Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · mga larawan mula sa Wikimedia Commons, may kredito kung saan ipinapakita · mga icon mula sa Lucide (ISC) at Tabler Icons (MIT).')) ?></p></div>
 </section>
 
+<?php
+// ---------- SMART ----------
+$sr = null; $cal = []; $fac = []; $digest = '';
+$try = $_SESSION['smart_try'] ?? null; unset($_SESSION['smart_try']);
+try {
+    $got = $db->selectMany([
+        'rules'  => ['smart_rules', ['select' => '*', 'id' => 'eq.1', 'limit' => '1'], true],
+        'cal'    => ['rpc/smart_calibration', ['p_days' => 90], true],
+        'fac'    => ['rpc/smart_factor_stats', ['p_days' => 90], true],
+        'digest' => ['rpc/smart_digest_preview', [], true],
+    ]);
+    $sr     = !($got['rules'] instanceof SupabaseError) ? ($got['rules'][0] ?? null) : null;
+    $cal    = !($got['cal'] instanceof SupabaseError) ? (array) $got['cal'] : [];
+    $fac    = !($got['fac'] instanceof SupabaseError) ? array_slice((array) $got['fac'], 0, 12) : [];
+    $digest = !($got['digest'] instanceof SupabaseError) && is_string($got['digest']) ? $got['digest'] : '';
+} catch (SupabaseError) { /* the tab says so below */ }
+$lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Madalian')];
+?>
+<section class="st-pane" data-pane="smart" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <?php if (!$sr): ?>
+    <p class="p-none-line"><?= e(t('SMART could not be read. Try again in a moment.', 'Hindi mabasa ang SMART. Subukan muli mamaya.')) ?></p>
+  <?php else: ?>
+  <div class="ss-two">
+    <div class="p-card p-card-pad">
+      <p class="p-eyebrow"><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></p>
+      <p class="p-hint"><?= e(t('While it is on, flood zones and flood, live-wire and collapse reports count double, and the case list says so.', 'Habang naka-on, doble ang bilang ng mga lugar na binabaha at ng mga ulat ng baha, nakakuryente at pagguho.')) ?></p>
+      <?php if (!empty($sr['storm_mode'])): ?>
+        <p><b><?= e(t('On until', 'Naka-on hanggang')) ?> <?= e((new DateTimeImmutable((string) $sr['storm_until']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, g:i A')) ?></b><?= !empty($sr['storm_reason']) ? ' · ' . e((string) $sr['storm_reason']) : '' ?></p>
+        <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_storm"><input type="hidden" name="on" value="0">
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('End storm mode', 'Tapusin ang storm mode')) ?></button></form>
+      <?php else: ?>
+        <form method="post" class="p-ctl-stack"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_storm"><input type="hidden" name="on" value="1">
+          <div class="p-cfield"><label class="p-flabel" for="sm-why"><?= e(t('Why (for example, the PAGASA warning)', 'Bakit (halimbawa, babala ng PAGASA)')) ?></label><input class="p-input-plain" id="sm-why" name="reason" required minlength="3" maxlength="200"></div>
+          <div class="p-cfield"><label class="p-flabel" for="sm-h"><?= e(t('Hours', 'Oras')) ?></label><input class="p-input-plain" id="sm-h" type="number" name="hours" min="1" max="168" value="24"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Turn on', 'I-on')) ?></button></form>
+      <?php endif; ?>
+    </div>
+    <div class="p-card p-card-pad">
+      <p class="p-eyebrow"><?= e(t('Morning digest', 'Buod sa umaga')) ?></p>
+      <p class="p-hint"><?= e(t('A short note each morning to the administrators: what is urgent, what may miss its deadline, what keeps coming back.', 'Maikling paalala tuwing umaga sa mga administrator: ano ang madalian, ano ang maaaring lumampas sa oras, ano ang paulit-ulit.')) ?></p>
+      <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_digest">
+        <label class="sd-c"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($sr['digest_enabled']) ? 'checked' : '' ?>> <?= e(t('Send it', 'Ipadala')) ?></label></form>
+      <?php if ($digest !== ''): ?><p class="ss-digest"><?= nl2br(e($digest)) ?></p><?php endif; ?>
+    </div>
+  </div>
+
+  <form method="post" class="p-card p-card-pad">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rules">
+    <p class="p-eyebrow"><?= e(t('Points for each kind of complaint', 'Puntos sa bawat uri ng sumbong')) ?></p>
+    <p class="p-hint"><?= e(t('A report starts with these points; words, hazard zones, neighbours reporting the same thing and the hour add to them. The total decides the level.', 'Nagsisimula ang ulat sa mga puntos na ito; dinadagdagan ito ng mga salita, lugar na may panganib, kapitbahay na nag-ulat ng pareho at oras. Ang kabuuan ang magpapasya ng antas.')) ?></p>
+    <div class="ss-cmap">
+      <?php foreach (CATEGORY_POINT_LABELS as $ck => $cl): ?>
+        <div class="ss-cmap-row"><label for="pt-<?= e($ck) ?>"><?= e(t($cl[0], $cl[1])) ?></label>
+          <input class="p-input-plain" id="pt-<?= e($ck) ?>" type="number" name="pts[<?= e($ck) ?>]" min="0" max="60" value="<?= (int) ($sr['category_points'][$ck] ?? 0) ?>"></div>
+      <?php endforeach; ?>
+    </div>
+    <p class="p-eyebrow" style="margin-top:14px"><?= e(t('Where the levels start (out of 100)', 'Kung saan nagsisimula ang mga antas (sa 100)')) ?></p>
+    <div class="ss-cmap">
+      <?php foreach (['urgent_from' => t('Urgent from', 'Madalian mula'), 'high_from' => t('High from', 'Mataas mula'), 'normal_from' => t('Normal from', 'Katamtaman mula')] as $fk => $fl): ?>
+        <div class="ss-cmap-row"><label for="lv-<?= e($fk) ?>"><?= e($fl) ?></label><input class="p-input-plain" id="lv-<?= e($fk) ?>" type="number" name="<?= e($fk) ?>" min="1" max="100" value="<?= (int) $sr[$fk] ?>"></div>
+      <?php endforeach; ?>
+    </div>
+    <p class="p-hint"><?= e(t('Urgent must be higher than High, and High higher than Normal.', 'Dapat mas mataas ang Madalian kaysa Mataas, at ang Mataas kaysa Katamtaman.')) ?></p>
+    <div class="ss-posform"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save rules', 'I-save ang mga patakaran')) ?></button></div>
+  </form>
+  <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
+    <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Re-score open reports', 'Muling markahan ang mga bukas na ulat')) ?></button>
+    <span class="p-hint"><?= e(t('Applies the rules above to every case that is still open. Levels an administrator set by hand stay.', 'Ilalapat ang mga patakaran sa lahat ng kasong bukas pa. Mananatili ang antas na itinakda ng administrator.')) ?></span></form>
+
+  <form method="post" class="p-card p-card-pad">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_try">
+    <p class="p-eyebrow"><?= e(t('Try it', 'Subukan')) ?></p>
+    <p class="p-hint"><?= e(t('Type a complaint and see what level SMART would give it, and why. Nothing is saved.', 'Mag-type ng sumbong at tingnan ang antas na ibibigay ng SMART, at kung bakit. Walang mase-save.')) ?></p>
+    <div class="p-ctl-stack">
+      <div class="p-cfield"><label class="p-flabel" for="tr-cat"><?= e(t('Kind of complaint', 'Uri ng sumbong')) ?></label>
+        <select class="p-input-plain" id="tr-cat" name="category"><?php foreach (CATEGORY_POINT_LABELS as $ck => $cl): ?><option value="<?= e($ck) ?>"><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?></select></div>
+      <div class="p-cfield"><label class="p-flabel" for="tr-sub"><?= e(t('Subject', 'Paksa')) ?></label><input class="p-input-plain" id="tr-sub" name="subject" required maxlength="120"></div>
+      <div class="p-cfield"><label class="p-flabel" for="tr-desc"><?= e(t('What happened', 'Ano ang nangyari')) ?></label><textarea class="p-note" id="tr-desc" name="description" rows="2" maxlength="600"></textarea></div>
+      <div class="p-cfield"><label class="p-flabel" for="tr-lat"><?= e(t('Latitude and longitude (optional)', 'Latitude at longitude (opsyonal)')) ?></label>
+        <div class="ss-posform"><input class="p-input-plain" id="tr-lat" name="lat" inputmode="decimal" placeholder="14.5"><input class="p-input-plain" name="lng" inputmode="decimal" placeholder="121.0" aria-label="Longitude"></div></div>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Score it', 'Markahan')) ?></button>
+    </div>
+    <?php if (is_array($try)): ?>
+      <div class="ss-tryout"><p><b><?= e($lvl[$try['level'] ?? ''] ?? (string) ($try['level'] ?? '')) ?></b> · <?= (int) ($try['score'] ?? 0) ?>/100</p>
+        <ul class="ss-reasons"><?php foreach ((array) ($try['reasons'] ?? []) as $rs): ?><li><span><?= e((string) ($rs['detail'] ?? $rs['factor'] ?? '')) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li><?php endforeach; ?></ul></div>
+    <?php endif; ?>
+  </form>
+
+  <?php if ($cal || $fac): ?>
+  <div class="ss-two">
+    <?php if ($cal): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the levels are doing (90 days)', 'Kumusta ang mga antas (90 araw)')) ?></p>
+      <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('To dispatch (min)', 'Hanggang dispatch (min)')) ?></th></tr></thead><tbody>
+      <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : (int) round((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>
+      </tbody></table>
+      <p class="p-hint"><?= e(t('If administrators often lower reports with a given factor, it may deserve fewer points.', 'Kung madalas ibaba ng mga administrator ang mga ulat na may isang salik, maaaring bawasan ang puntos nito.')) ?></p></section><?php endif; ?>
+    <?php if ($fac): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Factors administrators change', 'Mga salik na binabago ng administrator')) ?></p>
+      <table class="ss-table"><thead><tr><th><?= e(t('Factor', 'Salik')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th></tr></thead><tbody>
+      <?php foreach ($fac as $f): ?><tr><td><?= e(trim((string) $f['factor'] . ' ' . (string) ($f['detail'] ?? ''))) ?></td><td class="n"><?= (int) $f['reports'] ?></td><td class="n"><?= (int) $f['raised'] ?></td><td class="n"><?= (int) $f['lowered'] ?></td></tr><?php endforeach; ?>
+      </tbody></table></section><?php endif; ?>
+  </div>
+  <?php endif; ?>
+  <?php endif; ?>
+</section>
+
 <section class="st-pane" data-pane="look" hidden>
   <div class="p-card p-card-pad st-look">
     <p class="p-eyebrow"><?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?></p>
@@ -548,7 +710,7 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
 </script>
 <script>
 // Back on the Administrators tab after adding or resetting.
-if (location.hash === '#admins') { var b = document.querySelector('.st-tabs [data-st="admins"]'); if (b) b.click(); }
+if (location.hash === '#admins' || location.hash === '#smart') { var b = document.querySelector('.st-tabs [data-st="' + location.hash.slice(1) + '"]'); if (b) b.click(); }
 </script>
 <script>
 // Map surfaces: Glass or Solid, kept in this browser.

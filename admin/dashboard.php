@@ -123,6 +123,25 @@ function delta_html(?array $d): string
     return '<span class="delta delta--' . $tone . '">' . $arrow . ' ' . e($text) . '</span>';
 }
 
+// What SMART sees today (0124, 0127, 0128). Each call is optional: a failure hides its own tile, never the page.
+$sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null];
+if (!$error) {
+    try {
+        $got = $db->selectMany([
+            'summary' => ['rpc/smart_summary', [], true],
+            'risk'    => ['rpc/smart_deadline_risk', [], true],
+            'spikes'  => ['rpc/smart_spikes', [], true],
+            'score'   => ['rpc/smart_sla_scorecard', [], true],
+            'quiet'   => ['rpc/smart_stuck_cases', [], true],
+            'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
+        ]);
+        foreach ($got as $k => $v) { if (!($v instanceof SupabaseError)) { $sm[$k] = $v; } }
+    } catch (SupabaseError) { /* the tiles stay empty */ }
+}
+$smSum   = is_array($sm['summary']) ? $sm['summary'] : null;
+$smRisk  = count(array_filter((array) $sm['risk'], fn($r) => ($r['risk'] ?? '') === 'high'));
+$smStorm = (is_array($sm['storm']) && !empty($sm['storm'][0]['storm_mode'])) ? $sm['storm'][0] : null;
+
 layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
 $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->format('Y-m');
 ?>
@@ -144,6 +163,47 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <span class="p-live" id="live-badge" title="<?= e(t("This month's figures update as reports come in — no reload needed", 'Nag-a-update ang mga numero ngayong buwan habang dumarating ang mga ulat — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>
   <?php endif; ?>
 </div>
+
+<!-- ---------- what SMART sees ---------- -->
+<?php if ($smStorm): ?>
+  <div class="ss-storm" role="status"><span><b><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></b>
+    <?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $smStorm['storm_until']))->setTimezone($tz)->format('M j, g:i A')) ?>
+    <?= !empty($smStorm['storm_reason']) ? '· ' . e($smStorm['storm_reason']) : '' ?></span>
+    <a class="p-btn p-btn-ghost p-btn-sm" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a></div>
+<?php endif; ?>
+<?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
+<div class="ss-tiles">
+  <a class="p-card ss-tile<?= $uw > 0 ? ' hot' : '' ?>" href="cases.php?tab=next&amp;stage=dispatch"><span><?= e(t('Urgent, waiting for a tanod', 'Madalian, naghihintay ng tanod')) ?></span><b><?= $uw ?></b>
+    <span><?= (int) ($smSum['urgent_waiting'] ?? 0) ?> <?= e(t('urgent', 'madalian')) ?> · <?= (int) ($smSum['high_waiting'] ?? 0) ?> <?= e(t('high', 'mataas')) ?></span></a>
+  <a class="p-card ss-tile<?= $smRisk > 0 ? ' hot' : '' ?>" href="cases.php?tab=next"><span><?= e(t('Likely to miss the deadline', 'Maaaring lumampas sa takdang oras')) ?></span><b><?= $smRisk ?></b>
+    <span><?= e(t('open cases at high risk', 'bukas na kasong mataas ang panganib')) ?></span></a>
+  <a class="p-card ss-tile" href="spatial.php"><span><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?></span><b><?= (int) ($smSum['recurring'] ?? 0) ?></b>
+    <span><?= (int) ($smSum['recurring_open'] ?? 0) ?> <?= e(t('still open', 'bukas pa')) ?></span></a>
+  <a class="p-card ss-tile" href="cases.php?tab=next&amp;stage=follow_up"><span><?= e(t('Quiet cases', 'Tahimik na kaso')) ?></span><b><?= count((array) $sm['quiet']) ?></b>
+    <span><?= e(t('open with no news for days', 'bukas na walang balita nang ilang araw')) ?></span></a>
+</div>
+<?php endif; ?>
+<?php if (!empty($sm['spikes']) || !empty($sm['score'])): ?>
+<div class="ss-two">
+  <?php if (!empty($sm['spikes'])): ?>
+  <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Spikes this week', 'Pagtaas ngayong linggo')) ?></p>
+    <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('This week', 'Linggong ito')) ?></th><th class="n"><?= e(t('Usually', 'Karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
+    <?php foreach (array_slice((array) $sm['spikes'], 0, 5) as $sp): ?>
+      <tr><td><?= e(category_label((string) $sp['category'])) ?></td><td class="n"><?= (int) $sp['this_week'] ?></td><td class="n"><?= e(rtrim(rtrim(number_format((float) $sp['usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($sp['place'] ?? '')) ?></td></tr>
+    <?php endforeach; ?></tbody></table></section>
+  <?php endif; ?>
+  <?php if (!empty($sm['score'])): ?>
+  <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('On time, by kind of complaint', 'Sa takdang oras, ayon sa uri')) ?></p>
+    <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('On time', 'Sa oras')) ?></th><th class="n"><?= e(t('Change', 'Pagbabago')) ?></th><th class="n"><?= e(t('Overdue now', 'Lampas ngayon')) ?></th></tr></thead><tbody>
+    <?php foreach ((array) $sm['score'] as $sc): $ch = $sc['change_pct']; ?>
+      <tr><td><?= e(category_label((string) $sc['category'])) ?></td>
+        <td class="n"><?= $sc['on_time_pct'] === null ? '—' : e(round((float) $sc['on_time_pct']) . '%') ?></td>
+        <td class="n"><?= $ch === null ? '—' : ((float) $ch > 0 ? '▲ ' : ((float) $ch < 0 ? '▼ ' : '')) . e(abs(round((float) $ch)) . '%') ?></td>
+        <td class="n"><?= (int) $sc['overdue_now'] ?></td></tr>
+    <?php endforeach; ?></tbody></table></section>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <!-- ---------- reports received ---------- -->
 <div class="p-card" style="margin-bottom:20px">

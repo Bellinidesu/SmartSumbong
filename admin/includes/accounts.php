@@ -152,6 +152,11 @@ function render_account_screen(string $role): void
 
     $pending = count(array_filter($accounts, fn($a) => $a['verification_status'] === 'pending'));
     $overdue = count(array_filter($accounts, fn($a) => !empty($a['is_overdue'])));
+    // The panel's "no scroll scroll" (7 Sep): fifteen to a page, the counts above stay over the whole filtered list.
+    $perPage  = 15;
+    $accTotal = count($accounts);
+    $accPage  = max(1, min((int) ($_GET['page'] ?? 1), max(1, (int) ceil($accTotal / $perPage))));
+    $accounts = array_slice($accounts, ($accPage - 1) * $perPage, $perPage);
     $attendance = $isTanod ? tanod_attendance_counts($allAccounts) : [];
 
     layout_head($title, $navFile);
@@ -224,7 +229,7 @@ function render_account_screen(string $role): void
     <?php endif; ?>
 
     <div class="p-band">
-      <h2><?= e(t($noun . ' accounts', 'Mga account ng ' . $nounLabel)) ?><span class="p-badge-n p-badge-n--quiet" id="accounts-count"><?= count($accounts) ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('to review', 'susuriin')) ?></span></h2>
+      <h2><?= e(t($noun . ' accounts', 'Mga account ng ' . $nounLabel)) ?><span class="p-badge-n p-badge-n--quiet" id="accounts-count"><?= $accTotal ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('to review', 'susuriin')) ?></span></h2>
       <form class="p-search" method="get" role="search">
         <?= p_icon('i-search', 16) ?><label class="p-sr" for="acc-q"><?= e(t('Search', 'Maghanap')) ?></label>
         <input id="acc-q" type="search" name="q" placeholder="<?= e(t('Search name, phone or email', 'Hanapin ang pangalan, telepono o email')) ?>" value="<?= e($search) ?>">
@@ -293,6 +298,7 @@ function render_account_screen(string $role): void
         </tbody>
       </table>
     </div></div>
+    <div id="accounts-pager"><?= pager($accTotal, $accPage, 'page', $perPage) ?></div>
 
     <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
@@ -315,6 +321,8 @@ function render_account_screen(string $role): void
       const SELF  = <?= json_encode($self) ?>;
       const SEARCH = <?= json_encode($search) ?>;
       const STATUS_FILTER = <?= json_encode($statusFilter) ?>;
+      const PER = <?= (int) $perPage ?>;
+      let PAGE = <?= (int) $accPage ?>;
       // Same session token every page load (csrf_token() memoizes it) --
       // safe to bake into the JS-rendered Quick Verify forms below the
       // same way the PHP-rendered ones already carry it as a hidden
@@ -456,6 +464,19 @@ function render_account_screen(string $role): void
         });
       }
 
+      function pagerHtml(total, page) {
+        var pages = Math.max(1, Math.ceil(total / PER));
+        if (pages <= 1) { return ''; }
+        var href = function (n) { var u = new URLSearchParams(location.search); u.set('page', n); return '?' + u.toString(); };
+        var from = Math.max(1, Math.min(page - 2, pages - 4)), to = Math.min(pages, from + 4);
+        var o = '<nav class="ss-pager" aria-label="' + T('Pages', 'Mga pahina') + '">';
+        o += page > 1 ? '<a href="' + href(page - 1) + '" rel="prev">&lsaquo; ' + T('Previous', 'Nakaraan') + '</a>' : '<span class="off">&lsaquo; ' + T('Previous', 'Nakaraan') + '</span>';
+        if (from > 1) { o += '<a href="' + href(1) + '">1</a>' + (from > 2 ? '<span class="gap">&hellip;</span>' : ''); }
+        for (var i = from; i <= to; i++) { o += i === page ? '<span class="on" aria-current="page">' + i + '</span>' : '<a href="' + href(i) + '">' + i + '</a>'; }
+        if (to < pages) { o += (to < pages - 1 ? '<span class="gap">&hellip;</span>' : '') + '<a href="' + href(pages) + '">' + pages + '</a>'; }
+        o += page < pages ? '<a href="' + href(page + 1) + '" rel="next">' + T('Next', 'Susunod') + ' &rsaquo;</a>' : '<span class="off">' + T('Next', 'Susunod') + ' &rsaquo;</span>';
+        return o + '<span class="of">' + ((page - 1) * PER + 1) + '&ndash;' + Math.min(total, page * PER) + ' ' + T('of', 'sa') + ' ' + total + '</span></nav>';
+      }
       function renderAccounts(accounts) {
         var filtered = accounts;
         if (SEARCH) {
@@ -469,6 +490,7 @@ function render_account_screen(string $role): void
           filtered = filtered.filter(function (a) { return a.verification_status === STATUS_FILTER; });
         }
         var dupes = duplicateFlags(accounts);
+        var total = filtered.length;
 
         // Counted over the filtered list, the same as the PHP render above
         // does — counting all accounts made the "awaiting review" note and
@@ -489,6 +511,10 @@ function render_account_screen(string $role): void
                             'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.');
 
         renderAttendance(accounts);
+
+        PAGE = Math.max(1, Math.min(PAGE, Math.ceil(total / PER) || 1));
+        filtered = filtered.slice((PAGE - 1) * PER, PAGE * PER);
+        document.getElementById('accounts-pager').innerHTML = pagerHtml(total, PAGE);
 
         var tbody = document.getElementById('accounts-tbody');
         if (!filtered.length) {

@@ -40,6 +40,12 @@ $categories = [
 ];
 
 $city3d = ($_GET['city'] ?? '') === '1' && is_file(__DIR__ . '/assets/js/sd-city.js');   # the 3D scripts live on the bellinist branch; without them this is always false   // the 3D City view is parked (Ace, 14 Oct): focus is the UI and the Smart engine; ?city=1 brings it back
+// Recurring problems (0123): the same kind of complaint again and again in the same place. SMART finds them; this lists them.
+$patterns = [];
+try {
+    $got = db()->rpc('smart_patterns', ['p_days' => null]);
+    $patterns = is_array($got) ? array_slice($got, 0, 12) : [];
+} catch (SupabaseError) { /* the panel just stays empty */ }
 layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 ?>
 
@@ -94,6 +100,23 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     <p class="p-eyebrow"><?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?></p>
     <ol class="p-pin-list" id="pin-list"></ol>
   </aside>
+  <aside class="p-card p-card-pad p-map-stats" id="recur-side" hidden>
+    <p class="p-eyebrow"><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?><span class="lv-n"><?= count($patterns) ?></span></p>
+    <?php if (!$patterns): ?>
+      <p class="p-hint"><?= e(t('Nothing has come up more than once in the same place lately.', 'Walang problemang umulit sa iisang lugar nitong mga nakaraan.')) ?></p>
+    <?php else: ?>
+    <ol class="p-pin-list">
+      <?php foreach ($patterns as $pt): ?>
+        <li><button type="button" class="p-pin-row ss-recur" data-lat="<?= e((string) $pt['lat']) ?>" data-lng="<?= e((string) $pt['lng']) ?>">
+          <b><?= e(category_label((string) $pt['category'])) ?></b>
+          <small><?= (int) $pt['reports'] ?> <?= e(t('reports from', 'ulat mula sa')) ?> <?= (int) $pt['residents'] ?> <?= e(t('residents over', 'residente sa loob ng')) ?> <?= (int) $pt['weeks'] ?> <?= e(t('weeks', 'linggo')) ?>
+            · <?= (int) $pt['still_open'] ?> <?= e(t('still open', 'bukas pa')) ?><?= !empty($pt['hazard']) ? ' · ' . e((string) $pt['hazard']) : '' ?></small>
+          <small class="p-mono-id"><?= e(implode(' ', array_slice((array) ($pt['tracking_ids'] ?? []), 0, 3))) ?></small>
+        </button></li>
+      <?php endforeach; ?>
+    </ol>
+    <?php endif; ?>
+  </aside>
   <?php if (HOTSPOTS_ENABLED): ?>
   <aside class="p-card p-card-pad p-map-stats" id="hotspot-side" hidden>
     <p class="p-eyebrow"><?= e(t('Top hotspots', 'Nangungunang hotspot')) ?></p>
@@ -142,6 +165,8 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h.01" /> <path d="M3 12h.01" /> <path d="M3 19h.01" /> <path d="M8 5h13" /> <path d="M8 12h13" /> <path d="M8 19h13" /></svg></button>
     <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s5-4.4 5-8.8a5 5 0 1 0-10 0c0 4.4 5 8.8 5 8.8z"/><circle cx="12" cy="11.5" r="1.8"/><path d="M3.2 8a9.6 9.6 0 0 0 0 7M20.8 8a9.6 9.6 0 0 1 0 7"/></svg><span class="p-cnt" id="pin-count">0</span></button>
+    <button class="p-dock-btn" id="recur-toggle" type="button" aria-expanded="false" aria-controls="recur-side" title="<?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?>" aria-label="<?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?>">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg><span class="p-cnt"><?= count($patterns) ?></span></button>
     <?php if (HOTSPOTS_ENABLED): ?>
     <button class="p-dock-btn" id="hotspot-toggle" aria-expanded="false" aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>" aria-label="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1.3 3.4 5 4.8 5 9.5a5 5 0 0 1-10 0c0-2 .8-3.6 2-4.8.3 1.8 1.1 2.9 2.2 3.3C10.8 8.6 10.7 5.6 12 3z"/></svg><span class="p-cnt" id="hotspot-count">0</span></button>
@@ -1420,6 +1445,7 @@ function mapDrawer(which) {
   if (which !== 'sheet' && csFor) closeCaseSheet();
   if (which !== 'layers') { const lc = document.getElementById('ss-lyr'); if (lc && !lc.hidden) { lc.hidden = true; document.getElementById('layers-btn').setAttribute('aria-expanded', 'false'); } }
   if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
+  if (which !== 'recur') { document.getElementById('recur-side').setAttribute('hidden', ''); document.getElementById('recur-toggle').setAttribute('aria-expanded', 'false'); }
   if (which !== 'legend') { document.getElementById('map-legend').hidden = true; document.getElementById('legend-toggle').setAttribute('aria-expanded', 'false'); }
   if (which !== 'flood') { document.getElementById('fw-card').hidden = true; document.getElementById('fw-chip').setAttribute('aria-expanded', 'false'); }
 }
@@ -1428,6 +1454,16 @@ document.getElementById('legend-toggle').addEventListener('click', () => {
   if (open) mapDrawer('legend');
   lg.hidden = !open;
   document.getElementById('legend-toggle').setAttribute('aria-expanded', String(open));
+});
+document.getElementById('recur-toggle').addEventListener('click', () => {
+  const rs = document.getElementById('recur-side'), open = rs.hasAttribute('hidden');
+  if (open) mapDrawer('recur');
+  open ? rs.removeAttribute('hidden') : rs.setAttribute('hidden', '');
+  document.getElementById('recur-toggle').setAttribute('aria-expanded', String(open));
+});
+document.getElementById('recur-side').addEventListener('click', ev => {
+  const b = ev.target.closest('.ss-recur'); if (!b) return;
+  map.flyTo({ center: [parseFloat(b.dataset.lng), parseFloat(b.dataset.lat)], zoom: 18, essential: true });
 });
 document.getElementById('fw-chip').addEventListener('click', () => {
   const c = document.getElementById('fw-card'), open = c.hidden;
