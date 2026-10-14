@@ -18,6 +18,7 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 | `10_smart_learning.sql` | 10 checks (0128): new words suggested with their kind and a likely spelling, taught (word list, kind, urgent group) or dismissed with open reports re-scored, admins only; quiet cases (told once, cleared by a message); weekly patterns; the scorecard; SMART routing of the system's dispatches (free tanod over the nearest busy one) and the switch back to nearest-only; the digest's new lines |
 | `11_smart_queue.sql` | 7 checks (0129): queue order by urgency plus waiting (a 50-hour-old clearance between a stabbing and fresh rubbish), an admin's level in the queue, every stage's next action, the overdue bonus, residents kept out, the dispatch waiting line in queue order (fire before an older cedula) and first come, first served with the switch off |
 | `12_defense_structure.sql` | 12 checks (0130): positions and committees, the escalation ladder (Kagawad by committee, then the Chairman, and back down), several concerns in one report, sensitive cases (marked on filing, kept out of the waiting line) |
+| `13_three_briefings.sql` | 4 checks (0131): the morning, afternoon and night briefings read right, an unknown period is refused, they reach every administrator and honour the switch, all three are scheduled |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times
