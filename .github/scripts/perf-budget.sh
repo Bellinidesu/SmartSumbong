@@ -5,8 +5,8 @@
 # Raising a limit is allowed, but on purpose, in the same pull request.
 #
 #   sign-in page, everything it loads      320 KB
-#   each portal script (assets/js)           8 KB
-#   each stylesheet (assets/css)            20 KB
+#   each portal script (assets/js)          14 KB   (was 8: the Spatial Distribution tools script holds search, time slider, saved views)
+#   each stylesheet (assets/css)            36 KB   (was 20: flair.css carries the map's controls and panels)
 #   each .webp photo (assets/img)          160 KB
 #
 # Big third-party libraries (MapLibre, supabase-js) load only on the pages
@@ -17,8 +17,8 @@ fail=0
 size() { case "$1" in *.css|*.js|*.svg|*.html|*.json) gzip -9 -c "$1" | wc -c ;; *) wc -c < "$1" ;; esac; }
 over() { echo "FAIL $1: $2 bytes, budget $3"; fail=1; }
 
-for f in admin/assets/js/*.js;   do s=$(size "$f"); [ "$s" -le 8192 ]   || over "$f" "$s" 8192;   done
-for f in admin/assets/css/*.css; do s=$(size "$f"); [ "$s" -le 20480 ]  || over "$f" "$s" 20480;  done
+for f in admin/assets/js/*.js;   do s=$(size "$f"); [ "$s" -le 14336 ]  || over "$f" "$s" 14336;   done
+for f in admin/assets/css/*.css; do s=$(size "$f"); [ "$s" -le 36864 ]  || over "$f" "$s" 36864;  done
 for f in admin/assets/img/*.webp; do s=$(size "$f"); [ "$s" -le 163840 ] || over "$f" "$s" 163840; done
 
 # The sign-in page as served, plus every local file it references.

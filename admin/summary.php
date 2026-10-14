@@ -263,7 +263,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <span class="p-watching" id="live-badge" title="<?= e(t('This period is still open — watching for new activity', 'Bukas pa ang panahong ito — binabantayan ang bagong aktibidad')) ?>"><i></i><span id="live-badge-text"><?= e(t('Watching', 'Nagbabantay')) ?></span></span>
     <?php endif; ?>
   </h2>
-  <form method="get" class="p-period-form">
+  <form method="get" class="p-period-form" id="period-form">
     <label class="p-pill-select"><span class="p-sr"><?= e(t('From', 'Mula')) ?></span><input type="date" id="from" name="from" value="<?= e($from->format('Y-m-d')) ?>"></label>
     <span class="p-to"><?= e(t('to', 'hanggang')) ?></span>
     <label class="p-pill-select"><span class="p-sr"><?= e(t('To', 'Hanggang')) ?></span><input type="date" id="to" name="to" value="<?= e($to->format('Y-m-d')) ?>"></label>
@@ -472,4 +472,15 @@ foreach ($logs as $l) {
   })();
   </script>
   <?php endif; ?>
+  <script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
+  <script>
+  // From and to are one calendar: the two native date boxes stay underneath, and the page reloads when a range is applied.
+  (function () {
+    var f = document.getElementById('period-form'), a = document.getElementById('from'), b = document.getElementById('to');
+    if (!f || !a || !b || !window.sdPickers) return;
+    var lb = b.closest('label'), to = f.querySelector('.p-to'); if (lb) lb.hidden = true; if (to) to.hidden = true;
+    sdPickers.range(a, { from: a, to: b, onApply: function () { f.requestSubmit ? f.requestSubmit() : f.submit(); } });
+    sdPickers.select(document.getElementById('category'));
+  })();
+  </script>
   <?php layout_foot(); ?>
