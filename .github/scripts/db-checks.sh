@@ -13,7 +13,7 @@ fi
 supabase link --project-ref "$ref" --password "$SUPABASE_DB_PASSWORD" > /dev/null || exit 1
 supabase db push --linked --include-all --yes || exit 1
 fail=0
-for f in supabase/tests/0*.sql; do
+for f in supabase/tests/[0-9][0-9]_*.sql; do
   out=$(supabase db query --linked -f "$f" 2>&1 || true)
   log=$(printf '%s' "$out" | sed 's/\\n/\n/g')
   okc=$(printf '%s\n' "$log" | grep -cE '^ok' || true)

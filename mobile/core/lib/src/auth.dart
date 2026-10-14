@@ -273,30 +273,26 @@ class AuthService {
     }
   }
 
-  /// Writes on-device OCR triage results (id_ocr.dart, migration 0039)
-  /// to the just-created account's own row. Call this only after
-  /// [register] has succeeded — signUp leaves the client signed in as
-  /// the new account, and it is that session, via users_self_update's
-  /// RLS policy (0003), that actually authorizes the write; nothing
-  /// here checks a role or grants anything on its own.
+  /// Sends what on-device OCR read off the ID (id_ocr.dart) for the
+  /// signed-in account: the ID type it recognised, the name and the
+  /// number. Since 0126 the server works out the flags itself
+  /// (submit_id_reading, SMART Verify) and the app can no longer write
+  /// them: a model may read, rules decide. Also clears a pending
+  /// admin-requested re-check (0050). Call only after [register] has
+  /// succeeded, when the client is signed in as the new account.
   ///
   /// Advisory only, same as everything else in id_ocr.dart: any failure
   /// here is swallowed rather than surfaced, because a resident whose
   /// signup otherwise succeeded must never see an error over a feature
   /// that exists purely to help the admin triage the queue faster.
   Future<void> submitIdOcrResult(IdOcrResult result) async {
-    final uid = _client.auth.currentUser?.id;
-    if (uid == null) return;
+    if (_client.auth.currentUser == null) return;
     try {
-      await _client.from('users').update({
-        ...result.toColumns(),
-        // Clears any pending admin-requested re-check (migration 0050).
-        // A no-op at ordinary registration time, since the column is
-        // already null then — this is the one place both the first-run
-        // and the re-check path converge, so clearing it here rather
-        // than in two callers can't fall out of sync.
-        'ocr_rescan_requested_at': null,
-      }).eq('id', uid);
+      await _client.rpc('submit_id_reading', params: {
+        'p_detected_type': result.detectedType?.wire,
+        'p_name': result.extractedName,
+        'p_number': result.extractedNumber,
+      });
     } catch (_) {
       // Advisory only — see doc comment above.
     }
