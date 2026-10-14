@@ -453,6 +453,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 <section class="st-pane" data-pane="smart" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <div class="ss-head"><?= smart_logo(44) ?><p><?= e(t('How the engine scores and sorts complaints. Change a rule, try it, then re-score.', 'Paano minamarkahan at inaayos ng engine ang mga sumbong. Baguhin ang patakaran, subukan, saka muling markahan.')) ?></p></div>
   <?php if (!$sr): ?>
     <p class="p-none-line"><?= e(t('SMART could not be read. Try again in a moment.', 'Hindi mabasa ang SMART. Subukan muli mamaya.')) ?></p>
   <?php else: ?>

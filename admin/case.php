@@ -626,7 +626,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       $lvName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
   ?>
   <section class="p-card p-card-pad ss-smartcard" aria-labelledby="smart-h">
-    <p class="p-eyebrow" id="smart-h">SMART &middot; <?= e(t('why this level', 'bakit ganito ang antas')) ?></p>
+    <div class="ss-head ss-head--card"><?= smart_logo(30) ?><p class="p-eyebrow" id="smart-h"><?= e(t('Why this level', 'Bakit ganito ang antas')) ?></p></div>
     <div class="ss-sc-head">
       <?= smart_badge(['effective_level' => $sLv, 'score' => (int) $smart['score'], 'override_level' => $ov['level'] ?? null, 'possible_duplicates' => 0]) ?>
       <?php if ($ov): ?>
