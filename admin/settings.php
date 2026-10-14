@@ -541,6 +541,21 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 
 <section class="st-pane" data-pane="look" hidden>
   <div class="p-card p-card-pad st-look">
+    <p class="p-eyebrow"><?= e(t('Theme and language', 'Tema at wika')) ?></p>
+    <div class="st-prefs">
+      <div class="st-pref"><span class="st-pref-l"><?= p_icon('i-moon', 18) ?><b><?= e(t('Theme', 'Tema')) ?></b></span>
+        <div class="p-seg-mini" id="st-theme" role="group" aria-label="<?= e(t('Theme', 'Tema')) ?>">
+          <button type="button" data-set-theme="light"><?= e(t('Light', 'Maliwanag')) ?></button>
+          <button type="button" data-set-theme="dark"><?= e(t('Dark', 'Madilim')) ?></button>
+        </div></div>
+      <div class="st-pref"><span class="st-pref-l"><?= p_icon('i-flag', 18) ?><b><?= e(t('Language', 'Wika')) ?></b></span>
+        <div class="p-seg-mini pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
+          <button type="button" data-lang="en" aria-pressed="<?= lang() === 'en' ? 'true' : 'false' ?>" class="<?= lang() === 'en' ? 'p-on' : '' ?>"><?= lang_flag('us') ?><span>English</span></button>
+          <button type="button" data-lang="fil" aria-pressed="<?= lang() === 'en' ? 'false' : 'true' ?>" class="<?= lang() === 'en' ? '' : 'p-on' ?>"><?= lang_flag('ph') ?><span>Tagalog</span></button>
+        </div></div>
+    </div>
+  </div>
+  <div class="p-card p-card-pad st-look">
     <p class="p-eyebrow"><?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?></p>
     <p class="st-note" style="margin-top:0"><?= e(t('How the panels and buttons floating on the Spatial Distribution map are drawn. Glass lets the map show through; Solid is flat and plain, easier on older screens and in bright rooms. This is kept on this computer.', 'Kung paano iginuhit ang mga panel at button sa mapa. Hinahayaan ng Glass na makita ang mapa; ang Solid ay patag at simple, mas magaan sa lumang screen at sa maliwanag na silid. Nakatago ito sa computer na ito.')) ?></p>
     <div class="st-surfs" role="radiogroup" aria-label="<?= e(t('Map surfaces', 'Ibabaw ng mapa')) ?>">
@@ -707,6 +722,21 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
   }));
   $('st-check').addEventListener('click', () => { check(); usage(); });
   check(); usage();
+})();
+</script>
+<script>
+// Theme: Light or Dark, kept in this browser (the sidebar switch moved here, 14 Oct).
+(function () {
+  var wrap = document.getElementById('st-theme'); if (!wrap) return;
+  var root = document.documentElement;
+  function paint() { var cur = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; wrap.querySelectorAll('button').forEach(function (b) { b.classList.toggle('p-on', b.dataset.setTheme === cur); b.setAttribute('aria-pressed', String(b.dataset.setTheme === cur)); }); }
+  wrap.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    root.setAttribute('data-theme', b.dataset.setTheme); root.setAttribute('data-bs-theme', b.dataset.setTheme);
+    try { localStorage.setItem('ss-theme', b.dataset.setTheme); } catch (x) {}
+    paint(); window.dispatchEvent(new CustomEvent('themechange', { detail: b.dataset.setTheme }));
+  });
+  paint();
 })();
 </script>
 <script>

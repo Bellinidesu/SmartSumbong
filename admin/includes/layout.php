@@ -174,31 +174,30 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
+<link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
 <script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
   <aside class="p-sidebar">
-    <a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a>
-    <nav class="p-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
+    <div class="p-side-top">
+      <button type="button" class="p-burger" id="side-burger" aria-controls="side-nav" aria-expanded="true"
+              data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
+              aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><span></span><span></span><span></span></button>
+      <a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a>
+    </div>
+    <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
         <?php $n = $counts[$href] ?? 0; ?>
-        <a href="<?= e($href) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
+        <a href="<?= e($href) ?>" title="<?= e($label) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
           <?= p_icon($icon) ?><span><?= e($label) ?></span>
           <?php if ($n > 0): ?><span class="p-count" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?>
         </a>
       <?php endforeach; ?>
     </nav>
     <div class="p-side-foot">
-      <button type="button" class="p-side-toggle" data-theme-toggle data-dark="<?= e(t('Dark Mode', 'Madilim na Tema')) ?>" data-light="<?= e(t('Dark Mode', 'Madilim na Tema')) ?>">
-        <span class="p-left"><?= p_icon('i-moon', 18) ?><span class="p-lbl" data-theme-label><?= e(t('Dark Mode', 'Madilim na Tema')) ?></span></span><?= day_night_switch() ?>
-      </button>
-      <div class="p-seg pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
-        <button type="button" data-lang="en" aria-pressed="<?= $en ? 'true' : 'false' ?>" class="<?= $en ? 'p-on' : '' ?>" aria-label="EN English" title="English"><?= lang_flag('us') ?><span>EN</span></button>
-        <button type="button" data-lang="fil" aria-pressed="<?= $en ? 'false' : 'true' ?>" class="<?= $en ? '' : 'p-on' ?>" aria-label="PH Tagalog" title="Tagalog"><?= lang_flag('ph') ?><span>PH</span></button>
-      </div>
       <div class="p-side-user<?= $active === 'profile.php' ? ' p-active' : '' ?>" id="side-user">
         <a class="p-side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
           <?= admin_avatar_html($admin) ?>
@@ -402,6 +401,25 @@ window.SS_PRESENCE = <?= json_encode([
 })();
 </script>
 <?= prefs_script() ?>
+<script>
+// The three bars shrink the sidebar to its icons and bring it back; the choice is kept in this browser.
+(function () {
+  var b = document.getElementById('side-burger'), root = document.documentElement;
+  if (!b) return;
+  function paint() {
+    var min = root.getAttribute('data-side') === 'min', t = min ? b.dataset.expand : b.dataset.collapse;
+    b.setAttribute('aria-expanded', String(!min)); b.setAttribute('aria-label', t); b.title = t;
+  }
+  b.addEventListener('click', function () {
+    var min = root.getAttribute('data-side') === 'min';
+    if (min) root.removeAttribute('data-side'); else root.setAttribute('data-side', 'min');
+    try { localStorage.setItem('ss-side', min ? 'max' : 'min'); } catch (e) {}
+    paint();
+    window.dispatchEvent(new Event('resize'));   // charts and the map redraw to the new width
+  });
+  paint();
+})();
+</script>
 <?php idle_timeout(); ?>
 <?php if (current_admin()): ?>
 <script>
