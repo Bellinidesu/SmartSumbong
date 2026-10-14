@@ -153,16 +153,9 @@ function render_briefing(Supabase $db, array $admin): void
     <p><?= e($periods[$here]['line']) ?></p>
     <div class="ss-alarm-row"><button type="button" class="ss-alarm-go" id="ss-alarm-go"><?= e(t('Show me', 'Ipakita')) ?></button></div>
   </div></div></div>
-  <?php foreach ($periods as $key => $p): ?>
-    <div class="ss-brief-tiles" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
-      <?php foreach ($p['tiles'] as [$label, $v, $href, $hot]): ?>
-        <a class="ss-btile<?= $hot ? ' hot' : '' ?>" href="<?= e($href ?: 'cases.php') ?>"><b><?= (int) $v ?></b><span><?= e($label) ?></span></a>
-      <?php endforeach; ?>
-    </div>
-  <?php endforeach; ?>
 </section>
 
-<div class="ss-lanes">
+<div class="ss-strip">
   <section class="ss-lane" aria-labelledby="lane-now">
     <h3 id="lane-now"><?= e(t('Needs you now', 'Kailangan ka ngayon')) ?><span class="p-badge-n"><?= count($queue) + count($esc) ?></span></h3>
     <?php foreach ($esc as $x): ?>
@@ -171,15 +164,6 @@ function render_briefing(Supabase $db, array $admin): void
           <p><?= e(name_or($x['requester']['full_name'] ?? null, t('A tanod', 'Isang tanod'))) ?>: <?= e($x['reason']) ?></p></div>
         <?php if (!empty($x['report']['id'])): ?><a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a><?php endif; ?></article>
     <?php endforeach; ?>
-    <?php foreach (array_slice($queue, 0, 4) as $q): $why = []; foreach (array_slice((array) ($q['reasons'] ?? []), 0, 3) as $rs) { $why[] = ($rs['detail'] ?? $rs['factor'] ?? '') . ' +' . (int) ($rs['points'] ?? 0); } ?>
-      <article class="ss-nt" style="--c:<?= ($q['level'] ?? '') === 'urgent' ? '#E5383B' : (($q['level'] ?? '') === 'high' ? '#FF9800' : '#356CF9') ?>"><span class="ss-ic" aria-hidden="true">!</span>
-        <div><b><?= e($q['tracking_id']) ?> · <?= e($q['subject']) ?></b>
-          <p><?= e(waiting_text($q['waiting_since'])) ?> · <?= e(category_label((string) $q['category'])) ?></p>
-          <?php if ($why): ?><div class="ss-whys"><?php foreach ($why as $w): ?><span><?= e($w) ?></span><?php endforeach; ?></div><?php endif; ?></div>
-        <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($q['report_id']) ?>"><?= e($q['next_action']) ?></a></article>
-    <?php endforeach; ?>
-    <?php if (!$queue && !$esc): ?><p class="p-none-line"><?= e(t('Nothing waits on you. Every open case has someone on it.', 'Walang naghihintay sa iyo. May nakatalaga sa bawat bukás na kaso.')) ?></p><?php endif; ?>
-    <a class="ss-more" href="notifications.php?tab=next"><?= e(t('See the whole queue', 'Tingnan ang buong pila')) ?> ›</a>
   </section>
 
   <section class="ss-lane" aria-labelledby="lane-watch">
