@@ -209,3 +209,136 @@
 @media (max-width:1100px){.ss-lanes{grid-template-columns:1fr}.ss-brief-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:700px){.ss-brief-hero{grid-template-columns:1fr}.ss-brief-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.ss-nt{grid-template-columns:34px minmax(0,1fr)}.ss-nt>.p-btn{grid-column:2;justify-self:start}}
 @media (prefers-reduced-motion:reduce){.ss-brief-hero::before{animation:none}}
+/* the engine's own button sits on top of the dock, wider than the round ones, and glows */
+.p-map-dock .ss-dock-logo{order:-10;border-radius:14px;color:#EDFA04;background:linear-gradient(#15181d,#15181d) padding-box,linear-gradient(110deg,#356CF9,#FF9800,#EDFA04,#34C759,#356CF9) border-box;border:2px solid transparent;background-size:auto,300% 100%;animation:ssSweep 6s linear infinite}
+.p-map-dock .ss-dock-logo .ss-brain-ico{filter:drop-shadow(0 0 5px rgba(237,250,4,.75))}
+.p-map-dock .ss-dock-logo:hover .ss-brain-ico{animation:ssGlow 1.2s ease-in-out infinite}
+.p-map-dock .ss-dock-logo.is-open{animation:ssSweep 1.6s linear infinite}
+.ss-dock-logo::after{inset:-5px}
+:root[data-theme="dark"] #s-spatial .p-map-dock .ss-dock-logo{background-color:transparent}
+/* the drawer's recurring problems and likely-late rows: a stacked card, not a grid of one-word columns */
+.ss-drawer .p-pin-list{display:grid;gap:8px;margin:0 0 10px;padding:0;list-style:none}
+.ss-drawer .p-pin-row{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:10px 12px;text-align:left;border-radius:12px;border:1px solid var(--p-line);background:var(--p-surface-2);color:var(--p-ink);cursor:pointer}
+.ss-drawer .p-pin-row:hover{border-color:var(--p-orange)}
+.ss-drawer .p-pin-row b{font-size:13.5px}
+.ss-drawer .p-pin-row small{display:block;font-size:12px;line-height:1.35;color:var(--p-muted);white-space:normal}
+.ss-drawer .p-pin-row small.p-mono-id{font-size:11px;letter-spacing:.02em;overflow-wrap:anywhere}
+.ss-drawer{overflow-y:auto}
+.ss-drawer-head{position:relative;padding:8px 10px;border-radius:12px;background:linear-gradient(110deg,rgba(53,108,249,.16),rgba(255,152,0,.16),rgba(237,250,4,.12));background-size:200% 100%;animation:ssSweep 10s linear infinite}
+/* dark mode: the navy "on" text on graphite was unreadable */
+:root[data-theme="dark"] .ss-tabs a.on{color:var(--p-ink);background:var(--p-surface-2)}
+:root[data-theme="dark"] .ss-reasons b{color:var(--p-link)}
+@media (prefers-reduced-motion:reduce){.p-map-dock .ss-dock-logo,.ss-drawer-head{animation:none}}
+/* the briefing, redesigned: a live clock with the sky and weather beside the engine's words, in a border that sweeps blue, orange, yellow */
+.ss-brief-hero{display:grid;grid-template-columns:250px minmax(0,1fr);gap:0;padding:2px;border:0;border-radius:18px;background:linear-gradient(110deg,#356CF9,#FF9800,#EDFA04,#34C759,#356CF9);background-size:300% 100%;animation:ssSweep 9s linear infinite;overflow:hidden;isolation:isolate}
+.ss-brief-hero::before{display:none}
+.ss-brief.is-thinking .ss-brief-hero{animation-duration:1.4s}
+.ss-brief-main{display:grid;gap:12px;align-content:center;padding:18px 22px;background:var(--p-surface);border-radius:0 16px 16px 0;min-width:0}
+.ss-brief-top{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap}
+.ss-brief-txt b{font:800 20px Urbanist,sans-serif}
+.ss-brief-txt p{font-size:14.5px;line-height:1.5}
+.ss-clock{position:relative;min-height:190px;border-radius:16px 0 0 16px;overflow:hidden;color:#fff;isolation:isolate;--sky:linear-gradient(180deg,#2F7BFF,#6EB6FF 70%,#BFE3FF);--orb-x:50%;--orb-y:30%}
+.ss-clock[data-sky="dawn"]{--sky:linear-gradient(180deg,#1E3A8A,#C2410C 72%,#FDBA74)}
+.ss-clock[data-sky="dusk"]{--sky:linear-gradient(180deg,#3B1F6B,#C2410C 68%,#F59E0B)}
+.ss-clock[data-sky="night"]{--sky:linear-gradient(180deg,#07102E,#14213D 70%,#1E2F5C)}
+.ss-sky{position:absolute;inset:0;z-index:-1;background:var(--sky);overflow:hidden}
+.ss-orb{position:absolute;left:var(--orb-x);top:var(--orb-y);width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:#FFD54A;box-shadow:0 0 0 8px rgba(255,213,74,.22),0 0 34px 10px rgba(255,200,60,.55);transition:left 1s,top 1s}
+.ss-clock[data-orb="moon"] .ss-orb{background:#F3F3F3;box-shadow:inset -9px -3px 0 0 #B8C0D4,0 0 26px 6px rgba(200,210,255,.35)}
+.ss-cloud{position:absolute;height:20px;width:74px;border-radius:99px;background:rgba(255,255,255,.55);filter:blur(1px);animation:ssDrift 38s linear infinite}
+.ss-cloud::before{content:"";position:absolute;left:14px;top:-10px;width:34px;height:26px;border-radius:50%;background:inherit}
+.ss-cloud.c1{top:64%;left:-90px}.ss-cloud.c2{top:22%;left:-90px;transform:scale(.7);animation-duration:55s;animation-delay:-20s}
+.ss-clock[data-sky="night"] .ss-cloud{opacity:.18}
+.ss-stars{position:absolute;inset:0;opacity:0;transition:opacity 1s;background-image:radial-gradient(1.4px 1.4px at 12% 20%,#fff,transparent),radial-gradient(1.2px 1.2px at 30% 55%,#fff,transparent),radial-gradient(1.6px 1.6px at 55% 14%,#fff,transparent),radial-gradient(1.2px 1.2px at 74% 40%,#fff,transparent),radial-gradient(1.4px 1.4px at 88% 18%,#fff,transparent),radial-gradient(1px 1px at 45% 38%,#fff,transparent),radial-gradient(1px 1px at 92% 62%,#fff,transparent)}
+.ss-clock[data-sky="night"] .ss-stars{opacity:.9;animation:ssTwinkle 4s ease-in-out infinite}
+.ss-clock[data-rain="1"] .ss-sky::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(10,20,40,.35),rgba(10,20,40,.35)),repeating-linear-gradient(105deg,transparent 0 9px,rgba(255,255,255,.35) 9px 10px);background-size:auto,22px 40px;animation:ssRain .7s linear infinite}
+.ss-clock-in{position:relative;display:grid;gap:4px;align-content:end;height:100%;padding:16px 18px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+.ss-time{display:flex;align-items:baseline;gap:6px}
+.ss-time b{font:800 42px/1 Urbanist,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.ss-time small{font:700 14px Inter,sans-serif;opacity:.9}
+.ss-date{font:600 13px Inter,sans-serif;opacity:.95}
+.ss-wx{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.28);backdrop-filter:blur(6px);text-shadow:none}
+.ss-wx-ic{display:grid;place-items:center;flex:none;color:#fff}
+.ss-wx-txt{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.ss-wx-txt b{font:800 17px Urbanist,sans-serif}
+.ss-wx-txt span{font-size:12px;opacity:.92}
+.ss-wx[data-state="loading"] .ss-wx-ic{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.25);animation:ssBreathe 1.6s ease-in-out infinite}
+.ss-wx-more{font:600 11px Inter,sans-serif;opacity:.9;margin-top:2px}
+@keyframes ssDrift{to{transform:translateX(420px)}}
+@keyframes ssTwinkle{50%{opacity:.55}}
+@keyframes ssRain{to{background-position:0 0,-8px 40px}}
+@media (max-width:760px){.ss-brief-hero{grid-template-columns:1fr}.ss-clock{border-radius:16px 16px 0 0;min-height:170px}.ss-brief-main{border-radius:0 0 16px 16px}}
+@media (prefers-reduced-motion:reduce){.ss-brief-hero,.ss-cloud,.ss-stars,.ss-clock .ss-sky::after{animation:none!important}.ss-orb{transition:none}}
+/* the tiles under it glow on hover */
+.ss-btile{transition:border-color .2s,box-shadow .2s,transform .2s}
+.ss-btile:hover{box-shadow:0 8px 22px rgba(255,152,0,.18);transform:translateY(-2px)}
+/* Notifications: the Next up / All notifications switch as a quiet pill, and the section bands calmer */
+.ss-tabs{margin-top:6px}
+/* the PDF download, locked 15 Oct: the whole button is a tile, like the map's layers, in PDF red */
+.p-period-band .p-btn-pdf2{position:relative;overflow:hidden;isolation:isolate;height:48px;padding:0 24px 0 16px;gap:12px;border:0;border-radius:16px;background:linear-gradient(145deg,#FF5A4D,#FA0F00 55%,#9E0A00);color:#fff;font-weight:800;box-shadow:0 8px 22px rgba(250,15,0,.5),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 4px rgba(255,255,255,.28);transition:transform .3s cubic-bezier(.2,1.25,.3,1),box-shadow .3s,background .3s}
+.p-period-band .p-btn-pdf2::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-130%);animation:ssShine 3.6s ease-in-out infinite}
+.p-btn-pdf2 .pdf-ico{overflow:visible;flex:none}
+.p-btn-pdf2 .pg{fill:none;stroke:#fff;stroke-width:1.9;stroke-linejoin:round}
+.p-btn-pdf2 .ln{stroke:#fff;stroke-width:1.9;stroke-linecap:round;transform-origin:left center;transform:scaleX(.55);transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
+.p-btn-pdf2 .ln:nth-of-type(2){transition-delay:.05s}.p-btn-pdf2 .ln:nth-of-type(3){transition-delay:.1s}
+.p-period-band .p-btn-pdf2:hover{background:linear-gradient(145deg,#FF5A4D,#FA0F00 55%,#9E0A00);transform:translateY(-4px) scale(1.04);box-shadow:0 16px 32px rgba(250,15,0,.6),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 6px rgba(255,255,255,.3)}
+.p-btn-pdf2:hover .ln{transform:scaleX(1.25)}
+.p-period-band .p-btn-pdf2:active{transform:translateY(0) scale(.96)}
+.p-period-band .p-btn-pdf2.is-building{animation:ssPdfRing .9s ease-out infinite}
+.p-period-band .p-btn-pdf2.is-done{background:linear-gradient(145deg,#5FD68A,#1F8A45 60%,#14612F);box-shadow:0 8px 22px rgba(31,138,69,.5),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 4px rgba(255,255,255,.28)}
+@keyframes ssPdfRing{0%{box-shadow:0 8px 22px rgba(250,15,0,.5),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 4px rgba(255,255,255,.55)}100%{box-shadow:0 8px 22px rgba(250,15,0,.5),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 18px rgba(255,255,255,0)}}
+@keyframes ssShine{0%,55%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+@media (prefers-reduced-motion:reduce){.p-period-band .p-btn-pdf2,.p-period-band .p-btn-pdf2::before{animation:none}}
+/* a SMART notification wears the brain on the engine's gradient instead of the bell (bell C, locked) */
+.p-n-ico.is-smart{background:linear-gradient(145deg,#356CF9,#FF9800 55%,#EDFA04);color:#fff;box-shadow:0 5px 14px rgba(255,152,0,.4)}
+.p-n-ico.is-smart svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+/* the briefing bar, locked 15 Oct (size S): the bar is the sky; the gap between the sentence and the tabs is a window onto it */
+.ss-bar{position:relative;isolation:isolate;display:flex;align-items:center;gap:12px 18px;min-height:64px;padding:6px 14px;border-radius:16px;color:#fff;border:2px solid transparent;--sky:linear-gradient(100deg,#2F7BFF,#6EB6FF 60%,#BFE3FF);background:var(--sky) padding-box,linear-gradient(110deg,#356CF9,#FF9800,#EDFA04,#34C759,#356CF9) border-box;background-size:auto,300% 100%;animation:ssSweep 9s linear infinite}
+.ss-bar[data-sky="dawn"]{--sky:linear-gradient(100deg,#1E3A8A,#C2410C 70%,#FDBA74)}
+.ss-bar[data-sky="dusk"]{--sky:linear-gradient(100deg,#3B1F6B,#C2410C 65%,#F59E0B)}
+.ss-bar[data-sky="night"]{--sky:linear-gradient(100deg,#07102E,#14213D 65%,#1E2F5C)}
+.ss-brief.is-thinking .ss-bar{animation-duration:1.4s}
+.ss-brain{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:13px;color:#EDFA04;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px)}
+.ss-brain svg{filter:drop-shadow(0 0 5px rgba(237,250,4,.8));animation:ssGlow 3.2s ease-in-out infinite}
+.ss-brief.is-thinking .ss-brain svg{animation-duration:1.1s}
+.ss-bar-txt{flex:1 1 260px;min-width:0;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+.ss-bar-txt b{font:800 15px Urbanist,sans-serif}
+.ss-bar-txt p{margin:1px 0 0;font-size:13px;line-height:1.35;color:rgba(255,255,255,.93);max-width:62ch}
+.ss-bar-txt .ss-thinkline{display:none}
+.ss-brief.is-thinking .ss-bar-txt .ss-thinkline{display:block}
+.ss-gap{position:relative;flex:1 1 220px;min-width:150px;height:52px;border-radius:12px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
+.ss-orb{position:absolute;left:var(--gx,40%);top:var(--gy,40%);width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#FFD54A;box-shadow:0 0 0 7px rgba(255,213,74,.22),0 0 28px 8px rgba(255,200,60,.55);transition:left 1s,top 1s}
+.ss-bar[data-orb="moon"] .ss-orb{background:#F3F3F3;box-shadow:inset -8px -3px 0 0 #B8C0D4,0 0 22px 5px rgba(200,210,255,.35)}
+.ss-gap .ss-cloud{height:14px;width:54px;border-radius:99px;background:rgba(255,255,255,.55);position:absolute;animation:ssDrift 38s linear infinite}
+.ss-gap .ss-cloud::before{content:"";position:absolute;left:10px;top:-8px;width:24px;height:18px;border-radius:50%;background:inherit}
+.ss-gap .ss-cloud.c1{top:62%;left:-70px}.ss-gap .ss-cloud.c2{top:12%;left:-70px;animation-duration:55s;animation-delay:-20s}
+.ss-bar[data-sky="night"] .ss-gap .ss-cloud{opacity:.18}
+.ss-gap .ss-stars{position:absolute;inset:0;opacity:0;transition:opacity 1s;background-image:radial-gradient(1.4px 1.4px at 12% 22%,#fff,transparent),radial-gradient(1.2px 1.2px at 30% 60%,#fff,transparent),radial-gradient(1.6px 1.6px at 56% 16%,#fff,transparent),radial-gradient(1.2px 1.2px at 74% 44%,#fff,transparent),radial-gradient(1.4px 1.4px at 90% 20%,#fff,transparent)}
+.ss-bar[data-sky="night"] .ss-gap .ss-stars{opacity:.9;animation:ssTwinkle 4s ease-in-out infinite}
+.ss-gap[data-rain="1"]::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(105deg,transparent 0 9px,rgba(255,255,255,.38) 9px 10px);background-size:22px 40px;animation:ssRain .7s linear infinite}
+.ss-gt{position:absolute;right:14%;top:50%;transform:translateY(-50%);text-align:right;text-shadow:0 1px 8px rgba(0,0,0,.5);white-space:nowrap}
+.ss-gt>b{display:block;font:800 21px/1 Urbanist,sans-serif;font-variant-numeric:tabular-nums}
+.ss-gt>b small{font:700 12px Inter,sans-serif}
+.ss-wxl{display:inline-flex;align-items:center;gap:5px;font:700 12px Inter,sans-serif;margin-top:2px}
+.ss-wx-ic{display:inline-flex;color:#fff}
+.ss-bar .ss-brief-tabs{flex:none;background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.25)}
+.ss-bar .ss-brief-tabs button{color:rgba(255,255,255,.82)}
+.ss-bar .ss-brief-tabs button.p-on{background:rgba(255,255,255,.95);color:#14213D;box-shadow:none}
+.ss-xp{flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.28);color:#fff;cursor:pointer;transition:transform .3s}
+.ss-xp.is-open{transform:rotate(180deg)}
+.ss-xp:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.ss-alarmwrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s cubic-bezier(.2,.8,.2,1)}
+.ss-alarmwrap.open{grid-template-rows:1fr}
+.ss-alarmwrap>div{overflow:hidden;min-height:0}
+.ss-alarm{position:relative;overflow:hidden;isolation:isolate;margin-top:12px;padding:26px;border-radius:16px;text-align:center;color:#fff;display:grid;gap:8px;background:linear-gradient(135deg,#1E3A8A,#C2410C 70%,#FDBA74)}
+.ss-alarm>*:not(.ss-rings){position:relative}
+.ss-alarm-eb{font:700 11.5px Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;opacity:.92}
+.ss-alarm-big{font:800 34px/1.1 Urbanist,sans-serif}
+.ss-alarm p{margin:0 auto;max-width:60ch;font-size:15px}
+.ss-alarm-row{display:flex;justify-content:center;gap:10px;margin-top:6px}
+.ss-alarm-go{height:40px;padding:0 22px;border-radius:12px;border:0;background:#fff;color:#C2410C;font:800 14px Urbanist,sans-serif;cursor:pointer}
+.ss-rings{position:absolute;inset:0;pointer-events:none;z-index:-1}
+.ss-rings i{position:absolute;left:50%;top:50%;width:80px;height:80px;margin:-40px;border-radius:50%;border:2px solid rgba(255,255,255,.4);animation:ssAlarm 2.6s ease-out infinite}
+.ss-rings i:nth-child(2){animation-delay:.9s}.ss-rings i:nth-child(3){animation-delay:1.8s}
+@keyframes ssAlarm{to{transform:scale(7);opacity:0}}
+@media (max-width:900px){.ss-bar{flex-wrap:wrap}.ss-gap{order:5;flex-basis:100%}}
+@media (prefers-reduced-motion:reduce){.ss-bar,.ss-brain svg,.ss-gap .ss-cloud,.ss-gap .ss-stars,.ss-rings i{animation:none!important}.ss-alarmwrap{transition:none}.ss-orb{transition:none}}

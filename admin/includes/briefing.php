@@ -118,9 +118,14 @@ function render_briefing(Supabase $db, array $admin): void
     ];
     ?>
 <section class="ss-brief" id="ss-brief" data-now="<?= e($here) ?>" aria-label="<?= e(t('The engine\'s briefing', 'Ang briefing ng engine')) ?>">
-  <div class="ss-brief-hero">
-    <?= smart_logo(44) ?>
-    <div class="ss-brief-txt">
+  <?php
+    $first = trim((string) (explode(',', (string) ($admin['full_name'] ?? ''), 2)[1] ?? ($admin['full_name'] ?? '')));
+    $hello = ['morning' => t('Good morning', 'Magandang umaga'), 'afternoon' => t('Good afternoon', 'Magandang hapon'), 'night' => t('Good evening', 'Magandang gabi')][$here];
+    $bigline = $waiting > 0 ? sprintf(t('%d cases need a tanod', '%d kaso ang kailangan ng tanod'), $waiting) : t('All quiet right now', 'Tahimik sa ngayon');
+  ?>
+  <div class="ss-bar" id="ss-bar" data-sky="day">
+    <span class="ss-brain" aria-hidden="true"><?= smart_brain(26) ?></span>
+    <div class="ss-bar-txt">
       <?php foreach ($periods as $key => $p): ?>
         <div class="ss-brief-pane" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
           <b><?= e($p['greet']) ?></b>
@@ -129,12 +134,25 @@ function render_briefing(Supabase $db, array $admin): void
       <?php endforeach; ?>
       <p class="ss-thinkline" aria-live="polite"><?= e(t('Reading the day…', 'Binabasa ang araw…')) ?></p>
     </div>
+    <div class="ss-gap" id="ss-clock" data-rain="0" role="group" aria-label="<?= e(t('Time and weather in Pasay', 'Oras at panahon sa Pasay')) ?>">
+      <i class="ss-orb"></i><i class="ss-cloud c1"></i><i class="ss-cloud c2"></i><i class="ss-stars"></i>
+      <div class="ss-gt"><b><span id="ss-clock-time">--:--</span> <small id="ss-clock-ampm"></small></b>
+        <small class="ss-wxl" id="ss-wx" data-state="loading"><span class="ss-wx-ic" id="ss-wx-ic"></span><span id="ss-wx-t"></span> <span id="ss-wx-d"><?= e(t('Checking the weather…', 'Tinitingnan ang panahon…')) ?></span></small></div>
+    </div>
     <div class="p-seg-mini ss-brief-tabs" role="tablist" aria-label="<?= e(t('Briefing', 'Buod ng engine')) ?>">
       <?php foreach ($periods as $key => $p): ?>
         <button type="button" role="tab" data-period="<?= e($key) ?>" class="<?= $key === $here ? 'p-on' : '' ?>" aria-selected="<?= $key === $here ? 'true' : 'false' ?>"><?= e($p['name']) ?><?= $key === $here ? ' <i class="ss-now" title="' . e(t('Now', 'Ngayon')) . '"></i>' : '' ?></button>
       <?php endforeach; ?>
     </div>
+    <button type="button" class="ss-xp" id="ss-xp" aria-expanded="false" aria-controls="ss-alarm" aria-label="<?= e(t('Open the full briefing', 'Buksan ang buong briefing')) ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
   </div>
+  <div class="ss-alarmwrap" id="ss-alarm"><div><div class="ss-alarm">
+    <div class="ss-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="ss-alarm-eb"><?= e($hello . ($first !== '' ? ', ' . $first : '')) ?></span>
+    <div class="ss-alarm-big"><?= e($bigline) ?></div>
+    <p><?= e($periods[$here]['line']) ?></p>
+    <div class="ss-alarm-row"><button type="button" class="ss-alarm-go" id="ss-alarm-go"><?= e(t('Show me', 'Ipakita')) ?></button></div>
+  </div></div></div>
   <?php foreach ($periods as $key => $p): ?>
     <div class="ss-brief-tiles" data-pane="<?= e($key) ?>"<?= $key === $here ? '' : ' hidden' ?>>
       <?php foreach ($p['tiles'] as [$label, $v, $href, $hot]): ?>
@@ -211,6 +229,7 @@ function render_briefing(Supabase $db, array $admin): void
       <a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Settings', 'Mga Setting')) ?></a></article>
   </section>
 </div>
+<script>window.SS_WX = {lat: 14.5194, lng: 121.0122, labels: <?= json_encode(["clear" => t("Clear", "Maaliwalas"), "mostly" => t("Mostly clear", "Halos maaliwalas"), "partly" => t("Partly cloudy", "Bahagyang maulap"), "cloudy" => t("Cloudy", "Maulap"), "fog" => t("Fog", "Hamog"), "drizzle" => t("Drizzle", "Ambon"), "rain" => t("Rain", "Ulan"), "shower" => t("Rain showers", "Pagulan"), "storm" => t("Thunderstorm", "Pagkulog at pagkidlat"), "off" => t("Weather unavailable", "Walang datos ng panahon"), "feels" => t("Feels like", "Pakiramdam"), "wind" => t("Wind", "Hangin"), "rainnow" => t("Rain now", "Ulan ngayon")], JSON_UNESCAPED_UNICODE) ?>};</script>
 <script src="assets/js/briefing.js?v=<?= e(asset_version('../js/briefing.js')) ?>"></script>
 <?php
 }

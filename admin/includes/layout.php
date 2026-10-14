@@ -57,6 +57,12 @@ function pager(int $total, int $page, string $param = 'page', ?int $per = null):
     return $o . '<span class="of">' . $from1 . '&ndash;' . $to1 . ' ' . e(t('of', 'sa')) . ' ' . $total . '</span></nav>';
 }
 
+/** The engine's brain as a small icon, for places a square button or tile needs one (the map's dock, a SMART notification). */
+function smart_brain(int $size = 20): string
+{
+    return '<svg class="ss-brain-ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 2.8A3 3 0 0 0 5.4 13 3 3 0 0 0 7 18a3 3 0 0 0 5-1.2V5.5A2.5 2.5 0 0 0 9 4z"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 2.8 3 3 0 0 1-1.4 3.2A3 3 0 0 1 17 18a3 3 0 0 1-5-1.2"/><path d="M12 8v9M9 9.5h-1.5M15 9.5h1.5M9 14h-1M15 14h1"/></svg>';
+}
+
 /** The SMART engine's mark. Its glow is made for a dark ground, so it always sits on its own dark chip, in either theme. */
 function smart_logo(int $height = 34): string
 {
@@ -213,12 +219,10 @@ window.ssAccessToken = function (initial) {
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
   <aside class="p-sidebar">
-    <div class="p-side-top">
-      <button type="button" class="p-burger" id="side-burger" aria-controls="side-nav" aria-expanded="true"
-              data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
-              aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><span></span><span></span><span></span></button>
-      <a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a>
-    </div>
+    <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
+            data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
+            aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+    <div class="p-side-top"><a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a></div>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
@@ -436,7 +440,7 @@ window.SS_PRESENCE = <?= json_encode([
 <script>
 // The three bars shrink the sidebar to its icons and bring it back; the choice is kept in this browser.
 (function () {
-  var b = document.getElementById('side-burger'), root = document.documentElement;
+  var b = document.getElementById('side-edge'), root = document.documentElement;
   if (!b) return;
   function paint() {
     var min = root.getAttribute('data-side') === 'min', t = min ? b.dataset.expand : b.dataset.collapse;

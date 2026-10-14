@@ -548,6 +548,11 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
           <button type="button" data-set-theme="light"><?= e(t('Light', 'Maliwanag')) ?></button>
           <button type="button" data-set-theme="dark"><?= e(t('Dark', 'Madilim')) ?></button>
         </div></div>
+      <div class="st-pref"><span class="st-pref-l"><?= p_icon('i-dash', 18) ?><b><?= e(t('Sidebar', 'Gilid na menu')) ?></b></span>
+        <div class="p-seg-mini" id="st-side" role="group" aria-label="<?= e(t('Sidebar', 'Gilid na menu')) ?>">
+          <button type="button" data-mode="handle" title="<?= e(t('A small handle on its edge shrinks it to icons and back', 'Isang maliit na hawakan sa gilid ang magpapaliit nito at magbabalik')) ?>"><?= e(t('Handle', 'Hawakan')) ?></button>
+          <button type="button" data-mode="hover" title="<?= e(t('Icons only; it opens when you point at it', 'Mga icon lang; bumubukas kapag tinuro mo')) ?>"><?= e(t('Hover rail', 'Riles na bumubukas')) ?></button>
+        </div></div>
       <div class="st-pref"><span class="st-pref-l"><?= p_icon('i-flag', 18) ?><b><?= e(t('Language', 'Wika')) ?></b></span>
         <div class="p-seg-mini pref-lang" role="group" aria-label="<?= e(t('Language', 'Wika')) ?>">
           <button type="button" data-lang="en" aria-pressed="<?= lang() === 'en' ? 'true' : 'false' ?>" class="<?= lang() === 'en' ? 'p-on' : '' ?>"><?= lang_flag('us') ?><span>English</span></button>
@@ -735,6 +740,23 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     root.setAttribute('data-theme', b.dataset.setTheme); root.setAttribute('data-bs-theme', b.dataset.setTheme);
     try { localStorage.setItem('ss-theme', b.dataset.setTheme); } catch (x) {}
     paint(); window.dispatchEvent(new CustomEvent('themechange', { detail: b.dataset.setTheme }));
+  });
+  paint();
+})();
+</script>
+<script>
+// Sidebar: a handle on its edge, or a rail that opens when you point at it; kept in this browser.
+(function () {
+  var wrap = document.getElementById('st-side'); if (!wrap) return;
+  var root = document.documentElement;
+  function mode() { try { return localStorage.getItem('ss-side-mode') === 'hover' ? 'hover' : 'handle'; } catch (e) { return 'handle'; } }
+  function paint() { var m = mode(); wrap.querySelectorAll('button').forEach(function (b) { b.classList.toggle('p-on', b.dataset.mode === m); b.setAttribute('aria-pressed', String(b.dataset.mode === m)); }); }
+  wrap.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    try { localStorage.setItem('ss-side-mode', b.dataset.mode); } catch (x) {}
+    var min = false; try { min = localStorage.getItem('ss-side') === 'min'; } catch (x) {}
+    if (b.dataset.mode === 'hover') root.setAttribute('data-side', 'hover'); else if (min) root.setAttribute('data-side', 'min'); else root.removeAttribute('data-side');
+    paint(); window.dispatchEvent(new Event('resize'));
   });
   paint();
 })();
