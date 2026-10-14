@@ -36,6 +36,62 @@ function nav_icon(string $name): string
     return p_icon($map[$name] ?? 'i-doc');
 }
 
+/** Page links for a list: Previous, a window of numbers, Next. $param is the query key that holds the page. */
+function pager(int $total, int $page, string $param = 'page', ?int $per = null): string
+{
+    $per = $per ?? (defined('PER_PAGE') ? PER_PAGE : 15);
+    $pages = max(1, (int) ceil($total / $per));
+    if ($pages <= 1) { return ''; }
+    $href = function (int $n) use ($param): string { $q = $_GET; $q[$param] = $n; return '?' . http_build_query($q); };
+    $from = max(1, min($page - 2, $pages - 4)); $to = min($pages, $from + 4);
+    $o = '<nav class="ss-pager" aria-label="' . e(t('Pages', 'Mga pahina')) . '">';
+    $o .= $page > 1 ? '<a href="' . e($href($page - 1)) . '" rel="prev">&lsaquo; ' . e(t('Previous', 'Nakaraan')) . '</a>' : '<span class="off">&lsaquo; ' . e(t('Previous', 'Nakaraan')) . '</span>';
+    if ($from > 1) { $o .= '<a href="' . e($href(1)) . '">1</a>' . ($from > 2 ? '<span class="gap">&hellip;</span>' : ''); }
+    for ($i = $from; $i <= $to; $i++) {
+        $o .= $i === $page ? '<span class="on" aria-current="page">' . $i . '</span>' : '<a href="' . e($href($i)) . '">' . $i . '</a>';
+    }
+    if ($to < $pages) { $o .= ($to < $pages - 1 ? '<span class="gap">&hellip;</span>' : '') . '<a href="' . e($href($pages)) . '">' . $pages . '</a>'; }
+    $o .= $page < $pages ? '<a href="' . e($href($page + 1)) . '" rel="next">' . e(t('Next', 'Susunod')) . ' &rsaquo;</a>' : '<span class="off">' . e(t('Next', 'Susunod')) . ' &rsaquo;</span>';
+    $from1 = ($page - 1) * $per + 1; $to1 = min($total, $page * $per);
+    return $o . '<span class="of">' . $from1 . '&ndash;' . $to1 . ' ' . e(t('of', 'sa')) . ' ' . $total . '</span></nav>';
+}
+
+/** SMART's level for a case, always with its word beside the colour (Urgent red, High orange, Normal blue, Low grey). */
+function smart_badge(?array $tr): string
+{
+    if (!$tr || empty($tr['effective_level'])) { return '<span class="p-sub">' . e(t('Not scored', 'Walang marka')) . '</span>'; }
+    $lv = $tr['effective_level'];
+    $cls = ['urgent' => 'denied', 'high' => 'pending', 'normal' => 'progress', 'low' => 'grey'][$lv] ?? 'grey';
+    $lab = ['urgent' => t('Urgent', 'Apurahan'), 'high' => t('High', 'Mataas'), 'normal' => t('Normal', 'Karaniwan'), 'low' => t('Low', 'Mababa')][$lv] ?? $lv;
+    $o = '<span class="p-badge p-b-' . $cls . '">' . e($lab) . '</span><small class="ss-score"> ' . (int) $tr['score'] . '</small>';
+    if (!empty($tr['override_level'])) { $o .= '<small class="ss-set" title="' . e(t('Set by an admin', 'Itinakda ng admin')) . '">' . e(t('set by admin', 'itinakda ng admin')) . '</small>'; }
+    if ((int) ($tr['possible_duplicates'] ?? 0) > 0) { $o .= '<span class="p-badge p-b-violet ss-dup">' . e(t('Possible duplicate', 'Maaaring doble')) . '</span>'; }
+    return $o;
+}
+function waiting_text(?string $iso): string
+{
+    if (!$iso) { return ''; }
+    $h = (int) floor((time() - strtotime($iso)) / 3600);
+    return $h < 1 ? t('under 1 h', 'wala pang 1 oras') : ($h < 48 ? $h . ' ' . t('h', 'oras') : (int) floor($h / 24) . ' ' . t('days', 'araw'));
+}
+
+
+/** The committees a Kagawad chairs, as (English, Tagalog); the key is what the database stores (0130). */
+function committee_labels(): array
+{
+    return [
+        'peace_order'       => [t('Peace and Order', 'Kapayapaan at Kaayusan')],
+        'health_sanitation' => [t('Health and Sanitation', 'Kalusugan at Kalinisan')],
+        'education'         => [t('Education', 'Edukasyon')],
+        'infrastructure'    => [t('Infrastructure', 'Imprastraktura')],
+        'environment'       => [t('Environment', 'Kapaligiran')],
+        'women_family'      => [t('Women and Family', 'Kababaihan at Pamilya')],
+        'youth_sports'      => [t('Youth and Sports', 'Kabataan at Palakasan')],
+        'agriculture'       => [t('Agriculture', 'Agrikultura')],
+        'appropriations'    => [t('Appropriations', 'Pondo')],
+    ];
+}
+
 function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();
@@ -109,6 +165,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
+<link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?>">

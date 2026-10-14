@@ -42,6 +42,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             switch ($act) {
+                // 0130 (defense, 7 Sep): the ladder inside the barangay, several concerns in one report, and the sensitive mark.
+                case 'escalate_barangay':
+                    $comm = (string) ($_POST['committee'] ?? '');
+                    $db->rpc('escalate_in_barangay', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['reason'] ?? '')), 'p_committee' => $comm === '' ? null : $comm]);
+                    $flash = t('The case was passed up. The official has it now, and the resident was told.', 'Naipasa ang kaso pataas. Hawak na ito ng opisyal, at nasabihan ang residente.');
+                    break;
+
+                case 'return_official':
+                    $db->rpc('return_from_official', ['p_report' => $id, 'p_remark' => trim((string) ($_POST['remark'] ?? ''))]);
+                    $flash = t('The case was sent back down.', 'Naibalik pababa ang kaso.');
+                    break;
+
+                case 'add_concern':
+                    $db->rpc('add_report_concern', ['p_report' => $id, 'p_category' => (string) ($_POST['category'] ?? ''), 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                    $flash = t('Concern added.', 'Naidagdag ang alalahanin.');
+                    break;
+
+                case 'concern_status':
+                    $db->rpc('set_concern_status', ['p_concern' => (string) ($_POST['concern'] ?? ''), 'p_resolved' => ($_POST['to'] ?? '') === 'resolved',
+                                                    'p_remark' => trim((string) ($_POST['remark'] ?? '')) ?: null]);
+                    $flash = ($_POST['to'] ?? '') === 'resolved' ? t('Concern marked resolved. The resident was told.', 'Namarkahang nalutas ang alalahanin. Nasabihan ang residente.')
+                                                                 : t('Concern reopened.', 'Muling binuksan ang alalahanin.');
+                    break;
+
+                case 'set_sensitive':
+                    $db->rpc('set_case_sensitive', ['p_report' => $id, 'p_on' => ($_POST['on'] ?? '') === '1', 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);
+                    $flash = ($_POST['on'] ?? '') === '1' ? t('Marked sensitive.', 'Namarkahang sensitibo.') : t('Sensitive mark removed.', 'Inalis ang markang sensitibo.');
+                    break;
+
+                // 0123: an admin sets a case's level over SMART's, with a reason that stays on the record; 'use computed' clears it.
+                case 'smart_override':
+                    $lv = (string) ($_POST['level'] ?? '');
+                    if (!in_array($lv, ['', 'low', 'normal', 'high', 'urgent'], true)) { $lv = ''; }
+                    $db->rpc('smart_override', ['p_report' => $id, 'p_level' => $lv === '' ? null : $lv, 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);
+                    $flash = $lv === '' ? t('SMART\'s own level is back in use for this case.', 'Ginagamit na muli ang antas ng SMART sa kasong ito.')
+                                        : t('The level was changed and your reason was kept on the record.', 'Binago ang antas at itinago ang iyong dahilan sa talaan.');
+                    break;
+
                 // 0087: taking, releasing and taking over a case.
                 case 'take_over':
                     $db->rpc('take_over_case', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['reason'] ?? ''))]);

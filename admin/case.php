@@ -70,7 +70,7 @@ unset($_SESSION['flash']);
 // ---------- data ----------
 $error = null;
 $report = null;
-$media = $logs = $dispatches = $roster = [];
+$media = $logs = $dispatches = $roster = $concerns = $womenIds = [];
 $policy = null;
 $feedback = null;
 $proof = [];
@@ -99,7 +99,7 @@ try {
                       . 'referred_to,referral_note,referred_at,followed_up_at,follow_up_count,'
                       . 'resolution_submitted_at,resolution_returned_reason,is_public,'
                       . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
-                      . 'higher_official,higher_official_note,handed_up_at,'
+                      . 'higher_official,higher_official_note,handed_up_at,tier,is_sensitive,'
                       . 'handler_id,handled_since,version,handler:users!reports_handler_id_fkey(id,full_name),'
                       . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
             'id'         => 'eq.' . $id,
@@ -136,6 +136,11 @@ try {
         // hashes) and it makes the guarantee visible rather than a claim
         // in a document nobody reads. Optional: a failure shows no badge.
         'trail' => ['rpc/verify_report_trail', ['p_report' => $id], true],
+        // 0124/0127: everything SMART knows about this case, in one call. Optional: no card if it fails.
+        'smart' => ['rpc/smart_case_card', ['p_report' => $id], true],
+        // 0130: the concerns of this report, and the tanods designated for women and children cases.
+        'concerns' => ['report_concerns', ['select' => 'id,category,note,status,resolved_at,remark,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'women'    => ['users', ['select' => 'id', 'role' => 'eq.tanod', 'women_responder' => 'is.true'], true],
     ]);
     $report = $first['report'][0] ?? null;
 
@@ -145,6 +150,9 @@ try {
         $dispatches = $first['dispatches'];
         $feedback   = $first['feedback'][0] ?? null;
         $trail      = $first['trail'] instanceof SupabaseError ? [] : (array) $first['trail'];
+        $concerns   = ($first['concerns'] ?? null) instanceof SupabaseError ? [] : (array) ($first['concerns'] ?? []);
+        $womenIds   = array_column(($first['women'] ?? null) instanceof SupabaseError ? [] : (array) ($first['women'] ?? []), 'id');
+        $smart      = ($first['smart'] ?? null) instanceof SupabaseError ? null : (is_array($first['smart'] ?? null) ? $first['smart'] : null);
     }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
@@ -153,6 +161,9 @@ try {
 if (!$report && !$error) {
     $error = t('That complaint could not be found. It may have been archived.', 'Hindi mahanap ang sumbong na iyon. Maaaring naka-archive na ito.');
 }
+
+$mine = (string) ($report['handler_id'] ?? '') !== '' && (string) ($report['handler_id'] ?? '') === (string) ($admin['id'] ?? '');
+const CATEGORIES_ALL = ['street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard', 'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other'];
 
 /** The dispatch that is currently live, if any. */
 $active = null;
@@ -553,6 +564,128 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
 
   </div>
+  <!-- ---------- the concerns in this report (0130) ---------- -->
+  <?php if (count($concerns) > 0): $openN = count(array_filter($concerns, fn($c) => $c['status'] === 'open')); ?>
+  <section class="p-card p-card-pad ss-concerns" aria-labelledby="concerns-h">
+    <p class="p-eyebrow" id="concerns-h"><?= e(t('Concerns in this report', 'Mga alalahanin sa ulat na ito')) ?>
+      <span class="p-badge-n p-badge-n--quiet"><?= count($concerns) ?></span></p>
+    <ul class="ss-concern-list">
+      <?php foreach ($concerns as $cn): $done = $cn['status'] === 'resolved'; ?>
+        <li class="<?= $done ? 'is-done' : '' ?>">
+          <div><b><?= e(category_label((string) $cn['category'])) ?></b>
+            <span class="p-badge p-b-<?= $done ? 'done' : 'pending' ?>"><?= e($done ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) ?></span>
+            <?php if (!empty($cn['note'])): ?><div class="p-sub"><?= e($cn['note']) ?></div><?php endif; ?>
+            <?php if (!empty($cn['remark'])): ?><div class="p-quote"><?= e($cn['remark']) ?></div><?php endif; ?></div>
+          <?php if ($mine ?? false): ?>
+            <form method="post" class="ss-concern-act" data-keep>
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+              <input type="hidden" name="action" value="concern_status">
+              <input type="hidden" name="concern" value="<?= e($cn['id']) ?>">
+              <input type="hidden" name="to" value="<?= $done ? 'open' : 'resolved' ?>">
+              <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+              <?php if (!$done): ?><input class="p-input-plain" name="remark" maxlength="300" aria-label="<?= e(t('Remark', 'Puna')) ?>" placeholder="<?= e(t('What was done', 'Ano ang ginawa')) ?>"><?php endif; ?>
+              <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e($done ? t('Reopen', 'Buksan muli') : t('Mark resolved', 'Markahang nalutas')) ?></button>
+            </form>
+          <?php endif; ?>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+    <?php if ($openN === 0 && !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
+      <p class="p-hint"><?= e(t('Every concern is resolved. You can mark the whole case resolved.', 'Nalutas na ang lahat ng alalahanin. Maaari mo nang markahang nalutas ang buong kaso.')) ?></p>
+    <?php endif; ?>
+    <?php if (($mine ?? false) && !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true)): ?>
+      <details class="p-fix">
+        <summary><?= e(t('Add a concern', 'Magdagdag ng alalahanin')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="add_concern">
+          <div class="p-cfield"><label class="p-flabel" for="ac-cat"><?= e(t('Kind of concern', 'Uri ng alalahanin')) ?></label>
+            <select class="p-input-plain" id="ac-cat" name="category">
+              <?php $have = array_column($concerns, 'category'); foreach (CATEGORIES_ALL as $c0): if (in_array($c0, $have, true)) continue; ?>
+                <option value="<?= e($c0) ?>"><?= e(category_label($c0)) ?></option>
+              <?php endforeach; ?>
+            </select></div>
+          <div class="p-cfield"><label class="p-flabel" for="ac-note"><?= e(t('Note (optional)', 'Tala (opsyonal)')) ?></label>
+            <input class="p-input-plain" id="ac-note" name="note" maxlength="300"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Add', 'Idagdag')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
+  </section>
+  <?php endif; ?>
+
+  <!-- ---------- SMART: the level, the reasons and what else it found (0122-0129) ---------- -->
+  <?php if (!empty($smart) && ($smart['score'] ?? null) !== null):
+      $sLv = (string) ($smart['effective_level'] ?? 'low'); $ov = $smart['override'] ?? null; $dups = (array) ($smart['duplicates'] ?? []);
+      $eta = $smart['eta'] ?? null; $sim = (array) ($smart['similar'] ?? []); $refr = $smart['referral'] ?? null; $risk = $smart['deadline_risk'] ?? null;
+      $lvName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
+  ?>
+  <section class="p-card p-card-pad ss-smartcard" aria-labelledby="smart-h">
+    <p class="p-eyebrow" id="smart-h">SMART &middot; <?= e(t('why this level', 'bakit ganito ang antas')) ?></p>
+    <div class="ss-sc-head">
+      <?= smart_badge(['effective_level' => $sLv, 'score' => (int) $smart['score'], 'override_level' => $ov['level'] ?? null, 'possible_duplicates' => 0]) ?>
+      <?php if ($ov): ?>
+        <p class="ss-sc-set"><?= e(sprintf(t('Set to %s by %s: "%s"', 'Itinakda sa %s ni %s: "%s"'), $lvName[$ov['level']] ?? $ov['level'], (string) ($ov['by'] ?? t('an admin', 'isang admin')), (string) ($ov['reason'] ?? ''))) ?>
+          &middot; <?= e(t('computed', 'kinompyut')) ?>: <?= e($lvName[(string) ($smart['level'] ?? '')] ?? '') ?> <?= (int) $smart['score'] ?></p>
+      <?php endif; ?>
+    </div>
+    <?php if (!empty($smart['reasons'])): ?>
+      <ul class="ss-reasons">
+        <?php foreach ((array) $smart['reasons'] as $rs): ?>
+          <li><span><?= e((string) ($rs['detail'] ?? $rs['factor'] ?? '')) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <?php if (!empty($risk)): ?>
+      <p class="ss-risk ss-risk--<?= e((string) ($risk['risk'] ?? 'high')) ?>"><?= e(sprintf(t('Likely to miss its deadline: %s h left, such cases usually take %s h.', 'Maaaring lumampas sa takdang oras: %s oras na lang, karaniwang %s oras ang ganitong kaso.'), (string) round((float) ($risk['hours_left'] ?? 0)), (string) round((float) ($risk['typical_hours'] ?? 0)))) ?></p>
+    <?php endif; ?>
+    <?php if ($dups): ?>
+      <p class="p-label ss-sc-sub"><?= e(t('Possible duplicates', 'Maaaring doble')) ?></p>
+      <ul class="ss-sc-list">
+        <?php foreach (array_slice($dups, 0, 5) as $d): ?>
+          <li><a class="p-mono-id" href="case.php?id=<?= e($d['report_id']) ?>"><?= e($d['tracking_id']) ?></a>
+            <span><?= (int) $d['metres'] ?> m <?= e(t('away', 'ang layo')) ?> &middot; <?= e((string) round((float) $d['hours_apart'])) ?> <?= e(t('h earlier', 'oras ang pagitan')) ?> &middot; <?= e(status_label((string) $d['status'])) ?> &middot;
+              <?= e(((float) ($d['similarity'] ?? 0)) >= .5 ? t('Very alike', 'Magkamukhang-magkamukha') : t('Alike', 'Magkamukha')) ?></span></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <?php if (!empty($eta)): ?>
+      <p class="ss-sc-line"><b><?= e(t('Usually resolved in', 'Karaniwang nalulutas sa')) ?></b>
+        <?= ($eta['basis'] ?? '') === 'target'
+            ? e(sprintf(t('target: %s hours', 'target: %s oras'), (string) ($eta['sla_hours'] ?? '')))
+            : e(sprintf(t('about %s hours (most within %s)', 'mga %s oras (karamihan sa loob ng %s)'), (string) round((float) ($eta['median_hours'] ?? 0)), (string) round((float) ($eta['p80_hours'] ?? 0)))) ?></p>
+    <?php endif; ?>
+    <?php if ($refr && !empty($refr['office'])): ?>
+      <p class="ss-sc-line"><?= e(sprintf(t('Usually referred to %s (%s of %s)', 'Karaniwang inire-refer sa %s (%s sa %s)'), (string) $refr['office'], (string) ($refr['cases'] ?? ''), (string) ($refr['of_referred'] ?? ''))) ?></p>
+    <?php endif; ?>
+    <?php if ($sim): ?>
+      <p class="p-label ss-sc-sub"><?= e(t('Similar past cases', 'Mga katulad na nakaraang kaso')) ?></p>
+      <ul class="ss-sc-list">
+        <?php foreach (array_slice($sim, 0, 3) as $c2): $ended = trim((string) ($c2['referred_to'] ? t('referred to ', 'inire-refer sa ') . $c2['referred_to'] : ($c2['closing_remark'] ?: ($c2['field_report'] ?? '')))); ?>
+          <li><a class="p-mono-id" href="case.php?id=<?= e($c2['report_id']) ?>"><?= e($c2['tracking_id']) ?></a>
+            <span><?= (int) $c2['metres'] ?> m &middot; <?= e(sprintf(t('resolved in %s days', 'nalutas sa %s araw'), (string) round((float) $c2['days_to_resolve'], 1))) ?><?= $ended !== '' ? ' &middot; ' . e(mb_strimwidth($ended, 0, 90, '…')) : '' ?></span></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <details class="p-fix ss-sc-change">
+      <summary><?= e(t('Change level', 'Baguhin ang antas')) ?></summary>
+      <form method="post" class="p-ctl-stack" data-keep>
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="smart_override">
+        <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+        <div class="p-cfield"><label class="p-flabel" for="so-level"><?= e(t('Level', 'Antas')) ?></label>
+          <select class="p-input-plain" id="so-level" name="level">
+            <?php foreach (['low', 'normal', 'high', 'urgent'] as $o): ?><option value="<?= e($o) ?>" <?= $sLv === $o ? 'selected' : '' ?>><?= e($lvName[$o]) ?></option><?php endforeach; ?>
+            <option value=""><?= e(t('Use computed', 'Gamitin ang kinompyut')) ?></option>
+          </select></div>
+        <div class="p-cfield"><label class="p-flabel" for="so-reason"><?= e(t('Why (kept on the record)', 'Bakit (itatago sa talaan)')) ?></label>
+          <input class="p-input-plain" id="so-reason" name="reason" required minlength="3" maxlength="300" placeholder="<?= e(t('e.g. already handled by the BFP', 'hal. hawak na ng BFP')) ?>"></div>
+        <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save level', 'I-save ang antas')) ?></button>
+      </form>
+    </details>
+  </section>
+  <?php endif; ?>
+
   <!-- ---------- timeline ---------- -->
   <section class="p-card p-card-pad">
     <p class="p-eyebrow"><?= e(t('Activity Timeline', 'Takbo ng Aktibidad')) ?></p>
@@ -603,6 +736,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                        'repeat' => 1, 'last_at' => null];
     }
     usort($timeline, fn($a, $b) => strcmp((string) $a['created_at'], (string) $b['created_at']));
+    // Defense, 7 Sep: a long timeline is paged, not scrolled: 10 entries a page, opening on the newest page.
+    $tlPer = 10; $tlTotal = count($timeline); $tlPages = max(1, (int) ceil($tlTotal / $tlPer));
+    $tlPage = isset($_GET['tl']) ? max(1, min($tlPages, (int) $_GET['tl'])) : $tlPages;
+    $timelineAll = $timeline; $timeline = array_slice($timeline, ($tlPage - 1) * $tlPer, $tlPer);
     ?>
     <ul class="p-timeline">
       <?php foreach ($timeline as $l): ?>
@@ -625,11 +762,14 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </li>
       <?php endforeach; ?>
 
+      <?php if ($tlPage === $tlPages): ?>
       <li class="p-now">
         <span class="p-tl-dot p-orange" aria-hidden="true"><svg width="13" height="13"><use href="#i-clock"/></svg></span>
         <small class="p-tl-when"><?= e(t('Today', 'Ngayon')) ?> &middot; <?= e((new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('g:i A')) ?></small>
       </li>
+      <?php endif; ?>
     </ul>
+    <?= pager($tlTotal, $tlPage, 'tl', $tlPer) ?>
   </section>
 
   <!-- ---------- resident feedback ---------- -->
@@ -786,6 +926,66 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
         </form>
       </details>
     <?php endif; ?>
+    <?php // 0130: the ladder inside the barangay, and the sensitive mark.
+      $tier = (int) ($report['tier'] ?? 0); $sens = !empty($report['is_sensitive']);
+      $openCase = !in_array($status, ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true) && empty($report['referred_to']);
+      $steps = [t('Staff and tanods', 'Kawani at tanod'), t('Councilor (Kagawad)', 'Kagawad'), t('Chairman', 'Punong Barangay')];
+    ?>
+    <?php if ($sens): ?>
+      <div class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b>
+        <?= e(t('Elevate it to the Women and Family Kagawad. Do not send it to the nearest tanod; if a tanod is needed, choose a designated women responder.', 'I-elevate sa Kagawad ng Kababaihan at Pamilya. Huwag ipadala sa pinakamalapit na tanod; kung kailangan ng tanod, pumili ng itinalagang responder para sa kababaihan.')) ?></div>
+    <?php endif; ?>
+    <ol class="ss-ladder" aria-label="<?= e(t('Where the case is', 'Nasaan ang kaso')) ?>">
+      <?php foreach ($steps as $k => $nm): ?><li class="<?= $k === $tier ? 'now' : ($k < $tier ? 'past' : '') ?>"<?= $k === $tier ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
+    </ol>
+    <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels(); ?>
+      <details class="p-fix">
+        <summary><?= e($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="escalate_barangay">
+          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+          <?php if ($tier === 0): ?>
+            <div class="p-cfield"><label class="p-flabel" for="eb-comm"><?= e(t('Committee', 'Komite')) ?></label>
+              <select class="p-input-plain" id="eb-comm" name="committee">
+                <option value=""><?= e($sens ? t('Women and Family (sensitive case)', 'Kababaihan at Pamilya (sensitibong kaso)') : t('The usual one for this kind of complaint', 'Ang karaniwan para sa ganitong reklamo')) ?></option>
+                <?php foreach ($cm as $ck => $cl): ?><option value="<?= e($ck) ?>"><?= e($cl[0]) ?></option><?php endforeach; ?>
+              </select></div>
+          <?php endif; ?>
+          <div class="p-cfield"><label class="p-flabel" for="eb-reason"><?= e(t('Why (the official and the resident see it)', 'Bakit (makikita ng opisyal at ng residente)')) ?></label>
+            <input class="p-input-plain" id="eb-reason" name="reason" required minlength="3" maxlength="300"></div>
+          <p class="p-hint"><?= e(t('Any tanod on this case is stood down and told. The official becomes its handler.', 'Aalisin at sasabihan ang tanod na nasa kasong ito. Ang opisyal na ang hahawak.')) ?></p>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Escalate', 'I-escalate')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
+    <?php if ($mine && $tier > 0): ?>
+      <details class="p-fix">
+        <summary><?= e(t('Send it back down', 'Ibalik pababa')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="return_official">
+          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+          <div class="p-cfield"><label class="p-flabel" for="ro-remark"><?= e(t('Decision or remark', 'Pasya o puna')) ?></label>
+            <input class="p-input-plain" id="ro-remark" name="remark" required minlength="3" maxlength="300"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Return', 'Ibalik')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
+    <?php if ($mine && $openCase): ?>
+      <details class="p-fix">
+        <summary><?= e($sens ? t('Not sensitive after all', 'Hindi pala sensitibo') : t('Mark as sensitive', 'Markahang sensitibo')) ?></summary>
+        <form method="post" class="p-ctl-stack" data-keep>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="set_sensitive">
+          <input type="hidden" name="on" value="<?= $sens ? '0' : '1' ?>">
+          <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
+          <div class="p-cfield"><label class="p-flabel" for="ss-why"><?= e(t('Why (kept on the record)', 'Bakit (itatago sa talaan)')) ?></label>
+            <input class="p-input-plain" id="ss-why" name="reason" required minlength="3" maxlength="300"></div>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e($sens ? t('Remove the mark', 'Alisin ang marka') : t('Mark sensitive', 'Markahang sensitibo')) ?></button>
+        </form>
+      </details>
+    <?php endif; ?>
     <div id="ss-also" hidden></div>
     <?php if ($handlerLog): ?>
       <ul class="ss-hist">
@@ -856,6 +1056,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <p class="p-none-line"><?= e(t('No tanod accounts exist yet. Add them under Personnel.', 'Wala pang account ng tanod. Idagdag sila sa Mga Tanod.')) ?></p>
         <?php endif; ?>
 
+        <?php if (!empty($report['is_sensitive'])): usort($roster, fn($a, $b) => (int) in_array($b['tanod_id'], $womenIds, true) <=> (int) in_array($a['tanod_id'], $womenIds, true)); ?>
+          <p class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b> <?= e(t('Consider elevating it first. If a tanod is needed, the designated women responders are listed first.', 'Isaalang-alang munang i-elevate. Kung kailangan ng tanod, nasa unahan ang mga itinalagang responder para sa kababaihan.')) ?></p>
+        <?php endif; ?>
         <div class="p-roster">
           <?php foreach ($roster as $i => $t): ?>
             <?php $ok = !empty($t['assignable']) && !empty($t['location_fresh']); $idle = !empty($t['assignable']) && empty($t['location_fresh']); ?>
@@ -863,7 +1066,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
               <span class="p-who">
-                <?= e(formal_name($t['full_name'])) ?>
+                <?= e(formal_name($t['full_name'])) ?><?php if (in_array($t['tanod_id'], $womenIds, true)): ?> <span class="p-badge p-b-violet ss-wr"><?= e(t('Women responder', 'Responder para sa kababaihan')) ?></span><?php endif; ?>
                 <?php if ($ok && $t['metres'] !== null): ?>
                   <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
                     <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php

@@ -304,10 +304,15 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
     <?php if ($avgDays !== null): ?><div class="p-delta"><?= e(t('from filing to resolved', 'mula pagsampa hanggang nalutas')) ?></div><?php endif; ?></div>
 </div>
 
+<?php
+// Defense, 7 Sep: the ledger, the referrals and the activity timeline are paged (15 rows), not scrolled.
+$lp = max(1, (int) ($_GET['lp'] ?? 1)); $rp = max(1, (int) ($_GET['rp'] ?? 1)); $tp = max(1, (int) ($_GET['tp'] ?? 1));
+$ledgerRows = array_slice($reports, ($lp - 1) * 15, 15);
+?>
 <!-- ---------- Resident Report Ledger ---------- -->
 <div class="p-card p-table-card" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Resident Report Ledger', 'Talaan ng mga Ulat ng Residente')) ?></h2><span class="p-spacer"></span><span class="p-hint"><?= count($reports) ?> <?= e(t(count($reports) === 1 ? 'complaint' : 'complaints', 'sumbong')) ?></span></div>
-  <div class="p-tscroll" style="max-height:360px"><table class="p-t">
+  <div class="p-tscroll"><table class="p-t">
     <thead class="p-orange"><tr>
       <th><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th><?= e(t('Resident', 'Residente')) ?></th><th><?= e(t('Category', 'Kategorya')) ?></th>
       <th><?= e(t('Status', 'Katayuan')) ?></th><th><?= e(t('Filed', 'Naisampa')) ?></th><th><?= e(t('Resolved', 'Nalutas')) ?></th>
@@ -316,7 +321,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <?php if (!$reports): ?>
         <tr><td colspan="6" class="p-empty"><?= e(t('No complaints were filed in this period.', 'Walang naisampang sumbong sa panahong ito.')) ?></td></tr>
       <?php endif; ?>
-      <?php foreach ($reports as $r): ?>
+      <?php foreach ($ledgerRows as $r): ?>
         <tr class="p-click" data-href="case.php?id=<?= e($r['id'] ?? '') ?>">
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= !empty($r['is_anonymous'])
@@ -331,13 +336,14 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <?php endforeach; ?>
     </tbody>
   </table></div>
+  <?= pager(count($reports), $lp, 'lp', 15) ?>
 </div>
 
 <!-- ---------- Referrals (0072) ---------- -->
-<?php $referrals = array_values(array_filter($reports, fn($r) => !empty($r['referred_to']))); ?>
+<?php $referrals = array_values(array_filter($reports, fn($r) => !empty($r['referred_to']))); $referralRows = array_slice($referrals, ($rp - 1) * 15, 15); ?>
 <div class="p-card p-table-card" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2></div>
-  <div class="p-tscroll" style="max-height:300px"><table class="p-t">
+  <div class="p-tscroll"><table class="p-t">
     <thead class="p-blue"><tr>
       <th scope="col"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th scope="col"><?= e(t('Category', 'Kategorya')) ?></th>
       <th scope="col"><?= e(t('Escalated to', 'In-escalate sa')) ?></th><th scope="col"><?= e(t('Date', 'Petsa')) ?></th><th scope="col"><?= e(t('Note', 'Tala')) ?></th>
@@ -346,7 +352,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <?php if (!$referrals): ?>
         <tr><td colspan="5" class="p-empty"><?= e(t('No complaint was escalated outside the barangay in this period.', 'Walang sumbong na in-escalate sa labas ng barangay sa panahong ito.')) ?></td></tr>
       <?php endif; ?>
-      <?php foreach ($referrals as $r): ?>
+      <?php foreach ($referralRows as $r): ?>
         <tr>
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= e(category_label($r['category'])) ?></td>
@@ -357,18 +363,19 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <?php endforeach; ?>
     </tbody>
   </table></div>
+  <?= pager(count($referrals), $rp, 'rp', 15) ?>
 </div>
 
 <!-- ---------- Tanod's Activity Timeline ---------- -->
 <div class="p-card p-table-card" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2></div>
-  <div class="p-tscroll" style="max-height:340px"><table class="p-t">
+  <div class="p-tscroll"><table class="p-t">
     <thead class="p-blue"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
     <tbody>
       <?php if (!$dispatches): ?>
         <tr><td colspan="5" class="p-empty"><?= e(t('No dispatches were issued in this period.', 'Walang dispatch na inilabas sa panahong ito.')) ?></td></tr>
       <?php endif; ?>
-      <?php foreach ($dispatches as $d): ?>
+      <?php foreach (array_slice($dispatches, ($tp - 1) * 15, 15) as $d): ?>
         <tr>
           <td><b><?= e(formal_or($d['tanod']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></td>
           <td><span class="p-mono-id"><?= e($d['report']['tracking_id'] ?? '—') ?></span></td>
@@ -379,6 +386,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       <?php endforeach; ?>
     </tbody>
   </table></div>
+  <?= pager(count($dispatches), $tp, 'tp', 15) ?>
 </div>
 
 <!-- ---------- Report Case Timeline: pick a complaint, see its changes ---------- -->

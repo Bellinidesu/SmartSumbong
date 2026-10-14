@@ -1,0 +1,56 @@
+/* Case Reports tabs, the pager, the SMART queue and badges (defense follow-up, Oct 2026). Colours come from p.css. */
+.ss-tabs{display:flex;gap:6px;margin:0 0 18px;padding:4px;border-radius:12px;background:var(--p-surface-2);border:1px solid var(--p-line);width:max-content;max-width:100%;overflow-x:auto}
+.ss-tabs a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;color:var(--p-muted);font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap}
+.ss-tabs a:hover{color:var(--p-ink)}
+.ss-tabs a.on{background:var(--p-surface);color:var(--p-blue);box-shadow:0 1px 3px rgba(20,33,61,.14)}
+.ss-tabs a:focus-visible{outline:2px solid var(--p-orange);outline-offset:2px}
+.ss-stages{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.ss-qnote{margin-left:8px}
+.ss-pager{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0 4px;font-size:14px}
+.ss-pager a,.ss-pager span.on,.ss-pager span.off{min-width:44px;min-height:44px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--p-line);background:var(--p-surface);color:var(--p-ink);font-weight:700;text-decoration:none}
+.ss-pager a:hover{border-color:var(--p-orange)}
+.ss-pager span.on{background:var(--p-blue);border-color:var(--p-blue);color:#fff}
+.ss-pager span.off{opacity:.45}
+.ss-pager .gap{padding:0 4px;color:var(--p-muted)}
+.ss-pager .of{margin-left:auto;color:var(--p-muted);font-weight:600}
+.ss-pager a:focus-visible{outline:2px solid var(--p-orange);outline-offset:2px}
+.ss-score{font-weight:700;color:var(--p-muted);font-variant-numeric:tabular-nums}
+.ss-set{display:block;color:var(--p-muted);font-size:11px}
+.ss-dup{margin-left:4px}
+.ss-smart{white-space:nowrap}
+.ss-bar{width:140px;height:8px;border-radius:99px;background:var(--p-surface-2);overflow:hidden}
+.ss-bar i{display:block;height:100%;border-radius:99px;background:var(--p-orange)}
+.ss-why{display:block;margin-top:4px;color:var(--p-muted);font-size:12px;max-width:260px}
+/* the SMART card on a case */
+.ss-smartcard{border-left:4px solid var(--p-orange)}
+.ss-sc-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:2px 0 6px}
+.ss-sc-head .p-badge{font-size:14px;padding:5px 12px}
+.ss-sc-head .ss-score{font-size:20px}
+.ss-sc-set{margin:0;color:var(--p-muted);font-size:13px}
+.ss-reasons{list-style:none;margin:8px 0;padding:0;display:grid;gap:4px}
+.ss-reasons li{display:flex;justify-content:space-between;gap:12px;padding:7px 10px;border-radius:8px;background:var(--p-surface-2);border:1px solid var(--p-line);font-size:14px}
+.ss-reasons b{font-variant-numeric:tabular-nums;color:var(--p-blue)}
+.ss-risk{margin:8px 0;padding:8px 12px;border-radius:8px;font-weight:600;font-size:14px;background:#FFF1D6;color:#7A4B00}
+.ss-risk--high{background:#FDE3E1;color:#8A1C14}
+.ss-sc-sub{margin:12px 0 4px}
+.ss-sc-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px}
+.ss-sc-list li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.ss-sc-list span{color:var(--p-muted)}
+.ss-sc-line{margin:10px 0 0;font-size:14px}
+.ss-sc-change{margin-top:12px}
+/* the ladder, concerns and sensitive cases on a case (0130) */
+.ss-ladder{list-style:none;display:flex;gap:6px;margin:10px 0;padding:0;font-size:13px;font-weight:700}
+.ss-ladder li{flex:1;text-align:center;padding:7px 4px;border-radius:8px;background:var(--p-surface-2);border:1px solid var(--p-line);color:var(--p-muted)}
+.ss-ladder li.past{color:var(--p-ink)}
+.ss-ladder li.now{background:var(--p-blue);border-color:var(--p-blue);color:#fff}
+.ss-sensitive{margin:10px 0;padding:10px 12px;border-radius:10px;background:#FDE3E1;color:#8A1C14;font-size:13.5px;border:1px solid #F3B8B3}
+.ss-sensitive b{display:block;margin-bottom:2px}
+.ss-wr{margin-left:6px}
+.ss-concern-list{list-style:none;margin:6px 0;padding:0;display:grid;gap:8px}
+.ss-concern-list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 14px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--p-surface-2);border:1px solid var(--p-line)}
+.ss-concern-list li.is-done{opacity:.75}
+.ss-concern-act{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ss-posform{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ss-cmap{display:grid;gap:6px;margin-top:6px}
+.ss-cmap-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.ss-resp-row{padding:4px 0}

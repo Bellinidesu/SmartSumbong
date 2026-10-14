@@ -1,0 +1,33 @@
+# Rebuilds supabase/baseline/baseline.sql from the migrations (supabase/baseline/build.sh) and hands it back as an artifact,
+# so a migration can be added without a local PostgreSQL: push any branch named baseline-*, or run this by hand, then
+# download the artifact "baseline", commit it, and CI's "The baseline still matches the migrations" passes.
+name: Rebuild baseline
+on:
+  push:
+    branches: ['baseline-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: PostgreSQL 17 (the version Supabase runs) with PostGIS and pg_cron
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-17 postgresql-17-postgis-3 postgresql-17-cron
+      - name: Every migration, every check, then the baseline
+        env:
+          PGVER: '17'
+        run: bash supabase/baseline/build.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: baseline
+          path: supabase/baseline/baseline.sql
