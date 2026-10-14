@@ -9,7 +9,6 @@
   var lang = (document.documentElement.lang || 'en').slice(0, 2) === 'fi' ? 'fil-PH' : 'en-US';
   var TXT = lang === 'en-US' ? { clear: 'All time', now: 'This month', prev: 'Previous year', next: 'Next year' } : { clear: 'Lahat ng panahon', now: 'Ngayong buwan', prev: 'Nakaraang taon', next: 'Susunod na taon' };
   var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
-  var CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
   var TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l5 5 9-10"/></svg>';
   var open = null;
 

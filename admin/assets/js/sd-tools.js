@@ -416,7 +416,6 @@
     lmOn = on; await lmInit(); if (on !== lmOn) return;
     // The tint of a landmark building (LM_TINT) is off: the City view models the landmarks instead (sd-city.js).
     ['lm-bld', 'lm-badge'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on && (id === 'lm-badge' || LM_TINT) ? 'visible' : 'none'); });
-    if (on && LM_TINT) { lmCollect(); }
   }
   map.on('pitch', () => { const up = map.getPitch() > 8; if (up !== lmOn) lmShow(up); });
   map.on('moveend', lmCollect); map.on('idle', lmCollect);
