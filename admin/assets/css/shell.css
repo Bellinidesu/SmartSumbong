@@ -65,3 +65,8 @@ html[data-side="hover"] .p-edge{display:none}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user .p-side-me{justify-content:center}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-side-user>button{margin:0}
 }
+/* the Notifications icon gains the engine's brain while any unread note is from SMART */
+.p-nav .p-brain-badge{position:absolute;left:25px;bottom:5px;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;color:#EDFA04;background:#15181d;box-shadow:0 0 0 2px var(--p-side-b),0 0 9px rgba(237,250,4,.65)}
+.p-nav a.p-active .p-brain-badge{box-shadow:0 0 0 2px var(--p-orange),0 0 9px rgba(237,250,4,.65)}
+.p-nav .p-brain-badge svg{filter:drop-shadow(0 0 3px rgba(237,250,4,.8))}
+html[data-side="min"] .p-nav .p-brain-badge{left:auto;right:8px}

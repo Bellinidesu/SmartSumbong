@@ -230,6 +230,7 @@ window.ssAccessToken = function (initial) {
         <a href="<?= e($href) ?>" title="<?= e($label) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
           <?= p_icon($icon) ?><span><?= e($label) ?></span>
           <?php if ($n > 0): ?><span class="p-count" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?>
+          <?php if ($href === 'notifications.php' && ($counts['notifications_smart'] ?? 0) > 0): ?><span class="p-brain-badge" title="<?= e(t('Unread notes from the SMART engine', 'May hindi pa nababasang abiso mula sa SMART engine')) ?>"><?= smart_brain(11) ?></span><?php endif; ?>
         </a>
       <?php endforeach; ?>
     </nav>
@@ -369,6 +370,7 @@ function nav_counts(): array
         $memo = db()->selectMany([
             'cases.php'               => ['reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review'], true],
             'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false'], true],
+            'notifications_smart'     => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'message' => 'like.SMART*'], true],
             'residents.php'           => ['users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending'], true],
             'retirement-requests.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
             'spatial.php'             => ['reports', ['deleted_at' => 'is.null',
