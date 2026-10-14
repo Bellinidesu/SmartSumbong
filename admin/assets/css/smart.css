@@ -86,3 +86,5 @@
 :root[data-theme="dark"] .ss-storm{background:#3B3115;color:#F5DFA0;border-color:#6B5A22}
 :root[data-theme="dark"] .ss-tile.hot b{color:#FF8A7A}
 .st-pane .ss-two{margin:0}
+.ss-stages a,.ss-stages a:hover{text-decoration:none}
+.ss-stages .p-chip{text-decoration:none}

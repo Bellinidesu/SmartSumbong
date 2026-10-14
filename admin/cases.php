@@ -60,8 +60,20 @@ if ($who !== '' && $who !== 'unclaimed' && !preg_match('/^[0-9a-f-]{36}$/i', $wh
 // All cases (the register) and Notifications. PER_PAGE rows a page everywhere.
 const PER_PAGE = 15;
 const QUEUE_STAGES = ['review', 'dispatch', 'accept', 'reply', 'approve', 'escalation', 'follow_up'];
-$tab   = (string) ($_GET['tab'] ?? 'next');
-if (!in_array($tab, ['next', 'all', 'notes'], true)) { $tab = 'next'; }
+// Case Reports is the register of real cases. What needs doing and the notifications live on notifications.php,
+// which loads this same file (NOTICES_PAGE) so the two share one query and one live refresh.
+$notices = defined('NOTICES_PAGE');
+$tab   = (string) ($_GET['tab'] ?? '');
+if ($notices) {
+    if (!in_array($tab, ['next', 'notes'], true)) { $tab = 'next'; }
+} else {
+    if ($tab === 'next' || $tab === 'notes') {   // an old link or bookmark
+        $q = $_GET; unset($q['tab']);
+        header('Location: notifications.php?' . http_build_query(['tab' => $tab] + $q), true, 302);
+        exit;
+    }
+    $tab = 'all';
+}
 $page  = max(1, (int) ($_GET['page'] ?? 1));
 $npage = max(1, (int) ($_GET['npage'] ?? 1));
 $stage = (string) ($_GET['stage'] ?? '');
@@ -271,10 +283,10 @@ try {
     $error = safe_error($ex);
 }
 
-layout_head(t('Case Reports', 'Mga Sumbong'), 'cases.php');
+layout_head($notices ? t('Notifications', 'Mga Abiso') : t('Case Reports', 'Mga Sumbong'), $notices ? 'notifications.php' : 'cases.php');
 ?>
 
-<div class="p-topbar"><h1><?= e(t('Case Reports', 'Mga Sumbong')) ?></h1>
+<div class="p-topbar"><h1><?= $notices ? e(t('Notifications', 'Mga Abiso')) : e(t('Case Reports', 'Mga Sumbong')) ?></h1>
   <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
 
 <?php if ($error): ?>
@@ -292,11 +304,12 @@ $keep = array_filter(['tab' => $tab, 'q' => $search, 'status' => $filter, 'categ
 $tabHref = fn(string $t) => '?' . http_build_query(['tab' => $t]);
 $noteBadge = $notesUnread + $escCount;
 ?>
-<nav class="ss-tabs" aria-label="<?= e(t('Case Reports views', 'Mga tanaw ng Sumbong')) ?>">
+<?php if ($notices): ?>
+<nav class="ss-tabs" aria-label="<?= e(t('Notifications views', 'Mga tanaw ng Abiso')) ?>">
   <a href="<?= e($tabHref('next')) ?>"<?= $tab === 'next' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('Next up', 'Susunod gawin')) ?></a>
-  <a href="<?= e($tabHref('all')) ?>"<?= $tab === 'all' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('All cases', 'Lahat ng kaso')) ?></a>
-  <a href="<?= e($tabHref('notes')) ?>"<?= $tab === 'notes' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('Notifications', 'Mga abiso')) ?><?php if ($noteBadge > 0): ?> <span class="p-badge-n" id="tab-notes-n"><?= $noteBadge ?></span><?php endif; ?></a>
+  <a href="<?= e($tabHref('notes')) ?>"<?= $tab === 'notes' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('All notifications', 'Lahat ng abiso')) ?><?php if ($noteBadge > 0): ?> <span class="p-badge-n" id="tab-notes-n"><?= $noteBadge ?></span><?php endif; ?></a>
 </nav>
+<?php endif; ?>
 
 <?php if ($tab === 'next'): ?>
 <!-- ---------- Next up: the SMART queue (0129) ---------- -->
