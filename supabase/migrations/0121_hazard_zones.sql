@@ -8,6 +8,10 @@
 -- Stored in small pieces (at most 128 points each, ST_Subdivide), so the
 -- index finds the one piece under a point instead of testing a whole
 -- zone: about 0.1 ms per report instead of 30.
+-- Supabase installs PostGIS in the `extensions` schema and the migration runner's
+-- search_path does not include it (see 0001): without this the geometry type is invisible.
+set search_path = public, extensions;
+
 create table public.hazard_zones (
   id     integer generated always as identity primary key,
   hazard text     not null check (hazard in ('flood', 'surge')),
