@@ -39,6 +39,7 @@ $categories = [
     'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
 ];
 
+$city3d = ($_GET['city'] ?? '') === '1';   // the 3D City view is parked (Ace, 14 Oct): focus is the UI and the Smart engine; ?city=1 brings it back
 layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 ?>
 
@@ -133,7 +134,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3" /> <path d="M21 8V5a2 2 0 0 0-2-2h-3" /> <path d="M3 16v3a2 2 0 0 0 2 2h3" /> <path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg></button>
     <button class="p-dock-btn" id="fit-btn" type="button" title="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>" aria-label="<?= e(t('Frame every complaint', 'Ipakita ang lahat ng sumbong')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 12a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0" fill="currentColor" /> <path d="M5 12a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /> <path d="M12 3l0 2" /> <path d="M3 12l2 0" /> <path d="M12 19l0 2" /> <path d="M19 12l2 0" /></svg></button>
-    <button class="p-dock-btn" id="tilt-btn" type="button" aria-pressed="false" title="<?= e(t('Tilt the map', 'I-tilt ang mapa')) ?>" aria-label="<?= e(t('Tilt the map', 'I-tilt ang mapa')) ?>">
+    <button class="p-dock-btn" id="tilt-btn" type="button" aria-pressed="false"<?= $city3d ? '' : ' hidden style="display:none"' ?> title="<?= e(t('Tilt the map', 'I-tilt ang mapa')) ?>" aria-label="<?= e(t('Tilt the map', 'I-tilt ang mapa')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
     <button class="p-dock-btn" id="layers-btn" type="button" aria-expanded="false" aria-controls="ss-lyr" title="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>" aria-label="<?= e(t('Map layers', 'Mga layer ng mapa')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></svg></button>
@@ -328,6 +329,7 @@ if (INTRO) document.getElementById('map').classList.add('dm-hide');
 // The map's own data (models, pictures, footprints) is rebuilt now and then; a version on every request means no browser keeps the old one.
 window.SD_MAPV = <?= json_encode((string) max(array_map('filemtime', glob(__DIR__ . '/assets/map/*') ?: [0]))) ?>;
 (() => { const f = window.fetch; window.fetch = (u, o) => { try { const s = typeof u === 'string' ? u : (u && u.url) || ''; if (typeof u === 'string' && /assets\/map\/[^?]*$/.test(s)) u = s + '?v=' + window.SD_MAPV; } catch (e) {} return f.call(window, u, o); }; })();
+window.SD_CITY3D = <?= $city3d ? 'true' : 'false' ?>;
 const map = new maplibregl.Map({
   container: 'map',
   transformRequest: (url) => (/\/assets\/map\/[^?]*\.(png|webp|json|gz)$/.test(url) ? { url: url + '?v=' + window.SD_MAPV } : undefined),
@@ -1768,6 +1770,7 @@ function build3d() {
              'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': .95 } }, before);
 }
 function setTilt(on) {
+  if (!window.SD_CITY3D) return;   // the 3D City view is parked (14 Oct): ?city=1 in the page address brings it, the tilt button and the free camera back
   tilted = on; const b = document.getElementById('tilt-btn'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
   build3d();   // sd-city.js fades the buildings in and out with the tilt (and the footprints of the flat map the other way)
   map.easeTo({ pitch: on ? 58 : 0, bearing: on ? -18 : 0, duration: 1200, easing: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2 });   // in and out: the buildings rise through the whole move
@@ -2122,8 +2125,10 @@ loadBoundary();
 load();
 </script>
 <script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
+<?php if ($city3d): ?>
 <script src="assets/js/sd-models.js?v=<?= e(asset_version('../js/sd-models.js')) ?>"></script>
 <script src="assets/js/sd-city.js?v=<?= e(asset_version('../js/sd-city.js')) ?>"></script>
 <script src="assets/js/sd-free.js?v=<?= e(asset_version('../js/sd-free.js')) ?>"></script>
+<?php endif; ?>
 
 <?php layout_foot(); ?>
