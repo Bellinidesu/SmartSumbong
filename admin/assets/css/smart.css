@@ -1206,3 +1206,5 @@
 @media (prefers-reduced-transparency: reduce) { .ss-mapside { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1C2127; } }
 /* the case map sidebar is as tall as its contents, not the whole screen */
 .ss-mapside { bottom: auto; max-height: calc(100% - 68px); }
+/* the current page in the pager is the brand orange in light mode too (it had gone white on white) */
+.ss-pager span.on { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 3px 10px rgba(255,152,0,.3); }
