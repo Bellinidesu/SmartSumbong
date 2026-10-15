@@ -607,7 +607,8 @@
 
 /* Administrators, as Jira's People page (Ace's lock, 15 Oct). Values are Atlassian's own, read from the published @atlaskit packages (tokens 2025 refresh; textfield 10.2.6, button 25.4.8, dynamic-table 19.3.8, lozenge 17.0.5), not remembered:
    primary button #1868DB / hover #1558BC / pressed #144794, white text, 32px high, 6px radius, weight 500; text field 1px #8C8F97 border, 6px radius, #FFF (hover #F8F8F8), focus ring 1px #4688EC inset; 14/20 body; table: header 12px bold in the subtle text colour with a 2px bottom border and nothing else ruled, 4px 8px cell padding, rows tinted #0515240F on hover; lozenges subtle and not forced to capitals, bold 12px; dark values from the dark theme. */
-[data-pane="admins"] {
+[data-pane="admins"], .jp-scope {
+  --jp-info-bg: #E9F2FE; --jp-info-fg: #1558BC; --jp-disc-bg: #F8EEFE; --jp-disc-fg: #803FA5; --jp-neutral-bg: #0515240F; --jp-neutral-fg: #505258; --jp-sel-bg: #E9F2FE; --jp-sel-fg: #1868DB; --jp-sel-h: #CFE1FD;
   --jp-brand: #1868DB; --jp-brand-h: #1558BC; --jp-brand-p: #144794; --jp-on-brand: #fff;
   --jp-input: #fff; --jp-input-h: #F8F8F8; --jp-input-bd: #8C8F97; --jp-focus: #4688EC;
   --jp-text: #292A2E; --jp-subtle: #505258; --jp-subtlest: #6B6E76; --jp-line: #0B120E24; --jp-hover: #0515240F; --jp-press: #0B120E24;
@@ -615,7 +616,8 @@
   --jp-overlay: #fff; --jp-shadow: 0 8px 12px #1E1F2126, 0 0 1px #1E1F214F;
   --jp-font: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
 }
-:root[data-theme="dark"] [data-pane="admins"] {
+:root[data-theme="dark"] [data-pane="admins"], :root[data-theme="dark"] .jp-scope {
+  --jp-info-bg: #1C2B42; --jp-info-fg: #8FB8F6; --jp-disc-bg: #35243F; --jp-disc-fg: #D8A0F7; --jp-neutral-bg: #CECED912; --jp-neutral-fg: #A9ABAF; --jp-sel-bg: #1C2B42; --jp-sel-fg: #669DF1; --jp-sel-h: #123263;
   --jp-brand: #669DF1; --jp-brand-h: #8FB8F6; --jp-brand-p: #AEC9F8; --jp-on-brand: #1F1F21;
   --jp-input: #242528; --jp-input-h: #2B2C2F; --jp-input-bd: #7E8188; --jp-focus: #8FB8F6;
   --jp-text: #CECFD2; --jp-subtle: #A9ABAF; --jp-subtlest: #96999E; --jp-line: #E3E4F21F; --jp-hover: #CECED912; --jp-press: #E3E4F21F;
@@ -734,3 +736,46 @@
 .ss-people.ss-sq .p-badges { justify-content: center; }
 .ss-people.ss-sq tbody td.p-empty { grid-column: 1 / -1; }
 .ss-people.ss-sq tbody tr.ss-picked { outline: 2px solid var(--p-orange); }
+
+/* Residents and Personnel as Jira's People page (Ace, 16 Oct), with the same Atlassian values as Administrators: a search box and a status dropdown, then a table with a quiet 2px-ruled header and no row lines, status lozenges in sentence case, ticks, and the locked red row action. The List / Squares switch, the tick bar and the review queue are ours, styled as Atlassian's selected state and banners. */
+.ss-ptop { margin: 0 0 14px; }
+.ss-ptop .jp-bar { gap: 10px; }
+.jp-pick { margin: 0; }
+.jp-sum { color: var(--jp-subtle); font: 400 14px/20px var(--jp-font); padding: 0 6px; }
+.jp-sum b { color: var(--jp-text); font-weight: 653; }
+.ss-viewsw { display: inline-flex; gap: 0; padding: 0; background: transparent; border: 1px solid var(--jp-input-bd); border-radius: 6px; overflow: hidden; }
+.ss-viewsw button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 0; background: var(--jp-input); color: var(--jp-text); font: 500 14px/20px var(--jp-font); cursor: pointer; }
+.ss-viewsw button + button { border-left: 1px solid var(--jp-input-bd); }
+.ss-viewsw button:hover { background: var(--jp-input-h); }
+.ss-viewsw button[aria-pressed="true"] { background: var(--jp-sel-bg); color: var(--jp-sel-fg); }
+.ss-people .jp-t th.ss-cbh, .ss-people .jp-t td.ss-cbc { width: 44px; padding-right: 0; }
+.ss-people input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--jp-brand); cursor: pointer; }
+.ss-people .jp-t tbody tr.ss-picked td { background: var(--jp-sel-bg); }
+.ss-people .jp-t tbody tr.ss-picked:hover td { background: var(--jp-sel-h); }
+/* the status pills as Atlassian lozenges: square-cornered, sentence case, bold, no dot */
+.ss-people .p-badge { height: auto; padding: 0 6px; gap: 0; border-radius: 4px; font: 653 12px/20px var(--jp-font); letter-spacing: 0; text-transform: none; white-space: normal; }
+.ss-people .p-badge::before { display: none; }
+.ss-people .p-b-done { background: var(--jp-ok-bg); color: var(--jp-ok-fg); }
+.ss-people .p-b-pending { background: var(--jp-warn-bg); color: var(--jp-warn-fg); }
+.ss-people .p-b-denied { background: var(--jp-bad-bg); color: var(--jp-bad-fg); }
+.ss-people .p-b-progress { background: var(--jp-info-bg); color: var(--jp-info-fg); }
+.ss-people .p-b-violet { background: var(--jp-disc-bg); color: var(--jp-disc-fg); }
+.ss-people .p-b-grey { background: var(--jp-neutral-bg); color: var(--jp-neutral-fg); }
+.ss-people .p-person { gap: 12px; }
+.ss-people .p-person > span:last-child { font: 500 14px/20px var(--jp-font); min-width: 0; color: var(--jp-text); }
+.ss-people td.p-num, .ss-people td { font: 400 14px/20px var(--jp-font); }
+.ss-people .p-sub { color: var(--jp-subtle); }
+/* the tick bar and the queue, as Atlassian's selected state / information banner */
+.ss-bulk, .ss-rqstrip, .ss-rqbar { background: var(--jp-sel-bg, #E9F2FE); color: var(--jp-text, #292A2E); border-radius: 6px; padding: 8px 12px; font: 400 14px/20px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); box-shadow: inset 3px 0 0 var(--jp-sel-fg, #1868DB); }
+.ss-bulk b, .ss-rqstrip b, .ss-rqbar b { font-weight: 653; }
+.ss-bulk-go { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--jp-brand, #1868DB); color: var(--jp-on-brand, #fff); font: 500 14px/32px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); text-decoration: none; cursor: pointer; }
+.ss-bulk-go:hover { background: var(--jp-brand-h, #1558BC); }
+.ss-bulk-clear { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: var(--jp-text, #292A2E); font: 500 14px/32px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); cursor: pointer; }
+.ss-bulk-clear:hover { background: var(--jp-hover, #0515240F); }
+[data-theme="dark"] .ss-bulk, [data-theme="dark"] .ss-rqstrip, [data-theme="dark"] .ss-rqbar { --jp-sel-bg: #1C2B42; --jp-sel-fg: #669DF1; --jp-text: #CECFD2; --jp-brand: #669DF1; --jp-brand-h: #8FB8F6; --jp-on-brand: #1F1F21; --jp-hover: #CECED912; }
+/* squares: cards on Atlassian's raised surface */
+.ss-people.ss-sq tbody tr { border-radius: 12px; border: 0; background: var(--jp-input); box-shadow: 0 1px 1px #1E1F2140, 0 0 1px #1E1F214F; }
+:root[data-theme="dark"] .ss-people.ss-sq tbody tr { background: #1F1F21; box-shadow: 0 1px 1px #01040480, 0 0 1px #01040480; }
+.ss-people.ss-sq .p-person .p-avatar, .ss-people.ss-sq .p-person img.p-avatar { border-radius: 12px; }
+.ss-people.ss-sq tbody tr:hover td { background: transparent !important; }
+.ss-people.ss-sq tbody tr.ss-picked { outline: 2px solid var(--jp-sel-fg); }
