@@ -533,3 +533,28 @@
 @keyframes ssLive{0%{box-shadow:0 0 0 0 rgba(255,255,255,.7)}100%{box-shadow:0 0 0 9px rgba(255,255,255,0)}}
 @media (max-width:820px){.p-attendance{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (prefers-reduced-motion:reduce){.p-attendance .p-kpi::before,.p-attendance .p-att-on_duty .p-att-dot{animation:none}}
+
+/* Case Reports (15 Oct): a calm header like Notifications, the five filters in one even row, a table whose headers sit over their cells */
+.p-band.ss-reg-head{background:var(--p-surface);color:var(--p-ink);border:1px solid var(--p-line);box-shadow:none;padding:14px 18px;gap:12px 14px}
+.p-band.ss-reg-head h2{display:flex;align-items:center;gap:10px;margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em;color:var(--p-ink)}
+.p-band.ss-reg-head .p-badge-n--quiet{background:var(--p-grey-bg);color:var(--p-muted)}
+.p-band.ss-reg-head .p-chip-band{background:var(--p-surface-2);color:var(--p-ink);border:1px solid var(--p-line)}
+.p-band.ss-reg-head .p-chip-band.p-on{background:var(--p-blue,#00308F);color:#fff;border-color:transparent}
+.p-band.ss-reg-head .p-search{flex:1 1 260px;max-width:none;height:36px;margin-left:auto;background:var(--p-surface-2);border:1px solid var(--p-line);color:var(--p-muted)}
+.p-band.ss-reg-head .p-search input{color:var(--p-ink)}
+.p-band.ss-reg-head .p-pill-select{background:var(--p-surface-2);border:1px solid var(--p-line);color:var(--p-ink)}
+.p-band.ss-reg-head .p-pill-select .p-lbl{color:var(--p-muted)}
+.p-band.ss-reg-head .p-pill-select select,.p-band.ss-reg-head .p-pill-select input[type=month]{color:var(--p-ink)}
+.p-band.ss-reg-head > form.ss-band-filters{grid-template-columns:repeat(5,minmax(0,1fr));padding-top:12px;border-top:1px solid var(--p-line)}
+.p-band.ss-reg-head > form.ss-band-filters .p-pill-select{height:38px}
+.p-band.ss-reg-head > form.ss-band-filters select{text-overflow:ellipsis}
+@media (max-width:1100px){.p-band.ss-reg-head > form.ss-band-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.p-band.ss-reg-head > form.ss-band-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ss-cases-t{table-layout:fixed;min-width:1080px}
+.ss-cases-t th:nth-child(1){width:16%}.ss-cases-t th:nth-child(2){width:11%}.ss-cases-t th:nth-child(3){width:14%}
+.ss-cases-t th:nth-child(4){width:15%}.ss-cases-t th:nth-child(5){width:8%}.ss-cases-t th:nth-child(6){width:9%}
+.ss-cases-t th:nth-child(7){width:12%}.ss-cases-t th:nth-child(8){width:7%}.ss-cases-t th:nth-child(9){width:8%}
+.ss-cases-t td:nth-child(3){min-width:0}
+.ss-cases-t .p-person > span:last-child{min-width:0;overflow-wrap:anywhere}
+.ss-cases-t td,.ss-cases-t th{padding-left:12px;padding-right:12px}
+.ss-cases-t td:nth-child(5){white-space:nowrap}
