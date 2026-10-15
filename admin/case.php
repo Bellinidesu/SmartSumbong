@@ -918,7 +918,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php elseif ($mine): ?>
       <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e(t('You are handling this case', 'Ikaw ang humahawak sa kasong ito')) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('since', 'mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
     <?php else: ?>
-      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span></div></div>
+      <div class="ss-handler"><?= admin_chip($hid, $hName, 32) ?><div class="ss-hcol"><div class="ss-hrow"><b><?= e($hName) ?></b> <?= rank_chip($report['handler']['official_role'] ?? null, $report['handler']['committee'] ?? null, true) ?></div><?php if (!empty($report['handled_since'])): ?><span class="p-hint"><?= e(t('handling since', 'humahawak mula')) ?> <?= e(long_datetime($report['handled_since'])) ?></span><?php endif; ?></div></div>
       <div class="ss-locked"><?= e(sprintf(t('Only %s can act on this case while they handle it. You can still read everything.', 'Si %s lang ang makakakilos sa kasong ito habang hawak niya. Mababasa mo pa rin ang lahat.'), $hName)) ?></div>
       <details class="p-fix" data-keep-details>
         <summary><?= e(t('Take over', 'Kunin')) ?></summary>
@@ -1088,7 +1088,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
                       !empty($rk['location_fresh']) ? t('location is fresh', 'sariwa ang lokasyon') : null,
                   ]))) ?></small>
                 <?php endif; ?>
-                <?php if ($ok && $t['metres'] !== null): ?>
+                <?php if ($ok && $t['metres'] !== null && !(isset($rankOf[$t['tanod_id']]) && $rankOf[$t['tanod_id']]['row']['metres'] !== null && !empty($t['location_fresh']))): ?>
                   <small class="<?= empty($t['location_fresh']) ? 'p-stale' : '' ?>">
                     <?= e(distance_label((float) $t['metres'])) ?><?= e(t(' away', ' ang layo')) ?><?php
                       if (empty($t['location_fresh'])) echo e(t(', last seen a while ago', ', matagal nang huling nakita')); ?>
