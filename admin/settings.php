@@ -569,7 +569,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     </div>
   </div>
 <?php if (is_file(__DIR__ . '/assets/js/sd-city.js')): /* the 3D City view is parked (14 Oct): its detail setting shows only where the view exists */ ?>
-  <div class="p-card p-card-pad st-look" style="margin-top:14px">
+  <div class="p-card p-card-pad st-look">
     <p class="p-eyebrow"><?= e(t('City view detail', 'Detalye ng City view')) ?></p>
     <p class="st-note" style="margin-top:0"><?= e(t('When you tilt the map: Full draws pitched roofs and the landmark models; Light draws plain boxes and is easier on slow screens. Auto starts with Full and drops to Light by itself if the map runs slowly. Kept on this computer.', 'Kapag ini-tilt ang mapa: ang Full ay may bubong na may anggulo at mga modelo ng landmark; ang Light ay payak na kahon at mas magaan sa mabagal na screen. Ang Auto ay nagsisimula sa Full at nagiging Light kung bumabagal ang mapa. Nakatago sa computer na ito.')) ?></p>
     <div class="st-surfs st-opts" role="radiogroup" aria-label="<?= e(t('City view detail', 'Detalye ng City view')) ?>">
@@ -724,6 +724,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
   document.querySelectorAll('.st-tabs [data-st]').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.st-tabs [data-st]').forEach(x => x.classList.toggle('p-on', x === b));
     document.querySelectorAll('.st-pane').forEach(p => p.hidden = p.dataset.pane !== b.dataset.st);
+    const live = b.dataset.st === 'status' || b.dataset.st === 'usage'; $('st-check').hidden = !live; $('st-checked').hidden = !live;
   }));
   $('st-check').addEventListener('click', () => { check(); usage(); });
   check(); usage();

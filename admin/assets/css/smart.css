@@ -577,3 +577,21 @@
   :root[data-theme="dark"] .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) { background: var(--p-surface); }
   :root[data-theme="dark"] .p-sidebar { background: linear-gradient(180deg, #2A3038 0%, #15181D 100%); }
 }
+
+/* Settings (15 Oct): one rhythm, every card the same width, option cards that fill the card evenly */
+.st-pane .st-uptime, .st-pane .st-errors { margin-bottom: 0; }
+.st-pane .st-surfs { max-width: none; margin-top: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.st-pane .st-surfs.st-opts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .st-pane .st-surfs, .st-pane .st-surfs.st-opts { grid-template-columns: 1fr; } }
+.st-look .p-eyebrow { margin-bottom: 12px; }
+.st-look .st-note { margin-bottom: 14px; }
+.st-prefs { margin-top: 0; gap: 0; }
+.st-pref + .st-pref { border-top: 1px solid var(--p-line); }
+.st-pref { min-height: 58px; }
+.ss-posinfo .p-eyebrow, .ss-addadmin .p-eyebrow, .st-pane .p-card-pad > .p-eyebrow:first-child { margin-top: 0; }
+/* women responders in the same three columns as the committee map */
+.ss-posinfo:has(.ss-resp-row) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 24px; align-content: start; }
+.ss-posinfo:has(.ss-resp-row) > :not(.ss-resp-row) { grid-column: 1 / -1; }
+@media (max-width: 900px) { .ss-posinfo:has(.ss-resp-row) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .ss-posinfo:has(.ss-resp-row) { grid-template-columns: 1fr; } }
+.ss-resp-row { padding: 6px 0; margin: 0; }
