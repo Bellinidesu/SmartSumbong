@@ -898,3 +898,24 @@
 :root[data-theme="dark"] .p-body .ss-people td .p-btn[data-reveal], :root[data-theme="dark"] .p-body .ss-ohead td .p-btn[data-reveal] { background: transparent; border-color: var(--ss-act); color: var(--ss-act); box-shadow: none; }
 .ss-people table:has(th:nth-child(7)) th:nth-child(4) { width: 15%; }
 .ss-people table:has(th:nth-child(7)) th:nth-child(5) { width: 18%; }
+
+/* The orange header row, finished (Ace, 16 Oct): the portal's own type instead of the table default, a touch taller with a soft light-to-deep orange and a fine lower edge, headings evenly set, and a proper select-all box. Same on every list that carries it. */
+.ss-ohead thead th, .ss-cases-t thead th, .jp-t thead th {
+  font: 800 12.5px/1 Urbanist, sans-serif; letter-spacing: .02em; color: #2B1A00;
+  padding: 18px 16px; background: linear-gradient(180deg, #FFA824 0%, #FF9800 55%, #F28F00 100%);
+  border-bottom: 1px solid rgba(90, 40, 0, .28); box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+}
+.ss-ohead thead th:first-child, .ss-cases-t thead th:first-child, .jp-t thead th:first-child { border-top-left-radius: 14px; padding-left: 18px; }
+.ss-ohead thead th:last-child, .ss-cases-t thead th:last-child, .jp-t thead th:last-child { border-top-right-radius: 14px; }
+.ss-ohead thead th .p-th-sort, .ss-cases-t thead th .p-th-sort { color: #2B1A00; }
+.ss-people thead input[type=checkbox] { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #5A2E00; background: #FFF6E5; box-shadow: 0 1px 2px rgba(90,40,0,.25); transition: transform .12s, background-color .12s; }
+.ss-people thead input[type=checkbox]:hover { transform: scale(1.08); background: #fff; }
+.ss-people thead input[type=checkbox]:checked { background: #2B1A00; border-color: #2B1A00; }
+.ss-people thead input[type=checkbox]:checked::after { left: 5px; top: 1px; width: 5px; height: 10px; }
+.ss-people tbody input[type=checkbox] { width: 18px; height: 18px; border-radius: 5px; }
+.ss-people .ss-cbh { padding-left: 18px; }
+.ss-ohead thead th, .ss-cases-t thead th, .jp-t thead th { font-size: 13.5px; }
+.ss-people .ss-cbc { padding-left: 18px; }
+.ss-people thead input[type=checkbox], .ss-people tbody input[type=checkbox] { margin: 0; vertical-align: middle; }
+.ss-people thead input[type=checkbox] { width: 18px; height: 18px; }
+.ss-people thead input[type=checkbox]:checked::after { left: 4px; top: 0; width: 5px; height: 9px; }
