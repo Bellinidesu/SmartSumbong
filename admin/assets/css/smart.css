@@ -946,3 +946,20 @@
 .ss-pband .ss-viewsw { padding: 3px; border-radius: 11px; }
 .ss-pband .ss-viewsw button { height: 34px; padding: 0 14px; font-size: 13px; }
 .p-band .p-btn { height: 40px; }
+
+/* Report Summary, refined (16 Oct): tiles of one shape with a hint line and a coloured top edge, an "On this page" bar that stays in view with a count per section, empty sections folded to one slim line instead of an empty table, and sections that land clear of the bar. */
+.ss-sumkpis .p-kpi { display: flex; flex-direction: column; gap: 4px; border-top: 3px solid var(--kc, var(--p-line-2)); min-height: 124px; }
+.ss-sumkpis .ss-k-total { --kc: #356CF9; } .ss-sumkpis .ss-k-res { --kc: #34C759; } .ss-sumkpis .ss-k-att { --kc: #FF9800; } .ss-sumkpis .ss-k-avg { --kc: #A592FF; }
+.ss-sumkpis .p-kpi .p-delta { margin-top: auto; }
+.ss-jump { position: sticky; top: 8px; z-index: 12; display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin: 0 0 16px; width: fit-content; max-width: 100%; border-radius: 14px; background: color-mix(in srgb, var(--p-surface) 82%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); border: 1px solid var(--p-line); box-shadow: var(--p-shadow); }
+.ss-jump a { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 10px; color: var(--p-muted); font: 700 13px Urbanist, sans-serif; text-decoration: none; }
+.ss-jump a b { font: 700 11px Inter, sans-serif; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted); }
+.ss-jump a:hover { color: var(--p-ink); }
+.ss-jump a.on { background: var(--p-orange); color: #2B1A00; box-shadow: 0 4px 12px rgba(255,152,0,.3); }
+.ss-jump a.on b { background: rgba(255,255,255,.55); color: #2B1A00; }
+#rs-ledger, #rs-esc, #rs-tanod, #rs-tl { scroll-margin-top: 64px; }
+.ss-slim { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 22px; }
+.ss-slim h2 { margin: 0; font-size: 16px; font-weight: 800; }
+.ss-slim span { color: var(--p-muted); font-size: 13.5px; }
+.ss-sumkpis .p-kpi { border-top: 1px solid var(--p-line); }
+.ss-sumkpis .p-kpi::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--kc); }
