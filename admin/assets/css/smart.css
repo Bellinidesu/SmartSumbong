@@ -595,3 +595,12 @@
 @media (max-width: 900px) { .ss-posinfo:has(.ss-resp-row) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .ss-posinfo:has(.ss-resp-row) { grid-template-columns: 1fr; } }
 .ss-resp-row { padding: 6px 0; margin: 0; }
+
+/* Plan and usage (Ace's lock, 15 Oct): each service card in its own colour (stripe, soft tint, tinted border, bars, letter tile); never a logo */
+.st-plan { position: relative; overflow: hidden; border-color: color-mix(in srgb, var(--ac, var(--p-line)) 32%, var(--p-line)); }
+.st-plan::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 64px; pointer-events: none; background: linear-gradient(180deg, color-mix(in srgb, var(--ac, transparent) 26%, transparent), transparent); }
+.st-plan::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--ac, transparent); }
+.st-plan > * { position: relative; }
+.st-plan header b { display: flex; align-items: center; gap: 9px; }
+.st-mono { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--ac, #9AA1AB); color: #fff; font: 800 14px Urbanist, sans-serif; }
+.st-plan .st-bar i:not(.w):not(.b) { background: var(--ac, #22c55e); }
