@@ -963,3 +963,11 @@
 .ss-slim span { color: var(--p-muted); font-size: 13.5px; }
 .ss-sumkpis .p-kpi { border-top: 1px solid var(--p-line); }
 .ss-sumkpis .p-kpi::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--kc); }
+
+/* The pager, finished (Ace: it looked odd flush in the card): inside a table card it becomes a footer of its own, with room all round, a fine rule above, buttons of one size, and the range at the right with the same inset as the buttons. */
+.ss-pager a, .ss-pager span.on, .ss-pager span.off { min-width: 38px; min-height: 38px; padding: 0 14px; border-radius: 10px; font: 700 13.5px Urbanist, sans-serif; background: var(--p-surface-2); border-color: var(--p-line-2); }
+.ss-pager span.off { opacity: .4; }
+.ss-pager .of { margin-left: auto; color: var(--p-muted); font: 600 13px Urbanist, sans-serif; white-space: nowrap; }
+.p-table-card .ss-pager, .p-card .ss-pager { margin: 0; padding: 14px 20px; gap: 8px; border-top: 1px solid var(--p-line); background: color-mix(in srgb, var(--p-ink) 3%, transparent); border-radius: 0 0 var(--p-r-lg, 16px) var(--p-r-lg, 16px); }
+.p-table-card + .ss-pager, #accounts-pager .ss-pager, #reports-pager .ss-pager { margin-top: 14px; }
+#accounts-pager .ss-pager, #reports-pager .ss-pager { padding: 0; border-top: 0; background: transparent; border-radius: 0; }
