@@ -1025,3 +1025,55 @@
 .p-band .jp-add { height: 42px; padding: 0 18px; border-radius: 12px; background: #141B34; color: #fff; box-shadow: 0 4px 12px rgba(20,27,52,.3); font: 700 14px Urbanist, sans-serif; }
 .p-band .jp-add:hover { background: #1B2548; }
 .p-band .jp-add:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Administrators, all the way into the portal's look (Ace: it still read as Atlassian): controls that are always visible as the portal's own pills, no see-through inline selects, round bordered "..." button, the online state as a pill, the two cards below as SmartSumbong cards with an orange edge and a proper heading, and the committee boxes wide enough to read. */
+.ss-adm .jp-sel, [data-pane="admins"] .ss-cmap-row .p-input-plain { height: 40px; min-width: 0; width: 100%; max-width: 220px; padding: 0 34px 0 14px; border: 1px solid var(--p-line-2); border-radius: 10px; background-color: var(--p-surface-2); color: var(--p-ink); font: 600 13.5px Urbanist, sans-serif; cursor: pointer; }
+.ss-adm .jp-sel:disabled { opacity: .55; background-color: transparent; border-style: dashed; cursor: not-allowed; }
+.ss-adm .jp-t tbody tr:hover .jp-sel:not(:disabled) { border-color: var(--p-orange); }
+.ss-adm .jp-sel:focus-visible, [data-pane="admins"] .ss-cmap-row .p-input-plain:focus-visible { border-color: var(--p-orange); box-shadow: 0 0 0 3px rgba(255,152,0,.25); outline: none; }
+.ss-adm .ss-online { white-space: nowrap; }
+.ss-adm .ss-online { display: table-cell; }
+.ss-adm td.ss-online { font: 600 12.5px Urbanist, sans-serif; }
+.ss-adm td.ss-online::before { content: none; }
+.ss-adm .jp-more summary { width: 34px; height: 34px; border: 1px solid var(--p-line-2); border-radius: 10px; background: var(--p-surface-2); color: var(--p-ink); font-size: 16px; }
+.ss-adm .jp-more summary:hover, .ss-adm .jp-more[open] summary { border-color: var(--p-orange); background: color-mix(in srgb, var(--p-orange) 12%, var(--p-surface-2)); }
+.ss-adm .jp-t td:last-child { text-align: right; }
+.ss-adm .jp-t th:last-child, .ss-adm .jp-t td:last-child { width: 70px; }
+.ss-adm .jp-who b { font: 700 14px Urbanist, sans-serif; }
+.ss-adm .jp-who span > small { font: 500 12px Urbanist, sans-serif; }
+.ss-posinfo, .ss-addadmin { border-left: 4px solid var(--p-orange); }
+.ss-posinfo .p-eyebrow, .ss-addadmin .p-eyebrow { font: 800 15px Urbanist, sans-serif; letter-spacing: 0; text-transform: none; color: var(--p-ink); margin-bottom: 4px; }
+.ss-posinfo .p-label { font: 700 13px Urbanist, sans-serif; color: var(--p-ink-2); margin: 10px 0 2px; }
+.ss-cmap-row { min-height: 48px; padding: 0 4px; border-bottom: 1px solid var(--p-line); }
+.ss-cmap-row > span, .ss-cmap-row > label { font: 600 14px Urbanist, sans-serif; }
+.ss-cmap-row .p-input-plain { width: 190px; flex: none; text-align: left; }
+@media (max-width: 640px) { .ss-cmap-row .p-input-plain { width: 150px; } }
+
+/* Administrators rebuilt as the same list as Residents and Personnel (Ace, 16 Oct): avatar + name + email, the position as its rank chip, the committee with its colour dot, a status pill, the online state, and the red Edit button, which opens position and committee right under the row with an explicit Save. */
+.ss-adm th:nth-child(1) { width: 29%; } .ss-adm th:nth-child(2) { width: 16%; } .ss-adm th:nth-child(3) { width: 22%; }
+.ss-adm th:nth-child(4) { width: 14%; } .ss-adm th:nth-child(5) { width: 11%; } .ss-adm th:nth-child(6) { width: 8%; }
+.ss-adm .p-person > span { font: 700 14px Urbanist, sans-serif; min-width: 0; }
+.ss-adm .p-person small { font-weight: 500; color: var(--p-muted); }
+.ss-adm .p-person .ss-mail { display: block; font: 500 12px Urbanist, sans-serif; color: var(--p-muted); overflow-wrap: anywhere; }
+.ss-adm .ss-comm { display: inline-flex; align-items: center; gap: 8px; font: 600 13.5px Urbanist, sans-serif; }
+.ss-adm .cdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--cc, #8E9ABB); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, #8E9ABB) 25%, transparent); }
+.ss-adm td, .ss-adm th { vertical-align: middle; }
+.ss-adm td.p-right, .ss-adm th:last-child { text-align: right; }
+.ss-adm td.ss-online { font: 600 13px Urbanist, sans-serif; }
+.ss-adm tr.ss-erow[hidden] { display: none; }
+.ss-adm tr.ss-erow > td { padding: 0; background: color-mix(in srgb, #FF9800 7%, var(--p-surface)); border-bottom: 1px solid var(--p-line); box-shadow: inset 4px 0 0 #FF9800; }
+.ss-adm tr.ss-erow:hover > td { background: color-mix(in srgb, #FF9800 7%, var(--p-surface)); }
+.ss-epanel { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; padding: 16px 22px 16px 26px; }
+.ss-eform { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 0; }
+.ss-ef { display: grid; gap: 4px; font: 700 11.5px Urbanist, sans-serif; color: var(--p-muted); letter-spacing: .04em; text-transform: uppercase; }
+.ss-esel { height: 40px; min-width: 210px; padding: 0 34px 0 14px; border: 1px solid var(--p-line-2); border-radius: 10px; background-color: var(--p-surface-2); color: var(--p-ink); font: 600 13.5px Urbanist, sans-serif; text-transform: none; letter-spacing: 0; cursor: pointer; }
+.ss-esel:disabled { opacity: .5; border-style: dashed; cursor: not-allowed; }
+.ss-esel:focus-visible { border-color: var(--p-orange); box-shadow: 0 0 0 3px rgba(255,152,0,.25); outline: none; }
+.ss-eform .p-btn { height: 40px; }
+.p-body .ss-adm .ss-save, :root[data-theme="dark"] .p-body .ss-adm .ss-save { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 4px 12px rgba(255,152,0,.3); }
+.ss-ehint { align-self: center; color: var(--p-red); font: 700 12.5px Urbanist, sans-serif; }
+@media (max-width: 760px) { .ss-adm th:nth-child(3), .ss-adm td:nth-child(3), .ss-adm th:nth-child(5), .ss-adm td:nth-child(5) { display: none; } .ss-esel { min-width: 150px; } }
+.p-body .ss-people.ss-adm td .ss-save, :root[data-theme="dark"] .p-body .ss-people.ss-adm td .ss-save { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 4px 12px rgba(255,152,0,.3); }
+.p-body .ss-people.ss-adm td .ss-save:hover, :root[data-theme="dark"] .p-body .ss-people.ss-adm td .ss-save:hover { background: #F08A00; }
+.p-body .ss-people.ss-adm td .ss-eform .p-btn-ghost, :root[data-theme="dark"] .p-body .ss-people.ss-adm td .ss-eform .p-btn-ghost { background: var(--p-surface-2); border-color: var(--p-line-2); color: var(--p-ink); box-shadow: none; }
+.p-body .ss-people.ss-adm td .ss-eform .p-btn-ghost:hover { border-color: var(--p-orange); }
