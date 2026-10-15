@@ -124,7 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!-- Right panel: orange field with the barangay photo washed behind it.
        Accepts either extension — whichever the team exported. -->
   <section class="login-panel">
-    <?= prefs_switches('prefs--login') ?>
     <?php
     $bg = null;
     foreach (['villamor-street.webp', 'villamor-street.jpg'] as $candidate) {
