@@ -230,8 +230,10 @@ window.ssAccessToken = function (initial) {
         <?php $n = $counts[$href] ?? 0; ?>
         <a href="<?= e($href) ?>" title="<?= e($label) ?>" class="<?= basename($href) === $active ? 'p-active' : '' ?>"<?= basename($href) === $active ? ' aria-current="page"' : '' ?>>
           <?= p_icon($icon) ?><span><?= e($label) ?></span>
-          <?php if ($n > 0): ?><span class="p-count" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?>
-          <?php if ($href === 'notifications.php' && ($counts['notifications_smart'] ?? 0) > 0): ?><span class="p-brain-badge" title="<?= e(t('Unread notes from the SMART engine', 'May hindi pa nababasang abiso mula sa SMART engine')) ?>"><?= smart_brain(11) ?></span><?php endif; ?>
+          <?php $smartN = $href === 'notifications.php' ? (int) ($counts['notifications_smart'] ?? 0) : 0; ?>
+          <?php if ($n > 0 || $smartN > 0): ?>
+            <span class="p-rt"><?php if ($smartN > 0): ?><span class="p-brain-pill" title="<?= e(t('Unread notes from the SMART engine', 'May hindi pa nababasang abiso mula sa SMART engine')) ?>"><?= smart_brain(13) ?></span><?php endif; ?><?php if ($n > 0): ?><span class="p-pill<?= $href === 'notifications.php' ? ' p-pill--hot' : '' ?>" title="<?= e((string) $n) ?>"><?= $n > 99 ? '99+' : $n ?></span><?php endif; ?></span>
+          <?php endif; ?>
         </a>
       <?php endforeach; ?>
     </nav>

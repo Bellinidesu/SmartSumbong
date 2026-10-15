@@ -19,6 +19,25 @@ $db    = db();
 
 session_start_once();
 
+// Notifications: mark one as read (also by beacon when its action is followed), or all of them.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined('WORKSPACE_PAGE') && in_array($_POST['action'] ?? '', ['read_one', 'read_all'], true)) {
+    if (csrf_check($_POST['csrf'] ?? null)) {
+        try {
+            $rq = ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false'];
+            if ($_POST['action'] === 'read_one') {
+                $nid = (string) ($_POST['id'] ?? '');
+                if (preg_match('/^[0-9a-f-]{36}$/i', $nid)) { $rq['id'] = 'eq.' . $nid; $db->update('notifications', $rq, ['is_read' => true]); }
+            } else {
+                $db->update('notifications', $rq, ['is_read' => true]);
+            }
+            unset($_SESSION['nav_counts']);     // the sidebar's number follows at once
+        } catch (SupabaseError) { /* the list will still show it */ }
+    }
+    if (!empty($_POST['beacon'])) { http_response_code(204); exit; }
+    header('Location: notifications.php' . (!empty($_POST['back']) ? '?' . http_build_query(['npage' => (int) $_POST['back']]) : ''), true, 303);
+    exit;
+}
+
 // Coming back from a case should land on the list you left, not on an
 // unfiltered one you have to rebuild. Any explicit parameter wins; a bare
 // visit restores what you last looked at.
@@ -362,6 +381,10 @@ $noteBadge = $notesUnread + $escCount;
     <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
   </form>
   <span class="p-spacer"></span>
+  <?php if ($notesUnread > 0): ?>
+  <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_all">
+    <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Mark all as read', 'Markahang nabasa ang lahat')) ?></button></form>
+  <?php endif; ?>
   <form method="get">
     <input type="hidden" name="nq" value="<?= e($nSearch) ?>">
     <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
@@ -383,15 +406,20 @@ $noteBadge = $notesUnread + $escCount;
   <?php $lastDay = null; foreach ($notifications as $n): $dl = day_label($n['created_at']); if ($dl !== $lastDay): $lastDay = $dl; ?>
     <div class="ss-day"><?= e($dl) ?></div>
   <?php endif; ?>
-    <div class="p-notif p-unread">
+    <?php $unread = empty($n['is_read']); ?>
+    <div class="p-notif<?= $unread ? ' p-unread' : '' ?>">
       <span class="p-n-ico<?= str_starts_with((string) $n['message'], 'SMART') ? ' is-smart' : '' ?>"><?= str_starts_with((string) $n['message'], 'SMART') ? smart_brain(20) : p_icon('i-bell', 18) ?></span>
-      <div><div><span class="p-unread-dot"></span><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
+      <div class="p-n-body"><div class="p-n-line"><?= $unread ? '<span class="p-unread-dot"></span>' : '' ?><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
+      <div class="p-n-act">
       <?php if (!empty($n['report_id'])): ?>
-        <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+        <a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= $unread ? e($n['id']) : '' ?>" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
       <?php elseif (!empty($n['subject_user_id'])): ?>
         <?php // 0088 (Rose): a profile request opens that person's profile. ?>
-        <a class="p-btn p-btn-sm p-btn-orange" href="<?= ($n['subject']['role'] ?? '') === 'tanod' ? 'personnel.php' : 'residents.php' ?>?id=<?= e($n['subject_user_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
-      <?php else: ?><span></span><?php endif; ?>
+        <a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= $unread ? e($n['id']) : '' ?>" href="<?= ($n['subject']['role'] ?? '') === 'tanod' ? 'personnel.php' : 'residents.php' ?>?id=<?= e($n['subject_user_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+      <?php endif; ?>
+      </div>
+      <form method="post" class="p-n-x"><?php if ($unread): ?><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($n['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+        <button class="p-n-check" type="submit" title="<?= e(t('Mark as read', 'Markahang nabasa')) ?>" aria-label="<?= e(t('Mark as read', 'Markahang nabasa')) ?>"><?= p_icon('i-check', 16) ?></button><?php endif; ?></form>
     </div>
   <?php endforeach; ?>
 </div></div>
@@ -558,6 +586,13 @@ $noteBadge = $notesUnread + $escCount;
 
   const TOKEN = <?= json_encode(access_token()) ?>;
   const ADMIN_ID = <?= json_encode($admin['id']) ?>;
+  const CSRF = <?= json_encode(csrf_token()) ?>;
+  // following a notification's action marks it read (a beacon, so the page change is not delayed)
+  document.addEventListener('click', function (e) {
+    const a = e.target.closest && e.target.closest('.p-notif a[data-nid]'); if (!a || !a.dataset.nid) return;
+    const fd = new FormData(); fd.append('csrf', CSRF); fd.append('action', 'read_one'); fd.append('id', a.dataset.nid); fd.append('beacon', '1');
+    try { navigator.sendBeacon('notifications.php', fd); } catch (x) { /* it can be marked by hand */ }
+  });
   const sb = createClient(
     <?= json_encode(supabase_url()) ?>,
     <?= json_encode(supabase_key()) ?>,
@@ -749,16 +784,18 @@ $noteBadge = $notesUnread + $escCount;
       const dl = dayLabel(n.created_at);
       const head = dl !== lastDay ? '<div class="ss-day">' + escapeHtml(dl) + '</div>' : '';
       lastDay = dl;
+      const unread = !n.is_read, nid = unread ? ' data-nid="' + escapeHtml(n.id) + '"' : '';
       const review = n.report_id
-        ? '<a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=' + encodeURIComponent(n.report_id) + '">' + T('Review', 'Suriin') + '</a>'
+        ? '<a class="p-btn p-btn-sm p-btn-orange"' + nid + ' href="case.php?id=' + encodeURIComponent(n.report_id) + '">' + T('Review', 'Suriin') + '</a>'
         : n.subject_user_id
-          ? '<a class="p-btn p-btn-sm p-btn-orange" href="' + ((n.subject && n.subject.role) === 'tanod' ? 'personnel.php' : 'residents.php') + '?id=' + encodeURIComponent(n.subject_user_id) + '">' + T('Review', 'Suriin') + '</a>'
-          : '<span></span>';
-      return head + '<div class="p-notif p-unread">' +
+          ? '<a class="p-btn p-btn-sm p-btn-orange"' + nid + ' href="' + ((n.subject && n.subject.role) === 'tanod' ? 'personnel.php' : 'residents.php') + '?id=' + encodeURIComponent(n.subject_user_id) + '">' + T('Review', 'Suriin') + '</a>'
+          : '';
+      const check = unread ? '<form method="post" class="p-n-x"><input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="' + escapeHtml(n.id) + '"><input type="hidden" name="back" value="' + NPAGE + '"><button class="p-n-check" type="submit" title="' + T('Mark as read', 'Markahang nabasa') + '"><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button></form>' : '<form class="p-n-x"></form>';
+      return head + '<div class="p-notif' + (unread ? ' p-unread' : '') + '">' +
         '<span class="p-n-ico' + (String(n.message).indexOf('SMART') === 0 ? ' is-smart">' + BRAIN_SVG : '"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg>') + '</span>' +
-        '<div><div><span class="p-unread-dot"></span>' + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +
+        '<div class="p-n-body"><div class="p-n-line">' + (unread ? '<span class="p-unread-dot"></span>' : '') + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +
         '<div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + '</div></div>' +
-        review + '</div>';
+        '<div class="p-n-act">' + review + '</div>' + check + '</div>';
     }).join('');
   }
 

@@ -482,3 +482,24 @@
 .p-notif-card{overflow:visible}
 .p-notif-list .p-notif{border-radius:0}
 .p-notif-list .p-notif:first-of-type{border-radius:14px 14px 0 0}
+/* Notifications, tidied: one grid for every row (icon, text, action, mark-as-read), a quiet unread edge, an even strip */
+.p-notif-card .p-notif{grid-template-columns:40px minmax(0,1fr) 104px 36px;gap:14px;min-height:72px;padding:12px 18px;position:relative}
+.p-notif-card .p-notif .p-n-ico{width:40px;height:40px;border-radius:12px}
+.p-notif-card .p-notif.p-unread{background:color-mix(in srgb,var(--p-orange) 6%,transparent);box-shadow:inset 3px 0 0 var(--p-orange)}
+.p-notif-card .p-notif .p-n-line{display:flex;align-items:center;gap:8px;min-width:0}
+.p-notif-card .p-notif .p-n-line b{font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.p-notif-card .p-notif .p-unread-dot{flex:none;margin:0;background:var(--p-orange)}
+.p-notif-card .p-notif .ss-smart-tag{flex:none;margin:0}
+.p-notif-card .p-notif .p-n-act{display:flex;justify-content:flex-end}
+.p-notif-card .p-notif .p-n-act .p-btn{min-width:92px}
+.p-notif-card .p-notif .p-n-x{margin:0;display:flex;justify-content:flex-end}
+.p-n-check{display:grid;place-items:center;width:34px;height:34px;padding:0;border-radius:10px;border:1px solid var(--p-line-2);background:transparent;color:var(--p-muted);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.p-n-check:hover{background:var(--p-surface-2);color:var(--p-green);border-color:var(--p-green)}
+.p-notif-list .ss-day{padding:14px 18px 6px;margin:0;border-top:1px solid var(--p-line)}
+.p-notif-list .ss-day:first-child{border-top:0}
+.p-notif-card{border-radius:16px;overflow:hidden}
+.p-band--calm{align-items:center;gap:12px}
+.p-band--calm .p-btn{white-space:nowrap}
+.ss-strip .ss-nt{grid-template-columns:34px minmax(0,1fr) 84px;align-items:start}
+.ss-strip .ss-nt>.p-btn{width:84px;justify-content:center;justify-self:end}
+@media (max-width:700px){.p-notif-card .p-notif{grid-template-columns:40px minmax(0,1fr) 36px}.p-notif-card .p-notif .p-n-act{grid-column:2;justify-content:flex-start}}

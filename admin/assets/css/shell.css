@@ -70,3 +70,21 @@ html[data-side="hover"] .p-edge{display:none}
 .p-nav a.p-active .p-brain-badge{box-shadow:0 0 0 2px var(--p-orange),0 0 9px rgba(237,250,4,.65)}
 .p-nav .p-brain-badge svg{filter:drop-shadow(0 0 3px rgba(237,250,4,.8))}
 html[data-side="min"] .p-nav .p-brain-badge{left:auto;right:8px}
+/* the sidebar's dots, option C (locked 15 Oct): counts in quiet pills at the right edge, the brain beside the Notifications number */
+.p-nav .p-rt{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.p-nav .p-pill{min-width:22px;height:22px;padding:0 7px;border-radius:99px;display:grid;place-items:center;background:rgba(255,255,255,.2);color:#fff;font:700 11.5px Inter,sans-serif;font-variant-numeric:tabular-nums}
+.p-nav .p-pill--hot{background:#E5383B}
+.p-nav a.p-active .p-pill{background:rgba(255,255,255,.3)}
+.p-nav a.p-active .p-pill--hot{background:#E5383B;box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+.p-nav .p-brain-pill{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#356CF9,#FF9800 55%,#EDFA04);box-shadow:0 0 8px rgba(255,152,0,.5)}
+.p-nav .p-brain-pill svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+.p-nav a.p-active .p-brain-pill{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+html[data-side="min"] .p-nav .p-rt{position:absolute;right:5px;top:2px;gap:2px}
+html[data-side="min"] .p-nav .p-pill{min-width:17px;height:17px;padding:0 4px;font-size:9.5px}
+html[data-side="min"] .p-nav .p-brain-pill{width:17px;height:17px}
+html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
+@media (min-width:981px){
+  html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-rt{position:absolute;right:5px;top:2px;gap:2px}
+  html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-pill{min-width:17px;height:17px;padding:0 4px;font-size:9.5px}
+  html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-brain-pill{width:17px;height:17px}
+}
