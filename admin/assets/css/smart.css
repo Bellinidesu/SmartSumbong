@@ -692,3 +692,11 @@
 /* One table-header language across the list pages (16 Oct audit against the Figma): the orange header row the Case Reports list and the Report Summary ledgers already carry, now on Residents, Personnel, Extra Administrative Services and the Report Case Timeline's list. */
 .ss-ohead thead th { background: var(--p-orange); color: #2B1A00; border-color: transparent; }
 .ss-ohead thead th .p-th-sort { color: inherit; }
+
+/* Row action buttons (Ace's lock, 16 Oct, "Figma red but vibrant"): the Figma's filled red View/Review with a darker edge and white text, one vibrant red for every row action on Residents, Personnel, Extra Administrative Services and Case Reports. The one decline-style action that opens a reason box stays an outline in the same red, so it never looks like the main action. */
+:root { --ss-act: #F03E3E; --ss-act-h: #DB2B2B; --ss-act-edge: #7A1616; }
+.ss-ohead td .p-btn, .ss-cases-t td .p-btn { background: var(--ss-act); border-color: var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
+.ss-ohead td .p-btn:hover, .ss-cases-t td .p-btn:hover { background: var(--ss-act-h); }
+.ss-ohead td .p-btn:focus-visible, .ss-cases-t td .p-btn:focus-visible { outline: 2px solid var(--ss-act); outline-offset: 2px; }
+.ss-ohead td .p-btn[data-reveal] { background: transparent; border-color: var(--ss-act); color: var(--ss-act); box-shadow: none; }
+.ss-ohead td .p-btn[data-reveal]:hover { background: color-mix(in srgb, var(--ss-act) 12%, transparent); }
