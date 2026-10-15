@@ -256,8 +256,10 @@ window.ssAccessToken = function (initial) {
 function admin_avatar_html(?array $admin): string
 {
     $url = $admin['avatar_url'] ?? null;
-    if ($url) return '<img class="p-avatar" src="' . e(cld_thumb($url, 96, true)) . '" alt="">';
-    return '<div class="p-avatar" aria-hidden="true">' . e(admin_initials((string) ($admin['full_name'] ?? ''))) . '</div>';
+    $r = rank_of($admin['official_role'] ?? null);
+    if (!empty($admin['id'])) { $r = admin_ranks()[(string) $admin['id']] ?? $r; }
+    if ($url) return '<img class="p-avatar" data-r="' . e($r) . '" src="' . e(cld_thumb($url, 96, true)) . '" alt="">';
+    return '<div class="p-avatar" data-r="' . e($r) . '" aria-hidden="true">' . e(admin_initials((string) ($admin['full_name'] ?? ''))) . '</div>';
 }
 
 /**

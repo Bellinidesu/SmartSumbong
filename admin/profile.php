@@ -227,6 +227,7 @@ layout_head(t('Edit Profile', 'I-edit ang Profile'), 'profile.php');
 $shown    = formal_name($me['full_name']);  // a profile is a record: "Lediac, Ace"
 $parts    = preg_split('/\s+/', trim($shown)) ?: [];
 $initials = admin_initials((string) $me['full_name']);
+$pfRank = admin_ranks()[(string) ($me['id'] ?? '')] ?? rank_of($me['official_role'] ?? null);
 $comma    = strpos((string) $me['full_name'], ',');
 $firstVal = $comma > 0 ? trim(substr($me['full_name'], $comma + 1)) : (string) $me['full_name'];
 $lastVal  = $comma > 0 ? trim(substr($me['full_name'], 0, $comma)) : '';
@@ -236,8 +237,8 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
 <section class="p-card ss-pf-head">
   <div class="ss-pf-banner" aria-hidden="true"></div>
   <div class="ss-pf-id">
-    <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" src="<?= e(cld_thumb($me['avatar_url'], 240, true)) ?>" alt="" id="ss-photo-preview">
-    <?php else: ?><span class="ss-pf-av ss-pf-ini" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
+    <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" data-r="<?= e($pfRank) ?>" src="<?= e(cld_thumb($me['avatar_url'], 240, true)) ?>" alt="" id="ss-photo-preview">
+    <?php else: ?><span class="ss-pf-av ss-pf-ini" data-r="<?= e($pfRank) ?>" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
     <div class="ss-pf-who">
       <h2><?= e($shown) ?></h2>
       <div class="p-badges">
