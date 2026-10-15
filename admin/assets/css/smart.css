@@ -1128,3 +1128,10 @@
 .ss-av.ss-live[data-r] { box-shadow: 0 0 0 2px var(--p-surface, #1C2127), 0 0 0 4px var(--ring), 0 0 0 6px #1F8A45; }
 .ss-tanods .p-avatar { box-shadow: 0 0 0 2px var(--p-surface, #1C2127), 0 0 0 4px var(--rk-tanod, #0E8F8A); }
 .ss-stack .ss-av[data-r] { margin-right: 3px; }
+
+/* The ring on the sidebar card and the profile photo too: an outline with a gap, so it sits right on the orange active card and on the dark one */
+.p-side-user .p-avatar[data-r], .ss-pf-av[data-r] { box-shadow: none; outline: 3px solid var(--ring, #64748B); outline-offset: 2px; }
+.ss-pf-av[data-r] { outline-width: 4px; outline-offset: 3px; }
+.p-avatar[data-r="staff"], .ss-pf-av[data-r="staff"] { --ring: var(--rk-staff, #64748B); }
+.p-avatar[data-r="kagawad"], .ss-pf-av[data-r="kagawad"] { --ring: var(--rk-kagawad, #6A4FD3); }
+.p-avatar[data-r="chair"], .ss-pf-av[data-r="chair"] { --ring: var(--rk-gold, #D4A017); }
