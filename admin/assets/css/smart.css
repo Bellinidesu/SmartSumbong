@@ -466,3 +466,19 @@
 .bd-title b{min-height:0}
 .bd-own{margin-top:auto}
 .bd-ttl h2{display:none}
+
+/* the board's cards keep their full height inside a scrolling column: children never shrink */
+.bd-list{display:flex;flex-direction:column;gap:10px}
+.bd-list>*{flex:none}
+.bd-card>*{flex:none}
+.bd-cat,.bd-title,.bd-own,.bd-top{flex:none}
+/* All notifications: a calm header and a page-length list, not an orange band over a small scrolling box */
+.p-band--calm{background:transparent;box-shadow:none;border:0;padding:0;margin:16px 0 10px;color:var(--p-ink)}
+.p-band--calm h2{color:var(--p-ink);font:800 20px Urbanist,sans-serif}
+.p-band--calm .p-badge-n{background:var(--p-surface-2);color:var(--p-muted)}
+.p-band--calm .p-search{background:var(--p-surface);border:1px solid var(--p-line-2);box-shadow:none}
+.p-band--calm .p-pill-select{background:var(--p-surface);border:1px solid var(--p-line-2);box-shadow:none}
+.p-notif-card .p-notif-list{max-height:none;overflow:visible}
+.p-notif-card{overflow:visible}
+.p-notif-list .p-notif{border-radius:0}
+.p-notif-list .p-notif:first-of-type{border-radius:14px 14px 0 0}

@@ -338,7 +338,7 @@ $noteBadge = $notesUnread + $escCount;
 
 <?php if ($tab === 'notes'): ?>
 <!-- ---------- notifications ---------- -->
-<div class="p-band">
+<div class="p-band p-band--calm">
   <h2><?= e(t('Notifications', 'Mga abiso')) ?><span class="p-badge-n" id="notif-count"><?= count($notifications) ?></span></h2>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
@@ -384,7 +384,7 @@ $noteBadge = $notesUnread + $escCount;
 
 <!-- ---------- escalation requests (0073) ---------- -->
 <?php if (!empty($escalations)): ?>
-<div class="p-band">
+<div class="p-band p-band--calm">
   <h2><?= e(t('Escalation requests', 'Mga hiling na i-escalate')) ?><span class="p-badge-n"><?= count($escalations) ?></span></h2>
 </div>
 <div class="p-card p-notif-card" style="margin-bottom:28px"><div class="p-notif-list">
