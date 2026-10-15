@@ -1577,3 +1577,8 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 
 /* Sign-in rail, dark: the logos in their own colours again (the brightness lift turned them neon). A soft white glow around each shape keeps the navy lettering readable on the glass. */
 :root[data-theme="dark"] img.rail-logo { filter: drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 0 9px rgba(255,255,255,.55)) drop-shadow(0 8px 16px rgba(0,0,0,.3)); }
+
+/* Sign-in rail, dark (Ace's lock, 15 Oct): the Pasay City seal untouched; on Bagong Pilipinas and Bagong Villamor only the lettering turns white, the marks keep their colours. The -dk files are served in dark mode only. */
+:root[data-theme="dark"] img.rail-logo { filter: none; }
+:root[data-theme="dark"] img.rail-logo[src*="bagong-pilipinas"] { content: url("../img/bagong-pilipinas-dk.webp"); }
+:root[data-theme="dark"] img.rail-logo[src*="bagong-villamor"] { content: url("../img/bagong-villamor-dk.webp"); }
