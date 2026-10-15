@@ -1135,3 +1135,13 @@
 .p-avatar[data-r="staff"], .ss-pf-av[data-r="staff"] { --ring: var(--rk-staff, #64748B); }
 .p-avatar[data-r="kagawad"], .ss-pf-av[data-r="kagawad"] { --ring: var(--rk-kagawad, #6A4FD3); }
 .p-avatar[data-r="chair"], .ss-pf-av[data-r="chair"] { --ring: var(--rk-gold, #D4A017); }
+
+/* Case page refinements (16 Oct): the handler card reads name and rank on one line with "handling since" under it (and only when there is a time); the tanod chips are chips, not bars; the distance is said once; the answer box has no resize corner crowding Send. */
+.ss-handler .ss-hcol { display: grid; gap: 4px; min-width: 0; }
+.ss-handler .ss-hrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ss-handler .ss-hrow b { display: inline; }
+.p-tanod-opt .p-who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.p-tanod-opt .p-who .p-badge { width: fit-content; flex: none; }
+.p-tanod-opt .p-who small { flex: 1 1 100%; }
+.p-note { resize: none; }
+.p-tanod-opt .p-who .ss-why { margin-top: 2px; }
