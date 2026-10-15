@@ -325,7 +325,7 @@ $noteBadge = $notesUnread + $escCount;
 <?php if ($tab === 'next'): ?>
 <!-- ---------- the work board (0129 queue, one column per stage) ---------- -->
 <div class="bd-bar">
-  <div class="bd-ttl"><h2><?= e(t('Work board', 'Tablero ng gawain')) ?></h2><span class="p-sub"><?= e(t('Drag a card to another stage: the real action opens first.', 'I-drag ang kard sa ibang yugto: bubukas muna ang tunay na aksyon.')) ?></span></div>
+  <div class="bd-ttl"><span class="p-sub"><?= e(t('Drag a card to another stage: the real action opens first.', 'I-drag ang kard sa ibang yugto: bubukas muna ang tunay na aksyon.')) ?></span></div>
   <div class="p-seg-mini bd-scope" role="group" aria-label="<?= e(t('Whose cases', 'Kaninong kaso')) ?>">
     <?php foreach (['mine' => t('Mine', 'Akin'), 'free' => t('Unclaimed', 'Walang may hawak'), 'all' => t('Everyone', 'Lahat')] as $sc => $lb): ?>
       <a href="?tab=next&amp;own=<?= e($sc) ?>" class="<?= $bscope === $sc ? 'p-on' : '' ?>" <?= $bscope === $sc ? 'aria-current="true"' : '' ?>><?= e($lb) ?> <b><?= (int) $bcount[$sc] ?></b></a>

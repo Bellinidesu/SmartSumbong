@@ -455,3 +455,14 @@
 .bd-pf{display:flex;padding:12px 16px;border-top:1px solid var(--p-line)}
 .bd-pf .p-btn{flex:1}
 @media (prefers-reduced-motion:reduce){.bd-panel{animation:none}}
+
+/* the board fits the screen like Trello's: columns the same height, each scrolling on its own */
+.bd-cols{height:clamp(520px,calc(100vh / var(--z,1) - 150px),920px);grid-template-rows:minmax(0,1fr);overflow-y:hidden;padding-bottom:14px}
+.bd-col{height:100%;min-height:0;grid-template-rows:auto minmax(0,1fr)}
+.bd-list{overflow-y:auto;min-height:0;padding:2px 3px 2px 0;scrollbar-width:thin;scrollbar-color:var(--p-line-2) transparent}
+.bd-list::-webkit-scrollbar{width:6px}.bd-list::-webkit-scrollbar-thumb{background:var(--p-line-2);border-radius:6px}
+/* cards: content on top, the owner always at the foot, no reserved blank line */
+.bd-card{display:flex;flex-direction:column;gap:6px;min-height:124px}
+.bd-title b{min-height:0}
+.bd-own{margin-top:auto}
+.bd-ttl h2{display:none}
