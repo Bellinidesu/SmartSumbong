@@ -1475,6 +1475,39 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
         </svg>
       </button>
+      <?php
+      // The case's context beside the map in full screen (Ace, 16 Oct): what it is, how urgent, who has it, and the street as it looks.
+      $msLv   = (!empty($smart) && ($smart['score'] ?? null) !== null) ? (string) ($smart['effective_level'] ?? 'low') : '';
+      $msName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
+      $msMly  = (string) env('MAPILLARY_TOKEN', '');
+      ?>
+      <aside class="ss-mapside<?= $msLv !== '' ? ' ss-lv-' . e($msLv) : '' ?>" id="case-map-side" aria-label="<?= e(t('Case details', 'Detalye ng kaso')) ?>">
+        <header>
+          <span class="p-mono-id"><?= e($report['tracking_id']) ?></span>
+          <h3><?= e(category_label($report['category'])) ?></h3>
+          <div class="ss-ms-pills">
+            <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
+            <?php if ($msLv !== ''): ?><span class="ss-ms-lv"><?= e($msName[$msLv] ?? $msLv) ?><?= isset($smart['score']) ? ' <b>' . (int) $smart['score'] . '</b>' : '' ?></span><?php endif; ?>
+          </div>
+        </header>
+        <?php if ($msMly !== ''): ?>
+        <button type="button" class="ss-ms-snap" id="case-street-snap" data-lat="<?= e((string) $report['latitude']) ?>" data-lng="<?= e((string) $report['longitude']) ?>" aria-label="<?= e(t('Open street view', 'Buksan ang street view')) ?>">
+          <img alt="" id="case-street-img" hidden>
+          <span class="ss-ms-load" id="case-street-load"><?= e(t('Finding the street…', 'Hinahanap ang kalye…')) ?></span>
+          <span class="ss-ms-over"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><b><?= e(t('Open street view', 'Buksan ang street view')) ?></b><small id="case-street-when"></small></span>
+        </button>
+        <?php endif; ?>
+        <dl class="ss-ms-facts">
+          <div><dt><?= e(t('Filed', 'Naisampa')) ?></dt><dd><?= e(long_datetime($report['created_at'])) ?></dd></div>
+          <?php if (!empty($report['location_label'])): ?><div><dt><?= e(t('Place', 'Lugar')) ?></dt><dd><?= e($report['location_label']) ?></dd></div><?php endif; ?>
+          <div><dt><?= e(t('Coordinates', 'Mga coordinate')) ?></dt><dd class="p-mono-id"><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></dd></div>
+          <div><dt><?= e(t('Resident', 'Residente')) ?></dt><dd><?= !empty($report['is_anonymous']) ? e(t('Anonymous', 'Hindi nagpakilala')) : e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></dd></div>
+          <div><dt><?= e(t('Handled by', 'Hawak ni')) ?></dt><dd><?php $mh = (string) ($report['handler_id'] ?? ''); if ($mh !== ''): ?><span class="ss-who"><?= admin_chip($mh, (string) ($report['handler']['full_name'] ?? ''), 24) ?><?= e($mh === $admin['id'] ? t('You', 'Ikaw') : formal_name((string) ($report['handler']['full_name'] ?? ''))) ?></span><?php else: ?><span class="p-sub"><?= e(t('Nobody yet', 'Wala pa')) ?></span><?php endif; ?></dd></div>
+          <?php if (!empty($report['due_at'])): ?><div><dt><?= e(t('Due', 'Takdang oras')) ?></dt><dd><?= e(long_datetime($report['due_at'])) ?></dd></div><?php endif; ?>
+          <?php if ($concerns): ?><div><dt><?= e(t('Concerns', 'Mga alalahanin')) ?></dt><dd><?= count($concerns) ?></dd></div><?php endif; ?>
+        </dl>
+        <p class="ss-ms-credit" id="case-street-credit" hidden><?= e(t('Street imagery © Mapillary contributors, CC BY-SA 4.0', 'Larawan ng kalye © mga contributor ng Mapillary, CC BY-SA 4.0')) ?></p>
+      </aside>
       <span class="p-tag"><?php if (!empty($report['location_label'])): ?><span class="p-tag-place"><?= e($report['location_label']) ?></span><?php endif; ?><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
     </div>
   </aside>
@@ -1652,7 +1685,48 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
         } else if (zoomCtl) {
           map.removeControl(zoomCtl);
         }
-        setTimeout(function () { map.resize(); }, 120);
+        setTimeout(function () { map.resize(); map.easeTo({ padding: { left: active ? 392 : 0, top: 0, right: 0, bottom: 0 }, duration: 250 }); }, 120);
+        if (active) { loadSnap(); } else { closeStreet(); }
+      });
+
+      // ---- the street as it looks: a snapshot beside the map, pressable into street view ----
+      var snap = document.getElementById('case-street-snap'), MLY = <?= json_encode((string) env('MAPILLARY_TOKEN', '')) ?>;
+      var best = null, snapDone = false, street = null;
+      function lkM(a, b) { return Math.hypot((b.lng - a.lng) * 107500, (b.lat - a.lat) * 110600); }
+      function loadSnap() {
+        if (!snap || snapDone || !MLY) return; snapDone = true;
+        var lat = +snap.dataset.lat, lng = +snap.dataset.lng, dl = 0.0013, db = 0.0011;
+        fetch('https://graph.mapillary.com/images?' + new URLSearchParams({ access_token: MLY, bbox: [lng - dl, lat - db, lng + dl, lat + db].join(','), limit: '2000',
+          fields: 'id,captured_at,is_pano,computed_geometry,thumb_1024_url' }))
+          .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+          .then(function (j) {
+            (j.data || []).forEach(function (i) {
+              var g = i.computed_geometry && i.computed_geometry.coordinates; if (!g || !i.thumb_1024_url) return;
+              var d = lkM({ lng: lng, lat: lat }, { lng: g[0], lat: g[1] }), age = (Date.now() - i.captured_at) / 3.156e10, sc = d + age * 8 - (i.is_pano ? 12 : 0);
+              if (d < 120 && (!best || sc < best.sc)) best = { id: i.id, sc: sc, url: i.thumb_1024_url, at: i.captured_at };
+            });
+            var load = document.getElementById('case-street-load');
+            if (!best) { load.textContent = T('No street imagery within 120 m of this spot.', 'Walang street imagery sa loob ng 120 m ng lugar na ito.'); snap.classList.add('is-none'); return; }
+            var img = document.getElementById('case-street-img'); img.src = best.url; img.hidden = false; load.hidden = true; snap.classList.add('is-ready');
+            document.getElementById('case-street-when').textContent = new Date(best.at).toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+            document.getElementById('case-street-credit').hidden = false;
+          }).catch(function () { var l = document.getElementById('case-street-load'); if (l) l.textContent = T('Street view is not available right now.', 'Hindi available ang street view ngayon.'); snap.classList.add('is-none'); });
+      }
+      function loadMly(cb) {
+        if (window.mapillary) { cb(); return; }
+        var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'assets/vendor/mapillary/mapillary.css'; document.head.appendChild(l);
+        var sc = document.createElement('script'); sc.src = 'assets/vendor/mapillary/mapillary.js'; sc.onload = cb; document.head.appendChild(sc);
+      }
+      function closeStreet() { var el = document.getElementById('case-street'); try { if (street) street.remove(); } catch (e) { /* gone */ } street = null; if (el) el.remove(); }
+      if (snap) snap.addEventListener('click', function () {
+        if (!best) return;
+        var host = document.createElement('div'); host.id = 'case-street'; host.className = 'ss-street';
+        host.innerHTML = '<div id="case-street-view"></div><button type="button" class="p-dock-btn ss-street-x" aria-label="' + T('Close street view', 'Isara ang street view') + '">&times;</button><span class="ss-street-tag">' + T('Street view', 'Street view') + ' &middot; ' + new Date(best.at).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) + '</span>';
+        preview.appendChild(host);
+        host.querySelector('.ss-street-x').addEventListener('click', closeStreet);
+        loadMly(function () {
+          try { street = new mapillary.Viewer({ accessToken: MLY, container: 'case-street-view', imageId: best.id, component: { cover: false } }); } catch (e) { closeStreet(); }
+        });
       });
     }
   }

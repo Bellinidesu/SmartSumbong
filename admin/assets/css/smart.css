@@ -1168,3 +1168,39 @@
 .ss-smartcard .ss-reasons b { color: var(--p-ink); font-weight: 800; }
 .ss-smartcard .ss-head--card .p-eyebrow { color: var(--p-ink-2); letter-spacing: .12em; }
 @media (prefers-reduced-motion: reduce) { .ss-smartcard::before { animation: none; } }
+
+/* The case map in full screen gets a details sidebar (Ace, 16 Oct): the Spatial Distribution case sheet's frosted glass, trimmed to context for a case you are only viewing, with a street snapshot that opens street view when pressed. */
+.ss-mapside { display: none; }
+.p-minimap.p-full .ss-mapside, .p-minimap:fullscreen .ss-mapside { display: grid; }
+.ss-mapside { --lv: #FF9800; position: absolute; z-index: 6; left: 16px; top: 52px; bottom: 16px; width: 360px; max-width: calc(100% - 32px); overflow-y: auto; align-content: start; gap: 14px; padding: 18px; border-radius: 22px; color: #F3F3F3;
+  background: linear-gradient(152deg, rgba(255,255,255,.14), rgba(255,255,255,.03)), rgba(20, 26, 50, .62); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 1px 1px 0 rgba(255,255,255,.14), 0 24px 60px rgba(0,0,0,.5); scrollbar-width: thin; }
+.ss-mapside.ss-lv-urgent { --lv: #EF4444; } .ss-mapside.ss-lv-high { --lv: #FF9800; } .ss-mapside.ss-lv-normal { --lv: #356CF9; } .ss-mapside.ss-lv-low { --lv: #34C759; }
+.ss-mapside::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--lv); box-shadow: 0 0 18px var(--lv); }
+.ss-mapside header { display: grid; gap: 6px; }
+.ss-mapside .p-mono-id { color: rgba(255,255,255,.7); }
+.ss-mapside h3 { margin: 0; font: 800 21px/1.2 Urbanist, sans-serif; letter-spacing: -.01em; }
+.ss-ms-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ss-ms-lv { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px; background: color-mix(in srgb, var(--lv) 22%, transparent); color: #fff; font: 800 12px Urbanist, sans-serif; border: 1px solid color-mix(in srgb, var(--lv) 55%, transparent); }
+.ss-ms-lv b { font: 800 12px Inter, sans-serif; opacity: .85; }
+.ss-ms-snap { position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; border-radius: 16px; overflow: hidden; background: rgba(255,255,255,.08); cursor: pointer; box-shadow: 0 0 0 1px rgba(255,255,255,.14); color: #fff; }
+.ss-ms-snap.is-none { cursor: default; }
+.ss-ms-snap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .5s cubic-bezier(.2,.8,.2,1), filter .3s; }
+.ss-ms-load { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; text-align: center; font: 600 13px Urbanist, sans-serif; color: rgba(255,255,255,.75); }
+.ss-ms-over { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; opacity: 0; background: linear-gradient(180deg, rgba(8,12,30,.25), rgba(8,12,30,.72)); transition: opacity .22s; font-family: Urbanist, sans-serif; }
+.ss-ms-over svg { width: 34px; height: 34px; }
+.ss-ms-over b { font-size: 15px; } .ss-ms-over small { font: 600 11.5px Inter, sans-serif; opacity: .8; }
+.ss-ms-snap.is-ready:hover img, .ss-ms-snap.is-ready:focus-visible img { transform: scale(1.06); }
+.ss-ms-snap.is-ready:hover .ss-ms-over, .ss-ms-snap.is-ready:focus-visible .ss-ms-over { opacity: 1; }
+.ss-ms-snap:focus-visible { outline: 3px solid #FF9800; outline-offset: 2px; }
+.ss-ms-facts { margin: 0; display: grid; gap: 0; }
+.ss-ms-facts > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,.12); font: 500 13.5px/1.35 Urbanist, sans-serif; }
+.ss-ms-facts dt { color: rgba(255,255,255,.62); font-weight: 600; }
+.ss-ms-facts dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+.ss-mapside .ss-who { color: #fff; }
+.ss-ms-credit { margin: 0; font: 500 11px Inter, sans-serif; color: rgba(255,255,255,.55); }
+.ss-street { position: absolute; inset: 0; z-index: 9; background: #05080F; }
+.ss-street #case-street-view { position: absolute; inset: 0; }
+.ss-street-x { position: absolute; right: 16px; top: 16px; z-index: 3; font-size: 24px; line-height: 1; }
+.ss-street-tag { position: absolute; left: 16px; top: 16px; z-index: 3; padding: 7px 14px; border-radius: 99px; background: rgba(8,12,30,.7); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font: 700 12.5px Urbanist, sans-serif; }
+@media (max-width: 760px) { .ss-mapside { width: auto; right: 16px; bottom: auto; max-height: 52%; } }
+@media (prefers-reduced-transparency: reduce) { .ss-mapside { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1C2127; } }
