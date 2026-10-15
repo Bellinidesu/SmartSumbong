@@ -605,40 +605,62 @@
 .st-mono { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--ac, #9AA1AB); color: #fff; font: 800 14px Urbanist, sans-serif; }
 .st-plan .st-bar i:not(.w):not(.b) { background: var(--ac, #22c55e); }
 
-/* Administrators, as Jira's People page (Ace's lock, 15 Oct): breadcrumb, a plain title with a blue Add button, a search box and a filter, then a table with a quiet header, person (face, name, grey email), position and committee as dropdowns that save themselves, status lozenges and a ... menu. */
-.jp-crumb { font: 500 12.5px Inter, sans-serif; color: var(--p-muted); margin-bottom: -6px; }
-.jp-crumb span { margin: 0 4px; opacity: .7; }
+/* Administrators, as Jira's People page (Ace's lock, 15 Oct). Values are Atlassian's own, read from the published @atlaskit packages (tokens 2025 refresh; textfield 10.2.6, button 25.4.8, dynamic-table 19.3.8, lozenge 17.0.5), not remembered:
+   primary button #1868DB / hover #1558BC / pressed #144794, white text, 32px high, 6px radius, weight 500; text field 1px #8C8F97 border, 6px radius, #FFF (hover #F8F8F8), focus ring 1px #4688EC inset; 14/20 body; table: header 12px bold in the subtle text colour with a 2px bottom border and nothing else ruled, 4px 8px cell padding, rows tinted #0515240F on hover; lozenges subtle and not forced to capitals, bold 12px; dark values from the dark theme. */
+[data-pane="admins"] {
+  --jp-brand: #1868DB; --jp-brand-h: #1558BC; --jp-brand-p: #144794; --jp-on-brand: #fff;
+  --jp-input: #fff; --jp-input-h: #F8F8F8; --jp-input-bd: #8C8F97; --jp-focus: #4688EC;
+  --jp-text: #292A2E; --jp-subtle: #505258; --jp-subtlest: #6B6E76; --jp-line: #0B120E24; --jp-hover: #0515240F; --jp-press: #0B120E24;
+  --jp-ok-bg: #EFFFD6; --jp-ok-fg: #4C6B1F; --jp-warn-bg: #FFF5DB; --jp-warn-fg: #9E4C00; --jp-bad-bg: #FFECEB; --jp-bad-fg: #AE2E24;
+  --jp-overlay: #fff; --jp-shadow: 0 8px 12px #1E1F2126, 0 0 1px #1E1F214F;
+  --jp-font: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
+}
+:root[data-theme="dark"] [data-pane="admins"] {
+  --jp-brand: #669DF1; --jp-brand-h: #8FB8F6; --jp-brand-p: #AEC9F8; --jp-on-brand: #1F1F21;
+  --jp-input: #242528; --jp-input-h: #2B2C2F; --jp-input-bd: #7E8188; --jp-focus: #8FB8F6;
+  --jp-text: #CECFD2; --jp-subtle: #A9ABAF; --jp-subtlest: #96999E; --jp-line: #E3E4F21F; --jp-hover: #CECED912; --jp-press: #E3E4F21F;
+  --jp-ok-bg: #28311B; --jp-ok-fg: #B3DF72; --jp-warn-bg: #3A2C1F; --jp-warn-fg: #FBC828; --jp-bad-bg: #42221F; --jp-bad-fg: #FD9891;
+  --jp-overlay: #2B2C2F; --jp-shadow: 0 8px 12px #0304043D, 0 0 1px #03040480;
+}
+.jp-crumb, .jp-head, .jp-bar, .jp-card { font-family: var(--jp-font); }
+.jp-crumb { font-size: 14px; line-height: 20px; color: var(--jp-subtle); margin-bottom: -8px; }
+.jp-crumb span { margin: 0 4px; }
 .jp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.jp-head h2 { margin: 0; font: 600 24px/1.2 Inter, sans-serif; letter-spacing: -.01em; }
-.jp-add { height: 32px; padding: 0 12px; border: 0; border-radius: 3px; background: #0C66E4; color: #fff; font: 600 14px Inter, sans-serif; cursor: pointer; }
-.jp-add:hover { background: #0055CC; }
-.jp-add:focus-visible, .jp-sel:focus-visible, .jp-search:focus-within, .jp-pick select:focus-visible { outline: 2px solid #388BFF; outline-offset: 1px; }
+.jp-head h2 { margin: 0; font: 653 24px/28px var(--jp-font); letter-spacing: -.01em; color: var(--jp-text); }
+.jp-add { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--jp-brand); color: var(--jp-on-brand); font: 500 14px/20px var(--jp-font); cursor: pointer; }
+.jp-add:hover { background: var(--jp-brand-h); } .jp-add:active { background: var(--jp-brand-p); }
+.jp-add:focus-visible, .jp-menu button:focus-visible, .jp-more summary:focus-visible { outline: 2px solid var(--jp-focus); outline-offset: 2px; }
 .jp-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.jp-search { display: flex; align-items: center; gap: 8px; height: 36px; width: min(260px, 100%); padding: 0 10px; border: 2px solid var(--p-line-2); border-radius: 3px; background: var(--p-surface); color: var(--p-muted); }
-.jp-search input { border: 0; outline: 0; background: transparent; width: 100%; font: 400 14px Inter, sans-serif; color: var(--p-ink); }
-.jp-pick select, .jp-sel { height: 36px; padding: 0 28px 0 10px; border: 2px solid var(--p-line-2); border-radius: 3px; background-color: var(--p-surface); color: var(--p-ink); font: 500 14px Inter, sans-serif; cursor: pointer; }
-.jp-sel { height: 32px; border-width: 1px; background-color: transparent; border-color: transparent; font-weight: 500; }
-.jp-t tbody tr:hover .jp-sel:not(:disabled), .jp-sel:focus { border-color: var(--p-line-2); background-color: var(--p-surface); }
-.jp-sel:disabled { opacity: .45; cursor: not-allowed; }
+.jp-search, .jp-pick select, .jp-sel { background-color: var(--jp-input); color: var(--jp-text); border: 1px solid var(--jp-input-bd); border-radius: 6px; font: 400 14px/20px var(--jp-font); }
+.jp-search { display: flex; align-items: center; gap: 8px; height: 36px; width: min(260px, 100%); padding: 0 8px; color: var(--jp-subtlest); }
+.jp-search:hover, .jp-pick select:hover { background-color: var(--jp-input-h); }
+.jp-search:focus-within, .jp-pick select:focus-visible, .jp-sel:focus-visible { border-color: var(--jp-focus); box-shadow: inset 0 0 0 1px var(--jp-focus); outline: none; }
+.jp-search input { border: 0; outline: 0; background: transparent; width: 100%; font: inherit; color: var(--jp-text); }
+.jp-search input::placeholder { color: var(--jp-subtlest); }
+.jp-pick select { height: 36px; padding: 0 28px 0 8px; cursor: pointer; width: max-content; }
+.jp-sel { height: 32px; width: max-content; min-width: 140px; max-width: 100%; padding: 0 28px 0 8px; background-color: transparent; border-color: transparent; cursor: pointer; }
+.jp-t tbody tr:hover .jp-sel:not(:disabled), .jp-sel:focus-visible { border-color: var(--jp-input-bd); background-color: var(--jp-input); }
+.jp-sel:disabled { opacity: .5; cursor: not-allowed; }
 .jp-card { overflow: visible; }
-.jp-t thead th { font: 600 12px Inter, sans-serif; letter-spacing: 0; text-transform: none; color: var(--p-muted); background: transparent; border-bottom: 2px solid var(--p-line); padding: 10px 14px; }
-.jp-t td { padding: 10px 14px; vertical-align: middle; height: 60px; }
-.jp-t tbody tr:hover td { background: color-mix(in srgb, var(--p-ink) 4%, transparent); }
+.jp-t { font-family: var(--jp-font); font-size: 14px; line-height: 20px; color: var(--jp-text); }
+.jp-t thead th { font: 653 12px/16px var(--jp-font); letter-spacing: 0; text-transform: none; color: var(--jp-subtle); background: transparent; border: 0; border-bottom: 2px solid var(--jp-line); padding: 8px 12px; }
+.jp-t td { padding: 8px 12px; vertical-align: middle; height: 60px; border: 0; background: transparent; }
+.jp-t tbody tr { transition: background-color .12s; }
+.jp-t tbody tr:hover td { background: var(--jp-hover); }
 .jp-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.jp-who b { display: block; font: 600 14px Inter, sans-serif; }
-.jp-who b small { font-weight: 500; color: var(--p-muted); }
-.jp-who span > small { display: block; font: 400 12.5px Inter, sans-serif; color: var(--p-muted); overflow-wrap: anywhere; }
+.jp-who b { display: block; font-weight: 500; color: var(--jp-text); }
+.jp-who b small { font-weight: 400; color: var(--jp-subtle); }
+.jp-who span > small { display: block; font-size: 12px; line-height: 16px; color: var(--jp-subtle); overflow-wrap: anywhere; }
 .ss-jrole { display: none; }
-.jp-lz { display: inline-block; padding: 2px 6px; border-radius: 3px; font: 700 11px/16px Inter, sans-serif; text-transform: uppercase; letter-spacing: .02em; white-space: normal; }
-.jp-lz--ok { background: #DCFFF1; color: #164B35; } .jp-lz--warn { background: #FFF7D6; color: #7F5F01; } .jp-lz--bad { background: #FFECEB; color: #AE2E24; }
-:root[data-theme="dark"] .jp-lz--ok { background: rgba(75,206,151,.2); color: #7EE2B8; } :root[data-theme="dark"] .jp-lz--warn { background: rgba(245,205,71,.18); color: #F5CD47; } :root[data-theme="dark"] .jp-lz--bad { background: rgba(255,113,98,.18); color: #FF9C8F; }
+.jp-lz { display: inline-block; max-width: 100%; padding: 0 6px; border-radius: 4px; font: 653 12px/20px var(--jp-font); white-space: normal; }
+.jp-lz--ok { background: var(--jp-ok-bg); color: var(--jp-ok-fg); } .jp-lz--warn { background: var(--jp-warn-bg); color: var(--jp-warn-fg); } .jp-lz--bad { background: var(--jp-bad-bg); color: var(--jp-bad-fg); }
 .jp-more { position: relative; display: inline-block; }
-.jp-more summary { list-style: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 3px; cursor: pointer; color: var(--p-muted); font-size: 18px; }
+.jp-more summary { list-style: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 6px; cursor: pointer; color: var(--jp-subtle); font-size: 18px; }
 .jp-more summary::-webkit-details-marker { display: none; }
-.jp-more summary:hover, .jp-more[open] summary { background: color-mix(in srgb, var(--p-ink) 8%, transparent); color: var(--p-ink); }
-.jp-menu { position: absolute; right: 0; top: 34px; z-index: 20; min-width: 220px; padding: 6px 0; border-radius: 3px; background: var(--p-surface); border: 1px solid var(--p-line-2); box-shadow: 0 8px 12px rgba(9,30,66,.15), 0 0 1px rgba(9,30,66,.31); text-align: left; }
+.jp-more summary:hover { background: var(--jp-hover); } .jp-more summary:active, .jp-more[open] summary { background: var(--jp-press); }
+.jp-menu { position: absolute; right: 0; top: 36px; z-index: 20; min-width: 220px; padding: 4px 0; border-radius: 6px; background: var(--jp-overlay); box-shadow: var(--jp-shadow); text-align: left; }
 .jp-menu form { margin: 0; }
-.jp-menu button { display: block; width: 100%; padding: 8px 14px; border: 0; background: transparent; color: var(--p-ink); font: 400 14px Inter, sans-serif; text-align: left; cursor: pointer; }
-.jp-menu button:hover { background: color-mix(in srgb, var(--p-ink) 6%, transparent); }
+.jp-menu button { display: block; width: 100%; padding: 8px 12px; border: 0; background: transparent; color: var(--jp-text); font: 400 14px/20px var(--jp-font); text-align: left; cursor: pointer; }
+.jp-menu button:hover { background: var(--jp-hover); }
+.jp-t tbody tr:last-of-type .jp-menu, .jp-t tbody tr:nth-last-of-type(2) .jp-menu { top: auto; bottom: 36px; }
 .ss-addadmin[hidden] { display: none; }
-.jp-t tbody tr:last-of-type .jp-menu, .jp-t tbody tr:nth-last-of-type(2) .jp-menu { top: auto; bottom: 34px; }
