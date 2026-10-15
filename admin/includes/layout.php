@@ -14,6 +14,7 @@ function nav_items(): array
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
+        ['workspace.php',  t('Workspace', 'Tablero ng Gawain'),               'i-board'],
         ['notifications.php', t('Notifications', 'Mga Abiso'),                'i-bell'],
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
