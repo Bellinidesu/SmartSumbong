@@ -438,7 +438,7 @@ window.SS_PRESENCE = <?= json_encode([
 // Every dropdown and month box on the pills and report bands is the portal's own glass picker; the real controls stay underneath, so forms, auto-submit and the keyboard behave as before.
 (function () {
   if (!window.sdPickers) return;
-  document.querySelectorAll('.p-pill-select select, .p-band select').forEach(function (s) { if (!s.dataset.native) sdPickers.select(s); });
+  document.querySelectorAll('.p-pill-select select, .p-band select, .ss-ps select').forEach(function (s) { if (!s.dataset.native) sdPickers.select(s); });
   document.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
 })();
 </script>

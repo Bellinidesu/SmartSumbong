@@ -53,6 +53,7 @@
       btn.classList.toggle('set', !!v);
     }
     paint(); sel.addEventListener('change', paint);
+    btn.disabled = sel.disabled; new MutationObserver(function () { btn.disabled = sel.disabled; paint(); }).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
     btn.addEventListener('click', function () {
       if (open && open.btn === btn) { close(true); return; }
       var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-list'; pop.setAttribute('role', 'listbox'); pop.tabIndex = -1;
