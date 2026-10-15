@@ -857,3 +857,44 @@
 .ss-bulk, .ss-rqstrip, .ss-rqbar { border-radius: 12px; background: var(--jp-sel-bg); font-family: Urbanist, system-ui, sans-serif; }
 .ss-bulk-go, .ss-bulk-clear { border-radius: 10px; height: 34px; line-height: 34px; font-family: Urbanist, system-ui, sans-serif; }
 .ss-bulk-clear { border: 1px solid var(--p-line-2); }
+
+/* Pass over every page in Brave (16 Oct): what looked different from the rest, made the same. */
+/* 1. Case Reports and the people tables: the action column was clipped and the table scrolled sideways; fixed layouts that always fit. */
+.ss-cases-t { min-width: 0; }
+.ss-cases-t th:nth-child(1) { width: 13%; } .ss-cases-t th:nth-child(2) { width: 10%; } .ss-cases-t th:nth-child(3) { width: 14%; }
+.ss-cases-t th:nth-child(4) { width: 15%; } .ss-cases-t th:nth-child(5) { width: 8%; }  .ss-cases-t th:nth-child(6) { width: 10%; }
+.ss-cases-t th:nth-child(7) { width: 13%; } .ss-cases-t th:nth-child(8) { width: 7%; }  .ss-cases-t th:nth-child(9) { width: 10%; }
+.ss-cases-t td .p-btn { white-space: nowrap; }
+.ss-people table { table-layout: fixed; width: 100%; }
+.ss-people th.ss-cbh, .ss-people td.ss-cbc { width: 44px; }
+.ss-people th:last-child, .ss-people td:last-child { width: 116px; }
+.ss-people table:not(:has(th:nth-child(7))) th:nth-child(2) { width: 22%; }
+.ss-people table:not(:has(th:nth-child(7))) th:nth-child(3) { width: 16%; }
+.ss-people table:not(:has(th:nth-child(7))) th:nth-child(4) { width: 25%; }
+.ss-people table:has(th:nth-child(7)) th:nth-child(2) { width: 20%; }
+.ss-people table:has(th:nth-child(7)) th:nth-child(3) { width: 14%; }
+.ss-people table:has(th:nth-child(7)) th:nth-child(4) { width: 13%; }
+.ss-people table:has(th:nth-child(7)) th:nth-child(5) { width: 20%; }
+.ss-people td { overflow-wrap: anywhere; }
+.ss-people td.p-right { overflow: visible; }
+.ss-people .p-badges { gap: 6px; }
+/* 2. The select-all tick sat dark on the orange header; a light box there */
+.ss-people thead input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 17px; height: 17px; border-radius: 4px; border: 2px solid #2B1A00; background: #fff; cursor: pointer; display: inline-block; vertical-align: middle; position: relative; }
+.ss-people thead input[type=checkbox]:checked { background: #2B1A00; }
+.ss-people thead input[type=checkbox]:checked::after { content: ""; position: absolute; left: 4px; top: 0; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+/* 3. Notifications: its Review is the same red action as every other list */
+.p-notif-card .p-notif .p-n-act .p-btn { background: var(--ss-act); border: 1px solid var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
+.p-notif-card .p-notif .p-n-act .p-btn:hover { background: var(--ss-act-h); }
+/* 4. The main button on the graphite: the navy one disappeared into it (Check again, Save rules, Score it, End storm mode). The brand orange, dark text; on an orange band it turns the band's ink so it still stands out. */
+:root[data-theme="dark"] .p-body .p-btn-primary { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 4px 14px rgba(255,152,0,.3); }
+:root[data-theme="dark"] .p-body .p-btn-primary:hover { background: #F08A00; }
+:root[data-theme="dark"] .p-body .p-band .p-btn-primary { background: #141B34; color: #fff; box-shadow: none; }
+:root[data-theme="dark"] .p-body .p-band .p-btn-primary:hover { background: #1B2548; }
+:root[data-theme="dark"] .ss-pager span.on { background: #FF9800; border-color: transparent; color: #2B1A00; }
+:root[data-theme="dark"] .ss-pager a:hover { border-color: #FF9800; }
+/* the locked red row action wins over the new orange main button inside tables and notification rows */
+:root[data-theme="dark"] .p-body .ss-people td .p-btn, :root[data-theme="dark"] .p-body .ss-cases-t td .p-btn, :root[data-theme="dark"] .p-body .ss-ohead td .p-btn, :root[data-theme="dark"] .p-body .p-notif-card .p-n-act .p-btn { background: var(--ss-act); border-color: var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
+:root[data-theme="dark"] .p-body .ss-people td .p-btn:hover, :root[data-theme="dark"] .p-body .ss-cases-t td .p-btn:hover, :root[data-theme="dark"] .p-body .ss-ohead td .p-btn:hover, :root[data-theme="dark"] .p-body .p-notif-card .p-n-act .p-btn:hover { background: var(--ss-act-h); }
+:root[data-theme="dark"] .p-body .ss-people td .p-btn[data-reveal], :root[data-theme="dark"] .p-body .ss-ohead td .p-btn[data-reveal] { background: transparent; border-color: var(--ss-act); color: var(--ss-act); box-shadow: none; }
+.ss-people table:has(th:nth-child(7)) th:nth-child(4) { width: 15%; }
+.ss-people table:has(th:nth-child(7)) th:nth-child(5) { width: 18%; }
