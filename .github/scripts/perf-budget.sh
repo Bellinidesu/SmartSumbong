@@ -4,7 +4,7 @@
 # (text gzipped, as Apache's mod_deflate serves it; images as they are).
 # Raising a limit is allowed, but on purpose, in the same pull request.
 #
-#   sign-in page, everything it loads      320 KB
+#   sign-in page, everything it loads      336 KB (was 320: the small SMART engine mark under the card)
 #   each portal script (assets/js)          14 KB   (was 8: the Spatial Distribution tools script holds search, time slider, saved views)
 #   each stylesheet (assets/css)            36 KB   (was 20: flair.css carries the map's controls and panels)
 #   each .webp photo (assets/img)          160 KB
@@ -36,6 +36,6 @@ done
 for w in regular semibold bold; do
   total=$((total + $(size "admin/assets/vendor/fonts/urbanist-$w.woff2")))
 done
-if [ "$total" -le 327680 ]; then echo "ok   sign-in page: $total bytes of 327680"; else over "sign-in page" "$total" 327680; fi
+if [ "$total" -le 344064 ]; then echo "ok   sign-in page: $total bytes of 344064"; else over "sign-in page" "$total" 344064; fi
 [ $fail = 0 ] && echo "ok   every script, stylesheet and photo within budget"
 exit $fail
