@@ -148,7 +148,30 @@ function render_account_screen(string $role): void
         $accounts = array_values(array_filter($accounts, fn($a) => $a['verification_status'] === 'pending'));
     } elseif ($statusFilter === 'verified') {
         $accounts = array_values(array_filter($accounts, fn($a) => $a['verification_status'] === 'verified'));
+    } elseif ($statusFilter === 'overdue') {
+        $accounts = array_values(array_filter($accounts, fn($a) => !empty($a['is_overdue'])));
+    } elseif ($statusFilter === 'duplicate') {
+        $accounts = array_values(array_filter($accounts, fn($a) => !empty($dupes[$a['id']])));
+    } elseif ($statusFilter === 'suspended') {
+        $accounts = array_values(array_filter($accounts, fn($a) => !empty($a['is_suspended'])));
     }
+    // Chip counts (over every account of this kind, whatever the search).
+    $chipN = [
+        ''          => count($allAccounts),
+        'pending'   => count(array_filter($allAccounts, fn($a) => $a['verification_status'] === 'pending')),
+        'verified'  => count(array_filter($allAccounts, fn($a) => $a['verification_status'] === 'verified')),
+        'overdue'   => count(array_filter($allAccounts, fn($a) => !empty($a['is_overdue']))),
+        'duplicate' => count(array_filter($allAccounts, fn($a) => !empty($dupes[$a['id']]))),
+        'suspended' => count(array_filter($allAccounts, fn($a) => !empty($a['is_suspended']))),
+    ];
+    $chipLabel = [
+        ''          => t('All', 'Lahat'),
+        'pending'   => t('Pending', 'Nakabinbin'),
+        'verified'  => t('Verified', 'Beripikado'),
+        'overdue'   => t('Overdue', 'Lampas-oras'),
+        'duplicate' => t('Possible duplicate', 'Posibleng doble'),
+        'suspended' => t('Suspended', 'Suspendido'),
+    ];
 
     $pending = count(array_filter($accounts, fn($a) => $a['verification_status'] === 'pending'));
     $overdue = count(array_filter($accounts, fn($a) => !empty($a['is_overdue'])));
@@ -236,20 +259,34 @@ function render_account_screen(string $role): void
         <?php if ($statusFilter !== ''): ?><input type="hidden" name="sort" value="<?= e($statusFilter) ?>"><?php endif; ?>
       </form>
       <span class="p-spacer"></span>
-      <form method="get">
-        <input type="hidden" name="q" value="<?= e($search) ?>">
-        <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
-          <select name="sort" data-autosubmit>
-            <option value=""><?= e(t('All', 'Lahat')) ?></option>
-            <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>><?= e(t('Pending', 'Nakabinbin')) ?></option>
-            <option value="verified" <?= $statusFilter === 'verified' ? 'selected' : '' ?>><?= e(t('Verified', 'Beripikado')) ?></option>
-          </select></label>
-      </form>
+      <div class="ss-viewsw" role="group" aria-label="<?= e(t('Layout', 'Ayos')) ?>">
+        <button type="button" data-view="list" aria-pressed="true"><?= p_icon('i-doc', 15) ?><span><?= e(t('List', 'Listahan')) ?></span></button>
+        <button type="button" data-view="sq" aria-pressed="false"><?= p_icon('i-users', 15) ?><span><?= e(t('Squares', 'Mga parisukat')) ?></span></button>
+      </div>
     </div>
 
-    <div class="p-card p-table-card"><div class="p-tscroll">
+    <div class="ss-chips" role="group" aria-label="<?= e(t('Filter', 'Salain')) ?>">
+      <?php foreach ($chipLabel as $ck => $cl): ?>
+        <a class="ss-chip<?= $statusFilter === $ck ? ' on' : '' ?>" data-chip="<?= e($ck) ?>"
+           href="?<?= e(http_build_query(array_filter(['q' => $search, 'sort' => $ck]))) ?>"<?= $statusFilter === $ck ? ' aria-current="true"' : '' ?>>
+          <?= e($cl) ?> <b id="chip-n-<?= e($ck === '' ? 'all' : $ck) ?>"><?= (int) $chipN[$ck] ?></b></a>
+      <?php endforeach; ?>
+    </div>
+    <div class="ss-bulk" id="ss-bulk" hidden>
+      <b><span id="ss-bulk-n">0</span> <?= e(t('selected', 'napili')) ?></b>
+      <button type="button" class="ss-bulk-go" id="ss-bulk-go"><?= e(t('Review one after another', 'Suriin nang sunud-sunod')) ?></button>
+      <button type="button" class="ss-bulk-clear" id="ss-bulk-clear"><?= e(t('Clear', 'I-clear')) ?></button>
+    </div>
+    <div class="ss-rqstrip" id="ss-rqstrip" hidden data-self="<?= e($self) ?>">
+      <span><?= e(t('Your review queue', 'Ang iyong pila sa pagsusuri')) ?>: <b id="ss-rq-n">0</b> <?= e(t('left', 'natitira')) ?></span>
+      <a class="ss-bulk-go" id="ss-rq-go" href="#"><?= e(t('Continue', 'Ituloy')) ?></a>
+      <button type="button" class="ss-bulk-clear" id="ss-rq-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
+    </div>
+
+    <div class="p-card p-table-card ss-people" id="ss-people"><div class="p-tscroll">
       <table class="p-t ss-ohead">
         <thead><tr>
+          <th scope="col" class="ss-cbh"><input type="checkbox" id="ss-all" aria-label="<?= e(t('Select everyone on this page', 'Piliin ang lahat sa pahinang ito')) ?>"></th>
           <th scope="col"><?= e(t($noun, $nounLabel)) ?></th>
           <th scope="col"><?= e(t('Phone number', 'Numero ng telepono')) ?></th>
           <?php if ($isTanod): ?><th scope="col"><?= e(t('Latest complaint handled', 'Huling hinawakang sumbong')) ?></th><?php endif; ?>
@@ -259,12 +296,13 @@ function render_account_screen(string $role): void
         </tr></thead>
         <tbody id="accounts-tbody">
           <?php if (!$accounts): ?>
-            <tr><td colspan="<?= $isTanod ? 6 : 5 ?>" class="p-empty"><?= $search !== ''
+            <tr><td colspan="<?= $isTanod ? 7 : 6 ?>" class="p-empty"><?= $search !== ''
                 ? e(t('No account matches that search.', 'Walang account na tugma sa hinanap.'))
                 : e(t('No ' . strtolower($noun) . ' accounts have registered yet.', 'Wala pang nagparehistrong ' . strtolower($nounLabel) . '.')) ?></td></tr>
           <?php endif; ?>
           <?php foreach ($accounts as $a): ?>
-            <tr>
+            <tr data-id="<?= e($a['id']) ?>" data-pending="<?= $a['verification_status'] === 'pending' ? '1' : '0' ?>">
+              <td class="ss-cbc"><input type="checkbox" class="ss-cb" value="<?= e($a['id']) ?>" aria-label="<?= e(t('Select', 'Piliin')) ?> <?= e(formal_name($a['full_name'])) ?>"></td>
               <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e(formal_name($a['full_name'])) ?></span></div></td>
               <td class="p-num"><?= e($a['mobile_number']) ?></td>
               <?php if ($isTanod): ?>
@@ -299,6 +337,7 @@ function render_account_screen(string $role): void
       </table>
     </div></div>
     <div id="accounts-pager"><?= pager($accTotal, $accPage, 'page', $perPage) ?></div>
+    <script src="assets/js/people-list.js?v=1"></script>
 
     <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
@@ -486,10 +525,24 @@ function render_account_screen(string $role): void
               .toLowerCase().indexOf(needle) !== -1;
           });
         }
+        var dupes = duplicateFlags(accounts);
         if (STATUS_FILTER === 'pending' || STATUS_FILTER === 'verified') {
           filtered = filtered.filter(function (a) { return a.verification_status === STATUS_FILTER; });
+        } else if (STATUS_FILTER === 'overdue') {
+          filtered = filtered.filter(function (a) { return a.is_overdue; });
+        } else if (STATUS_FILTER === 'duplicate') {
+          filtered = filtered.filter(function (a) { return dupes[a.id] && dupes[a.id].length; });
+        } else if (STATUS_FILTER === 'suspended') {
+          filtered = filtered.filter(function (a) { return a.is_suspended; });
         }
-        var dupes = duplicateFlags(accounts);
+        // The filter chips' counts, over every account of this kind (the PHP render counts the same).
+        var chipCounts = { all: accounts.length,
+          pending: accounts.filter(function (a) { return a.verification_status === 'pending'; }).length,
+          verified: accounts.filter(function (a) { return a.verification_status === 'verified'; }).length,
+          overdue: accounts.filter(function (a) { return a.is_overdue; }).length,
+          duplicate: accounts.filter(function (a) { return dupes[a.id] && dupes[a.id].length; }).length,
+          suspended: accounts.filter(function (a) { return a.is_suspended; }).length };
+        Object.keys(chipCounts).forEach(function (k) { var el = document.getElementById('chip-n-' + k); if (el) el.textContent = chipCounts[k]; });
         var total = filtered.length;
 
         // Counted over the filtered list, the same as the PHP render above
@@ -518,7 +571,7 @@ function render_account_screen(string $role): void
 
         var tbody = document.getElementById('accounts-tbody');
         if (!filtered.length) {
-          tbody.innerHTML = '<tr><td class="p-empty" colspan="' + (IS_TANOD ? 6 : 5) + '">' +
+          tbody.innerHTML = '<tr><td class="p-empty" colspan="' + (IS_TANOD ? 7 : 6) + '">' +
             (SEARCH ? T('No account matches that search.', 'Walang account na tugma sa hinanap.')
                     : T('No ' + <?= json_encode(strtolower($noun)) ?> + ' accounts have registered yet.', 'Wala pang nagparehistrong ' + escapeHtml(NOUN_LABEL) + '.')) +
             '</td></tr>';
@@ -553,7 +606,8 @@ function render_account_screen(string $role): void
                 '</button>' +
               '</form>';
           }
-          return '<tr>' +
+          return '<tr data-id="' + escapeHtml(a.id) + '" data-pending="' + (a.verification_status === 'pending' ? '1' : '0') + '">' +
+            '<td class="ss-cbc"><input type="checkbox" class="ss-cb" value="' + escapeHtml(a.id) + '" aria-label="' + T('Select', 'Piliin') + ' ' + escapeHtml(String(a.full_name || '').trim()) + '"></td>' +
             '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(String(a.full_name || '').trim()) + '</span></div></td>' +
             '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
             (IS_TANOD ? '<td>' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
@@ -924,6 +978,13 @@ function render_account_detail(
       <span><?= e(t('This account has changed since you opened it.', 'May nagbago sa account na ito mula nang buksan mo.')) ?></span>
       <a class="p-btn p-btn-ghost p-btn-sm" href="<?= e($self) ?>?id=<?= e($p['id']) ?>"><?= e(t('Refresh to see it', 'I-refresh para makita')) ?></a>
     </div>
+
+    <div class="ss-rqbar" id="ss-rqbar" hidden data-self="<?= e($self) ?>" data-id="<?= e($p['id']) ?>">
+      <span><?= e(t('Review queue', 'Pila sa pagsusuri')) ?>: <b id="ss-rqbar-n">0</b> <?= e(t('more after this one', 'pa pagkatapos nito')) ?></span>
+      <a class="ss-bulk-go" id="ss-rqbar-next" href="#"><?= e(t('Next in the queue', 'Susunod sa pila')) ?> &rarr;</a>
+      <button type="button" class="ss-bulk-clear" id="ss-rqbar-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
+    </div>
+    <script src="assets/js/people-list.js?v=1"></script>
 
     <div class="p-acc-top">
       <a class="p-back" href="<?= e($self) ?>" aria-label="<?= e(t('Back to the list', 'Bumalik sa listahan')) ?>"><?= p_icon('i-back', 18) ?><?= e($navFile === 'personnel.php' ? t('Personnel', 'Mga Tanod') : t('Residents', 'Mga Residente')) ?></a>
