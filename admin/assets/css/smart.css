@@ -971,3 +971,42 @@
 .p-table-card .ss-pager, .p-card .ss-pager { margin: 0; padding: 14px 20px; gap: 8px; border-top: 1px solid var(--p-line); background: color-mix(in srgb, var(--p-ink) 3%, transparent); border-radius: 0 0 var(--p-r-lg, 16px) var(--p-r-lg, 16px); }
 .p-table-card + .ss-pager, #accounts-pager .ss-pager, #reports-pager .ss-pager { margin-top: 14px; }
 #accounts-pager .ss-pager, #reports-pager .ss-pager { padding: 0; border-top: 0; background: transparent; border-radius: 0; }
+
+/* The Workspace in SmartSumbong's own look (Ace, 16 Oct): the Atlassian board values are gone. Columns are frosted glass with an orange header bar and a count, cards are the portal's rounded cards with the urgency colour down the edge, a warm lift on hover and an orange glow while dragging, and the toolbar above them is a glass strip with the orange-selected switch. */
+.bd-cols {
+  --bd-sunk: rgba(28, 33, 39, .46); --bd-card: rgba(31, 37, 44, .92); --bd-card-h: rgba(40, 47, 56, .96); --bd-over: rgba(255, 152, 0, .16); --bd-sub: #C9CCD1; --bd-text: #F3F3F3;
+  --bd-shadow: 0 6px 18px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .06);
+  font-family: Urbanist, "Inter", system-ui, sans-serif;
+}
+:root:not([data-theme="dark"]) .bd-cols { --bd-sunk: rgba(255, 255, 255, .6); --bd-card: #fff; --bd-card-h: #FFF8EC; --bd-over: rgba(255, 152, 0, .14); --bd-sub: #4A4F63; --bd-text: #141B34; --bd-shadow: 0 4px 14px rgba(20, 27, 52, .12); }
+.bd-cols { grid-auto-columns: 272px; gap: 16px; padding: 4px 4px 14px; }
+.bd-col { padding: 8px; gap: 8px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, .1); background: var(--bd-sunk); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .08), 0 10px 28px rgba(0, 0, 0, .25); transition: background .2s, border-color .2s, box-shadow .2s; }
+:root:not([data-theme="dark"]) .bd-col { border-color: rgba(20, 27, 52, .08); }
+.bd-col.is-over { background: var(--bd-over); border-color: #FF9800; box-shadow: 0 0 0 2px rgba(255, 152, 0, .35), 0 10px 28px rgba(0, 0, 0, .25); }
+.bd-col header { height: 40px; padding: 0 12px; border-radius: 13px; background: linear-gradient(180deg, #FFA824, #FF9800 58%, #F28F00); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .38); color: #2B1A00; align-items: center; }
+.bd-col h4 { font: 800 13.5px Urbanist, sans-serif; letter-spacing: .01em; color: #2B1A00; }
+.bd-col header span { min-width: 24px; height: 22px; padding: 0 7px; display: inline-grid; place-items: center; border-radius: 99px; background: rgba(255, 255, 255, .6); color: #2B1A00; font: 800 11.5px Inter, sans-serif; }
+.bd-list { padding: 2px; gap: 10px; }
+.bd-card { padding: 11px 11px 10px 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .08); background: var(--bd-card); box-shadow: var(--bd-shadow); color: var(--bd-text); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s; }
+:root:not([data-theme="dark"]) .bd-card { border-color: rgba(20, 27, 52, .08); }
+.bd-card::before { width: 5px; border-radius: 14px 0 0 14px; }
+.bd-card:hover { transform: translateY(-2px); background: var(--bd-card-h); border-color: color-mix(in srgb, var(--c) 55%, transparent); box-shadow: 0 12px 26px color-mix(in srgb, var(--c) 28%, rgba(0, 0, 0, .3)); }
+.bd-card.is-drag { opacity: .5; transform: rotate(1.5deg); box-shadow: 0 16px 34px rgba(255, 152, 0, .3); }
+.bd-card.is-open { box-shadow: 0 0 0 2px var(--c), 0 12px 26px color-mix(in srgb, var(--c) 28%, rgba(0, 0, 0, .3)); }
+.bd-lv { padding: 2px 10px; font: 800 11px Urbanist, sans-serif; }
+.bd-title b { font: 700 14px/1.3 Urbanist, sans-serif; color: var(--bd-text); }
+.bd-id, .bd-age { color: var(--bd-sub); }
+.bd-cat { color: var(--bd-sub); font-size: 12.5px; }
+.bd-own { border-top-color: rgba(255, 255, 255, .1); }
+:root:not([data-theme="dark"]) .bd-own { border-top-color: rgba(20, 27, 52, .1); }
+.bd-none { border: 1.5px dashed rgba(255, 152, 0, .5); border-radius: 14px; background: rgba(255, 152, 0, .05); color: var(--bd-sub); }
+.bd-ghost { border-radius: 14px; border-color: #FF9800; background: rgba(255, 152, 0, .1); }
+/* the toolbar over the board */
+.bd-bar { padding: 8px 10px 8px 16px; margin: 4px 0 14px; border-radius: 16px; background: color-mix(in srgb, var(--p-surface) 70%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); align-items: center; }
+.bd-ttl .p-sub { font: 600 14px Urbanist, sans-serif; color: var(--p-ink-2); }
+.bd-scope { padding: 3px; border-radius: 12px; background: var(--p-surface-2); border: 1px solid var(--p-line); }
+.bd-scope a { height: 34px; border-radius: 9px; padding: 0 14px; font: 700 13px Urbanist, sans-serif; }
+.bd-scope a.p-on { background: var(--p-orange); color: #2B1A00; box-shadow: 0 4px 12px rgba(255, 152, 0, .3); }
+.bd-scope a.p-on b { color: #2B1A00; }
+@media (prefers-reduced-transparency: reduce) { .bd-col, .bd-bar { -webkit-backdrop-filter: none; backdrop-filter: none; } .bd-col { background: #1C2127; } }
+@media (prefers-reduced-motion: reduce) { .bd-card:hover, .bd-card.is-drag { transform: none; } }
