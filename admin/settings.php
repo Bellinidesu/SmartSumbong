@@ -283,18 +283,20 @@ try {
     <div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div>
   <?php endif; ?>
   <?php $roleOpts = ['' => t('Staff', 'Kawani'), 'secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')]; ?>
-  <nav class="jp-crumb" aria-label="<?= e(t('You are here', 'Narito ka')) ?>"><?= e(t('Settings', 'Mga Setting')) ?> <span aria-hidden="true">/</span> <?= e(t('Administrators', 'Mga Administrator')) ?></nav>
-  <div class="jp-head"><h2><?= e(t('Administrators', 'Mga Administrator')) ?></h2>
-    <button type="button" class="jp-add" id="jp-add" aria-controls="jp-addcard" aria-expanded="false"><?= e(t('Add administrator', 'Magdagdag ng administrator')) ?></button></div>
-  <div class="jp-bar">
-    <label class="jp-search"><?= p_icon('i-search', 16) ?><span class="p-sr"><?= e(t('Search for names', 'Hanapin ang pangalan')) ?></span>
-      <input type="search" id="jp-q" placeholder="<?= e(t('Search for names', 'Hanapin ang pangalan')) ?>" autocomplete="off"></label>
-    <label class="jp-pick"><span class="p-sr"><?= e(t('Position', 'Posisyon')) ?></span>
-      <select id="jp-role"><option value=""><?= e(t('Position: All', 'Posisyon: Lahat')) ?></option>
+  <div class="p-band ss-pband">
+    <h2><?= e(t('Administrators', 'Mga Administrator')) ?><span class="p-badge-n p-badge-n--quiet" id="jp-count"><?= count($admins) ?></span></h2>
+    <form class="p-search" role="search">
+      <?= p_icon('i-search', 16) ?><label class="p-sr" for="jp-q"><?= e(t('Search for names', 'Hanapin ang pangalan')) ?></label>
+      <input type="search" id="jp-q" placeholder="<?= e(t('Search for names', 'Hanapin ang pangalan')) ?>" autocomplete="off">
+    </form>
+    <span class="p-spacer"></span>
+    <label class="p-pill-select"><span class="p-lbl"><?= e(t('Position', 'Posisyon')) ?></span>
+      <select id="jp-role" aria-label="<?= e(t('Position', 'Posisyon')) ?>"><option value=""><?= e(t('All', 'Lahat')) ?></option>
         <?php foreach ($roleOpts as $rv => $rl): ?><option value="<?= $rv === '' ? 'staff' : e($rv) ?>"><?= e($rl) ?></option><?php endforeach; ?>
       </select></label>
+    <button type="button" class="jp-add" id="jp-add" aria-controls="jp-addcard" aria-expanded="false"><?= e(t('Add administrator', 'Magdagdag ng administrator')) ?></button>
   </div>
-  <div class="p-card p-table-card jp-card"><div class="p-tscroll"><table class="p-t jp-t">
+  <div class="p-card p-table-card jp-card ss-adm"><div class="p-tscroll"><table class="p-t jp-t ss-ohead">
     <thead><tr>
       <th scope="col"><?= e(t('Name', 'Pangalan')) ?></th>
       <th scope="col"><?= e(t('Position', 'Posisyon')) ?></th>
@@ -758,6 +760,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       rows.forEach(tr => { const ok = (!t || tr.dataset.name.includes(t)) && (!r || tr.dataset.role === r); tr.hidden = !ok; if (ok) n++; });
       $('jp-none').hidden = n > 0;
     };
+    q.form.addEventListener('submit', function (e) { e.preventDefault(); });
     q.addEventListener('input', apply); rs.addEventListener('change', apply);
     const add = $('jp-add'), card = $('jp-addcard');
     add.addEventListener('click', () => { card.hidden = !card.hidden; add.setAttribute('aria-expanded', String(!card.hidden)); if (!card.hidden) { card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); const f = card.querySelector('input[name=first_name]'); if (f) f.focus(); } });
