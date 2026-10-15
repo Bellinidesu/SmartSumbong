@@ -401,6 +401,7 @@ window.SS_PRESENCE = <?= json_encode([
     'key'      => supabase_key(),
     'token'    => access_token(),
     'me'       => ['id' => $me['id'], 'name' => display_name($me['full_name'] ?? '')],
+    'ranks'    => admin_ranks(),
     'report'   => $GLOBALS['ss_case']['id'] ?? null,
     'tracking' => $GLOBALS['ss_case']['tracking'] ?? null,
     'page'     => basename($_SERVER['SCRIPT_NAME'] ?? ''),
@@ -914,9 +915,29 @@ function admin_colour(string $id): string
     return $palette[$h % count($palette)];
 }
 
+/**
+ * Every administrator's rung (staff, kagawad, chair), id => rung, for the ring round a face. One small read,
+ * kept in the session for five minutes so it costs nothing on most pages; a failure only means no rings.
+ */
+function admin_ranks(): array
+{
+    static $map = null;
+    if ($map !== null) { return $map; }
+    session_start_once();
+    $c = $_SESSION['ss_ranks'] ?? null;
+    if (is_array($c) && time() - (int) ($c['t'] ?? 0) < 300) { return $map = (array) $c['m']; }
+    $map = [];
+    try {
+        foreach (db()->select('users', ['select' => 'id,official_role', 'role' => 'eq.admin']) as $u) { $map[(string) $u['id']] = rank_of($u['official_role'] ?? null); }
+        $_SESSION['ss_ranks'] = ['t' => time(), 'm' => $map];
+    } catch (Throwable $e) { /* no rings this time */ }
+    return $map;
+}
+
 function admin_chip(string $id, string $name, int $size = 24): string
 {
-    return '<span class="ss-av" style="width:' . $size . 'px;height:' . $size . 'px;font-size:' . max(9, intdiv($size, 3)) . 'px;background:'
+    $r = admin_ranks()[$id] ?? null;
+    return '<span class="ss-av"' . ($r ? ' data-r="' . e($r) . '"' : '') . ' style="width:' . $size . 'px;height:' . $size . 'px;font-size:' . max(9, intdiv($size, 3)) . 'px;background:'
         . admin_colour($id) . '" title="' . e(display_name($name)) . '">' . e(admin_initials($name)) . '</span>';
 }
 

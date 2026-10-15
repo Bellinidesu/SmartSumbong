@@ -39,7 +39,8 @@
   window.ssAvatar = function (id, name, size, live) {
     size = size || 24;
     var colour = (cfg.colours && cfg.colours[id]) || md5ish(String(id));
-    return '<span class="ss-av' + (live ? ' ss-live' : '') + '" style="width:' + size + 'px;height:' + size + 'px;font-size:'
+    var r = cfg.ranks && cfg.ranks[id];
+    return '<span class="ss-av' + (live ? ' ss-live' : '') + '"' + (r ? ' data-r="' + r + '"' : '') + ' style="width:' + size + 'px;height:' + size + 'px;font-size:'
       + Math.max(9, Math.floor(size / 3)) + 'px;background:' + colour + '" title="' + esc(name) + '">' + esc(initials(name)) + '</span>';
   };
 

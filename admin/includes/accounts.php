@@ -285,7 +285,7 @@ function render_account_screen(string $role): void
       <button type="button" class="ss-bulk-clear" id="ss-rq-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
     </div>
 
-    <div class="p-card p-table-card jp-scope ss-people" id="ss-people"><div class="p-tscroll">
+    <div class="p-card p-table-card jp-scope ss-people<?= $isTanod ? ' ss-tanods' : '' ?>" id="ss-people"><div class="p-tscroll">
       <table class="p-t ss-ohead">
         <thead><tr>
           <th scope="col" class="ss-cbh"><input type="checkbox" id="ss-all" aria-label="<?= e(t('Select everyone on this page', 'Piliin ang lahat sa pahinang ito')) ?>"></th>

@@ -1119,3 +1119,12 @@
 .ss-subband + .ss-levels { margin-top: 2px; }
 .ss-levels + .ss-subband { margin-top: 6px; }
 .ss-lbox > .p-badge { justify-self: start; }
+
+/* The rung as a ring round the face (Ace, 16 Oct): staff slate, Kagawad purple, the Chairman gold, tanods teal, wherever an administrator's or tanod's face is drawn. The word is always beside the face (the rank chip), so colour is never the only signal. */
+.ss-av[data-r] { box-shadow: 0 0 0 2px var(--p-surface, #1C2127), 0 0 0 4px var(--ring, #64748B); }
+.ss-av[data-r="staff"] { --ring: var(--rk-staff, #64748B); }
+.ss-av[data-r="kagawad"] { --ring: var(--rk-kagawad, #6A4FD3); }
+.ss-av[data-r="chair"] { --ring: var(--rk-gold, #D4A017); }
+.ss-av.ss-live[data-r] { box-shadow: 0 0 0 2px var(--p-surface, #1C2127), 0 0 0 4px var(--ring), 0 0 0 6px #1F8A45; }
+.ss-tanods .p-avatar { box-shadow: 0 0 0 2px var(--p-surface, #1C2127), 0 0 0 4px var(--rk-tanod, #0E8F8A); }
+.ss-stack .ss-av[data-r] { margin-right: 3px; }
