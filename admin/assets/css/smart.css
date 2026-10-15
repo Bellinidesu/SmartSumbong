@@ -664,3 +664,27 @@
 .jp-menu button:hover { background: var(--jp-hover); }
 .jp-t tbody tr:last-of-type .jp-menu, .jp-t tbody tr:nth-last-of-type(2) .jp-menu { top: auto; bottom: 36px; }
 .ss-addadmin[hidden] { display: none; }
+
+/* Workspace board with Atlassian's real values (15 Oct): read from the published board example in atlassian/pragmatic-drag-and-drop and the @atlaskit/tokens themes, not remembered.
+   Column 250px wide on the "sunken" surface (#F8F8F8, dark #18191A), radius 12px, no border; header padding 8px 16px 0 in the subtlest text colour; cards 8px apart in an 8px-padded list; card on the base surface (#FFF, dark #1F1F21), radius 8px, padding 8px, the raised shadow, tinted on hover (#F0F1F2, dark #242528), 40% opacity while dragged; columns 16px apart; a column a card is over turns the selected blue (#CFE1FD, dark #123263). The barangay's urgency colour stays as a thin line down the card's edge. */
+.bd-cols {
+  --bd-sunk: #F8F8F8; --bd-card: #fff; --bd-card-h: #F0F1F2; --bd-over: #CFE1FD; --bd-sub: #6B6E76; --bd-text: #292A2E;
+  --bd-shadow: 0 1px 1px #1E1F2140, 0 0 1px #1E1F214F;
+  font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
+}
+:root[data-theme="dark"] .bd-cols { --bd-sunk: #18191A; --bd-card: #1F1F21; --bd-card-h: #242528; --bd-over: #123263; --bd-sub: #96999E; --bd-text: #CECFD2; --bd-shadow: 0 1px 1px #01040480, 0 0 1px #01040480; }
+.bd-cols { grid-auto-columns: 250px; gap: 16px; padding: 2px 2px 12px; }
+.bd-col { padding: 0; gap: 0; border: 0; border-radius: 12px; background: var(--bd-sunk); }
+.bd-col.is-over { border: 0; background: var(--bd-over); }
+.bd-col header { height: auto; padding: 8px 16px 0; color: var(--bd-sub); }
+.bd-col h4 { font: 600 14px/20px ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--bd-sub); }
+.bd-col header span { padding: 0; background: transparent; font: 400 12px/16px ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--bd-sub); }
+.bd-list { padding: 8px; gap: 8px; box-sizing: border-box; min-height: 100%; }
+.bd-card { min-height: 0; padding: 8px 8px 8px 12px; border: 0; border-radius: 8px; background: var(--bd-card); box-shadow: var(--bd-shadow); color: var(--bd-text); transition: background-color .2s ease-in-out, opacity .2s; }
+.bd-card::before { width: 3px; border-radius: 8px 0 0 8px; }
+.bd-card:hover { transform: none; background: var(--bd-card-h); box-shadow: var(--bd-shadow); }
+.bd-card.is-drag { opacity: .4; box-shadow: var(--bd-shadow); }
+.bd-card.is-open { box-shadow: 0 0 0 2px var(--c), var(--bd-shadow); }
+.bd-title { color: var(--bd-text); }
+.bd-ghost { border-radius: 8px; }
+.bd-none { border-radius: 8px; }
