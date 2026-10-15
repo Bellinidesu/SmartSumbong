@@ -92,9 +92,9 @@ function render_briefing(Supabase $db, array $admin): void
             'name' => t('Morning', 'Umaga'), 'greet' => t('The day ahead', 'Ang araw sa unahan'),
             'line' => sprintf(t('%d cases are open and %d wait for a tanod. %d are due today, and %d may miss their deadline.', '%d ang bukás na kaso at %d ang naghihintay ng tanod. %d ang takdang oras ngayon, at %d ang maaaring lumampas.'), $n('open'), $waiting, $n('due_today'), count($risk)),
             'tiles' => [
-                $m(t('Open cases', 'Bukás na kaso'), $n('open'), 'cases.php'), $m(t('Waiting for a tanod', 'Naghihintay ng tanod'), $waiting, 'notifications.php?tab=next&stage=dispatch', $waiting > 0),
+                $m(t('Open cases', 'Bukás na kaso'), $n('open'), 'cases.php'), $m(t('Waiting for a tanod', 'Naghihintay ng tanod'), $waiting, 'workspace.php?own=free', $waiting > 0),
                 $m(t('Due today', 'Takdang oras ngayon'), $n('due_today'), 'cases.php?status=overdue'), $m(t('Filed overnight', 'Naisampa kagabi'), $n('in_night'), 'cases.php'),
-                $m(t('May miss the deadline', 'Maaaring lumampas'), count($risk), 'notifications.php?tab=next', count($risk) > 0),
+                $m(t('May miss the deadline', 'Maaaring lumampas'), count($risk), 'workspace.php', count($risk) > 0),
             ],
         ],
         'afternoon' => [
@@ -102,8 +102,8 @@ function render_briefing(Supabase $db, array $admin): void
             'line' => sprintf(t('Since 6 AM, %d cases came in and %d were resolved. %d urgent or high still wait for a tanod, and %d are overdue.', 'Mula 6 AM, %d ang pumasok at %d ang nalutas. %d na madalian o mataas ang naghihintay pa ng tanod, at %d ang lampas na sa oras.'), $n('in_since'), $n('out_since'), $waiting, $n('overdue')),
             'tiles' => [
                 $m(t('Came in since 6 AM', 'Pumasok mula 6 AM'), $n('in_since'), 'cases.php'), $m(t('Resolved since 6 AM', 'Nalutas mula 6 AM'), $n('out_since'), 'cases.php?status=resolved'),
-                $m(t('Still waiting for a tanod', 'Naghihintay pa ng tanod'), $waiting, 'notifications.php?tab=next&stage=dispatch', $waiting > 0), $m(t('Overdue now', 'Lampas na ngayon'), $n('overdue'), 'cases.php?status=overdue', $n('overdue') > 0),
-                $m(t('May miss the deadline', 'Maaaring lumampas'), count($risk), 'notifications.php?tab=next', count($risk) > 0),
+                $m(t('Still waiting for a tanod', 'Naghihintay pa ng tanod'), $waiting, 'workspace.php?own=free', $waiting > 0), $m(t('Overdue now', 'Lampas na ngayon'), $n('overdue'), 'cases.php?status=overdue', $n('overdue') > 0),
+                $m(t('May miss the deadline', 'Maaaring lumampas'), count($risk), 'workspace.php', count($risk) > 0),
             ],
         ],
         'night' => [
