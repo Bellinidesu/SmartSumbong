@@ -22,9 +22,12 @@ session_start_once();
 // Coming back from a case should land on the list you left, not on an
 // unfiltered one you have to rebuild. Any explicit parameter wins; a bare
 // visit restores what you last looked at.
-if (!isset($_GET['q'], $_GET['status'], $_GET['sort'], $_GET['month'], $_GET['category'])
+// Only the register remembers its view. Notifications and Workspace load this same file, and a remembered
+// "tab" sent a bare click on Case Reports or Notifications to the wrong page (15 Oct 2026).
+$registerPage = !defined('NOTICES_PAGE') && !defined('WORKSPACE_PAGE');
+if ($registerPage && !isset($_GET['q'], $_GET['status'], $_GET['sort'], $_GET['month'], $_GET['category'])
     && ($_SERVER['QUERY_STRING'] ?? '') === '' && !empty($_SESSION['cases_view'])) {
-    $_GET = $_SESSION['cases_view'] + $_GET;
+    $_GET = array_diff_key($_SESSION['cases_view'], ['tab' => 1, 'stage' => 1]) + $_GET;
 }
 
 // The seven categories are fixed per the Scope and Limitations — the same
@@ -111,10 +114,12 @@ $sortDir  = ($_GET['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 if (!isset($SORTABLE[$sortCol])) { $sortCol = 'date'; }
 $sort = $SORTABLE[$sortCol] . '.' . $sortDir;
 
-$_SESSION['cases_view'] = array_filter([
-    'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month, 'view' => $view,
-    'by' => $sortCol, 'dir' => $sortDir, 'tab' => $tab, 'tanod' => $tanod, 'stage' => $stage,
-], fn($v) => $v !== '');
+if ($registerPage) {
+    $_SESSION['cases_view'] = array_filter([
+        'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month, 'view' => $view,
+        'by' => $sortCol, 'dir' => $sortDir, 'tanod' => $tanod,
+    ], fn($v) => $v !== '');
+}
 
 /** Link for a column heading, flipping direction if it is the active one. */
 function sort_link(string $col, string $active, string $dir): string
