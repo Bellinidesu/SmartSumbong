@@ -462,7 +462,7 @@ $noteBadge = $notesUnread + $escCount;
 <?php if ($tab === 'all'): ?>
 <!-- ---------- complaint register ---------- -->
 <?php $atc = count($attention ?? []); ?>
-<div class="p-band ss-reg-head">
+<div class="p-band">
   <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= (int) $regTotal ?></span></h2>
   <a class="p-chip p-chip-band<?= $view === 'attention' ? ' p-on' : '' ?>" id="attention-chip"
      href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
@@ -534,7 +534,6 @@ $noteBadge = $notesUnread + $escCount;
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><?= e(t('SMART', 'SMART')) ?></th>
-      <th scope="col">SMART</th>
       <th scope="col"><?= e(t('Handler', 'Humahawak')) ?></th>
       <th scope="col"><?= e(t('Open now', 'Bukas ngayon')) ?></th>
       <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
