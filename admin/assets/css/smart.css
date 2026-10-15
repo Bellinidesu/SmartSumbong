@@ -1025,3 +1025,26 @@
 .p-band .jp-add { height: 42px; padding: 0 18px; border-radius: 12px; background: #141B34; color: #fff; box-shadow: 0 4px 12px rgba(20,27,52,.3); font: 700 14px Urbanist, sans-serif; }
 .p-band .jp-add:hover { background: #1B2548; }
 .p-band .jp-add:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Administrators, all the way into the portal's look (Ace: it still read as Atlassian): controls that are always visible as the portal's own pills, no see-through inline selects, round bordered "..." button, the online state as a pill, the two cards below as SmartSumbong cards with an orange edge and a proper heading, and the committee boxes wide enough to read. */
+.ss-adm .jp-sel, [data-pane="admins"] .ss-cmap-row .p-input-plain { height: 40px; min-width: 0; width: 100%; max-width: 220px; padding: 0 34px 0 14px; border: 1px solid var(--p-line-2); border-radius: 10px; background-color: var(--p-surface-2); color: var(--p-ink); font: 600 13.5px Urbanist, sans-serif; cursor: pointer; }
+.ss-adm .jp-sel:disabled { opacity: .55; background-color: transparent; border-style: dashed; cursor: not-allowed; }
+.ss-adm .jp-t tbody tr:hover .jp-sel:not(:disabled) { border-color: var(--p-orange); }
+.ss-adm .jp-sel:focus-visible, [data-pane="admins"] .ss-cmap-row .p-input-plain:focus-visible { border-color: var(--p-orange); box-shadow: 0 0 0 3px rgba(255,152,0,.25); outline: none; }
+.ss-adm .ss-online { white-space: nowrap; }
+.ss-adm .ss-online { display: table-cell; }
+.ss-adm td.ss-online { font: 600 12.5px Urbanist, sans-serif; }
+.ss-adm td.ss-online::before { content: none; }
+.ss-adm .jp-more summary { width: 34px; height: 34px; border: 1px solid var(--p-line-2); border-radius: 10px; background: var(--p-surface-2); color: var(--p-ink); font-size: 16px; }
+.ss-adm .jp-more summary:hover, .ss-adm .jp-more[open] summary { border-color: var(--p-orange); background: color-mix(in srgb, var(--p-orange) 12%, var(--p-surface-2)); }
+.ss-adm .jp-t td:last-child { text-align: right; }
+.ss-adm .jp-t th:last-child, .ss-adm .jp-t td:last-child { width: 70px; }
+.ss-adm .jp-who b { font: 700 14px Urbanist, sans-serif; }
+.ss-adm .jp-who span > small { font: 500 12px Urbanist, sans-serif; }
+.ss-posinfo, .ss-addadmin { border-left: 4px solid var(--p-orange); }
+.ss-posinfo .p-eyebrow, .ss-addadmin .p-eyebrow { font: 800 15px Urbanist, sans-serif; letter-spacing: 0; text-transform: none; color: var(--p-ink); margin-bottom: 4px; }
+.ss-posinfo .p-label { font: 700 13px Urbanist, sans-serif; color: var(--p-ink-2); margin: 10px 0 2px; }
+.ss-cmap-row { min-height: 48px; padding: 0 4px; border-bottom: 1px solid var(--p-line); }
+.ss-cmap-row > span, .ss-cmap-row > label { font: 600 14px Urbanist, sans-serif; }
+.ss-cmap-row .p-input-plain { width: 190px; flex: none; text-align: left; }
+@media (max-width: 640px) { .ss-cmap-row .p-input-plain { width: 150px; } }
