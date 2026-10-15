@@ -625,10 +625,14 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       $eta = $smart['eta'] ?? null; $sim = (array) ($smart['similar'] ?? []); $refr = $smart['referral'] ?? null; $risk = $smart['deadline_risk'] ?? null;
       $lvName = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Karaniwan'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Apurahan')];
   ?>
-  <section class="p-card p-card-pad ss-smartcard" aria-labelledby="smart-h">
+  <?php $rsMax = max(1, ...array_map(fn($x) => (int) ($x['points'] ?? 0), (array) ($smart['reasons'] ?? [['points' => 1]]))); ?>
+  <section class="p-card p-card-pad ss-smartcard ss-lv-<?= e($sLv) ?>" aria-labelledby="smart-h">
     <div class="ss-head ss-head--card"><?= smart_logo(30) ?><p class="p-eyebrow" id="smart-h"><?= e(t('Why this level', 'Bakit ganito ang antas')) ?></p></div>
+    <div class="ss-sc-hero">
+      <div class="ss-ring" style="--p:<?= max(0, min(100, (int) $smart['score'])) ?>" role="img" aria-label="<?= e(sprintf(t('Score %d of 100', 'Marka %d sa 100'), (int) $smart['score'])) ?>"><b><?= (int) $smart['score'] ?></b><small>/100</small></div>
+      <div class="ss-lvbox"><span class="ss-lvword"><?= e($lvName[$sLv] ?? $sLv) ?></span><span class="ss-lvsub"><?= e(t('priority, by the SMART engine', 'antas, ayon sa SMART engine')) ?></span><?php if ($ov): ?><span class="ss-lvset"><?= e(t('set by an admin', 'itinakda ng admin')) ?></span><?php endif; ?></div>
+    </div>
     <div class="ss-sc-head">
-      <?= smart_badge(['effective_level' => $sLv, 'score' => (int) $smart['score'], 'override_level' => $ov['level'] ?? null, 'possible_duplicates' => 0]) ?>
       <?php if ($ov): ?>
         <p class="ss-sc-set"><?= e(sprintf(t('Set to %s by %s: "%s"', 'Itinakda sa %s ni %s: "%s"'), $lvName[$ov['level']] ?? $ov['level'], (string) ($ov['by'] ?? t('an admin', 'isang admin')), (string) ($ov['reason'] ?? ''))) ?>
           &middot; <?= e(t('computed', 'kinompyut')) ?>: <?= e($lvName[(string) ($smart['level'] ?? '')] ?? '') ?> <?= (int) $smart['score'] ?></p>
@@ -637,7 +641,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php if (!empty($smart['reasons'])): ?>
       <ul class="ss-reasons">
         <?php foreach ((array) $smart['reasons'] as $rs): ?>
-          <li><span><?= e((string) ($rs['detail'] ?? $rs['factor'] ?? '')) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li>
+          <li style="--w:<?= (int) round(((int) ($rs['points'] ?? 0)) / $rsMax * 100) ?>%"><span><?= e((string) ($rs['detail'] ?? $rs['factor'] ?? '')) ?></span><b>+<?= (int) ($rs['points'] ?? 0) ?></b></li>
         <?php endforeach; ?>
       </ul>
     <?php endif; ?>
