@@ -185,6 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?= e(t('No account?', 'Walang account?')) ?> <a href="request-access.php"><?= e(t('Request access here', 'Humiling ng access dito')) ?></a>
       </p>
     </div>
+    <p class="login-powered"><span><?= e(t('Powered by', 'Pinapagana ng')) ?></span><img src="assets/img/smart-engine-sm.webp" width="56" height="22" alt="SMART engine" decoding="async"></p>
 </section>
 </div>
 
