@@ -796,3 +796,53 @@
 .ss-people.ss-sq td:nth-child(5), .ss-people.ss-sq td:nth-child(4) { max-width: 100%; }
 .ss-people.ss-sq tbody td:last-child { margin-top: auto; padding-top: 6px; }
 .ss-people.ss-sq .p-badges { justify-content: center; max-width: 100%; }
+
+/* The SmartSumbong look on the Jira layout (Ace, 16 Oct): the structure, spacing and behaviour stay Jira's, the identity is ours. Orange where Jira has blue (the main button, focus, the selected row, the header rule), Urbanist for the type, a warm orange wash on the table header, the contour lines fading in at the top of the table card, the card's own frosted glass, and the engine's blue kept for information. Applies to Administrators, Residents and Personnel. */
+[data-pane="admins"], .jp-scope, .ss-bulk, .ss-rqstrip, .ss-rqbar {
+  --jp-font: Urbanist, "Inter", system-ui, sans-serif;
+  --jp-brand: #FF9800; --jp-brand-h: #F08A00; --jp-brand-p: #D97A00; --jp-on-brand: #2B1A00;
+  --jp-focus: #FF9800;
+  --jp-sel-bg: rgba(255,152,0,.14); --jp-sel-fg: #B36B00; --jp-sel-h: rgba(255,152,0,.24);
+  --jp-line: rgba(255,152,0,.55);
+  --jp-head-bg: rgba(255,152,0,.10);
+}
+:root[data-theme="dark"] [data-pane="admins"], :root[data-theme="dark"] .jp-scope, :root[data-theme="dark"] .ss-bulk, :root[data-theme="dark"] .ss-rqstrip, :root[data-theme="dark"] .ss-rqbar {
+  --jp-brand: #FF9800; --jp-brand-h: #FFB020; --jp-brand-p: #FFC247; --jp-on-brand: #2B1A00;
+  --jp-focus: #FFB454;
+  --jp-sel-bg: rgba(255,152,0,.16); --jp-sel-fg: #FFB454; --jp-sel-h: rgba(255,152,0,.26);
+  --jp-line: rgba(255,152,0,.5);
+  --jp-head-bg: rgba(255,152,0,.09);
+}
+/* the table: warm header with the orange rule, contour lines at the top of the card */
+.jp-card { position: relative; }
+.jp-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 110px; pointer-events: none; z-index: 0; opacity: .09; background: var(--p-ink);
+  -webkit-mask: url("../img/texture-contours.webp") 0 0 / 420px 420px repeat, linear-gradient(to bottom, #000, transparent);
+  mask: url("../img/texture-contours.webp") 0 0 / 420px 420px repeat, linear-gradient(to bottom, #000, transparent);
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
+.jp-card > * { position: relative; z-index: 1; }
+.jp-t thead th { background: var(--jp-head-bg); color: var(--p-ink-2); border-bottom-color: var(--jp-line); }
+.jp-t thead th:first-child { border-top-left-radius: 10px; } .jp-t thead th:last-child { border-top-right-radius: 10px; }
+.jp-t td, .jp-t .jp-who b, .ss-people .p-person > span:last-child { font-family: var(--jp-font); }
+.jp-head h2, .jp-sum b { font-family: var(--jp-font); }
+/* names a touch heavier, as in the rest of the portal */
+.jp-who b, .ss-people .p-person > span:last-child { font-weight: 600; }
+/* controls: orange ring when focused, orange tint when selected */
+.jp-search:focus-within, .jp-pick select:focus-visible, .jp-sel:focus-visible { border-color: var(--jp-focus); box-shadow: inset 0 0 0 1px var(--jp-focus); }
+.jp-add:focus-visible, .jp-menu button:focus-visible, .jp-more summary:focus-visible { outline-color: var(--jp-focus); }
+.ss-viewsw button[aria-pressed="true"] { background: var(--jp-sel-bg); color: var(--jp-sel-fg); }
+.ss-people input[type=checkbox] { accent-color: #FF9800; }
+.ss-bulk, .ss-rqstrip, .ss-rqbar { box-shadow: inset 3px 0 0 #FF9800; }
+.ss-bulk-go { background: #FF9800; color: #2B1A00; font-weight: 700; }
+.ss-bulk-go:hover { background: #F08A00; }
+.jp-sum b { color: var(--jp-sel-fg); }
+/* rows: a warm hover */
+.jp-t tbody tr:hover td { background: color-mix(in srgb, #FF9800 7%, transparent); }
+.ss-people .jp-t tbody tr.ss-picked td { background: var(--jp-sel-bg); }
+/* squares: the same warmth, a status colour edge along the top, a lift on hover */
+.ss-people.ss-sq tbody tr { position: relative; overflow: hidden; border-radius: 14px; transition: transform .18s ease, box-shadow .18s ease; }
+.ss-people.ss-sq tbody tr::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: #34C759; }
+.ss-people.ss-sq tbody tr[data-pending="1"]::after { background: #FF9800; }
+.ss-people.ss-sq tbody tr:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.28); }
+.ss-people.ss-sq tbody tr.ss-picked { outline: 2px solid #FF9800; }
+.ss-people.ss-sq .p-person .p-avatar, .ss-people.ss-sq .p-person img.p-avatar { border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.28); }
+@media (prefers-reduced-motion: reduce) { .ss-people.ss-sq tbody tr { transition: none; } .ss-people.ss-sq tbody tr:hover { transform: none; } }
