@@ -25,6 +25,23 @@ Environment variables:
 `config.php` reads both from the environment. Nothing server-side needs the
 service-role key.
 
+**Every variable the portal reads** (the names come from the code, so this list
+is the one to check when something "stopped working" on Render; `.env` is
+git-ignored, so a key that lives only on a laptop is not on Render):
+
+| Variable | Needed for | Without it |
+| --- | --- | --- |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | everything | the portal does not work |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET` | showing and uploading complaint photos | photos do not show |
+| `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | the Plan and usage credits, signed private ID photos | credits and ID photos missing |
+| `MAPILLARY_TOKEN` | street view: Spatial Distribution "Look around", the case map's street snapshot | no street snapshot, no Look around |
+| `TURNSTILE_SITE_KEY` | the sign-in captcha | no captcha |
+| `BARANGAY_HALL_HOURS`, `BARANGAY_HALL_PHONE` | the hall line shown to residents | the default text |
+| `PORTAL_MOVED_TO` | the "we moved" banner on an old address | no banner |
+
+Edge Function secrets (FCM, Resend, Semaphore, the service-role key) are set in
+Supabase (Edge Functions → Secrets), not on Render.
+
 After that, **every push to `main` redeploys**. Check Render's Events tab that
 the build finished.
 
