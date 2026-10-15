@@ -30,7 +30,8 @@ function day_label(?string $iso): string
     }
 }
 
-function render_briefing(Supabase $db, array $admin): void
+/** $part: 'bar' (the sky bar and its alarm card, on Workspace), 'strip' (what is being watched, on Notifications) or 'all'. */
+function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
 {
     $tz    = new DateTimeZone('Asia/Manila');
     $now   = new DateTimeImmutable('now', $tz);
@@ -117,6 +118,7 @@ function render_briefing(Supabase $db, array $admin): void
         ],
     ];
     ?>
+<?php if ($part !== 'strip'): ?>
 <section class="ss-brief" id="ss-brief" data-now="<?= e($here) ?>" aria-label="<?= e(t('The engine\'s briefing', 'Ang briefing ng engine')) ?>">
   <?php
     $first = trim((string) (explode(',', (string) ($admin['full_name'] ?? ''), 2)[1] ?? ($admin['full_name'] ?? '')));
@@ -154,7 +156,9 @@ function render_briefing(Supabase $db, array $admin): void
     <div class="ss-alarm-row"><button type="button" class="ss-alarm-go" id="ss-alarm-go"><?= e(t('Show me', 'Ipakita')) ?></button></div>
   </div></div></div>
 </section>
+<?php endif; ?>
 
+<?php if ($part !== 'bar'): ?>
 <div class="ss-strip">
   <section class="ss-lane" aria-labelledby="lane-now">
     <h3 id="lane-now"><?= e(t('Needs you now', 'Kailangan ka ngayon')) ?><span class="p-badge-n"><?= count($queue) + count($esc) ?></span></h3>
@@ -213,7 +217,10 @@ function render_briefing(Supabase $db, array $admin): void
       <a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Settings', 'Mga Setting')) ?></a></article>
   </section>
 </div>
+<?php endif; ?>
+<?php if ($part !== 'strip'): ?>
 <script>window.SS_WX = {lat: 14.5194, lng: 121.0122, labels: <?= json_encode(["clear" => t("Clear", "Maaliwalas"), "mostly" => t("Mostly clear", "Halos maaliwalas"), "partly" => t("Partly cloudy", "Bahagyang maulap"), "cloudy" => t("Cloudy", "Maulap"), "fog" => t("Fog", "Hamog"), "drizzle" => t("Drizzle", "Ambon"), "rain" => t("Rain", "Ulan"), "shower" => t("Rain showers", "Pagulan"), "storm" => t("Thunderstorm", "Pagkulog at pagkidlat"), "off" => t("Weather unavailable", "Walang datos ng panahon"), "feels" => t("Feels like", "Pakiramdam"), "wind" => t("Wind", "Hangin"), "rainnow" => t("Rain now", "Ulan ngayon")], JSON_UNESCAPED_UNICODE) ?>};</script>
 <script src="assets/js/briefing.js?v=<?= e(asset_version('../js/briefing.js')) ?>"></script>
+<?php endif; ?>
 <?php
 }

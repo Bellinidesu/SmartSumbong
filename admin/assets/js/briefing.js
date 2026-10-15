@@ -28,7 +28,7 @@
   var xp = document.getElementById('ss-xp'), al = document.getElementById('ss-alarm');
   function openAlarm(o) { al.classList.toggle('open', o); xp.setAttribute('aria-expanded', String(o)); xp.classList.toggle('is-open', o); }
   xp.addEventListener('click', function () { openAlarm(!al.classList.contains('open')); });
-  document.getElementById('ss-alarm-go').addEventListener('click', function () { openAlarm(false); var l = document.querySelector('.ss-strip'); if (l && l.scrollIntoView) l.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); });
+  document.getElementById('ss-alarm-go').addEventListener('click', function () { openAlarm(false); var l = (document.getElementById('board') || document.querySelector('.ss-strip')); if (l && l.scrollIntoView) l.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); });
 
   // ---- the clock (Manila time) and the sky behind it
   var clock = document.getElementById('ss-clock');
