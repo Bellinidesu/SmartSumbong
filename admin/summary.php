@@ -403,7 +403,7 @@ foreach ($logs as $l) {
     <p class="p-empty" style="padding:22px"><?= e(t('No case activity was recorded in this period.', 'Walang naitalang aktibidad sa kaso sa panahong ito.')) ?></p>
   <?php else: ?>
   <div class="p-rs-split" style="display:grid;grid-template-columns:minmax(260px,340px) 1fr;padding:14px 0 0">
-    <div class="p-tscroll" style="max-height:440px;border-right:1px solid var(--p-line)"><table class="p-t">
+    <div class="p-tscroll" style="max-height:440px;border-right:1px solid var(--p-line)"><table class="p-t ss-ohead">
       <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th class="p-right"><?= e(t('Changes', 'Pagbabago')) ?></th></tr></thead>
       <tbody id="tl-pick">
         <?php $i = 0; foreach ($byReport as $tid => $list): ?>

@@ -342,7 +342,7 @@ function render_retirement_queue(): void
     </div>
 
     <div class="p-card p-table-card"><div class="p-tscroll">
-      <table class="p-t">
+      <table class="p-t ss-ohead">
         <thead><tr>
           <th scope="col"><?= e(t('Tanod', 'Tanod')) ?></th>
           <th scope="col"><?= e(t('Requested', 'Hiniling')) ?></th>
