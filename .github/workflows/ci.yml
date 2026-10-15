@@ -78,15 +78,27 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      - name: Did the app change?
+        id: app
+        # The Flutter jobs take minutes, so they run only when something they
+        # check changed (mobile/ or this file); portal-only pull requests skip them
+        # and the check still reports success. A manual run always runs everything.
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ -n "$(git diff --name-only HEAD^ HEAD -- mobile .github/workflows/ci.yml)" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "No app changes; skipped." >> "$GITHUB_STEP_SUMMARY"; fi
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        if: steps.app.outputs.run == 'true'
         with:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
       - name: Core - analyze and test
+        if: steps.app.outputs.run == 'true'
         working-directory: mobile/core
         run: flutter pub get && flutter analyze && flutter test
       - name: Resident app - analyze and test
+        if: steps.app.outputs.run == 'true'
         working-directory: mobile/resident
         run: flutter pub get && flutter analyze && flutter test
 
@@ -99,19 +111,32 @@ jobs:
     needs: mobile
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      - name: Did the app change?
+        id: app
+        # The Flutter jobs take minutes, so they run only when something they
+        # check changed (mobile/ or this file); portal-only pull requests skip them
+        # and the check still reports success. A manual run always runs everything.
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ -n "$(git diff --name-only HEAD^ HEAD -- mobile .github/workflows/ci.yml)" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "No app changes; skipped." >> "$GITHUB_STEP_SUMMARY"; fi
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        if: steps.app.outputs.run == 'true'
         with:
           distribution: temurin
           java-version: '21' # maplibre_gl 0.27 compiles for Java 21
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        if: steps.app.outputs.run == 'true'
         with:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
       - name: Build the release APK (arm64)
+        if: steps.app.outputs.run == 'true'
         working-directory: mobile/resident
         run: flutter build apk --release --target-platform android-arm64 --split-per-abi --dart-define-from-file=dart_defines.json
       - name: Within 60 MB
+        if: steps.app.outputs.run == 'true'
         working-directory: mobile/resident
         run: |
           apk=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
