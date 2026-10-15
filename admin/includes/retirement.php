@@ -336,7 +336,7 @@ function render_retirement_queue(): void
 
     <div class="p-band ss-pband">
       <h2><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?><span class="p-badge-n p-badge-n--quiet" id="ret-count"><?= count($requests) ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('waiting', 'naghihintay')) ?></span></h2>
-      <form class="p-search" role="search" onsubmit="return false">
+      <form class="p-search" role="search">
         <?= p_icon('i-search', 16) ?><label class="p-sr" for="ret-q"><?= e(t('Search', 'Maghanap')) ?></label>
         <input id="ret-q" type="search" placeholder="<?= e(t('Search a tanod', 'Hanapin ang tanod')) ?>" autocomplete="off">
       </form>
@@ -521,6 +521,7 @@ function render_retirement_queue(): void
         }).join('');
       }
       document.getElementById('ret-filter').addEventListener('change', function () { renderRequests(window.__retRows || []); });
+      document.getElementById('ret-q').form.addEventListener('submit', function (e) { e.preventDefault(); });
       document.getElementById('ret-q').addEventListener('input', function () { renderRequests(window.__retRows || []); });
       renderRequests(<?= json_encode(array_values($requests), JSON_UNESCAPED_UNICODE) ?>);
 

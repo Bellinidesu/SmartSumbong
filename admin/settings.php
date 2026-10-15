@@ -285,7 +285,7 @@ try {
   <?php $roleOpts = ['' => t('Staff', 'Kawani'), 'secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')]; ?>
   <div class="p-band ss-pband">
     <h2><?= e(t('Administrators', 'Mga Administrator')) ?><span class="p-badge-n p-badge-n--quiet" id="jp-count"><?= count($admins) ?></span></h2>
-    <form class="p-search" role="search" onsubmit="return false">
+    <form class="p-search" role="search">
       <?= p_icon('i-search', 16) ?><label class="p-sr" for="jp-q"><?= e(t('Search for names', 'Hanapin ang pangalan')) ?></label>
       <input type="search" id="jp-q" placeholder="<?= e(t('Search for names', 'Hanapin ang pangalan')) ?>" autocomplete="off">
     </form>
@@ -760,6 +760,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       rows.forEach(tr => { const ok = (!t || tr.dataset.name.includes(t)) && (!r || tr.dataset.role === r); tr.hidden = !ok; if (ok) n++; });
       $('jp-none').hidden = n > 0;
     };
+    q.form.addEventListener('submit', function (e) { e.preventDefault(); });
     q.addEventListener('input', apply); rs.addEventListener('change', apply);
     const add = $('jp-add'), card = $('jp-addcard');
     add.addEventListener('click', () => { card.hidden = !card.hidden; add.setAttribute('aria-expanded', String(!card.hidden)); if (!card.hidden) { card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); const f = card.querySelector('input[name=first_name]'); if (f) f.focus(); } });
