@@ -295,22 +295,30 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
   </div>
 <?php endif; ?>
 
-<div class="p-kpis" style="margin-bottom:20px">
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Total Reports Logged', 'Kabuuang Naitalang Ulat')) ?></div><div class="p-value p-num"><?= str_pad((string) $total, 2, '0', STR_PAD_LEFT) ?></div></div>
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Case Resolved', 'Nalutas na Kaso')) ?></div><div class="p-value p-num"><?= str_pad((string) $resolved, 2, '0', STR_PAD_LEFT) ?></div>
-    <?php if ($total > 0): ?><div class="p-delta p-up"><?= (int) round($resolved / $total * 100) ?><?= e(t('% of logged', '% ng naitala')) ?></div><?php endif; ?></div>
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Tanod Attendance Rate', 'Antas ng Pagdalo ng Tanod')) ?></div><div class="p-value p-num"><?= $rate === null ? '—' : $rate . '%' ?></div></div>
-  <div class="p-card p-kpi"><div class="p-label"><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></div><div class="p-value p-num"><?= $avgDays === null ? '—' : $avgDays . ' <span style="font-size:20px">' . e(t('days', 'araw')) . '</span>' ?></div>
-    <?php if ($avgDays !== null): ?><div class="p-delta"><?= e(t('from filing to resolved', 'mula pagsampa hanggang nalutas')) ?></div><?php endif; ?></div>
+<div class="p-kpis ss-sumkpis" style="margin-bottom:16px">
+  <div class="p-card p-kpi ss-k-total"><div class="p-label"><?= e(t('Total Reports Logged', 'Kabuuang Naitalang Ulat')) ?></div><div class="p-value p-num"><?= str_pad((string) $total, 2, '0', STR_PAD_LEFT) ?></div><div class="p-delta"><?= e(t('filed in this period', 'naisampa sa panahong ito')) ?></div></div>
+  <div class="p-card p-kpi ss-k-res"><div class="p-label"><?= e(t('Case Resolved', 'Nalutas na Kaso')) ?></div><div class="p-value p-num"><?= str_pad((string) $resolved, 2, '0', STR_PAD_LEFT) ?></div>
+    <div class="p-delta<?= $total > 0 ? ' p-up' : '' ?>"><?= $total > 0 ? (int) round($resolved / $total * 100) . e(t('% of logged', '% ng naitala')) : e(t('nothing logged yet', 'wala pang naitala')) ?></div></div>
+  <div class="p-card p-kpi ss-k-att"><div class="p-label"><?= e(t('Tanod Attendance Rate', 'Antas ng Pagdalo ng Tanod')) ?></div><div class="p-value p-num"><?= $rate === null ? '—' : $rate . '%' ?></div><div class="p-delta"><?= $rate === null ? e(t('no shifts in this period', 'walang shift sa panahong ito')) : e(t('of scheduled shifts attended', 'ng mga shift na dinaluhan')) ?></div></div>
+  <div class="p-card p-kpi ss-k-avg"><div class="p-label"><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></div><div class="p-value p-num"><?= $avgDays === null ? '—' : $avgDays . ' <span style="font-size:20px">' . e(t('days', 'araw')) . '</span>' ?></div>
+    <div class="p-delta"><?= $avgDays !== null ? e(t('from filing to resolved', 'mula pagsampa hanggang nalutas')) : e(t('nothing resolved yet', 'wala pang nalutas')) ?></div></div>
 </div>
 
 <?php
 // Defense, 7 Sep: the ledger, the referrals and the activity timeline are paged (15 rows), not scrolled.
 $lp = max(1, (int) ($_GET['lp'] ?? 1)); $rp = max(1, (int) ($_GET['rp'] ?? 1)); $tp = max(1, (int) ($_GET['tp'] ?? 1));
 $ledgerRows = array_slice($reports, ($lp - 1) * 15, 15);
+$refCount = count(array_filter($reports, fn($r) => !empty($r['referred_to'])));
+$tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ?? '—', $logs)));
 ?>
+<nav class="ss-jump" id="ss-jump" aria-label="<?= e(t('On this page', 'Sa pahinang ito')) ?>">
+  <a href="#rs-ledger" class="on"><?= e(t('Ledger', 'Talaan')) ?> <b><?= count($reports) ?></b></a>
+  <a href="#rs-esc"><?= e(t('Escalations', 'Mga In-escalate')) ?> <b><?= $refCount ?></b></a>
+  <a href="#rs-tanod"><?= e(t('Tanod activity', 'Gawain ng Tanod')) ?> <b><?= count($dispatches) ?></b></a>
+  <a href="#rs-tl"><?= e(t('Case timeline', 'Takbo ng Kaso')) ?> <b><?= $tlCount ?></b></a>
+</nav>
 <!-- ---------- Resident Report Ledger ---------- -->
-<div class="p-card p-table-card" style="margin-bottom:20px">
+<div class="p-card p-table-card" id="rs-ledger" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Resident Report Ledger', 'Talaan ng mga Ulat ng Residente')) ?></h2><span class="p-spacer"></span><span class="p-hint"><?= count($reports) ?> <?= e(t(count($reports) === 1 ? 'complaint' : 'complaints', 'sumbong')) ?></span></div>
   <div class="p-tscroll"><table class="p-t">
     <thead class="p-orange"><tr>
@@ -341,7 +349,11 @@ $ledgerRows = array_slice($reports, ($lp - 1) * 15, 15);
 
 <!-- ---------- Referrals (0072) ---------- -->
 <?php $referrals = array_values(array_filter($reports, fn($r) => !empty($r['referred_to']))); $referralRows = array_slice($referrals, ($rp - 1) * 15, 15); ?>
-<div class="p-card p-table-card" style="margin-bottom:20px">
+<?php if (!$referrals): ?>
+<div class="p-card ss-slim" id="rs-esc" style="margin-bottom:20px"><h2><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2>
+  <span><?= e(t('None. No complaint was escalated outside the barangay in this period.', 'Wala. Walang sumbong na in-escalate sa labas ng barangay sa panahong ito.')) ?></span></div>
+<?php else: ?>
+<div class="p-card p-table-card" id="rs-esc" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
     <thead class="p-blue"><tr>
@@ -365,9 +377,14 @@ $ledgerRows = array_slice($reports, ($lp - 1) * 15, 15);
   </table></div>
   <?= pager(count($referrals), $rp, 'rp', 15) ?>
 </div>
+<?php endif; ?>
 
 <!-- ---------- Tanod's Activity Timeline ---------- -->
-<div class="p-card p-table-card" style="margin-bottom:20px">
+<?php if (!$dispatches): ?>
+<div class="p-card ss-slim" id="rs-tanod" style="margin-bottom:20px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2>
+  <span><?= e(t('None. No dispatches were issued in this period.', 'Wala. Walang dispatch na inilabas sa panahong ito.')) ?></span></div>
+<?php else: ?>
+<div class="p-card p-table-card" id="rs-tanod" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
     <thead class="p-blue"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
@@ -388,6 +405,7 @@ $ledgerRows = array_slice($reports, ($lp - 1) * 15, 15);
   </table></div>
   <?= pager(count($dispatches), $tp, 'tp', 15) ?>
 </div>
+<?php endif; ?>
 
 <!-- ---------- Report Case Timeline: pick a complaint, see its changes ---------- -->
 <?php
@@ -397,11 +415,12 @@ foreach ($logs as $l) {
     $byReport[$tid][] = $l;
 }
 ?>
-<div class="p-card">
+<?php if (!$byReport): ?>
+<div class="p-card ss-slim" id="rs-tl"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2>
+  <span><?= e(t('None. No case activity was recorded in this period.', 'Wala. Walang naitalang aktibidad sa kaso sa panahong ito.')) ?></span></div>
+<?php else: ?>
+<div class="p-card" id="rs-tl">
   <div class="p-card-head"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2></div>
-  <?php if (!$byReport): ?>
-    <p class="p-empty" style="padding:22px"><?= e(t('No case activity was recorded in this period.', 'Walang naitalang aktibidad sa kaso sa panahong ito.')) ?></p>
-  <?php else: ?>
   <div class="p-rs-split" style="display:grid;grid-template-columns:minmax(260px,340px) 1fr;padding:14px 0 0">
     <div class="p-tscroll" style="max-height:440px;border-right:1px solid var(--p-line)"><table class="p-t ss-ohead">
       <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th class="p-right"><?= e(t('Changes', 'Pagbabago')) ?></th></tr></thead>
@@ -426,8 +445,18 @@ foreach ($logs as $l) {
       <?php $i++; endforeach; ?>
     </div>
   </div>
-  <?php endif; ?>
 </div>
+<?php endif; ?>
+<script>
+// "On this page": the chip for the section in view lights up
+(function () {
+  var nav = document.getElementById('ss-jump'); if (!nav || !window.IntersectionObserver) return;
+  var links = [].slice.call(nav.querySelectorAll('a')), map = {};
+  links.forEach(function (a) { var el = document.getElementById(a.getAttribute('href').slice(1)); if (el) map[el.id] = a; });
+  var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { links.forEach(function (a) { a.classList.toggle('on', a === map[e.target.id]); }); } }); }, { rootMargin: '-30% 0px -60% 0px' });
+  Object.keys(map).forEach(function (id) { io.observe(document.getElementById(id)); });
+})();
+</script>
 <script>
 (function () {
   var pick = document.getElementById('tl-pick'); if (!pick) return;
