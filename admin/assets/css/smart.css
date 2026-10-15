@@ -696,7 +696,7 @@
 .ss-ohead thead th .p-th-sort { color: inherit; }
 
 /* Row action buttons (Ace's lock, 16 Oct, "Figma red but vibrant"): the Figma's filled red View/Review with a darker edge and white text, one vibrant red for every row action on Residents, Personnel, Extra Administrative Services and Case Reports. The one decline-style action that opens a reason box stays an outline in the same red, so it never looks like the main action. */
-:root { --ss-act: #F03E3E; --ss-act-h: #DB2B2B; --ss-act-edge: #7A1616; }
+:root { --ss-act: #DE2B2B; --ss-act-h: #C72222; --ss-act-edge: #7A1616; }
 .ss-ohead td .p-btn, .ss-cases-t td .p-btn { background: var(--ss-act); border-color: var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
 .ss-ohead td .p-btn:hover, .ss-cases-t td .p-btn:hover { background: var(--ss-act-h); }
 .ss-ohead td .p-btn:focus-visible, .ss-cases-t td .p-btn:focus-visible { outline: 2px solid var(--ss-act); outline-offset: 2px; }
@@ -1241,3 +1241,25 @@
 @media (prefers-reduced-transparency: reduce) {
   :root:not([data-theme="dark"]) .p-body :is(.p-card, .p-modal), :root:not([data-theme="dark"]) .login-card, :root:not([data-theme="dark"]) .ss-mapside { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; }
 }
+
+/* Light-mode contrast sweep (16 Oct): every text/background pair under WCAG AA (4.5, or 3 for large text) found by measuring all pages, lifted without changing the look */
+:root:not([data-theme="dark"]) {
+  --p-muted: #5F657B; --p-green: #167A3C; --p-red: #C42424; --ss-act: #DE2B2B; --ss-act-h: #C72222; --ss-act-edge: #7A1616;
+}
+:root:not([data-theme="dark"]) .p-band .p-pill-select .p-lbl, :root:not([data-theme="dark"]) .p-lbl { color: #666; }
+:root:not([data-theme="dark"]) .p-updated { color: #6A6D72; }
+:root:not([data-theme="dark"]) .p-chip-num.p-hot, :root:not([data-theme="dark"]) .p-badge-n#pending-wrap { background: #D32F32; }
+.p-btn-orange, .p-btn-orange:hover { color: #2B1A00; }
+:root:not([data-theme="dark"]) .bd-lv { color: color-mix(in srgb, var(--c) 58%, #000); }
+:root:not([data-theme="dark"]) .ss-ic { filter: brightness(.7) saturate(1.2); }
+.st-mono { background: color-mix(in srgb, var(--ac, #9AA1AB) 60%, #000); }
+.ss-num { background: color-mix(in srgb, var(--lc) 78%, #000); }
+:root:not([data-theme="dark"]) .p-status-dot.p-off-c { color: #7B7E83; }
+:root:not([data-theme="dark"]) { --p-amber: #8A5400; --rk-kagawad: #5B40C4; }
+/* dark-mode contrast from the same sweep */
+:root[data-theme="dark"] .ss-ladder li.now[data-r="kagawad"] { color: #1B1340; }
+:root[data-theme="dark"] .ss-ladder li.now[data-r="staff"] { color: #0F172A; }
+:root[data-theme="dark"] .bd-lv { color: color-mix(in srgb, var(--c) 62%, #fff); }
+:root[data-theme="dark"] .p-btn-danger-solid { background: #D63B3B; border-color: #D63B3B; }
+:root[data-theme="dark"] .ss-num { background: color-mix(in srgb, var(--lc) 66%, #000); }
+:root[data-theme="dark"] .p-chip-num.p-hot, :root[data-theme="dark"] .p-badge-n#pending-wrap { background: #D32F32; }
