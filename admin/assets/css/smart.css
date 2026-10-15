@@ -688,3 +688,7 @@
 .bd-title { color: var(--bd-text); }
 .bd-ghost { border-radius: 8px; }
 .bd-none { border-radius: 8px; }
+
+/* One table-header language across the list pages (16 Oct audit against the Figma): the orange header row the Case Reports list and the Report Summary ledgers already carry, now on Residents, Personnel, Extra Administrative Services and the Report Case Timeline's list. */
+.ss-ohead thead th { background: var(--p-orange); color: #2B1A00; border-color: transparent; }
+.ss-ohead thead th .p-th-sort { color: inherit; }

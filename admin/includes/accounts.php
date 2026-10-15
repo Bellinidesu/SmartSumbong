@@ -248,7 +248,7 @@ function render_account_screen(string $role): void
     </div>
 
     <div class="p-card p-table-card"><div class="p-tscroll">
-      <table class="p-t">
+      <table class="p-t ss-ohead">
         <thead><tr>
           <th scope="col"><?= e(t($noun, $nounLabel)) ?></th>
           <th scope="col"><?= e(t('Phone number', 'Numero ng telepono')) ?></th>
