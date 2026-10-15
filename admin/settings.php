@@ -299,7 +299,7 @@ try {
   <div class="p-card p-table-card jp-scope ss-people ss-adm" id="ss-people"><div class="p-tscroll">
     <table class="p-t ss-ohead">
     <thead><tr>
-      <th scope="col"><?= e(t('Administrator', 'Administrator')) ?></th>
+      <th scope="col"><?= e(t('Administrator', 'Tagapangasiwa')) ?></th>
       <th scope="col"><?= e(t('Position', 'Posisyon')) ?></th>
       <th scope="col"><?= e(t('Committee', 'Komite')) ?></th>
       <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
