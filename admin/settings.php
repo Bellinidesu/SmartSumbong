@@ -684,8 +684,11 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     return '<div class="st-meter"><div class="st-lbl"><span>' + esc(label) + '</span><span>' + esc(val) + '</span></div>' +
       (pct == null ? '' : '<div class="st-bar"><i class="' + cls + '" style="width:' + Math.max(1.5, Math.min(100, pct)) + '%"></i></div>') + '</div>';
   }
+  // each service's colour as an accent and a plain letter of ours; never a logo (brand rules differ)
+  const ACCENT = { 'Supabase': ['S', '#3ECF8E'], 'Cloudinary': ['C', '#3448C5'], 'Render': ['R', '#6E5CF6'], 'Firebase push': ['F', '#F5A623'], 'Open-Meteo': ['O', '#2D9CDB'], 'Nominatim · OpenFreeMap': ['N', '#7EBC6F'] };
   function card(name, tier, body, catchTxt, foot) {
-    return '<div class="p-card p-card-pad st-plan"><header><b>' + esc(name) + '</b>' + (tier ? '<span class="st-tier">' + esc(tier) + '</span>' : '') + '</header>' + body +
+    const ac = ACCENT[name] || ['', '#9AA1AB'];
+    return '<div class="p-card p-card-pad st-plan" style="--ac:' + ac[1] + '"><header><b><span class="st-mono" aria-hidden="true">' + ac[0] + '</span>' + esc(name) + '</b>' + (tier ? '<span class="st-tier">' + esc(tier) + '</span>' : '') + '</header>' + body +
       (catchTxt ? '<div class="st-catch">' + catchTxt + '</div>' : '') + (foot ? '<span class="st-foot">' + foot + '</span>' : '') + '</div>';
   }
   async function usage() {
