@@ -45,14 +45,11 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
     try {
         $got = $db->selectMany([
             'summary' => ['rpc/smart_summary', [], true],
-            'queue'   => ['rpc/smart_queue', ['p_stage' => null, 'p_limit' => 6], true],
             'risk'    => ['rpc/smart_deadline_risk', [], true],
             'spikes'  => ['rpc/smart_spikes', [], true],
             'recur'   => ['rpc/smart_patterns', ['p_days' => null], true],
             'stuck'   => ['rpc/smart_stuck_cases', [], true],
             'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
-            'esc'     => ['escalation_requests', ['select' => 'id,reason,created_at,report:reports!escalation_requests_report_id_fkey(id,tracking_id),requester:users!escalation_requests_requested_by_fkey(full_name)',
-                                                  'status' => 'eq.pending', 'order' => 'created_at.asc', 'limit' => '3'], true],
         ]);
     } catch (SupabaseError) { /* the lanes stay empty */ }
     $list = fn(string $k): array => (isset($got[$k]) && !($got[$k] instanceof SupabaseError) && is_array($got[$k])) ? $got[$k] : [];
@@ -69,7 +66,6 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
             'in_since'  => ['reports', ['deleted_at' => 'is.null', 'created_at' => 'gte.' . $iso($today->setTime(6, 0))], true],
             'out_today' => ['reports', ['deleted_at' => 'is.null', 'resolved_at' => 'gte.' . $iso($today)], true],
             'out_since' => ['reports', ['deleted_at' => 'is.null', 'resolved_at' => 'gte.' . $iso($today->setTime(6, 0))], true],
-            'regs'      => ['users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending'], true],
         ], true);
         foreach ($c as $k => $v) { $counts[$k] = is_int($v) ? $v : 0; }
     } catch (SupabaseError) { /* the numbers show as zero */ }
@@ -81,8 +77,6 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
     $spikes   = $list('spikes');
     $recur    = array_values(array_filter($list('recur'), fn($r) => (int) ($r['still_open'] ?? 0) > 0));
     $stuck    = $list('stuck');
-    $esc      = $list('esc');
-    $queue    = $list('queue');
     $stormRow = $list('storm')[0] ?? null;
     $storm    = $stormRow && !empty($stormRow['storm_mode']) ? $stormRow : null;
 
@@ -156,66 +150,43 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
     <div class="ss-alarm-row"><button type="button" class="ss-alarm-go" id="ss-alarm-go"><?= e(t('Show me', 'Ipakita')) ?></button></div>
   </div></div></div>
 </section>
+<p class="ss-bnote"><?= e(t('Briefings arrive at 7 in the morning, 2 in the afternoon and 8 at night.', 'Darating ang briefing ng 7 ng umaga, 2 ng hapon at 8 ng gabi.')) ?> <a href="settings.php#smart"><?= e(t('Settings', 'Mga Setting')) ?></a></p>
 <?php endif; ?>
 
 <?php if ($part !== 'bar'): ?>
+<p class="ss-lab"><?= e(t('Right now', 'Sa ngayon')) ?></p>
 <div class="ss-strip">
-  <section class="ss-lane" aria-labelledby="lane-now">
-    <h3 id="lane-now"><?= e(t('Needs you now', 'Kailangan ka ngayon')) ?><span class="p-badge-n"><?= count($queue) + count($esc) ?></span></h3>
-    <?php foreach ($esc as $x): ?>
-      <article class="ss-nt" style="--c:#6A4FD3"><span class="ss-ic" aria-hidden="true">↑</span>
-        <div><b><?= e(t('Escalation request', 'Hiling na i-escalate')) ?> · <?= e($x['report']['tracking_id'] ?? '') ?></b>
-          <p><?= e(name_or($x['requester']['full_name'] ?? null, t('A tanod', 'Isang tanod'))) ?>: <?= e($x['reason']) ?></p></div>
-        <?php if (!empty($x['report']['id'])): ?><a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a><?php endif; ?></article>
-    <?php endforeach; ?>
-  </section>
-
-  <section class="ss-lane" aria-labelledby="lane-watch">
-    <h3 id="lane-watch"><?= e(t('Watching', 'Binabantayan')) ?><span class="p-badge-n"><?= min(2, count($risk)) + min(2, count($spikes)) + min(2, count($recur)) + min(1, count($stuck)) ?></span></h3>
-    <?php foreach (array_slice($risk, 0, 2) as $r): ?>
-      <article class="ss-nt" style="--c:#FF9800"><span class="ss-ic" aria-hidden="true">⏱</span>
-        <div><b><?= e($r['tracking_id']) ?> · <?= e(t('likely to miss its deadline', 'maaaring lumampas sa takdang oras')) ?></b>
-          <p><?= e(sprintf(t('%s h left; such cases usually take %s h.', '%s oras na lang; karaniwang %s oras ang ganitong kaso.'), (string) round((float) $r['hours_left']), (string) round((float) $r['typical_hours']))) ?></p></div>
-        <a class="p-btn p-btn-sm p-btn-ghost" href="case.php?id=<?= e($r['report_id']) ?>"><?= e(t('Open', 'Buksan')) ?></a></article>
-    <?php endforeach; ?>
-    <?php foreach (array_slice($spikes, 0, 2) as $s): ?>
-      <article class="ss-nt" style="--c:#6A4FD3"><span class="ss-ic" aria-hidden="true">▲</span>
-        <div><b><?= e(category_label((string) $s['category'])) ?>: <?= (int) $s['this_week'] ?> <?= e(t('this week', 'ngayong linggo')) ?></b>
-          <p><?= e(t('usually', 'karaniwan')) ?> <?= e(rtrim(rtrim(number_format((float) $s['usual'], 1), '0'), '.')) ?><?= !empty($s['place']) ? ' · ' . e((string) $s['place']) : '' ?></p></div>
-        <a class="p-btn p-btn-sm p-btn-ghost" href="spatial.php"><?= e(t('Map', 'Mapa')) ?></a></article>
-    <?php endforeach; ?>
-    <?php foreach (array_slice($recur, 0, 2) as $r): ?>
-      <article class="ss-nt" style="--c:#6A4FD3"><span class="ss-ic" aria-hidden="true">⟲</span>
-        <div><b><?= e(category_label((string) $r['category'])) ?> <?= e(t('keeps coming back', 'ay paulit-ulit')) ?></b>
-          <p><?= (int) $r['reports'] ?> <?= e(t('reports from', 'ulat mula sa')) ?> <?= (int) $r['residents'] ?> <?= e(t('residents', 'residente')) ?> · <?= (int) $r['still_open'] ?> <?= e(t('still open', 'bukás pa')) ?></p></div>
-        <a class="p-btn p-btn-sm p-btn-ghost" href="spatial.php"><?= e(t('Map', 'Mapa')) ?></a></article>
-    <?php endforeach; ?>
-    <?php foreach (array_slice($stuck, 0, 1) as $s): ?>
-      <article class="ss-nt" style="--c:#8E9ABB"><span class="ss-ic" aria-hidden="true">z</span>
-        <div><b><?= e($s['tracking_id']) ?> · <?= e(t('quiet for', 'tahimik nang')) ?> <?= (int) $s['days_quiet'] ?> <?= e(t('days', 'araw')) ?></b>
-          <p><?= e(t('Count of quiet cases:', 'Bilang ng tahimik na kaso:')) ?> <?= count($stuck) ?></p></div>
-        <a class="p-btn p-btn-sm p-btn-ghost" href="case.php?id=<?= e($s['report_id']) ?>"><?= e(t('Open', 'Buksan')) ?></a></article>
-    <?php endforeach; ?>
-    <?php if (!$risk && !$spikes && !$recur && !$stuck): ?><p class="p-none-line"><?= e(t('Nothing unusual right now.', 'Walang kakaiba sa ngayon.')) ?></p><?php endif; ?>
-  </section>
-
-  <section class="ss-lane" aria-labelledby="lane-know">
-    <h3 id="lane-know"><?= e(t('Good to know', 'Mabuting malaman')) ?></h3>
-    <?php if ($storm): ?>
-      <article class="ss-nt" style="--c:#356CF9"><span class="ss-ic" aria-hidden="true">☂</span>
-        <div><b><?= e(t('Storm mode is on', 'Naka-on ang storm mode')) ?></b>
-          <p><?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $storm['storm_until']))->setTimezone($tz)->format('M j, g:i A')) ?><?= !empty($storm['storm_reason']) ? ' · ' . e((string) $storm['storm_reason']) : '' ?></p></div>
-        <a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a></article>
-    <?php endif; ?>
-    <?php if ($n('regs') > 0): ?>
-      <article class="ss-nt" style="--c:#1F8A45"><span class="ss-ic" aria-hidden="true">+</span>
-        <div><b><?= $n('regs') ?> <?= e(t('residents waiting for an ID check', 'residenteng naghihintay ng pagsusuri ng ID')) ?></b><p><?= e(t('The window to verify is two hours.', 'Dalawang oras ang palugit sa pagberipika.')) ?></p></div>
-        <a class="p-btn p-btn-sm p-btn-ghost" href="residents.php?sort=pending"><?= e(t('Review', 'Suriin')) ?></a></article>
-    <?php endif; ?>
-    <article class="ss-nt" style="--c:#356CF9"><span class="ss-ic" aria-hidden="true">☀</span>
-      <div><b><?= e(t('Briefings come three times a day', 'Tatlong beses sa isang araw ang briefing')) ?></b><p><?= e(t('Morning at 7, afternoon at 2, night at 8. They arrive in your notifications below.', 'Umaga ng 7, hapon ng 2, gabi ng 8. Darating sila sa iyong mga abiso sa ibaba.')) ?></p></div>
-      <a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Settings', 'Mga Setting')) ?></a></article>
-  </section>
+  <?php foreach (array_slice($risk, 0, 2) as $r): ?>
+    <article class="ss-nt" style="--c:#FF9800"><span class="ss-ic" aria-hidden="true">⏱</span>
+      <div><b><?= e($r['tracking_id']) ?> · <?= e(t('likely to miss its deadline', 'maaaring lumampas sa takdang oras')) ?></b>
+        <p><?= e(sprintf(t('%s h left; such cases usually take %s h.', '%s oras na lang; karaniwang %s oras ang ganitong kaso.'), (string) round((float) $r['hours_left']), (string) round((float) $r['typical_hours']))) ?></p></div>
+      <a class="p-btn p-btn-sm p-btn-ghost" href="case.php?id=<?= e($r['report_id']) ?>"><?= e(t('Open', 'Buksan')) ?></a></article>
+  <?php endforeach; ?>
+  <?php foreach (array_slice($spikes, 0, 2) as $s): ?>
+    <article class="ss-nt" style="--c:#6A4FD3"><span class="ss-ic" aria-hidden="true">▲</span>
+      <div><b><?= e(category_label((string) $s['category'])) ?>: <?= (int) $s['this_week'] ?> <?= e(t('this week', 'ngayong linggo')) ?></b>
+        <p><?= e(t('usually', 'karaniwan')) ?> <?= e(rtrim(rtrim(number_format((float) $s['usual'], 1), '0'), '.')) ?><?= !empty($s['place']) ? ' · ' . e((string) $s['place']) : '' ?></p></div>
+      <a class="p-btn p-btn-sm p-btn-ghost" href="spatial.php"><?= e(t('Map', 'Mapa')) ?></a></article>
+  <?php endforeach; ?>
+  <?php foreach (array_slice($recur, 0, 2) as $r): ?>
+    <article class="ss-nt" style="--c:#6A4FD3"><span class="ss-ic" aria-hidden="true">⟲</span>
+      <div><b><?= e(category_label((string) $r['category'])) ?> <?= e(t('keeps coming back', 'ay paulit-ulit')) ?></b>
+        <p><?= (int) $r['reports'] ?> <?= e(t('reports from', 'ulat mula sa')) ?> <?= (int) $r['residents'] ?> <?= e(t('residents', 'residente')) ?> · <?= (int) $r['still_open'] ?> <?= e(t('still open', 'bukás pa')) ?></p></div>
+      <a class="p-btn p-btn-sm p-btn-ghost" href="spatial.php"><?= e(t('Map', 'Mapa')) ?></a></article>
+  <?php endforeach; ?>
+  <?php foreach (array_slice($stuck, 0, 1) as $s): ?>
+    <article class="ss-nt" style="--c:#8E9ABB"><span class="ss-ic" aria-hidden="true">z</span>
+      <div><b><?= e($s['tracking_id']) ?> · <?= e(t('quiet for', 'tahimik nang')) ?> <?= (int) $s['days_quiet'] ?> <?= e(t('days', 'araw')) ?></b>
+        <p><?= e(t('Count of quiet cases:', 'Bilang ng tahimik na kaso:')) ?> <?= count($stuck) ?></p></div>
+      <a class="p-btn p-btn-sm p-btn-ghost" href="case.php?id=<?= e($s['report_id']) ?>"><?= e(t('Open', 'Buksan')) ?></a></article>
+  <?php endforeach; ?>
+  <?php if ($storm): ?>
+    <article class="ss-nt" style="--c:#356CF9"><span class="ss-ic" aria-hidden="true">☂</span>
+      <div><b><?= e(t('Storm mode is on', 'Naka-on ang storm mode')) ?></b>
+        <p><?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $storm['storm_until']))->setTimezone($tz)->format('M j, g:i A')) ?><?= !empty($storm['storm_reason']) ? ' · ' . e((string) $storm['storm_reason']) : '' ?></p></div>
+      <a class="p-btn p-btn-sm p-btn-ghost" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a></article>
+  <?php endif; ?>
+  <?php if (!$risk && !$spikes && !$recur && !$stuck && !$storm): ?><p class="p-none-line ss-calm"><?= e(t('Nothing unusual right now.', 'Walang kakaiba sa ngayon.')) ?></p><?php endif; ?>
 </div>
 <?php endif; ?>
 <?php if ($part !== 'strip'): ?>

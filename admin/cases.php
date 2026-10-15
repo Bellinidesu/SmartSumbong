@@ -116,6 +116,7 @@ if (!in_array($tanod, ['needs', 'active'], true)) { $tanod = ''; }
 // The Notification panel's own search and order (Rose, 27 Sep 2026: both
 // were only drawn, never read).
 $nSearch  = trim((string) ($_GET['nq'] ?? ''));
+$nAll     = ($_GET['nview'] ?? '') === 'all';   // Unread (the default) or everything, read ones too
 $nSort    = ($_GET['nsort'] ?? 'newest') === 'oldest' ? 'oldest' : 'newest';
 
 if (!in_array($category, CATEGORIES, true)) { $category = ''; }
@@ -227,15 +228,18 @@ try {
         'select'  => 'id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role)',
         'user_id' => 'eq.' . $admin['id'],
         'order'   => 'created_at.' . ($nSort === 'oldest' ? 'asc' : 'desc'),
-        'limit'   => $nSearch !== '' ? '50' : '20',
+        'limit'   => '20',
     ];
+    // The engine's recurring, spike and quiet-case notes are the "Right now" cards above the list: never listed twice.
+    $nq['and'] = '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)';
     if ($nSearch !== '') {
         $nq['message'] = 'ilike.*' . preg_replace('/[,()"\\\\*]/', ' ', $nSearch) . '*';
-    } else {
+    }
+    if ($nSearch === '' && !$nAll) {
         $nq['is_read'] = 'is.false';
     }
     $selects = [
-        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false']],
+        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)']],
         'esc_n'   => ['escalation_requests', ['status' => 'eq.pending']],
     ];
     $counts = $db->selectMany($selects, true);
@@ -371,13 +375,18 @@ $noteBadge = $notesUnread + $escCount;
 
 <?php if ($tab === 'notes'): ?>
 <!-- ---------- notifications ---------- -->
+<?php $nHref = fn(string $v) => '?' . http_build_query(array_filter(['nview' => $v === 'all' ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : ''])); ?>
 <div class="p-band p-band--calm">
-  <h2><?= e(t('Notifications', 'Mga abiso')) ?><span class="p-badge-n" id="notif-count"><?= count($notifications) ?></span></h2>
+  <h2><?= e($nAll || $nSearch !== '' ? t('All notifications', 'Lahat ng abiso') : t('Unread', 'Hindi pa nababasa')) ?><span class="p-badge-n" id="notif-count"><?= (int) $notesTotal ?></span></h2>
+  <div class="p-seg-mini bd-scope" role="group" aria-label="<?= e(t('Which notifications', 'Aling mga abiso')) ?>">
+    <a href="<?= e($nHref('unread')) ?>" class="<?= !$nAll ? 'p-on' : '' ?>"><?= e(t('Unread', 'Hindi pa nababasa')) ?></a>
+    <a href="<?= e($nHref('all')) ?>" class="<?= $nAll ? 'p-on' : '' ?>"><?= e(t('All', 'Lahat')) ?></a>
+  </div>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
     <input type="search" name="nq" placeholder="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>" value="<?= e($nSearch) ?>"
            aria-label="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>">
-    <input type="hidden" name="nsort" value="<?= e($nSort) ?>">
+    <input type="hidden" name="nsort" value="<?= e($nSort) ?>"><?php if ($nAll): ?><input type="hidden" name="nview" value="all"><?php endif; ?>
     <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
   </form>
   <span class="p-spacer"></span>
@@ -386,7 +395,7 @@ $noteBadge = $notesUnread + $escCount;
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Mark all as read', 'Markahang nabasa ang lahat')) ?></button></form>
   <?php endif; ?>
   <form method="get">
-    <input type="hidden" name="nq" value="<?= e($nSearch) ?>">
+    <input type="hidden" name="nq" value="<?= e($nSearch) ?>"><?php if ($nAll): ?><input type="hidden" name="nview" value="all"><?php endif; ?>
     <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Sort by', 'Ayusin ayon sa')) ?></span>
       <select name="nsort" data-autosubmit>
@@ -396,12 +405,35 @@ $noteBadge = $notesUnread + $escCount;
   </form>
 </div>
 
+<!-- ---------- escalation requests (0073) ---------- -->
+<?php if (!empty($escalations)): ?>
+<div class="p-band p-band--calm">
+  <h2><?= e(t('Escalation requests', 'Mga hiling na i-escalate')) ?><span class="p-badge-n"><?= count($escalations) ?></span></h2>
+</div>
+<div class="p-card p-notif-card" style="margin-bottom:28px"><div class="p-notif-list">
+  <?php foreach ($escalations as $x): ?>
+    <div class="p-notif p-unread">
+      <span class="p-n-ico" style="background:var(--p-violet-bg);color:var(--p-violet-fg)"><?= p_icon('i-up', 18) ?></span>
+      <div><div><span class="p-mono-id"><?= e($x['report']['tracking_id'] ?? '') ?></span> &middot; <?= e(category_label((string) ($x['report']['category'] ?? ''))) ?>
+          &middot; <b><?= e(name_or($x['requester']['full_name'] ?? null, t('Tanod', 'Tanod'))) ?>:</b> <?= e($x['reason']) ?></div>
+        <div class="p-when"><?= e(relative_time($x['created_at'])) ?><?php if (!empty($x['suggested_office'])): ?> &middot; <?= e(t('suggests ', 'mungkahi: ')) . e($x['suggested_office']) ?><?php endif; ?></div></div>
+      <?php if (!empty($x['report']['id'])): ?>
+        <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+      <?php else: ?><span></span><?php endif; ?>
+    </div>
+  <?php endforeach; ?>
+</div></div>
+<?php endif; ?>
+
 <div class="p-card p-notif-card" style="margin-bottom:28px"><div class="p-notif-list" id="notif-list">
   <?php if (!$notifications): ?>
-    <p class="p-empty" id="notif-empty"><?= $nSearch !== ''
-        ? e(t('No notification matches that search.', 'Walang abisong tugma sa hinanap.'))
-        : e(t('Nothing new. Notifications appear here when a report is escalated, a deadline is missed, or a tanod files a resolution.',
-              'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) ?></p>
+    <div class="ss-caught" id="notif-empty"><?php if ($nSearch !== ''): ?>
+        <b><?= e(t('Nothing matches that search.', 'Walang tugma sa hinanap.')) ?></b>
+      <?php else: ?>
+        <span class="ss-caught-ic" aria-hidden="true">&#10003;</span><b><?= e(t('All caught up', 'Wala nang hindi nababasa')) ?></b>
+        <span><?= e(t('New notes appear here when a deadline is missed, a tanod files a resolution or someone needs you.', 'Lalabas dito ang bago kapag may lumampas sa oras, may nagsumite ng resolusyon o may nangangailangan sa iyo.')) ?></span>
+        <?php if (!$nAll): ?><a href="<?= e($nHref('all')) ?>"><?= e(t('See the ones you have read', 'Tingnan ang mga nabasa na')) ?></a><?php endif; ?>
+      <?php endif; ?></div>
   <?php endif; ?>
   <?php $lastDay = null; foreach ($notifications as $n): $dl = day_label($n['created_at']); if ($dl !== $lastDay): $lastDay = $dl; ?>
     <div class="ss-day"><?= e($dl) ?></div>
@@ -423,26 +455,6 @@ $noteBadge = $notesUnread + $escCount;
     </div>
   <?php endforeach; ?>
 </div></div>
-
-<!-- ---------- escalation requests (0073) ---------- -->
-<?php if (!empty($escalations)): ?>
-<div class="p-band p-band--calm">
-  <h2><?= e(t('Escalation requests', 'Mga hiling na i-escalate')) ?><span class="p-badge-n"><?= count($escalations) ?></span></h2>
-</div>
-<div class="p-card p-notif-card" style="margin-bottom:28px"><div class="p-notif-list">
-  <?php foreach ($escalations as $x): ?>
-    <div class="p-notif p-unread">
-      <span class="p-n-ico" style="background:var(--p-violet-bg);color:var(--p-violet-fg)"><?= p_icon('i-up', 18) ?></span>
-      <div><div><span class="p-mono-id"><?= e($x['report']['tracking_id'] ?? '') ?></span> &middot; <?= e(category_label((string) ($x['report']['category'] ?? ''))) ?>
-          &middot; <b><?= e(name_or($x['requester']['full_name'] ?? null, t('Tanod', 'Tanod'))) ?>:</b> <?= e($x['reason']) ?></div>
-        <div class="p-when"><?= e(relative_time($x['created_at'])) ?><?php if (!empty($x['suggested_office'])): ?> &middot; <?= e(t('suggests ', 'mungkahi: ')) . e($x['suggested_office']) ?><?php endif; ?></div></div>
-      <?php if (!empty($x['report']['id'])): ?>
-        <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($x['report']['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
-      <?php else: ?><span></span><?php endif; ?>
-    </div>
-  <?php endforeach; ?>
-</div></div>
-<?php endif; ?>
 
 <div id="notes-pager"><?= pager($notesTotal, $npage, 'npage') ?></div>
 <?php endif; ?>
@@ -615,6 +627,7 @@ $noteBadge = $notesUnread + $escCount;
   const MONTH_TO   = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->modify('first day of next month')->format(DateTimeInterface::ATOM) : null) ?>;
   const SEARCH     = <?= json_encode($search) ?>;
   const N_SEARCH   = <?= json_encode($nSearch) ?>;
+  const N_ALL      = <?= json_encode($nAll) ?>;
   const N_OLDEST   = <?= json_encode($nSort === 'oldest') ?>;
   const VIEW       = <?= json_encode($view) ?>;
   const WHO        = <?= json_encode($who) ?>;
@@ -882,8 +895,10 @@ $noteBadge = $notesUnread + $escCount;
       .order('created_at', { ascending: N_OLDEST })
       .range((NPAGE - 1) * PER, NPAGE * PER - 1);
     // Same rule as the PHP above: a search includes read notifications.
+    // the same rules as the PHP above: the engine's watcher notes are the cards above the list; unread unless searching or "All"
+    nq = nq.not('message', 'like', 'SMART: recurring*').not('message', 'like', 'SMART: spike*').not('message', 'like', 'SMART:*has had no update for*');
     nq = N_SEARCH ? nq.ilike('message', '*' + N_SEARCH.replace(/[,()"\\*]/g, ' ') + '*')
-                  : nq.eq('is_read', false);
+                  : (N_ALL ? nq : nq.eq('is_read', false));
     const { data, error, count } = await nq;
     if (error) return;
     renderNotifications(data || []);

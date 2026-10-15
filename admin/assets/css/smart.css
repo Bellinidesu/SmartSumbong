@@ -503,3 +503,16 @@
 .ss-strip .ss-nt{grid-template-columns:34px minmax(0,1fr) 84px;align-items:start}
 .ss-strip .ss-nt>.p-btn{width:84px;justify-content:center;justify-self:end}
 @media (max-width:700px){.p-notif-card .p-notif{grid-template-columns:40px minmax(0,1fr) 36px}.p-notif-card .p-notif .p-n-act{grid-column:2;justify-content:flex-start}}
+/* Notifications, version A (locked 15 Oct): "Right now", then the unread list; softer day headers; a calm empty state */
+.ss-lab{margin:6px 2px 8px;font:700 11.5px Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--p-muted)}
+.ss-calm{grid-column:1/-1;margin:0}
+.ss-bnote{margin:8px 2px 0;font-size:12.5px;color:var(--p-muted)}
+.ss-bnote a{color:var(--p-link);font-weight:700;text-decoration:none;margin-left:6px}
+.p-notif-list .ss-day{display:flex;align-items:center;gap:12px;margin:0;padding:18px 18px 6px;border:0;font:700 11.5px Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--p-muted)}
+.p-notif-list .ss-day::after{content:"";flex:1;height:1px;background:var(--p-line)}
+.p-notif-list .ss-day:first-child{padding-top:14px}
+.p-notif-list .ss-day+.p-notif{border-top:0}
+.ss-caught{display:grid;justify-items:center;gap:6px;padding:40px 18px;text-align:center;color:var(--p-muted);font-size:13.5px}
+.ss-caught b{color:var(--p-ink);font:800 17px Urbanist,sans-serif}
+.ss-caught a{color:var(--p-link);font-weight:700;text-decoration:none}
+.ss-caught-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--p-green-bg);color:var(--p-green);font-size:24px}
