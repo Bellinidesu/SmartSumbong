@@ -934,3 +934,15 @@
 .ss-pband .ss-viewsw button { height: 40px; padding: 0 16px; font-size: 13.5px; border-radius: 9px; }
 .p-band .p-btn { height: 44px; }
 @media (max-width: 700px) { .p-band { padding: 16px; } .p-band h2 { font-size: 19px; } }
+
+/* the bands, toned back to a comfortable size (the big-bar pass was too much) */
+.p-band { padding: 12px 20px; gap: 10px 14px; min-height: 64px; border-radius: 16px; }
+.p-band h2 { font-size: 19px; }
+.p-band .p-search { height: 42px; padding: 0 14px; font-size: 14.5px; }
+.p-band .p-search input { font-size: 14.5px; }
+.p-band .p-pill-select { height: 42px; padding: 0 14px; font-size: 14px; }
+.p-band .p-chip-band { height: 38px; padding: 0 14px; font-size: 13.5px; }
+.p-band .p-badge-n { height: 24px; min-width: 24px; font-size: 12px; }
+.ss-pband .ss-viewsw { padding: 3px; border-radius: 11px; }
+.ss-pband .ss-viewsw button { height: 34px; padding: 0 14px; font-size: 13px; }
+.p-band .p-btn { height: 40px; }
