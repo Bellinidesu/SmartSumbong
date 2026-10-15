@@ -1574,3 +1574,6 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] img.rail-logo { filter: brightness(1.7) saturate(1.15) drop-shadow(0 0 1.5px rgba(255,255,255,.55)) drop-shadow(0 6px 14px rgba(0,0,0,.35)); }
 :root[data-theme="dark"] .login-rail { gap: 40px; }
 @media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] .login-rail { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1C2127; } }
+
+/* Sign-in rail, dark: the logos in their own colours again (the brightness lift turned them neon). A soft white glow around each shape keeps the navy lettering readable on the glass. */
+:root[data-theme="dark"] img.rail-logo { filter: drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 0 9px rgba(255,255,255,.55)) drop-shadow(0 8px 16px rgba(0,0,0,.3)); }
