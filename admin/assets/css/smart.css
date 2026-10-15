@@ -1261,3 +1261,8 @@
 :root[data-theme="dark"] .ss-num { background: color-mix(in srgb, var(--lc) 66%, #000); }
 :root[data-theme="dark"] .p-chip-num.p-hot, :root[data-theme="dark"] .p-badge-n#pending-wrap { background: #D32F32; }
 
+
+/* The engine mark on light backgrounds (Ace asked if it is still visible): a firm dark-navy outline all round so the yellow lettering and the brain read on white and pale cards */
+:root:not([data-theme="dark"]) .ss-engine img, :root:not([data-theme="dark"]) img.ss-engine-img, :root:not([data-theme="dark"]) .ss-head img[src*="smart-engine"] {
+  filter: drop-shadow(1px 0 0 #14213D) drop-shadow(-1px 0 0 #14213D) drop-shadow(0 1px 0 #14213D) drop-shadow(0 -1px 0 #14213D) drop-shadow(0 2px 5px rgba(20,33,61,.28));
+}
