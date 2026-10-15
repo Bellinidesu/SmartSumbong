@@ -334,11 +334,15 @@ function render_retirement_queue(): void
 
     <?php endif; ?>
 
-    <div class="p-band">
-      <h2><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('waiting', 'naghihintay')) ?></span></h2>
+    <div class="p-band ss-pband">
+      <h2><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?><span class="p-badge-n p-badge-n--quiet" id="ret-count"><?= count($requests) ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('waiting', 'naghihintay')) ?></span></h2>
+      <form class="p-search" role="search" onsubmit="return false">
+        <?= p_icon('i-search', 16) ?><label class="p-sr" for="ret-q"><?= e(t('Search', 'Maghanap')) ?></label>
+        <input id="ret-q" type="search" placeholder="<?= e(t('Search a tanod', 'Hanapin ang tanod')) ?>" autocomplete="off">
+      </form>
       <span class="p-spacer"></span>
-      <label class="p-pill-select"><span class="p-lbl"><?= e(t('Show', 'Ipakita')) ?></span>
-        <select id="ret-filter"><option value="pending"><?= e(t('Waiting', 'Naghihintay')) ?></option><option value="" id="ret-all" data-label="<?= e(t('All', 'Lahat')) ?>"><?= e(t('All', 'Lahat')) ?> (<?= count($requests) ?>)</option></select></label>
+      <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
+        <select id="ret-filter" aria-label="<?= e(t('Status', 'Katayuan')) ?>"><option value="pending"><?= e(t('Waiting', 'Naghihintay')) ?></option><option value="" id="ret-all" data-label="<?= e(t('All', 'Lahat')) ?>"><?= e(t('All', 'Lahat')) ?> (<?= count($requests) ?>)</option></select></label>
     </div>
 
     <div class="p-card p-table-card"><div class="p-tscroll">
@@ -497,6 +501,9 @@ function render_retirement_queue(): void
         var tbody = document.getElementById('requests-tbody');
         var want = document.getElementById('ret-filter').value;
         var shown = want ? rows.filter(function (r) { return r.status === want; }) : rows;
+        var qn = (document.getElementById('ret-q').value || '').trim().toLowerCase();
+        if (qn) shown = shown.filter(function (r) { return String(r.full_name || '').toLowerCase().indexOf(qn) !== -1; });
+        document.getElementById('ret-count').textContent = rows.length;
         if (!shown.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="p-empty">' + (rows.length
             ? T('No requests waiting.', 'Walang naghihintay na kahilingan.')
@@ -505,7 +512,7 @@ function render_retirement_queue(): void
         }
         tbody.innerHTML = shown.map(function (r) {
           return '<tr>' +
-            '<td><b>' + escapeHtml(String(r.full_name || '').trim()) + '</b></td>' +
+            '<td><div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true">' + escapeHtml(String(r.full_name || '').trim().split(/\s+/).map(function (w) { return w.charAt(0); }).slice(0, 2).join('').toUpperCase() || '?') + '</span><span><b>' + escapeHtml(String(r.full_name || '').trim()) + '</b></span></div></td>' +
             '<td class="p-num">' + escapeHtml(longDatetime(r.requested_at)) + '</td>' +
             '<td>' + statusPill(r.status) + '</td>' +
             '<td>' + decisionCell(r) + '</td>' +
@@ -514,6 +521,7 @@ function render_retirement_queue(): void
         }).join('');
       }
       document.getElementById('ret-filter').addEventListener('change', function () { renderRequests(window.__retRows || []); });
+      document.getElementById('ret-q').addEventListener('input', function () { renderRequests(window.__retRows || []); });
       renderRequests(<?= json_encode(array_values($requests), JSON_UNESCAPED_UNICODE) ?>);
 
       // Bursts (approve + deny landing close together from two admins)
