@@ -323,7 +323,7 @@ $keep = array_filter(['tab' => $tab, 'q' => $search, 'status' => $filter, 'categ
 $tabHref = fn(string $t) => '?' . http_build_query(['tab' => $t]);
 $noteBadge = $notesUnread + $escCount;
 ?>
-<?php if ($notices && !$workspace) { render_briefing($db, $admin); } ?>
+<?php if ($notices) { render_briefing($db, $admin, $workspace ? 'bar' : 'strip'); } ?>
 <?php if (false): ?>
 <nav class="ss-tabs" aria-label="<?= e(t('Notifications views', 'Mga tanaw ng Abiso')) ?>">
   <a href="<?= e($tabHref('next')) ?>"<?= $tab === 'next' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('Board', 'Tablero')) ?></a>
