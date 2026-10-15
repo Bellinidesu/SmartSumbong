@@ -1100,3 +1100,22 @@
 .ss-switch input:checked + i::after { transform: translateX(20px); }
 .ss-switch input:focus-visible + i { outline: 2px solid #FF9800; outline-offset: 3px; }
 .ss-people.ss-adm .ss-ef .p-pill-select { background: var(--p-surface-2); border: 1px solid var(--p-line-2); }
+
+/* Layered escalation as levels, Women responders as roles (Ace's picks, 16 Oct): PagerDuty's ordered levels joined by a line, with the barangay's own rungs in their rank colours; Google Groups' per-row role as the glass picker. */
+.ss-levels { display: grid; gap: 0; }
+.ss-lvl { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 16px; position: relative; }
+.ss-lvl::before { content: ""; position: absolute; left: 19px; top: 40px; bottom: -4px; width: 3px; border-radius: 3px; background: linear-gradient(180deg, var(--lc), color-mix(in srgb, var(--lc) 25%, transparent)); }
+.ss-lvl:last-child::before { display: none; }
+.ss-num { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--lc); color: #fff; font: 800 16px Urbanist, sans-serif; z-index: 1; box-shadow: 0 0 0 4px color-mix(in srgb, var(--lc) 26%, transparent); }
+:root[data-theme="dark"] .ss-lvl[style*="rk-chair"] .ss-num { color: #14181D; }
+.ss-lbox { padding: 16px 20px; margin-bottom: 18px; display: grid; gap: 10px; border-left: 4px solid var(--lc); align-content: start; }
+.ss-lbox h3 { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font: 800 17px Urbanist, sans-serif; }
+.ss-lbox h3 small { font: 600 12.5px Urbanist, sans-serif; color: var(--p-muted); }
+.ss-lbox p { margin: 0; color: var(--p-ink-2); font: 500 13.5px/1.5 Urbanist, sans-serif; max-width: 80ch; }
+.ss-lbox .ss-holder { justify-self: start; font: 700 14px Urbanist, sans-serif; }
+.ss-lbox--tbl { padding-bottom: 0; overflow: hidden; }
+.ss-lbox--tbl .p-tscroll { margin: 4px -20px 0; }
+.ss-lbox--tbl .p-tscroll table { border-radius: 0; }
+.ss-subband + .ss-levels { margin-top: 2px; }
+.ss-levels + .ss-subband { margin-top: 6px; }
+.ss-lbox > .p-badge { justify-self: start; }
