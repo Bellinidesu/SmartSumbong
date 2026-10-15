@@ -752,19 +752,6 @@
 .ss-people input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--jp-brand); cursor: pointer; }
 .ss-people .jp-t tbody tr.ss-picked td { background: var(--jp-sel-bg); }
 .ss-people .jp-t tbody tr.ss-picked:hover td { background: var(--jp-sel-h); }
-/* the status pills as Atlassian lozenges: square-cornered, sentence case, bold, no dot */
-.ss-people .p-badge { height: auto; padding: 0 6px; gap: 0; border-radius: 4px; font: 653 12px/20px var(--jp-font); letter-spacing: 0; text-transform: none; white-space: normal; }
-.ss-people .p-badge::before { display: none; }
-.ss-people .p-b-done { background: var(--jp-ok-bg); color: var(--jp-ok-fg); }
-.ss-people .p-b-pending { background: var(--jp-warn-bg); color: var(--jp-warn-fg); }
-.ss-people .p-b-denied { background: var(--jp-bad-bg); color: var(--jp-bad-fg); }
-.ss-people .p-b-progress { background: var(--jp-info-bg); color: var(--jp-info-fg); }
-.ss-people .p-b-violet { background: var(--jp-disc-bg); color: var(--jp-disc-fg); }
-.ss-people .p-b-grey { background: var(--jp-neutral-bg); color: var(--jp-neutral-fg); }
-.ss-people .p-person { gap: 12px; }
-.ss-people .p-person > span:last-child { font: 500 14px/20px var(--jp-font); min-width: 0; color: var(--jp-text); }
-.ss-people td.p-num, .ss-people td { font: 400 14px/20px var(--jp-font); }
-.ss-people .p-sub { color: var(--jp-subtle); }
 /* the tick bar and the queue, as Atlassian's selected state / information banner */
 .ss-bulk, .ss-rqstrip, .ss-rqbar { background: var(--jp-sel-bg, #E9F2FE); color: var(--jp-text, #292A2E); border-radius: 6px; padding: 8px 12px; font: 400 14px/20px var(--jp-font, ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif); box-shadow: inset 3px 0 0 var(--jp-sel-fg, #1868DB); }
 .ss-bulk b, .ss-rqstrip b, .ss-rqbar b { font-weight: 653; }
@@ -846,3 +833,27 @@
 .ss-people.ss-sq tbody tr.ss-picked { outline: 2px solid #FF9800; }
 .ss-people.ss-sq .p-person .p-avatar, .ss-people.ss-sq .p-person img.p-avatar { border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.28); }
 @media (prefers-reduced-motion: reduce) { .ss-people.ss-sq tbody tr { transition: none; } .ss-people.ss-sq tbody tr:hover { transform: none; } }
+
+/* One style for the portal (Ace, 16 Oct: "we can't have different styles"): Residents, Personnel and Administrators take the portal's own components, the same as Case Reports and Report Summary: the orange band holding the search and filter, an orange header row, ruled rows, round soft pills with a dot, the pill-shaped controls, the red row action. The Jira structure (a toolbar over a table, ticks, a People-style row) stays; the Atlassian look does not. */
+.ss-pband .ss-viewsw { display: inline-flex; padding: 3px; gap: 2px; border: 0; border-radius: 10px; background: rgba(255,255,255,.55); overflow: visible; }
+.ss-pband .ss-viewsw button { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #3A2300; font: 700 12.5px Urbanist, sans-serif; }
+.ss-pband .ss-viewsw button + button { border-left: 0; }
+.ss-pband .ss-viewsw button:hover { background: rgba(255,255,255,.5); }
+.ss-pband .ss-viewsw button[aria-pressed="true"] { background: #fff; color: #141B34; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+/* Administrators: the same table language (orange header, ruled rows, round pills, pill controls) */
+.jp-t thead th { background: var(--p-orange); color: #2B1A00; border-bottom: 0; font: 700 12px Urbanist, sans-serif; letter-spacing: .02em; }
+.jp-t thead th:first-child { border-top-left-radius: 10px; } .jp-t thead th:last-child { border-top-right-radius: 10px; }
+.jp-t td { border-bottom: 1px solid var(--p-line); }
+.jp-t tbody tr:last-child td { border-bottom: 0; }
+.jp-lz { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px; font: 700 12px Urbanist, sans-serif; white-space: nowrap; }
+.jp-lz::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.jp-lz--ok { background: var(--p-green-bg); color: var(--p-green); } .jp-lz--warn { background: var(--p-amber-bg); color: var(--p-amber); } .jp-lz--bad { background: var(--p-red-bg); color: var(--p-red); }
+.jp-search, .jp-pick select, .jp-sel { border-radius: 10px; border-color: var(--p-line-2); background-color: var(--p-surface-2); }
+.jp-search { height: 38px; } .jp-pick select { height: 38px; }
+.jp-add { height: 38px; padding: 0 16px; border-radius: 10px; font: 700 14px Urbanist, sans-serif; box-shadow: 0 4px 12px rgba(255,152,0,.3); }
+.jp-head h2, .jp-crumb { font-family: Urbanist, system-ui, sans-serif; }
+.jp-menu { border-radius: 12px; border: 1px solid var(--p-line-2); box-shadow: var(--p-shadow); background: var(--p-surface); }
+.jp-menu button { font-family: Urbanist, system-ui, sans-serif; border-radius: 8px; }
+.ss-bulk, .ss-rqstrip, .ss-rqbar { border-radius: 12px; background: var(--jp-sel-bg); font-family: Urbanist, system-ui, sans-serif; }
+.ss-bulk-go, .ss-bulk-clear { border-radius: 10px; height: 34px; line-height: 34px; font-family: Urbanist, system-ui, sans-serif; }
+.ss-bulk-clear { border: 1px solid var(--p-line-2); }

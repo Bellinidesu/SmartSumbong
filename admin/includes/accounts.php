@@ -251,30 +251,29 @@ function render_account_screen(string $role): void
       </div>
     <?php endif; ?>
 
-    <div class="jp-scope ss-ptop">
-      <div class="jp-bar">
-        <form class="jp-search" method="get" role="search">
-          <?= p_icon('i-search', 16) ?><label class="p-sr" for="acc-q"><?= e(t('Search', 'Maghanap')) ?></label>
-          <input id="acc-q" type="search" name="q" placeholder="<?= e(t('Search name, phone or email', 'Hanapin ang pangalan, telepono o email')) ?>" value="<?= e($search) ?>" autocomplete="off">
-          <?php if ($statusFilter !== ''): ?><input type="hidden" name="sort" value="<?= e($statusFilter) ?>"><?php endif; ?>
-        </form>
-        <form method="get" class="jp-pick">
-          <input type="hidden" name="q" value="<?= e($search) ?>">
-          <label class="p-sr" for="acc-st"><?= e(t('Status', 'Katayuan')) ?></label>
-          <select id="acc-st" name="sort" data-autosubmit>
+    <div class="p-band ss-pband">
+      <h2><?= e(t($noun . ' accounts', 'Mga account ng ' . $nounLabel)) ?><span class="p-badge-n p-badge-n--quiet" id="accounts-count"><?= $accTotal ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('to review', 'susuriin')) ?></span></h2>
+      <form class="p-search" method="get" role="search">
+        <?= p_icon('i-search', 16) ?><label class="p-sr" for="acc-q"><?= e(t('Search', 'Maghanap')) ?></label>
+        <input id="acc-q" type="search" name="q" placeholder="<?= e(t('Search name, phone or email', 'Hanapin ang pangalan, telepono o email')) ?>" value="<?= e($search) ?>" autocomplete="off">
+        <?php if ($statusFilter !== ''): ?><input type="hidden" name="sort" value="<?= e($statusFilter) ?>"><?php endif; ?>
+      </form>
+      <span class="p-spacer"></span>
+      <form method="get">
+        <input type="hidden" name="q" value="<?= e($search) ?>">
+        <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
+          <select id="acc-st" name="sort" data-autosubmit aria-label="<?= e(t('Status', 'Katayuan')) ?>">
             <?php foreach ($chipLabel as $ck => $cl): ?>
-              <option value="<?= e($ck) ?>" data-chip="<?= e($ck === '' ? 'all' : $ck) ?>" data-l="<?= e($cl) ?>"<?= $statusFilter === $ck ? ' selected' : '' ?>><?= e(t('Status', 'Katayuan')) ?>: <?= e($cl) ?> (<?= (int) $chipN[$ck] ?>)</option>
+              <option value="<?= e($ck) ?>" data-chip="<?= e($ck === '' ? 'all' : $ck) ?>" data-l="<?= e($cl) ?>"<?= $statusFilter === $ck ? ' selected' : '' ?>><?= e($cl) ?> (<?= (int) $chipN[$ck] ?>)</option>
             <?php endforeach; ?>
-          </select>
-        </form>
-        <span class="jp-sum"><span id="accounts-count"><?= $accTotal ?></span> <?= e(t($isTanod ? 'tanods' : 'residents', $isTanod ? 'tanod' : 'residente')) ?><span id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>> &middot; <b><span id="pending-count"><?= $pending ?></span> <?= e(t('to review', 'susuriin')) ?></b></span></span>
-        <span class="p-spacer"></span>
-        <div class="ss-viewsw" role="group" aria-label="<?= e(t('Layout', 'Ayos')) ?>">
-          <button type="button" data-view="list" aria-pressed="true" title="<?= e(t('List', 'Listahan')) ?>"><?= p_icon('i-doc', 15) ?><span><?= e(t('List', 'Listahan')) ?></span></button>
-          <button type="button" data-view="sq" aria-pressed="false" title="<?= e(t('Squares', 'Mga parisukat')) ?>"><?= p_icon('i-users', 15) ?><span><?= e(t('Squares', 'Mga parisukat')) ?></span></button>
-        </div>
+          </select></label>
+      </form>
+      <div class="ss-viewsw" role="group" aria-label="<?= e(t('Layout', 'Ayos')) ?>">
+        <button type="button" data-view="list" aria-pressed="true" title="<?= e(t('List', 'Listahan')) ?>"><?= p_icon('i-doc', 15) ?><span><?= e(t('List', 'Listahan')) ?></span></button>
+        <button type="button" data-view="sq" aria-pressed="false" title="<?= e(t('Squares', 'Mga parisukat')) ?>"><?= p_icon('i-users', 15) ?><span><?= e(t('Squares', 'Mga parisukat')) ?></span></button>
       </div>
     </div>
+
     <div class="ss-bulk" id="ss-bulk" hidden>
       <b><span id="ss-bulk-n">0</span> <?= e(t('selected', 'napili')) ?></b>
       <button type="button" class="ss-bulk-go" id="ss-bulk-go"><?= e(t('Review one after another', 'Suriin nang sunud-sunod')) ?></button>
@@ -286,8 +285,8 @@ function render_account_screen(string $role): void
       <button type="button" class="ss-bulk-clear" id="ss-rq-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
     </div>
 
-    <div class="p-card p-table-card jp-card jp-scope ss-people" id="ss-people"><div class="p-tscroll">
-      <table class="p-t jp-t">
+    <div class="p-card p-table-card jp-scope ss-people" id="ss-people"><div class="p-tscroll">
+      <table class="p-t ss-ohead">
         <thead><tr>
           <th scope="col" class="ss-cbh"><input type="checkbox" id="ss-all" aria-label="<?= e(t('Select everyone on this page', 'Piliin ang lahat sa pahinang ito')) ?>"></th>
           <th scope="col"><?= e(t($noun, $nounLabel)) ?></th>
@@ -545,7 +544,7 @@ function render_account_screen(string $role): void
           overdue: accounts.filter(function (a) { return a.is_overdue; }).length,
           duplicate: accounts.filter(function (a) { return dupes[a.id] && dupes[a.id].length; }).length,
           suspended: accounts.filter(function (a) { return a.is_suspended; }).length };
-        Object.keys(chipCounts).forEach(function (k) { var o = document.querySelector('#acc-st option[data-chip="' + k + '"]'); if (o) o.textContent = T('Status', 'Katayuan') + ': ' + o.dataset.l + ' (' + chipCounts[k] + ')'; });
+        Object.keys(chipCounts).forEach(function (k) { var o = document.querySelector('#acc-st option[data-chip="' + k + '"]'); if (o) o.textContent = o.dataset.l + ' (' + chipCounts[k] + ')'; });
         var total = filtered.length;
 
         // Counted over the filtered list, the same as the PHP render above
