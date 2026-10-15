@@ -1208,3 +1208,36 @@
 .ss-mapside { bottom: auto; max-height: calc(100% - 68px); }
 /* the current page in the pager is the brand orange in light mode too (it had gone white on white) */
 .ss-pager span.on { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 3px 10px rgba(255,152,0,.3); }
+
+/* Light mode gets what dark mode has (Ace, 16 Oct: "translate what's possible"): the soft blue, orange and green glows behind the page so glass has something to blur, frosted white cards with a fine edge, brand-orange main buttons, and the sign-in card and case map sidebar as light glass. Table rows stay solid; reduce-transparency makes it all solid. */
+:root:not([data-theme="dark"]) .p-body {
+  background-color: var(--p-bg);
+  background-image: radial-gradient(560px 380px at 22% 0%, rgba(53,108,249,.16), transparent 70%), radial-gradient(500px 400px at 100% 16%, rgba(255,152,0,.17), transparent 70%), radial-gradient(560px 360px at 62% 100%, rgba(52,199,89,.12), transparent 70%);
+  background-attachment: fixed;
+}
+:root:not([data-theme="dark"]) .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) {
+  background: linear-gradient(152deg, rgba(255,255,255,.92), rgba(255,255,255,.62));
+  -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
+  border-color: rgba(255,255,255,.85); box-shadow: inset 1px 1px 0 rgba(255,255,255,.9), 0 10px 28px rgba(20,27,52,.10), 0 0 0 1px rgba(20,27,52,.05);
+}
+:root:not([data-theme="dark"]) .p-table-card tbody td { background: rgba(255,255,255,.96); }
+:root:not([data-theme="dark"]) .p-sidebar { box-shadow: inset -1px 0 0 rgba(255,255,255,.14), 12px 0 32px rgba(0,30,110,.14); }
+/* the main button in brand orange, as on the graphite (an ink button on an orange band; the red row action stays red) */
+:root:not([data-theme="dark"]) .p-body .p-btn-primary { background: #FF9800; border-color: transparent; color: #2B1A00; box-shadow: 0 4px 14px rgba(255,152,0,.32); }
+:root:not([data-theme="dark"]) .p-body .p-btn-primary:hover { background: #F08A00; }
+:root:not([data-theme="dark"]) .p-body .p-band .p-btn-primary { background: #141B34; color: #fff; box-shadow: none; }
+:root:not([data-theme="dark"]) .p-body .p-band .p-btn-primary:hover { background: #1B2548; }
+:root:not([data-theme="dark"]) .p-body .ss-people td .p-btn, :root:not([data-theme="dark"]) .p-body .ss-cases-t td .p-btn, :root:not([data-theme="dark"]) .p-body .ss-ohead td .p-btn, :root:not([data-theme="dark"]) .p-body .p-notif-card .p-n-act .p-btn { background: var(--ss-act); border-color: var(--ss-act-edge); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--ss-act) 32%, transparent); }
+:root:not([data-theme="dark"]) .p-body .ss-people td .p-btn[data-reveal], :root:not([data-theme="dark"]) .p-body .ss-ohead td .p-btn[data-reveal] { background: transparent; border-color: var(--ss-act); color: var(--ss-act); box-shadow: none; }
+:root:not([data-theme="dark"]) .p-body .ss-people.ss-adm td .ss-save { background: #FF9800; color: #2B1A00; }
+/* sign-in: the card as light glass over the street photo */
+:root:not([data-theme="dark"]) .login-card { background: linear-gradient(152deg, rgba(255,255,255,.9), rgba(255,255,255,.68)); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,.9); box-shadow: inset 1px 1px 0 #fff, 0 24px 60px rgba(20,27,52,.22); }
+:root:not([data-theme="dark"]) .login-btn { background: #FF9800; color: #2B1A00; font-weight: 700; box-shadow: 0 8px 22px rgba(255,152,0,.35); }
+/* the case map sidebar in light: white glass, dark text */
+:root:not([data-theme="dark"]) .ss-mapside { color: #141B34; background: linear-gradient(152deg, rgba(255,255,255,.9), rgba(255,255,255,.66)); border-color: rgba(255,255,255,.9); box-shadow: inset 1px 1px 0 #fff, 0 24px 60px rgba(20,27,52,.28); }
+:root:not([data-theme="dark"]) .ss-mapside .p-mono-id, :root:not([data-theme="dark"]) .ss-ms-facts dt, :root:not([data-theme="dark"]) .ss-ms-credit { color: #5A6180; }
+:root:not([data-theme="dark"]) .ss-mapside .ss-who, :root:not([data-theme="dark"]) .ss-ms-lv { color: #141B34; }
+:root:not([data-theme="dark"]) .ss-ms-facts > div { border-top-color: rgba(20,27,52,.12); }
+@media (prefers-reduced-transparency: reduce) {
+  :root:not([data-theme="dark"]) .p-body :is(.p-card, .p-modal), :root:not([data-theme="dark"]) .login-card, :root:not([data-theme="dark"]) .ss-mapside { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; }
+}
