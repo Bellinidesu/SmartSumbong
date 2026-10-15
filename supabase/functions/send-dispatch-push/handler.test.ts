@@ -87,3 +87,13 @@ Deno.test("one database read per push, naming the owner's link", async () => {
     assert(reads[0].url.searchParams.get("select")!.includes("owner:users!notifications_user_id_fkey("));
   } finally { s.restore(); }
 });
+
+Deno.test("a status check with no body is answered, not logged as an error", async () => {
+  const s = world({ tokens: ["phone"] });
+  try {
+    const h = { "x-webhook-secret": "hook-secret" };
+    assertEquals((await handler(new Request("https://fn.test/", { method: "OPTIONS", headers: h }))).status, 200);
+    assertEquals((await handler(new Request("https://fn.test/", { method: "POST", headers: h }))).status, 200);
+    assertEquals(s.calls.length, 0);
+  } finally { s.restore(); }
+});
