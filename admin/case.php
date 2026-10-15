@@ -1506,7 +1506,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <?php if (!empty($report['due_at'])): ?><div><dt><?= e(t('Due', 'Takdang oras')) ?></dt><dd><?= e(long_datetime($report['due_at'])) ?></dd></div><?php endif; ?>
           <?php if ($concerns): ?><div><dt><?= e(t('Concerns', 'Mga alalahanin')) ?></dt><dd><?= count($concerns) ?></dd></div><?php endif; ?>
         </dl>
-        <p class="ss-ms-credit" id="case-street-credit" hidden><?= e(t('Street imagery © Mapillary contributors, CC BY-SA 4.0', 'Street imagery © Mapillary contributors, CC BY-SA 4.0')) ?></p>
+        <p class="ss-ms-credit" id="case-street-credit" hidden><?= e(t('Street imagery © Mapillary contributors, CC BY-SA 4.0', 'Larawan ng kalye © mga contributor ng Mapillary, CC BY-SA 4.0')) ?></p>
       </aside>
       <span class="p-tag"><?php if (!empty($report['location_label'])): ?><span class="p-tag-place"><?= e($report['location_label']) ?></span><?php endif; ?><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></span>
     </div>
