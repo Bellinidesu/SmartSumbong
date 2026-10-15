@@ -282,47 +282,72 @@ try {
   <?php elseif ($stFlash): ?>
     <div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div>
   <?php endif; ?>
-  <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t">
-    <thead><tr><th><?= e(t('Name', 'Pangalan')) ?></th><th><?= e(t('Email', 'Email')) ?></th><th><?= e(t('Account', 'Account')) ?></th><th><?= e(t('Online now', 'Online ngayon')) ?></th><th></th><th><?= e(t('Position', 'Posisyon')) ?></th></tr></thead>
-    <tbody>
-    <?php foreach ($admins as $a): ?>
-      <tr>
-        <td><span class="ss-who"><?= admin_chip($a['id'], (string) $a['full_name'], 28) ?><?= e(formal_name($a['full_name'])) ?></span> <?= rank_chip($a['official_role'] ?? null, $a['committee'] ?? null, true) ?><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></td>
-        <td><?= e((string) ($a['email'] ?? '')) ?></td>
+  <?php $roleOpts = ['' => t('Staff', 'Kawani'), 'secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')]; ?>
+  <nav class="jp-crumb" aria-label="<?= e(t('You are here', 'Narito ka')) ?>"><?= e(t('Settings', 'Mga Setting')) ?> <span aria-hidden="true">/</span> <?= e(t('Administrators', 'Mga Administrator')) ?></nav>
+  <div class="jp-head"><h2><?= e(t('Administrators', 'Mga Administrator')) ?></h2>
+    <button type="button" class="jp-add" id="jp-add" aria-controls="jp-addcard" aria-expanded="false"><?= e(t('Add administrator', 'Magdagdag ng administrator')) ?></button></div>
+  <div class="jp-bar">
+    <label class="jp-search"><?= p_icon('i-search', 16) ?><span class="p-sr"><?= e(t('Search for names', 'Hanapin ang pangalan')) ?></span>
+      <input type="search" id="jp-q" placeholder="<?= e(t('Search for names', 'Hanapin ang pangalan')) ?>" autocomplete="off"></label>
+    <label class="jp-pick"><span class="p-sr"><?= e(t('Position', 'Posisyon')) ?></span>
+      <select id="jp-role"><option value=""><?= e(t('Position: All', 'Posisyon: Lahat')) ?></option>
+        <?php foreach ($roleOpts as $rv => $rl): ?><option value="<?= $rv === '' ? 'staff' : e($rv) ?>"><?= e($rl) ?></option><?php endforeach; ?>
+      </select></label>
+  </div>
+  <div class="p-card p-table-card jp-card"><div class="p-tscroll"><table class="p-t jp-t">
+    <thead><tr>
+      <th scope="col"><?= e(t('Name', 'Pangalan')) ?></th>
+      <th scope="col"><?= e(t('Position', 'Posisyon')) ?></th>
+      <th scope="col"><?= e(t('Committee', 'Komite')) ?></th>
+      <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
+      <th scope="col"><?= e(t('Online now', 'Online ngayon')) ?></th>
+      <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Actions', 'Mga aksyon')) ?></span></th>
+    </tr></thead>
+    <tbody id="jp-rows">
+    <?php foreach ($admins as $a): $fid = 'role-' . $a['id']; $isK = ($a['official_role'] ?? '') === 'kagawad'; ?>
+      <tr data-name="<?= e(strtolower(($a['full_name'] ?? '') . ' ' . ($a['email'] ?? ''))) ?>" data-role="<?= e(($a['official_role'] ?? '') === '' ? 'staff' : (string) $a['official_role']) ?>">
         <td>
-          <form method="post" class="ss-posform">
+          <div class="jp-who"><?= admin_chip($a['id'], (string) $a['full_name'], 32) ?>
+            <span><b><?= e(formal_name($a['full_name'])) ?><?= $a['id'] === $admin['id'] ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?></b>
+              <small><?= e((string) ($a['email'] ?? '')) ?></small></span></div>
+          <form method="post" id="<?= e($fid) ?>" class="ss-jrole">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="set_role">
             <input type="hidden" name="user" value="<?= e($a['id']) ?>">
-            <label class="p-sr" for="pos-<?= e($a['id']) ?>"><?= e(t('Position', 'Posisyon')) ?></label>
-            <select class="p-input-plain" id="pos-<?= e($a['id']) ?>" name="official_role" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
-              <option value=""><?= e(t('Staff', 'Kawani')) ?></option>
-              <?php foreach (['secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')] as $rv => $rl): ?>
-                <option value="<?= e($rv) ?>" <?= ($a['official_role'] ?? '') === $rv ? 'selected' : '' ?>><?= e($rl) ?></option>
-              <?php endforeach; ?>
-            </select>
-            <select class="p-input-plain" name="committee" aria-label="<?= e(t('Committee', 'Komite')) ?>">
-              <option value=""><?= e(t('No committee', 'Walang komite')) ?></option>
-              <?php foreach (COMMITTEES as $cv => $cl): ?>
-                <option value="<?= e($cv) ?>" <?= ($a['committee'] ?? '') === $cv ? 'selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option>
-              <?php endforeach; ?>
-            </select>
-            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
           </form>
         </td>
-        <td><?php if (!empty($a['is_suspended'])): ?><span class="p-chip"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-chip"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-chip"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
+        <td>
+          <label class="p-sr" for="pos-<?= e($a['id']) ?>"><?= e(t('Position', 'Posisyon')) ?></label>
+          <select class="jp-sel" form="<?= e($fid) ?>" id="pos-<?= e($a['id']) ?>" name="official_role" data-role-sel>
+            <?php foreach ($roleOpts as $rv => $rl): ?><option value="<?= e($rv) ?>" <?= ($a['official_role'] ?? '') === $rv ? 'selected' : '' ?>><?= e($rl) ?></option><?php endforeach; ?>
+          </select>
+        </td>
+        <td>
+          <label class="p-sr" for="cm-<?= e($a['id']) ?>"><?= e(t('Committee', 'Komite')) ?></label>
+          <select class="jp-sel" form="<?= e($fid) ?>" id="cm-<?= e($a['id']) ?>" name="committee" data-comm-sel <?= $isK ? '' : 'disabled' ?>
+                  title="<?= e(t('Pick a committee for a Kagawad', 'Pumili ng komite para sa Kagawad')) ?>">
+            <option value=""><?= e(t('No committee', 'Walang komite')) ?></option>
+            <?php foreach (COMMITTEES as $cv => $cl): ?><option value="<?= e($cv) ?>" <?= ($a['committee'] ?? '') === $cv ? 'selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?>
+          </select>
+        </td>
+        <td><?php if (!empty($a['is_suspended'])): ?><span class="jp-lz jp-lz--bad"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="jp-lz jp-lz--warn"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="jp-lz jp-lz--ok"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></td>
         <td class="ss-online" data-admin="<?= e($a['id']) ?>"><span class="ss-dot"></span><?= e(t('Offline', 'Offline')) ?></td>
         <td class="p-right"><?php if ($a['id'] !== $admin['id']): ?>
-          <form method="post" data-captcha data-native-confirm="<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="action" value="reset_admin">
-            <input type="hidden" name="user" value="<?= e($a['id']) ?>">
-            <input type="hidden" name="email" value="<?= e((string) ($a['email'] ?? '')) ?>">
-            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Email a password link', 'I-email ang link ng password')) ?></button>
-          </form>
+          <details class="jp-more"><summary aria-label="<?= e(t('More actions', 'Iba pang aksyon')) ?>">&#8943;</summary>
+            <div class="jp-menu">
+              <form method="post" data-captcha data-native-confirm="<?= e(t('Email this administrator a link to set a new password?', 'I-email sa administrator na ito ang link para magtakda ng bagong password?')) ?>">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="action" value="reset_admin">
+                <input type="hidden" name="user" value="<?= e($a['id']) ?>">
+                <input type="hidden" name="email" value="<?= e((string) ($a['email'] ?? '')) ?>">
+                <button type="submit"><?= e(t('Email a password link', 'I-email ang link ng password')) ?></button>
+              </form>
+            </div>
+          </details>
         <?php endif; ?></td>
       </tr>
     <?php endforeach; ?>
+    <tr id="jp-none" hidden><td colspan="6" class="p-empty"><?= e(t('No administrator matches that.', 'Walang administrator na tugma.')) ?></td></tr>
     </tbody>
   </table></div></div>
   <div class="p-card p-card-pad ss-posinfo">
@@ -356,7 +381,7 @@ try {
       </form>
     <?php endforeach; ?>
   </div>
-  <div class="p-card p-card-pad ss-addadmin">
+  <div class="p-card p-card-pad ss-addadmin" id="jp-addcard" hidden>
     <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
     <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
     <form method="post" class="ss-form" data-captcha data-native-confirm="<?= e(t('Add this administrator? They get an email to set their password.', 'Idagdag ang administrator na ito? Makakatanggap sila ng email para sa password.')) ?>">
@@ -723,6 +748,26 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       esc(T('OpenFreeMap tiles have no limit', 'Walang limitasyon ang OpenFreeMap'))));
     $('st-plans').innerHTML = cards.join('');
   }
+
+  // Administrators (Jira's People page): search and position filter, position and committee save themselves
+  (function () {
+    const q = $('jp-q'), rs = $('jp-role'), rows = [...document.querySelectorAll('#jp-rows tr[data-name]')];
+    if (!q || !rs) return;
+    const apply = () => {
+      const t = q.value.trim().toLowerCase(), r = rs.value; let n = 0;
+      rows.forEach(tr => { const ok = (!t || tr.dataset.name.includes(t)) && (!r || tr.dataset.role === r); tr.hidden = !ok; if (ok) n++; });
+      $('jp-none').hidden = n > 0;
+    };
+    q.addEventListener('input', apply); rs.addEventListener('change', apply);
+    const add = $('jp-add'), card = $('jp-addcard');
+    add.addEventListener('click', () => { card.hidden = !card.hidden; add.setAttribute('aria-expanded', String(!card.hidden)); if (!card.hidden) { card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); const f = card.querySelector('input[name=first_name]'); if (f) f.focus(); } });
+    document.querySelectorAll('.ss-jrole').forEach(f => {
+      const sel = i => document.querySelector('[form="' + f.id + '"][' + i + ']'), role = sel('data-role-sel'), comm = sel('data-comm-sel');
+      const go = () => { if (role.value === 'kagawad' && !comm.value) { comm.disabled = false; comm.focus(); return; } comm.disabled = role.value !== 'kagawad'; f.submit(); };
+      role.addEventListener('change', () => { comm.disabled = role.value !== 'kagawad'; if (role.value !== 'kagawad') comm.value = ''; go(); });
+      comm.addEventListener('change', go);
+    });
+  })();
 
   document.querySelectorAll('.st-tabs [data-st]').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.st-tabs [data-st]').forEach(x => x.classList.toggle('p-on', x === b));

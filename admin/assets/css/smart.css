@@ -604,3 +604,41 @@
 .st-plan header b { display: flex; align-items: center; gap: 9px; }
 .st-mono { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--ac, #9AA1AB); color: #fff; font: 800 14px Urbanist, sans-serif; }
 .st-plan .st-bar i:not(.w):not(.b) { background: var(--ac, #22c55e); }
+
+/* Administrators, as Jira's People page (Ace's lock, 15 Oct): breadcrumb, a plain title with a blue Add button, a search box and a filter, then a table with a quiet header, person (face, name, grey email), position and committee as dropdowns that save themselves, status lozenges and a ... menu. */
+.jp-crumb { font: 500 12.5px Inter, sans-serif; color: var(--p-muted); margin-bottom: -6px; }
+.jp-crumb span { margin: 0 4px; opacity: .7; }
+.jp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.jp-head h2 { margin: 0; font: 600 24px/1.2 Inter, sans-serif; letter-spacing: -.01em; }
+.jp-add { height: 32px; padding: 0 12px; border: 0; border-radius: 3px; background: #0C66E4; color: #fff; font: 600 14px Inter, sans-serif; cursor: pointer; }
+.jp-add:hover { background: #0055CC; }
+.jp-add:focus-visible, .jp-sel:focus-visible, .jp-search:focus-within, .jp-pick select:focus-visible { outline: 2px solid #388BFF; outline-offset: 1px; }
+.jp-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.jp-search { display: flex; align-items: center; gap: 8px; height: 36px; width: min(260px, 100%); padding: 0 10px; border: 2px solid var(--p-line-2); border-radius: 3px; background: var(--p-surface); color: var(--p-muted); }
+.jp-search input { border: 0; outline: 0; background: transparent; width: 100%; font: 400 14px Inter, sans-serif; color: var(--p-ink); }
+.jp-pick select, .jp-sel { height: 36px; padding: 0 28px 0 10px; border: 2px solid var(--p-line-2); border-radius: 3px; background-color: var(--p-surface); color: var(--p-ink); font: 500 14px Inter, sans-serif; cursor: pointer; }
+.jp-sel { height: 32px; border-width: 1px; background-color: transparent; border-color: transparent; font-weight: 500; }
+.jp-t tbody tr:hover .jp-sel:not(:disabled), .jp-sel:focus { border-color: var(--p-line-2); background-color: var(--p-surface); }
+.jp-sel:disabled { opacity: .45; cursor: not-allowed; }
+.jp-card { overflow: visible; }
+.jp-t thead th { font: 600 12px Inter, sans-serif; letter-spacing: 0; text-transform: none; color: var(--p-muted); background: transparent; border-bottom: 2px solid var(--p-line); padding: 10px 14px; }
+.jp-t td { padding: 10px 14px; vertical-align: middle; height: 60px; }
+.jp-t tbody tr:hover td { background: color-mix(in srgb, var(--p-ink) 4%, transparent); }
+.jp-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.jp-who b { display: block; font: 600 14px Inter, sans-serif; }
+.jp-who b small { font-weight: 500; color: var(--p-muted); }
+.jp-who span > small { display: block; font: 400 12.5px Inter, sans-serif; color: var(--p-muted); overflow-wrap: anywhere; }
+.ss-jrole { display: none; }
+.jp-lz { display: inline-block; padding: 2px 6px; border-radius: 3px; font: 700 11px/16px Inter, sans-serif; text-transform: uppercase; letter-spacing: .02em; white-space: normal; }
+.jp-lz--ok { background: #DCFFF1; color: #164B35; } .jp-lz--warn { background: #FFF7D6; color: #7F5F01; } .jp-lz--bad { background: #FFECEB; color: #AE2E24; }
+:root[data-theme="dark"] .jp-lz--ok { background: rgba(75,206,151,.2); color: #7EE2B8; } :root[data-theme="dark"] .jp-lz--warn { background: rgba(245,205,71,.18); color: #F5CD47; } :root[data-theme="dark"] .jp-lz--bad { background: rgba(255,113,98,.18); color: #FF9C8F; }
+.jp-more { position: relative; display: inline-block; }
+.jp-more summary { list-style: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 3px; cursor: pointer; color: var(--p-muted); font-size: 18px; }
+.jp-more summary::-webkit-details-marker { display: none; }
+.jp-more summary:hover, .jp-more[open] summary { background: color-mix(in srgb, var(--p-ink) 8%, transparent); color: var(--p-ink); }
+.jp-menu { position: absolute; right: 0; top: 34px; z-index: 20; min-width: 220px; padding: 6px 0; border-radius: 3px; background: var(--p-surface); border: 1px solid var(--p-line-2); box-shadow: 0 8px 12px rgba(9,30,66,.15), 0 0 1px rgba(9,30,66,.31); text-align: left; }
+.jp-menu form { margin: 0; }
+.jp-menu button { display: block; width: 100%; padding: 8px 14px; border: 0; background: transparent; color: var(--p-ink); font: 400 14px Inter, sans-serif; text-align: left; cursor: pointer; }
+.jp-menu button:hover { background: color-mix(in srgb, var(--p-ink) 6%, transparent); }
+.ss-addadmin[hidden] { display: none; }
+.jp-t tbody tr:last-of-type .jp-menu, .jp-t tbody tr:nth-last-of-type(2) .jp-menu { top: auto; bottom: 34px; }
