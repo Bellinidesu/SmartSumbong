@@ -1560,3 +1560,9 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 @keyframes lpGlow { 0%, 100% { filter: drop-shadow(0 0 3px #356CF9) drop-shadow(0 0 8px rgba(53,108,249,.6)); } 50% { filter: drop-shadow(0 0 6px #FF9800) drop-shadow(0 0 16px rgba(255,152,0,.8)); } }
 @media (prefers-reduced-motion: reduce) { .login-powered img { animation: none; } }
 @media (max-width: 760px) { .login-powered { position: static; transform: none; justify-content: center; margin: 18px 0 0; } }
+
+/* Sign-in rail, dark (Ace, 15 Oct): the seals sit on frosted glass instead of white plates. Their navy lettering is lifted to a bright blue and given a thin light halo so it reads on the glass. */
+:root[data-theme="dark"] .rail-logo { background: linear-gradient(152deg, rgba(255,255,255,.14), rgba(255,255,255,.03)), rgba(28,33,39,.5); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 1px 1px 0 rgba(255,255,255,.16), 0 14px 34px rgba(0,0,0,.4); }
+:root[data-theme="dark"] img.rail-logo { filter: brightness(1.75) saturate(1.15) drop-shadow(0 0 1.5px rgba(255,255,255,.6)); }
+:root[data-theme="dark"] .rail-logo--missing { color: #C9CCD1; border-color: rgba(255,255,255,.2); }
+@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] .rail-logo { -webkit-backdrop-filter: none; backdrop-filter: none; background: #1C2127; } }
