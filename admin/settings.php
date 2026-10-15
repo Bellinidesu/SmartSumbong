@@ -350,63 +350,37 @@ try {
     <tr id="jp-none" hidden><td colspan="6" class="p-empty"><?= e(t('No administrator matches that.', 'Walang administrator na tugma.')) ?></td></tr>
     </tbody>
   </table></div></div>
-  <div class="p-band ss-pband ss-subband">
-    <h2><?= e(t('Layered escalation', 'Patong-patong na eskalasyon')) ?><span class="p-badge-n p-badge-n--quiet"><?= count($cmap) ?></span></h2>
-    <span class="p-spacer"></span>
-    <span class="ss-subnote"><?= e(t('Tanod, then the Kagawad of the committee below, then the Chairman. A Kagawad needs a committee; there is one Chairman. Nothing moves by itself.', 'Tanod, saka ang Kagawad ng komite sa ibaba, saka ang Punong Barangay. Kailangan ng komite ang Kagawad; iisa ang Punong Barangay. Walang kusang gumagalaw.')) ?></span>
-  </div>
-  <div class="p-card p-table-card jp-scope ss-people ss-adm ss-lst"><div class="p-tscroll">
-    <table class="p-t ss-ohead">
-      <thead><tr><th scope="col"><?= e(t('Kind of complaint', 'Uri ng reklamo')) ?></th><th scope="col"><?= e(t('Committee that takes it first', 'Komiteng unang hahawak')) ?></th><th scope="col"><?= e(t('Who is on it now', 'Sino ang naka-assign ngayon')) ?></th></tr></thead>
-      <tbody>
-      <?php foreach ($cmap as $m):
-        $holders = array_values(array_filter($admins, fn($x) => ($x['official_role'] ?? '') === 'kagawad' && ($x['committee'] ?? '') === $m['committee'])); ?>
-        <tr>
-          <td><b class="ss-lname"><?= e(category_label((string) $m['category'])) ?></b></td>
-          <td>
-            <form method="post" class="ss-inline">
-              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-              <input type="hidden" name="action" value="set_committee_map">
-              <input type="hidden" name="category" value="<?= e($m['category']) ?>">
-              <label class="p-pill-select ss-ps"><span class="p-sr"><?= e(category_label((string) $m['category'])) ?></span>
-                <select name="committee" data-autosubmit>
-                  <?php foreach (COMMITTEES as $cv => $cl): ?><option value="<?= e($cv) ?>" <?= $m['committee'] === $cv ? 'selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?>
-                </select></label>
-            </form>
-          </td>
-          <td><?php if ($holders): foreach ($holders as $h): ?><span class="ss-who ss-holder"><?= admin_chip($h['id'], (string) $h['full_name'], 24) ?><?= e(formal_name($h['full_name'])) ?></span> <?php endforeach; else: ?><span class="p-badge p-b-pending"><?= e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></span><?php endif; ?></td>
-        </tr>
+  <div class="p-card p-card-pad ss-posinfo">
+    <p class="p-eyebrow"><?= e(t('Layered escalation', 'Patong-patong na eskalasyon')) ?></p>
+    <p class="p-hint"><?= e(t('A case goes up one step at a time: the Tanod, then the Kagawad of the committee that usually takes that kind of complaint, then the Chairman. A Kagawad needs a committee; there is one Chairman. Nothing moves by itself.', 'Isang hakbang bawat akyat ng kaso: ang Tanod, saka ang Kagawad ng komiteng karaniwang may hawak ng ganoong reklamo, saka ang Punong Barangay. Kailangan ng komite ang Kagawad; iisa ang Punong Barangay. Walang kusang gumagalaw.')) ?></p>
+    <p class="p-label"><?= e(t('Which committee takes which complaint', 'Aling komite ang may hawak ng aling reklamo')) ?></p>
+    <div class="ss-cmap">
+      <?php foreach ($cmap as $m): ?>
+        <form method="post" class="ss-cmap-row">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="set_committee_map">
+          <input type="hidden" name="category" value="<?= e($m['category']) ?>">
+          <span><?= e(category_label((string) $m['category'])) ?></span>
+          <select class="p-input-plain" name="committee" data-autosubmit aria-label="<?= e(category_label((string) $m['category'])) ?>">
+            <?php foreach (COMMITTEES as $cv => $cl): ?><option value="<?= e($cv) ?>" <?= $m['committee'] === $cv ? 'selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?>
+          </select>
+        </form>
       <?php endforeach; ?>
-      </tbody>
-    </table></div></div>
-
-  <div class="p-band ss-pband ss-subband">
-    <h2><?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?><span class="p-badge-n p-badge-n--quiet"><?= count(array_filter($tanods, fn($x) => !empty($x['women_responder']))) ?></span></h2>
-    <span class="p-spacer"></span>
-    <span class="ss-subnote"><?= e(t('Tanods designated for women and children cases (the VAWC desk). Sensitive cases show them first when a tanod is chosen.', 'Mga tanod na itinalaga sa mga kaso ng kababaihan at bata (VAWC desk). Una silang ipinapakita sa mga sensitibong kaso kapag pumipili ng tanod.')) ?></span>
+    </div>
   </div>
-  <div class="p-card p-table-card jp-scope ss-people ss-adm ss-lst"><div class="p-tscroll">
-    <table class="p-t ss-ohead">
-      <thead><tr><th scope="col"><?= e(t('Tanod', 'Tanod')) ?></th><th scope="col"><?= e(t('Designation', 'Pagtatalaga')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>
-      <tbody>
-      <?php if (!$tanods): ?><tr><td colspan="3" class="p-empty"><?= e(t('No tanod accounts yet.', 'Wala pang account ng tanod.')) ?></td></tr><?php endif; ?>
-      <?php foreach ($tanods as $tn): $on = !empty($tn['women_responder']); ?>
-        <tr>
-          <td><div class="p-person"><?= admin_chip($tn['id'], (string) $tn['full_name'], 30) ?><span><?= e(formal_name($tn['full_name'])) ?></span></div></td>
-          <td>
-            <form method="post" class="ss-inline">
-              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-              <input type="hidden" name="action" value="set_responder">
-              <input type="hidden" name="user" value="<?= e($tn['id']) ?>">
-              <label class="ss-switch"><input type="checkbox" name="on" value="1" data-autosubmit <?= $on ? 'checked' : '' ?>><i aria-hidden="true"></i><span class="p-sr"><?= e(formal_name($tn['full_name'])) ?></span></label>
-            </form>
-          </td>
-          <td><?php if ($on): ?><span class="p-badge p-b-done"><?= e(t('Women responder', 'Responder para sa kababaihan')) ?></span><?php else: ?><span class="p-sub">&mdash;</span><?php endif; ?></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table></div></div>
-
+  <div class="p-card p-card-pad ss-posinfo">
+    <p class="p-eyebrow"><?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?></p>
+    <p class="p-hint"><?= e(t('Tanods designated for women and children cases (the VAWC desk). Sensitive cases show them first when a tanod is chosen.', 'Mga tanod na itinalaga sa mga kaso ng kababaihan at bata (VAWC desk). Una silang ipinapakita sa mga sensitibong kaso kapag pipili ng tanod.')) ?></p>
+    <?php if (!$tanods): ?><p class="p-none-line"><?= e(t('No tanod accounts yet.', 'Wala pang account ng tanod.')) ?></p><?php endif; ?>
+    <?php foreach ($tanods as $tn): ?>
+      <form method="post" class="ss-resp-row">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="set_responder">
+        <input type="hidden" name="user" value="<?= e($tn['id']) ?>">
+        <label class="sd-c"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($tn['women_responder']) ? 'checked' : '' ?>> <?= e(formal_name($tn['full_name'])) ?></label>
+      </form>
+    <?php endforeach; ?>
+  </div>
   <div class="p-card p-card-pad ss-addadmin" id="jp-addcard" hidden>
     <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
     <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
