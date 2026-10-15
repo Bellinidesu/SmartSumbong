@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-card">
       <h1 class="login-title"><?= e(t('Account Login', 'Pag-login sa Account')) ?></h1>
 
-      <?php if ($notice): ?><p class="login-note"><?= e($notice) ?></p><?php endif; ?>
+      <?php if ($notice && !$error): ?><p class="login-note"><?= e($notice) ?></p><?php endif; ?>
       <?php if ($error): ?><p class="login-error" role="alert"><?= e($error) ?><?php if ($lockedOut): ?>
         <br><a href="forgot-password.php" style="font-weight:700;text-decoration:underline"><?= e(t('Reset your password', 'I-reset ang password')) ?></a><?php endif; ?></p><?php endif; ?>
 

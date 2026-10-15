@@ -1582,3 +1582,17 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] img.rail-logo { filter: none; }
 :root[data-theme="dark"] img.rail-logo[src*="bagong-pilipinas"] { content: url("../img/bagong-pilipinas-dk.webp"); }
 :root[data-theme="dark"] img.rail-logo[src*="bagong-villamor"] { content: url("../img/bagong-villamor-dk.webp"); }
+
+/* sign-in: the card as light glass over the street photo */
+:root:not([data-theme="dark"]) .login-card { background: linear-gradient(152deg, rgba(255,255,255,.96), rgba(255,255,255,.84)); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,.9); box-shadow: inset 1px 1px 0 #fff, 0 24px 60px rgba(20,27,52,.22); }
+:root:not([data-theme="dark"]) .login-btn { background: #FF9800; color: #2B1A00; font-weight: 700; box-shadow: 0 8px 22px rgba(255,152,0,.35); }
+/* Sign-in legibility (Ace's live screenshot): the Remember me / Forgot password / Request access lines were 10px italic and faint on white; readable size and ink, and the link in the brand blue with an underline. */
+.login-meta { font-size: 12.5px; font-style: normal; margin-bottom: 20px; }
+:root:not([data-theme="dark"]) .login-meta, :root:not([data-theme="dark"]) .forgot { color: #4A5068; }
+.login-signup { font-size: 13px; font-style: normal; }
+:root:not([data-theme="dark"]) .login-signup { color: #4A5068; }
+:root:not([data-theme="dark"]) .login-signup a { color: #00308F; font-weight: 700; text-decoration: underline; }
+.remember input { width: 14px; height: 14px; }
+.login-note, .login-error { font-size: 13px; }
+
+@media (prefers-reduced-transparency: reduce) { :root:not([data-theme="dark"]) .login-card { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; } }
