@@ -306,8 +306,14 @@ export async function handler(req: Request): Promise<Response> {
   if (WEBHOOK_SECRET && !sameSecret(req.headers.get("x-webhook-secret") ?? "")) {
     return new Response("forbidden", { status: 403 });
   }
+  // The portal's status check and the hourly health check reach this
+  // function with no body (an OPTIONS or empty request): that is a "yes,
+  // I am here", not a notification, and not an error to log.
+  if (req.method !== "POST") return new Response("ok", { status: 200 });
   try {
-    const payload = (await req.json()) as WebhookPayload;
+    const raw = await req.text();
+    if (raw.trim() === "") return new Response("ignored", { status: 200 });
+    const payload = JSON.parse(raw) as WebhookPayload;
 
     if (payload.table !== "notifications" || payload.type !== "INSERT") {
       return new Response("ignored", { status: 200 });
