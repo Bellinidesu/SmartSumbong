@@ -919,3 +919,18 @@
 .ss-people thead input[type=checkbox], .ss-people tbody input[type=checkbox] { margin: 0; vertical-align: middle; }
 .ss-people thead input[type=checkbox] { width: 18px; height: 18px; }
 .ss-people thead input[type=checkbox]:checked::after { left: 4px; top: 0; width: 5px; height: 9px; }
+
+/* The orange bands, as big bars, in the same finished look as the header row (Ace, 16 Oct): portal type, a soft light-to-deep orange with a fine light edge and a warm lift, a larger title, and bigger controls inside. Every page that has a band. */
+.p-band { padding: 20px 24px; gap: 14px 16px; min-height: 88px; border-radius: 18px; align-items: center;
+  background: linear-gradient(180deg, #FFA824 0%, #FF9800 58%, #F28F00 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.38), 0 10px 26px rgba(255,152,0,.22); }
+.p-band h2 { font: 800 22px/1.15 Urbanist, sans-serif; letter-spacing: -.01em; color: #2B1A00; gap: 10px; }
+.p-band .p-search { height: 48px; border-radius: 12px; padding: 0 16px; font-size: 15px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
+.p-band .p-search input { font: 500 15px Urbanist, sans-serif; }
+.p-band .p-pill-select { height: 48px; border-radius: 12px; padding: 0 16px; font-size: 14.5px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
+.p-band .p-chip-band { height: 44px; padding: 0 16px; font-size: 14px; box-shadow: 0 2px 6px rgba(120,60,0,.14); }
+.p-band .p-badge-n { height: 28px; min-width: 28px; font-size: 13px; }
+.ss-pband .ss-viewsw { padding: 4px; border-radius: 12px; }
+.ss-pband .ss-viewsw button { height: 40px; padding: 0 16px; font-size: 13.5px; border-radius: 9px; }
+.p-band .p-btn { height: 44px; }
+@media (max-width: 700px) { .p-band { padding: 16px; } .p-band h2 { font-size: 19px; } }
