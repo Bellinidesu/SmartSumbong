@@ -1145,3 +1145,26 @@
 .p-tanod-opt .p-who small { flex: 1 1 100%; }
 .p-note { resize: none; }
 .p-tanod-opt .p-who .ss-why { margin-top: 2px; }
+
+/* "Why this level" with the engine's weight (Ace: it should have more oomph): the card is lit in the level's colour with the engine's colours sweeping round its edge, the score is a ring, the level is a word you read from across the room, and every reason carries a bar sized to its points. */
+.ss-smartcard { --lv: #94A3B8; position: relative; overflow: hidden; isolation: isolate; border-left: 0; background: color-mix(in srgb, var(--lv) 8%, var(--p-surface)); box-shadow: 0 18px 44px color-mix(in srgb, var(--lv) 22%, transparent), var(--p-shadow-sm); }
+.ss-smartcard.ss-lv-urgent { --lv: #EF4444; } .ss-smartcard.ss-lv-high { --lv: #FF9800; } .ss-smartcard.ss-lv-normal { --lv: #356CF9; } .ss-smartcard.ss-lv-low { --lv: #34C759; }
+.ss-smartcard::before { content: ""; position: absolute; inset: 0; z-index: -2; border-radius: inherit; padding: 2px; background: linear-gradient(110deg, #356CF9, #FF9800, #EDFA04, #34C759, #356CF9); background-size: 300% 100%; animation: ssSweep 6s linear infinite; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask-composite: exclude; }
+.ss-smartcard::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(420px 220px at 0% 0%, color-mix(in srgb, var(--lv) 24%, transparent), transparent 70%); }
+.ss-sc-hero { display: flex; align-items: center; gap: 18px; margin: 6px 0 12px; }
+.ss-ring { --p: 0; flex: none; width: 92px; height: 92px; border-radius: 50%; display: grid; place-content: center; text-align: center; background: conic-gradient(var(--lv) calc(var(--p) * 1%), color-mix(in srgb, var(--p-ink) 14%, transparent) 0); position: relative; box-shadow: 0 0 26px color-mix(in srgb, var(--lv) 38%, transparent); }
+.ss-ring::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--p-surface); }
+.ss-ring b, .ss-ring small { position: relative; line-height: 1; }
+.ss-ring b { font: 800 30px Urbanist, sans-serif; font-variant-numeric: tabular-nums; color: var(--p-ink); }
+.ss-ring small { font: 700 11px Inter, sans-serif; color: var(--p-muted); margin-top: 3px; }
+.ss-lvbox { display: grid; gap: 3px; min-width: 0; }
+.ss-lvword { font: 800 34px/1 Urbanist, sans-serif; letter-spacing: -.02em; color: var(--lv); text-shadow: 0 0 22px color-mix(in srgb, var(--lv) 40%, transparent); }
+.ss-lvsub { color: var(--p-muted); font: 600 13px Urbanist, sans-serif; }
+.ss-lvset { justify-self: start; margin-top: 4px; padding: 2px 10px; border-radius: 99px; background: color-mix(in srgb, var(--p-orange) 18%, transparent); color: #B36B00; font: 700 11.5px Urbanist, sans-serif; }
+:root[data-theme="dark"] .ss-lvset { color: #FFB454; }
+.ss-sc-head:not(:has(*)) { display: none; }
+.ss-smartcard .ss-reasons li { position: relative; overflow: hidden; z-index: 0; border-color: color-mix(in srgb, var(--lv) 22%, var(--p-line)); }
+.ss-smartcard .ss-reasons li::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--w, 0%); z-index: -1; background: linear-gradient(90deg, color-mix(in srgb, var(--lv) 34%, transparent), color-mix(in srgb, var(--lv) 6%, transparent)); border-radius: inherit; }
+.ss-smartcard .ss-reasons b { color: var(--p-ink); font-weight: 800; }
+.ss-smartcard .ss-head--card .p-eyebrow { color: var(--p-ink-2); letter-spacing: .12em; }
+@media (prefers-reduced-motion: reduce) { .ss-smartcard::before { animation: none; } }
