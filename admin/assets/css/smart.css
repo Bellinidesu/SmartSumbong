@@ -1010,3 +1010,13 @@
 .bd-scope a.p-on b { color: #2B1A00; }
 @media (prefers-reduced-transparency: reduce) { .bd-col, .bd-bar { -webkit-backdrop-filter: none; backdrop-filter: none; } .bd-col { background: #1C2127; } }
 @media (prefers-reduced-motion: reduce) { .bd-card:hover, .bd-card.is-drag { transform: none; } }
+
+/* Case Reports: saved views above the table (Ace, 16 Oct), the layout otherwise untouched */
+.ss-views { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.ss-view { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--p-line-2); background: var(--p-surface); color: var(--p-ink); font: 700 13px Urbanist, sans-serif; text-decoration: none; transition: border-color .15s, background-color .15s; }
+.ss-view b { font: 700 11.5px Inter, sans-serif; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted); }
+.ss-view:hover { border-color: var(--p-orange); }
+.ss-view.on { background: var(--p-orange); border-color: transparent; color: #2B1A00; box-shadow: 0 4px 12px rgba(255,152,0,.28); }
+.ss-view.on b { background: rgba(255,255,255,.55); color: #2B1A00; }
+.ss-view.ss-clear { background: transparent; border-style: dashed; color: var(--p-muted); }
+.ss-view.ss-clear:hover { color: var(--p-ink); }

@@ -251,7 +251,7 @@ try {
         $sel['reports'] = ['reports', $query];
         $sel['admins']  = ['users', ['select' => 'id,full_name', 'role' => 'eq.admin', 'order' => 'full_name.asc'], true];
         // the chip counts what needs attention across ALL open cases, not only this page
-        $sel['open']    = ['reports', ['select' => 'status,due_at,followed_up_at,resolution_submitted_at,awaiting_unit_since', 'deleted_at' => 'is.null',
+        $sel['open']    = ['reports', ['select' => 'status,due_at,followed_up_at,resolution_submitted_at,awaiting_unit_since,handler_id', 'deleted_at' => 'is.null',
                                        'status' => 'in.(' . implode(',', OPEN_STATES) . ')', 'limit' => '500'], true];
     } elseif ($tab === 'notes') {
         $nq['limit']  = (string) PER_PAGE;
@@ -495,7 +495,7 @@ $noteBadge = $notesUnread + $escCount;
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Handled by', 'Hawak ni')) ?></span>
       <select name="who" data-autosubmit>
         <option value=""><?= e(t('Anyone', 'Kahit sino')) ?></option>
-        <option value="unclaimed" <?= $who === 'unclaimed' ? 'selected' : '' ?>><?= e(t('Nobody yet', 'Wala pa')) ?></option>
+        <option value="unclaimed" <?= $who === 'unclaimed' ? 'selected' : '' ?>><?= e(t('Assigned to nobody', 'Walang hawak')) ?></option>
         <?php foreach ($adminList as $ad): ?>
           <option value="<?= e($ad['id']) ?>" <?= $who === $ad['id'] ? 'selected' : '' ?>><?= e($ad['id'] === $admin['id'] ? t('You', 'Ikaw') : display_name($ad['full_name'])) ?></option>
         <?php endforeach; ?>
@@ -523,6 +523,28 @@ $noteBadge = $notesUnread + $escCount;
         <?php endforeach; ?>
       </select></label>
   </form>
+</div>
+
+<?php
+// Saved views (Ace, 16 Oct): one tap sets the filters an admin reaches for most; counts are over all open cases.
+$vOpen = fn(array $r) => !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true);
+$vMine = count(array_filter($openRows ?? [], fn($r) => ($r['handler_id'] ?? null) === $admin['id']));
+$vFree = count(array_filter($openRows ?? [], fn($r) => empty($r['handler_id'])));
+$vLate = count(array_filter($openRows ?? [], fn($r) => $vOpen($r) && !empty($r['due_at']) && strtotime($r['due_at']) < time()));
+$vBase = array_filter(['q' => $search]);
+$vDefs = [
+  ['attention', t('Needs attention', 'Kailangang asikasuhin'), $atc, array_merge($vBase, ['view' => 'attention']), $view === 'attention'],
+  ['mine',      t('Assigned to me', 'Hawak ko'),               $vMine, array_merge($vBase, ['who' => $admin['id']]), $who === $admin['id'] && $view !== 'attention'],
+  ['free',      t('Unassigned', 'Walang hawak'),               $vFree, array_merge($vBase, ['who' => 'unclaimed']), $who === 'unclaimed' && $view !== 'attention'],
+  ['late',      t('Overdue', 'Lampas-oras'),                   $vLate, array_merge($vBase, ['status' => 'overdue']), $filter === 'overdue' && $view !== 'attention'],
+];
+$vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $month !== '' || $tanod !== '' || $search !== '';
+?>
+<div class="ss-views" role="group" aria-label="<?= e(t('Saved views', 'Mga naka-save na tanaw')) ?>">
+  <?php foreach ($vDefs as [$vk, $vl, $vn, $vq, $von]): ?>
+    <a class="ss-view<?= $von ? ' on' : '' ?>" data-view="<?= e($vk) ?>" href="?<?= e(http_build_query($vq)) ?>"<?= $von ? ' aria-current="true"' : '' ?>><?= e($vl) ?> <b><?= (int) $vn ?></b></a>
+  <?php endforeach; ?>
+  <?php if ($vAny): ?><a class="ss-view ss-clear" href="cases.php?clear=1"><?= e(t('Clear filters', 'I-clear ang mga filter')) ?></a><?php endif; ?>
 </div>
 
 <div class="p-card p-table-card"><div class="p-tscroll">
