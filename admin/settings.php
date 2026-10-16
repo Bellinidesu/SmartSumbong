@@ -784,7 +784,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     cards.push(card('Supabase', P.supabase,
       sb ? meter(T('Database', 'Database'), mb(sb.db_bytes) + ' ' + T('of', 'sa') + ' 500 MB', sb.db_bytes / 524288000 * 100)
          + meter(T('File storage', 'Imbakan'), mb(sb.storage_bytes) + ' ' + T('of', 'sa') + ' 1 GB', sb.storage_bytes / 1073741824 * 100)
-         + meter(T('Active users this month', 'Aktibong user ngayong buwan'), Number(sb.active_users).toLocaleString() + ' ' + T('of', 'sa') + ' 50,000', sb.active_users / 50000 * 100)
+         + meter(T('Active users this month', 'Aktibong user ngayong buwan'), Number(sb.active_users || 0).toLocaleString() + ' ' + T('of', 'sa') + ' 50,000', (sb.active_users || 0) / 50000 * 100)
          : '<p class="st-note">' + esc(T('Database size and active users need the system_usage function (migration 0078).', 'Kailangan ang migration 0078.')) + '</p>',
       esc(T('Free projects pause after a week with no activity. Data sent out is shown only in Supabase’s dashboard.', 'Humihinto ang libreng proyekto pagkalipas ng isang linggong walang aktibidad.')),
       esc(resets) + ' · ' + esc(T('limits shown are the Free plan’s', 'limitasyon ng Free plan'))));

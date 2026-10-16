@@ -276,6 +276,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       </select></label>
     <button class="p-btn p-btn-primary p-btn-sm" style="height:36px" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
   </form>
+  <span class="p-break" aria-hidden="true"></span>
   <span class="p-chips-q">
     <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
       <a class="p-chip<?= $range === $key ? ' p-on' : '' ?>" href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>"><?= e($lbl) ?></a>
