@@ -100,3 +100,10 @@
 :root:not([data-theme="dark"]) .cs-acts .ac-copy:hover span { background: linear-gradient(325deg, var(--cs-hi), var(--cs-lo)); }
 /* while the map is moving the other panels switch to a plain fill (flair.css); the engine drawer keeps its navy instead of turning clear */
 :root:not([data-theme="dark"]) #s-spatial.ss-dragging #smart-side { background: linear-gradient(145deg,#1B2342,#0E1428) !important; }
+/* the case sheet and the safe-point sheet by day: the colour is a solid (no glossy gradient, no glow), the lift is the shadow */
+:root:not([data-theme="dark"]) .cs-sheet .cs-hero { background: var(--cs); }
+:root:not([data-theme="dark"]) .cs-sheet .cs-hero.has-photo { background: #E9ECF4; }
+:root:not([data-theme="dark"]) .cs-sheet .cs-acts > * span { background: var(--cs); }
+:root:not([data-theme="dark"]) .cs-sheet .cs-acts .ac-look span { background: none; }
+:root:not([data-theme="dark"]) .cs-sheet .cs-foot .p-btn-primary { box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 1px 3px 1px rgba(20,27,52,.14); }
+:root:not([data-theme="dark"]) .cs-sheet .cs-foot .p-btn-primary:hover { box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 2px 6px 2px rgba(20,27,52,.18); transform: translateY(-1px); }
