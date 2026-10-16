@@ -31,15 +31,15 @@
     map.addSource('smart-rings', { type: 'geojson', data: EMPTY });
     map.addSource('smart-focus', { type: 'geojson', data: EMPTY });
     map.addLayer({ id: 'smart-rings', type: 'circle', source: 'smart-rings', layout: { visibility: 'none' },
-      paint: { 'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 15, 14, 18, 110], 'circle-color': '#6A4FD3', 'circle-opacity': .12,
-               'circle-stroke-color': '#6A4FD3', 'circle-stroke-width': 3, 'circle-stroke-opacity': .85 } }, before);
+      paint: { 'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 15, 14, 18, 110], 'circle-color': '#6A4FD3', 'circle-opacity': .07,
+               'circle-stroke-color': '#6A4FD3', 'circle-stroke-width': 2, 'circle-stroke-opacity': .55 } }, before);
     map.addLayer({ id: 'smart-halo', type: 'circle', source: 'smart-halo', layout: { visibility: 'none' },
-      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 15, 18, 25], 'circle-color': ['get', 'c'], 'circle-opacity': .38,
-               'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 3, 'circle-stroke-opacity': .95, 'circle-translate': [0, -12] } }, before);
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 12.5, 16, 14.5, 18, 18], 'circle-color': 'rgba(0,0,0,0)', 'circle-opacity': 0,
+               'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 3, 'circle-stroke-opacity': .95 } }, before);
     map.addLayer({ id: 'smart-late', type: 'circle', source: 'smart-late', layout: { visibility: 'none' },
-      paint: { 'circle-radius': 18, 'circle-color': 'rgba(229,56,59,0)', 'circle-stroke-color': '#E5383B', 'circle-stroke-width': 3, 'circle-stroke-opacity': .8, 'circle-translate': [0, -12] } }, before);
+      paint: { 'circle-radius': 14, 'circle-color': 'rgba(229,56,59,0)', 'circle-stroke-color': '#E5383B', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': .8 } }, before);
     map.addLayer({ id: 'smart-focus', type: 'circle', source: 'smart-focus',
-      paint: { 'circle-radius': 30, 'circle-color': 'rgba(255,152,0,.18)', 'circle-stroke-color': '#FF9800', 'circle-stroke-width': 3, 'circle-stroke-opacity': .95, 'circle-translate': [0, -12] } });
+      paint: { 'circle-radius': 22, 'circle-color': 'rgba(255,152,0,.14)', 'circle-stroke-color': '#FF9800', 'circle-stroke-width': 3, 'circle-stroke-opacity': .95 } });
     var rings = (D.recur || []).map(function (r) { return pt(r.lng, r.lat); });
     map.getSource('smart-rings').setData({ type: 'FeatureCollection', features: rings });
   }
@@ -78,7 +78,7 @@
     (function tick(t) {
       if (!on.late || !map.getLayer('smart-late')) { pulse = null; return; }
       var k = (t % 1800) / 1800;
-      map.setPaintProperty('smart-late', 'circle-radius', 14 + 22 * k);
+      map.setPaintProperty('smart-late', 'circle-radius', 14 + 14 * k);
       map.setPaintProperty('smart-late', 'circle-stroke-opacity', .85 * (1 - k) * zf);
       pulse = requestAnimationFrame(tick);
     })(performance.now());
@@ -86,7 +86,7 @@
   function stopPulse() {
     if (pulse) cancelAnimationFrame(pulse);
     pulse = null;
-    if (map.getLayer('smart-late')) { map.setPaintProperty('smart-late', 'circle-radius', 18); map.setPaintProperty('smart-late', 'circle-stroke-opacity', .8); }
+    if (map.getLayer('smart-late')) { map.setPaintProperty('smart-late', 'circle-radius', 14); map.setPaintProperty('smart-late', 'circle-stroke-opacity', .8); }
   }
 
   var OPEN_NOW = function (r) { return OPENS.indexOf(r.status) >= 0; };
@@ -143,15 +143,7 @@
   }
 
   function clearBadges() { badges.forEach(function (m) { m.remove(); }); badges = []; }
-  function placeBadges() {
-    clearBadges();
-    if (side.hasAttribute('hidden') || typeof maplibregl === 'undefined') return;
-    ranked.slice(0, showAll ? 12 : 5).forEach(function (x, i) {
-      var el = document.createElement('div'); el.className = 'sq-badge'; el.style.setProperty('--c', COL[x.lv] || COL.low); el.textContent = String(i + 1);
-      el.dataset.id = x.r.id; el.classList.toggle('off', !!(vis && !vis[x.r.id]) || zooming);
-      badges.push(new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -34] }).setLngLat([+x.r.longitude, +x.r.latitude]).addTo(map));
-    });
-  }
+  function placeBadges() { clearBadges(); }   // no numbers on the map: hovering a case in the list rings its pin
   function focusPin(r) {
     ensureLayers();
     var src = map.getSource('smart-focus'); if (!src) return;
@@ -174,7 +166,7 @@
   function fade(k) {
     zf = k;
     var set = function (id, prop, v) { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); };
-    [['smart-halo', 'circle-opacity', .38], ['smart-halo', 'circle-stroke-opacity', .95], ['smart-rings', 'circle-opacity', .12], ['smart-rings', 'circle-stroke-opacity', .85]].forEach(function (a) { set(a[0], a[1], a[2] * k); });
+    [['smart-halo', 'circle-stroke-opacity', .95], ['smart-rings', 'circle-opacity', .07], ['smart-rings', 'circle-stroke-opacity', .55]].forEach(function (a) { set(a[0], a[1], a[2] * k); });
     if (!on.late || k === 0) set('smart-late', 'circle-stroke-opacity', k ? .8 : 0);
     badges.forEach(function (m) { var el = m.getElement(); el.classList.toggle('off', k === 0 || !!(vis && !vis[el.dataset.id])); });
     Object.keys(pills).forEach(function (id) { pills[id].marker.getElement().classList.toggle('off', k === 0); });
@@ -191,10 +183,11 @@
       var f = want[id], n = f.properties.point_count, w = n < 10 ? 50 : n < 50 ? 64 : 82;
       var put = function (info) {
         if (!info || pills[id] || !info.hot) return;
-        var el = document.createElement('div'); el.className = 'sq-cpill' + (info.late ? ' late' : '') + (zf ? '' : ' off'); el.style.setProperty('--c', COL[info.worst]);
-        el.innerHTML = '<b>' + info.hot + '</b><span>' + esc(tr(info.worst === 'urgent' ? 'urgent' : 'high', info.worst === 'urgent' ? 'madalian' : 'mataas')) + '</span>';
+        var el = document.createElement('div'); el.className = 'sq-cdot' + (info.late ? ' late' : '') + (zf ? '' : ' off'); el.style.setProperty('--c', COL[info.worst]);
+        el.textContent = String(info.hot);
         el.title = tr(info.hot + ' ' + info.worst + ' case' + (info.hot === 1 ? '' : 's') + ' in here. Zoom in to see them.', info.hot + ' ' + (info.worst === 'urgent' ? 'madalian' : 'mataas') + ' na kaso dito. Mag-zoom para makita.');
-        pills[id] = { marker: new maplibregl.Marker({ element: el, anchor: 'bottom-left', offset: [Math.round(w * .30), -Math.round(w * .30)] }).setLngLat(f.geometry.coordinates).addTo(map) };
+        var rim = Math.round(w / 2 * 0.72);
+        pills[id] = { marker: new maplibregl.Marker({ element: el, anchor: 'center', offset: [rim, -rim] }).setLngLat(f.geometry.coordinates).addTo(map) };
       };
       var key = id + ':' + n;
       if (leafCache[key]) { put(leafCache[key]); return; }
