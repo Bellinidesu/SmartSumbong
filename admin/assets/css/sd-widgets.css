@@ -160,6 +160,14 @@
 .ss-onmap span { display: flex; align-items: center; gap: 8px; font: 600 12px/1.35 Inter, sans-serif; color: #E3E6EB; } .ss-onmap i { width: 11px; height: 11px; border-radius: 50%; flex: none; }
 #s-spatial #smart-side .ss-also { margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.12); }
 /* the numbers worn by the top cases on the map while the drawer is open */
-.sq-badge { width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #fff; border: 2px solid #fff; display: grid; place-items: center; font: 800 11px Inter, sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.4); pointer-events: none; animation: sqIn .35s ease-out both; }
+.sq-badge { width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #fff; border: 2px solid #fff; display: grid; place-items: center; font: 800 11px Inter, sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,.4); pointer-events: none; animation: sqIn .35s ease-out backwards; transition: opacity .25s; }
 @keyframes sqIn { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .sq-badge { animation: none; } .sq-row { transition: none; } }
+
+.sq-badge.off { opacity: 0; }
+/* a cluster carries the mark of the cases folded into it: a small pill, its colour the worst level inside */
+.sq-cpill { display: grid; justify-items: center; min-width: 40px; padding: 3px 9px 4px; border-radius: 12px; background: var(--c); color: #fff; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); line-height: 1.05; pointer-events: auto; cursor: default; transition: opacity .25s; animation: sqIn .3s ease-out backwards; }
+.sq-cpill b { font: 800 14px Inter, sans-serif; font-variant-numeric: tabular-nums; } .sq-cpill span { font: 800 9px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; opacity: .95; }
+.sq-cpill.late { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 35%, transparent), 0 2px 8px rgba(0,0,0,.4); }
+.sq-cpill.off { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .sq-badge, .sq-cpill { transition: none; animation: none; } }
