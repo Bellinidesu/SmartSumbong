@@ -1569,7 +1569,7 @@ function mapDrawer(which) {
   if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
   if (which !== 'smart' && window.sdSmart) { sdSmart.close(); }
   if (which !== 'legend') { document.getElementById('map-legend').hidden = true; document.getElementById('legend-toggle').setAttribute('aria-expanded', 'false'); }
-  if (which !== 'flood') { document.getElementById('fw-card').hidden = true; document.getElementById('fw-chip').setAttribute('aria-expanded', 'false'); }
+  if (which !== 'flood') { document.getElementById('fw-card').hidden = true; document.getElementById('fw-chip').setAttribute('aria-expanded', 'false'); fwFold(false); }
 }
 document.getElementById('legend-toggle').addEventListener('click', () => {
   const lg = document.getElementById('map-legend'), open = lg.hidden;
