@@ -1130,8 +1130,9 @@
 .ss-stack .ss-av[data-r] { margin-right: 3px; }
 
 /* The ring on the sidebar card and the profile photo too: an outline with a gap, so it sits right on the orange active card and on the dark one */
-.p-side-user .p-avatar[data-r], .ss-pf-av[data-r] { box-shadow: none; outline: 3px solid var(--ring, #64748B); outline-offset: 2px; }
-.ss-pf-av[data-r] { outline-width: 4px; outline-offset: 3px; }
+.p-side-user .p-avatar[data-r], .ss-pf-av[data-r] { outline: 2.5px solid var(--ring, #64748B); outline-offset: 2px; box-shadow: 0 0 0 7px color-mix(in srgb, var(--ring, #64748B) 16%, transparent), 0 6px 14px color-mix(in srgb, var(--ring, #64748B) 32%, transparent); }
+.ss-pf-av[data-r] { outline-width: 3.5px; outline-offset: 3px; background-clip: padding-box; box-shadow: 0 0 0 3px var(--p-surface, #fff), 0 0 0 11px color-mix(in srgb, var(--ring, #64748B) 14%, transparent), 0 8px 20px color-mix(in srgb, var(--ring, #64748B) 30%, transparent); }
+.p-side-user .p-avatar[data-r] { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ring, #64748B) 22%, transparent); }
 .p-avatar[data-r="staff"], .ss-pf-av[data-r="staff"] { --ring: var(--rk-staff, #64748B); }
 .p-avatar[data-r="kagawad"], .ss-pf-av[data-r="kagawad"] { --ring: var(--rk-kagawad, #6A4FD3); }
 .p-avatar[data-r="chair"], .ss-pf-av[data-r="chair"] { --ring: var(--rk-gold, #D4A017); }
