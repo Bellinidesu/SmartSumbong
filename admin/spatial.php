@@ -1635,13 +1635,28 @@ const AQ_BANDS = [[50, 'Good', 'Mabuti', '#34C759'], [100, 'Moderate', 'Katamtam
                   [200, 'Unhealthy', 'Hindi mabuti', '#E5383B'], [300, 'Very unhealthy', 'Napakasama', '#8E3FD6'], [1e9, 'Hazardous', 'Mapanganib', '#7E0023']];
 const aqBand = v => AQ_BANDS.find(b => v <= b[0]);
 
+// The safe points are the complaint pins' twin: the same bead (a soft gradient, a bright rim, a highlight, a shadow by day or a glow by night) and the same size,
+// but a squircle, so a place you go to never reads as a complaint. Redrawn when the theme changes, as the pins are.
+function safeTile(d, dark) {
+  const fill = d.c;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="-22 -22 44 44"><defs>' +
+    '<linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + fill + '" stop-opacity="1"/><stop offset=".55" stop-color="' + fill + '" stop-opacity="' + (dark ? .86 : .78) + '"/><stop offset="1" stop-color="' + fill + '" stop-opacity=".96"/></linearGradient>' +
+    '<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>' +
+    '<radialGradient id="h" cx=".3" cy=".2" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+    '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.8 : 1.8) + '" flood-color="' + (dark ? fill : '#000') + '" flood-opacity="' + (dark ? .9 : .4) + '"/></filter>' +
+    '<clipPath id="c"><rect x="-14.5" y="-14.5" width="29" height="29" rx="9.5"/></clipPath></defs>' +
+    '<g filter="url(#s)"><rect x="-14.5" y="-14.5" width="29" height="29" rx="9.5" fill="url(#a)"/><rect x="-14.5" y="-14.5" width="29" height="29" rx="9.5" fill="url(#h)" clip-path="url(#c)"/>' +
+    '<rect x="-13.7" y="-13.7" width="27.4" height="27.4" rx="8.8" fill="none" stroke="url(#r)" stroke-width="1.6"/>' +
+    '<g transform="translate(-8.5 -8.5) scale(.71)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + d.g + '</g></g></svg>';
+}
 function layerSafeImages() {
+  const dark = isDark();
   return Promise.all(Object.entries(SAFE_KINDS).map(([k, d]) => {
-    if (map.hasImage('safe-' + k)) return null;
-    return addSvgImage('safe-' + k, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-17 -17 34 34"><rect x="-14" y="-14" width="28" height="28" rx="9" fill="' + d.c + '" stroke="#fff" stroke-width="2.6"/>' +
-      '<g transform="translate(-9 -9) scale(.75)" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' + d.g + '</g></svg>');
+    if (map.hasImage('safe-' + k)) map.removeImage('safe-' + k);
+    return addSvgImage('safe-' + k, safeTile(d, dark));
   }));
 }
+window.addEventListener('themechange', () => { if (map.getLayer('safe')) layerSafeImages(); });
 function layerBox() { const [[w, s], [e, n]] = AREA; return [w, s, e, n].map(v => v.toFixed(3)).join(','); }
 async function layerLoad(k) {
   if (LAYER_DATA[k]) return LAYER_DATA[k];
@@ -1680,15 +1695,18 @@ async function layerDraw(k) {
   } else if (k === 'transit') {
     if (LAYER.transit && !map.getSource('transit')) {
       const d = await layerLoad('transit'); if (!d) return;
-      const refs = [...new Set(d.features.filter(f => f.properties.k === 'route').map(f => f.properties.ref || f.properties.name))];
-      d.features.forEach(f => { if (f.properties.k === 'route') f.properties.c = ROUTE_COLOURS[refs.indexOf(f.properties.ref || f.properties.name) % ROUTE_COLOURS.length]; });
+      // A road is drawn once however many routes use it: its colour says rail or road, its weight how many routes share it.
+      d.features.forEach(f => { if (f.properties.k === 'route') f.properties.c = f.properties.mode === 'rail' ? '#356CF9' : (f.properties.n >= 8 ? '#E5383B' : f.properties.n >= 4 ? '#FF9800' : f.properties.n >= 2 ? '#F2C230' : '#2E9E4F'); });
       map.addSource('transit', { type: 'geojson', data: d });
       map.addLayer({ id: 'transit-glow', type: 'line', source: 'transit', filter: ['==', ['get', 'k'], 'route'], layout: { 'line-cap': 'round' },
                      paint: { 'line-color': ['get', 'c'], 'line-width': 12, 'line-blur': 8, 'line-opacity': 0 } }, layerBefore());
       map.addLayer({ id: 'transit-case', type: 'line', source: 'transit', filter: ['==', ['get', 'k'], 'route'], layout: { 'line-cap': 'round', 'line-join': 'round' },
                      paint: { 'line-color': '#fff', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 6, 18, 11], 'line-opacity': .9 } }, layerBefore());
       map.addLayer({ id: 'transit-line', type: 'line', source: 'transit', filter: ['==', ['get', 'k'], 'route'], layout: { 'line-cap': 'round', 'line-join': 'round' },
-                     paint: { 'line-color': ['get', 'c'], 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 3.4, 18, 7] } }, layerBefore());
+                     paint: { 'line-color': ['get', 'c'], 'line-width': ['interpolate', ['linear'], ['zoom'], 15, ['+', 2.2, ['min', 3, ['*', .35, ['get', 'n']]]], 18, ['+', 4.5, ['min', 5, ['*', .6, ['get', 'n']]]]] } }, layerBefore());
+      map.on('mouseenter', 'transit-line', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'transit-line', () => { map.getCanvas().style.cursor = ''; });
+      map.on('click', 'transit-line', e => { const p = e.features[0].properties; new maplibregl.Popup({ closeButton: false, maxWidth: '260px' }).setLngLat(e.lngLat).setHTML('<b>' + p.n + T(p.n === 1 ? ' route' : ' routes', p.n === 1 ? ' ruta' : ' ruta') + '</b><br><small>' + esc(p.refs) + '</small>').addTo(map); });
       map.addLayer({ id: 'transit-stops', type: 'circle', source: 'transit', filter: ['==', ['get', 'k'], 'stop'],
                      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 3.5, 18, 6.5], 'circle-color': '#fff', 'circle-stroke-color': '#00308F', 'circle-stroke-width': 2.4 } }, layerBefore());
     }
@@ -1701,7 +1719,7 @@ async function layerDraw(k) {
       d.features.forEach(f => { f.properties.icon = 'safe-' + f.properties.k; });
       map.addSource('safe', { type: 'geojson', data: d });
       map.addLayer({ id: 'safe', type: 'symbol', source: 'safe', layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
-        'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .5, 18, .8] } }, layerBefore());
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 15, .62, 16, .74, 18, .95] } }, layerBefore());
       map.on('mouseenter', 'safe', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'safe', () => { map.getCanvas().style.cursor = ''; });
       map.on('click', 'safe', e => safeSheet(e.features[0]));
@@ -1819,9 +1837,10 @@ function layerInfo() {
   if (LAYER.transit) {
     const d = LAYER_DATA.transit;
     h += !d ? '<div class="lyc">' + (LAYER_ERR.transit ? T('Transit could not be loaded from OpenStreetMap.', 'Hindi ma-load ang transit mula sa OpenStreetMap.') : T('Loading routes…', 'Nilo-load ang mga ruta…')) + '</div>' : (() => {
-      const seen = new Map(); d.features.filter(f => f.properties.k === 'route').forEach(f => { const key = f.properties.ref || f.properties.name; if (!seen.has(key)) seen.set(key, f.properties); });
-      const stops = d.features.filter(f => f.properties.k === 'stop').length, list = [...seen.values()];
-      return '<div class="lyc tr"><b>' + T('Public transport', 'Pampublikong sasakyan') + '</b>' + (list.length ? list.slice(0, 6).map(p => '<div class="tr-r"><i style="background:' + ROUTE_COLOURS[[...seen.keys()].indexOf(p.ref || p.name) % ROUTE_COLOURS.length] + '"></i><span>' + esc(p.ref || p.name) + '</span><small>' + esc(p.mode) + '</small></div>').join('') + (list.length > 6 ? '<small>+ ' + (list.length - 6) + T(' more routes', ' pang ruta') + '</small>' : '')
+      const roads = d.features.filter(f => f.properties.k === 'route'), stops = d.features.filter(f => f.properties.k === 'stop').length;
+      const key = [['#2E9E4F', 'One route', 'Isang ruta'], ['#F2C230', '2 to 3 routes', '2 hanggang 3 ruta'], ['#FF9800', '4 to 7 routes', '4 hanggang 7 ruta'], ['#E5383B', '8 or more routes', '8 o higit pang ruta'], ['#356CF9', 'Rail', 'Riles']];
+      return '<div class="lyc tr"><b>' + T('Public transport', 'Pampublikong sasakyan') + '</b>' + (roads.length
+        ? '<small>' + T('Each road is drawn once. Its colour is how many routes use it.', 'Isang beses iginuhit ang bawat kalsada. Ang kulay ay kung ilang ruta ang dumadaan.') + '</small>' + key.map(k => '<div class="tr-r"><i style="background:' + k[0] + '"></i><span>' + esc(T(k[1], k[2])) + '</span></div>').join('') + '<small>' + T('Press a road to see which routes use it.', 'Pindutin ang kalsada para makita ang mga ruta.') + '</small>'
         : '<small>' + T('OpenStreetMap has no routes mapped here yet.', 'Wala pang naka-map na ruta dito sa OpenStreetMap.') + '</small>') + '<small>' + stops + T(' stops · OpenStreetMap', ' hintuan · OpenStreetMap') + '</small></div>';
     })();
   }

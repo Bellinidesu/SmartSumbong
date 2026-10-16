@@ -41,6 +41,15 @@ if ($e <= $w || $n <= $s || ($e - $w) > 0.06 || ($n - $s) > 0.06 || $w < 116 || 
     exit;
 }
 
+// The jeepney and bus routes through the barangay are served from a file in the portal (assets/data/transit-b183.json, built by tools/build_transit.py):
+// the public Overpass servers are often down or too slow, and the full answer is over 12 MB, so a live call left the layer empty. The file is
+// every route's road once, with the routes that use it (a few hundred lines, 13 KB zipped). The live query below stays as the fallback.
+if ($kind === 'transit' && is_file(__DIR__ . '/assets/data/transit-b183.json')) {
+    header('Cache-Control: private, max-age=86400');
+    readfile(__DIR__ . '/assets/data/transit-b183.json');
+    exit;
+}
+
 $cache = sys_get_temp_dir() . '/ss-layer-' . md5("v2|$kind|$w|$s|$e|$n") . '.json';
 $fresh = is_file($cache) && filemtime($cache) > time() - 7 * 86400;
 if ($fresh) {
