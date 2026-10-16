@@ -41,10 +41,22 @@
 .fwx-nd { justify-self: start; color: #00308F; font: 700 12px Inter, sans-serif; text-decoration: none; } .fwx-nd:hover { text-decoration: underline; }
 :root[data-theme="dark"] .fwx-nd, :root[data-theme="dark"] .fwx-iss a { color: #A9C5FF; }
 @media (prefers-reduced-motion: reduce) { .fwx-pill.pulse i { animation: none; } }
-/* The widget column sits to the left of the map's button strip (about 52 px wide, 16 px from the edge), so the two never overlap at any height. */
-@media (min-width: 981px) { #s-spatial .fw { right: 84px; } }
+/* The map's button strip folds into a pill along the foot of the map while the widgets are open (fwFold in spatial.php). */
 /* On a calm day the Typhoon watch is one line, not a card of its own height. */
 #fw-card .fwt.calm { gap: 6px; padding: 12px 16px; }
 #fw-card .fwt.calm .fwx-sig, #fw-card .fwt.calm .fwx-ax, #fw-card .fwt.calm .fwx-src { display: none; }
 #fw-card .fwt.calm .fwx-top2 { align-items: center; } #fw-card .fwt.calm .fwx-big { font-size: 17px; } #fw-card .fwt.calm .fwx-sub { font-size: 12px; }
 #fw-card .fwt.calm .fwx-nd { font-size: 11.5px; }
+
+@media (min-width: 981px) {
+  #s-spatial.fw-fold .p-map-dock { right: 72px; bottom: 16px; display: flex; flex-direction: row; align-items: center; gap: 2px; padding: 6px; border-radius: 20px;
+    background: var(--p-surface); box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); border: 0; }
+  :root[data-theme="dark"] #s-spatial.fw-fold .p-map-dock { background: rgba(22,28,52,.72); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  #s-spatial.fw-fold .p-map-dock .p-dock-btn { width: 40px; height: 40px; border-radius: 13px; }
+  #s-spatial.fw-fold .p-map-dock .p-dock-btn:not(.ss-dock) { animation: none; border-color: transparent; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  #s-spatial.fw-fold .p-map-dock .p-dock-btn:not(.ss-dock):hover { background: color-mix(in srgb, var(--p-ink) 9%, transparent); }
+  #s-spatial.fw-fold .p-map-dock .p-dock-btn.on:not(.ss-dock), #s-spatial.fw-fold .p-map-dock .p-dock-btn[aria-expanded="true"]:not(.ss-dock) { background: var(--p-orange); color: #2B1A00; }
+  /* the engine's own button keeps its dark tile and glow, with a little air after it */
+  #s-spatial.fw-fold .p-map-dock .ss-dock { margin-right: 6px; }
+  #s-spatial.fw-fold .p-map-dock .p-cnt { right: -4px; top: -4px; }
+}

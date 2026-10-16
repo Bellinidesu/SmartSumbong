@@ -1587,7 +1587,27 @@ document.getElementById('fw-chip').addEventListener('click', () => {
   if (open) mapDrawer('flood');
   c.hidden = !open;
   document.getElementById('fw-chip').setAttribute('aria-expanded', String(open));
+  fwFold(open);
 });
+// While the widgets are open the map's button strip folds into one pill along the foot of the map, and unfolds when they close.
+// Each button glides from where it was to where it lands (a FLIP animation), one after another.
+function fwFold(on) {
+  const sec = document.getElementById('s-spatial'), dock = document.querySelector('#s-spatial .p-map-dock');
+  if (!sec || !dock) return;
+  const wide = window.matchMedia('(min-width: 981px)').matches;
+  if (on && !wide) return;
+  if (sec.classList.contains('fw-fold') === !!on) return;
+  const kids = [...dock.children], before = kids.map(k => k.getBoundingClientRect());
+  sec.classList.toggle('fw-fold', !!on);
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  kids.forEach((k, i) => {
+    const a = before[i], b = k.getBoundingClientRect();
+    if (still || !k.animate) return;
+    k.animate([{ transform: 'translate(' + (a.left - b.left) + 'px,' + (a.top - b.top) + 'px)' }, { transform: 'none' }],
+      { duration: 520, delay: (on ? i : kids.length - 1 - i) * 32, easing: 'cubic-bezier(.2,1,.3,1)', fill: 'backwards' });
+  });
+}
+window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 981px)').matches) fwFold(false); });
 
 // ---- Map layers (Bellinist phase 4, 9 Oct 2026) -------------------------
 // Air quality (Open-Meteo), safe points and public transport (OpenStreetMap,
