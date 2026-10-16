@@ -191,7 +191,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
        PAGASA's rainfall warnings, with Project NOAH's flood zones. -->
   <div class="fw" id="fw">
     <button type="button" class="fw-chip" id="fw-chip" aria-expanded="false" aria-controls="fw-card"><span class="fw-dot"></span><span class="fw-txt"><b><?= e(t('Flood watch', 'Bantay-baha')) ?></b><small id="fw-sum"><?= e(t('Connecting…', 'Kumokonekta…')) ?></small></span><svg class="fw-car" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-    <div class="fw-card" id="fw-card" hidden></div>
+    <div class="fw-card" id="fw-card" hidden role="region" aria-live="polite" aria-label="<?= e(t('Flood and typhoon watch', 'Bantay-baha at bantay-bagyo')) ?>"></div>
   </div>
 
   <div class="ss-lyr" id="ss-lyr" hidden></div>
@@ -1127,6 +1127,7 @@ async function lkFind(lng, lat) {
 function lkClose(silent) {
   const el = document.getElementById('ss-lk'); if (!el) { LK = null; return; }
   const v = LK && LK.viewer, mm = LK && LK.mm; LK = null;
+  const back = el.dataset.from && document.getElementById(el.dataset.from); if (back) setTimeout(() => back.focus({ preventScroll: true }), 0);
   try { if (v) v.remove(); } catch (e) { /* already gone */ }
   try { if (mm) mm.remove(); } catch (e) { /* already gone */ }
   if (silent) { el.remove(); return; }
@@ -1137,9 +1138,10 @@ function lkOpen(r) {
   if (!window.mapillary || !MLY) return;
   const sec = document.getElementById('s-spatial'), lng = +r.longitude, lat = +r.latitude, col = catColour(r.category);
   const here = { lng, lat }, glyph = (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff');
-  const el = document.createElement('div'); el.id = 'ss-lk'; el.className = 'ss-lk'; el.style.setProperty('--cs', col);
+  const el = document.createElement('div'); el.id = 'ss-lk'; el.className = 'ss-lk'; el.style.setProperty('--cs', col); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', T('Look around: street view of the case', 'Luminga-linga: street view ng kaso')); el.dataset.from = (document.activeElement && document.activeElement.id) || '';
   const pt = map.project([lng, lat]), cb = map.getContainer().getBoundingClientRect(), sb0 = sec.getBoundingClientRect();
-  el.style.setProperty('--ox', (pt.x + cb.left - sb0.left) + 'px'); el.style.setProperty('--oy', (pt.y + cb.top - sb0.top - 40) + 'px');
+  // the reveal grows from the case's pin; a pin off screen would leave part of the view uncovered, so the origin stays inside the screen
+  el.style.setProperty('--ox', Math.max(0, Math.min(sb0.width, pt.x + cb.left - sb0.left)) + 'px'); el.style.setProperty('--oy', Math.max(0, Math.min(sb0.height, pt.y + cb.top - sb0.top - 40)) + 'px');
   el.innerHTML =
     '<div class="lk-view" id="lk-view"></div>' +
     '<div class="lk-cmp" id="lk-cmp" hidden><div class="lk-cmp-img" id="lk-cmp-img"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></div>' +
@@ -1165,6 +1167,7 @@ function lkOpen(r) {
   sec.appendChild(el);
   LK = { el, r, here, viewer: null, ready: false, photos: [], pn: 0, raf: 0, bearing: 0, sx: 40 };
   void el.offsetWidth; el.classList.add('open');
+  setTimeout(() => { const f = el.querySelector('.lk-rnd'); if (f && LK && LK.el === el) f.focus({ preventScroll: true }); }, 60);
 
   // The resident's photos, as they arrive.
   sb.from('report_media').select('media_url').eq('report_id', r.id).limit(3).then(({ data }) => {
@@ -1575,6 +1578,7 @@ document.getElementById('smart-toggle').addEventListener('click', () => {
   if (sdSmart.isClosed()) mapDrawer('smart');
   sdSmart.toggle();
 });
+document.getElementById('fw').addEventListener('keydown', e => { const c = document.getElementById('fw-card'); if (e.key === 'Escape' && !c.hidden) { e.stopPropagation(); document.getElementById('fw-chip').click(); document.getElementById('fw-chip').focus(); } });
 document.getElementById('fw-chip').addEventListener('click', () => {
   const c = document.getElementById('fw-card'), open = c.hidden;
   if (open) mapDrawer('flood');
@@ -1603,6 +1607,17 @@ function fwFold(on) {
 window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 981px)').matches) fwFold(false); });
 
 // ---- Map layers (Bellinist phase 4, 9 Oct 2026) -------------------------
+// On a phone or tablet the portal's top bar sits above the map, so the map is the rest of the screen, not a whole screen on its own.
+(function () {
+  const sec = document.getElementById('s-spatial'); if (!sec) return;
+  const fit = () => {
+    if (innerWidth > 980 || document.fullscreenElement) { sec.style.removeProperty('height'); return; }
+    const top = sec.getBoundingClientRect().top + window.scrollY;
+    sec.style.height = Math.max(420, (window.visualViewport ? visualViewport.height : innerHeight) - top) + 'px';
+    if (window.map && map.resize) map.resize();
+  };
+  fit(); addEventListener('resize', fit); addEventListener('orientationchange', fit);
+})();
 // The air-quality and safe-points boxes hang just under the main Spatial Distribution box and ride down with it when it opens on hover.
 (function () {
   const sec = document.getElementById('s-spatial'), main = document.getElementById('map-search'), info = document.getElementById('ss-lyr-info');
@@ -2146,16 +2161,17 @@ function fwRender() {
     h += '<p class="fwx-big">' + esc(metroWarn ? metroWarn.type + (metroWarn.severity ? ' (' + metroWarn.severity + ')' : '') : T(L.en, L.fil)) + '</p>' +
       '<p class="fwx-sub">' + esc(metroWarn ? metroWarn.text : T(L.note[0], L.note[1])) + '</p>' +
       (metroWarn ? '<p class="fwx-iss">PAGASA · ' + esc(T('issued ', 'inilabas ')) + esc(hh(metroWarn.issued)) + (metroWarn.expires ? esc(T(' · valid until ', ' · hanggang ')) + esc(hh(metroWarn.expires)) : '') + (metroWarn.url ? ' · <a href="' + esc(metroWarn.url) + '" target="_blank" rel="noopener">' + esc(T('read it', 'basahin')) + '</a>' : '') + '</p>' : '') +
+      (!(src && src.pagasa_warnings) ? '<p class="fwx-iss fwx-warn">' + esc(T('PAGASA’s warnings could not be read just now, so this is from the measured rain only.', 'Hindi nabasa ang mga babala ng PAGASA ngayon, kaya sukat ng ulan lang ito.')) + '</p>' : '') +
       '<div class="fwx-kv"><div><b>' + (FW.online ? FW.mm.toFixed(1) : '—') + '</b><small>' + esc(T('mm/h now', 'mm/h ngayon')) + '</small></div><div><b>' + (lvl ? FW.risk.length : 0) + '</b><small>' + esc(T('cases at risk', 'sumbong na delikado')) + '</small></div><div><b>' + esc(haz) + '</b><small>' + esc(T('flood hazard (NOAH)', 'panganib ng baha (NOAH)')) + '</small></div></div>' +
       '<div class="fwx-ft"><span>' + esc(next) + '</span><button type="button" class="fwx-go" id="fw-zones" aria-pressed="' + flood2 + '">' + esc(flood2 ? T('Hide zones', 'Itago ang zones') : T('Show on map', 'Ipakita sa mapa')) + '</button></div>';
   }
   h += srcRow + '</section>';
   // Typhoon watch: the five PAGASA wind signals, and the cyclone when one is near
-  const cy = hz && hz.cyclone, sig = cy && cy.signal ? cy.signal : 0, gw = cy && cy.gdacs && cy.gdacs.wind;
+  const cy = hz && hz.cyclone, sig = cy && cy.signal ? cy.signal : 0, gw = cy && cy.gdacs && cy.gdacs.wind, cyKnown = !!(hz && (src.pagasa_cyclone || src.gdacs));
   h += '<section class="fwt' + (cy ? '' : ' calm') + '"><div class="fwx-h"><span class="fwx-ic cy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 2c4 0 7 3 5 6M22 12c0 4-3 7-6 5M12 22c-4 0-7-3-5-6M2 12c0-4 3-7 6-5"/></svg></span><b>' + esc(T('Typhoon watch', 'Bantay-bagyo')) + '</b>' +
     '<small>' + (hz ? (src.pagasa_cyclone ? 'PAGASA' : '') : '') + '</small></div>' +
-    '<div class="fwx-top2"><div><p class="fwx-big">' + esc(cy ? (sig ? 'Signal ' + sig : cy.name) : T('None', 'Wala')) + '</p><p class="fwx-sub">' + esc(cy ? (cy.name + (cy.kind ? ' (' + cy.kind + ')' : '') + T(', ' + cy.km + ' km ' + cy.dir + ' of here', ', ' + cy.km + ' km ' + cy.dir + ' mula rito') + (gw ? ' · ' + gw + ' km/h' : '')) : T('No tropical cyclone near the Philippines', 'Walang bagyo malapit sa Pilipinas')) + '</p></div>' +
-    '<span class="fwx-pill ' + (cy ? 'cyc pulse' : '') + '" style="--fw:' + (cy ? '#8E3FD0' : '#22c55e') + '"><i></i>' + esc(cy ? T('Near', 'Malapit') : T('Clear', 'Malinaw')) + '</span></div>' +
+    '<div class="fwx-top2"><div><p class="fwx-big">' + esc(!cyKnown ? (FW.online === null && !hz ? T('Checking…', 'Sinusuri…') : T('Unknown', 'Hindi alam')) : cy ? (sig ? 'Signal ' + sig : cy.name) : T('None', 'Wala')) + '</p><p class="fwx-sub">' + esc(!cyKnown ? (FW.online === null && !hz ? T('Reading PAGASA and GDACS…', 'Binabasa ang PAGASA at GDACS…') : T('PAGASA and GDACS could not be reached just now. Check PAGASA directly.', 'Hindi maabot ang PAGASA at GDACS ngayon. Tingnan ang PAGASA mismo.')) : cy ? (cy.name + (cy.kind ? ' (' + cy.kind + ')' : '') + T(', ' + cy.km + ' km ' + cy.dir + ' of here', ', ' + cy.km + ' km ' + cy.dir + ' mula rito') + (gw ? ' · ' + gw + ' km/h' : '')) : T('No tropical cyclone near the Philippines', 'Walang bagyo malapit sa Pilipinas')) + '</p></div>' +
+    '<span class="fwx-pill ' + (cy ? 'cyc pulse' : '') + '" style="--fw:' + (!cyKnown ? '#9AA1AB' : cy ? '#8E3FD0' : '#22c55e') + '"><i></i>' + esc(!cyKnown ? T('No data', 'Walang datos') : cy ? T('Near', 'Malapit') : T('Clear', 'Malinaw')) + '</span></div>' +
     '<div class="fwx-sig">' + [1, 2, 3, 4, 5].map(n => '<span class="' + (n === sig ? 'on' : '') + '" data-n="' + n + '">' + n + '</span>').join('') + '</div><div class="fwx-ax"><span>' + esc(T('Signal 1 · 39 km/h', 'Signal 1 · 39 km/h')) + '</span><span>' + esc(T('5 · 185+ km/h', '5 · 185+ km/h')) + '</span></div>' +
     '<div class="fwx-src"><i' + ok(src.pagasa_cyclone) + '>PAGASA</i><i' + ok(src.gdacs) + '>GDACS</i><span>' + esc(T('checked ', 'tiningnan ')) + esc(t) + '</span></div>' +
     '<a class="fwx-nd" href="https://ndrrmc.gov.ph/" target="_blank" rel="noopener">' + esc(T('Latest NDRRMC situation report', 'Pinakabagong sitrep ng NDRRMC')) + ' &rarr;</a></section>';

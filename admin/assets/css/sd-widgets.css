@@ -176,3 +176,26 @@
 /* the air-quality and safe-points boxes follow the main box: just under it, riding down when it opens (spatial.php sets their top) */
 #s-spatial .ss-lyr-info { top: 88px; transition: top .45s cubic-bezier(.2,1.1,.3,1), opacity .3s, transform .4s; }
 @media (prefers-reduced-motion: reduce) { #s-spatial .ss-lyr-info { transition: opacity .3s, transform .4s; } }
+
+/* ---- Phones and small tablets (under 700 px): everything stays on the screen, in thumb reach ---- */
+@media (max-width: 700px) {
+  #s-spatial .fw { left: 16px; right: 70px; top: auto; bottom: 100px; width: auto; display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 8px; }
+  #s-spatial #fw-card { width: 100%; max-height: max(220px, calc(100dvh - 560px)); }
+  #s-spatial .fw-chip { max-width: 100%; }
+  #s-spatial .p-map-stats.ss-drawer { left: 16px; right: 70px; width: auto; top: 96px; bottom: 152px; max-height: none; }
+  #s-spatial .p-map-dock .p-dock-btn { width: 40px; height: 40px; }
+  .ss-lk .lk-info { width: calc(100% - 32px); }
+  .ss-lk .lk-tr { left: 16px; right: 16px; top: 112px; justify-content: flex-end; }
+  .ss-lk .lk-pill:not(.or) { display: inline-flex; }
+  .ss-lk .lk-mini { width: 132px; height: 72px; bottom: 100px; }
+  .ss-lk .lk-ctl { bottom: 96px; }
+  .ss-lk .lk-layers { right: 16px; bottom: 20px; }
+  .ss-lk .lk-send { left: 16px; right: 16px; width: auto; top: 140px; bottom: auto; max-height: calc(100% - 260px); }
+  .ss-lk .lk-credit { display: none; }
+  .cs-sheet { left: 0; right: 0; width: auto; border-radius: 20px 20px 0 0; }
+}
+
+/* keyboard: every control the new work added shows where focus is */
+.sq-row:focus-visible, .ss-more:focus-visible, .fwx-go:focus-visible, .lk-link:focus-visible, .lk-pill:focus-visible, .lk-rnd:focus-visible, .lk-comp:focus-visible, .lk-zoom button:focus-visible, .lk-layers:focus-visible, .lk-exp:focus-visible, .sd-ch:has(input:focus-visible), .sd-chip:has(input:focus-visible), .sd-go2:focus-visible { outline: 3px solid var(--p-orange, #FF9800); outline-offset: 2px; }
+#s-spatial .ss-dtog button:focus-visible, #s-spatial .fw-chip:focus-visible, #s-spatial .p-dock-btn:focus-visible, #s-spatial .lyr-tile:focus-visible, #s-spatial .maplibregl-ctrl-group button:focus-visible { outline: 3px solid var(--p-orange, #FF9800); outline-offset: 2px; z-index: 2; }
+.fwx-warn { color: #8A4A00; font-weight: 700; } :root[data-theme="dark"] .fwx-warn { color: #FFB84D; }
