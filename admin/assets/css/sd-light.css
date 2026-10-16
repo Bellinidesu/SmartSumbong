@@ -51,3 +51,46 @@
 /* contrast (measured): dark text on the brand orange, a darker grey behind the counts */
 #s-spatial .p-tog.p-on, #s-spatial .p-pill-select.p-tog, #s-spatial .p-seg-mini .on, #s-spatial .on[data-w], #s-spatial .p-tl .on, #s-spatial .tl-seg button.on { color: #2B1A00; }
 #s-spatial .p-cnt { background: #6B7280; color: #fff; }
+/* Pins and clusters by day: solid discs lifted off the map by layered shadows (the glow is for the night map) */
+:root:not([data-theme="dark"]) .dm svg { filter: drop-shadow(0 1px 1px rgba(20,27,52,.40)) drop-shadow(0 3px 4px rgba(20,27,52,.24)); }
+:root:not([data-theme="dark"]) .dm:hover svg { filter: drop-shadow(0 2px 2px rgba(20,27,52,.40)) drop-shadow(0 6px 8px rgba(20,27,52,.28)); }
+/* the pressed pin: a solid disc in its colour, a white edge, level-3 height, a quiet ripple instead of a glow */
+:root:not([data-theme="dark"]) .sel-pin .sp-d { background: var(--c); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 0 0 3px #fff, 0 4px 8px 3px rgba(20,27,52,.18), 0 1px 3px rgba(20,27,52,.34); }
+:root:not([data-theme="dark"]) .sel-pin .sp-d::before { display: none; }
+:root:not([data-theme="dark"]) .sel-pin .sp-d svg { filter: none; }
+:root:not([data-theme="dark"]) .sel-pin .sp-h { box-shadow: none; border-width: 2px; }
+:root:not([data-theme="dark"]) .sh-pin b { box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(20,27,52,.4); }
+/* the four case actions: the same small worlds, lifted by shadow instead of glowing */
+:root:not([data-theme="dark"]) .cs-acts > * span { box-shadow: var(--el1, 0 1px 3px rgba(20,27,52,.3)); }
+:root:not([data-theme="dark"]) .cs-acts > *:hover span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 2px 6px 2px rgba(20,27,52,.18); }
+:root:not([data-theme="dark"]) .cs-acts .ac-zoom.go span { box-shadow: inset 0 0 0 1.5px var(--cs-c), 0 0 0 6px color-mix(in srgb, var(--cs-c) 22%, transparent); }
+:root:not([data-theme="dark"]) .cs-acts .ac-copy.done span { box-shadow: 0 2px 6px 2px rgba(20,27,52,.2); }
+:root:not([data-theme="dark"]) .cs-acts .ac-look span, :root:not([data-theme="dark"]) .cs-acts .ac-look:hover span { box-shadow: 0 1px 2px rgba(20,27,52,.3), 0 2px 6px 2px rgba(20,27,52,.14); }
+/* the map's own pop-up (a pin's card) */
+:root:not([data-theme="dark"]) .ss-spop .maplibregl-popup-content { box-shadow: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26); }
+/* the category badges in lists and the legend: solid discs, no gloss */
+:root:not([data-theme="dark"]) .lv-ic, :root:not([data-theme="dark"]) .lg-ic { background: var(--c); box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 1px 3px 1px rgba(20,27,52,.12); }
+:root:not([data-theme="dark"]) .lv-ic::after, :root:not([data-theme="dark"]) .lg-ic::after { display: none; }
+/* the engine drawer is navy, so its cards, lines and headings are drawn for a dark ground (tonal white, orange headings) */
+:root:not([data-theme="dark"]) #s-spatial #smart-side {
+  --p-surface: transparent; --p-surface-2: rgba(255,255,255,.08); --p-line: rgba(255,255,255,.16); --p-line-2: rgba(255,255,255,.30); --p-link: #FFB84D;
+}
+:root:not([data-theme="dark"]) #s-spatial #smart-side .ss-drawer-head { background: rgba(255,255,255,.06); animation: none; }
+:root:not([data-theme="dark"]) #s-spatial #smart-side .p-eyebrow { color: #FFB84D; }
+:root:not([data-theme="dark"]) #s-spatial #smart-side .ss-dtiles div { border: 0; background: rgba(255,255,255,.09); }
+:root:not([data-theme="dark"]) #s-spatial #smart-side .ss-dtiles b, :root:not([data-theme="dark"]) #s-spatial #smart-side .p-pin-row b { color: #fff; }
+:root:not([data-theme="dark"]) #s-spatial #smart-side .p-pin-row { border: 0; background: rgba(255,255,255,.09); }
+:root:not([data-theme="dark"]) #s-spatial #smart-side .p-pin-row:hover { background: rgba(255,255,255,.15); box-shadow: inset 3px 0 0 var(--p-orange); }
+:root:not([data-theme="dark"]) #s-spatial #smart-side .p-hint, :root:not([data-theme="dark"]) #s-spatial #smart-side small { color: #C9CCD1; }
+:root:not([data-theme="dark"]) #s-spatial #smart-side .ss-dtog button:hover { background: rgba(255,255,255,.09); }
+/* the layer tile, the layer pictures and the play button: elevation and a solid orange edge, not glow */
+:root:not([data-theme="dark"]) .lyr-tile { box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 2px 6px 2px rgba(20,27,52,.16); }
+:root:not([data-theme="dark"]) .lyr-tile.on, :root:not([data-theme="dark"]) .lyr-tile[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--p-orange), 0 2px 6px 2px rgba(20,27,52,.18); }
+:root:not([data-theme="dark"]) .ss-lyr .map-sw:has(input:checked) .scene { box-shadow: 0 0 0 3px var(--p-orange), 0 2px 6px 2px rgba(20,27,52,.2); }
+:root:not([data-theme="dark"]) .tl-play { background: var(--p-orange); color: #2B1A00; box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 2px 6px 2px rgba(20,27,52,.14); }
+/* the Zoom here box and the case sheet's buttons: a solid fill in the case's colour at level 1, rising to 2 on hover; the quiet button is a tonal surface with dark text */
+:root:not([data-theme="dark"]) .qv-act .p-btn-primary, :root:not([data-theme="dark"]) .cs-foot .cs-open { background: var(--p-orange); background-image: none; text-shadow: none; box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 1px 3px 1px rgba(20,27,52,.14); }
+:root:not([data-theme="dark"]) .qv-act .p-btn-primary::before, :root:not([data-theme="dark"]) .cs-foot .cs-open::before, :root:not([data-theme="dark"]) .cs-foot .cs-open::after { display: none; }
+:root:not([data-theme="dark"]) .qv-act .p-btn-primary:hover, :root:not([data-theme="dark"]) .cs-foot .cs-open:hover { box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 2px 6px 2px rgba(20,27,52,.18); }
+:root:not([data-theme="dark"]) .qv-act [data-qvback] { background: #F4F6FB; border: 0; color: var(--p-ink); box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 1px 3px 1px rgba(20,27,52,.1); }
+:root:not([data-theme="dark"]) .qv-act [data-qvback]:hover { background: #E9ECF4; }
