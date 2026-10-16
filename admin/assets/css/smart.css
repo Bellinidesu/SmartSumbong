@@ -1308,3 +1308,4 @@
 .ss-people.ss-tanods table th:nth-child(1) { width: 44px; } .ss-people.ss-tanods table th:nth-child(2) { width: 19%; } .ss-people.ss-tanods table th:nth-child(3) { width: 15%; }
 .ss-people.ss-tanods table th:nth-child(4) { width: 14%; } .ss-people.ss-tanods table th:nth-child(5) { width: 22%; }
 .p-body .ss-cases-t thead th { white-space: normal; line-height: 1.2; overflow: visible; }
+.ss-cases-t td.ss-smart { white-space: nowrap; } .ss-cases-t td.ss-smart .ss-score { margin-left: 4px; }
