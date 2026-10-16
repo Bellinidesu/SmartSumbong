@@ -166,6 +166,44 @@ function require_admin(): array
     return $admin;
 }
 
+/**
+ * For the JSON doors a page calls in the background (the Workspace widgets): the signed-in administrator with a live
+ * token, or a 401 answer. Unlike require_admin() it never redirects, and a background call does not count as use, so
+ * a Workspace left open still signs out after IDLE_LIMIT.
+ */
+function require_admin_api(): array
+{
+    $admin = current_admin();
+    if (!$admin || session_idle_expired($admin)) {
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'signed_out']);
+        exit;
+    }
+    if ($admin['expires_at'] < time() + 60) {
+        try {
+            $fresh = Supabase::refresh($admin['refresh_token']);
+            $admin['access_token']  = $fresh['access_token'];
+            $admin['refresh_token'] = $fresh['refresh_token'] ?? $admin['refresh_token'];
+            $admin['expires_at']    = time() + (int) ($fresh['expires_in'] ?? 3600);
+            $_SESSION[SESSION_KEY]  = $admin;
+        } catch (SupabaseError) {
+            unset($_SESSION[SESSION_KEY]);
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'signed_out']);
+            exit;
+        }
+    }
+    if (!empty($admin['must_change'])) {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'must_change_password']);
+        exit;
+    }
+    return $admin;
+}
+
 function csrf_token(): string
 {
     session_start_once();

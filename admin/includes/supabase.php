@@ -376,6 +376,22 @@ final class Supabase
         return $this->request('PATCH', "/rest/v1/{$table}{$qs}", $patch, ['Prefer' => 'return=representation']);
     }
 
+    /** Delete the rows matching $query (row-level security decides which the caller may). Returns the deleted rows. */
+    public function delete(string $table, array $query): array
+    {
+        $qs = '?' . http_build_query($query);
+        $r = $this->request('DELETE', "/rest/v1/{$table}{$qs}", null, ['Prefer' => 'return=representation']);
+        return is_array($r) ? $r : [];
+    }
+
+    /** Insert, or update the row that has the same $onConflict columns (the Workspace's one-row-per-thing tables). */
+    public function upsert(string $table, array $row, string $onConflict): array
+    {
+        $r = $this->request('POST', "/rest/v1/{$table}?on_conflict=" . rawurlencode($onConflict), $row,
+                            ['Prefer' => 'resolution=merge-duplicates,return=representation']);
+        return is_array($r) ? $r : [];
+    }
+
     /**
      * Call a Postgres function. This is how dispatch actions are
      * performed.
