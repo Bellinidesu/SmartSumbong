@@ -1,51 +1,43 @@
-/* Flood watch and Typhoon watch (17 Oct 2026): layout A of the aesthetics page's Widgets section.
-   A ring gauge for the rain now against PAGASA's three thresholds, the warning as a pill, a wave along the foot,
-   PAGASA's own words when it has a warning for Metro Manila, the next hours of rain, a cyclone block when one is near,
-   and the sources with their "as of". Loaded only on Spatial Distribution. Day = Material, night = the glass the card already wears. */
-#s-spatial #fw-card { --fwa: 0deg; width: 340px; max-width: calc(100vw - 32px); max-height: min(520px, calc(100vh - 170px)); overflow: auto; display: grid; gap: 12px; padding: 14px 16px 12px; scrollbar-width: thin; }
-.fwx-h { display: flex; align-items: center; gap: 9px; }
-.fwx-h b { font: 800 14px Urbanist, sans-serif; } .fwx-h small { margin-left: auto; color: var(--p-muted); font: 600 11.5px Inter, sans-serif; }
-.fwx-ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: color-mix(in srgb, var(--fw) 22%, transparent); color: var(--fw); }
-.fwx-ic svg { width: 15px; height: 15px; }
-.fwx-top { display: flex; align-items: center; gap: 14px; }
-.fwx-g { position: relative; width: 108px; height: 108px; flex: none; display: grid; place-items: center; }
-.fwx-ring { position: absolute; inset: 0; border-radius: 50%;
-  background: conic-gradient(from 225deg, var(--fw) var(--fwa), color-mix(in srgb, var(--p-ink) 12%, transparent) 0 270deg, transparent 0);
-  -webkit-mask: radial-gradient(circle, transparent 0 36px, #000 37px); mask: radial-gradient(circle, transparent 0 36px, #000 37px); transition: background .6s; }
-.fwx-v { text-align: center; line-height: 1.05; } .fwx-v b { display: block; font: 800 22px Urbanist, sans-serif; font-variant-numeric: tabular-nums; } .fwx-v small { color: var(--p-muted); font: 700 10.5px Inter, sans-serif; }
-.fwx-info { display: grid; gap: 7px; min-width: 0; flex: 1; }
-.fwx-info p { margin: 0; color: var(--p-ink-2); font: 600 12px/1.4 Inter, sans-serif; }
-.fwx-pill { justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px; font: 800 11.5px Inter, sans-serif;
+/* Flood watch and Typhoon watch, LOCKED 17 Oct 2026 (Ace): the Flood watch warning card over the Typhoon watch card, stacked in the top right of Spatial Distribution.
+   The flood card is tinted and edged in PAGASA's warning colour, headlined with the warning in plain words (PAGASA's own text when it has one for Metro Manila),
+   three numbers (rain now, cases at risk, flood hazard from Project NOAH), a Show on map button, and the sources with their "as of".
+   The typhoon card shows the five wind signals and the cyclone when one is near. Day = Material (solid, elevation), night = the glass the map's panels wear. */
+#s-spatial .fw { width: min(352px, calc(100% - 32px)); }
+#s-spatial #fw-card { width: 100%; max-height: min(640px, calc(100vh - 150px)); overflow: auto; display: grid; gap: 12px; padding: 0 0 4px; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; scrollbar-width: thin; }
+#s-spatial #fw-card:hover { background: none; }
+#fw-card .fwb, #fw-card .fwt { display: grid; gap: 9px; padding: 14px 16px 12px; border-radius: 16px; background: var(--p-surface); color: var(--p-ink); box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); border: 0; }
+#fw-card .fwb { background: linear-gradient(135deg, color-mix(in srgb, var(--fw) 24%, var(--p-surface)), var(--p-surface) 72%); box-shadow: inset 4px 0 0 var(--fw), 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
+:root[data-theme="dark"] #fw-card .fwb, :root[data-theme="dark"] #fw-card .fwt { background: rgba(22,28,52,.72); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+:root[data-theme="dark"] #fw-card .fwb { background: linear-gradient(135deg, color-mix(in srgb, var(--fw) 30%, rgba(22,28,52,.72)), rgba(22,28,52,.72) 72%); box-shadow: inset 4px 0 0 var(--fw), 0 10px 30px rgba(0,0,0,.4); }
+.fwx-h { display: flex; align-items: center; gap: 9px; min-height: 28px; }
+.fwx-h b { font: 800 13px Urbanist, sans-serif; } .fwx-h small { margin-left: auto; color: var(--p-muted); font: 700 11px Inter, sans-serif; }
+.fwx-ic { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: var(--p-ink); flex: none; } .fwx-ic svg { width: 16px; height: 16px; } .fwx-ic.cy { color: #8E3FD0; }
+.fwx-pill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px; font: 800 11.5px Inter, sans-serif; white-space: nowrap;
   background: color-mix(in srgb, var(--fw) 18%, transparent); color: color-mix(in srgb, var(--fw) 78%, var(--p-ink)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fw) 50%, transparent); }
 .fwx-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--fw); }
 .fwx-pill.pulse i { animation: fwxPulse 1.4s ease-out infinite; }
 @keyframes fwxPulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fw) 60%, transparent); } 100% { box-shadow: 0 0 0 8px transparent; } }
-.fwx-th { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-.fwx-th span { height: 6px; border-radius: 3px; opacity: .3; } .fwx-th span:nth-child(1) { background: #eab308; } .fwx-th span:nth-child(2) { background: #f97316; } .fwx-th span:nth-child(3) { background: #dc2626; }
-.fwx-th span.on { opacity: 1; }
-.fwx-ax { display: flex; justify-content: space-between; color: var(--p-muted); font: 600 10.5px Inter, sans-serif; }
-.fwx-wave { height: 24px; border-radius: 9px; overflow: hidden; position: relative; background: color-mix(in srgb, var(--fw) 14%, transparent); }
-.fwx-wave svg { position: absolute; left: 0; width: 200%; height: 100%; animation: fwxWave 5s linear infinite; }
-.fwx-wave svg path { fill: var(--fw); opacity: .55; } .fwx-wave svg + svg { animation-duration: 7s; animation-direction: reverse; } .fwx-wave svg + svg path { opacity: .75; }
-@keyframes fwxWave { to { transform: translateX(-50%); } }
-.fwx-off { display: grid; gap: 3px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--p-ink) 7%, transparent); } .fwx-off b { font-size: 14px; } .fwx-off small { color: var(--p-ink-2); }
-.fwx-pg { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--wl) 14%, transparent); box-shadow: inset 4px 0 0 var(--wl); }
-.fwx-pg b { font: 800 12.5px Urbanist, sans-serif; } .fwx-pg span { color: var(--p-ink-2); font: 600 12px/1.4 Inter, sans-serif; } .fwx-pg small { color: var(--p-muted); font: 600 11px Inter, sans-serif; } .fwx-pg a { color: var(--p-link); }
-.fwx-clr { margin: 0; color: var(--p-ink-2); font: 600 12px/1.4 Inter, sans-serif; }
-.fwx-fc { display: grid; gap: 5px; }
-.fwx-bars { display: flex; align-items: flex-end; gap: 4px; height: 44px; }
-.fwx-bars span { flex: 1; min-height: 4px; border-radius: 4px 4px 2px 2px; background: var(--bc); } .fwx-bars span.now { outline: 2px solid var(--p-ink); outline-offset: 1px; }
-.fwx-fc small, .fwx-cy small { color: var(--p-muted); font: 600 11px Inter, sans-serif; }
-.fwx-cy { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #8E3FD0 12%, transparent); box-shadow: inset 4px 0 0 #8E3FD0; }
-.fwx-ch { display: flex; align-items: center; gap: 8px; } .fwx-ch svg { width: 16px; height: 16px; color: #8E3FD0; } .fwx-ch b { font: 800 13px Urbanist, sans-serif; } .fwx-ch small { margin-left: auto; }
-.fwx-kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.fwx-kv div { padding: 7px 8px; border-radius: 9px; background: color-mix(in srgb, var(--p-ink) 7%, transparent); } .fwx-kv b { display: block; font: 800 14px Urbanist, sans-serif; font-variant-numeric: tabular-nums; }
-.fwx-rows { display: grid; gap: 6px; }
+.fwx-big { margin: 0; font: 800 21px/1.15 Urbanist, sans-serif; text-wrap: balance; }
+.fwx-sub { margin: 0; color: var(--p-ink-2); font: 600 12.5px/1.45 Inter, sans-serif; }
+.fwx-iss { margin: 0; color: var(--p-muted); font: 600 11px Inter, sans-serif; } .fwx-iss a { color: var(--p-link); }
+.fwx-kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fwx-kv div { padding: 8px 10px; border-radius: 11px; background: color-mix(in srgb, var(--p-ink) 7%, transparent); min-width: 0; }
+.fwx-kv b { display: block; font: 800 17px Urbanist, sans-serif; font-variant-numeric: tabular-nums; } .fwx-kv small { color: var(--p-muted); font: 600 11px/1.25 Inter, sans-serif; display: block; }
+.fwx-ft { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fwx-ft span { color: var(--p-ink-2); font: 600 12px/1.35 Inter, sans-serif; min-width: 0; }
+.fwx-go { flex: none; height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--p-orange, #FF9800); color: #2B1A00; font: 800 12.5px Urbanist, sans-serif; cursor: pointer; transition: background .15s; }
+.fwx-go:hover { background: #FFA826; }
+:root:not([data-theme="dark"]) .fwx-go { box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 1px 3px 1px rgba(20,27,52,.14); }
 .fwx-src { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--p-muted); font: 600 10.5px Inter, sans-serif; }
 .fwx-src i { font-style: normal; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--p-ink) 8%, transparent); }
-.fwx-src i.off { text-decoration: line-through; opacity: .6; } .fwx-src em { font-style: normal; color: #B85F00; font-weight: 800; }
-.fwx-nd { justify-self: start; color: var(--p-link); font: 700 12px Inter, sans-serif; text-decoration: none; } .fwx-nd:hover { text-decoration: underline; }
-:root:not([data-theme="dark"]) #s-spatial .fwx-pg a, :root:not([data-theme="dark"]) .fwx-nd { color: #00308F; }
-:root:not([data-theme="dark"]) .fwx-src em { color: #8A4A00; }
-@media (prefers-reduced-motion: reduce) { .fwx-wave svg, .fwx-pill.pulse i, .fwx-ring { animation: none; transition: none; } }
-#s-spatial .fw { width: min(340px, calc(100% - 32px)); }
+.fwx-src i.off { text-decoration: line-through; opacity: .6; } .fwx-src em { font-style: normal; color: #8A4A00; font-weight: 800; }
+:root[data-theme="dark"] .fwx-src em { color: #FFB84D; }
+.fwx-top2 { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; } .fwx-top2 > div { min-width: 0; } .fwx-top2 .fwx-big { color: var(--p-ink); }
+.fwx-sig { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.fwx-sig span { height: 32px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, var(--p-ink) 8%, transparent); color: var(--p-muted); font: 800 13px Urbanist, sans-serif; }
+.fwx-sig span.on { color: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc) 30%, transparent); background: var(--sc); }
+.fwx-sig span[data-n="1"] { --sc: #2D7DD2; } .fwx-sig span[data-n="2"] { --sc: #E0B000; } .fwx-sig span[data-n="3"] { --sc: #8E3FD0; } .fwx-sig span[data-n="4"] { --sc: #E5383B; } .fwx-sig span[data-n="5"] { --sc: #7A0F2B; }
+.fwx-ax { display: flex; justify-content: space-between; color: var(--p-muted); font: 600 10.5px Inter, sans-serif; }
+.fwx-nd { justify-self: start; color: #00308F; font: 700 12px Inter, sans-serif; text-decoration: none; } .fwx-nd:hover { text-decoration: underline; }
+:root[data-theme="dark"] .fwx-nd, :root[data-theme="dark"] .fwx-iss a { color: #A9C5FF; }
+@media (prefers-reduced-motion: reduce) { .fwx-pill.pulse i { animation: none; } }
