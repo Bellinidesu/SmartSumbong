@@ -1,87 +1,53 @@
-/* Spatial Distribution in light mode: loaded only on that page. The material, the sheet, the controls, contrast. */
-/* ======================= Spatial Distribution in light mode, up to the others (16 Oct) =======================
-   The same material as dark, in white: panels frost at ~78% white with a bright lit edge and a faint sheen, controls the same smaller, the active dock button brand orange, the engine card the locked dark navy. Table-free page, so every surface is glass; while the map moves nothing is blurred; reduce-transparency makes it solid. */
+/* Spatial Distribution in light mode is Material (Ace, 16 Oct): solid white surfaces, no blur, depth from elevation shadows
+   (panels level 2, the case sheet and pop-ups level 3, controls level 1), the active dock button brand orange, the engine drawer the locked navy.
+   Loaded only on this page. Dark mode keeps its frosted glass (flair.css). */
 :root:not([data-theme="dark"]) #s-spatial {
-  --gl-panel: rgba(255,255,255,.80); --gl-panel-hi: rgba(255,255,255,.95); --gl-ctl: rgba(255,255,255,.86); --gl-edge: rgba(255,255,255,.9);
-  --g-edge: inset 1px 1px 0 rgba(255,255,255,.95), inset -1px -1px 0 rgba(20,27,52,.05), inset 0 0 22px rgba(255,255,255,.35);
-  --g-sheen: linear-gradient(152deg, rgba(255,255,255,.65) 0%, rgba(255,255,255,.18) 30%, rgba(255,255,255,0) 58%);
+  --el1: 0 1px 2px rgba(20,27,52,.22), 0 1px 3px 1px rgba(20,27,52,.12);
+  --el2: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14);
+  --el3: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26);
 }
-:root:not([data-theme="dark"]) #s-spatial .p-map-search, :root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv,
-:root:not([data-theme="dark"]) #s-spatial .ss-lyr, :root:not([data-theme="dark"]) #s-spatial .p-map-stats, :root:not([data-theme="dark"]) #s-spatial .p-map-legend,
-:root:not([data-theme="dark"]) #s-spatial .fw-card, :root:not([data-theme="dark"]) #s-spatial .lyc, :root:not([data-theme="dark"]) .sdp-pop {
-  background-color: var(--gl-panel, rgba(255,255,255,.8)); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid rgba(255,255,255,.85); isolation: isolate; box-shadow: 0 18px 44px rgba(20,27,52,.18), 0 2px 8px rgba(20,27,52,.08), var(--g-edge);
+/* panels: level 2 */
+:root:not([data-theme="dark"]) #s-spatial .p-map-search, :root:not([data-theme="dark"]) #s-spatial .ss-lyr, :root:not([data-theme="dark"]) #s-spatial .p-map-stats,
+:root:not([data-theme="dark"]) #s-spatial .p-map-legend, :root:not([data-theme="dark"]) #s-spatial .fw-card, :root:not([data-theme="dark"]) #s-spatial .lyc {
+  background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: var(--el2); isolation: auto;
 }
-:root:not([data-theme="dark"]) .sdp-pop { position: fixed; --g-edge: inset 1px 1px 0 rgba(255,255,255,.95), inset -1px -1px 0 rgba(20,27,52,.05); --g-sheen: linear-gradient(152deg, rgba(255,255,255,.65), rgba(255,255,255,0) 58%); background-color: rgba(255,255,255,.9); }
+/* the case sheet, Zoom here box, marker pop-up and pickers: level 3 */
+:root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv, :root:not([data-theme="dark"]) #s-spatial .ss-pop, :root:not([data-theme="dark"]) .sdp-pop {
+  background: #fff; background-image: none; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: var(--el3);
+}
+:root:not([data-theme="dark"]) .sdp-pop { position: fixed; }
 :root:not([data-theme="dark"]) #s-spatial .p-map-search, :root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv, :root:not([data-theme="dark"]) #s-spatial .ss-lyr, :root:not([data-theme="dark"]) #s-spatial .p-map-stats, :root:not([data-theme="dark"]) #s-spatial .p-map-legend { position: absolute; }
 :root:not([data-theme="dark"]) #s-spatial .lyc, :root:not([data-theme="dark"]) #s-spatial .fw-card { position: relative; }
-:root:not([data-theme="dark"]) #s-spatial .p-map-search::after, :root:not([data-theme="dark"]) #s-spatial .cs-sheet::after, :root:not([data-theme="dark"]) #s-spatial .ss-qv::after, :root:not([data-theme="dark"]) #s-spatial .ss-lyr::after,
-:root:not([data-theme="dark"]) #s-spatial .p-map-stats::after, :root:not([data-theme="dark"]) #s-spatial .p-map-legend::after, :root:not([data-theme="dark"]) #s-spatial .fw-card::after, :root:not([data-theme="dark"]) #s-spatial .lyc::after, :root:not([data-theme="dark"]) .sdp-pop::after {
-  content: ""; display: block; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--g-sheen); width: auto; height: auto; transform: none; border: 0; opacity: 1;
+/* no sheen layers in Material */
+:root:not([data-theme="dark"]) #s-spatial .p-map-search::after, :root:not([data-theme="dark"]) #s-spatial .ss-lyr::after, :root:not([data-theme="dark"]) #s-spatial .p-map-stats::after,
+:root:not([data-theme="dark"]) #s-spatial .p-map-legend::after, :root:not([data-theme="dark"]) #s-spatial .fw-card::after, :root:not([data-theme="dark"]) #s-spatial .lyc::after,
+:root:not([data-theme="dark"]) #s-spatial .ss-qv::after, :root:not([data-theme="dark"]) #s-spatial .ss-pop::after, :root:not([data-theme="dark"]) .sdp-pop::after { display: none; }
+/* controls: level 1, rising to 2 on hover; the dock buttons are small surfaces like Material's FABs */
+:root:not([data-theme="dark"]) #s-spatial .fw-chip, :root:not([data-theme="dark"]) #s-spatial .p-dock-btn, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-scale {
+  background: #fff; background-image: none; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: var(--el1); color: #141B34;
 }
-:root:not([data-theme="dark"]) #s-spatial .p-map-stats:hover, :root:not([data-theme="dark"]) #s-spatial .p-map-legend:hover, :root:not([data-theme="dark"]) #s-spatial .fw-card:hover, :root:not([data-theme="dark"]) #s-spatial .lyc:hover { background-color: var(--gl-panel-hi); }
-:root:not([data-theme="dark"]) #s-spatial .fw-chip, :root:not([data-theme="dark"]) #s-spatial .p-dock-btn, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group {
-  background-color: var(--gl-ctl); background-image: var(--g-sheen); -webkit-backdrop-filter: blur(12px) saturate(1.5); backdrop-filter: blur(12px) saturate(1.5);
-  border: 1px solid rgba(255,255,255,.85); box-shadow: 0 8px 22px rgba(20,27,52,.16), var(--g-edge);
-}
-:root:not([data-theme="dark"]) #s-spatial .p-dock-btn:hover, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button:hover { background-color: var(--gl-panel-hi); }
-:root:not([data-theme="dark"]) #s-spatial .p-dock-btn.on { background-color: var(--p-orange); background-image: none; color: #2B1A00; box-shadow: 0 8px 20px rgba(255,152,0,.4); }
+:root:not([data-theme="dark"]) #s-spatial .p-dock-btn { transition: box-shadow .2s ease, background-color .2s ease; }
+:root:not([data-theme="dark"]) #s-spatial .p-dock-btn:hover, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button:hover { background: #F2F4FA; box-shadow: var(--el2); }
+:root:not([data-theme="dark"]) #s-spatial .p-dock-btn.on { background: var(--p-orange); color: #2B1A00; box-shadow: var(--el2); }
 :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button { background: transparent; }
+:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button + button { border-top: 1px solid rgba(20,27,52,.10); }
+:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-scale { border-color: rgba(20,27,52,.5); }
 :root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-pin-row:hover, :root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-hs-row:hover { background: rgba(255,152,0,.10); }
-/* the title strip over the map */
-:root:not([data-theme="dark"]) #s-spatial .p-map-title, :root:not([data-theme="dark"]) #s-spatial .p-map-top { background-color: var(--gl-panel); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); box-shadow: 0 14px 36px rgba(20,27,52,.16), var(--g-edge); border: 1px solid rgba(255,255,255,.85); }
-/* the engine card on the map: the locked dark navy, yellow mark glowing */
+:root:not([data-theme="dark"]) #s-spatial .p-map-search .p-pill-select { background: #F4F6FB; }
+:root:not([data-theme="dark"]) #s-spatial .p-map-search .p-note { color: #4A5068; }
+/* the case sheet's footer, rows and cards on solid white */
+:root:not([data-theme="dark"]) .cs-foot { background: #fff; border-top: 1px solid rgba(20,27,52,.10); }
+:root:not([data-theme="dark"]) .cs-quote, :root:not([data-theme="dark"]) .cs-sla, :root:not([data-theme="dark"]) .cs-last { background: #F4F6FB; }
+:root:not([data-theme="dark"]) .cs-rows li { border-bottom-color: rgba(20,27,52,.09); }
+:root:not([data-theme="dark"]) .cs-sheet::before { opacity: .05; background: #14213D; }
+:root:not([data-theme="dark"]) .cs-acts > * span:not(.x) { box-shadow: var(--el1); }
+:root:not([data-theme="dark"]) .cs-acts > *:hover span:not(.x) { box-shadow: var(--el2); transform: translateY(-1px); }
+/* the engine drawer: the locked dark navy, yellow mark glowing */
 :root:not([data-theme="dark"]) #s-spatial #smart-side {
   --p-ink: #F3F3F3; --p-ink-2: #D5D8DE; --p-muted: #C9CCD1; color: #F3F3F3;
-  background-color: rgba(14,20,40,.9); background-image: linear-gradient(145deg,#1B2342,#0E1428); border-color: rgba(255,255,255,.12);
+  background: linear-gradient(145deg,#1B2342,#0E1428); box-shadow: var(--el3);
 }
 :root:not([data-theme="dark"]) #s-spatial #smart-side .ss-engine img { filter: drop-shadow(0 0 3px #356CF9) drop-shadow(0 0 9px rgba(53,108,249,.55)); }
-/* while the map moves: no blur, so nothing drags */
-#s-spatial.ss-dragging .p-map-search, #s-spatial.ss-dragging .cs-sheet, #s-spatial.ss-dragging .ss-qv, #s-spatial.ss-dragging .ss-lyr { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-@media (prefers-reduced-transparency: reduce) { :root:not([data-theme="dark"]) #s-spatial *, :root:not([data-theme="dark"]) .sdp-pop { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } :root:not([data-theme="dark"]) #s-spatial { --gl-panel: #fff; --gl-ctl: #fff; } }
-/* Spatial Distribution contrast (measured, both themes): white on the brand orange and on the grey counts did not reach AA */
-#s-spatial .p-tog.p-on, #s-spatial .p-pill-select.p-tog, #s-spatial .p-seg-mini .on, #s-spatial .on[data-w], #s-spatial .p-tl .on { color: #2B1A00; }
+/* contrast (measured): dark text on the brand orange, a darker grey behind the counts */
+#s-spatial .p-tog.p-on, #s-spatial .p-pill-select.p-tog, #s-spatial .p-seg-mini .on, #s-spatial .on[data-w], #s-spatial .p-tl .on, #s-spatial .tl-seg button.on { color: #2B1A00; }
 #s-spatial .p-cnt { background: #6B7280; color: #fff; }
-#s-spatial .tl-seg button.on { color: #2B1A00; }
-
-/* ---- Spatial Distribution, light: the rest of the dark treatment, translated (16 Oct) ----
-   The case sheet and Zoom here box as true frosted glass (the map shows through), the stage track and progress steps glowing in the category colour, the marker pop-up, the scale bar, the zoom group and the Solid surface option. */
-:root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv {
-  background-color: transparent; background-image: linear-gradient(152deg, rgba(255,255,255,.80), rgba(236,242,255,.62)); border-color: rgba(255,255,255,.9);
-  -webkit-backdrop-filter: blur(22px) saturate(1.8); backdrop-filter: blur(22px) saturate(1.8);
-  box-shadow: 0 22px 56px rgba(20,27,52,.24), 0 2px 8px rgba(20,27,52,.10), inset 1px 1px 0 rgba(255,255,255,.95), inset -1px -1px 0 rgba(20,27,52,.05);
-}
-:root:not([data-theme="dark"]) .cs-sheet::before { opacity: .09; background: #14213D; }
-:root:not([data-theme="dark"]) .cs-foot { background: none; border-top-color: rgba(20,27,52,.10); }
-:root:not([data-theme="dark"]) .cs-quote, :root:not([data-theme="dark"]) .cs-sla, :root:not([data-theme="dark"]) .cs-last { background: rgba(255,255,255,.55); }
-:root:not([data-theme="dark"]) .cs-rows li { border-bottom-color: rgba(20,27,52,.09); }
-:root:not([data-theme="dark"]) .cs-acts > * span:not(.x) { box-shadow: 0 6px 16px color-mix(in srgb, var(--cs-c, var(--cs)) 36%, transparent); }
-:root:not([data-theme="dark"]) .cs-acts > *:hover span:not(.x) { filter: brightness(1.08) saturate(1.1); transform: translateY(-2px); }
-/* the stage track and the progress steps glow in the colour of what they are */
-:root:not([data-theme="dark"]) .cs-stg li.on .bub { box-shadow: 0 0 14px 1px color-mix(in srgb, var(--c) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.4); }
-:root:not([data-theme="dark"]) .cs-stg li.cur .bub { box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 24%, transparent), 0 0 18px color-mix(in srgb, var(--c) 55%, transparent); }
-:root:not([data-theme="dark"]) .cs-stg .sg.lit { box-shadow: 0 0 8px color-mix(in srgb, var(--b, var(--cs)) 55%, transparent); }
-:root:not([data-theme="dark"]) .cs-steps li.on::before { box-shadow: 0 0 10px color-mix(in srgb, var(--cv) 55%, transparent); }
-:root:not([data-theme="dark"]) .cs-steps li.cur { text-shadow: 0 0 12px color-mix(in srgb, var(--cv) 40%, transparent); }
-/* the marker pop-up and the map's own controls */
-:root:not([data-theme="dark"]) #s-spatial .ss-pop { position: absolute; background-color: rgba(255,255,255,.88); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); border: 1px solid rgba(255,255,255,.9); box-shadow: 0 18px 44px rgba(20,27,52,.2), inset 1px 1px 0 rgba(255,255,255,.95); isolation: isolate; }
-:root:not([data-theme="dark"]) #s-spatial .ss-pop::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--g-sheen); }
-:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-scale { background: rgba(255,255,255,.72); color: #141B34; border-color: rgba(20,27,52,.5); -webkit-backdrop-filter: blur(12px) saturate(1.5); backdrop-filter: blur(12px) saturate(1.5); box-shadow: inset 1px 1px 0 rgba(255,255,255,.9); }
-:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button + button { border-top-color: rgba(20,27,52,.10); }
-:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-compass { border-bottom-color: rgba(20,27,52,.10); }
-:root:not([data-theme="dark"]) #s-spatial .p-map-search .p-pill-select { background: color-mix(in srgb, #fff 70%, transparent); }
-:root:not([data-theme="dark"]) #s-spatial .p-map-search .p-note { color: #4A5068; }
-:root:not([data-theme="dark"]) #s-spatial .p-dock-btn svg { filter: drop-shadow(0 1px 2px rgba(255,255,255,.7)); }
-:root:not([data-theme="dark"]) #s-spatial.ss-dragging .p-map-dock:not(:hover) { opacity: .6; }
-/* Settings → Appearance → Map surfaces → Solid, in light: flat and plain, no blur */
-:root[data-surface="solid"]:not([data-theme="dark"]) #s-spatial :is(.p-map-search, .cs-sheet, .ss-qv, .ss-lyr, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-pop),
-:root[data-surface="solid"]:not([data-theme="dark"]) .sdp-pop {
-  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-color: #fff; background-image: none;
-  border: 1px solid #D0D4DE; box-shadow: 0 10px 28px rgba(20,27,52,.18);
-}
-:root[data-surface="solid"]:not([data-theme="dark"]) #s-spatial :is(.p-map-search, .cs-sheet, .ss-qv, .ss-lyr, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-pop)::after,
-:root[data-surface="solid"]:not([data-theme="dark"]) .sdp-pop::after { display: none; }
-:root[data-surface="solid"]:not([data-theme="dark"]) #s-spatial :is(.fw-chip, .p-dock-btn, .maplibregl-ctrl-group, .maplibregl-ctrl-scale, .heat-hint, .lyr-tile) {
-  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-color: #fff; background-image: none; border: 1px solid #D0D4DE; box-shadow: 0 6px 16px rgba(20,27,52,.16);
-}
-:root[data-surface="solid"]:not([data-theme="dark"]) #s-spatial .p-dock-btn.on, :root[data-surface="solid"]:not([data-theme="dark"]) #s-spatial .lyr-tile.on { background-color: var(--p-orange); }
