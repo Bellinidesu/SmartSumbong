@@ -38,6 +38,7 @@ git-ignored, so a key that lives only on a laptop is not on Render):
 | `TURNSTILE_SITE_KEY` | the sign-in captcha | no captcha |
 | `BARANGAY_HALL_HOURS`, `BARANGAY_HALL_PHONE` | the hall line shown to residents | the default text |
 | `PORTAL_MOVED_TO` | the "we moved" banner on an old address | no banner |
+| `RESIDENT_APP_URL` | the Workspace's Report QR widget (an https link to the resident app's download page) | the QR widget asks for the link |
 
 Edge Function secrets (FCM, Resend, Semaphore, the service-role key) are set in
 Supabase (Edge Functions → Secrets), not on Render.

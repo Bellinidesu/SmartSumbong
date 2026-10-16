@@ -1,0 +1,227 @@
+<?php
+/**
+ * What PAGASA and GDACS say right now about Barangay 183 (17 Oct 2026). Read by hazards.php for the Spatial
+ * Distribution cards and by the Workspace widgets (Flood watch, Typhoon watch, the alarm); see hazards.php for the
+ * sources and their limits. Kept ten minutes, with the last good copy served (marked stale) when every source fails.
+ */
+declare(strict_types=1);
+
+const HZ_LAT = 14.5194, HZ_LNG = 121.0122;      // Barangay 183
+const HZ_TTL = 600;                              // ten minutes
+
+/** GET or POST a URL; null on any failure. */
+function hz_fetch(string $url, bool $post = false): ?string
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 8,
+        CURLOPT_CONNECTTIMEOUT => 4,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 2,
+        CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
+        CURLOPT_USERAGENT      => 'SmartSumbong-Barangay183/1.0 (barangay disaster desk)',
+        CURLOPT_HTTPHEADER     => $post ? [
+            'X-Requested-With: XMLHttpRequest',
+            'Origin: https://bagong.pagasa.dost.gov.ph',
+            'Referer: https://bagong.pagasa.dost.gov.ph/',
+            'Accept: application/json, text/javascript, */*; q=0.01',
+        ] : ['Accept: application/json, application/xml, text/xml, */*'],
+    ]);
+    if ($post) {
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, '');
+    }
+    $body = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    return ($body !== false && $code === 200 && $body !== '') ? (string) $body : null;
+}
+
+function hz_km(float $lat1, float $lng1, float $lat2, float $lng2): float
+{
+    $r = 6371.0; $p = M_PI / 180;
+    $a = sin(($lat2 - $lat1) * $p / 2) ** 2 + cos($lat1 * $p) * cos($lat2 * $p) * sin(($lng2 - $lng1) * $p / 2) ** 2;
+    return 2 * $r * asin(min(1.0, sqrt($a)));
+}
+
+function hz_dir(float $lat1, float $lng1, float $lat2, float $lng2): string
+{
+    $y = sin(($lng2 - $lng1) * M_PI / 180) * cos($lat2 * M_PI / 180);
+    $x = cos($lat1 * M_PI / 180) * sin($lat2 * M_PI / 180) - sin($lat1 * M_PI / 180) * cos($lat2 * M_PI / 180) * cos(($lng2 - $lng1) * M_PI / 180);
+    $b = fmod(rad2deg(atan2($y, $x)) + 360, 360);
+    return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][(int) round($b / 45) % 8];
+}
+
+/** @return array{ok:bool, at:string, stale:bool, warnings:list<array>, cyclone:?array, forecast:list<array>, sources:array} */
+function hazards_read(): array
+{
+    $cache = sys_get_temp_dir() . '/ss-hazards-v1.json';
+    if (is_file($cache) && filemtime($cache) > time() - HZ_TTL) {
+        $hit = json_decode((string) file_get_contents($cache), true);
+        if (is_array($hit)) {
+            return $hit;
+        }
+    }
+
+    $sources = ['pagasa_warnings' => false, 'pagasa_cyclone' => false, 'pagasa_forecast' => false, 'gdacs' => false];
+    $out     = ['ok' => true, 'at' => gmdate('c'), 'stale' => false, 'warnings' => [], 'cyclone' => null, 'forecast' => [], 'sources' => []];
+
+    // ---- PAGASA: the warnings that touch Metro Manila -------------------------------------------
+    $raw = hz_fetch('https://bagong.pagasa.dost.gov.ph/api/ActiveWarning', true);
+    $aw  = $raw !== null ? json_decode($raw, true) : null;
+    if (is_array($aw)) {
+        $sources['pagasa_warnings'] = true;
+        foreach ($aw as $type => $bySeverity) {
+            if (!is_array($bySeverity) || $type === 'Tropical Cyclone Alert') {
+                continue;
+            }
+            foreach ($bySeverity as $sevKey => $block) {
+                foreach ((array) ($block['regions'] ?? []) as $region => $r) {
+                    $where = $region . ' ' . ($r['areas'] ?? '');
+                    if (!preg_match('/\b(NCR|National Capital|Metro Manila|Pasay|Manila|Rizal|Bulacan|Cavite|Region IV-A|Region 4-A|CALABARZON|Central Luzon|Region 3)\b/i', $where)) {
+                        continue;
+                    }
+                    // Only the warnings that name the capital region or its neighbours are shown; the
+                    // flag says whether Metro Manila itself is named.
+                    $metro = (bool) preg_match('/\b(NCR|National Capital|Metro Manila|Pasay)\b/i', $where);
+                    $sev = strtolower((string) $sevKey);
+                    $level = str_contains($sev, 'red') ? 3 : (str_contains($sev, 'orange') ? 2 : (str_contains($sev, 'yellow') ? 1 : 0));
+                    $desc = trim(html_entity_decode(strip_tags(str_replace(['<br />', '<br/>', '<br>'], ' ', (string) ($r['description'] ?? '')))));
+                    $desc = preg_replace('/\s+/', ' ', $desc) ?? '';
+                    $out['warnings'][] = [
+                        'type'    => (string) $type,
+                        'severity' => (string) preg_replace('/^\d+/', '', (string) $sevKey),
+                        'level'   => $level,
+                        'metro'   => $metro,
+                        'region'  => (string) $region,
+                        'areas'   => mb_substr((string) ($r['areas'] ?? ''), 0, 160),
+                        'issued'  => (string) ($r['issued_at'] ?? ''),
+                        'expires' => (string) ($r['expired_at'] ?? ''),
+                        'text'    => mb_substr($desc, 0, 320),
+                        'url'     => preg_match('#^https://(www\.)?panahon\.gov\.ph/#', (string) ($r['url'] ?? '')) ? (string) $r['url'] : '',
+                    ];
+                }
+            }
+        }
+    }
+
+    // ---- PAGASA: cyclone tracks; a cyclone is current if its track has a point in the last day --
+    $raw = hz_fetch('https://bagong.pagasa.dost.gov.ph/api/CycloneTrack', true);
+    $ct  = $raw !== null ? json_decode($raw, true) : null;
+    $tz  = new DateTimeZone('Asia/Manila');
+    if (is_array($ct)) {
+        $sources['pagasa_cyclone'] = true;
+        $now = time();
+        foreach ($ct as $track) {
+            $pts = (array) ($track['info'] ?? []);
+            if (!$pts) {
+                continue;
+            }
+            ksort($pts);
+            $last = null; $nowPt = null; $future = 0;
+            foreach ($pts as $k => $p) {
+                $ts = (new DateTimeImmutable((string) $k, $tz))->getTimestamp();
+                if ($ts <= $now + 3600) { $nowPt = $p + ['ts' => $ts]; }
+                if ($ts > $now) { $future++; }
+                $last = $p + ['ts' => $ts];
+            }
+            if (!$nowPt || ($last['ts'] ?? 0) < $now - 86400) {
+                continue;   // an old storm: its track stays on the website for the record
+            }
+            $lat = (float) $nowPt['latitude']; $lng = (float) $nowPt['longitude'];
+            $out['cyclone'] = [
+                'name'    => (string) ($track['cyclone_name'] ?? ''),
+                'kind'    => (string) ($nowPt['cyclone_type'] ?? ''),
+                'lat'     => $lat, 'lng' => $lng,
+                'radius'  => (float) ($nowPt['radius'] ?? 0),
+                'km'      => (int) round(hz_km(HZ_LAT, HZ_LNG, $lat, $lng)),
+                'dir'     => hz_dir(HZ_LAT, HZ_LNG, $lat, $lng),
+                'asof'    => gmdate('c', (int) $nowPt['ts']),
+                'path'    => array_values(array_map(static fn ($p) => [(float) $p['latitude'], (float) $p['longitude']], $pts)),
+                'ahead'   => $future,
+                'signal'  => null,
+            ];
+            break;
+        }
+    }
+
+    // ---- PAGASA: the cyclone's wind signal, when its alert type carries one ------------------------
+    if ($out['cyclone'] && is_array($aw) && isset($aw['Tropical Cyclone Alert'])) {
+        $txt = json_encode($aw['Tropical Cyclone Alert']);
+        if (preg_match('/signal\s*(?:no\.?|number|#)?\s*([1-5])/i', (string) $txt, $m)) {
+            $out['cyclone']['signal'] = (int) $m[1];
+        }
+    }
+
+    // ---- GDACS: a second opinion on cyclones near the Philippine area of responsibility ------------
+    $raw = hz_fetch('https://www.gdacs.org/xml/rss.xml');
+    if ($raw !== null && ($xml = @simplexml_load_string($raw)) !== false) {
+        $sources['gdacs'] = true;
+        foreach ($xml->channel->item ?? [] as $it) {
+            $g = $it->children('http://www.gdacs.org');
+            if ((string) $g->eventtype !== 'TC' || (string) $g->iscurrent !== 'true') {
+                continue;
+            }
+            $pt = $it->children('http://www.w3.org/2003/01/geo/wgs84_pos#')->Point;
+            $lat = (float) $pt->lat; $lng = (float) $pt->long;
+            if ($lat < 2 || $lat > 28 || $lng < 105 || $lng > 140 || hz_km(HZ_LAT, HZ_LNG, $lat, $lng) > 1600) {
+                continue;   // the Philippine area and its surroundings only; a storm 2,000 km away is not news here
+            }
+            $sev = (string) $g->severity;
+            $wind = preg_match('/([0-9.]+)/', $sev, $m) ? (int) round((float) $m[1]) : null;
+            $name = preg_match('/cyclone\s+([A-Z0-9-]+)/i', (string) $it->title, $m) ? $m[1] : '';
+            $gd = ['name' => $name, 'alert' => (string) $g->alertlevel, 'wind' => $wind, 'km' => (int) round(hz_km(HZ_LAT, HZ_LNG, $lat, $lng)), 'dir' => hz_dir(HZ_LAT, HZ_LNG, $lat, $lng)];
+            if ($out['cyclone']) {
+                if (strcasecmp(preg_replace('/-\d+$/', '', $name), $out['cyclone']['name']) === 0 || $gd['km'] < $out['cyclone']['km'] + 200) {
+                    $out['cyclone']['gdacs'] = $gd;
+                }
+            } else {
+                $out['cyclone'] = ['name' => $name, 'kind' => '', 'lat' => $lat, 'lng' => $lng, 'radius' => 0, 'km' => $gd['km'], 'dir' => $gd['dir'], 'asof' => gmdate('c'), 'path' => [[$lat, $lng]], 'ahead' => 0, 'signal' => null, 'gdacs' => $gd, 'onlyGdacs' => true];
+            }
+        }
+    }
+
+    // ---- PAGASA: the next twelve hours of rain for Port Area, Manila -------------------------------
+    $from = (new DateTimeImmutable('now', $tz))->setTime((int) (new DateTimeImmutable('now', $tz))->format('G'), 0);
+    $seen = [];
+    foreach ([0, 1] as $dayOffset) {   // today and tomorrow, so late in the evening there are still twelve hours
+        $raw = hz_fetch('https://bagong.pagasa.dost.gov.ph/api/meteogram/425/' . $dayOffset);
+        $mg  = $raw !== null ? json_decode($raw, true) : null;
+        if (!is_array($mg) || !isset($mg['forecast']['tabular']['time'])) {
+            continue;
+        }
+        $sources['pagasa_forecast'] = true;
+        $out['forecastUpdated'] = (string) ($mg['meta']['lastupdate'] ?? '');
+        foreach ($mg['forecast']['tabular']['time'] as $row) {
+            $h = (string) ($row['@attributes']['from'] ?? '');
+            if ($h === '' || isset($seen[$h]) || count($out['forecast']) >= 12) {
+                continue;
+            }
+            $seen[$h] = true;
+            try { $t = new DateTimeImmutable($h, $tz); } catch (Throwable $e) { continue; }
+            if ($t < $from) {
+                continue;
+            }
+            $out['forecast'][] = ['h' => $t->format('H:i'), 'mm' => (float) ($row['precipitation']['@attributes']['value'] ?? 0)];
+        }
+    }
+
+    $out['sources'] = $sources;
+
+    // Keep the last good copy: if every source failed, serve the old answer, marked stale.
+    if (!array_filter($sources)) {
+        if (is_file($cache)) {
+            $old = json_decode((string) file_get_contents($cache), true);
+            if (is_array($old)) {
+                $old['stale'] = true;
+                return $old;
+            }
+        }
+        $out['ok'] = false;
+        return $out;
+    }
+
+    @file_put_contents($cache, json_encode($out, JSON_UNESCAPED_UNICODE), LOCK_EX);
+    return $out;
+}
