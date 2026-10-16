@@ -1278,3 +1278,16 @@
 :root:not([data-theme="dark"]) .ss-smartcard .ss-reasons li { background: rgba(255,255,255,.05); }
 :root:not([data-theme="dark"]) .ss-smartcard .ss-lvset { color: #FFB454; }
 :root:not([data-theme="dark"]) .ss-smartcard .p-badge { filter: none; }
+
+/* Material sweep (16 Oct): what the glass-to-Material switch left behind in light mode. The coloured left edges that "border: 0" removed come back as inset edges inside the elevation; the sticky Report Summary bar, the Workspace columns, cards and toolbar lose their blur and become tonal and elevated surfaces. */
+:root:not([data-theme="dark"]) .p-body .ss-lbox { box-shadow: inset 4px 0 0 var(--lc), 0 1px 2px rgba(20,27,52,.14), 0 1px 3px 1px rgba(20,27,52,.08); }
+:root:not([data-theme="dark"]) .p-body .ss-posinfo, :root:not([data-theme="dark"]) .p-body .ss-addadmin { box-shadow: inset 4px 0 0 var(--p-orange), 0 1px 2px rgba(20,27,52,.14), 0 1px 3px 1px rgba(20,27,52,.08); }
+:root:not([data-theme="dark"]) .ss-jump { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
+:root:not([data-theme="dark"]) .bd-cols { --bd-sunk: #E9ECF4; --bd-card: #fff; --bd-card-h: #fff; --bd-over: rgba(255,152,0,.18); --bd-shadow: 0 1px 2px rgba(20,27,52,.22), 0 1px 3px 1px rgba(20,27,52,.12); }
+:root:not([data-theme="dark"]) .bd-col { background: var(--bd-sunk); -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: none; }
+:root:not([data-theme="dark"]) .bd-col.is-over { background: var(--bd-over); box-shadow: inset 0 0 0 2px #FF9800; }
+:root:not([data-theme="dark"]) .bd-card { border: 0; box-shadow: var(--bd-shadow); }
+:root:not([data-theme="dark"]) .bd-card:hover { box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); transform: translateY(-1px); }
+:root:not([data-theme="dark"]) .bd-card.is-drag { box-shadow: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26); }
+:root:not([data-theme="dark"]) .bd-bar { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: 0 1px 2px rgba(20,27,52,.14), 0 1px 3px 1px rgba(20,27,52,.08); }
+:root:not([data-theme="dark"]) { --rk-staff: #4B5568; }
