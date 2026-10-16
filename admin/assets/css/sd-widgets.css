@@ -91,3 +91,48 @@
 :root:not([data-theme="dark"]) #s-spatial .ss-lyr { border: 0; }
 @media (max-width: 980px) { #s-spatial .maplibregl-ctrl-bottom-right { right: 12px; } }
 :root[data-theme="dark"] #s-spatial .ss-lyr { border-color: rgba(255,255,255,.2); background: rgba(21,22,29,.9); }
+
+/* ---- The SMART drawer, refined (17 Oct): one rhythm (16 px edge, 18 px between sections, 8 px under a heading, 8 px between cards, 14 px corners),
+   a number in its own colour on each tile, switches at the right of full-width rows, ids as chips, spikes as cards. Navy in both themes. ---- */
+#s-spatial #smart-side { padding: 16px; display: grid; gap: 0; align-content: start; }
+#s-spatial #smart-side .ss-drawer-body { display: block; }
+#s-spatial #smart-side .ss-drawer-body[hidden] { display: none; }
+#s-spatial #smart-side .ss-drawer-body > .p-eyebrow { margin: 20px 0 8px; }
+#s-spatial #smart-side .ss-drawer-body > .p-eyebrow:first-child { margin-top: 0; }
+#s-spatial #smart-side .ss-drawer-head { min-height: 56px; margin: 0 0 14px; padding: 0 16px; border-radius: 14px; background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); animation: none; }
+#s-spatial #smart-side .p-eyebrow { display: flex; align-items: center; gap: 8px; font: 800 11px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #FFB84D; }
+#s-spatial #smart-side .p-eyebrow em { font: 800 10.5px Inter, sans-serif; font-style: normal; letter-spacing: 0; padding: 1px 8px; border-radius: 99px; background: rgba(255,184,77,.16); color: #FFC973; }
+/* tiles */
+#s-spatial #smart-side .ss-dtiles { gap: 8px; margin: 0; }
+#s-spatial #smart-side .ss-dtiles div { position: relative; min-height: 78px; padding: 12px 14px 10px 17px; border-radius: 14px; background: rgba(255,255,255,.08); border: 0; display: grid; align-content: space-between; gap: 2px; overflow: hidden; }
+#s-spatial #smart-side .ss-dtiles div::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--tc, #FFB84D); }
+#s-spatial #smart-side .ss-dtiles b { font: 800 28px/1 Urbanist, sans-serif; color: var(--tc, #fff); }
+#s-spatial #smart-side .ss-dtiles span { font: 600 12px/1.25 Inter, sans-serif; color: #C9CCD1; }
+#s-spatial #smart-side .t-wait { --tc: #FFB84D; } #s-spatial #smart-side .t-late { --tc: #FF8A8A; } #s-spatial #smart-side .t-rec { --tc: #9DBBFF; } #s-spatial #smart-side .t-spk { --tc: #7FDCA0; }
+/* switches */
+#s-spatial #smart-side .ss-dtog { gap: 6px; margin: 0; }
+#s-spatial #smart-side .ss-dtiles + .p-eyebrow { margin-top: 20px; }
+#s-spatial #smart-side .ss-dtog button { min-height: 44px; padding: 0 14px; border-radius: 12px; background: rgba(255,255,255,.07); justify-content: space-between; flex-direction: row-reverse; font: 700 13px Inter, sans-serif; color: #fff; transition: background .15s; }
+#s-spatial #smart-side .ss-dtog button:hover { background: rgba(255,255,255,.12); }
+#s-spatial #smart-side .ss-dtog button[aria-pressed="true"] { background: rgba(255,152,0,.16); box-shadow: inset 0 0 0 1px rgba(255,152,0,.45); }
+#s-spatial #smart-side .ss-dtog .sw { width: 36px; height: 22px; background: rgba(255,255,255,.28); } #s-spatial #smart-side .ss-dtog .sw::after { width: 16px; height: 16px; top: 3px; left: 3px; } #s-spatial #smart-side .ss-dtog button[aria-pressed="true"] .sw::after { transform: translateX(14px); }
+/* level key: one even strip */
+#s-spatial #smart-side .ss-dkey { margin: 8px 0 0; padding: 10px 14px; flex-wrap: nowrap; border-radius: 12px; background: rgba(255,255,255,.05); display: flex; justify-content: space-between; gap: 6px; font: 700 11.5px Inter, sans-serif; color: #E3E6EB; }
+#s-spatial #smart-side .ss-dkey span { gap: 5px; white-space: nowrap; }
+/* cards: recurring problems and likely-late */
+#s-spatial #smart-side .p-pin-list { gap: 8px; margin: 0; }
+#s-spatial #smart-side .p-pin-row { position: relative; padding: 12px 14px 12px 17px; border-radius: 14px; gap: 5px; overflow: hidden; }
+#s-spatial #smart-side .p-pin-row::before { display: block; content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: #9DBBFF; transform: none; }
+#s-spatial #smart-side .p-pin-row.ss-late::before { background: #FF8A8A; }
+#s-spatial #smart-side .p-pin-row b { font: 800 14px/1.25 Urbanist, sans-serif; }
+#s-spatial #smart-side .p-pin-row small { font: 600 12px/1.4 Inter, sans-serif; color: #C9CCD1; }
+#s-spatial #smart-side .p-pin-row b.p-mono-id { font: 800 14px "JetBrains Mono", ui-monospace, Consolas, monospace; letter-spacing: .01em; }
+.ss-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.ss-chips i { font: 700 11px "JetBrains Mono", ui-monospace, Consolas, monospace; font-style: normal; padding: 3px 8px; border-radius: 8px; background: rgba(157,187,255,.16); color: #C7D8FF; white-space: nowrap; }
+/* spikes: a card each, the week's count against the usual */
+.ss-spikes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ss-spikes li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t n" "t u"; gap: 2px 12px; align-items: center; padding: 12px 14px 12px 17px; border-radius: 14px; background: rgba(255,255,255,.08); overflow: hidden; }
+.ss-spikes li::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: #7FDCA0; }
+.ss-spikes .sk-t { grid-area: t; display: grid; gap: 2px; min-width: 0; } .ss-spikes .sk-t b { font: 800 14px/1.25 Urbanist, sans-serif; color: #fff; } .ss-spikes .sk-t small { font: 600 12px Inter, sans-serif; color: #C9CCD1; }
+.ss-spikes .sk-n { grid-area: n; text-align: right; line-height: 1; } .ss-spikes .sk-n b { font: 800 24px Urbanist, sans-serif; color: #7FDCA0; display: block; } .ss-spikes .sk-n small { font: 600 10.5px Inter, sans-serif; color: #C9CCD1; }
+.ss-spikes .sk-u { grid-area: u; text-align: right; font: 600 11.5px Inter, sans-serif; color: #C9CCD1; } .ss-spikes .sk-u b { color: #fff; } .ss-spikes .sk-u em { font-style: normal; margin-left: 6px; font-weight: 800; color: #2B1A00; background: #FFB84D; border-radius: 99px; padding: 1px 7px; }
