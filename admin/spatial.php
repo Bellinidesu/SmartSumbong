@@ -2106,7 +2106,7 @@ function fwRender() {
   h += srcRow + '</section>';
   // Typhoon watch: the five PAGASA wind signals, and the cyclone when one is near
   const cy = hz && hz.cyclone, sig = cy && cy.signal ? cy.signal : 0, gw = cy && cy.gdacs && cy.gdacs.wind;
-  h += '<section class="fwt"><div class="fwx-h"><span class="fwx-ic cy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 2c4 0 7 3 5 6M22 12c0 4-3 7-6 5M12 22c-4 0-7-3-5-6M2 12c0-4 3-7 6-5"/></svg></span><b>' + esc(T('Typhoon watch', 'Bantay-bagyo')) + '</b>' +
+  h += '<section class="fwt' + (cy ? '' : ' calm') + '"><div class="fwx-h"><span class="fwx-ic cy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 2c4 0 7 3 5 6M22 12c0 4-3 7-6 5M12 22c-4 0-7-3-5-6M2 12c0-4 3-7 6-5"/></svg></span><b>' + esc(T('Typhoon watch', 'Bantay-bagyo')) + '</b>' +
     '<small>' + (hz ? (src.pagasa_cyclone ? 'PAGASA' : '') : '') + '</small></div>' +
     '<div class="fwx-top2"><div><p class="fwx-big">' + esc(cy ? (sig ? 'Signal ' + sig : cy.name) : T('None', 'Wala')) + '</p><p class="fwx-sub">' + esc(cy ? (cy.name + (cy.kind ? ' (' + cy.kind + ')' : '') + T(', ' + cy.km + ' km ' + cy.dir + ' of here', ', ' + cy.km + ' km ' + cy.dir + ' mula rito') + (gw ? ' · ' + gw + ' km/h' : '')) : T('No tropical cyclone near the Philippines', 'Walang bagyo malapit sa Pilipinas')) + '</p></div>' +
     '<span class="fwx-pill ' + (cy ? 'cyc pulse' : '') + '" style="--fw:' + (cy ? '#8E3FD0' : '#22c55e') + '"><i></i>' + esc(cy ? T('Near', 'Malapit') : T('Clear', 'Malinaw')) + '</span></div>' +
