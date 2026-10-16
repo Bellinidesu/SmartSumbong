@@ -41,3 +41,10 @@
 .fwx-nd { justify-self: start; color: #00308F; font: 700 12px Inter, sans-serif; text-decoration: none; } .fwx-nd:hover { text-decoration: underline; }
 :root[data-theme="dark"] .fwx-nd, :root[data-theme="dark"] .fwx-iss a { color: #A9C5FF; }
 @media (prefers-reduced-motion: reduce) { .fwx-pill.pulse i { animation: none; } }
+/* The widget column sits to the left of the map's button strip (about 52 px wide, 16 px from the edge), so the two never overlap at any height. */
+@media (min-width: 981px) { #s-spatial .fw { right: 84px; } }
+/* On a calm day the Typhoon watch is one line, not a card of its own height. */
+#fw-card .fwt.calm { gap: 6px; padding: 12px 16px; }
+#fw-card .fwt.calm .fwx-sig, #fw-card .fwt.calm .fwx-ax, #fw-card .fwt.calm .fwx-src { display: none; }
+#fw-card .fwt.calm .fwx-top2 { align-items: center; } #fw-card .fwt.calm .fwx-big { font-size: 17px; } #fw-card .fwt.calm .fwx-sub { font-size: 12px; }
+#fw-card .fwt.calm .fwx-nd { font-size: 11.5px; }
