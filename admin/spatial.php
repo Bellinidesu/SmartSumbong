@@ -227,6 +227,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 </section>
 
 <link rel="stylesheet" href="assets/vendor/maplibre/maplibre-gl.css">
+<link rel="stylesheet" href="assets/css/sd-light.css?v=<?= e(asset_version('sd-light.css')) ?>">
 <script src="assets/vendor/maplibre/maplibre-gl.js"></script>
 <?php if (env('MAPILLARY_TOKEN', '') !== ''): ?>
 <link rel="stylesheet" href="assets/vendor/mapillary/mapillary.css">

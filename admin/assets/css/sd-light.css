@@ -1,0 +1,53 @@
+/* Spatial Distribution in light mode is Material (Ace, 16 Oct): solid white surfaces, no blur, depth from elevation shadows
+   (panels level 2, the case sheet and pop-ups level 3, controls level 1), the active dock button brand orange, the engine drawer the locked navy.
+   Loaded only on this page. Dark mode keeps its frosted glass (flair.css). */
+:root:not([data-theme="dark"]) #s-spatial {
+  --el1: 0 1px 2px rgba(20,27,52,.22), 0 1px 3px 1px rgba(20,27,52,.12);
+  --el2: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14);
+  --el3: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26);
+}
+/* panels: level 2 */
+:root:not([data-theme="dark"]) #s-spatial .p-map-search, :root:not([data-theme="dark"]) #s-spatial .ss-lyr, :root:not([data-theme="dark"]) #s-spatial .p-map-stats,
+:root:not([data-theme="dark"]) #s-spatial .p-map-legend, :root:not([data-theme="dark"]) #s-spatial .fw-card, :root:not([data-theme="dark"]) #s-spatial .lyc {
+  background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: var(--el2); isolation: auto;
+}
+/* the case sheet, Zoom here box, marker pop-up and pickers: level 3 */
+:root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv, :root:not([data-theme="dark"]) #s-spatial .ss-pop, :root:not([data-theme="dark"]) .sdp-pop {
+  background: #fff; background-image: none; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: var(--el3);
+}
+:root:not([data-theme="dark"]) .sdp-pop { position: fixed; }
+:root:not([data-theme="dark"]) #s-spatial .p-map-search, :root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv, :root:not([data-theme="dark"]) #s-spatial .ss-lyr, :root:not([data-theme="dark"]) #s-spatial .p-map-stats, :root:not([data-theme="dark"]) #s-spatial .p-map-legend { position: absolute; }
+:root:not([data-theme="dark"]) #s-spatial .lyc, :root:not([data-theme="dark"]) #s-spatial .fw-card { position: relative; }
+/* no sheen layers in Material */
+:root:not([data-theme="dark"]) #s-spatial .p-map-search::after, :root:not([data-theme="dark"]) #s-spatial .ss-lyr::after, :root:not([data-theme="dark"]) #s-spatial .p-map-stats::after,
+:root:not([data-theme="dark"]) #s-spatial .p-map-legend::after, :root:not([data-theme="dark"]) #s-spatial .fw-card::after, :root:not([data-theme="dark"]) #s-spatial .lyc::after,
+:root:not([data-theme="dark"]) #s-spatial .ss-qv::after, :root:not([data-theme="dark"]) #s-spatial .ss-pop::after, :root:not([data-theme="dark"]) .sdp-pop::after { display: none; }
+/* controls: level 1, rising to 2 on hover; the dock buttons are small surfaces like Material's FABs */
+:root:not([data-theme="dark"]) #s-spatial .fw-chip, :root:not([data-theme="dark"]) #s-spatial .p-dock-btn, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-scale {
+  background: #fff; background-image: none; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: var(--el1); color: #141B34;
+}
+:root:not([data-theme="dark"]) #s-spatial .p-dock-btn { transition: box-shadow .2s ease, background-color .2s ease; }
+:root:not([data-theme="dark"]) #s-spatial .p-dock-btn:hover, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button:hover { background: #F2F4FA; box-shadow: var(--el2); }
+:root:not([data-theme="dark"]) #s-spatial .p-dock-btn.on { background: var(--p-orange); color: #2B1A00; box-shadow: var(--el2); }
+:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button { background: transparent; }
+:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button + button { border-top: 1px solid rgba(20,27,52,.10); }
+:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-scale { border-color: rgba(20,27,52,.5); }
+:root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-pin-row:hover, :root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-hs-row:hover { background: rgba(255,152,0,.10); }
+:root:not([data-theme="dark"]) #s-spatial .p-map-search .p-pill-select { background: #F4F6FB; }
+:root:not([data-theme="dark"]) #s-spatial .p-map-search .p-note { color: #4A5068; }
+/* the case sheet's footer, rows and cards on solid white */
+:root:not([data-theme="dark"]) .cs-foot { background: #fff; border-top: 1px solid rgba(20,27,52,.10); }
+:root:not([data-theme="dark"]) .cs-quote, :root:not([data-theme="dark"]) .cs-sla, :root:not([data-theme="dark"]) .cs-last { background: #F4F6FB; }
+:root:not([data-theme="dark"]) .cs-rows li { border-bottom-color: rgba(20,27,52,.09); }
+:root:not([data-theme="dark"]) .cs-sheet::before { opacity: .05; background: #14213D; }
+:root:not([data-theme="dark"]) .cs-acts > * span:not(.x) { box-shadow: var(--el1); }
+:root:not([data-theme="dark"]) .cs-acts > *:hover span:not(.x) { box-shadow: var(--el2); transform: translateY(-1px); }
+/* the engine drawer: the locked dark navy, yellow mark glowing */
+:root:not([data-theme="dark"]) #s-spatial #smart-side {
+  --p-ink: #F3F3F3; --p-ink-2: #D5D8DE; --p-muted: #C9CCD1; color: #F3F3F3;
+  background: linear-gradient(145deg,#1B2342,#0E1428); box-shadow: var(--el3);
+}
+:root:not([data-theme="dark"]) #s-spatial #smart-side .ss-engine img { filter: drop-shadow(0 0 3px #356CF9) drop-shadow(0 0 9px rgba(53,108,249,.55)); }
+/* contrast (measured): dark text on the brand orange, a darker grey behind the counts */
+#s-spatial .p-tog.p-on, #s-spatial .p-pill-select.p-tog, #s-spatial .p-seg-mini .on, #s-spatial .on[data-w], #s-spatial .p-tl .on, #s-spatial .tl-seg button.on { color: #2B1A00; }
+#s-spatial .p-cnt { background: #6B7280; color: #fff; }

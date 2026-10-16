@@ -1583,8 +1583,8 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 :root[data-theme="dark"] img.rail-logo[src*="bagong-pilipinas"] { content: url("../img/bagong-pilipinas-dk.webp"); }
 :root[data-theme="dark"] img.rail-logo[src*="bagong-villamor"] { content: url("../img/bagong-villamor-dk.webp"); }
 
-/* sign-in: the card as light glass over the street photo */
-:root:not([data-theme="dark"]) .login-card { background: linear-gradient(152deg, rgba(255,255,255,.96), rgba(255,255,255,.84)); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,.9); box-shadow: inset 1px 1px 0 #fff, 0 24px 60px rgba(20,27,52,.22); }
+/* sign-in, light: a solid Material card */
+:root:not([data-theme="dark"]) .login-card { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: 0 8px 12px 6px rgba(20,27,52,.16), 0 4px 4px rgba(20,27,52,.24); }
 :root:not([data-theme="dark"]) .login-btn { background: #FF9800; color: #2B1A00; font-weight: 700; box-shadow: 0 8px 22px rgba(255,152,0,.35); }
 /* Sign-in legibility (Ace's live screenshot): the Remember me / Forgot password / Request access lines were 10px italic and faint on white; readable size and ink, and the link in the brand blue with an underline. */
 .login-meta { font-size: 12.5px; font-style: normal; margin-bottom: 20px; }
@@ -1595,49 +1595,3 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .remember input { width: 14px; height: 14px; }
 .login-note, .login-error { font-size: 13px; }
 
-@media (prefers-reduced-transparency: reduce) { :root:not([data-theme="dark"]) .login-card { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; } }
-
-/* ======================= Spatial Distribution in light mode, up to the others (16 Oct) =======================
-   The same material as dark, in white: panels frost at ~78% white with a bright lit edge and a faint sheen, controls the same smaller, the active dock button brand orange, the engine card the locked dark navy. Table-free page, so every surface is glass; while the map moves nothing is blurred; reduce-transparency makes it solid. */
-:root:not([data-theme="dark"]) #s-spatial {
-  --gl-panel: rgba(255,255,255,.80); --gl-panel-hi: rgba(255,255,255,.95); --gl-ctl: rgba(255,255,255,.86); --gl-edge: rgba(255,255,255,.9);
-  --g-edge: inset 1px 1px 0 rgba(255,255,255,.95), inset -1px -1px 0 rgba(20,27,52,.05), inset 0 0 22px rgba(255,255,255,.35);
-  --g-sheen: linear-gradient(152deg, rgba(255,255,255,.65) 0%, rgba(255,255,255,.18) 30%, rgba(255,255,255,0) 58%);
-}
-:root:not([data-theme="dark"]) #s-spatial .p-map-search, :root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv,
-:root:not([data-theme="dark"]) #s-spatial .ss-lyr, :root:not([data-theme="dark"]) #s-spatial .p-map-stats, :root:not([data-theme="dark"]) #s-spatial .p-map-legend,
-:root:not([data-theme="dark"]) #s-spatial .fw-card, :root:not([data-theme="dark"]) #s-spatial .lyc, :root:not([data-theme="dark"]) .sdp-pop {
-  background-color: var(--gl-panel, rgba(255,255,255,.8)); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid rgba(255,255,255,.85); isolation: isolate; box-shadow: 0 18px 44px rgba(20,27,52,.18), 0 2px 8px rgba(20,27,52,.08), var(--g-edge);
-}
-:root:not([data-theme="dark"]) .sdp-pop { position: fixed; --g-edge: inset 1px 1px 0 rgba(255,255,255,.95), inset -1px -1px 0 rgba(20,27,52,.05); --g-sheen: linear-gradient(152deg, rgba(255,255,255,.65), rgba(255,255,255,0) 58%); background-color: rgba(255,255,255,.9); }
-:root:not([data-theme="dark"]) #s-spatial .p-map-search, :root:not([data-theme="dark"]) #s-spatial .cs-sheet, :root:not([data-theme="dark"]) #s-spatial .ss-qv, :root:not([data-theme="dark"]) #s-spatial .ss-lyr, :root:not([data-theme="dark"]) #s-spatial .p-map-stats, :root:not([data-theme="dark"]) #s-spatial .p-map-legend { position: absolute; }
-:root:not([data-theme="dark"]) #s-spatial .lyc, :root:not([data-theme="dark"]) #s-spatial .fw-card { position: relative; }
-:root:not([data-theme="dark"]) #s-spatial .p-map-search::after, :root:not([data-theme="dark"]) #s-spatial .cs-sheet::after, :root:not([data-theme="dark"]) #s-spatial .ss-qv::after, :root:not([data-theme="dark"]) #s-spatial .ss-lyr::after,
-:root:not([data-theme="dark"]) #s-spatial .p-map-stats::after, :root:not([data-theme="dark"]) #s-spatial .p-map-legend::after, :root:not([data-theme="dark"]) #s-spatial .fw-card::after, :root:not([data-theme="dark"]) #s-spatial .lyc::after, :root:not([data-theme="dark"]) .sdp-pop::after {
-  content: ""; display: block; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--g-sheen); width: auto; height: auto; transform: none; border: 0; opacity: 1;
-}
-:root:not([data-theme="dark"]) #s-spatial .p-map-stats:hover, :root:not([data-theme="dark"]) #s-spatial .p-map-legend:hover, :root:not([data-theme="dark"]) #s-spatial .fw-card:hover, :root:not([data-theme="dark"]) #s-spatial .lyc:hover { background-color: var(--gl-panel-hi); }
-:root:not([data-theme="dark"]) #s-spatial .fw-chip, :root:not([data-theme="dark"]) #s-spatial .p-dock-btn, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group {
-  background-color: var(--gl-ctl); background-image: var(--g-sheen); -webkit-backdrop-filter: blur(12px) saturate(1.5); backdrop-filter: blur(12px) saturate(1.5);
-  border: 1px solid rgba(255,255,255,.85); box-shadow: 0 8px 22px rgba(20,27,52,.16), var(--g-edge);
-}
-:root:not([data-theme="dark"]) #s-spatial .p-dock-btn:hover, :root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button:hover { background-color: var(--gl-panel-hi); }
-:root:not([data-theme="dark"]) #s-spatial .p-dock-btn.on { background-color: var(--p-orange); background-image: none; color: #2B1A00; box-shadow: 0 8px 20px rgba(255,152,0,.4); }
-:root:not([data-theme="dark"]) #s-spatial .maplibregl-ctrl-group button { background: transparent; }
-:root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-pin-row:hover, :root:not([data-theme="dark"]) #s-spatial .p-map-stats .p-hs-row:hover { background: rgba(255,152,0,.10); }
-/* the title strip over the map */
-:root:not([data-theme="dark"]) #s-spatial .p-map-title, :root:not([data-theme="dark"]) #s-spatial .p-map-top { background-color: var(--gl-panel); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); box-shadow: 0 14px 36px rgba(20,27,52,.16), var(--g-edge); border: 1px solid rgba(255,255,255,.85); }
-/* the engine card on the map: the locked dark navy, yellow mark glowing */
-:root:not([data-theme="dark"]) #s-spatial #smart-side {
-  --p-ink: #F3F3F3; --p-ink-2: #D5D8DE; --p-muted: #C9CCD1; color: #F3F3F3;
-  background-color: rgba(14,20,40,.9); background-image: linear-gradient(145deg,#1B2342,#0E1428); border-color: rgba(255,255,255,.12);
-}
-:root:not([data-theme="dark"]) #s-spatial #smart-side .ss-engine img { filter: drop-shadow(0 0 3px #356CF9) drop-shadow(0 0 9px rgba(53,108,249,.55)); }
-/* while the map moves: no blur, so nothing drags */
-#s-spatial.ss-dragging .p-map-search, #s-spatial.ss-dragging .cs-sheet, #s-spatial.ss-dragging .ss-qv, #s-spatial.ss-dragging .ss-lyr { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-@media (prefers-reduced-transparency: reduce) { :root:not([data-theme="dark"]) #s-spatial *, :root:not([data-theme="dark"]) .sdp-pop { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } :root:not([data-theme="dark"]) #s-spatial { --gl-panel: #fff; --gl-ctl: #fff; } }
-/* Spatial Distribution contrast (measured, both themes): white on the brand orange and on the grey counts did not reach AA */
-#s-spatial .p-tog.p-on, #s-spatial .p-pill-select.p-tog, #s-spatial .p-seg-mini .on, #s-spatial .on[data-w], #s-spatial .p-tl .on { color: #2B1A00; }
-#s-spatial .p-cnt { background: #6B7280; color: #fff; }
-#s-spatial .tl-seg button.on { color: #2B1A00; }
