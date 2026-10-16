@@ -1984,7 +1984,7 @@ const FWL = [
   { en: 'Red rainfall warning', fil: 'Pulang babala sa ulan', col: '#dc2626', short: 'Red',
     note: ['Serious flooding expected in every flood zone.', 'Inaasahan ang malubhang baha sa lahat ng bahaing lugar.'] },
 ];
-const FW = { online: null, mm: null, level: 0, rain: 0, official: 0, at: null, auto: false, risk: [], hz: null };
+const FW = { online: null, mm: null, level: 0, rain: 0, official: 0, at: null, auto: false, risk: [], hz: null, hazard: null };
 const OPEN_STATUSES = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
 const fwLevel = mm => mm >= 30 ? 3 : mm >= 15 ? 2 : mm >= 7.5 ? 1 : 0;
 
@@ -2003,6 +2003,7 @@ async function fwRead() {
   }
   FW.at = new Date();
   await hzRead();
+  if (FW.hazard === null && window.hazardAt) { try { FW.hazard = (await window.hazardAt(RESIDENTIAL_CENTRE[0], RESIDENTIAL_CENTRE[1])).flood || 0; } catch (e) { /* the zones are not loaded yet */ } }
   const was = FW.level;
   // The level is the higher of the rain that is falling and the rainfall warning PAGASA has out for Metro Manila.
   FW.rain = FW.online ? fwLevel(FW.mm) : 0;
@@ -2081,45 +2082,40 @@ function fwRender() {
     : T('Offline · retrying', 'Offline · sinusubukang muli');
   const flood = document.getElementById('f-flood').checked;
   const hz = FW.hz, src = hz ? hz.sources : {}, lvl = FW.level, flood2 = document.getElementById('f-flood').checked;
-  const mmText = FW.online ? FW.mm.toFixed(1) : '—', angle = Math.min(270, FW.online ? FW.mm / 40 * 270 : 0);
-  const metroWarn = hz ? hz.warnings.filter(w => w.metro) : [];
-  const nearby = hz ? hz.warnings.filter(w => !w.metro).length : 0;
+  const metroWarn = hz ? hz.warnings.filter(w => w.metro && /rain/i.test(w.type)).sort((x, y) => y.level - x.level)[0] : null;
   const hh = d => d ? new Date(d.replace(' ', 'T') + '+08:00').toLocaleTimeString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { hour: 'numeric', minute: '2-digit' }) : '';
   const fc = hz && hz.forecast && hz.forecast.length ? hz.forecast : null;
-  const bar = mm => mm >= 30 ? '#dc2626' : mm >= 15 ? '#f97316' : mm >= 7.5 ? '#eab308' : '#7DB3E8';
-  const peak = fc ? Math.max(...fc.map(f => f.mm)) : 0;
-  let h = '<div class="fwx-h"><span class="fwx-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.500 6-11 6-11z"/></svg></span><b>' + esc(T('Flood watch', 'Bantay-baha')) + '</b><small>' + esc(T('Barangay 183', 'Barangay 183')) + '</small></div>';
-  if (FW.online || hz) {
-    h += '<div class="fwx-top"><div class="fwx-g" style="--fwa:' + angle.toFixed(0) + 'deg"><div class="fwx-ring"></div><div class="fwx-v"><b>' + mmText + '</b><small>mm/h</small></div></div>' +
-      '<div class="fwx-info"><span class="fwx-pill' + (lvl ? ' pulse' : '') + '"><i></i>' + esc(T(L.en, L.fil)) + '</span><p>' + esc(T(L.note[0], L.note[1])) + '</p>' +
-      '<div class="fwx-th"><span class="on"></span><span class="' + (lvl >= 2 ? 'on' : '') + '"></span><span class="' + (lvl >= 3 ? 'on' : '') + '"></span></div><div class="fwx-ax"><span>7.5</span><span>15</span><span>30 mm/h</span></div></div></div>';
-    h += '<div class="fwx-wave" aria-hidden="true"><svg viewBox="0 0 200 26" preserveAspectRatio="none"><path d="M0 14 Q 25 2 50 14 T 100 14 T 150 14 T 200 14 V26 H0Z"/></svg><svg viewBox="0 0 200 26" preserveAspectRatio="none"><path d="M0 16 Q 25 6 50 16 T 100 16 T 150 16 T 200 16 V26 H0Z"/></svg></div>';
+  const next = fc ? (Math.max(...fc.slice(0, 6).map(f => f.mm)) < 0.5 ? T('Dry for the next ' + Math.min(6, fc.length) + ' hours', 'Tuyo sa susunod na ' + Math.min(6, fc.length) + ' oras')
+    : T('Rain ahead, up to ' + Math.max(...fc.slice(0, 6).map(f => f.mm)).toFixed(1) + ' mm/h in the next 6 hours', 'May ulan, hanggang ' + Math.max(...fc.slice(0, 6).map(f => f.mm)).toFixed(1) + ' mm/h sa susunod na 6 oras')) : '';
+  const haz = [T('None', 'Wala'), T('Low', 'Mababa'), T('Medium', 'Katamtaman'), T('High', 'Mataas')][Math.max(0, Math.min(3, FW.hazard || 0))];
+  const ok = x => x ? '' : ' class="off"';
+  const srcRow = '<div class="fwx-src"><i' + ok(FW.online) + '>Open-Meteo</i><i' + ok(src.pagasa_warnings) + '>PAGASA</i><i' + ok(src.gdacs) + '>GDACS</i><i>Project NOAH</i><span>' + esc(T('as of ', 'noong ')) + esc(t) + '</span>' + (hz && hz.stale ? '<em>' + esc(T('old copy', 'lumang kopya')) + '</em>' : '') + '</div>';
+  let h = '<section class="fwb"><div class="fwx-h"><span class="fwx-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.500 6-11 6-11z"/></svg></span><b>' + esc(T('Flood watch', 'Bantay-baha')) + '</b>' +
+    '<span class="fwx-pill' + (lvl && FW.online !== null ? ' pulse' : '') + '"><i></i>' + esc(T(L.en.replace(' rainfall', '').replace('No rain warning', 'No warning'), L.fil)) + '</span></div>';
+  if (FW.online === null && !hz) {
+    h += '<p class="fwx-big">' + esc(T('Connecting…', 'Kumokonekta…')) + '</p>';
+  } else if (!FW.online && !hz) {
+    h += '<p class="fwx-big">' + esc(T('Flood data offline', 'Offline ang datos ng baha')) + '</p><p class="fwx-sub">' + esc(T('The rain source can\u2019t be reached. Trying again in 10 minutes; flood zones stay as you set them.', 'Hindi maabot ang pinagkukunan ng ulan. Susubukan muli sa loob ng 10 minuto.')) + '</p>';
   } else {
-    if (FW.online === null) h += '<div class="fwx-off"><b>' + esc(T('Connecting…', 'Kumokonekta…')) + '</b></div>'; else h += '<div class="fwx-off"><b>' + esc(T('Flood data offline', 'Offline ang datos ng baha')) + '</b><small>' + esc(T('The rain source can\u2019t be reached. Trying again in 10 minutes; flood zones stay as you set them.', 'Hindi maabot ang pinagkukunan ng ulan. Susubukan muli sa loob ng 10 minuto.')) + '</small></div>';
+    h += '<p class="fwx-big">' + esc(metroWarn ? metroWarn.type + (metroWarn.severity ? ' (' + metroWarn.severity + ')' : '') : T(L.en, L.fil)) + '</p>' +
+      '<p class="fwx-sub">' + esc(metroWarn ? metroWarn.text : T(L.note[0], L.note[1])) + '</p>' +
+      (metroWarn ? '<p class="fwx-iss">PAGASA · ' + esc(T('issued ', 'inilabas ')) + esc(hh(metroWarn.issued)) + (metroWarn.expires ? esc(T(' · valid until ', ' · hanggang ')) + esc(hh(metroWarn.expires)) : '') + (metroWarn.url ? ' · <a href="' + esc(metroWarn.url) + '" target="_blank" rel="noopener">' + esc(T('read it', 'basahin')) + '</a>' : '') + '</p>' : '') +
+      '<div class="fwx-kv"><div><b>' + (FW.online ? FW.mm.toFixed(1) : '—') + '</b><small>' + esc(T('mm/h now', 'mm/h ngayon')) + '</small></div><div><b>' + (lvl ? FW.risk.length : 0) + '</b><small>' + esc(T('cases at risk', 'sumbong na delikado')) + '</small></div><div><b>' + esc(haz) + '</b><small>' + esc(T('flood hazard (NOAH)', 'panganib ng baha (NOAH)')) + '</small></div></div>' +
+      '<div class="fwx-ft"><span>' + esc(next) + '</span><button type="button" class="fwx-go" id="fw-zones" aria-pressed="' + flood2 + '">' + esc(flood2 ? T('Hide zones', 'Itago ang zones') : T('Show on map', 'Ipakita sa mapa')) + '</button></div>';
   }
-  // PAGASA's own words for Metro Manila, when it has some
-  if (metroWarn.length) {
-    h += metroWarn.slice(0, 2).map(w => '<div class="fwx-pg" style="--wl:' + ['#22c55e', '#eab308', '#f97316', '#dc2626'][w.level] + '"><b>PAGASA · ' + esc(w.type + (w.severity ? ' (' + w.severity + ')' : '')) + '</b><span>' + esc(w.text) + '</span><small>' + esc(T('Issued ', 'Inilabas ')) + esc(hh(w.issued)) + (w.expires ? esc(T(' · valid until ', ' · hanggang ')) + esc(hh(w.expires)) : '') + (w.url ? ' · <a href="' + esc(w.url) + '" target="_blank" rel="noopener">' + esc(T('read it', 'basahin')) + '</a>' : '') + '</small></div>').join('');
-  } else if (hz && src.pagasa_warnings) {
-    h += '<p class="fwx-clr">' + esc(T('PAGASA has no warning out for Metro Manila.', 'Walang babala ang PAGASA para sa Metro Manila.')) + (nearby ? ' ' + esc(T(nearby + (nearby === 1 ? ' advisory' : ' advisories') + ' elsewhere in Luzon.', nearby + ' abiso sa ibang bahagi ng Luzon.')) : '') + '</p>';
-  }
-  // a tropical cyclone near the Philippines
-  const cy = hz && hz.cyclone;
-  if (cy) {
-    const gw = cy.gdacs && cy.gdacs.wind;
-    h += '<div class="fwx-cy"><div class="fwx-ch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 2c4 0 7 3 5 6M22 12c0 4-3 7-6 5M12 22c-4 0-7-3-5-6M2 12c0-4 3-7 6-5"/></svg><b>' + esc(T('Typhoon watch', 'Bantay-bagyo')) + '</b><small>' + esc(cy.name) + (cy.kind ? ' · ' + esc(cy.kind) : '') + '</small></div>' +
-      '<div class="fwx-kv"><div><b>' + cy.km + ' km</b><small>' + esc(T(cy.dir + ' of here', cy.dir + ' mula rito')) + '</small></div><div><b>' + (gw ? gw + ' km/h' : '—') + '</b><small>' + esc(T('winds (GDACS)', 'hangin (GDACS)')) + '</small></div><div><b>' + (cy.signal ? 'Signal ' + cy.signal : esc(T('None', 'Wala'))) + '</b><small>' + esc(T('PAGASA wind signal', 'wind signal ng PAGASA')) + '</small></div></div></div>';
-  }
-  // the next hours of rain (PAGASA forecast for Port Area, Manila)
-  if (fc) {
-    h += '<div class="fwx-fc"><div class="fwx-bars">' + fc.map((f, i) => '<span class="' + (i === 0 ? 'now' : '') + '" style="height:' + Math.max(8, Math.round(f.mm / Math.max(30, peak) * 100)) + '%;--bc:' + bar(f.mm) + '" title="' + esc(f.h) + ' · ' + f.mm.toFixed(1) + ' mm/h"></span>').join('') + '</div><div class="fwx-ax"><span>' + esc(T('Now', 'Ngayon')) + '</span><span>' + esc(fc[Math.floor(fc.length / 2)].h) + '</span><span>' + esc(fc[fc.length - 1].h) + '</span></div><small>' + esc(T('Next ' + fc.length + ' hours, PAGASA forecast. ', 'Susunod na ' + fc.length + ' oras, forecast ng PAGASA. ')) + esc(peak < 0.5 ? T('Dry.', 'Tuyo.') : T('Peaks at ' + peak.toFixed(1) + ' mm/h.', 'Pinakamalakas: ' + peak.toFixed(1) + ' mm/h.')) + '</small></div>';
-  }
-  h += '<div class="fwx-rows"><div class="fw-row"><span>' + esc(T('Open complaints in zones at risk', 'Bukas na sumbong sa delikadong lugar')) + '</span><b>' + (lvl ? FW.risk.length : '—') + '</b></div>' +
-    '<div class="fw-row"><span>' + esc(T('Flood zones on the map', 'Bahaing lugar sa mapa')) + '</span><b>' + esc(flood2 ? (FW.auto ? T('On (by the warning)', 'Bukas (dahil sa babala)') : T('On', 'Bukas')) : T('Off', 'Sarado')) + '</b></div></div>';
-  const ok = s => s ? '' : ' off';
-  h += '<div class="fwx-src"><i class="' + ok(FW.online) + '">Open-Meteo</i><i class="' + ok(src.pagasa_warnings) + '">PAGASA</i><i class="' + ok(src.gdacs) + '">GDACS</i><i>Project NOAH</i><span>' + esc(T('as of ', 'noong ')) + esc(t) + '</span>' + (hz && hz.stale ? '<em>' + esc(T('old copy', 'lumang kopya')) + '</em>' : '') + '</div>' +
-    '<a class="fwx-nd" href="https://ndrrmc.gov.ph/" target="_blank" rel="noopener">' + esc(T('Latest NDRRMC situation report', 'Pinakabagong sitrep ng NDRRMC')) + ' &rarr;</a>';
+  h += srcRow + '</section>';
+  // Typhoon watch: the five PAGASA wind signals, and the cyclone when one is near
+  const cy = hz && hz.cyclone, sig = cy && cy.signal ? cy.signal : 0, gw = cy && cy.gdacs && cy.gdacs.wind;
+  h += '<section class="fwt"><div class="fwx-h"><span class="fwx-ic cy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 2c4 0 7 3 5 6M22 12c0 4-3 7-6 5M12 22c-4 0-7-3-5-6M2 12c0-4 3-7 6-5"/></svg></span><b>' + esc(T('Typhoon watch', 'Bantay-bagyo')) + '</b>' +
+    '<small>' + (hz ? (src.pagasa_cyclone ? 'PAGASA' : '') : '') + '</small></div>' +
+    '<div class="fwx-top2"><div><p class="fwx-big">' + esc(cy ? (sig ? 'Signal ' + sig : cy.name) : T('None', 'Wala')) + '</p><p class="fwx-sub">' + esc(cy ? (cy.name + (cy.kind ? ' (' + cy.kind + ')' : '') + T(', ' + cy.km + ' km ' + cy.dir + ' of here', ', ' + cy.km + ' km ' + cy.dir + ' mula rito') + (gw ? ' · ' + gw + ' km/h' : '')) : T('No tropical cyclone near the Philippines', 'Walang bagyo malapit sa Pilipinas')) + '</p></div>' +
+    '<span class="fwx-pill ' + (cy ? 'cyc pulse' : '') + '" style="--fw:' + (cy ? '#8E3FD0' : '#22c55e') + '"><i></i>' + esc(cy ? T('Near', 'Malapit') : T('Clear', 'Malinaw')) + '</span></div>' +
+    '<div class="fwx-sig">' + [1, 2, 3, 4, 5].map(n => '<span class="' + (n === sig ? 'on' : '') + '" data-n="' + n + '">' + n + '</span>').join('') + '</div><div class="fwx-ax"><span>' + esc(T('Signal 1 · 39 km/h', 'Signal 1 · 39 km/h')) + '</span><span>' + esc(T('5 · 185+ km/h', '5 · 185+ km/h')) + '</span></div>' +
+    '<div class="fwx-src"><i' + ok(src.pagasa_cyclone) + '>PAGASA</i><i' + ok(src.gdacs) + '>GDACS</i><span>' + esc(T('checked ', 'tiningnan ')) + esc(t) + '</span></div>' +
+    '<a class="fwx-nd" href="https://ndrrmc.gov.ph/" target="_blank" rel="noopener">' + esc(T('Latest NDRRMC situation report', 'Pinakabagong sitrep ng NDRRMC')) + ' &rarr;</a></section>';
   document.getElementById('fw-card').innerHTML = h;
+  const zb = document.getElementById('fw-zones');
+  if (zb) zb.addEventListener('click', () => { const f = document.getElementById('f-flood'); f.checked = !f.checked; FW.auto = false; f.dispatchEvent(new Event('change', { bubbles: true })); floodLayer(); fwRender(); });
 }
 
 fwRender();

@@ -228,21 +228,6 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php endif; ?>
 
-<?php
-$hzl = [
-  'none' => t('No warning', 'Walang babala'), 'yellow' => t('Yellow warning', 'Dilaw na babala'), 'orange' => t('Orange warning', 'Kahel na babala'), 'red' => t('Red warning', 'Pulang babala'),
-  'clear' => t('PAGASA has no warning out for Metro Manila.', 'Walang babala ang PAGASA para sa Metro Manila.'), 'waiting' => t('Reading PAGASA…', 'Binabasa ang PAGASA…'),
-  'now' => t('Now', 'Ngayon'), 'next' => t('Next {n} hours, PAGASA forecast.', 'Susunod na {n} oras, forecast ng PAGASA.'), 'dry' => t('Dry.', 'Tuyo.'), 'peak' => t('Peaks at {mm} mm/h.', 'Pinakamalakas: {mm} mm/h.'),
-  'typhoon' => t('Typhoon watch', 'Bantay-bagyo'), 'asof' => t('as of', 'noong'), 'old' => t('old copy', 'lumang kopya'), 'map' => t('Open the flood map', 'Buksan ang mapa ng baha'), 'until' => t('valid until', 'hanggang'),
-];
-?>
-<section class="p-card hzw" id="hzw" data-l="<?= e(json_encode($hzl, JSON_UNESCAPED_UNICODE)) ?>" style="margin-bottom:20px">
-  <div class="p-card-head"><h2><?= e(t('Weather and flood watch', 'Panahon at bantay-baha')) ?></h2><span class="p-spacer"></span><span class="p-hint hzw-pg"></span></div>
-  <div class="hzw-body"></div>
-</section>
-<link rel="stylesheet" href="assets/css/hazard-widget.css?v=<?= e(asset_version('hazard-widget.css')) ?>">
-<script src="assets/js/hazard-widget.js?v=<?= e(asset_version('../js/hazard-widget.js')) ?>"></script>
-
 <!-- ---------- reports received ---------- -->
 <div class="p-card" style="margin-bottom:20px">
   <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
