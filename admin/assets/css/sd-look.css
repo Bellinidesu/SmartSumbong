@@ -57,7 +57,7 @@
 /* Then / Now */
 .lk-layers { position: absolute; z-index: 5; right: 16px; bottom: 26px; height: 38px; padding: 0 14px 0 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 8px; font: 700 12.5px Inter, sans-serif; cursor: pointer; transition: background .15s; }
 .lk-layers:hover { background: var(--e-hover); } .lk-layers.on { background: var(--p-orange, #FF9800); color: #2B1A00; border-color: transparent; }
-.lk-layers .lk-cmpi { width: 18px; height: 18px; margin-left: 4px; } .lk-lths + .lk-cmpi { margin-left: 0; }
+
 .lk-lths { display: flex; gap: 4px; } .lk-lths:empty { display: none; }
 .lk-lth { width: 26px; height: 22px; border-radius: 5px; background: center / cover #6B7A99; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); flex: none; }
 /* toast: one line, fades after six seconds */
