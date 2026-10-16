@@ -1603,6 +1603,20 @@ function fwFold(on) {
 window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 981px)').matches) fwFold(false); });
 
 // ---- Map layers (Bellinist phase 4, 9 Oct 2026) -------------------------
+// The air-quality and safe-points boxes hang just under the main Spatial Distribution box and ride down with it when it opens on hover.
+(function () {
+  const sec = document.getElementById('s-spatial'), main = document.getElementById('map-search'), info = document.getElementById('ss-lyr-info');
+  if (!sec || !main || !info) return;
+  const place = () => {
+    if (!main.offsetHeight) return;       // offsets ignore the box's entrance transform, so the number is its real place
+    info.style.top = (main.offsetTop + main.offsetHeight + 10) + 'px';
+  };
+  place();
+  if (window.ResizeObserver) new ResizeObserver(place).observe(main);
+  ['mouseenter', 'mouseleave', 'focusin', 'focusout', 'transitionend'].forEach(ev => main.addEventListener(ev, place));
+  window.addEventListener('resize', place);
+})();
+
 // Air quality (Open-Meteo), safe points and public transport (OpenStreetMap,
 // through layers.php, cached). Each is its own tile in the Layers card; what
 // is on says what it is saying in a small card under the filter card.
