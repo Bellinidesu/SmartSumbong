@@ -1324,20 +1324,37 @@ async function lkSendOpen() {
   const r = LK.r, sp = lkSpot(), street = r.location_label || T('the spot', 'lugar');
   const where = !sp ? '' : sp.m < 3 ? T(' The street view was taken right at the spot.', ' Kinuha ang street view mismo sa lugar.') : T(' From where the street view was taken, the spot is about ' + sp.m + ' m ' + sp.dir + '.', ' Mula sa kinuhanan ng street view, ang lugar ay mga ' + sp.m + ' m sa ' + sp.dir + '.');
   const first = list.findIndex(t => t.duty_status === 'on_duty');
-  el.innerHTML = '<div class="sd-h"><b>' + T('Send to tanod', 'Ipadala sa tanod') + '</b><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
-    '<p class="sd-l">' + T('Who is going', 'Sino ang pupunta') + '</p><div class="sd-list">' + (list.length ? list.map((t, i) =>
-      '<label class="sd-t d-' + esc(t.duty_status) + '"><input type="radio" name="lkt" value="' + esc(t.id) + '"' + (i === Math.max(0, first) ? ' checked' : '') + '><span class="av">' + esc(String(t.full_name || '?').split(/[ ,]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()) + '</span>' +
-      '<span><b>' + esc(String(t.full_name || '').trim()) + '</b><small>' + esc(dutyLabel(t.duty_status)) + '</small></span></label>').join('') : '<p class="sd-l">' + T('No tanod accounts yet.', 'Wala pang tanod.') + '</p>') + '</div>' +
-    '<p class="sd-l">' + T('Include', 'Isama') + '</p>' +
-    '<label class="sd-c"><input type="checkbox" id="sd-street" checked><span>' + T('The street view of the spot', 'Ang street view ng lugar') + '</span></label>' +
-    '<label class="sd-c"><input type="checkbox" id="sd-photos" checked' + (LK.photos.length ? '' : ' disabled') + '><span>' + (LK.photos.length ? T('The resident’s photos (' + LK.photos.length + ')', 'Ang mga larawan ng residente (' + LK.photos.length + ')') : T('No resident photos to include', 'Walang larawan ng residente')) + '</span></label>' +
-    '<textarea id="sd-msg" rows="4" maxlength="600">' + esc(T('Please check ' + r.tracking_id + ' near ' + street + '.' + where, 'Pakisuri ang ' + r.tracking_id + ' malapit sa ' + street + '.' + where)) + '</textarea>' +
-    '<button type="button" class="p-btn p-btn-primary sd-go" data-lksendgo' + (list.length ? '' : ' disabled') + '>' + T('Send', 'Ipadala') + '</button>';
+  const ini = n => esc(String(n || '?').split(/[ ,]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase());
+  const tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+  const hasPh = LK.photos.length > 0, streetOk = !!LK.img;
+  el.innerHTML = '<div class="sd-h2"><span class="sd-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></span><div><b>' + T('Send to tanod', 'Ipadala sa tanod') + '</b><small>' + esc(r.tracking_id) + ' · ' + esc(street) + '</small></div><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
+    '<p class="sd-l">' + T('What they will see', 'Ang makikita nila') + '</p>' +
+    '<div class="sd-pv"><div class="sd-pvp" id="sd-pvp"><div class="sd-pvs" id="sd-pvs"><span>' + T('Street view', 'Street view') + '</span></div><div class="sd-pvr" id="sd-pvr"' + (hasPh ? ' style="background-image:url(&quot;' + esc(LK.photos[0]).replace(/"/g, '%22') + '&quot;)"' : '') + '></div></div>' +
+      '<div class="sd-pvt"><small>' + T('From the barangay', 'Mula sa barangay') + '</small><textarea id="sd-msg" rows="3" maxlength="600" aria-label="' + T('Your note', 'Ang iyong mensahe') + '">' + esc(T('Please check ' + r.tracking_id + ' near ' + street + '.' + where, 'Pakisuri ang ' + r.tracking_id + ' malapit sa ' + street + '.' + where)) + '</textarea></div></div>' +
+    '<div class="sd-chips"><label class="sd-chip' + (streetOk ? ' on' : ' dis') + '"><input type="checkbox" id="sd-street"' + (streetOk ? ' checked' : ' disabled') + '><span class="t sd-pvs"></span>' + T('Street view', 'Street view') + '</label>' +
+      '<label class="sd-chip' + (hasPh ? ' on' : ' dis') + '"><input type="checkbox" id="sd-photos"' + (hasPh ? ' checked' : ' disabled') + '><span class="t"' + (hasPh ? ' style="background-image:url(&quot;' + esc(LK.photos[0]).replace(/"/g, '%22') + '&quot;)"' : '') + '></span>' + (hasPh ? T('Resident’s photos (' + LK.photos.length + ')', 'Mga larawan ng residente (' + LK.photos.length + ')') : T('No resident photos', 'Walang larawan')) + '</label></div>' +
+    '<p class="sd-l">' + T('Send to', 'Ipadala kay') + '</p><div class="sd-row">' + (list.length ? list.map((t, i) =>
+      '<label class="sd-ch d-' + esc(t.duty_status) + '"><input type="radio" name="lkt" value="' + esc(t.id) + '"' + (i === Math.max(0, first) ? ' checked' : '') + '><span class="av">' + ini(t.full_name) + '</span><b>' + esc(String(t.full_name || '').split(',')[0].trim()) + '</b><small>' + esc(dutyLabel(t.duty_status)) + '</small></label>').join('') : '<p class="sd-l">' + T('No tanod accounts yet.', 'Wala pang tanod.') + '</p>') + '</div>' +
+    '<button type="button" class="sd-go2" data-lksendgo' + (list.length ? '' : ' disabled') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg><span class="lbl">' + T('Send', 'Ipadala') + '</span></button>' +
+    '<p class="sd-foot">' + T('They get it in their notifications and on the case.', 'Makikita nila ito sa notifications at sa kaso.') + '</p>';
+  const syncPv = () => {
+    const st = el.querySelector('#sd-street'), ph = el.querySelector('#sd-photos');
+    el.querySelector('#sd-pvs').classList.toggle('off', !st.checked); el.querySelector('#sd-pvr').classList.toggle('off', !ph.checked);
+    el.querySelector('#sd-pvp').dataset.n = (st.checked ? 1 : 0) + (ph.checked ? 1 : 0);
+    el.querySelectorAll('.sd-chip').forEach(c => c.classList.toggle('on', c.querySelector('input').checked));
+  };
+  const syncGo = () => {
+    const pk = el.querySelector('input[name=lkt]:checked'), g = el.querySelector('.sd-go2 .lbl');
+    if (pk && g) g.textContent = T('Send to ', 'Ipadala kay ') + pk.closest('label').querySelector('b').textContent;
+  };
+  el.querySelectorAll('.sd-chip input').forEach(i => i.addEventListener('change', syncPv));
+  el.querySelectorAll('input[name=lkt]').forEach(i => i.addEventListener('change', syncGo));
+  syncPv(); syncGo();
 }
 async function lkSendGo(btn) {
   const el = document.getElementById('lk-send'), pick = el.querySelector('input[name=lkt]:checked'), msg = el.querySelector('#sd-msg').value.trim();
   if (!pick || !msg || !LK) return;
-  btn.disabled = true; btn.textContent = T('Sending…', 'Ipinapadala…');
+  btn.disabled = true; const bl = btn.querySelector('.lbl') || btn; bl.textContent = T('Sending…', 'Ipinapadala…');
   const street = el.querySelector('#sd-street').checked && LK.img, sp = lkSpot(), name = pick.closest('label').querySelector('b').textContent, r = LK.r;
   const { error } = await sb.from('look_shares').insert({
     report_id: r.id, tanod_id: pick.value, sent_by: ME, message: msg,
@@ -1345,11 +1362,11 @@ async function lkSendGo(btn) {
     spot_dir: street && sp ? sp.dir : null, spot_metres: street && sp ? Math.min(1000, sp.m) : null,
     include_photos: !!(el.querySelector('#sd-photos').checked && LK.photos.length),
   });
-  if (error) { btn.disabled = false; btn.textContent = T('Send', 'Ipadala'); if (window.pToast) pToast(T('Could not send: ', 'Hindi naipadala: ') + error.message); return; }
+  if (error) { btn.disabled = false; bl.textContent = T('Send', 'Ipadala'); if (window.pToast) pToast(T('Could not send: ', 'Hindi naipadala: ') + error.message); return; }
   // The tanod's notifications list is what their phone shows first.
   await sb.from('notifications').insert({ user_id: pick.value, report_id: r.id, kind: 'look_around', message: T('From the barangay: ', 'Mula sa barangay: ') + msg }).then(() => {}, () => {});
   el.innerHTML = '<div class="sd-h"><b>' + T('Sent', 'Naipadala') + '</b><button type="button" class="sd-x" data-lksendx aria-label="' + T('Close', 'Isara') + '">&times;</button></div>' +
-    '<p class="sd-ok"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>' + T('Sent to ', 'Naipadala kay ') + '<b>' + esc(name) + '</b></p>' +
+    '<p class="sd-ok big"><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>' + T('Sent to ', 'Naipadala kay ') + '<b>' + esc(name) + '</b></p>' +
     '<p class="sd-l">' + T('They will see it in their notifications and on the case.', 'Makikita nila ito sa notifications at sa kaso.') + '</p>';
   if (window.pToast) pToast(T('Sent to ', 'Naipadala kay ') + name);
 }
