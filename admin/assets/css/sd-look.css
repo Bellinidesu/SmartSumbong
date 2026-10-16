@@ -1,110 +1,86 @@
-/* Look around, copied from Google Street View's own screen (measured live, 16 Oct 2026, 1440 x 860): the case bar and the info card top-left, Send to tanod
-   and Close top-right, a 220 x 100 map bottom-left with its Expand button, compass, zoom and the imagery pill bottom-right, an attribution strip along the bottom,
-   a toast, a wordmark. Same boxes, radii, sizes and spacing; SmartSumbong's own fonts, orange accent, no Google marks.
-   Night keeps Google's black and its 60% black pills; day is Material (solid white, elevation shadows, no blur). Loaded only on Spatial Distribution. */
+/* Look around, LOCKED 16 Oct 2026: layout E of the aesthetics page (a Google Street View layout, SmartSumbonged), with the trims. The street gets the whole screen:
+   a slim card top-left (place, case number, capture date, the resident's photo link), Open case + Send to tanod + Close top-right, a little map bottom-left with Expand,
+   a compass that turns you to face the complaint and zoom bottom-right, the Then / Now pill, a toast, the resident's photo standing at the spot.
+   Night = frosted glass over the street; day = Material (solid white, elevation shadows, no blur). Loaded only on Spatial Distribution. */
 .ss-lk {
-  --g-black: #000; --g-pill: rgba(0,0,0,.6); --g-ink: #fff; --g-mute: #ABABAB; --g-link: #FFB84D; --g-hover: rgba(255,255,255,.14);
-  --g-zoom: #000; --g-imag: rgba(34,34,34,.92); --g-sh: none; --g-strip: rgba(0,0,0,.6); --g-stripink: #fff; --g-stripmute: #ABABAB;
-  --g-bar-sh: 0 2px 4px rgba(0,0,0,.2), 0 -1px 0 rgba(0,0,0,.02); --g-mapbd: #000; --g-div: #5F6368;
+  --e-bg: rgba(18,24,48,.62); --e-ink: #fff; --e-mute: rgba(255,255,255,.74); --e-line: rgba(255,255,255,.18); --e-link: #FFB84D; --e-hover: rgba(255,255,255,.14);
+  --e-blur: blur(16px) saturate(1.3); --e-sh: 0 8px 24px rgba(0,0,0,.35); --e-bd: 1px solid rgba(255,255,255,.18); --e-map: rgba(255,255,255,.55);
 }
 :root:not([data-theme="dark"]) .ss-lk {
-  --g-black: #fff; --g-pill: #fff; --g-ink: #141B34; --g-mute: #5F657B; --g-link: #B85F00; --g-hover: #F2F4FA;
-  --g-zoom: #fff; --g-imag: #fff; --g-sh: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); --g-strip: rgba(255,255,255,.88); --g-stripink: #141B34; --g-stripmute: #4A5068;
-  --g-bar-sh: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); --g-mapbd: #fff; --g-div: #C5CAD6;
+  --e-bg: #fff; --e-ink: #141B34; --e-mute: #4A5068; --e-line: rgba(20,27,52,.12); --e-link: #B85F00; --e-hover: #F2F4FA;
+  --e-blur: none; --e-sh: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); --e-bd: 0; --e-map: #fff;
+}
+.lk-info, .lk-pill, .lk-rnd, .lk-comp, .lk-zoom, .lk-layers, .lk-toast, .lk-mini {
+  background: var(--e-bg); color: var(--e-ink); border: var(--e-bd); -webkit-backdrop-filter: var(--e-blur); backdrop-filter: var(--e-blur); box-shadow: var(--e-sh);
 }
 .ss-lk button, .ss-lk a { font-family: Inter, sans-serif; }
-/* the case bar (Google's search bar): 376 x 48 at 16, 12 */
-.lk-pillbar { position: absolute; z-index: 6; left: 16px; top: 12px; width: 376px; max-width: calc(100% - 32px); height: 48px; border-radius: 24px; background: #fff; color: #141B34; box-shadow: var(--g-bar-sh); display: flex; align-items: center; padding: 0 0 0 24px; }
-.lk-pt { flex: 1; min-width: 0; font: 600 15px Inter, sans-serif; color: #3C4043; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lk-dir { flex: none; width: 54px; height: 48px; display: grid; place-items: center; color: var(--p-orange, #FF9800); text-decoration: none; }
-.lk-dir svg { width: 30px; height: 30px; transition: transform .15s; } .lk-dir:hover svg { transform: scale(1.08); }
-/* the info card: 301 wide at 20, 72 */
-.lk-info { position: absolute; z-index: 5; left: 20px; top: 72px; width: 301px; max-width: calc(100% - 40px); box-sizing: border-box; padding: 13px 20px 12px; border-radius: 8px; background: var(--g-black); color: var(--g-ink); box-shadow: var(--g-sh);
-  display: grid; gap: 0; }
-:root[data-theme="dark"] .ss-lk .lk-info { -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); background: rgba(0,0,0,.86); }
-.lk-info .lk-ti { background: none !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border: 0; padding: 0; gap: 0; min-width: 0; }
-.lk-info .lk-ti b { font: 600 14px/18px Urbanist, Inter, sans-serif; color: var(--g-ink); margin-top: 1px; overflow-wrap: anywhere; }
-.lk-info .lk-ti span { font: 400 12px/18px Inter, sans-serif; color: var(--g-mute); opacity: 1; margin-top: 2px; }
-.lk-when { display: flex; align-items: center; gap: 14px; min-height: 23px; flex-wrap: wrap; margin-top: 4px; }
-.lk-when small { font: 400 12px/23px Inter, sans-serif; color: var(--g-mute); }
-.lk-link { border: 0; background: none; padding: 0; color: var(--g-link); font: 400 12px/23px Inter, sans-serif; cursor: pointer; text-align: left; }
+/* the card */
+.lk-info { position: absolute; z-index: 5; left: 16px; top: 16px; width: 268px; max-width: calc(100% - 32px); box-sizing: border-box; padding: 12px 16px 11px; border-radius: 12px; display: grid; gap: 0; }
+.lk-info .lk-ti { background: none !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border: 0; padding: 0; gap: 1px; min-width: 0; }
+.lk-info .lk-ti b { font: 800 15px/1.25 Urbanist, Inter, sans-serif; color: var(--e-ink); overflow-wrap: anywhere; }
+.lk-info .lk-ti span { font: 600 12px Inter, sans-serif; color: var(--e-mute); opacity: 1; }
+.lk-when { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--e-line); }
+.lk-when small { font: 600 12px Inter, sans-serif; color: var(--e-mute); }
+.lk-link { border: 0; background: none; padding: 0; color: var(--e-link); font: 700 12px Inter, sans-serif; cursor: pointer; text-align: left; }
 .lk-link:hover, .lk-link.on { text-decoration: underline; text-underline-offset: 3px; }
-/* Send to tanod (Google's Share) and Close: 40 tall, 60% black pills */
-.lk-tr { position: absolute; z-index: 5; right: 10px; top: 12px; display: flex; align-items: center; }
-.lk-pill { height: 40px; padding: 0 16px 0 14px; margin-right: 7px; border-radius: 40px; border: 0; background: var(--g-pill); color: var(--g-ink); display: inline-flex; align-items: center; gap: 8px; font: 500 14px Urbanist, Inter, sans-serif; cursor: pointer; box-shadow: var(--g-sh); transition: background .15s; }
-.lk-pill svg { width: 18px; height: 18px; }
-.lk-pill.or { background: var(--p-orange, #FF9800); color: #2B1A00; font-weight: 800; } .lk-pill.or:hover { background: #FFA826; }
-.lk-pill:disabled { opacity: .55; cursor: not-allowed; }
-.lk-rnd { width: 40px; height: 40px; border-radius: 50%; border: 0; padding: 0; background: var(--g-pill); color: var(--g-ink); display: grid; place-items: center; cursor: pointer; box-shadow: var(--g-sh); }
-.lk-rnd svg { width: 20px; height: 20px; } .lk-rnd:hover { background: rgba(0,0,0,.78); } :root:not([data-theme="dark"]) .lk-rnd:hover { background: var(--g-hover); }
-.lk-mini { position: absolute; z-index: 5; left: 20px; bottom: 22px; width: 220px; height: 100px; box-sizing: border-box; border: 2px solid var(--g-mapbd); border-radius: 12px; overflow: hidden; background: #E9EEF5; }
+/* top right */
+.lk-tr { position: absolute; z-index: 5; right: 16px; top: 16px; display: flex; gap: 8px; align-items: center; }
+.lk-pill { height: 38px; padding: 0 15px; border-radius: 99px; display: inline-flex; align-items: center; gap: 8px; font: 700 13px Inter, sans-serif; text-decoration: none; cursor: pointer; transition: background .15s, transform .2s; }
+.lk-pill svg { width: 17px; height: 17px; } .lk-pill:hover { background: var(--e-hover); transform: translateY(-1px); }
+.lk-pill.or { background: var(--p-orange, #FF9800); color: #2B1A00; border-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; font: 800 13px Urbanist, sans-serif; }
+.lk-pill.or:hover { background: #FFA826; } .lk-pill:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.lk-rnd { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; padding: 0; cursor: pointer; }
+.lk-rnd svg { width: 18px; height: 18px; } .lk-rnd:hover { background: var(--e-hover); }
+/* the little map: Google's 220 x 100, a white edge, Expand */
+.lk-mini { position: absolute; z-index: 5; left: 16px; bottom: 26px; width: 220px; height: 100px; box-sizing: border-box; border: 2px solid var(--e-map); border-radius: 12px; overflow: hidden; padding: 0; background: #E9EEF5; }
 :root[data-theme="dark"] .lk-mini { background: #1B1F2E; }
-.lk-mm { position: absolute; inset: 0; }
-.lk-mini svg#lk-mini { position: absolute; inset: 0; width: 100%; height: 100%; display: block; color: #141B34; }
-:root[data-theme="dark"] .lk-mini svg#lk-mini { color: #fff; }
+.lk-mm { position: absolute; inset: 0; visibility: hidden; } .ss-lk.has-mm .lk-mm { visibility: visible; }
+.lk-mini svg#lk-mini { position: absolute; inset: 0; width: 100%; height: 100%; display: block; color: #141B34; } :root[data-theme="dark"] .lk-mini svg#lk-mini { color: #fff; }
 .ss-lk.has-mm svg#lk-mini { display: none; }
-.lk-grid { stroke: currentColor; stroke-width: .5; opacity: .22; fill: none; }
-.lk-dash { stroke: currentColor; stroke-width: 1; stroke-dasharray: 3 3; opacity: .55; }
-.lk-cone { fill: #356CF9; opacity: .32; } .lk-me { fill: #356CF9; stroke: #fff; stroke-width: 1.6; } .lk-pin { stroke: #fff; stroke-width: 1.6; }
-.lk-mt { font: 700 7px Inter, sans-serif; fill: currentColor; }
+.lk-grid { stroke: currentColor; stroke-width: .5; opacity: .22; fill: none; } .lk-dash { stroke: currentColor; stroke-width: 1; stroke-dasharray: 3 3; opacity: .55; }
+.lk-cone { fill: #356CF9; opacity: .32; } .lk-me { fill: #356CF9; stroke: #fff; stroke-width: 1.6; } .lk-pin { stroke: #fff; stroke-width: 1.6; } .lk-mt { font: 700 7px Inter, sans-serif; fill: currentColor; }
 .lk-pegman { position: relative; width: 56px; height: 56px; pointer-events: none; }
 .lk-pegman .c { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from calc(var(--b, 0deg) - 32deg), rgba(53,108,249,.55) 0 64deg, transparent 64deg); -webkit-mask: radial-gradient(circle, transparent 0 6px, #000 7px); mask: radial-gradient(circle, transparent 0 6px, #000 7px); }
 .lk-pegman .d { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #356CF9; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45); box-sizing: border-box; }
 .lk-mpin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.5); box-sizing: border-box; }
 .lk-exp { position: absolute; left: 5px; bottom: 5px; width: 25px; height: 25px; border-radius: 6px; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer; background: #fff; color: #5E5E5E; box-shadow: rgba(60,64,67,.3) 0 1px 2px 0, rgba(60,64,67,.15) 0 1px 3px 1px; }
 .lk-exp svg { width: 16px; height: 16px; } .lk-exp:hover { background: #F1F3F4; color: #202124; }
-/* compass, steps, zoom and the imagery pill: the right-hand column */
-.lk-ctl { position: absolute; z-index: 5; right: 10px; bottom: 83px; width: 48px; display: grid; justify-items: center; gap: 9px; }
-.lk-comp { position: relative; width: 48px; height: 48px; border-radius: 50%; background: var(--g-pill); box-shadow: var(--g-sh); color: var(--g-ink); display: grid; place-items: center; order: 1; }
-.lk-comp::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(0,0,0,.28); } :root:not([data-theme="dark"]) .lk-comp::before { background: #EEF1F7; }
-.lk-comp .lk-needle { position: absolute; inset: 5px; width: 38px; height: 38px; transition: transform .12s linear; color: inherit; }
-:root:not([data-theme="dark"]) .lk-comp .lk-needle path:first-child { fill: #5F657B; }
+/* compass (faces the complaint) and zoom */
+.lk-ctl { position: absolute; z-index: 5; right: 16px; bottom: 72px; display: grid; justify-items: center; gap: 10px; }
+.lk-comp { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; padding: 0; cursor: pointer; transition: background .15s; }
+.lk-comp:hover { background: var(--e-hover); }
+.lk-comp .lk-needle { width: 26px; height: 26px; color: var(--p-orange, #FF9800); transition: transform .12s linear; }
 .lk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.lk-layers { position: absolute; z-index: 5; right: 20px; bottom: 20px; width: 113px; height: 30px; padding: 0 8px 0 7px; border: 0; border-radius: 8px; background: var(--g-imag); color: var(--g-ink); display: flex; align-items: center; gap: 4px; cursor: pointer; box-shadow: var(--g-sh); }
-.lk-layers svg { width: 18px; height: 18px; margin-left: auto; } .lk-layers:hover { background: #3A3A3A; } :root:not([data-theme="dark"]) .lk-layers:hover { background: var(--g-hover); }
-.lk-layers.on { outline: 2px solid var(--p-orange, #FF9800); }
-.lk-lth { width: 22px; height: 16px; border-radius: 3px; background: linear-gradient(135deg, #7DB3E8, #3E6FA8) center / cover; flex: none; }
-.lk-lth.has { background-size: cover; background-position: center; }
-/* the toast: 352 x 48 along the bottom; the wordmark when there is no toast */
-.lk-toast { position: absolute; z-index: 4; left: 50%; bottom: 0; transform: translateX(-50%); box-sizing: border-box; min-width: 352px; max-width: calc(100% - 520px); height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 12px 0 24px; border-radius: 8px 8px 0 0; background: var(--g-black); color: var(--g-ink); box-shadow: var(--g-sh); }
+.lk-zoom { width: 40px; display: grid; border-radius: 12px; overflow: hidden; }
+.lk-zoom button { width: 40px; height: 38px; border: 0; background: none; color: inherit; font: 600 21px Inter, sans-serif; display: grid; place-items: center; padding: 0; cursor: pointer; }
+.lk-zoom button + button { border-top: 1px solid var(--e-line); } .lk-zoom button:hover { background: var(--e-hover); }
+/* Then / Now */
+.lk-layers { position: absolute; z-index: 5; right: 16px; bottom: 26px; height: 38px; padding: 0 14px 0 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 8px; font: 700 12.5px Inter, sans-serif; cursor: pointer; transition: background .15s; }
+.lk-layers:hover { background: var(--e-hover); } .lk-layers.on { background: var(--p-orange, #FF9800); color: #2B1A00; border-color: transparent; }
+.lk-layers .lk-cmpi { width: 18px; height: 18px; margin-left: 4px; } .lk-lths + .lk-cmpi { margin-left: 0; }
+.lk-lths { display: flex; gap: 4px; } .lk-lths:empty { display: none; }
+.lk-lth { width: 26px; height: 22px; border-radius: 5px; background: center / cover #6B7A99; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); flex: none; }
+/* toast: one line, fades after six seconds */
+.lk-toast { position: absolute; z-index: 4; left: 50%; bottom: 0; transform: translateX(-50%); box-sizing: border-box; min-width: 300px; max-width: calc(100% - 560px); height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 12px 0 20px; border-radius: 10px 10px 0 0; border-bottom: 0; }
 .lk-toast[hidden] { display: none; }
-.lk-toast .lk-fact { margin: 0; opacity: 1; font: 400 14px Inter, sans-serif; } .lk-toast .lk-fact b { font-weight: 700; }
-.lk-toast .lk-cdot { width: 9px; height: 9px; box-shadow: none; }
-.lk-toast > button { width: 28px; height: 27px; border: 0; border-radius: 8px 8px 0 0; background: none; color: inherit; font: 400 22px/1 Inter, sans-serif; cursor: pointer; } .lk-toast > button:hover { background: var(--g-hover); }
+.lk-toast .lk-fact { display: block; margin: 0; opacity: 1; font: 600 13.5px Inter, sans-serif; } .lk-toast .lk-fact b { font-weight: 800; }
+.lk-toast > button { width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: inherit; font: 400 22px/1 Inter, sans-serif; cursor: pointer; } .lk-toast > button:hover { background: var(--e-hover); }
 .lk-brand { position: absolute; z-index: 3; left: 50%; bottom: 22px; transform: translateX(-50%); font: 800 17px Urbanist, sans-serif; letter-spacing: -.01em; color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.6); pointer-events: none; }
 .lk-toast:not([hidden]) ~ .lk-brand { display: none; }
-/* the attribution strip: 13 tall, 60% black, 10px type */
-.ss-lk .lk-credit { position: absolute; z-index: 3; right: 0; bottom: 0; flex: none; margin: 0; height: 13px; display: flex; align-items: center; gap: 12px; padding: 0 8px; background: var(--g-strip); color: var(--g-stripink); font: 400 10px/13px Inter, sans-serif; opacity: 1; text-shadow: none; max-width: calc(100% - 270px); white-space: nowrap; overflow: hidden; }
-.lk-credit i, .lk-credit a { font-style: normal; color: var(--g-stripmute); text-decoration: none; } .lk-credit a:hover { text-decoration: underline; }
-/* the THEN tag and the comparison keep their own look but clear the new top */
-.ss-lk #lk-then { display: none; } .ss-lk:has(.lk-cmp:not([hidden])) #lk-then:not([hidden]) { display: block; top: 68px; right: 16px; }
-.ss-lk .lk-tag.l { top: 226px; left: 20px; }
-/* the Send to tanod panel sits clear of the top and bottom rows */
-.ss-lk .lk-send { top: 68px; bottom: 84px; right: 16px; }
-:root:not([data-theme="dark"]) .ss-lk .lk-send { box-shadow: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26); }
-@media (max-width: 900px) { .lk-toast { min-width: 0; max-width: calc(100% - 32px); bottom: 150px; border-radius: 8px; } .lk-mini { width: 168px; height: 80px; } .ss-lk .lk-credit { max-width: calc(100% - 40px); } .lk-pillbar { width: calc(100% - 120px); } .lk-pill { padding: 0 12px; } }
-@media (prefers-reduced-motion: reduce) { .lk-comp .lk-needle, .lk-dir svg, .ss-lk .lk-ph { transition: none; } }
-
-/* the little map: 220 x 100 at 20, 22 from the bottom, Expand 25 x 25 */
-.lk-mini { position: absolute; z-index: 5; left: 20px; bottom: 22px; width: 220px; height: 100px; box-sizing: border-box; border: 2px solid var(--g-mapbd); border-radius: 12px; overflow: hidden; background: #E9EEF5; }
-/* compass: one button that turns you to face the complaint; zoom */
-.lk-comp { border: 0; padding: 0; cursor: pointer; transition: background .15s; } .lk-comp:hover { background: rgba(0,0,0,.78); } :root:not([data-theme="dark"]) .lk-comp:hover { background: var(--g-hover); }
-.lk-zoom { width: 29px; display: grid; border-radius: 8px; overflow: hidden; background: var(--g-zoom); box-shadow: var(--g-sh); order: 2; }
-.lk-zoom button { width: 29px; height: 28.5px; border: 0; background: none; color: var(--g-ink); font: 500 21px/1 Inter, sans-serif; display: grid; place-items: center; padding: 0; cursor: pointer; }
-.lk-zoom button + button { border-top: 1px solid rgba(255,255,255,.18); } :root:not([data-theme="dark"]) .lk-zoom button + button { border-top-color: rgba(20,27,52,.12); }
-.lk-zoom button:last-child { color: var(--g-mute); } .lk-zoom button:hover { background: var(--g-hover); }
-/* the Then / Now pill carries the resident's own photos, nothing else */
-.lk-layers { width: auto; min-width: 44px; padding: 0 7px; }
-.lk-lths { display: flex; gap: 4px; } .lk-lths:empty { display: none; }
-.lk-lths .lk-lth { background-size: cover; background-position: center; }
-.lk-layers > svg { margin-left: 4px; }
-/* the resident's photo in the scene: small, grows when you point at it; the case number is the caption */
+/* the credit: capture date and Mapillary, as small type on the street */
+.ss-lk .lk-credit { position: absolute; z-index: 3; right: 10px; bottom: 4px; flex: none; margin: 0; display: flex; gap: 10px; font: 600 10px Inter, sans-serif; color: #fff; opacity: .92; text-shadow: 0 1px 3px rgba(0,0,0,.85); pointer-events: none; white-space: nowrap; }
+.lk-credit i { font-style: normal; }
+/* the resident's photo at the spot: small, grows when you point at it; its name is the caption */
 .ss-lk .lk-card { width: 132px; }
 .ss-lk .lk-ph { height: 88px; border-width: 2px; border-radius: 10px; transform-origin: 50% 100%; transition: transform .25s cubic-bezier(.2,1.2,.3,1); box-shadow: 0 6px 18px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.2); }
 .ss-lk .lk-ph:hover { transform: scale(1.75); z-index: 2; }
-.ss-lk .lk-gl svg { width: 34px; height: 34px; }
-.ss-lk .lk-ph em { font-size: 9.5px; left: 5px; bottom: 5px; padding: 1px 6px; }
-.ss-lk .lk-cap { margin-top: 6px; padding: 5px 9px; border-radius: 8px; justify-items: center; } .ss-lk .lk-cap b { font-size: 11.5px; }
+.ss-lk .lk-gl svg { width: 34px; height: 34px; } .ss-lk .lk-ph em { font-size: 9.5px; left: 5px; bottom: 5px; padding: 1px 6px; }
+.ss-lk .lk-cap { margin-top: 6px; padding: 5px 9px; border-radius: 8px; justify-items: center; } .ss-lk .lk-cap b { font-size: 11px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 114px; }
 .ss-lk .lk-spot { width: 46px; height: 16px; }
-/* the real map shows only once it has loaded; until then the drawn diagram does */
-.lk-mm { visibility: hidden; } .ss-lk.has-mm .lk-mm { visibility: visible; }
+/* the THEN tag only in the Then / Now view; the Send to tanod panel clear of the rows */
+.ss-lk #lk-then { display: none; } .ss-lk:has(.lk-cmp:not([hidden])) #lk-then:not([hidden]) { display: block; top: 66px; right: 16px; }
+.ss-lk .lk-tag.l { top: 130px; left: 16px; }
+.ss-lk .lk-send { top: 66px; bottom: 80px; right: 16px; }
+:root:not([data-theme="dark"]) .ss-lk .lk-send { box-shadow: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26); }
+@media (max-width: 900px) { .lk-toast { min-width: 0; max-width: calc(100% - 32px); bottom: 140px; border-radius: 10px; } .lk-mini { width: 168px; height: 80px; } .lk-pill:not(.or) { display: none; } }
+@media (prefers-reduced-motion: reduce) { .lk-comp .lk-needle, .ss-lk .lk-ph, .lk-pill { transition: none; } }
