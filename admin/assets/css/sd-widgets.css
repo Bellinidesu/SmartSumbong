@@ -172,3 +172,7 @@
 .sq-cdot.late { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 32%, transparent), 0 1px 4px rgba(0,0,0,.4); }
 .sq-cdot.off { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .sq-cdot, .sq-cdot > span { transition: none; animation: none; } }
+
+/* the air-quality and safe-points boxes follow the main box: just under it, riding down when it opens (spatial.php sets their top) */
+#s-spatial .ss-lyr-info { top: 88px; transition: top .45s cubic-bezier(.2,1.1,.3,1), opacity .3s, transform .4s; }
+@media (prefers-reduced-motion: reduce) { #s-spatial .ss-lyr-info { transition: opacity .3s, transform .4s; } }
