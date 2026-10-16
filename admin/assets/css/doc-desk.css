@@ -95,3 +95,39 @@
   .cd-tick { display: flex; gap: 9px; align-items: center; font-size: 13.5px; color: var(--cd-ink2); cursor: pointer; }
   .cd-tick input { width: 16px; height: 16px; accent-color: var(--cd-blue); margin: 0; }
 }
+
+/* ---- The editor follows Acrobat's arrangement (Ace, 16 Oct 2026: "follows it, not one to one"), in SmartSumbong's look.
+   One shared editor for every printable page (certificate, complaint summary, complaint print):
+   a slim app bar, a left panel for the document's settings, the page on a plain canvas, a vertical tool rail on the right
+   (page, zoom in / out, fit page, fit width). Day = Material (solid, elevation); night = frosted graphite. ---- */
+@media screen {
+  :root { --cd-bg: #E4E8F2; --cd-es: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.12); }
+  :root[data-theme="dark"] { --cd-bg: #0C111D; --cd-es: 0 8px 24px rgba(0,0,0,.4); }
+  .cd-bar { height: 56px; padding: 0 16px; flex-wrap: nowrap; box-shadow: var(--cd-es); position: relative; z-index: 4; border-bottom: 0; }
+  .cd-back { height: 36px; border: 0; background: transparent; padding: 0 12px 0 8px; }
+  .cd-back:hover { background: var(--cd-surface2); }
+  .cd-crumb { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cd-btn { height: 38px; border-radius: 99px; padding: 0 20px; box-shadow: var(--cd-es); }
+  .cd-work { grid-template-columns: 296px minmax(0, 1fr); }
+  .cd-insp { order: -1; border-left: 0; border-right: 1px solid var(--cd-line); background: var(--cd-surface); padding-top: 4px; }
+  :root[data-theme="dark"] .cd-insp { background: rgba(28,33,39,.86); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  .cd-sec { padding: 18px 20px; border-bottom: 1px solid var(--cd-line); }
+  .cd-sec:last-child { border-bottom: 0; }
+  .cd-desk { background: var(--cd-bg); }
+  .cd-stage { padding: 28px 88px 72px 40px; }
+  .cd-wrap .doc-page { box-shadow: 0 1px 3px rgba(20,27,52,.18), 0 10px 30px rgba(20,27,52,.18); }
+  /* the right-hand tool rail */
+  .cd-tools { position: fixed; right: 16px; top: 50%; bottom: auto; margin: 0; transform: translateY(-50%); width: 48px; flex-direction: column; align-items: center; gap: 2px; padding: 6px; border-radius: 14px; box-shadow: var(--cd-es); border: 0; z-index: 5; }
+  :root[data-theme="dark"] .cd-tools { background: rgba(28,33,39,.82); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.14); }
+  .cd-tools button, .cd-tools span { width: 36px; min-width: 36px; height: 36px; padding: 0; font-size: 12px; }
+  .cd-tools .cd-z { width: 36px; min-width: 36px; height: 30px; font-size: 11.5px; border-radius: 8px; background: var(--cd-surface2); color: var(--cd-ink); }
+  .cd-tools .cd-sep { width: 24px; min-width: 24px; height: 1px; margin: 4px 0; }
+  .cd-tools #cd-zf, .cd-tools #cd-zw { font-size: 0; position: relative; }
+  .cd-tools #cd-zf::before, .cd-tools #cd-zw::before { content: ""; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--ci) center / contain no-repeat; mask: var(--ci) center / contain no-repeat; }
+  .cd-tools #cd-zf { --ci: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h9l4 4v14H6z'/%3E%3Cpath d='M9 12h6M9 16h6'/%3E%3C/svg%3E"); }
+  .cd-tools #cd-zw { --ci: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4'/%3E%3C/svg%3E"); }
+  .cd-tools > span:last-child { font-size: 10.5px; color: var(--cd-muted); height: 24px; }
+  .cd-tools #cd-zo, .cd-tools #cd-zi { font-size: 20px; line-height: 1; }
+  .cd-tools #cd-zf:hover::before, .cd-tools #cd-zw:hover::before { opacity: .8; }
+  @media (max-width: 900px) { .cd-work { grid-template-columns: 1fr; } .cd-insp { order: 2; border-right: 0; border-top: 1px solid var(--cd-line); } .cd-stage { padding: 20px 12px 80px; } .cd-tools { right: 8px; } }
+}
