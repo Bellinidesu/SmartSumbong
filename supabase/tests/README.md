@@ -19,6 +19,7 @@ back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
 | `11_smart_queue.sql` | 7 checks (0129): queue order by urgency plus waiting (a 50-hour-old clearance between a stabbing and fresh rubbish), an admin's level in the queue, every stage's next action, the overdue bonus, residents kept out, the dispatch waiting line in queue order (fire before an older cedula) and first come, first served with the switch off |
 | `12_defense_structure.sql` | 12 checks (0130): positions and committees, the escalation ladder (Kagawad by committee, then the Chairman, and back down), several concerns in one report, sensitive cases (marked on filing, kept out of the waiting line) |
 | `13_three_briefings.sql` | 4 checks (0131): the morning, afternoon and night briefings read right, an unknown period is refused, they reach every administrator and honour the switch, all three are scheduled |
+| `14_workspace_widgets.sql` | 10 checks (0132): each person's widgets and notes kept private, the lead's settings and switches, team posts (who may post what, text never edited), polls, staff birthdays / leave / credentials / roster with late and weekly hours, patrol checkpoints, the private shift check-in and its totals, relief packs and safe-point notes, minigame bests, and the widget reads answering staff only |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times
