@@ -98,3 +98,5 @@
 :root:not([data-theme="dark"]) .cs-acts .ac-send:hover span, :root:not([data-theme="dark"]) .cs-acts .ac-send.go span { background: linear-gradient(145deg, var(--cs-hi), var(--cs-lo)); }
 :root:not([data-theme="dark"]) .cs-acts .ac-zoom:hover span, :root:not([data-theme="dark"]) .cs-acts .ac-zoom.go span { background: linear-gradient(215deg, var(--cs-hi), var(--cs-lo)); }
 :root:not([data-theme="dark"]) .cs-acts .ac-copy:hover span { background: linear-gradient(325deg, var(--cs-hi), var(--cs-lo)); }
+/* while the map is moving the other panels switch to a plain fill (flair.css); the engine drawer keeps its navy instead of turning clear */
+:root:not([data-theme="dark"]) #s-spatial.ss-dragging #smart-side { background: linear-gradient(145deg,#1B2342,#0E1428) !important; }
