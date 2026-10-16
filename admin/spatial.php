@@ -364,7 +364,9 @@ function pinTear(cat, fill, dark) {
     '<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>' +
     '<radialGradient id="h" cx=".3" cy=".2" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
     '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.8 : 1.8) + '" flood-color="' + (dark ? fill : '#000') + '" flood-opacity="' + (dark ? .9 : .4) + '"/></filter></defs>' +
-    '<g filter="url(#s)"><circle r="15" fill="url(#a)"/><circle r="15" fill="url(#h)"/><circle r="14.2" fill="none" stroke="url(#r)" stroke-width="1.6"/>' +
+    (dark ? '<g filter="url(#s)"><circle r="15" fill="url(#a)"/><circle r="15" fill="url(#h)"/><circle r="14.2" fill="none" stroke="url(#r)" stroke-width="1.6"/>'
+      // Material by day: a solid disc, a white edge, two layered shadows for its height
+      : '<filter id="m" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow in="SourceGraphic" dy="3" stdDeviation="2.6" flood-color="#141B34" flood-opacity=".26" result="a"/><feDropShadow in="SourceGraphic" dy="1" stdDeviation=".9" flood-color="#141B34" flood-opacity=".42" result="b"/><feMerge><feMergeNode in="a"/><feMergeNode in="b"/></feMerge></filter><g filter="url(#m)"><circle r="15" fill="' + fill + '"/><circle r="14" fill="none" stroke="#fff" stroke-width="2"/>') +
     '<g transform="translate(-8.5 -8.5) scale(.71)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + glyph + '</g></g></svg>';
 }
 function addPinImages() {
@@ -567,6 +569,8 @@ function donutSvg(props, n) {
     a0 = a1;
   });
   const txt = String(n);
+  if (!isDark()) return '<svg viewBox="-35 -35 70 70" aria-hidden="true"><circle r="33" fill="#fff"/>' + ring +
+    '<text y="' + (txt.length > 3 ? 5 : 6.5) + '" text-anchor="middle" font-family="Urbanist,sans-serif" font-weight="800" font-size="' + (txt.length > 3 ? 14 : 19) + '" fill="#141B34">' + esc(txt) + '</text></svg>';
   return '<svg viewBox="-35 -35 70 70" aria-hidden="true"><defs><radialGradient id="og" cx=".35" cy=".25" r=".95"><stop offset="0" stop-color="#3A3E4C"/><stop offset=".6" stop-color="#1B1D26"/><stop offset="1" stop-color="#13141B"/></radialGradient>' +
     '<linearGradient id="or" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".5" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity=".3"/></linearGradient></defs>' +
     '<circle r="33" fill="url(#og)"/><circle r="32.4" fill="none" stroke="url(#or)" stroke-width="1.4"/><ellipse cx="-9" cy="-21" rx="15" ry="7" fill="#fff" opacity=".1" transform="rotate(-20 -9 -21)"/>' + ring +
