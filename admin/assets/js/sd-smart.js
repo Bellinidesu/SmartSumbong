@@ -240,6 +240,7 @@
   function open() {
     side.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); btn.classList.add('is-open');
     refresh();
+    var sy = document.getElementById('ss-say'); if (sy) { sy.setAttribute('role', 'status'); sy.setAttribute('aria-live', 'polite'); }
     if (revealed || reduce) { body.hidden = false; revealed = true; return; }
     busy = true; side.classList.add('is-thinking'); body.hidden = true;
     setTimeout(function () {
@@ -253,6 +254,7 @@
     clearBadges(); focusPin(null); Object.keys(pills).forEach(function (id) { pills[id].marker.remove(); delete pills[id]; });
   }
 
+  side.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !side.hasAttribute('hidden')) { e.stopPropagation(); close(); btn.focus(); } });
   side.addEventListener('click', function (e) {
     var tg = e.target.closest('[data-slayer]');
     if (tg) { on[tg.dataset.slayer] = !on[tg.dataset.slayer]; ensureLayers(); apply(); sync(true); return; }
