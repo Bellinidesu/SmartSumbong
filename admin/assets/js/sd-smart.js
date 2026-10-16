@@ -11,6 +11,7 @@
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var COL = { urgent: '#E5383B', high: '#FF9800', normal: '#356CF9', low: '#8E9ABB' };
   var on = { halo: false, late: false, rings: false }, busy = false, revealed = false, lastRows = null, pulse = null;
+  var vis = null, zf = 1, pills = {}, leafCache = {}, syncing = false, zooming = false;
   var busySet = {}, recurSet = {}, ranked = [], badges = [], showAll = false, OPENS = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
   (D.busy || []).forEach(function (id) { busySet[id] = true; }); (D.recurIds || []).forEach(function (id) { recurSet[id] = true; });
   var tr = function (en, fil) { return typeof T === 'function' ? T(en, fil) : en; };
@@ -59,6 +60,7 @@
       ensureLayers();
       var halos = [], late = [];
       lastRows.forEach(function (r) {
+        if (vis && !vis[r.id]) return;               // folded into a cluster: the cluster carries the mark instead
         var lv = D.levels[r.id];
         if (lv) halos.push(pt(r.longitude, r.latitude, { c: COL[lv] || COL.low }));
         if (lateSet[r.id]) late.push(pt(r.longitude, r.latitude));
@@ -77,7 +79,7 @@
       if (!on.late || !map.getLayer('smart-late')) { pulse = null; return; }
       var k = (t % 1800) / 1800;
       map.setPaintProperty('smart-late', 'circle-radius', 14 + 22 * k);
-      map.setPaintProperty('smart-late', 'circle-stroke-opacity', .85 * (1 - k));
+      map.setPaintProperty('smart-late', 'circle-stroke-opacity', .85 * (1 - k) * zf);
       pulse = requestAnimationFrame(tick);
     })(performance.now());
   }
@@ -146,6 +148,7 @@
     if (side.hasAttribute('hidden') || typeof maplibregl === 'undefined') return;
     ranked.slice(0, showAll ? 12 : 5).forEach(function (x, i) {
       var el = document.createElement('div'); el.className = 'sq-badge'; el.style.setProperty('--c', COL[x.lv] || COL.low); el.textContent = String(i + 1);
+      el.dataset.id = x.r.id; el.classList.toggle('off', !!(vis && !vis[x.r.id]) || zooming);
       badges.push(new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -34] }).setLngLat([+x.r.longitude, +x.r.latitude]).addTo(map));
     });
   }
@@ -162,6 +165,56 @@
     if (on.rings) k.push(['#6A4FD3', 'Purple area: a problem that keeps coming back here', 'Lilang bahagi: umuulit na problema dito']);
     el.hidden = !k.length;
     el.innerHTML = k.length ? '<b>' + esc(tr('On the map now', 'Nasa mapa ngayon')) + '</b>' + k.map(function (x) { return '<span><i style="background:' + x[0] + '"></i>' + esc(tr(x[1], x[2])) + '</span>'; }).join('') : '';
+  }
+  function visibleIds() {
+    if (!map.getLayer('pins')) return null;
+    var s = {}; map.queryRenderedFeatures({ layers: ['pins'] }).forEach(function (f) { if (f.properties && f.properties.id) s[f.properties.id] = 1; });
+    return s;
+  }
+  function fade(k) {
+    zf = k;
+    var set = function (id, prop, v) { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); };
+    [['smart-halo', 'circle-opacity', .38], ['smart-halo', 'circle-stroke-opacity', .95], ['smart-rings', 'circle-opacity', .12], ['smart-rings', 'circle-stroke-opacity', .85]].forEach(function (a) { set(a[0], a[1], a[2] * k); });
+    if (!on.late || k === 0) set('smart-late', 'circle-stroke-opacity', k ? .8 : 0);
+    badges.forEach(function (m) { var el = m.getElement(); el.classList.toggle('off', k === 0 || !!(vis && !vis[el.dataset.id])); });
+    Object.keys(pills).forEach(function (id) { pills[id].marker.getElement().classList.toggle('off', k === 0); });
+  }
+  // A cluster hides its cases, so the mark moves onto the cluster: a small pill with how many of them are urgent or high.
+  function clusterPills() {
+    if (!map.getSource('reports') || typeof maplibregl === 'undefined') return;
+    var want = {};
+    if (on.halo && !side.hasAttribute('hidden')) {
+      map.queryRenderedFeatures({ layers: ['clusters'] }).forEach(function (f) { var id = f.properties.cluster_id; if (id != null && !want[id]) want[id] = f; });
+    }
+    Object.keys(pills).forEach(function (id) { if (!want[id]) { pills[id].marker.remove(); delete pills[id]; } });
+    Object.keys(want).forEach(function (id) {
+      var f = want[id], n = f.properties.point_count, w = n < 10 ? 50 : n < 50 ? 64 : 82;
+      var put = function (info) {
+        if (!info || pills[id] || !info.hot) return;
+        var el = document.createElement('div'); el.className = 'sq-cpill' + (info.late ? ' late' : '') + (zf ? '' : ' off'); el.style.setProperty('--c', COL[info.worst]);
+        el.innerHTML = '<b>' + info.hot + '</b><span>' + esc(tr(info.worst === 'urgent' ? 'urgent' : 'high', info.worst === 'urgent' ? 'madalian' : 'mataas')) + '</span>';
+        el.title = tr(info.hot + ' ' + info.worst + ' case' + (info.hot === 1 ? '' : 's') + ' in here. Zoom in to see them.', info.hot + ' ' + (info.worst === 'urgent' ? 'madalian' : 'mataas') + ' na kaso dito. Mag-zoom para makita.');
+        pills[id] = { marker: new maplibregl.Marker({ element: el, anchor: 'bottom-left', offset: [Math.round(w * .30), -Math.round(w * .30)] }).setLngLat(f.geometry.coordinates).addTo(map) };
+      };
+      var key = id + ':' + n;
+      if (leafCache[key]) { put(leafCache[key]); return; }
+      map.getSource('reports').getClusterLeaves(+id, 300, 0).then(function (leaves) {
+        var u = 0, h = 0, late = false;
+        leaves.forEach(function (l) { var lv = D.levels[l.properties.id]; if (lv === 'urgent') u++; else if (lv === 'high') h++; if (lateSet[l.properties.id]) late = true; });
+        leafCache[key] = { hot: u || h, worst: u ? 'urgent' : 'high', late: late };   // the count is of the worst level in there, so the word on the pill is true
+        if (on.halo) put(leafCache[key]);
+      }).catch(function () {});
+    });
+  }
+  function sync() {
+    if (syncing || !map.getLayer('pins')) return;
+    syncing = true;
+    vis = visibleIds();
+    if (lastRows) redraw(lastRows);
+    clusterPills();
+    fade(1); zooming = false;
+    badges.forEach(function (m) { var el = m.getElement(); el.classList.toggle('off', !!(vis && !vis[el.dataset.id])); });
+    syncing = false;
   }
   function refresh() { rank(); say(); renderQueue(); }
 
@@ -193,12 +246,12 @@
   }
   function close() {
     side.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('is-open');
-    clearBadges(); focusPin(null);
+    clearBadges(); focusPin(null); Object.keys(pills).forEach(function (id) { pills[id].marker.remove(); delete pills[id]; });
   }
 
   side.addEventListener('click', function (e) {
     var tg = e.target.closest('[data-slayer]');
-    if (tg) { on[tg.dataset.slayer] = !on[tg.dataset.slayer]; ensureLayers(); apply(); return; }
+    if (tg) { on[tg.dataset.slayer] = !on[tg.dataset.slayer]; ensureLayers(); apply(); sync(); return; }
     var rc = e.target.closest('.ss-recur');
     if (rc) { map.flyTo({ center: [parseFloat(rc.dataset.lng), parseFloat(rc.dataset.lat)], zoom: 18, essential: true }); return; }
     var sq = e.target.closest('.sq-row');
@@ -220,10 +273,17 @@
   side.addEventListener('focusin', function (e) { var q = e.target.closest('.sq-row'); if (q && typeof byId !== 'undefined') focusPin(byId.get(q.dataset.id)); });
   side.addEventListener('focusout', function () { focusPin(null); });
 
+  if (typeof map !== 'undefined') {
+    map.on('zoomstart', function () { if (side.hasAttribute('hidden') && !on.halo && !on.late && !on.rings) return; zooming = true; fade(0); });
+    var live = function () { return !side.hasAttribute('hidden') || on.halo || on.late || on.rings; }, later = null;
+    var soon = function () { clearTimeout(later); later = setTimeout(function () { if (live()) sync(); }, 160); };
+    map.on('idle', function () { if (live()) sync(); });
+    map.on('zoomend', soon); map.on('moveend', soon);   // not only on idle: a slow tile must not leave the marks faded
+  }
   window.sdSmart = {
     isClosed: function () { return side.hasAttribute('hidden'); },
     toggle: function () { if (busy) return; if (side.hasAttribute('hidden')) open(); else close(); },
-    close: close, redraw: redraw
+    close: close, redraw: redraw, sync: sync
   };
   if (typeof all !== 'undefined' && all.length) redraw(all);
 })();
