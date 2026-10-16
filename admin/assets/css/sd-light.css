@@ -94,3 +94,7 @@
 :root:not([data-theme="dark"]) .qv-act .p-btn-primary:hover, :root:not([data-theme="dark"]) .cs-foot .cs-open:hover { box-shadow: 0 1px 2px rgba(20,27,52,.28), 0 2px 6px 2px rgba(20,27,52,.18); }
 :root:not([data-theme="dark"]) .qv-act [data-qvback] { background: #F4F6FB; border: 0; color: var(--p-ink); box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 1px 3px 1px rgba(20,27,52,.1); }
 :root:not([data-theme="dark"]) .qv-act [data-qvback]:hover { background: #E9ECF4; }
+/* hovering or pressing a case action kept only a pale tint (the night rule), so its white icon vanished on white: by day the circle keeps its colour and rises */
+:root:not([data-theme="dark"]) .cs-acts .ac-send:hover span, :root:not([data-theme="dark"]) .cs-acts .ac-send.go span { background: linear-gradient(145deg, var(--cs-hi), var(--cs-lo)); }
+:root:not([data-theme="dark"]) .cs-acts .ac-zoom:hover span, :root:not([data-theme="dark"]) .cs-acts .ac-zoom.go span { background: linear-gradient(215deg, var(--cs-hi), var(--cs-lo)); }
+:root:not([data-theme="dark"]) .cs-acts .ac-copy:hover span { background: linear-gradient(325deg, var(--cs-hi), var(--cs-lo)); }
