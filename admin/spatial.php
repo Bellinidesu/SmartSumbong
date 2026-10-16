@@ -118,10 +118,10 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     </div>
     <div class="ss-drawer-body" hidden>
       <div class="ss-dtiles">
-        <div><b data-count><?= (int) ($smartSum['urgent_waiting'] ?? 0) + (int) ($smartSum['high_waiting'] ?? 0) ?></b><span><?= e(t('waiting for a tanod', 'naghihintay ng tanod')) ?></span></div>
-        <div><b data-count><?= count($smartLate) ?></b><span><?= e(t('likely to be late', 'maaaring maantala')) ?></span></div>
-        <div><b data-count><?= count($patterns) ?></b><span><?= e(t('recurring problems', 'paulit-ulit na problema')) ?></span></div>
-        <div><b data-count><?= count($smartSpikes) ?></b><span><?= e(t('spikes this week', 'pagtaas ngayong linggo')) ?></span></div>
+        <div class="t-wait"><b data-count><?= (int) ($smartSum['urgent_waiting'] ?? 0) + (int) ($smartSum['high_waiting'] ?? 0) ?></b><span><?= e(t('waiting for a tanod', 'naghihintay ng tanod')) ?></span></div>
+        <div class="t-late"><b data-count><?= count($smartLate) ?></b><span><?= e(t('likely to be late', 'maaaring maantala')) ?></span></div>
+        <div class="t-rec"><b data-count><?= count($patterns) ?></b><span><?= e(t('recurring problems', 'paulit-ulit na problema')) ?></span></div>
+        <div class="t-spk"><b data-count><?= count($smartSpikes) ?></b><span><?= e(t('spikes this week', 'pagtaas ngayong linggo')) ?></span></div>
       </div>
       <p class="p-eyebrow"><?= e(t('Show on the map', 'Ipakita sa mapa')) ?></p>
       <div class="ss-dtog" role="group" aria-label="<?= e(t('SMART layers', 'Mga layer ng SMART')) ?>">
@@ -131,7 +131,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       </div>
       <div class="ss-dkey"><span><i style="--c:#E5383B"></i><?= e(t('Urgent', 'Madalian')) ?></span><span><i style="--c:#FF9800"></i><?= e(t('High', 'Mataas')) ?></span><span><i style="--c:#356CF9"></i><?= e(t('Normal', 'Katamtaman')) ?></span><span><i style="--c:#8E9ABB"></i><?= e(t('Low', 'Mababa')) ?></span></div>
 
-      <p class="p-eyebrow"><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?></p>
+      <p class="p-eyebrow"><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?><em><?= count($patterns) ?></em></p>
       <?php if (!$patterns): ?>
         <p class="p-hint"><?= e(t('Nothing has come up more than once in the same place lately.', 'Walang problemang umulit sa iisang lugar nitong mga nakaraan.')) ?></p>
       <?php else: ?>
@@ -141,14 +141,14 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
             <b><?= e(category_label((string) $pt['category'])) ?></b>
             <small><?= (int) $pt['reports'] ?> <?= e(t('reports from', 'ulat mula sa')) ?> <?= (int) $pt['residents'] ?> <?= e(t('residents over', 'residente sa loob ng')) ?> <?= (int) $pt['weeks'] ?> <?= e(t('weeks', 'linggo')) ?>
               · <?= (int) $pt['still_open'] ?> <?= e(t('still open', 'bukas pa')) ?><?= !empty($pt['hazard']) ? ' · ' . e((string) $pt['hazard']) : '' ?></small>
-            <small class="p-mono-id"><?= e(implode(' ', array_slice((array) ($pt['tracking_ids'] ?? []), 0, 3))) ?></small>
+            <span class="ss-chips"><?php foreach (array_slice((array) ($pt['tracking_ids'] ?? []), 0, 3) as $tid): ?><i><?= e((string) $tid) ?></i><?php endforeach; ?></span>
           </button></li>
         <?php endforeach; ?>
       </ol>
       <?php endif; ?>
 
       <?php if ($smartLate): ?>
-      <p class="p-eyebrow"><?= e(t('Likely to be late', 'Maaaring maantala')) ?></p>
+      <p class="p-eyebrow"><?= e(t('Likely to be late', 'Maaaring maantala')) ?><em><?= count($smartLate) ?></em></p>
       <ol class="p-pin-list">
         <?php foreach (array_slice($smartLate, 0, 6) as $lt): ?>
           <li><button type="button" class="p-pin-row ss-late" data-id="<?= e((string) $lt['report_id']) ?>">
@@ -160,10 +160,12 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <?php endif; ?>
 
       <?php if ($smartSpikes): ?>
-      <p class="p-eyebrow"><?= e(t('Spikes this week', 'Pagtaas ngayong linggo')) ?></p>
-      <ul class="ss-dlist">
-        <?php foreach (array_slice($smartSpikes, 0, 4) as $sp): ?>
-          <li><b><?= e(category_label((string) $sp['category'])) ?></b> <?= (int) $sp['this_week'] ?> <?= e(t('this week, usually', 'ngayong linggo, karaniwan')) ?> <?= e(rtrim(rtrim(number_format((float) $sp['usual'], 1), '0'), '.')) ?><?= !empty($sp['place']) ? ' · ' . e((string) $sp['place']) : '' ?></li>
+      <p class="p-eyebrow"><?= e(t('Spikes this week', 'Pagtaas ngayong linggo')) ?><em><?= count($smartSpikes) ?></em></p>
+      <ul class="ss-spikes">
+        <?php foreach (array_slice($smartSpikes, 0, 4) as $sp): $usual = (float) $sp['usual']; $ratio = $usual > 0 ? (int) $sp['this_week'] / $usual : 0; ?>
+          <li><span class="sk-t"><b><?= e(category_label((string) $sp['category'])) ?></b><?= !empty($sp['place']) ? '<small>' . e((string) $sp['place']) . '</small>' : '' ?></span>
+            <span class="sk-n"><b><?= (int) $sp['this_week'] ?></b><small><?= e(t('this week', 'ngayong linggo')) ?></small></span>
+            <span class="sk-u"><?= e(t('usually', 'karaniwan')) ?> <b><?= e(rtrim(rtrim(number_format($usual, 1), '0'), '.')) ?></b><?= $ratio >= 2 ? '<em>×' . e(rtrim(rtrim(number_format($ratio, 1), '0'), '.')) . '</em>' : '' ?></span></li>
         <?php endforeach; ?>
       </ul>
       <?php endif; ?>
