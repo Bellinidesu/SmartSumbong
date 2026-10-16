@@ -1,0 +1,79 @@
+/* Look around, laid out like Google Street View (Ace, 16 Oct: "SD is based on google, so the street view one to one with Google, but SmartSumbonged").
+   One info card top-left (back, place, source, capture date, Then / Now), Open case / Send to tanod / Close top-right, a small map bottom-left,
+   heading, steps and zoom bottom-right, a Then / Now thumbnail beneath them and a toast along the bottom.
+   Night = frosted glass over the street; day = Material (solid white, elevation shadows, no blur). Loaded only on Spatial Distribution. */
+.ss-lk {
+  --lk-bg: rgba(14,19,40,.70); --lk-ink: #fff; --lk-mute: rgba(255,255,255,.72); --lk-line: rgba(255,255,255,.16); --lk-link: #FFB84D; --lk-hover: rgba(255,255,255,.12);
+  --lk-edge: 1px solid rgba(255,255,255,.16); --lk-blur: blur(18px) saturate(1.5); --lk-sh: 0 8px 24px rgba(0,0,0,.4);
+}
+:root:not([data-theme="dark"]) .ss-lk {
+  --lk-bg: #fff; --lk-ink: #141B34; --lk-mute: #4A5068; --lk-line: rgba(20,27,52,.12); --lk-link: #B85F00; --lk-hover: #F2F4FA;
+  --lk-edge: 0; --lk-blur: none; --lk-sh: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14);
+}
+.lk-info, .lk-pill, .lk-rnd, .lk-grp, .lk-hd, .lk-layers, .lk-toast, .lk-mini {
+  background: var(--lk-bg); color: var(--lk-ink); border: var(--lk-edge); -webkit-backdrop-filter: var(--lk-blur); backdrop-filter: var(--lk-blur); box-shadow: var(--lk-sh);
+}
+/* the info card */
+.lk-info { position: absolute; z-index: 5; left: 16px; top: 16px; width: 300px; max-width: calc(100% - 32px); padding: 12px 14px 10px 10px; border-radius: 12px; display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 2px 8px; align-items: start; }
+.lk-info .lk-back { width: 36px; height: 36px; border-radius: 50%; background: transparent; color: inherit; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; border: 0; }
+.lk-info .lk-back:hover { background: var(--lk-hover); transform: none; }
+.lk-info .lk-ti { background: none; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; border: 0; padding: 0; gap: 1px; min-width: 0; }
+.lk-info .lk-ti b { font: 800 15px/1.25 Urbanist, sans-serif; overflow-wrap: anywhere; }
+.lk-info .lk-ti span { font: 600 12px Inter, sans-serif; color: var(--lk-mute); opacity: 1; }
+.lk-src { grid-column: 2; display: flex; align-items: center; gap: 8px; margin-top: 6px; font: 600 12.5px Inter, sans-serif; }
+.lk-src b { font-weight: 600; }
+.lk-info hr { grid-column: 1 / -1; width: 100%; height: 1px; border: 0; background: var(--lk-line); margin: 7px 0 4px; }
+.lk-when { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-left: 2px; }
+.lk-when small { font: 600 12px Inter, sans-serif; color: var(--lk-mute); }
+.lk-link { border: 0; background: none; padding: 2px 0; color: var(--lk-link); font: 700 12.5px Inter, sans-serif; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: transparent; transition: text-decoration-color .15s; }
+.lk-link:hover, .lk-link.on { text-decoration-color: currentColor; }
+.lk-cdot { flex: none; box-shadow: none; }
+/* top right */
+.lk-tr { position: absolute; z-index: 5; right: 16px; top: 16px; display: flex; gap: 8px; align-items: center; }
+.lk-pill { height: 38px; padding: 0 16px; border-radius: 99px; display: inline-flex; align-items: center; gap: 8px; font: 700 13.5px Inter, sans-serif; text-decoration: none; cursor: pointer; transition: transform .2s, box-shadow .2s, background .15s; }
+.lk-pill:hover { background: var(--lk-hover); transform: translateY(-1px); }
+.lk-pill.or { background: var(--p-orange, #FF9800); color: #2B1A00; border-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; font-family: Urbanist, sans-serif; font-weight: 800; }
+.lk-pill.or:hover { background: #FFA826; }
+.lk-pill:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.lk-rnd { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.lk-rnd svg { width: 18px; height: 18px; } .lk-rnd:hover { background: var(--lk-hover); }
+/* the small map */
+.lk-mini { position: absolute; z-index: 5; left: 16px; bottom: 28px; width: 232px; height: 128px; border-radius: 12px; overflow: hidden; padding: 0; }
+:root[data-theme="dark"] .lk-mini { background: rgba(14,19,40,.78); }
+:root:not([data-theme="dark"]) .lk-mini { background: #E9EEF5; }
+.lk-mini svg#lk-mini { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lk-grid { stroke: currentColor; stroke-width: .5; opacity: .22; fill: none; }
+.lk-dash { stroke: currentColor; stroke-width: 1; stroke-dasharray: 3 3; opacity: .55; }
+.lk-cone { fill: #356CF9; opacity: .32; } .lk-me { fill: #356CF9; stroke: #fff; stroke-width: 1.6; } .lk-pin { stroke: #fff; stroke-width: 1.6; }
+.lk-mt { font: 700 7px Inter, sans-serif; fill: currentColor; }
+.lk-exp { position: absolute; left: 6px; bottom: 6px; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer; background: rgba(255,255,255,.92); color: #141B34; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.lk-exp svg { width: 16px; height: 16px; } .lk-exp:hover { background: #fff; }
+/* bottom right: heading, steps, zoom, then / now */
+.lk-ctl { position: absolute; z-index: 5; right: 16px; bottom: 76px; display: grid; gap: 10px; justify-items: end; }
+.lk-hd { margin: 0; width: 46px; padding: 6px 0 4px; border-radius: 14px; display: grid; justify-items: center; gap: 1px; }
+.lk-hd .lk-needle { width: 24px; height: 24px; color: var(--p-orange, #FF9800); transition: transform .12s linear; }
+.lk-hd b { font: 700 10px Inter, sans-serif; min-width: 0; color: var(--lk-mute); }
+.lk-grp { display: grid; width: 40px; border-radius: 12px; overflow: hidden; }
+.lk-grp button { width: 40px; height: 38px; border: 0; background: none; color: inherit; font: 600 21px Inter, sans-serif; display: grid; place-items: center; padding: 0; cursor: pointer; }
+.lk-grp button + button { border-top: 1px solid var(--lk-line); } .lk-grp button:hover { background: var(--lk-hover); }
+.lk-grp svg { width: 20px; height: 20px; }
+.lk-layers { position: absolute; z-index: 5; right: 16px; bottom: 28px; height: 40px; padding: 0 14px 0 5px; border-radius: 12px; display: inline-flex; align-items: center; gap: 9px; font: 700 12.5px Inter, sans-serif; cursor: pointer; transition: background .15s, box-shadow .15s; }
+.lk-layers:hover { background: var(--lk-hover); }
+.lk-layers.on { background: var(--p-orange, #FF9800); color: #2B1A00; }
+.lk-lth { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #6B7A99, #38425C) center / cover; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+/* the toast along the bottom */
+.lk-toast { position: absolute; z-index: 4; left: 50%; bottom: 0; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; padding: 13px 14px 13px 18px; border-radius: 10px 10px 0 0; max-width: calc(100% - 520px); min-width: 240px; }
+.lk-toast[hidden] { display: none; }
+.lk-toast .lk-fact { margin: 0; opacity: 1; font: 600 13.5px Inter, sans-serif; } .lk-toast .lk-fact b { font-weight: 800; }
+.lk-toast > button { border: 0; background: none; color: inherit; font: 400 22px/1 Inter, sans-serif; cursor: pointer; opacity: .8; padding: 0 4px; } .lk-toast > button:hover { opacity: 1; }
+.ss-lk .lk-credit { position: absolute; z-index: 3; right: 10px; bottom: 3px; flex: none; margin: 0; font: 500 10px Inter, sans-serif; color: #fff; opacity: .85; text-shadow: 0 1px 3px rgba(0,0,0,.85); pointer-events: none; }
+/* the Send to tanod panel moves clear of the new top and bottom rows */
+.ss-lk .lk-send { top: 68px; bottom: 84px; right: 16px; }
+:root:not([data-theme="dark"]) .ss-lk .lk-send { box-shadow: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26); }
+@media (max-width: 900px) { .lk-toast { max-width: calc(100% - 32px); bottom: 84px; border-radius: 10px; } .lk-mini { width: 168px; height: 96px; bottom: 16px; } .lk-layers { bottom: 16px; } .lk-ctl { bottom: 64px; } .lk-pill:not(.or) { display: none; } }
+@media (prefers-reduced-motion: reduce) { .lk-hd .lk-needle, .lk-pill, .lk-link { transition: none; } }
+.ss-lk .lk-tag.l { top: 186px; } .ss-lk .lk-tag.r { top: 68px; }
+/* the "THEN" tag belongs to the Then / Now view only */
+.ss-lk #lk-then { display: none; } .ss-lk:has(.lk-cmp:not([hidden])) #lk-then:not([hidden]) { display: block; }
+.lk-info .lk-ti, .lk-info .lk-back { background: none !important; background-image: none !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.lk-info .lk-back:hover { background: var(--lk-hover) !important; }
