@@ -310,7 +310,7 @@ function render_account_screen(string $role): void
               <?php if ($isTanod): ?>
                 <td class="ss-latest"><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">' . e(t('None', 'Wala')) . '</span>' ?></td>
               <?php endif; ?>
-              <td><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
+              <td class="ss-em"><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
               <td><div class="p-badges"><?= account_status_pills($a) ?><?php
                   if (!empty($dupes[$a['id']])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', $dupes[$a['id']])) ?>"><?= e(t('Possible duplicate', 'Posibleng doble')) ?></span><?php endif; ?><?php
                   if (ID_OCR_ENABLED && !empty($a['ocr_flags'])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>"><?= e(t('OCR flag', 'OCR flag')) ?></span><?php endif; ?><?php
@@ -614,7 +614,7 @@ function render_account_screen(string $role): void
             '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
             (IS_TANOD ? '<td class="ss-latest">' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
                                                : '<span class="p-sub">' + T('None', 'Wala') + '</span>') + '</td>' : '') +
-            '<td>' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>' +
+            '<td class="ss-em">' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>' +
             '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +
             '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
               (a.verification_status === 'pending' ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +

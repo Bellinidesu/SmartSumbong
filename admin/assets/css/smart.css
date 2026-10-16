@@ -1292,3 +1292,19 @@
 :root:not([data-theme="dark"]) .bd-card.is-drag { box-shadow: 0 4px 8px 3px rgba(20,27,52,.16), 0 1px 3px rgba(20,27,52,.26); }
 :root:not([data-theme="dark"]) .bd-bar { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0; box-shadow: 0 1px 2px rgba(20,27,52,.14), 0 1px 3px 1px rgba(20,27,52,.08); }
 :root:not([data-theme="dark"]) { --rk-staff: #4B5568; }
+.ss-handler .ss-hrow .rank { margin-left: 0; }
+
+/* Symmetry sweep (16 Oct): row, edge and alignment fixes */
+.p-main > .ss-views { padding: 0; display: flex; }                         /* the saved-views row starts on the page grid, like the band and table under it */
+.p-donut-card { align-content: start; grid-template-rows: auto auto 1fr auto; } /* both donuts sit at the same height; the hint line rests at the foot */
+.p-dash-mid .p-stack { align-content: stretch; grid-auto-rows: 1fr; }          /* the three tiles end level with the cards beside them */
+.p-period-band .p-break { flex-basis: 100%; height: 0; }                       /* chips and the PDF button share the second row, one at each end */
+.ss-ohead th { white-space: normal; line-height: 1.2; vertical-align: middle; }
+.ss-people td.ss-em { min-width: 230px; overflow-wrap: anywhere; }
+.ss-people td.p-right .p-btn { min-width: 72px; justify-content: center; }       /* Review and View are one width */
+.ss-ladder li { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 40px; line-height: 1.2; }
+.p-donut-card .p-legend { align-content: start; }
+.p-body .ss-ohead thead th { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
+.ss-people.ss-tanods table th:nth-child(1) { width: 44px; } .ss-people.ss-tanods table th:nth-child(2) { width: 19%; } .ss-people.ss-tanods table th:nth-child(3) { width: 15%; }
+.ss-people.ss-tanods table th:nth-child(4) { width: 14%; } .ss-people.ss-tanods table th:nth-child(5) { width: 22%; }
+.p-body .ss-cases-t thead th { white-space: normal; line-height: 1.2; overflow: visible; }
