@@ -166,7 +166,9 @@
 
 .sq-badge.off { opacity: 0; }
 /* a cluster carries the mark of the cases folded into it: one small round dot on its rim, the number of its worst cases, in the worst level's colour */
-.sq-cdot { width: 20px; height: 20px; border-radius: 50%; background: var(--c); color: #fff; border: 2px solid #fff; display: grid; place-items: center; font: 800 10.5px Inter, sans-serif; font-variant-numeric: tabular-nums; box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: default; transition: opacity .25s; animation: sqIn .3s ease-out backwards; }
+.sq-cdot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; background: linear-gradient(160deg, color-mix(in srgb, var(--c) 82%, #fff), var(--c) 55%, color-mix(in srgb, var(--c) 80%, #000)); color: #fff; box-shadow: 0 1px 3px rgba(20,27,52,.35), 0 3px 8px rgba(20,27,52,.18); cursor: default; transition: opacity .3s; }
+.sq-cdot > span { display: grid; place-items: center; width: 100%; height: 100%; font: 800 11px Inter, sans-serif; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px rgba(0,0,0,.25); animation: sqPop .38s cubic-bezier(.2,1.5,.4,1) backwards; }
+@keyframes sqPop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
 .sq-cdot.late { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 32%, transparent), 0 1px 4px rgba(0,0,0,.4); }
 .sq-cdot.off { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .sq-cdot { transition: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sq-cdot, .sq-cdot > span { transition: none; animation: none; } }

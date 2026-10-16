@@ -11,7 +11,7 @@
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var COL = { urgent: '#E5383B', high: '#FF9800', normal: '#356CF9', low: '#8E9ABB' };
   var on = { halo: false, late: false, rings: false }, busy = false, revealed = false, lastRows = null, pulse = null;
-  var vis = null, zf = 1, pills = {}, leafCache = {}, syncing = false, zooming = false;
+  var shown = { halo: false, rings: false }, vis = null, zf = 1, pills = {}, leafCache = {}, syncing = false, zooming = false;
   var busySet = {}, recurSet = {}, ranked = [], badges = [], showAll = false, OPENS = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
   (D.busy || []).forEach(function (id) { busySet[id] = true; }); (D.recurIds || []).forEach(function (id) { recurSet[id] = true; });
   var tr = function (en, fil) { return typeof T === 'function' ? T(en, fil) : en; };
@@ -31,11 +31,14 @@
     map.addSource('smart-rings', { type: 'geojson', data: EMPTY });
     map.addSource('smart-focus', { type: 'geojson', data: EMPTY });
     map.addLayer({ id: 'smart-rings', type: 'circle', source: 'smart-rings', layout: { visibility: 'none' },
-      paint: { 'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 15, 14, 18, 110], 'circle-color': '#6A4FD3', 'circle-opacity': .07,
-               'circle-stroke-color': '#6A4FD3', 'circle-stroke-width': 2, 'circle-stroke-opacity': .55 } }, before);
-    map.addLayer({ id: 'smart-halo', type: 'circle', source: 'smart-halo', layout: { visibility: 'none' },
+      paint: { 'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 15, 14, 18, 110], 'circle-color': '#6A4FD3', 'circle-opacity': 0,
+               'circle-stroke-color': '#6A4FD3', 'circle-stroke-width': 2, 'circle-stroke-opacity': 0, 'circle-opacity-transition': { duration: 320 }, 'circle-stroke-opacity-transition': { duration: 320 } } }, before);
+    map.addLayer({ id: 'smart-halo-glow', type: 'circle', source: 'smart-halo', layout: { visibility: 'visible' },
+      paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 13, 16, 15, 18, 18.5], 'circle-color': 'rgba(0,0,0,0)', 'circle-opacity': 0,
+               'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 7, 'circle-stroke-opacity': 0, 'circle-stroke-opacity-transition': { duration: 320 }, 'circle-blur': .7 } }, before);
+    map.addLayer({ id: 'smart-halo', type: 'circle', source: 'smart-halo', layout: { visibility: 'visible' },
       paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 12.5, 16, 14.5, 18, 18], 'circle-color': 'rgba(0,0,0,0)', 'circle-opacity': 0,
-               'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 3, 'circle-stroke-opacity': .95 } }, before);
+               'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 2.4, 'circle-stroke-opacity': 0, 'circle-stroke-opacity-transition': { duration: 320 } } }, before);
     map.addLayer({ id: 'smart-late', type: 'circle', source: 'smart-late', layout: { visibility: 'none' },
       paint: { 'circle-radius': 14, 'circle-color': 'rgba(229,56,59,0)', 'circle-stroke-color': '#E5383B', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': .8 } }, before);
     map.addLayer({ id: 'smart-focus', type: 'circle', source: 'smart-focus',
@@ -47,7 +50,9 @@
   function apply() {
     if (!map.getSource('smart-halo')) return;
     var vis = function (id, v) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v ? 'visible' : 'none'); };
-    vis('smart-halo', on.halo); vis('smart-late', on.late); vis('smart-rings', on.rings);
+    vis('smart-late', on.late);
+    shown = { halo: on.halo, rings: on.rings };
+    fade(zf);
     side.querySelectorAll('[data-slayer]').forEach(function (b) { b.setAttribute('aria-pressed', String(!!on[b.dataset.slayer])); });
     if (on.late && !reduce) startPulse(); else stopPulse();
     onMapKey();
@@ -166,7 +171,9 @@
   function fade(k) {
     zf = k;
     var set = function (id, prop, v) { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); };
-    [['smart-halo', 'circle-stroke-opacity', .95], ['smart-rings', 'circle-opacity', .07], ['smart-rings', 'circle-stroke-opacity', .55]].forEach(function (a) { set(a[0], a[1], a[2] * k); });
+    var h = shown.halo ? k : 0, rg = shown.rings ? k : 0;
+    set('smart-halo', 'circle-stroke-opacity', .95 * h); set('smart-halo-glow', 'circle-stroke-opacity', .2 * h);
+    set('smart-rings', 'circle-opacity', .07 * rg); set('smart-rings', 'circle-stroke-opacity', .55 * rg);
     if (!on.late || k === 0) set('smart-late', 'circle-stroke-opacity', k ? .8 : 0);
     badges.forEach(function (m) { var el = m.getElement(); el.classList.toggle('off', k === 0 || !!(vis && !vis[el.dataset.id])); });
     Object.keys(pills).forEach(function (id) { pills[id].marker.getElement().classList.toggle('off', k === 0); });
@@ -184,7 +191,7 @@
       var put = function (info) {
         if (!info || pills[id] || !info.hot) return;
         var el = document.createElement('div'); el.className = 'sq-cdot' + (info.late ? ' late' : '') + (zf ? '' : ' off'); el.style.setProperty('--c', COL[info.worst]);
-        el.textContent = String(info.hot);
+        el.innerHTML = '<span>' + info.hot + '</span>';
         el.title = tr(info.hot + ' ' + info.worst + ' case' + (info.hot === 1 ? '' : 's') + ' in here. Zoom in to see them.', info.hot + ' ' + (info.worst === 'urgent' ? 'madalian' : 'mataas') + ' na kaso dito. Mag-zoom para makita.');
         var rim = Math.round(w / 2 * 0.72);
         pills[id] = { marker: new maplibregl.Marker({ element: el, anchor: 'center', offset: [rim, -rim] }).setLngLat(f.geometry.coordinates).addTo(map) };
@@ -199,10 +206,14 @@
       }).catch(function () {});
     });
   }
-  function sync() {
+  var lastSig = '';
+  function sync(force) {
     if (syncing || !map.getLayer('pins')) return;
-    syncing = true;
-    vis = visibleIds();
+    var v = visibleIds(), cl = map.getLayer('clusters') ? map.queryRenderedFeatures({ layers: ['clusters'] }).map(function (f) { return f.properties.cluster_id + ':' + f.properties.point_count; }).sort().join(',') : '';
+    var sig = Object.keys(v || {}).sort().join(',') + '|' + cl + '|' + (on.halo ? 1 : 0) + (on.late ? 1 : 0) + (on.rings ? 1 : 0) + '|' + (side.hasAttribute('hidden') ? 0 : 1);
+    if (!force && sig === lastSig && !zooming) return;       // nothing changed on the map: do nothing (this runs on every draw)
+    lastSig = sig; syncing = true;
+    vis = v;
     if (lastRows) redraw(lastRows);
     clusterPills();
     fade(1); zooming = false;
@@ -244,7 +255,7 @@
 
   side.addEventListener('click', function (e) {
     var tg = e.target.closest('[data-slayer]');
-    if (tg) { on[tg.dataset.slayer] = !on[tg.dataset.slayer]; ensureLayers(); apply(); sync(); return; }
+    if (tg) { on[tg.dataset.slayer] = !on[tg.dataset.slayer]; ensureLayers(); apply(); sync(true); return; }
     var rc = e.target.closest('.ss-recur');
     if (rc) { map.flyTo({ center: [parseFloat(rc.dataset.lng), parseFloat(rc.dataset.lat)], zoom: 18, essential: true }); return; }
     var sq = e.target.closest('.sq-row');
@@ -272,6 +283,8 @@
     var soon = function () { clearTimeout(later); later = setTimeout(function () { if (live()) sync(); }, 160); };
     map.on('idle', function () { if (live()) sync(); });
     map.on('zoomend', soon); map.on('moveend', soon);   // not only on idle: a slow tile must not leave the marks faded
+    map.on('sourcedata', function (e) { if (e.sourceId === 'reports' && e.isSourceLoaded) soon(); });   // clusters are regrouped in the background after a zoom
+    map.on('render', function () { if (live()) soon(); });                                                 // and again when drawing settles, so no dot outlives its cluster
   }
   window.sdSmart = {
     isClosed: function () { return side.hasAttribute('hidden'); },
