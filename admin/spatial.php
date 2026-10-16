@@ -1132,8 +1132,9 @@ async function lkFind(lng, lat) {
 }
 function lkClose(silent) {
   const el = document.getElementById('ss-lk'); if (!el) { LK = null; return; }
-  const v = LK && LK.viewer; LK = null;
+  const v = LK && LK.viewer, mm = LK && LK.mm; LK = null;
   try { if (v) v.remove(); } catch (e) { /* already gone */ }
+  try { if (mm) mm.remove(); } catch (e) { /* already gone */ }
   if (silent) { el.remove(); return; }
   el.classList.remove('open'); el.classList.add('out'); setTimeout(() => el.remove(), 520);
 }
@@ -1153,22 +1154,26 @@ function lkOpen(r) {
     '<div class="lk-card" id="lk-card" hidden><div class="lk-ph" id="lk-ph"><span class="lk-gl"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + '</svg></span><em id="lk-phn"></em></div>' +
       '<div class="lk-cap"><b>' + esc(r.tracking_id) + '</b><small>' + T('Resident photo · ', 'Larawan ng residente · ') + esc(fmtDate(r.created_at) || '') + '</small></div><i class="lk-stem"></i><i class="lk-spot"></i></div>' +
     '<div class="lk-edge" id="lk-edge" hidden></div>' +
+    '<div class="lk-pillbar"><span class="lk-pt">' + esc(r.subject || label(r.category)) + '</span><a class="lk-dir" href="case.php?id=' + encodeURIComponent(r.id) + '" aria-label="' + T('Open case', 'Buksan ang kaso') + '" title="' + T('Open case', 'Buksan ang kaso') + '"><svg viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z" fill="currentColor"/><path d="M8.5 15v-3a2 2 0 0 1 2-2H15m0 0-2.2-2.2M15 10l-2.2 2.2" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>' +
     '<div class="lk-info"><button type="button" class="lk-back" data-lkclose aria-label="' + T('Back to the map', 'Bumalik sa mapa') + '">' + sdIcon('back') + '</button>' +
-      '<div class="lk-ti"><b>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Look around', 'Luminga-linga')) + '</b><span>' + esc(r.tracking_id) + ' · ' + T('Look around', 'Luminga-linga') + '</span></div>' +
-      '<div class="lk-src"><i class="lk-cdot"></i><b>' + T('Street imagery by Mapillary', 'Street imagery mula sa Mapillary') + '</b></div><hr>' +
-      '<div class="lk-when"><small id="lk-date">' + T('Finding the date…', 'Hinahanap ang petsa…') + '</small><button type="button" class="lk-link" data-lkcmp>' + T('Then / Now', 'Dati / Ngayon') + '</button></div></div>' +
-    '<div class="lk-tr"><a class="lk-pill" href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Open case', 'Buksan ang kaso') + '</a>' +
-      '<button type="button" class="lk-pill or" id="lk-send-btn" data-lksend disabled>' + T('Send to tanod', 'Ipadala sa tanod') + '</button>' +
-      '<button type="button" class="lk-rnd" data-lkclose aria-label="' + T('Close', 'Isara') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+      '<div class="lk-ti"><b>' + esc(r.location_label ? T('Near ', 'Malapit sa ') + r.location_label : T('Look around', 'Luminga-linga')) + '</b><span>' + esc(r.tracking_id) + ' · Brgy. 183' + '</span></div>' +
+      '<div class="lk-ib"><button type="button" data-lkclose aria-label="' + T('Show location on map', 'Ipakita sa mapa') + '"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.500 2.500 2.500 0 0 1 12 11.500z" fill="currentColor"/></svg></button>' +
+        '<button type="button" id="lk-menu-btn" data-lkmenu aria-haspopup="menu" aria-expanded="false" aria-label="' + T('More', 'Iba pa') + '"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="19" r="2" fill="currentColor"/></svg></button></div>' +
+      '<div class="lk-src"><i class="lk-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h3l1.5-2h9L18 8h3v11H3z"/><circle cx="12" cy="13.500" r="3.500"/></svg></i><b>' + T('Mapillary street view', 'Street view ng Mapillary') + '</b></div><div class="lk-rule"></div>' +
+      '<div class="lk-when"><small id="lk-date">' + T('Finding the date…', 'Hinahanap ang petsa…') + '</small><button type="button" class="lk-link" data-lkcmp>' + T('See the resident’s photo', 'Tingnan ang larawan ng residente') + '</button></div>' +
+      '<div class="lk-menu" id="lk-menu" role="menu" hidden><button type="button" role="menuitem" data-lkcopy>' + T('Copy case ID', 'Kopyahin ang case ID') + '</button><a role="menuitem" target="_blank" rel="noopener" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + ',' + lng + '">' + T('Open this spot in Google Maps', 'Buksan ang lugar sa Google Maps') + '</a></div></div>' +
+    '<div class="lk-tr"><button type="button" class="lk-pill or" id="lk-send-btn" data-lksend disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>' + T('Send to tanod', 'Ipadala sa tanod') + '</button>' +
+      '<button type="button" class="lk-rnd" data-lkclose aria-label="' + T('Close', 'Isara') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
     '<div class="lk-state" id="lk-state"><span class="lk-spin"></span><b>' + T('Finding street imagery…', 'Hinahanap ang street imagery…') + '</b></div>' +
     '<aside class="lk-send" id="lk-send" aria-label="' + T('Send to tanod', 'Ipadala sa tanod') + '"></aside>' +
-    '<div class="lk-mini" aria-label="' + T('Where you stand', 'Kung nasaan ka') + '"><svg id="lk-mini" viewBox="-60 -42 120 84" preserveAspectRatio="xMidYMid slice"></svg><button type="button" class="lk-exp" data-lkclose aria-label="' + T('Back to the big map', 'Bumalik sa malaking mapa') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>' +
-    '<div class="lk-ctl"><div class="lk-hd" id="lk-hd" title="' + T('Heading', 'Direksyon') + '"><svg class="lk-needle" id="lk-needle" viewBox="0 0 24 24"><path d="M12 3l5 16-5-4-5 4z" fill="currentColor"/></svg><b id="lk-hdt">N 0°</b></div>' +
-      '<div class="lk-grp"><button type="button" data-lkstep="next" aria-label="' + T('Step ahead', 'Sumulong') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button type="button" data-lkstep="prev" aria-label="' + T('Step back', 'Umatras') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>' +
-      '<div class="lk-grp"><button type="button" data-lkzoom="1" aria-label="' + T('Zoom in', 'Palakihin') + '">+</button><button type="button" data-lkzoom="-1" aria-label="' + T('Zoom out', 'Paliitin') + '">−</button></div></div>' +
-    '<button type="button" class="lk-layers" id="lk-cmp-btn" data-lkcmp><span class="lk-lth" id="lk-lth"></span>' + T('Then / Now', 'Dati / Ngayon') + '</button>' +
+    '<div class="lk-mini" aria-label="' + T('Where you stand', 'Kung nasaan ka') + '"><div class="lk-mm" id="lk-mm"></div><svg id="lk-mini" viewBox="-60 -42 120 84" preserveAspectRatio="xMidYMid slice"></svg><button type="button" class="lk-exp" data-lkclose aria-label="' + T('Back to the big map', 'Bumalik sa malaking mapa') + '" title="' + T('Expand', 'Palakihin') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>' +
+    '<div class="lk-ctl"><div class="lk-comp" id="lk-hd" title="' + T('Heading', 'Direksyon') + '"><button type="button" class="lk-rot l" data-lkrot="-1" aria-label="' + T('Rotate the view counterclockwise', 'Paikutin pakaliwa')  + '"><svg viewBox="0 0 13 48"><path d="M10 14C5 18 4 30 7 36m0 0 3-6m-3 6-5-3" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -1)"/></svg></button><svg class="lk-needle" id="lk-needle" viewBox="0 0 48 48"><path d="M24 14 36 24 24 34 12 24z" fill="#fff"/><path d="M24 14 36 24 24 24z" fill="#E5383B"/></svg><button type="button" class="lk-rot r" data-lkrot="1" aria-label="' + T('Rotate the view clockwise', 'Paikutin pakanan') + '"><svg viewBox="0 0 13 48"><path d="M3 14c5 4 6 16 3 22m0 0-3-6m3 6 5-3" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -1)"/></svg></button><b id="lk-hdt" class="lk-sr">N 0°</b></div>' +
+      '<div class="lk-zoom"><button type="button" data-lkzoom="1" aria-label="' + T('Zoom in', 'Palakihin') + '">+</button><button type="button" data-lkzoom="-1" aria-label="' + T('Zoom out', 'Paliitin') + '">−</button></div>' +
+      '<div class="lk-steps2"><button type="button" data-lkstep="next" aria-label="' + T('Step ahead', 'Sumulong') + '" title="' + T('Step ahead', 'Sumulong') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button type="button" data-lkstep="prev" aria-label="' + T('Step back', 'Umatras') + '" title="' + T('Step back', 'Umatras') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div></div>' +
+    '<button type="button" class="lk-layers" id="lk-cmp-btn" data-lkcmp aria-label="' + T('Then / Now', 'Dati / Ngayon') + '" title="' + T('Then / Now', 'Dati / Ngayon') + '"><span class="lk-lth" id="lk-lth"></span><span class="lk-lth b"></span><span class="lk-lth c"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l6-6 6 6M6 19l6-6 6 6"/></svg></button>' +
     '<div class="lk-toast" id="lk-toast"><div class="lk-fact" id="lk-fact"><span class="lk-cdot"></span>' + esc(label(r.category)) + '</div><button type="button" data-lktoastx aria-label="' + T('Dismiss', 'Isara') + '">×</button></div>' +
-    '<small class="lk-credit">' + T('Imagery © Mapillary contributors, CC BY-SA 4.0', 'Imagery © Mapillary contributors, CC BY-SA 4.0') + '</small>';
+    '<div class="lk-brand">SmartSumbong</div>' +
+    '<div class="lk-credit"><span id="lk-cap">' + T('Image capture: …', 'Kuha: …') + '</span><i>' + T('Imagery © Mapillary contributors, CC BY-SA 4.0', 'Imagery © Mapillary contributors, CC BY-SA 4.0') + '</i><i>' + T('Philippines', 'Pilipinas') + '</i><a href="case.php?id=' + encodeURIComponent(r.id) + '">' + T('Report a problem', 'Mag-ulat ng problema') + '</a></div>';
   sec.appendChild(el);
   LK = { el, r, here, viewer: null, ready: false, photos: [], pn: 0, raf: 0, bearing: 0, sx: 40 };
   void el.offsetWidth; el.classList.add('open');
@@ -1198,7 +1203,8 @@ function lkImage(im) {
   const sbn = document.getElementById('lk-send-btn'); if (sbn) sbn.disabled = false;
   const when = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(im.capturedAt));
   const then = document.getElementById('lk-then'); then.hidden = false; then.textContent = T('THEN · street imagery, ', 'DATI · street imagery, ') + when + ' · Mapillary';
-  const dt = document.getElementById('lk-date'); if (dt) dt.textContent = T('Captured ', 'Kuha noong ') + when;
+  const dt = document.getElementById('lk-date'); if (dt) dt.textContent = when;
+  const cp = document.getElementById('lk-cap'); if (cp) cp.textContent = T('Image capture: ', 'Kuha: ') + when;
   const m = Math.round(lkMetres(LK.here, LK.img));
   document.getElementById('lk-fact').innerHTML = '<span class="lk-cdot"></span>' + esc(label(LK.r.category)) + ' · <b>' + (m < 3 ? T('you are at the spot', 'nandito ka na') : m + ' m ' + T('away', 'ang layo')) + '</b>';
   if (first && LK.img.pano) {
@@ -1206,7 +1212,7 @@ function lkImage(im) {
     const b = lkBearing(LK.img, LK.here), delta = ((b - LK.img.comp + 540) % 360) - 180;
     LK.viewer.setCenter([(0.5 + delta / 360 + 1) % 1, 0.5]);
   }
-  lkPlace(); lkMini();
+  lkPlace(); lkMini(); lkMiniMap();
 }
 // The little map: where the camera stood, which way it faces, and where the complaint is.
 function lkMini() {
@@ -1218,11 +1224,30 @@ function lkMini() {
     '<g transform="rotate(' + b.toFixed(0) + ')"><path d="M0 0L-17 -30A34 34 0 0 1 17 -30Z" class="lk-cone"/></g><circle r="4.5" class="lk-me"/>' +
     '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="6" fill="' + col + '" class="lk-pin"/><text x="56" y="38" text-anchor="end" class="lk-mt">' + (dm < 3 ? '' : Math.round(dm) + ' m') + '</text>';
 }
+// The real little map: the same map as behind, still, with where the camera stands, its cone, and the complaint.
+function lkMiniMap() {
+  if (!LK || !LK.img) return;
+  const box = document.getElementById('lk-mm'); if (!box) return;
+  try {
+    if (!LK.mm) {
+      const mm = new maplibregl.Map({ container: box, style: map.getStyle(), center: [LK.img.lng, LK.img.lat], zoom: 16.5, interactive: false, attributionControl: false, fadeDuration: 0 });
+      const me = document.createElement('div'); me.className = 'lk-pegman'; me.innerHTML = '<i class="c"></i><i class="d"></i>';
+      const pin = document.createElement('div'); pin.className = 'lk-mpin'; pin.style.background = LK.el.style.getPropertyValue('--cs') || '#FF9800';
+      LK.me = new maplibregl.Marker({ element: me, anchor: 'center' }).setLngLat([LK.img.lng, LK.img.lat]).addTo(mm);
+      new maplibregl.Marker({ element: pin, anchor: 'center' }).setLngLat([LK.here.lng, LK.here.lat]).addTo(mm);
+      LK.mm = mm; mm.once('load', () => { if (LK && LK.mm === mm) LK.el.classList.add('has-mm'); });
+    } else if (LK.me) { LK.me.setLngLat([LK.img.lng, LK.img.lat]); }
+    const sw = [Math.min(LK.img.lng, LK.here.lng), Math.min(LK.img.lat, LK.here.lat)], ne = [Math.max(LK.img.lng, LK.here.lng), Math.max(LK.img.lat, LK.here.lat)];
+    LK.mm.fitBounds([sw, ne], { padding: 34, maxZoom: 18, duration: 0 });
+    if (LK.me) LK.me.getElement().style.setProperty('--b', (LK.bearing || 0).toFixed(0) + 'deg');
+  } catch (e) { /* the drawn diagram stays */ }
+}
 function lkHeading() {
   const b = ((LK.bearing % 360) + 360) % 360;
   document.getElementById('lk-hdt').textContent = lkDir(b) + ' ' + Math.round(b) + '°';
-  document.getElementById('lk-needle').style.transform = 'rotate(' + b.toFixed(0) + 'deg)';
+  document.getElementById('lk-needle').style.transform = 'rotate(' + (-b).toFixed(0) + 'deg)';
   lkMini();
+  if (LK.me) LK.me.getElement().style.setProperty('--b', b.toFixed(0) + 'deg');
 }
 function lkPhoto() {
   if (!LK) return;
@@ -1263,6 +1288,12 @@ function lkPlace() {
       const c = document.getElementById('lk-cmp'), on = c.hidden; c.hidden = !on; LK.el.querySelectorAll('[data-lkcmp]').forEach(b => b.classList.toggle('on', on));
       LK.el.style.setProperty('--sx', LK.sx + '%'); return;
     }
+    const mn = document.getElementById('lk-menu');
+    if (t.closest('[data-lkmenu]')) { mn.hidden = !mn.hidden; document.getElementById('lk-menu-btn').setAttribute('aria-expanded', String(!mn.hidden)); return; }
+    if (t.closest('[data-lkcopy]')) { try { navigator.clipboard.writeText(LK.r.tracking_id); } catch (e) { /* no clipboard */ } mn.hidden = true; return; }
+    if (mn && !mn.hidden && !t.closest('#lk-menu')) { mn.hidden = true; document.getElementById('lk-menu-btn').setAttribute('aria-expanded', 'false'); }
+    const rt = t.closest('[data-lkrot]');
+    if (rt && LK.viewer) { try { LK.viewer.getCenter().then(c => LK.viewer.setCenter([((c[0] + (+rt.dataset.lkrot) * .05) % 1 + 1) % 1, c[1]])).catch(() => {}); } catch (e) { /* closing */ } return; }
     if (t.closest('[data-lktoastx]')) { document.getElementById('lk-toast').hidden = true; return; }
     const zm = t.closest('[data-lkzoom]');
     if (zm && LK.viewer) { try { LK.viewer.getZoom().then(z => LK.viewer.setZoom(Math.max(0, Math.min(3, z + (+zm.dataset.lkzoom) * .8)))).catch(() => {}); } catch (e) { /* closing */ } return; }
