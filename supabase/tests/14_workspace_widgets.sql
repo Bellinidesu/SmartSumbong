@@ -255,7 +255,10 @@ begin
     j := public.workspace_alarm_db();
     if j->'urgent2h' is null or j->'deadline' is null or j->'rules' is null then raise exception 'alarm %', j; end if;
     j := public.workspace_photos(4);
+    j := public.workspace_risk();
+    if jsonb_typeof(j) <> 'array' then raise exception 'risk %', j; end if;
     perform set_config('request.jwt.claim.sub', v_res::text, true);
+    begin perform public.workspace_risk(); raise exception 'resident: risk'; exception when insufficient_privilege then null; end;
     begin perform public.workspace_numbers(); raise exception 'resident: numbers'; exception when insufficient_privilege then null; end;
     begin perform public.workspace_team(); raise exception 'resident: team'; exception when insufficient_privilege then null; end;
     begin perform public.workspace_find('x'); raise exception 'resident: find'; exception when insufficient_privilege then null; end;

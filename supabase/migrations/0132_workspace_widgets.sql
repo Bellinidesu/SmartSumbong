@@ -42,7 +42,7 @@ language sql
 immutable
 set search_path = public
 as $$
-  select coalesce(bool_and(x ~ '^https://[^\s<>"]{4,500}$'), true) from unnest(p_urls) as x
+  select coalesce(bool_and(x ~ '^https://[^\s<>"]+$' and char_length(x) between 12 and 500), true) from unnest(p_urls) as x
 $$;
 
 create or replace function public._ws_words_ok(p_words text[])
@@ -113,7 +113,7 @@ create table public.workspace_prefs (
   keywords   text[] not null default '{}',
   mine       jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
-  constraint workspace_prefs_tabs_check     check (cardinality(tabs) between 1 and 120 and public._ws_ids_ok(tabs)),
+  constraint workspace_prefs_tabs_check     check (cardinality(tabs) >= 1 and cardinality(tabs) <= 120 and public._ws_ids_ok(tabs)),
   constraint workspace_prefs_tab_check      check (tab is null or tab ~ '^[a-z0-9]{1,16}$'),
   constraint workspace_prefs_feeds_check    check (cardinality(feeds) <= 12 and public._ws_feeds_ok(feeds)),
   constraint workspace_prefs_keywords_check check (cardinality(keywords) <= 20 and public._ws_words_ok(keywords)),
@@ -148,8 +148,8 @@ create table public.workspace_settings (
   updated_by    uuid references public.users (id) on delete set null,
   constraint workspace_settings_one check (id = 1),
   constraint workspace_settings_rules_check check (alarm_rules <@ array['red', 'sig3', 'urgent2h', 'deadline']::text[]),
-  constraint workspace_settings_shifts_check check (cardinality(shift_starts) = 3
-    and shift_starts[1] between 0 and 23 and shift_starts[2] between 0 and 23 and shift_starts[3] between 0 and 23),
+  constraint workspace_settings_shifts_check check (cardinality(shift_starts) = 3 and shift_starts[1] >= 0 and shift_starts[1] <= 23
+    and shift_starts[2] >= 0 and shift_starts[2] <= 23 and shift_starts[3] >= 0 and shift_starts[3] <= 23),
   constraint workspace_settings_fares_check check (jsonb_typeof(fares) = 'object' and pg_column_size(fares) <= 2048)
 );
 
@@ -181,7 +181,7 @@ create table public.team_posts (
   created_at   timestamptz not null default now(),
   removed_at   timestamptz,
   constraint team_posts_kind_check check (kind in ('notice', 'handover', 'board', 'announcement')),
-  constraint team_posts_body_check check (char_length(btrim(body)) between 1 and 1000
+  constraint team_posts_body_check check (char_length(btrim(body)) >= 1 and char_length(btrim(body)) <= 1000
                                           and (kind <> 'board' or char_length(btrim(body)) <= 280))
 );
 
@@ -237,7 +237,7 @@ create table public.polls (
   closed_at  timestamptz,
   created_at timestamptz not null default now(),
   constraint polls_question_check check (char_length(btrim(question)) between 3 and 200),
-  constraint polls_options_check  check (cardinality(options) between 2 and 6 and public._ws_options_ok(options))
+  constraint polls_options_check  check (cardinality(options) >= 2 and cardinality(options) <= 6 and public._ws_options_ok(options))
 );
 
 comment on table public.polls is '0132: a one-question poll to the whole team ("Who can cover Saturday night?"), two to six answers, closed by its author or the lead, or on its own at closes_at.';
@@ -446,7 +446,7 @@ create table public.patrol_checkpoints (
   is_active  boolean not null default true,
   created_at timestamptz not null default now(),
   constraint patrol_checkpoints_name_check check (char_length(btrim(name)) between 1 and 120),
-  constraint patrol_checkpoints_where      check (lat between 4 and 22 and lng between 116 and 127)
+  constraint patrol_checkpoints_where      check (lat >= 4 and lat <= 22 and lng >= 116 and lng <= 127)
 );
 
 comment on table public.patrol_checkpoints is '0132: the places a patrol round must pass, in order.';
@@ -1033,6 +1033,35 @@ end $$;
 
 revoke all on function public.workspace_find(text) from public, anon;
 grant execute on function public.workspace_find(text) to authenticated;
+
+-- Cases at risk: open cases that lie in a Project NOAH flood or storm-surge zone (0121), the highest level first.
+create or replace function public.workspace_risk()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, extensions
+set jit = off
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Only staff can see the cases at risk.' using errcode = 'insufficient_privilege';
+  end if;
+  return (select coalesce(jsonb_agg(x order by (x->>'level')::int desc, x->>'tracking_id'), '[]'::jsonb) from (
+    select jsonb_build_object('report_id', r.id, 'tracking_id', r.tracking_id, 'subject', r.subject, 'sensitive', r.is_sensitive,
+                              'category', r.category, 'place', r.location_label, 'lat', r.latitude, 'lng', r.longitude,
+                              'hazard', z.hazard, 'level', z.level) as x
+      from public.reports r
+      cross join lateral (select hz.hazard, hz.level from public.hazard_zones hz
+                           where st_intersects(hz.geom, r.geom::geometry)
+                           order by hz.level desc, hz.hazard limit 1) z
+     where r.deleted_at is null
+       and r.status in ('pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation')
+  ) t);
+end $$;
+
+revoke all on function public.workspace_risk() from public, anon;
+grant execute on function public.workspace_risk() to authenticated;
 
 -- How is the shift: the day's totals, for the lead only, and only once at least three people have answered, so a total
 -- can never point at one person.
