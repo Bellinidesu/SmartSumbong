@@ -1,6 +1,7 @@
-// The SMART drawer on Spatial Distribution. Opening it makes the engine "think" (the glow the dashboard has), then the numbers
-// count up and three layers can be switched onto the map: pins coloured by level, a pulse on the cases likely to be late, and rings
-// round the recurring problems. Reads window.SS_SMART (set by spatial.php); uses the page's map, mapReady, byId and showDetail.
+// The SMART drawer on Spatial Distribution (layout C, locked 17 Oct 2026). Opening it makes the engine "think", then it says in a sentence what it sees,
+// ranks the cases that need an administrator most, and offers three marks for the map, each written as what you will see. A ranked case is joined to its
+// pin: hover it and its pin is ringed, press it and the map flies there and opens it, and the top five wear a number on the map while the drawer is open.
+// Reads window.SS_SMART (set by spatial.php); uses the page's map, mapReady, all, byId, showDetail and T.
 (function () {
   var D = window.SS_SMART;
   if (!D) return;
@@ -10,6 +11,11 @@
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var COL = { urgent: '#E5383B', high: '#FF9800', normal: '#356CF9', low: '#8E9ABB' };
   var on = { halo: false, late: false, rings: false }, busy = false, revealed = false, lastRows = null, pulse = null;
+  var busySet = {}, recurSet = {}, ranked = [], badges = [], showAll = false, OPENS = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
+  (D.busy || []).forEach(function (id) { busySet[id] = true; }); (D.recurIds || []).forEach(function (id) { recurSet[id] = true; });
+  var tr = function (en, fil) { return typeof T === 'function' ? T(en, fil) : en; };
+  var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var LVW = { urgent: ['Urgent', 'Madalian'], high: ['High', 'Mataas'], normal: ['Normal', 'Katamtaman'], low: ['Low', 'Mababa'] };
   var lateSet = {};
   (D.late || []).forEach(function (id) { lateSet[id] = true; });
   var EMPTY = { type: 'FeatureCollection', features: [] };
@@ -22,6 +28,7 @@
     map.addSource('smart-halo', { type: 'geojson', data: EMPTY });
     map.addSource('smart-late', { type: 'geojson', data: EMPTY });
     map.addSource('smart-rings', { type: 'geojson', data: EMPTY });
+    map.addSource('smart-focus', { type: 'geojson', data: EMPTY });
     map.addLayer({ id: 'smart-rings', type: 'circle', source: 'smart-rings', layout: { visibility: 'none' },
       paint: { 'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 15, 14, 18, 110], 'circle-color': '#6A4FD3', 'circle-opacity': .12,
                'circle-stroke-color': '#6A4FD3', 'circle-stroke-width': 3, 'circle-stroke-opacity': .85 } }, before);
@@ -30,6 +37,8 @@
                'circle-stroke-color': ['get', 'c'], 'circle-stroke-width': 3, 'circle-stroke-opacity': .95, 'circle-translate': [0, -12] } }, before);
     map.addLayer({ id: 'smart-late', type: 'circle', source: 'smart-late', layout: { visibility: 'none' },
       paint: { 'circle-radius': 18, 'circle-color': 'rgba(229,56,59,0)', 'circle-stroke-color': '#E5383B', 'circle-stroke-width': 3, 'circle-stroke-opacity': .8, 'circle-translate': [0, -12] } }, before);
+    map.addLayer({ id: 'smart-focus', type: 'circle', source: 'smart-focus',
+      paint: { 'circle-radius': 30, 'circle-color': 'rgba(255,152,0,.18)', 'circle-stroke-color': '#FF9800', 'circle-stroke-width': 3, 'circle-stroke-opacity': .95, 'circle-translate': [0, -12] } });
     var rings = (D.recur || []).map(function (r) { return pt(r.lng, r.lat); });
     map.getSource('smart-rings').setData({ type: 'FeatureCollection', features: rings });
   }
@@ -40,6 +49,7 @@
     vis('smart-halo', on.halo); vis('smart-late', on.late); vis('smart-rings', on.rings);
     side.querySelectorAll('[data-slayer]').forEach(function (b) { b.setAttribute('aria-pressed', String(!!on[b.dataset.slayer])); });
     if (on.late && !reduce) startPulse(); else stopPulse();
+    onMapKey();
   }
 
   function redraw(rows) {
@@ -56,6 +66,7 @@
       map.getSource('smart-halo').setData({ type: 'FeatureCollection', features: halos });
       map.getSource('smart-late').setData({ type: 'FeatureCollection', features: late });
       apply();
+      refresh();
     };
     if (typeof mapReady !== 'undefined') mapReady.then(go); else go();
   }
@@ -76,6 +87,84 @@
     if (map.getLayer('smart-late')) { map.setPaintProperty('smart-late', 'circle-radius', 18); map.setPaintProperty('smart-late', 'circle-stroke-opacity', .8); }
   }
 
+  var OPEN_NOW = function (r) { return OPENS.indexOf(r.status) >= 0; };
+  var hoursSince = function (d) { return Math.max(0, (Date.now() - new Date(d).getTime()) / 36e5); };
+  var fmtH = function (h) { return h < 1 ? tr('new', 'bago') : h < 48 ? Math.round(h) + ' h' : Math.round(h / 24) + ' d'; };
+
+  function rank() {
+    var rows = (typeof all !== 'undefined' ? all : []).filter(OPEN_NOW);
+    ranked = rows.map(function (r) {
+      var lv = D.levels[r.id] || 'low', age = hoursSince(r.created_at), waiting = (r.status === 'pending_review' || r.status === 'validated') && (lv === 'urgent' || lv === 'high') && !busySet[r.id];
+      var li = (D.lateInfo || {})[r.id], rec = !!recurSet[r.tracking_id];
+      var score = { urgent: 40, high: 25, normal: 10, low: 0 }[lv] + (waiting ? 25 : 0) + (li ? 25 : 0) + (rec ? 8 : 0) + Math.min(24, age / 2);
+      var why = [];
+      if (waiting) why.push(tr('no tanod yet', 'wala pang tanod'));
+      if (li) why.push(tr('may miss its deadline, ' + Math.round(li.left) + ' h left', 'maaaring maantala, ' + Math.round(li.left) + ' oras na lang'));
+      if (rec) why.push(tr('same problem again', 'umuulit na problema'));
+      if (!why.length) why.push(tr('open for ' + fmtH(age).replace(' h', ' hours').replace(' d', ' days'), 'bukas nang ' + fmtH(age)));
+      return { r: r, lv: lv, age: age, waiting: waiting, late: !!li, rec: rec, score: score, why: why };
+    }).sort(function (a, b) { return b.score - a.score; });
+  }
+
+  function say() {
+    var w = ranked.filter(function (x) { return x.waiting; }), lt = ranked.filter(function (x) { return x.late; }).length;
+    var t = document.getElementById('ss-say-t'), s = document.getElementById('ss-say-s');
+    if (!t) return;
+    if (w.length) {
+      var long = Math.round(Math.max.apply(null, w.map(function (x) { return x.age; })));
+      t.textContent = tr(w.length + ' urgent or high ' + (w.length === 1 ? 'case is' : 'cases are') + ' waiting for a tanod.', w.length + ' madalian o mataas na kaso ang naghihintay ng tanod.');
+      s.textContent = tr('Nobody has been sent yet. The longest wait is ' + long + ' hours.', 'Wala pang naipapadala. Pinakamatagal na paghihintay: ' + long + ' oras.');
+    } else {
+      t.textContent = ranked.length ? tr('Every urgent case has a tanod.', 'May tanod na ang lahat ng madalian.') : tr('No open cases right now.', 'Walang bukas na kaso ngayon.');
+      s.textContent = tr('Nothing is waiting for a tanod right now.', 'Walang naghihintay ng tanod ngayon.');
+    }
+    var extra = [];
+    if (lt) extra.push(tr(lt + (lt === 1 ? ' may miss its deadline' : ' may miss their deadline'), lt + ' ang maaaring maantala'));
+    if (D.recurring) extra.push(tr(D.recurring + (D.recurring === 1 ? ' problem keeps coming back' : ' problems keep coming back'), D.recurring + ' problema ang umuulit'));
+    if (D.spikes) extra.push(tr(D.spikes + (D.spikes === 1 ? ' kind is up this week' : ' kinds are up this week'), D.spikes + ' uri ang tumaas ngayong linggo'));
+    if (extra.length) s.textContent += ' ' + extra.join(' · ') + '.';
+  }
+
+  function renderQueue() {
+    var box = document.getElementById('ss-queue'), more = document.getElementById('ss-more'), n = document.getElementById('ss-q-n');
+    if (!box) return;
+    var cap = showAll ? 12 : 5, list = ranked.slice(0, cap);
+    n.textContent = String(ranked.length);
+    if (!ranked.length) { box.innerHTML = '<p class="p-hint">' + esc(tr('Nothing is open.', 'Walang bukas.')) + '</p>'; more.hidden = true; return; }
+    box.innerHTML = list.map(function (x, i) {
+      var col = COL[x.lv] || COL.low, r = x.r;
+      return '<button type="button" class="sq-row" data-id="' + esc(r.id) + '" style="--c:' + col + '"><span class="sq-n">' + (i + 1) + '</span><span class="sq-t"><b>' + esc(r.subject || r.tracking_id) + '</b><small>' + esc(tr(LVW[x.lv][0], LVW[x.lv][1])) + ' · ' + esc(x.why.slice(0, 2).join(' · ')) + '</small></span><span class="sq-w">' + esc(fmtH(x.age)) + '</span></button>';
+    }).join('');
+    more.hidden = ranked.length <= 5;
+    more.textContent = showAll ? tr('Show fewer', 'Ipakita nang kaunti') : tr('Show ' + Math.min(7, ranked.length - 5) + ' more', 'Ipakita ang ' + Math.min(7, ranked.length - 5) + ' pa');
+    placeBadges();
+  }
+
+  function clearBadges() { badges.forEach(function (m) { m.remove(); }); badges = []; }
+  function placeBadges() {
+    clearBadges();
+    if (side.hasAttribute('hidden') || typeof maplibregl === 'undefined') return;
+    ranked.slice(0, showAll ? 12 : 5).forEach(function (x, i) {
+      var el = document.createElement('div'); el.className = 'sq-badge'; el.style.setProperty('--c', COL[x.lv] || COL.low); el.textContent = String(i + 1);
+      badges.push(new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -34] }).setLngLat([+x.r.longitude, +x.r.latitude]).addTo(map));
+    });
+  }
+  function focusPin(r) {
+    ensureLayers();
+    var src = map.getSource('smart-focus'); if (!src) return;
+    src.setData(r ? { type: 'FeatureCollection', features: [pt(r.longitude, r.latitude)] } : EMPTY);
+  }
+  function onMapKey() {
+    var el = document.getElementById('ss-onmap'); if (!el) return;
+    var k = [];
+    if (on.halo) k.push(['#E5383B', 'Ring colour: how urgent (red urgent, orange high, blue normal, grey low)', 'Kulay ng bilog: antas (pula madalian, kahel mataas, asul katamtaman, abo mababa)']);
+    if (on.late) k.push(['#E5383B', 'Pulsing red ring: may miss its deadline', 'Pumipintig na pulang bilog: maaaring maantala']);
+    if (on.rings) k.push(['#6A4FD3', 'Purple area: a problem that keeps coming back here', 'Lilang bahagi: umuulit na problema dito']);
+    el.hidden = !k.length;
+    el.innerHTML = k.length ? '<b>' + esc(tr('On the map now', 'Nasa mapa ngayon')) + '</b>' + k.map(function (x) { return '<span><i style="background:' + x[0] + '"></i>' + esc(tr(x[1], x[2])) + '</span>'; }).join('') : '';
+  }
+  function refresh() { rank(); say(); renderQueue(); }
+
   function countUp() {
     if (reduce) return;
     side.querySelectorAll('[data-count]').forEach(function (el) {
@@ -93,6 +182,7 @@
 
   function open() {
     side.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); btn.classList.add('is-open');
+    refresh();
     if (revealed || reduce) { body.hidden = false; revealed = true; return; }
     busy = true; side.classList.add('is-thinking'); body.hidden = true;
     setTimeout(function () {
@@ -103,6 +193,7 @@
   }
   function close() {
     side.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('is-open');
+    clearBadges(); focusPin(null);
   }
 
   side.addEventListener('click', function (e) {
@@ -110,12 +201,24 @@
     if (tg) { on[tg.dataset.slayer] = !on[tg.dataset.slayer]; ensureLayers(); apply(); return; }
     var rc = e.target.closest('.ss-recur');
     if (rc) { map.flyTo({ center: [parseFloat(rc.dataset.lng), parseFloat(rc.dataset.lat)], zoom: 18, essential: true }); return; }
+    var sq = e.target.closest('.sq-row');
+    if (sq) {
+      var rr = typeof byId !== 'undefined' ? byId.get(sq.dataset.id) : null;
+      if (rr) { map.flyTo({ center: [+rr.longitude, +rr.latitude], zoom: 18.5, essential: true }); if (typeof showDetail === 'function') showDetail(rr); }
+      return;
+    }
+    if (e.target.closest('#ss-more')) { showAll = !showAll; renderQueue(); return; }
     var lt = e.target.closest('.ss-late');
     if (lt) {
       var r = typeof byId !== 'undefined' ? byId.get(lt.dataset.id) : null;
       if (r) { map.flyTo({ center: [+r.longitude, +r.latitude], zoom: 18.5, essential: true }); if (typeof showDetail === 'function') showDetail(r); }
     }
   });
+
+  side.addEventListener('pointerover', function (e) { var q = e.target.closest('.sq-row'); if (q && typeof byId !== 'undefined') focusPin(byId.get(q.dataset.id)); });
+  side.addEventListener('pointerout', function (e) { if (e.target.closest('.sq-row') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.sq-row'))) focusPin(null); });
+  side.addEventListener('focusin', function (e) { var q = e.target.closest('.sq-row'); if (q && typeof byId !== 'undefined') focusPin(byId.get(q.dataset.id)); });
+  side.addEventListener('focusout', function () { focusPin(null); });
 
   window.sdSmart = {
     isClosed: function () { return side.hasAttribute('hidden'); },

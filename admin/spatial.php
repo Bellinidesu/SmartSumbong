@@ -41,7 +41,7 @@ $categories = [
 
 $city3d = ($_GET['city'] ?? '') === '1' && is_file(__DIR__ . '/assets/js/sd-city.js');   # the 3D scripts live on the bellinist branch; without them this is always false   // the 3D City view is parked (Ace, 14 Oct): focus is the UI and the Smart engine; ?city=1 brings it back
 // What the engine sees (0123, 0124, 0127): the SMART drawer lists it and the map can show it. Each call is optional.
-$patterns = []; $smartSum = []; $smartLate = []; $smartSpikes = []; $smartLevels = [];
+$patterns = []; $smartSum = []; $smartLate = []; $smartSpikes = []; $smartLevels = []; $smartBusy = [];
 try {
     $sg = db()->selectMany([
         'patterns' => ['rpc/smart_patterns', ['p_days' => null], true],
@@ -49,6 +49,7 @@ try {
         'spikes'   => ['rpc/smart_spikes', [], true],
         'sum'      => ['rpc/smart_summary', [], true],
         'lv'       => ['report_triage', ['select' => 'report_id,effective_level', 'limit' => '5000'], true],
+        'dp'       => ['dispatches', ['select' => 'report_id', 'state' => 'in.(assigned,accepted)', 'limit' => '5000'], true],
     ]);
     $ok = fn(string $k): array => (isset($sg[$k]) && !($sg[$k] instanceof SupabaseError) && is_array($sg[$k])) ? $sg[$k] : [];
     $patterns    = array_slice($ok('patterns'), 0, 12);
@@ -56,6 +57,7 @@ try {
     $smartSpikes = $ok('spikes');
     $smartSum    = $ok('sum');
     foreach ($ok('lv') as $row) { $smartLevels[$row['report_id']] = $row['effective_level']; }
+    foreach ($ok('dp') as $row) { $smartBusy[] = $row['report_id']; }
 } catch (SupabaseError) { /* the drawer just stays empty */ }
 layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
 ?>
@@ -117,20 +119,21 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <span class="ss-think" aria-hidden="true"><i></i><i></i><i></i></span>
     </div>
     <div class="ss-drawer-body" hidden>
-      <div class="ss-dtiles">
-        <div class="t-wait"><b data-count><?= (int) ($smartSum['urgent_waiting'] ?? 0) + (int) ($smartSum['high_waiting'] ?? 0) ?></b><span><?= e(t('waiting for a tanod', 'naghihintay ng tanod')) ?></span></div>
-        <div class="t-late"><b data-count><?= count($smartLate) ?></b><span><?= e(t('likely to be late', 'maaaring maantala')) ?></span></div>
-        <div class="t-rec"><b data-count><?= count($patterns) ?></b><span><?= e(t('recurring problems', 'paulit-ulit na problema')) ?></span></div>
-        <div class="t-spk"><b data-count><?= count($smartSpikes) ?></b><span><?= e(t('spikes this week', 'pagtaas ngayong linggo')) ?></span></div>
-      </div>
-      <p class="p-eyebrow"><?= e(t('Show on the map', 'Ipakita sa mapa')) ?></p>
-      <div class="ss-dtog" role="group" aria-label="<?= e(t('SMART layers', 'Mga layer ng SMART')) ?>">
-        <button type="button" data-slayer="halo" aria-pressed="false"><span class="sw"></span><?= e(t('Colour pins by level', 'Kulayan ang pin ayon sa antas')) ?></button>
-        <button type="button" data-slayer="late" aria-pressed="false"><span class="sw"></span><?= e(t('Pulse the likely-late cases', 'Pintig sa mga maaaring maantala')) ?></button>
-        <button type="button" data-slayer="rings" aria-pressed="false"><span class="sw"></span><?= e(t('Ring the recurring problems', 'Bilugan ang paulit-ulit na problema')) ?></button>
-      </div>
-      <div class="ss-dkey"><span><i style="--c:#E5383B"></i><?= e(t('Urgent', 'Madalian')) ?></span><span><i style="--c:#FF9800"></i><?= e(t('High', 'Mataas')) ?></span><span><i style="--c:#356CF9"></i><?= e(t('Normal', 'Katamtaman')) ?></span><span><i style="--c:#8E9ABB"></i><?= e(t('Low', 'Mababa')) ?></span></div>
+      <div class="ss-say" id="ss-say"><b id="ss-say-t"><?= e(t('Reading the engine…', 'Binabasa ang engine…')) ?></b><small id="ss-say-s"></small></div>
 
+      <p class="p-eyebrow"><?= e(t('Needs you, most urgent first', 'Kailangan ka, pinakamadalian muna')) ?><em id="ss-q-n">0</em></p>
+      <div class="ss-queue" id="ss-queue"></div>
+      <button type="button" class="ss-more" id="ss-more" hidden></button>
+
+      <p class="p-eyebrow"><?= e(t('Show on the map', 'Ipakita sa mapa')) ?></p>
+      <div class="ss-dtog" role="group" aria-label="<?= e(t('SMART marks', 'Mga marka ng SMART')) ?>">
+        <button type="button" data-slayer="halo" aria-pressed="false"><span class="ex"><i class="m-ring"></i><?= e(t('Ring each case by how urgent it is', 'Bilugan ang bawat kaso ayon sa antas')) ?></span><span class="sw"></span></button>
+        <button type="button" data-slayer="late" aria-pressed="false"><span class="ex"><i class="m-pulse"></i><?= e(t('Pulse the ones that may be late', 'Pintig sa maaaring maantala')) ?></span><span class="sw"></span></button>
+        <button type="button" data-slayer="rings" aria-pressed="false"><span class="ex"><i class="m-dash"></i><?= e(t('Outline problems that repeat', 'Bakuran ang paulit-ulit na problema')) ?></span><span class="sw"></span></button>
+      </div>
+      <div class="ss-onmap" id="ss-onmap" hidden></div>
+
+      <p class="p-eyebrow ss-also"><?= e(t('Also noticed', 'Napansin din')) ?></p>
       <p class="p-eyebrow"><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?><em><?= count($patterns) ?></em></p>
       <?php if (!$patterns): ?>
         <p class="p-hint"><?= e(t('Nothing has come up more than once in the same place lately.', 'Walang problemang umulit sa iisang lugar nitong mga nakaraan.')) ?></p>
@@ -142,18 +145,6 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
             <small><?= (int) $pt['reports'] ?> <?= e(t('reports from', 'ulat mula sa')) ?> <?= (int) $pt['residents'] ?> <?= e(t('residents over', 'residente sa loob ng')) ?> <?= (int) $pt['weeks'] ?> <?= e(t('weeks', 'linggo')) ?>
               · <?= (int) $pt['still_open'] ?> <?= e(t('still open', 'bukas pa')) ?><?= !empty($pt['hazard']) ? ' · ' . e((string) $pt['hazard']) : '' ?></small>
             <span class="ss-chips"><?php foreach (array_slice((array) ($pt['tracking_ids'] ?? []), 0, 3) as $tid): ?><i><?= e((string) $tid) ?></i><?php endforeach; ?></span>
-          </button></li>
-        <?php endforeach; ?>
-      </ol>
-      <?php endif; ?>
-
-      <?php if ($smartLate): ?>
-      <p class="p-eyebrow"><?= e(t('Likely to be late', 'Maaaring maantala')) ?><em><?= count($smartLate) ?></em></p>
-      <ol class="p-pin-list">
-        <?php foreach (array_slice($smartLate, 0, 6) as $lt): ?>
-          <li><button type="button" class="p-pin-row ss-late" data-id="<?= e((string) $lt['report_id']) ?>">
-            <b class="p-mono-id"><?= e((string) $lt['tracking_id']) ?></b>
-            <small><?= e(sprintf(t('%s h left; such cases take about %s h', '%s oras na lang; mga %s oras ang ganitong kaso'), (string) round((float) $lt['hours_left']), (string) round((float) $lt['typical_hours']))) ?></small>
           </button></li>
         <?php endforeach; ?>
       </ol>
@@ -2340,7 +2331,11 @@ load();
 </script>
 <script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
 <script>window.SS_SMART = <?= json_encode(['levels' => (object) $smartLevels, 'late' => array_column($smartLate, 'report_id'),
-    'recur' => array_map(fn($p) => ['lat' => (float) $p['lat'], 'lng' => (float) $p['lng']], $patterns)], JSON_UNESCAPED_UNICODE) ?>;</script>
+    'recur' => array_map(fn($p) => ['lat' => (float) $p['lat'], 'lng' => (float) $p['lng']], $patterns),
+    'recurIds' => array_values(array_unique(array_merge(...array_map(fn($p) => array_map('strval', (array) ($p['tracking_ids'] ?? [])), $patterns ?: [[]])))),
+    'busy' => $smartBusy,
+    'lateInfo' => (object) array_column(array_map(fn($r) => ['id' => $r['report_id'], 'left' => (float) $r['hours_left'], 'typical' => (float) $r['typical_hours']], $smartLate), null, 'id'),
+    'spikes' => count($smartSpikes), 'recurring' => count($patterns)], JSON_UNESCAPED_UNICODE) ?>;</script>
 <script src="assets/js/sd-smart.js?v=<?= e(asset_version('../js/sd-smart.js')) ?>"></script>
 <?php if ($city3d): ?>
 <script src="assets/js/sd-models.js?v=<?= e(asset_version('../js/sd-models.js')) ?>"></script>
