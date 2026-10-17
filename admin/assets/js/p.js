@@ -38,7 +38,8 @@
   document.addEventListener('click', function (e) {
     var tr = e.target.closest('tr[data-href]');
     if (!tr || e.target.closest('a, button, input, select, textarea, label')) return;
-    location.href = tr.getAttribute('data-href');
+    var u = new URL(tr.getAttribute('data-href') || '', location.href);   // only ever a page of this portal
+    if (u.origin === location.origin) location.assign(u.href);
   });
 
   var toastT;
