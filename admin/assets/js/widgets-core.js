@@ -141,7 +141,7 @@
 
   // ---- saving what a person chose
   var saveT = null, mineT = null;
-  function saveTabs() { clearTimeout(saveT); saveT = setTimeout(function () { post({ action: 'prefs', tabs: S.tabs.join(','), tab: S.tab || '' }); }, 500); }
+  function saveTabs() { if (C.solo) return; clearTimeout(saveT); saveT = setTimeout(function () { post({ action: 'prefs', tabs: S.tabs.join(','), tab: S.tab || '' }); }, 500); }
   var mine = C.mine && typeof C.mine === 'object' && !Array.isArray(C.mine) ? C.mine : {};
   WS.mine = {
     get: function (k, d) { return mine[k] == null ? d : mine[k]; },
@@ -302,7 +302,7 @@
     var st = S.st || {}, lead = S.lead, rules = st.alarm_rules || [];
     var rl = [['red', RULE.red[0]], ['sig3', RULE.sig3[0]], ['urgent2h', T('An urgent case waits 2 hours', 'Madaliang kasong 2 oras nang naghihintay')], ['deadline', T('A case will miss its deadline', 'May kasong lalampas sa takdang oras')]];
     var alarm = '<section class="wx-lg wx-lset"><h4>' + T('The alarm', 'Ang alarma') + '</h4><p class="wx-lnote">' + T('A full-width takeover above your widgets. It rings by itself when one of these happens' + (lead ? '.' : ' (the Chairman or the Secretary chooses which).'), 'Pumapatak ito sa itaas ng mga widget mo. Tumutunog nang kusa kapag nangyari ang isa rito' + (lead ? '.' : ' (ang Punong Barangay o ang Kalihim ang pumipili).')) + '</p><div class="wx-rules">' + rl.map(function (r) { var on = rules.indexOf(r[0]) >= 0; return '<button type="button" class="wx-rule' + (on ? ' is-on' : '') + '" data-l="rule" data-r="' + r[0] + '" aria-pressed="' + on + '"' + (lead ? '' : ' disabled') + '><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 12, 3.2) : '') + '</span>' + esc(r[1]) + '</button>'; }).join('') + '</div><div class="wx-lrow"><button type="button" class="wx-btn is-red" data-l="ring">' + WS.svg('bell', 15) + T('Ring the alarm', 'Patunugin ang alarma') + '</button>' + (lead ? '<button type="button" class="wx-rule' + (st.games_enabled ? ' is-on' : '') + '" data-l="games" aria-pressed="' + !!st.games_enabled + '"><span class="ck" aria-hidden="true">' + (st.games_enabled ? WS.svg('check', 12, 3.2) : '') + '</span>' + T('Allow minigames', 'Payagan ang mga minigame') + '</button>' : '') + '</div></section>';
-    var foot2 = '<div class="wx-lf"><button type="button" class="wx-btn" data-l="reset">' + WS.svg('refresh', 15) + T('Back to the 12 I suggest', 'Bumalik sa 12 na iminumungkahi') + '</button><button type="button" class="wx-btn is-pri" data-l="close">' + T('Done', 'Tapos na') + '</button></div>';
+    var foot2 = '<div class="wx-lf"><button type="button" class="wx-btn" data-l="reset">' + WS.svg('refresh', 15) + T('Back to the 12 I suggest', 'Bumalik sa 12 na iminumungkahi') + '</button><a class="wx-btn" href="widgets-all.php">' + T('See all 120 live', 'Tingnan ang lahat ng 120') + '</a><button type="button" class="wx-btn is-pri" data-l="close">' + T('Done', 'Tapos na') + '</button></div>';
     return head + tools + mine_ + '<div class="wx-lbody">' + cards + alarm + '</div>' + foot2;
   }
   function drawLib(keepScroll) {
@@ -359,14 +359,14 @@
   }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { poll(); load(S.tab); } });
   var QUIET = ['games', 'apps', 'me'], BUSY = ['search', 'maps', 'poll', 'board', 'note', 'shift', 'bull', 'rss', 'rsskey', 'qr', 'evac', 'checkpt', 'roster', 'leave', 'train', 'bday', 'donate', 'timer', 'mood'];
-  setInterval(function () { if (!document.hidden && !lib) { poll(); var g = C.cat[S.tab] && C.cat[S.tab].g; if (QUIET.indexOf(g) < 0 && BUSY.indexOf(S.tab) < 0) load(S.tab, true); } }, 120000);
+  if (!C.solo) setInterval(function () { if (!document.hidden && !lib) { poll(); var g = C.cat[S.tab] && C.cat[S.tab].g; if (QUIET.indexOf(g) < 0 && BUSY.indexOf(S.tab) < 0) load(S.tab, true); } }, 120000);
 
   // ---- start
   try { if (localStorage.getItem('wsx-folded') === '1') { root.classList.add('is-folded'); if (xp) { xp.setAttribute('aria-expanded', 'false'); xp.classList.remove('is-open'); } } } catch (e) {}
   if (S.tabs.indexOf(S.tab) < 0) S.tab = S.tabs[0];
   drawRail(); pane.innerHTML = skeleton(); titleEl.textContent = WS.name_of(S.tab);
   ensure(S.tab, function () { load(S.tab); });
-  poll();
+  if (!C.solo) poll();
   // a widget asked for elsewhere in the page can open here
   WS.openFromHash = function () { var m = /^#w=([a-z0-9]+)$/.exec(location.hash); if (m && Object.prototype.hasOwnProperty.call(C.cat, m[1])) { if (S.tabs.indexOf(m[1]) < 0) S.tabs.push(m[1]); open(m[1]); } };
   window.addEventListener('hashchange', WS.openFromHash); WS.openFromHash();
