@@ -1,6 +1,6 @@
 <?php
 /**
- * One widget on its own, with live data, for the gallery's frames (widgets-all.php). The same panel as the Workspace,
+ * One widget on its own, with live data: the preview behind the View button in the widget library. The same panel as the Workspace,
  * without the rail, and it never saves the person's own widgets. widget-view.php?w=flood
  */
 declare(strict_types=1);
@@ -25,7 +25,7 @@ if (!isset(widget_catalogue()[$id])) {
 <link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
-<link href="assets/css/widgets-gallery.css?v=<?= e(asset_version('widgets-gallery.css')) ?>" rel="stylesheet">
+<link href="assets/css/widget-view.css?v=<?= e(asset_version('widget-view.css')) ?>" rel="stylesheet">
 </head>
 <body class="p-body wsv">
 <?php render_widget_panel(db(), $admin, $id); ?>

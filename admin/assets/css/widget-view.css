@@ -1,0 +1,5 @@
+/* One widget on its own: the live preview behind the View button in the widget library (17 Oct 2026). */
+.wsv{margin:0;background:transparent;overflow:hidden}
+.wsv .wsx{margin:0}.wsv .wx-card{height:100vh;border-radius:0;box-shadow:none;border:0;grid-template-columns:minmax(0,1fr)}
+.wsv .wx-rail,.wsv .wx-ptitle{display:none}.wsv .wx-phead{padding:8px 14px 0;min-height:30px}
+:root[data-theme="dark"] .wsv .wx-card{background:rgba(26,31,38,.4);-webkit-backdrop-filter:none;backdrop-filter:none}
