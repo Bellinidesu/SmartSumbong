@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/briefing.php';
 require_once __DIR__ . '/includes/board.php';
+require_once __DIR__ . '/includes/widget_panel.php';
 
 $admin = require_admin();
 $db    = db();
@@ -352,6 +353,7 @@ $tabHref = fn(string $t) => '?' . http_build_query(['tab' => $t]);
 $noteBadge = $notesUnread + $escCount;
 ?>
 <?php if ($notices) { render_briefing($db, $admin, $workspace ? 'bar' : 'strip'); } ?>
+<?php if ($workspace) { render_widget_panel($db, $admin); } ?>
 <?php if (false): ?>
 <nav class="ss-tabs" aria-label="<?= e(t('Notifications views', 'Mga tanaw ng Abiso')) ?>">
   <a href="<?= e($tabHref('next')) ?>"<?= $tab === 'next' ? ' class="on" aria-current="page"' : '' ?>><?= e(t('Board', 'Tablero')) ?></a>

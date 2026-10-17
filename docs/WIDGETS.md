@@ -81,3 +81,20 @@ battery, word of the day, phrasebook, radio codes, first aid, stopwatch, world c
 - The DOH site sits behind a bot check and PNA publishes no feed; both come through a news search.
 - The tide is a model (Open-Meteo Marine), not the NAMRIA tide table.
 - Fares start empty: the barangay sets them in Settings.
+
+## The Workspace screen (17 Oct 2026)
+
+The sky bar on top keeps the sky, the clock, the date and the Morning / Afternoon / Night switch. Its brain became the
+weather tile: the engine's glow (navy, a blue and orange spark sweeping round it, the symbol glowing yellow), the
+temperature riding on it, the details in a tooltip. The arrow folds the widgets away and back.
+
+Under it is the widget panel (`includes/widget_panel.php`, `assets/js/widgets-core.js`, `assets/css/widgets.css`):
+a slim rail of the widgets the person chose (layout B, locked), the pane of the one open, and the library
+(the + at the foot of the rail) to add, remove and reorder from all 120, search, and the barangay's switches. A new
+person starts with twelve: Briefing, Needs a tanod, Deadlines, Cases at risk, Tanod on duty, Waiting for approval,
+Flood watch, Typhoon watch, Weather, Chairman's notice, Latest activity, This month (`WS_DEFAULT_TABS`).
+
+The widgets themselves are in eight scripts loaded the first time one of their kind opens (live, cases, team, tools,
+apps, rss, games, me), each under the 14 KB budget; `assets/css/widgets-x.css` holds their shapes. The alarm is its own
+takeover above the panel: it rings by itself for the rules the Chairman or the Secretary turned on, or when tested.
+Everything a widget needs is one `widgets.php` call; every save is `workspace-act.php`.

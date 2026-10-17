@@ -10,7 +10,10 @@ $sameInBoth = ['SmartSumbong', 'Tanod', 'Email', 'OK', 'Online', 'Offline', 'Bar
     'Browser', 'Function', 'Facebook', 'GitHub', 'Firebase', 'Semaphore', 'Uptime', 'PDF', 'Account',
     'Live', 'Heatmap', 'OCR flag', 'Mobile number', 'System', 'Update', 'Auto',
     // Filipino already: titles and offices with no English to translate from.
-    'Punong Barangay', 'Katarungang Pambarangay (Lupong Tagapamayapa)'];
+    'Punong Barangay', 'Katarungang Pambarangay (Lupong Tagapamayapa)',
+    // Workspace widgets named after a product, a publisher or a game everyone knows by its English name (17 Oct 2026).
+    'Heat index', 'UV index', 'Calculator', 'Dice', 'Stopwatch', 'Magic 8-ball', 'Philstar', 'Rappler', 'GMA News', 'PNA, Inquirer, DOH',
+    'Tic-tac-toe', 'Whack-a-mole', 'Snake', 'Sudoku', 'Minesweeper', 'Simon', 'Sticky note', 'Countdown'];
 
 $root = dirname(__DIR__, 2) . '/admin';
 $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));

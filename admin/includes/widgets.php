@@ -17,6 +17,8 @@ require_once __DIR__ . '/hazards.php';
 require_once __DIR__ . '/osm_layers.php';
 
 const WS_OPEN = 'in.(pending_review,validated,assigned,in_progress,offline_investigation)';
+/** The twelve a new staff member starts with (Ace left the choice to me, 17 Oct 2026): the day, the work, the team, the sky. */
+const WS_DEFAULT_TABS = ['brief', 'queue', 'due', 'risk', 'duty', 'req', 'flood', 'ty', 'wx', 'note', 'recent', 'eff'];
 const WS_GAMES = ['ttt', 'mem', 'react', 'whack', 'hl', 'rps', 'snake', 'g2048', 'wordl', 'sudoku', 'mines', 'quiz', 'simon', 'type'];
 
 /**
@@ -432,7 +434,7 @@ function widget_data(Supabase $db, array $admin, array $groups): array
         $q['mood_me'] = ['shift_checkins', ['select' => 'mood,shift_date', 'shift_date' => 'eq.' . $today->format('Y-m-d')], true];
         $q['mood_all'] = ['rpc/shift_mood_totals', [], true];
     }
-    if (isset($want['settings']) || isset($want['games']) || isset($want['alarm'])) {
+    if (isset($want['settings']) || isset($want['games']) || isset($want['alarm']) || isset($want['posts'])) {
         $q['settings'] = ['workspace_settings', ['select' => 'alarm_rules,games_enabled,shift_starts,fares,updated_at', 'id' => 'eq.1'], true];
         $q['lead'] = ['rpc/_ws_is_lead', [], true];
     }
@@ -597,7 +599,7 @@ function widget_data(Supabase $db, array $admin, array $groups): array
                 break;
             case $g === 'prefs':
                 if (!$has('prefs')) { $out[$g] = $fail(); break; }
-                $out[$g] = $good($rows('prefs')[0] ?? ['tabs' => ['brief', 'flood', 'ty', 'risk', 'queue', 'duty', 'due', 'wx'], 'tab' => null,
+                $out[$g] = $good($rows('prefs')[0] ?? ['tabs' => WS_DEFAULT_TABS, 'tab' => null,
                     'feeds' => [], 'keywords' => [], 'mine' => new stdClass(), 'updated_at' => null]);
                 break;
             case $g === 'mine':
