@@ -42,7 +42,7 @@ if (isset($_GET['catalogue'])) {
         $feeds[$k] = ['name' => $f['name'], 'search' => !empty($f['search'])];
     }
     wout(['widgets' => $list, 'count' => count($list), 'feeds' => $feeds, 'games' => WS_GAMES,
-          'default_tabs' => ['brief', 'flood', 'ty', 'risk', 'queue', 'duty', 'due', 'wx']]);
+          'default_tabs' => WS_DEFAULT_TABS]);
 }
 
 if (isset($_GET['find'])) {
