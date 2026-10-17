@@ -1,8 +1,11 @@
 # SmartSumbong — Schema Reference
 
-Mirrors `supabase/migrations/` (0001–0120; there is no 0048, the number was
+Covers `supabase/migrations/` 0001–0120 (there is no 0048, the number was
 skipped). The tables and functions below were last checked against 0087
-(5 October 2026), plus the 0114–0120 additions. The exact current schema is `supabase/baseline/baseline.sql`. If the manuscript's Data Dictionary and this file
+(5 October 2026), plus the 0114–0120 additions. 0121–0132 are not listed here yet: each
+explains itself in its header, the SMART engine is in docs/SMART.md and
+docs/SMART_SCREENS.md, and the Workspace widgets in docs/WIDGETS.md. The exact current schema is
+`supabase/baseline/baseline.sql`. If the manuscript's Data Dictionary and this file
 disagree, one of them is wrong — fix both in the same sitting.
 
 Actor naming is **`tanod`** throughout, per the panel revision.

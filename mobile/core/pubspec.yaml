@@ -51,7 +51,6 @@ dependencies:
   # as a manually-shared APK rather than through a store with its own
   # version tracking.
   package_info_plus: ^10.2.2
-  device_info_plus: ^13.3.0
 
   # Face ID / fingerprint unlock (biometric_auth.dart, biometric_lock_
   # gate.dart), shared by both apps -- reads whatever biometric the

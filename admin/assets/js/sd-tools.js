@@ -266,7 +266,7 @@
   const chk = id => { const c = document.getElementById(id); return !!(c && c.checked); };
   function capture(name) {
     const f = readFilters(), c = map.getCenter();
-    const v = { name, cat: f.cat, st: f.st, allTime: f.allTime, period: f.period, from: f.from, to: f.to, tilt: !!tilted,
+    const v = { name, cat: f.cat, st: f.st, allTime: f.allTime, period: f.period, from: f.from, to: f.to, tilt: map.getPitch() > 1,
       cam: { c: [+c.lng.toFixed(6), +c.lat.toFixed(6)], z: +map.getZoom().toFixed(2) }, on: {}, layers: {} };
     Object.keys(ID).forEach(k => { v.on[k] = chk(ID[k]); });
     Object.keys(LAYER).forEach(k => { v.layers[k] = !!LAYER[k]; });
@@ -290,7 +290,6 @@
     document.getElementById('f-apply').click();
     Object.keys(ID).forEach(k => setChk(ID[k], v.on[k]));
     Object.keys(LAYER).forEach(k => setChk('lyr-' + k, v.layers[k]));
-    if (!!v.tilt !== !!tilted) setTilt(!!v.tilt);
     map.easeTo({ center: v.cam.c, zoom: v.cam.z, pitch: v.tilt ? 58 : 0, bearing: v.tilt ? -18 : 0, duration: reduced() ? 0 : 1100 });
     vClose();
   }
@@ -414,7 +413,7 @@
   }
   async function lmShow(on) {
     lmOn = on; await lmInit(); if (on !== lmOn) return;
-    // The tint of a landmark building (LM_TINT) is off: the City view models the landmarks instead (sd-city.js).
+    // The tint of a landmark building (LM_TINT) is off; the badges show.
     ['lm-bld', 'lm-badge'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on && (id === 'lm-badge' || LM_TINT) ? 'visible' : 'none'); });
   }
   map.on('pitch', () => { const up = map.getPitch() > 8; if (up !== lmOn) lmShow(up); });

@@ -4,6 +4,8 @@
 # check here is about pages that work signed out.
 set -u
 php -S 127.0.0.1:8000 -t . > /tmp/php.log 2>&1 &
+PHP_PID=$!
+trap 'kill "$PHP_PID" 2>/dev/null' EXIT   # run by hand, it would otherwise keep port 8000
 sleep 2
 B=http://127.0.0.1:8000/admin
 fail=0

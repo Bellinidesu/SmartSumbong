@@ -42,7 +42,6 @@ dependencies:
   cupertino_icons: ^2.0.0
   smartsumbong_core:
    path: ../core
-  exif: ^3.3.0
   maplibre_gl: ^0.27.1
   # The report outbox (lib/outbox.dart); already in core, named here
   # because the app imports them itself.
