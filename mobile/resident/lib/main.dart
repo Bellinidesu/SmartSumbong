@@ -99,7 +99,12 @@ Future<void> main() async {
 
     // Phone run (7 Oct 2026): turned sideways, the bottom bar covered the
     // home screen. Every screen is drawn for a phone held upright.
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // Tablets (presenting the defense on one, 7 Oct 2026) may turn; the
+    // app sits in a phone-width column there (TabletFrame), so it reads
+    // the same either way. Phones stay upright.
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final tablet = view.physicalSize.shortestSide / view.devicePixelRatio >= 600;
+    await SystemChrome.setPreferredOrientations(tablet ? DeviceOrientation.values : [DeviceOrientation.portraitUp]);
     // Ace (7 Oct 2026): on phones with the three buttons, the app shows
     // through behind them instead of a grey strip. Each bar and page sets
     // the buttons' colour to suit what is behind them (DBar, DPage).
@@ -248,7 +253,7 @@ class SmartSumbongApp extends StatelessWidget {
           themeMode: mode,
           navigatorKey: navigatorKey,
           scaffoldMessengerKey: Outbox.messengerKey,
-          builder: (context, child) => BiometricLockGate(
+          builder: (context, child) => TabletFrame(child: BiometricLockGate(
             reason: context.s.launchGateBiometricReason,
             title: context.s.lockGateTitle,
             body: context.s.lockGateBody,
@@ -264,7 +269,7 @@ class SmartSumbongApp extends StatelessWidget {
               message: context.s.offlineBanner,
               child: child ?? const SizedBox.shrink(),
             ),
-          ),
+          )),
       // Every launch goes through the gate, which decides where the
       // person actually belongs: no session, pending, verified,
       // rejected or suspended. A fixed initialRoute cannot know.
@@ -398,4 +403,39 @@ class _ConfigError extends StatelessWidget {
           ),
         ),
       );
+}
+
+
+/// On a tablet the app keeps its phone layout: a 560-wide column in the
+/// middle of the screen, the page colour on both sides. Screens narrower
+/// than 600 (every phone) pass straight through.
+class TabletFrame extends StatelessWidget {
+  const TabletFrame({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    if (mq.size.width < 600) return child;
+    const w = 560.0;
+    final side = Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0A0D12) : const Color(0xFFDCE1EA);
+    return ColoredBox(
+      color: side,
+      child: Center(
+        child: SizedBox(
+          width: w,
+          child: DecoratedBox(
+            decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .25), blurRadius: 30)]),
+            child: ClipRect(
+              child: MediaQuery(
+                data: mq.copyWith(size: Size(w, mq.size.height)),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
