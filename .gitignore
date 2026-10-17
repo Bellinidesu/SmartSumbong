@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+# The encrypted vault is its own private repository (vault/README.md there);
+# nothing of it belongs in this public one.
+vault/
 *.pem
 *.key
 service-account*.json
