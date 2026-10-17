@@ -31,7 +31,7 @@ function render_widget_panel(Supabase $db, array $admin, ?string $solo = null): 
     if (!$tabs) $tabs = WS_DEFAULT_TABS;
     $tab = (string) ($row['tab'] ?? '');
     if (!in_array($tab, $tabs, true)) $tab = $tabs[0];
-    if ($solo !== null && isset($cat[$solo])) {   // the gallery: this widget only, and nothing is saved
+    if ($solo !== null && isset($cat[$solo])) {   // the library's preview: this widget only, and nothing is saved
         $tabs = [$solo];
         $tab = $solo;
     } else {

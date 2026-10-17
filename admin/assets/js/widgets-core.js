@@ -55,6 +55,7 @@
     bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21a2 2 0 0 0 4 0', flag: 'M5 21V4M5 4h11l-2 4 2 4H5', map: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14', bolt: 'M13 2L4 14h6l-1 8 9-12h-6z',
     battery: 'M3 8h15a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM21 11v2M5 10.500v3', compass: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M15.500 8.500l-2 5-5 2 2-5z', plus: 'M12 5v14M5 12h14', cross: 'M6 6l12 12M18 6L6 18',
     up: 'M6 15l6-6 6 6', down: 'M6 9l6 6 6-6', grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z', gear: 'M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.400-2.300.9a7 7 0 0 0-2-1.200L14 3h-4l-.6 2.600a7 7 0 0 0-2 1.200l-2.300-.9-2 3.400 2 1.500a7 7 0 0 0 0 2.400l-2 1.500 2 3.400 2.300-.9a7 7 0 0 0 2 1.200L10 21h4l.6-2.600a7 7 0 0 0 2-1.200l2.300.9 2-3.400-2-1.500c.1-.4.1-.8.1-1.200z',
+    eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 12m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0',
     refresh: 'M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5', warn: 'M12 3l10 18H2zM12 10v5M12 18v.01',
     book: 'M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10', text: 'M5 6h14M12 6v13M9 19h6', ball: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 8m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0', coin: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 7v10M9 9.500c0-1 1-1.500 3-1.500s3 .7 3 1.700-1 1.300-3 1.800-3 .8-3 1.800S10 15 12 15s3-.5 3-1.500',
     key: 'M8 14a4 4 0 1 1 3.900-4.800L21 10v3h-2v2h-3v-2.500h-3.100A4 4 0 0 1 8 14z', link: 'M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700L12 6.300M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700L12 17.700', mood: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M8 14.500a5 5 0 0 0 8 0M9 9.500h.01M15 9.500h.01'
@@ -296,13 +297,13 @@
       if (!items.length) return '';
       return '<section class="wx-lg"><h4>' + esc(C.groups[g]) + '</h4><div class="wx-lgrid">' + items.map(function (id) {
         var on = chosen.indexOf(id) >= 0, l = C.labels[id], eid = esc(id);
-        return '<button type="button" class="wx-lc' + (on ? ' is-on' : '') + '" data-l="tg" data-id="' + eid + '" aria-pressed="' + on + '"><span class="ic">' + WS.icon(id, 22) + '</span><span class="tx"><b>' + esc(l[0]) + '</b><small>' + esc(l[1]) + '</small></span><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 14, 3) : WS.svg('plus', 14, 2.4)) + '</span></button>';
+        return '<div class="wx-lw"><button type="button" class="wx-lc' + (on ? ' is-on' : '') + '" data-l="tg" data-id="' + eid + '" aria-pressed="' + on + '"><span class="ic">' + WS.icon(id, 22) + '</span><span class="tx"><b>' + esc(l[0]) + '</b><small>' + esc(l[1]) + '</small></span><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 14, 3) : WS.svg('plus', 14, 2.4)) + '</span></button><button type="button" class="wx-vw" data-l="vw" data-id="' + eid + '" aria-label="' + T('View', 'Tingnan') + ': ' + esc(l[0]) + '">' + WS.svg('eye', 14) + T('View', 'Tingnan') + '</button></div>';
       }).join('') + '</div></section>';
     }).join('') || '<p class="wx-none">' + T('No widget matches that.', 'Walang widget na tugma doon.') + '</p>';
     var st = S.st || {}, lead = S.lead, rules = st.alarm_rules || [];
     var rl = [['red', RULE.red[0]], ['sig3', RULE.sig3[0]], ['urgent2h', T('An urgent case waits 2 hours', 'Madaliang kasong 2 oras nang naghihintay')], ['deadline', T('A case will miss its deadline', 'May kasong lalampas sa takdang oras')]];
     var alarm = '<section class="wx-lg wx-lset"><h4>' + T('The alarm', 'Ang alarma') + '</h4><p class="wx-lnote">' + T('A full-width takeover above your widgets. It rings by itself when one of these happens' + (lead ? '.' : ' (the Chairman or the Secretary chooses which).'), 'Pumapatak ito sa itaas ng mga widget mo. Tumutunog nang kusa kapag nangyari ang isa rito' + (lead ? '.' : ' (ang Punong Barangay o ang Kalihim ang pumipili).')) + '</p><div class="wx-rules">' + rl.map(function (r) { var on = rules.indexOf(r[0]) >= 0; return '<button type="button" class="wx-rule' + (on ? ' is-on' : '') + '" data-l="rule" data-r="' + r[0] + '" aria-pressed="' + on + '"' + (lead ? '' : ' disabled') + '><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 12, 3.2) : '') + '</span>' + esc(r[1]) + '</button>'; }).join('') + '</div><div class="wx-lrow"><button type="button" class="wx-btn is-red" data-l="ring">' + WS.svg('bell', 15) + T('Ring the alarm', 'Patunugin ang alarma') + '</button>' + (lead ? '<button type="button" class="wx-rule' + (st.games_enabled ? ' is-on' : '') + '" data-l="games" aria-pressed="' + !!st.games_enabled + '"><span class="ck" aria-hidden="true">' + (st.games_enabled ? WS.svg('check', 12, 3.2) : '') + '</span>' + T('Allow minigames', 'Payagan ang mga minigame') + '</button>' : '') + '</div></section>';
-    var foot2 = '<div class="wx-lf"><button type="button" class="wx-btn" data-l="reset">' + WS.svg('refresh', 15) + T('Back to the 12 I suggest', 'Bumalik sa 12 na iminumungkahi') + '</button><a class="wx-btn" href="widgets-all.php">' + T('See all 120 live', 'Tingnan ang lahat ng 120') + '</a><button type="button" class="wx-btn is-pri" data-l="close">' + T('Done', 'Tapos na') + '</button></div>';
+    var foot2 = '<div class="wx-lf"><button type="button" class="wx-btn" data-l="reset">' + WS.svg('refresh', 15) + T('Back to the 12 I suggest', 'Bumalik sa 12 na iminumungkahi') + '</button><button type="button" class="wx-btn is-pri" data-l="close">' + T('Done', 'Tapos na') + '</button></div>';
     return head + tools + mine_ + '<div class="wx-lbody">' + cards + alarm + '</div>' + foot2;
   }
   function drawLib(keepScroll) {
@@ -310,9 +311,18 @@
     body.innerHTML = libHtml(); if (keepScroll) lib.querySelector('.wx-lbody').scrollTop = top;
     if (qEl) { var i = document.getElementById('wx-lq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
   }
+  function closePrev() { var p = lib && lib.querySelector('.wx-prev'); if (!p) return; var id = p.dataset.id; p.remove(); var b = lib.querySelector('.wx-vw[data-id="' + id + '"]'); if (b) b.focus(); }
+  function showPrev(id) {
+    if (!Object.prototype.hasOwnProperty.call(C.cat, id)) return;
+    var l = C.labels[id], on = S.tabs.indexOf(id) >= 0, p = lib.querySelector('.wx-prev');
+    if (p) p.remove();
+    p = document.createElement('div'); p.className = 'wx-prev'; p.dataset.id = id;
+    p.innerHTML = '<div class="wx-pv" role="dialog" aria-modal="true" aria-label="' + esc(l[0]) + '"><header><div><b>' + esc(l[0]) + '</b><small>' + T('Live preview. This does not change your Workspace.', 'Live na preview. Hindi nito binabago ang Workspace mo.') + '</small></div><button type="button" class="wx-btn' + (on ? '' : ' is-pri') + '" data-l="pvtg">' + (on ? T('Remove from my Workspace', 'Alisin sa Workspace ko') : T('Add to my Workspace', 'Idagdag sa Workspace ko')) + '</button><button type="button" class="wx-x" data-l="pvx" aria-label="' + T('Close preview', 'Isara ang preview') + '">' + WS.svg('cross', 18) + '</button></header><iframe src="widget-view.php?w=' + encodeURIComponent(id) + '" title="' + esc(l[0]) + '"></iframe></div>';
+    lib.appendChild(p); var x = p.querySelector('[data-l="pvx"]'); if (x) x.focus();
+  }
   function closeLib() { if (!lib) return; lib.remove(); lib = null; document.removeEventListener('keydown', libKey); if (libFocus && libFocus.focus) libFocus.focus(); drawRail(); if (S.tabs.indexOf(S.tab) < 0) open(S.tabs[0] || 'brief'); }
   function libKey(e) {
-    if (e.key === 'Escape') { e.preventDefault(); closeLib(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); if (lib.querySelector('.wx-prev')) closePrev(); else closeLib(); return; }
     if (e.key !== 'Tab') return;
     var f = lib.querySelectorAll('button:not([disabled]),input,[href]'); if (!f.length) return;
     var a = f[0], z = f[f.length - 1];
@@ -332,6 +342,9 @@
       else if (a === 'g') { libG = b.dataset.g; drawLib(); }
       else if (a === 'tg') { var i = S.tabs.indexOf(id); if (i >= 0) { if (S.tabs.length > 1) S.tabs.splice(i, 1); else WS.toast(T('Keep at least one widget.', 'Magtira ng kahit isang widget.')); } else S.tabs.push(id); if (S.tabs.indexOf(S.tab) < 0) S.tab = S.tabs[0]; saveTabs(); drawLib(true); }
       else if (a === 'mv') { var j = S.tabs.indexOf(id), k = j + parseInt(b.dataset.d, 10); if (j >= 0 && k >= 0 && k < S.tabs.length) { S.tabs.splice(k, 0, S.tabs.splice(j, 1)[0]); saveTabs(); drawLib(true); var nb = lib.querySelector('.wx-oc[data-id="' + id + '"] [data-d="' + b.dataset.d + '"]'); if (nb && !nb.disabled) nb.focus(); } }
+      else if (a === 'vw') showPrev(id);
+      else if (a === 'pvx') closePrev();
+      else if (a === 'pvtg') { var pid = lib.querySelector('.wx-prev').dataset.id, k2 = S.tabs.indexOf(pid); if (k2 >= 0) { if (S.tabs.length > 1) S.tabs.splice(k2, 1); else return WS.toast(T('Keep at least one widget.', 'Magtira ng kahit isang widget.')); } else S.tabs.push(pid); if (S.tabs.indexOf(S.tab) < 0) S.tab = S.tabs[0]; saveTabs(); drawLib(true); showPrev(pid); }
       else if (a === 'reset') { S.tabs = C.defaults.slice(); S.tab = S.tabs[0]; saveTabs(); drawLib(true); }
       else if (a === 'ring') { closeLib(); WS.ring(); }
       else if (a === 'rule' || a === 'games') {
