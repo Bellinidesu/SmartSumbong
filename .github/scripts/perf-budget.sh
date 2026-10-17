@@ -5,7 +5,7 @@
 # Raising a limit is allowed, but on purpose, in the same pull request.
 #
 #   sign-in page, everything it loads      336 KB (was 320: the small SMART engine mark under the card)
-#   each portal script (assets/js)          14 KB   (was 8: the Spatial Distribution tools script holds search, time slider, saved views)
+#   each portal script (assets/js)          16 KB   (was 14, 8 before: widgets-core.js holds the Workspace widget engine and library)
 #   each stylesheet (assets/css)            36 KB   (was 20: flair.css carries the map's controls and panels)
 #   each .webp photo (assets/img)          160 KB
 #
@@ -17,7 +17,7 @@ fail=0
 size() { case "$1" in *.css|*.js|*.svg|*.html|*.json) gzip -9 -c "$1" | wc -c ;; *) wc -c < "$1" ;; esac; }
 over() { echo "FAIL $1: $2 bytes, budget $3"; fail=1; }
 
-for f in admin/assets/js/*.js;   do s=$(size "$f"); [ "$s" -le 14336 ]  || over "$f" "$s" 14336;   done
+for f in admin/assets/js/*.js;   do s=$(size "$f"); [ "$s" -le 16384 ]  || over "$f" "$s" 16384;   done
 for f in admin/assets/css/*.css; do s=$(size "$f"); [ "$s" -le 36864 ]  || over "$f" "$s" 36864;  done
 for f in admin/assets/img/*.webp; do s=$(size "$f"); [ "$s" -le 163840 ] || over "$f" "$s" 163840; done
 

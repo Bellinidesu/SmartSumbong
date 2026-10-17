@@ -17,7 +17,7 @@ function widget_module(string $id, string $group): string
     return $group;
 }
 
-function render_widget_panel(Supabase $db, array $admin): void
+function render_widget_panel(Supabase $db, array $admin, ?string $solo = null): void
 {
     $cat = widget_catalogue();
     $labels = widget_labels();
@@ -31,6 +31,12 @@ function render_widget_panel(Supabase $db, array $admin): void
     if (!$tabs) $tabs = WS_DEFAULT_TABS;
     $tab = (string) ($row['tab'] ?? '');
     if (!in_array($tab, $tabs, true)) $tab = $tabs[0];
+    if ($solo !== null && isset($cat[$solo])) {   // the gallery: this widget only, and nothing is saved
+        $tabs = [$solo];
+        $tab = $solo;
+    } else {
+        $solo = null;
+    }
 
     $js = [];
     $catOut = [];
@@ -40,6 +46,7 @@ function render_widget_panel(Supabase $db, array $admin): void
         $catOut[$id] = ['g' => $group, 'n' => $needs, 'm' => $mod, 'x' => $status === 'new' ? 1 : 0];
     }
     $cfg = [
+        'solo'     => $solo !== null,
         'lang'     => lang(),
         'csrf'     => csrf_token(),
         'tabs'     => $tabs,
@@ -53,7 +60,7 @@ function render_widget_panel(Supabase $db, array $admin): void
         'me'       => ['id' => $admin['id'], 'name' => display_name((string) ($admin['full_name'] ?? ''))],
     ];
     ?>
-<section class="wsx" id="wsx" aria-label="<?= e(t('Your widgets', 'Iyong mga widget')) ?>">
+<section class="wsx<?= $solo !== null ? ' is-solo' : '' ?>" id="wsx" aria-label="<?= e(t('Your widgets', 'Iyong mga widget')) ?>">
   <div id="wsx-alarm" hidden></div>
   <div class="wx-card">
     <nav class="wx-rail" aria-label="<?= e(t('Widgets', 'Mga widget')) ?>">
