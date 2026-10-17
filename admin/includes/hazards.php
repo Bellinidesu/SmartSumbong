@@ -38,6 +38,60 @@ function hz_fetch(string $url, bool $post = false): ?string
     return ($body !== false && $code === 200 && $body !== '') ? (string) $body : null;
 }
 
+/**
+ * Fetches several addresses at once and returns each body (or null) under its key. PAGASA and GDACS used to be asked one
+ * after another, which took close to ten seconds when GDACS was slow; asked together it is as long as the slowest.
+ *
+ * @param array<string, array{0:string, 1:bool, 2?:int}> $jobs key => [url, post, seconds before giving up]
+ * @return array<string, ?string>
+ */
+function hz_fetch_many(array $jobs, int $timeout = 7): array
+{
+    $mh = curl_multi_init();
+    $hs = [];
+    foreach ($jobs as $k => [$url, $post, $to]) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => $to ?? $timeout,
+            CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 2,
+            CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_USERAGENT      => 'SmartSumbong-Barangay183/1.0 (barangay disaster desk)',
+            CURLOPT_HTTPHEADER     => $post ? [
+                'X-Requested-With: XMLHttpRequest',
+                'Origin: https://bagong.pagasa.dost.gov.ph',
+                'Referer: https://bagong.pagasa.dost.gov.ph/',
+                'Accept: application/json, text/javascript, */*; q=0.01',
+            ] : ['Accept: application/json, application/xml, text/xml, */*'],
+        ]);
+        if ($post) {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, '');
+        }
+        curl_multi_add_handle($mh, $ch);
+        $hs[$k] = $ch;
+    }
+    do {
+        $st = curl_multi_exec($mh, $active);
+        if ($active) {
+            curl_multi_select($mh, 0.3);
+        }
+    } while ($active && $st === CURLM_OK);
+    $out = [];
+    foreach ($hs as $k => $ch) {
+        $body = curl_multi_getcontent($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $out[$k] = ($code === 200 && is_string($body) && $body !== '') ? $body : null;
+        curl_multi_remove_handle($mh, $ch);
+    }
+    curl_multi_close($mh);
+    return $out;
+}
+
 function hz_km(float $lat1, float $lng1, float $lat2, float $lng2): float
 {
     $r = 6371.0; $p = M_PI / 180;
@@ -64,11 +118,26 @@ function hazards_read(): array
         }
     }
 
+    $B = hz_fetch_many([
+        'aw'   => ['https://bagong.pagasa.dost.gov.ph/api/ActiveWarning', true, null],
+        'ct'   => ['https://bagong.pagasa.dost.gov.ph/api/CycloneTrack', true, null],
+        'gd'   => ['https://www.gdacs.org/xml/rss.xml', false, 4],      // the slow one: 4 s, then the last copy it gave
+        'mg0'  => ['https://bagong.pagasa.dost.gov.ph/api/meteogram/425/0', false, null],
+        'mg1'  => ['https://bagong.pagasa.dost.gov.ph/api/meteogram/425/1', false, null],
+    ]);
+    // GDACS answers in 3 to 9 seconds; its last good copy (up to six hours old) stands in when it is slow
+    $gdFile = sys_get_temp_dir() . '/ss-gdacs-v1.xml';
+    if ($B['gd'] !== null) {
+        @file_put_contents($gdFile, $B['gd'], LOCK_EX);
+    } elseif (is_file($gdFile) && filemtime($gdFile) > time() - 6 * 3600) {
+        $B['gd'] = (string) file_get_contents($gdFile);
+    }
+
     $sources = ['pagasa_warnings' => false, 'pagasa_cyclone' => false, 'pagasa_forecast' => false, 'gdacs' => false];
     $out     = ['ok' => true, 'at' => gmdate('c'), 'stale' => false, 'warnings' => [], 'cyclone' => null, 'forecast' => [], 'sources' => []];
 
     // ---- PAGASA: the warnings that touch Metro Manila -------------------------------------------
-    $raw = hz_fetch('https://bagong.pagasa.dost.gov.ph/api/ActiveWarning', true);
+    $raw = $B['aw'];
     $aw  = $raw !== null ? json_decode($raw, true) : null;
     if (is_array($aw)) {
         $sources['pagasa_warnings'] = true;
@@ -107,7 +176,7 @@ function hazards_read(): array
     }
 
     // ---- PAGASA: cyclone tracks; a cyclone is current if its track has a point in the last day --
-    $raw = hz_fetch('https://bagong.pagasa.dost.gov.ph/api/CycloneTrack', true);
+    $raw = $B['ct'];
     $ct  = $raw !== null ? json_decode($raw, true) : null;
     $tz  = new DateTimeZone('Asia/Manila');
     if (is_array($ct)) {
@@ -155,7 +224,7 @@ function hazards_read(): array
     }
 
     // ---- GDACS: a second opinion on cyclones near the Philippine area of responsibility ------------
-    $raw = hz_fetch('https://www.gdacs.org/xml/rss.xml');
+    $raw = $B['gd'];
     if ($raw !== null && ($xml = @simplexml_load_string($raw)) !== false) {
         $sources['gdacs'] = true;
         foreach ($xml->channel->item ?? [] as $it) {
@@ -186,7 +255,7 @@ function hazards_read(): array
     $from = (new DateTimeImmutable('now', $tz))->setTime((int) (new DateTimeImmutable('now', $tz))->format('G'), 0);
     $seen = [];
     foreach ([0, 1] as $dayOffset) {   // today and tomorrow, so late in the evening there are still twelve hours
-        $raw = hz_fetch('https://bagong.pagasa.dost.gov.ph/api/meteogram/425/' . $dayOffset);
+        $raw = $B['mg' . $dayOffset];
         $mg  = $raw !== null ? json_decode($raw, true) : null;
         if (!is_array($mg) || !isset($mg['forecast']['tabular']['time'])) {
             continue;

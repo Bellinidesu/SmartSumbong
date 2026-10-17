@@ -182,4 +182,62 @@
       return '<div class="wx-row"><div class="wx-big"><b>' + q.length + '</b><span>' + T('quakes, 7 days', 'lindol, 7 araw') + '</span></div><div class="wx-big"><b style="color:' + col(top) + '">M' + top.toFixed(1) + '</b><span>' + T('strongest', 'pinakamalakas') + '</span></div></div><div class="wx-list">' + q.slice(0, 5).map(function (x) { return A.item({ av: x.mag.toFixed(1), c: col(x.mag), t: esc(x.place), s: T(n(x.km) + ' km ' + x.dir + ' of the barangay · depth ' + x.depth_km + ' km', n(x.km) + ' km ' + x.dir + ' ng barangay · lalim ' + x.depth_km + ' km'), r: WS.ago(x.at), href: WS.link(x.url) }); }).join('') + '</div><p class="wx-note">' + T('PHIVOLCS publishes no public feed; this is the USGS list for the Philippine area.', 'Walang pampublikong feed ang PHIVOLCS; ito ang listahan ng USGS para sa Pilipinas.') + '</p>';
     }, src: 'USGS'
   };
+
+  // ---- when the portal's own server is refused by a free weather source (shared hosting addresses sometimes are),
+  // the browser asks the same public API itself and shapes the answer exactly as widgets.php does. The sky bar's tile
+  // has always been read this way. Marked 'direct' so it is clear where it came from.
+  var LAT = 14.5194, LNG = 121.0122, TZ = 'timeZone=Asia%2FManila';
+  var get = function (u) { return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+  var good = function (d) { return { ok: true, stale: false, at: new Date().toISOString(), data: d, direct: true }; };
+  function heatIdx(tc, rh) {
+    var t = tc * 9 / 5 + 32, hi = 0.5 * (t + 61 + (t - 68) * 1.2 + rh * 0.094);
+    if ((hi + t) / 2 >= 80) {
+      hi = -42.379 + 2.04901523 * t + 10.14333127 * rh - 0.22475541 * t * rh - 0.00683783 * t * t - 0.05481717 * rh * rh + 0.00122874 * t * t * rh + 0.00085282 * t * rh * rh - 0.00000199 * t * t * rh * rh;
+      if (rh < 13 && t >= 80 && t <= 112) hi -= ((13 - rh) / 4) * Math.sqrt((17 - Math.abs(t - 95)) / 17); else if (rh > 85 && t >= 80 && t <= 87) hi += ((rh - 85) / 10) * ((87 - t) / 5);
+    }
+    return (hi - 32) * 5 / 9;
+  }
+  var heatBand = function (c) { c = Math.round(c); return c >= 52 ? 'extreme_danger' : c >= 42 ? 'danger' : c >= 33 ? 'extreme_caution' : c >= 27 ? 'caution' : null; };
+  function moonOf(ts) {
+    var p = ((ts / 1000 - 947182440) / (29.530588853 * 86400)) % 1; if (p < 0) p += 1;
+    var lim = [[0.0339, 'new'], [0.216, 'waxing_crescent'], [0.284, 'first_quarter'], [0.466, 'waxing_gibbous'], [0.534, 'full'], [0.716, 'waning_gibbous'], [0.784, 'last_quarter'], [0.9661, 'waning_crescent'], [1.01, 'new']], name = 'new';
+    for (var i = 0; i < lim.length; i++) if (p < lim[i][0]) { name = lim[i][1]; break; }
+    return { phase: Math.round(p * 1000) / 1000, lit: Math.round(100 * (1 - Math.cos(2 * Math.PI * p)) / 2), name: name, age_days: Math.round(p * 295.30588853) / 10 };
+  }
+  var manilaNow = function () { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date()).replace(' ', 'T'); };
+  var fb = WS.fallback = WS.fallback || {};
+  fb.wx = function () {
+    return get('https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LNG + '&' + TZ + '&forecast_days=7&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,uv_index,is_day&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,uv_index_max,wind_gusts_10m_max').then(function (j) {
+      var c = j.current, h = j.hourly, d = j.daily, nowS = manilaNow(), start = 0, i;
+      for (i = 0; i < h.time.length; i++) if (h.time[i] >= nowS.slice(0, 13) + ':00') { start = i; break; }
+      var hours = [], peak = null, today = nowS.slice(0, 10);
+      for (i = start; i < Math.min(h.time.length, start + 24); i++) hours.push({ t: h.time[i], temp: h.temperature_2m[i], pop: h.precipitation_probability[i], rain: h.precipitation[i], code: h.weather_code[i], wind: h.wind_speed_10m[i], gust: h.wind_gusts_10m[i], dir: h.wind_direction_10m[i], pressure: h.pressure_msl[i], uv: h.uv_index[i], heat: Math.round(heatIdx(h.temperature_2m[i], h.relative_humidity_2m[i])) });
+      for (i = start; i < h.time.length; i++) { if (h.time[i].slice(0, 10) !== today) continue; var hv = heatIdx(h.temperature_2m[i], h.relative_humidity_2m[i]); if (!peak || hv > peak.c) peak = { c: Math.round(hv), at: h.time[i], band: heatBand(hv) }; }
+      var days = d.time.map(function (t, k) { return { d: t, code: d.weather_code[k], max: d.temperature_2m_max[k], min: d.temperature_2m_min[k], rain: d.precipitation_sum[k], pop: d.precipitation_probability_max[k], sunrise: d.sunrise[k], sunset: d.sunset[k], uv: d.uv_index_max[k], gust: d.wind_gusts_10m_max[k] }; });
+      var hn = heatIdx(c.temperature_2m, c.relative_humidity_2m), set = new Date(days[0].sunset + ':00+08:00');
+      return good({ now: { temp: c.temperature_2m, feels: c.apparent_temperature, humidity: c.relative_humidity_2m, rain: c.precipitation, code: c.weather_code, wind: c.wind_speed_10m, dir: c.wind_direction_10m, gust: c.wind_gusts_10m, pressure: c.pressure_msl, uv: c.uv_index, day: !!c.is_day, at: c.time }, heat: { c: Math.round(hn), band: heatBand(hn), peak: peak }, pressure_3h: start >= 3 ? Math.round((h.pressure_msl[start] - h.pressure_msl[start - 3]) * 10) / 10 : null, hours: hours, days: days, moon: moonOf(Date.now()), daylight_left_min: set > new Date() ? Math.round((set - new Date()) / 60000) : 0, source: 'Open-Meteo' });
+    });
+  };
+  fb.air = function () {
+    return get('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + LAT + '&longitude=' + LNG + '&' + TZ + '&current=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,carbon_monoxide').then(function (j) {
+      var c = j.current, a = +c.us_aqi; c.band = a <= 50 ? 'good' : a <= 100 ? 'moderate' : a <= 150 ? 'sensitive' : a <= 200 ? 'unhealthy' : a <= 300 ? 'very_unhealthy' : 'hazardous'; c.source = 'Open-Meteo (CAMS)'; return good(c);
+    });
+  };
+  fb.marine = function () {
+    return get('https://marine-api.open-meteo.com/v1/marine?latitude=14.53&longitude=120.96&' + TZ + '&forecast_days=3&hourly=sea_level_height_msl,wave_height,swell_wave_height,swell_wave_period,wave_direction').then(function (j) {
+      var h = j.hourly, now = manilaNow().slice(0, 13) + ':00', i0 = 0, lv = h.sea_level_height_msl, turns = [], curve = [], i;
+      for (i = 0; i < h.time.length; i++) if (h.time[i] <= now) i0 = i;
+      for (i = Math.max(1, i0); i < Math.min(lv.length - 1, i0 + 36); i++) { if (lv[i] == null || lv[i - 1] == null || lv[i + 1] == null) continue; if (lv[i] > lv[i - 1] && lv[i] >= lv[i + 1]) turns.push({ kind: 'high', t: h.time[i], m: lv[i] }); if (lv[i] < lv[i - 1] && lv[i] <= lv[i + 1]) turns.push({ kind: 'low', t: h.time[i], m: lv[i] }); }
+      for (i = i0; i < Math.min(lv.length, i0 + 24); i++) curve.push({ t: h.time[i], m: lv[i] });
+      return good({ level: lv[i0], rising: lv[i0 + 1] > lv[i0], turns: turns.slice(0, 4), curve: curve, waves: { height: h.wave_height[i0], swell: h.swell_wave_height[i0], period: h.swell_wave_period[i0], dir: h.wave_direction[i0] }, model: true, source: 'Open-Meteo Marine' });
+    });
+  };
+  fb.quake = function () {
+    var from = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 19);
+    return get('https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=' + from + '&minmagnitude=3&minlatitude=4&maxlatitude=21.5&minlongitude=116&maxlongitude=127&orderby=time&limit=30').then(function (j) {
+      var rad = Math.PI / 180, km = function (la, lo) { var a = Math.sin((la - LAT) * rad / 2) ** 2 + Math.cos(LAT * rad) * Math.cos(la * rad) * Math.sin((lo - LNG) * rad / 2) ** 2; return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(a))); };
+      var dir = function (la, lo) { var y = Math.sin((lo - LNG) * rad) * Math.cos(la * rad), x = Math.cos(LAT * rad) * Math.sin(la * rad) - Math.sin(LAT * rad) * Math.cos(la * rad) * Math.cos((lo - LNG) * rad); return DIRS[Math.round(((Math.atan2(y, x) / rad + 360) % 360) / 45) % 8]; };
+      return good({ quakes: j.features.map(function (f) { var p = f.properties, g = f.geometry.coordinates; return { mag: Math.round(p.mag * 10) / 10, place: p.place || '', at: new Date(p.time).toISOString(), depth_km: Math.round(g[2]), km: Math.round(km(g[1], g[0])), dir: dir(g[1], g[0]), lat: g[1], lng: g[0], url: /^https:\/\/earthquake\.usgs\.gov\//.test(p.url || '') ? p.url : '' }; }), source: 'USGS' });
+    });
+  };
 })();
