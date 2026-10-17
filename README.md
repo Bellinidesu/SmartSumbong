@@ -203,7 +203,8 @@ nothing.
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Running production: releasing, monitoring, backups |
 | [docs/INCIDENTS.md](docs/INCIDENTS.md) | What to do when something breaks or leaks |
 | [docs/schema.md](docs/schema.md) | Tables, functions by actor, scheduled jobs, the rules, use-case coverage |
-| [docs/SMART.md](docs/SMART.md), [docs/SMART_SCREENS.md](docs/SMART_SCREENS.md) | The SMART engine and where it shows |
+| [docs/SMART_ENGINE.md](docs/SMART_ENGINE.md) | The SMART engine as a whole: its parts, version 1, how it connects, what can be added per client |
+| [docs/SMART.md](docs/SMART.md), [docs/SMART_SCREENS.md](docs/SMART_SCREENS.md) | SMART's exact rules, and where each part shows |
 | [docs/WIDGETS.md](docs/WIDGETS.md) | The Workspace widgets' contract |
 | [docs/DEFENSE_ASKS.md](docs/DEFENSE_ASKS.md) | What the capstone panel asked for, and where each stands |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to change the code: branches, checks, conventions, commit messages |
