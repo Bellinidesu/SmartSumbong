@@ -1,0 +1,867 @@
+[
+ {
+  "name": "NAIA",
+  "osm": "way/944880483",
+  "sites": [],
+  "commons": "Category:Ninoy Aquino International Airport",
+  "image": null,
+  "wikipedia": "en:Ninoy Aquino International Airport",
+  "wikidata": "Q86446",
+  "mapillary": null,
+  "lat": 14.5200374,
+  "lon": 121.012748,
+  "wd": {
+   "label": "Ninoy Aquino International Airport",
+   "desc": "airport serving Metro Manila, Philippines and main international gateway to the Philippines",
+   "facts": {
+    "image": [
+     "Ninoy Aquino International Airport aerial view.jpg"
+    ],
+    "official website": [
+     "https://www.newnaia.com.ph/"
+    ],
+    "opened": [
+     "1948"
+    ],
+    "operator": [
+     "Manila International Airport Authority",
+     "New NAIA Infrastructure Corporation"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Newport World Resorts",
+  "osm": "way/317656268",
+  "sites": [
+   "https://www.newportworldresorts.com/"
+  ],
+  "commons": "Category:Resorts World Manila",
+  "image": null,
+  "wikipedia": "en:Newport World Resorts",
+  "wikidata": "Q7315775",
+  "mapillary": null,
+  "lat": 14.5197466,
+  "lon": 121.0184014,
+  "wd": {
+   "label": "Newport World Resorts",
+   "desc": "resort in Metro Manila, Philippines",
+   "facts": {
+    "image": [
+     "Resorts World Manila.JPG"
+    ],
+    "official website": [
+     "https://newportworldresorts.com"
+    ],
+    "owner": [
+     "Alliance Global",
+     "Alliance Global",
+     "Genting Hong Kong"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Hilton Manila Newport World Resorts",
+  "osm": "node/5884592868",
+  "sites": [
+   "https://www.hilton.com/en/hotels/mnlphhi-hilton-manila-newport-world-resorts/"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": "Q39092853",
+  "mapillary": null,
+  "lat": 14.5186554,
+  "lon": 121.0188988,
+  "wd": {
+   "label": "Hilton Manila Newport World Resorts",
+   "desc": "5-Star Hotel in Manila",
+   "facts": {
+    "official website": [
+     "https://www.hilton.com/en/hotels/mnlphhi-hilton-manila/",
+     "https://www.hilton.com/en/hotels/mnlphhi-hilton-manila-newport-world-resorts/"
+    ],
+    "opened": [
+     "2018"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Manila Marriott Hotel",
+  "osm": "way/308870214",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": "Q111403779",
+  "mapillary": null,
+  "lat": 14.5205875,
+  "lon": 121.0187073,
+  "wd": {
+   "label": "Manila Marriott Hotel",
+   "desc": "hotel in Pasay, Philippines",
+   "facts": {
+    "official website": [
+     "https://www.marriott.com/hotels/travel/mnlap-manila-marriott-hotel/"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Metro Manila Subway",
+  "osm": "way/1409981613",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Metro Manila Subway Line 9",
+  "wikidata": "Q30635504",
+  "mapillary": null,
+  "lat": 14.6027187,
+  "lon": 121.0420906,
+  "wd": {
+   "label": "Metro Manila Subway",
+   "desc": "under-construction subway line in Metro Manila",
+   "facts": {
+    "operator": [
+     "Department of Transportation"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/35355834",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5194764,
+  "lon": 121.0218647,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/43255768",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5196375,
+  "lon": 121.0219245,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/424278127",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5215789,
+  "lon": 121.0144725,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/424278128",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5208403,
+  "lon": 121.0152877,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/451492339",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5181642,
+  "lon": 121.0205377,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/451687488",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5188995,
+  "lon": 121.0171668,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/691964720",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5206915,
+  "lon": 121.0228858,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/699155526",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5194362,
+  "lon": 121.0164058,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/840702864",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5215806,
+  "lon": 121.0142116,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/1351745753",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5183287,
+  "lon": 121.0205975,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/1351745754",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5174098,
+  "lon": 121.0190519,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/1351745755",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5173574,
+  "lon": 121.0190523,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Expressway",
+  "osm": "way/1351745756",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:NAIA Expressway",
+  "wikidata": "Q6952230",
+  "mapillary": null,
+  "lat": 14.5174733,
+  "lon": 121.0198281,
+  "wd": {
+   "label": "NAIA Expressway",
+   "desc": "road in the Philippines",
+   "facts": {
+    "image": [
+     "NAIA Expressway southbound.jpg"
+    ],
+    "opened": [
+     "2016"
+    ],
+    "length": [
+     "11.6"
+    ]
+   }
+  }
+ },
+ {
+  "name": "NAIA Terminal 3",
+  "osm": "way/303142869",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": "Q55622055",
+  "mapillary": null,
+  "lat": 14.5192253,
+  "lon": 121.0134397,
+  "wd": {
+   "label": "Ninoy Aquino International Airport Terminal 3",
+   "desc": "airport terminal in Manila",
+   "facts": {
+    "image": [
+     "Cebu Pacific Aircraft at NAIA T3 002.jpg"
+    ],
+    "official website": [
+     "http://www.miaa.gov.ph"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Newport",
+  "osm": "node/255054977",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": "Q17081925",
+  "mapillary": null,
+  "lat": 14.5222716,
+  "lon": 121.0160607,
+  "wd": {
+   "label": "Newport City, Metro Manila",
+   "desc": "Philippine district in Pasay",
+   "facts": {
+    "image": [
+     "Casa Fiore Manila.JPG"
+    ],
+    "official website": [
+     "http://www.newportcity.com.ph"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Newport Performing Arts Theatre",
+  "osm": "way/308870219",
+  "sites": [
+   "https://www.newportworldresorts.com/mall/newport-performing-arts-theater"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Newport Performing Arts Theater",
+  "wikidata": "Q86750307",
+  "mapillary": null,
+  "lat": 14.5192819,
+  "lon": 121.0195577,
+  "wd": {
+   "label": "Newport Performing Arts Theater",
+   "desc": "arts center in Pasay, Philippines",
+   "facts": {
+    "image": [
+     "Newport Ampitheater.png"
+    ],
+    "owner": [
+     "Q7315775"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Ninoy Aquino International Airport",
+  "osm": "relation/12733706",
+  "sites": [
+   "https://www.miaa.gov.ph/"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": "tl:Paliparang Pandaigdig ng Ninoy Aquino",
+  "wikidata": "Q86446",
+  "mapillary": null,
+  "lat": 14.5121945,
+  "lon": 121.0146616,
+  "wd": {
+   "label": "Ninoy Aquino International Airport",
+   "desc": "airport serving Metro Manila, Philippines and main international gateway to the Philippines",
+   "facts": {
+    "image": [
+     "Ninoy Aquino International Airport aerial view.jpg"
+    ],
+    "official website": [
+     "https://www.newnaia.com.ph/"
+    ],
+    "opened": [
+     "1948"
+    ],
+    "operator": [
+     "Manila International Airport Authority",
+     "New NAIA Infrastructure Corporation"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Sheraton Manila Hotel",
+  "osm": "node/7176652428",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": "Q111864130",
+  "mapillary": null,
+  "lat": 14.5181776,
+  "lon": 121.0183633,
+  "wd": {
+   "label": "Sheraton Manila Hotel",
+   "desc": "hotel in Pasay, Philippines",
+   "facts": {}
+  }
+ },
+ {
+  "name": "Shrine of St. Thérèse of the Child Jesus",
+  "osm": "way/46962390",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Shrine of St. Therese of the Child Jesus",
+  "wikidata": "Q7731563",
+  "mapillary": null,
+  "lat": 14.5212424,
+  "lon": 121.0159146,
+  "wd": {
+   "label": "Shrine of St. Therese, Doctor of the Church",
+   "desc": "church in Metro Manila, Philippines",
+   "facts": {
+    "image": [
+     "ShrineofSt.Therese,DoctoroftheChurchjf9743 11.JPG"
+    ],
+    "architectural style": [
+     "New Classical architecture"
+    ]
+   }
+  }
+ },
+ {
+  "name": "Villamor Air Base",
+  "osm": "way/43762468",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Villamor Air Base",
+  "wikidata": "Q2663480",
+  "mapillary": null,
+  "lat": 14.5171474,
+  "lon": 121.0233146,
+  "wd": {
+   "label": "Villamor Airbase",
+   "desc": "airbase of the Philippine Air Force",
+   "facts": {
+    "image": [
+     "VillamorAirBasej-Bulacanf0894 11.JPG"
+    ],
+    "opened": [
+     "1919"
+    ],
+    "operator": [
+     "Philippine Air Force"
+    ]
+   }
+  }
+ },
+ {
+  "name": "(unnamed)",
+  "osm": "node/6711224589",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": "762545861097475",
+  "lat": 14.5217364,
+  "lon": 121.0161969
+ },
+ {
+  "name": "(unnamed)",
+  "osm": "node/6773494889",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": "513406503367672",
+  "lat": 14.5213157,
+  "lon": 121.0166211
+ },
+ {
+  "name": "(unnamed)",
+  "osm": "node/8412856317",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": "494868464992493",
+  "lat": 14.5215899,
+  "lon": 121.0145136
+ },
+ {
+  "name": "(unnamed)",
+  "osm": "way/798268706",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": "208156057779679",
+  "lat": 14.5212876,
+  "lon": 121.0165695
+ },
+ {
+  "name": "Belmont Hotel",
+  "osm": "way/310487804",
+  "sites": [
+   "https://www.belmonthotelmanila.com/"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5209455,
+  "lon": 121.0165149
+ },
+ {
+  "name": "Church of God - Marriott Manila",
+  "osm": "node/4576325191",
+  "sites": [
+   "https://facebook.com/cogmarriottmanila"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5206135,
+  "lon": 121.0188612
+ },
+ {
+  "name": "E2: Skyway At-grade southbound",
+  "osm": "relation/12373065",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Skyway (Metro Manila)",
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.4806021,
+  "lon": 121.0317448
+ },
+ {
+  "name": "Holiday Inn Express",
+  "osm": "way/142511876",
+  "sites": [
+   "https://www.ihg.com/holidayinnexpress/hotels/us/en/pasay/mnlrm/hoteldetail"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.517882,
+  "lon": 121.0194586
+ },
+ {
+  "name": "Hotel Okura Manila",
+  "osm": "node/9268249270",
+  "sites": [
+   "https://www.hotelokuramanila.com/"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5194295,
+  "lon": 121.0181648
+ },
+ {
+  "name": "La Creperie - Newport Mall",
+  "osm": "node/12925554624",
+  "sites": [
+   "https://lacreperieph.com"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5189722,
+  "lon": 121.0200008
+ },
+ {
+  "name": "Lufthansa Technik Philippines",
+  "osm": "way/317650016",
+  "sites": [
+   "https://www.ltp.com.ph/"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.514466,
+  "lon": 121.0233576
+ },
+ {
+  "name": "Metro Manila Subway (Asia World --> Manila International Airport --> Lawton West)",
+  "osm": "relation/9365164",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Metro Manila Subway",
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5206062,
+  "lon": 121.014495
+ },
+ {
+  "name": "Metro Manila Subway (Lawton West --> Manila International Airport --> Asia World)",
+  "osm": "relation/9365149",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Metro Manila Subway",
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5206062,
+  "lon": 121.014495
+ },
+ {
+  "name": "Metro Manila Subway: East Valenzuela → FTI",
+  "osm": "relation/9352993",
+  "sites": [],
+  "commons": null,
+  "image": null,
+  "wikipedia": "en:Metro Manila Subway Line 9",
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5970647,
+  "lon": 121.0420906
+ },
+ {
+  "name": "St. Therese Columbarium",
+  "osm": "node/4128401427",
+  "sites": [
+   "https://www.therese.ph/homepage/"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.521472,
+  "lon": 121.0161668
+ },
+ {
+  "name": "Starbucks",
+  "osm": "node/11018945056",
+  "sites": [
+   "https://www.starbucks.ph/"
+  ],
+  "commons": null,
+  "image": null,
+  "wikipedia": null,
+  "wikidata": null,
+  "mapillary": null,
+  "lat": 14.5184982,
+  "lon": 121.0198212
+ }
+]
