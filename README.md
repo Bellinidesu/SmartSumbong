@@ -1,147 +1,251 @@
 # SmartSumbong
 
-A hybrid barangay complaint and incident reporting system for **Barangay 183, Pasay City**.
-Capstone project, BS Information Technology, Polytechnic University of the Philippines.
+A hybrid complaint and incident reporting system for **Barangay 183, Zone 20,
+Villamor, Pasay City**. Residents file complaints from their phones, the
+barangay reviews and dispatches them from a web portal, and tanods receive,
+work and resolve them in the field, with every step recorded.
+
+Capstone project of Group 12, Bachelor of Science in Information Technology,
+Polytechnic University of the Philippines, College of Computer and
+Information Sciences.
+
+| | |
+|---|---|
+| Admin portal | https://smartsumbong-ph.onrender.com |
+| Mobile app | Android APK (residents and tanods, one app) |
+| Status | Final defense build, October 2026 |
 
 ## Scope
 
-Complaint reporting only. The emergency dispatch feature was removed by unanimous
-panel direction — the system surfaces emergency service hotlines instead of
-handling emergency response itself.
+SmartSumbong handles **complaints**: noise, obstruction, waste, stray animals,
+traffic, public safety, barangay services and the like. The emergency
+dispatch feature was removed by unanimous panel direction: the app lists the
+emergency hotlines instead of handling emergency response itself.
 
-Three actors: **Resident**, **Barangay Tanod**, **Barangay Admin**.
+Three actors, and nobody else:
+
+| Actor | Uses | Does |
+|---|---|---|
+| **Resident** | the app | registers with an ID, files complaints (photos, video, place, one or more concerns), follows each one on a timeline, talks to the barangay in the complaint's thread, rates the result, appeals or reopens |
+| **Barangay Tanod** | the same app, signed in as a tanod | goes on and off duty, accepts or hands back dispatches, navigates to the place, posts updates with proof, asks to escalate, submits the resolution |
+| **Barangay Admin** (secretary, kagawad, chairman) | the portal | verifies accounts, validates complaints, sets the deadline, dispatches a tanod, approves resolutions, escalates up the barangay (kagawad by committee, then the chairman) or to an outside office, reads the map, the dashboard and the report summary |
+
+## What it does
+
+- **The case lifecycle, end to end.** Filed → validated → assigned with a
+  target date → accepted → on the way → arrived → resolved by the tanod →
+  approved by the admin → rated by the resident. Rejections, appeals,
+  reopening, deadline extensions (capped, with reasons), escalation and
+  cancellation are all first-class states.
+- **One handler per case.** The first admin to act handles the case; others
+  see who has it and can take it over only with a reason.
+- **A tamper-evident audit trail.** Every status change is appended to a
+  hash-chained log the database itself can verify; complaints are never
+  deleted.
+- **The SMART engine.** Rule-based, not a model, and every result says why:
+  an urgency score for each complaint (it reads Taglish), likely duplicates,
+  the best tanod to send, deadline risk, recurring problems, storm mode, a
+  priority queue and three briefings a day. See [docs/SMART.md](docs/SMART.md).
+- **Maps.** Spatial Distribution: every complaint on a vector map of the
+  barangay with heatmap, hotspots, flood and storm-surge zones, transit,
+  air quality, safe points and street-level "Look around".
+- **The Workspace.** A work board of every open case by stage, plus 120
+  widgets each staff member picks for their own screen (weather, PAGASA and
+  GDACS hazard watches, team posts, rosters, tools, RSS). See
+  [docs/WIDGETS.md](docs/WIDGETS.md).
+- **Barangay paperwork.** The Complaint Summary form, a single complaint on
+  the barangay's letterhead, and the Certification of Lack of Jurisdiction,
+  as PDFs.
+- **Works offline where it matters.** The app keeps its last copy of every
+  screen and queues a complaint filed without signal until it can send it.
+- **English and Tagalog** everywhere, light and dark themes, accessible
+  touch targets and contrast (WCAG AA).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Phones
+    APP["SmartSumbong app<br/>Flutter (resident + tanod)"]
+  end
+  subgraph Render
+    PORTAL["Admin portal<br/>PHP 8.5 + Apache (Docker)"]
+  end
+  subgraph Supabase
+    AUTH["Auth (GoTrue)"]
+    DB[("PostgreSQL + PostGIS<br/>RLS, functions, pg_cron")]
+    RT["Realtime"]
+    EF["Edge Functions<br/>(Deno)"]
+  end
+  CLD["Cloudinary<br/>photos and video"]
+  FCM["Firebase Cloud Messaging"]
+  SMS["Semaphore SMS"]
+
+  APP -- "sign-in, PostgREST" --> AUTH & DB
+  APP -- "live updates" --> RT
+  APP -- "uploads" --> CLD
+  PORTAL -- "PostgREST with the admin's token" --> DB
+  PORTAL -- "sign-in" --> AUTH
+  DB -- "webhook" --> EF
+  EF --> FCM --> APP
+  EF --> SMS
+  EF --> CLD
+```
+
+The database is the system: every state change is a PostgreSQL function that
+moves the status, writes the audit trail and notifies the people involved in
+one transaction, and row-level security decides what each role can see. The
+portal and the app are clients of it. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+explains each part.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Backend | Supabase — PostgreSQL, Realtime, Edge Functions, Auth, RLS, pg_cron |
-| GIS | PostGIS; MapLibre GL (portal: JS, app: Flutter) on OpenFreeMap vector tiles |
-| Admin portal | PHP 8, own CSS (Figma design, light/dark, English/Tagalog), Chart.js |
-| Mobile app | Flutter — one app for residents and tanods (Android) |
-| Media | Cloudinary (unsigned uploads, EXIF stripped on the phone) |
-| Push | Firebase Cloud Messaging, via the `send-dispatch-push` Edge Function |
-| Walking routes | OpenStreetMap FOSSGIS router (tanod navigation) |
-| SMS | Semaphore, via the `password-otp` Edge Function, behind a switch (see below) |
+| Backend | Supabase: PostgreSQL 17, PostGIS, Auth, Realtime, Edge Functions (Deno 2.9), pg_cron, Vault |
+| Admin portal | PHP 8.5 on Apache in Docker, no framework and no build step; own CSS (Figma design); MapLibre GL JS on OpenFreeMap vector tiles; Chart.js |
+| Mobile app | Flutter 3.47 (Android; minimum Android 7.0); MapLibre; on-device ML Kit OCR (switched off) |
+| Media | Cloudinary, SHA-256 signed uploads; identity photos private; location data stripped |
+| Push | Firebase Cloud Messaging through the `send-dispatch-push` Edge Function; Crashlytics for app crashes |
+| SMS | Semaphore through the `password-otp` Edge Function (built, switched off until credits are bought) |
+| Hosting | Render (portal, Singapore), Supabase (database, Mumbai), GitHub Actions (CI, backups, deploys) |
 
-### On SMS and email
+## Repository layout
 
-Neither is a dependency: every path through the system works without one.
-
-The sign-in identity is the mobile number, and the auth address derived
-from it (`639XXXXXXXXX@auth.smartsumbong.local`) is on a reserved domain
-that cannot receive mail — deliberately, so that nothing can be looked
-up and nothing enumerated (migration 0021). One consequence is that
-Supabase's built-in password reset mails an address that does not exist.
-
-The reset path is therefore in person: the barangay checks an ID at the
-counter, the same inspection that approved the account, and issues a
-temporary password the resident must change on next sign-in (migrations
-0028 and 0029). It costs nothing to run, needs no SMS credit, and works
-during an outage.
-
-The admin portal is the one exception. An administrator signs in with a
-real email address (`login.php`), not a synthetic one, so Supabase's
-built-in recovery mail actually reaches them —
-`admin/forgot-password.php` and `admin/reset-password.php` use it.
-**This needs one manual step per environment:** add
-`<your deployment URL>/admin/reset-password.php` to Supabase Dashboard →
-Authentication → URL Configuration → Redirect URLs, or GoTrue will
-refuse the recovery link with an unauthorized-redirect error. There is
-no equivalent for residents or tanods — see above.
-
-Verification is a human decision that takes minutes to hours. The
-pending screen polls rather than waiting on a message.
-
-SMS codes are built as the faster route alongside the counter
-(migrations 0085 and 0104): forgot password, and moving an account to a
-new mobile number, by a 6-digit code sent through Semaphore from the
-`password-otp` Edge Function. They carry a per-message cost, so the app
-keeps them behind `kSmsResetEnabled` and the counter stays the route that
-always works, with no load, no signal, or no credits.
+```
+admin/                    The admin portal (PHP). One file per page.
+  dashboard.php             figures for a month, SMART tiles
+  workspace.php             the work board and the widget rail
+  cases.php, case.php       Case Reports: the list, and one complaint with every admin action
+  spatial.php, layers.php   Spatial Distribution: the map and its layers
+  summary.php               Report Summary; complaint-summary.php and complaint-print.php are its PDFs
+  certificate.php           Certification of Lack of Jurisdiction
+  residents.php, personnel.php, retirement-requests.php   accounts and requests
+  notifications.php, activity.php, settings.php, profile.php
+  widgets.php, workspace-act.php, widget-view.php, hazards.php   the widgets' data, writes and preview
+  login.php, forgot-password.php, reset-password.php, change-password.php, request-access.php
+  includes/                 auth, the Supabase client, layout, i18n (t(en, fil)), page logic
+  assets/                   css, js, icons, fonts, map styles and data, vendored libraries
+mobile/
+  core/                     shared Flutter package: auth, uploads, push, OCR, biometrics, offline cache
+  resident/                 the SmartSumbong app; tanod screens under lib/tanod/
+supabase/
+  migrations/               0001–0132, applied in order, never edited once applied
+  baseline/                 the whole schema as one generated file, proven equal to the migrations
+  functions/                Edge Functions: delete-account, media-cleanup, password-otp,
+                            send-dispatch-push, sign-upload
+  tests/                    rolled-back database checks and the query performance budget
+  seed.sql, config.toml     SLA guide hours and boundary; per-function JWT settings
+docs/                     architecture, operations, incidents, schema, SMART, widgets, panel asks
+tools/                    builders for the portal's map data (transit routes, safe points)
+scripts/                  one-off maintenance scripts
+.github/                  CI, security scanning, nightly backup, deploy, keep-awake; Dependabot
+Dockerfile, .htaccess     the portal's image and Apache rules
+index.php                 the landing page at the site root
+run-dev-server.bat        the portal on this PC at http://127.0.0.1:8000/admin/
+```
 
 ## Getting started
 
+You need PHP 8.5, Flutter 3.47, Node 24, Deno 2.9 and the Supabase CLI 2.120
+(the versions CI pins).
+
+**The portal, locally**
+
 ```bash
-npm install -g supabase
-supabase login
-supabase link --project-ref <your-project-ref>
-
-# Enable in Dashboard → Database → Extensions first:
-#   postgis, pg_cron
-
-supabase db push
-psql "$DATABASE_URL" -f supabase/seed.sql
-
-cp .env.example .env    # then fill it in — .env is gitignored
+cp .env.example .env          # fill in SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY at least
+php -S 127.0.0.1:8000 -t .    # or run-dev-server.bat on Windows
+# open http://127.0.0.1:8000/admin/
 ```
 
-A new project can load `supabase/baseline/baseline.sql` (the same schema
-in one file, see its README) instead of replaying every migration.
-`bash supabase/tests/local/run-local.sh` runs the database checks locally
-without touching the live project.
+It talks to whichever Supabase project `.env` names. Against production,
+anything you click changes real data.
 
-Then see `DEPLOY.md` for the admin portal (Render or `run-dev-server.bat`)
-and for building the Android app.
+**The app**
 
-## Layout
-
+```bash
+cd mobile/resident
+flutter run --dart-define-from-file=dart_defines.json
+# or, with no backend at all, the real screens on demo data:
+flutter run -d web-server --web-port 5000 -t lib/main_preview.dart
 ```
-admin/                   PHP admin portal
-  dashboard.php            figures for a month (live)
-  cases.php, case.php      Case Reports: the list, and one complaint with every
-                           admin action (validate, assign, reroute, approve
-                           resolution, status, escalate, threads)
-  spatial.php              map: pins, heatmap, hotspots, layers, the SMART engine
-  widgets.php,
-  workspace-act.php        the Workspace widgets: data and saves (docs/WIDGETS.md)
-  summary.php              Report Summary
-  complaint-summary.php    its PDF: the barangay's Complaint Summary form
-  certificate.php          Certification of Lack of Jurisdiction (escalated cases)
-  residents.php,
-  personnel.php            accounts (includes/accounts.php)
-  retirement-requests.php  Extra Administrative Services (includes/retirement.php)
-  includes/                auth, Supabase client, layout, i18n (t(en, fil))
-  assets/                  css, js, map data, vendored libraries
-mobile/core/             shared Flutter package (auth, media upload, push, …)
-mobile/resident/         the SmartSumbong app — residents, and tanods under
-                         lib/tanod/ (dispatch window, navigation, outbox)
-supabase/migrations/     0001–0132, applied in order (see docs/schema.md)
-supabase/baseline/       the same schema as one file, rebuilt and proven by CI
-supabase/tests/          database checks, run in CI and by tests/local/run-local.sh
-supabase/functions/      Edge Functions: delete-account, media-cleanup, password-otp,
-                         send-dispatch-push, sign-upload
-supabase/seed.sql        SLA guide hours (placeholders) + boundary
-docs/schema.md           tables, functions by actor, rules, use-case coverage
-docs/SMART*.md           the SMART engine and its screens
-docs/OPERATIONS.md,
-docs/INCIDENTS.md        running the live system, and what went wrong before
-docs/chat/               admin ↔ tanod chat: draft schema (not a migration)
-docs/email/              the admin password-reset mail template for Supabase Auth
-tools/                   builders for the portal's map data (transit, safe points)
-DEPLOY.md                portal on Render, database, building the APK
-run-dev-server.bat       local portal on http://127.0.0.1:8000/admin/
+
+**The database**
+
+```bash
+supabase link --project-ref <ref>
+supabase db push              # apply new migrations
 ```
+
+A brand-new project can load `supabase/baseline/baseline.sql` instead of
+replaying 125 migrations. [DEPLOY.md](DEPLOY.md) sets up every part from
+nothing.
+
+## Testing
+
+| What | Command | In CI |
+|---|---|---|
+| Portal: parse, start, security headers, nonce CSP | `bash .github/scripts/portal-smoke.sh` | every push |
+| Every English string has its Tagalog | `php .github/scripts/i18n-check.php` | every push |
+| Page, script, stylesheet and photo size budgets | `bash .github/scripts/perf-budget.sh` | every push |
+| App and core: analyzer, unit, widget and flow tests | `flutter analyze && flutter test` (in each package) | when `mobile/` changes |
+| Release APK under 60 MB | `flutter build apk --release` | when `mobile/` changes |
+| Edge Functions | `deno check supabase/functions/*/index.ts && deno lint supabase/functions && deno test --allow-env supabase/functions` | every push |
+| Database: every migration, then every rolled-back check | `bash supabase/tests/local/run-local.sh` (needs PostgreSQL) | every push |
+| Secrets, dependency advisories, CodeQL | the Security workflow | every PR, push and weekly |
+
+## Documentation
+
+| Document | For |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the parts fit: data flow, security model, the portal and the app inside |
+| [DEPLOY.md](DEPLOY.md) | Setting up every part from nothing; every configuration value |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Running production: releasing, monitoring, backups |
+| [docs/INCIDENTS.md](docs/INCIDENTS.md) | What to do when something breaks or leaks |
+| [docs/schema.md](docs/schema.md) | Tables, functions by actor, scheduled jobs, the rules, use-case coverage |
+| [docs/SMART.md](docs/SMART.md), [docs/SMART_SCREENS.md](docs/SMART_SCREENS.md) | The SMART engine and where it shows |
+| [docs/WIDGETS.md](docs/WIDGETS.md) | The Workspace widgets' contract |
+| [docs/DEFENSE_ASKS.md](docs/DEFENSE_ASKS.md) | What the capstone panel asked for, and where each stands |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to change the code: branches, checks, conventions, commit messages |
+| [SECURITY.md](SECURITY.md) | Reporting a vulnerability; how the system protects data |
+| [CHANGELOG.md](CHANGELOG.md) | What changed, release by release |
 
 ## Conventions
 
 - The actor is **`tanod`**. The word "responder" belongs nowhere in this codebase.
-- Reports are **never deleted** — `deleted_at` only. The audit trail is the product.
-- Tanod change dispatch state through functions, never direct `UPDATE`.
-- SLA guide hours live in `sla_policies` as data, not as constants; the
-  deadline itself is set by the admin when assigning.
-- Every dispatch is the admin's. Escalation means sending a case to an
-  outside office. A tanod's resolution waits for the admin's approval.
+- Complaints are **never deleted**: `deleted_at` only. The audit trail is the product.
+- Every state change goes through a database function, never a bare `UPDATE`.
+- **Every dispatch is the admin's.** Nothing is dispatched at filing; the
+  system only re-offers a job a tanod handed back or did not accept in time.
+- The admin sets each deadline; `sla_policies` hours are a guide on the form.
+- A tanod's resolution waits for the admin's approval.
+- Escalation goes **up the barangay** (kagawad of the right committee, then the
+  chairman) or **out** to another office (VAWC desk, PNP, DSWD…), which closes
+  the case here.
 - Features put away for later stay in the code behind a switch rather than
-  being deleted (`ID_OCR_ENABLED`, `ADMIN_SUCCESSION_ENABLED`, `kIdOcrEnabled`).
-  The one exception is the 3D City view: it lives on the `bellinist`
-  branch only, so `main` carries none of its code.
+  being deleted (`ID_OCR_ENABLED`, `ADMIN_SUCCESSION_ENABLED`, `kIdOcrEnabled`,
+  `kSmsResetEnabled`). The one exception is the 3D City view: it lives on the
+  `bellinist` branch only, so `main` carries none of its code.
 
 ## Security
 
-This repository is **public**.
+This repository is **public**. No real resident names, complaints or ID images
+are in it; seed data is fictional. `.env`, keystores and `key.properties` are
+never committed; `dart_defines.json` is, and holds only public client values.
+See [SECURITY.md](SECURITY.md) for reporting a problem and for how the system
+protects personal data under the Data Privacy Act (RA 10173).
 
-- No real resident names, complaints, or ID images. Seed data is fictional.
-- Never commit `.env`. Use Codespaces Secrets.
-- `SUPABASE_SERVICE_ROLE_KEY` is server-side only — it bypasses RLS entirely.
-- A leaked key must be rotated. Deleting the file does not remove it from history.
+## Team
+
+Group 12, BSIT, PUP College of Computer and Information Sciences:
+Kim Justine S. Arcibal, Martin Alexander E. Barretto, Rose Angelyn O. Besarra,
+Ace Ahmerson E. Lediac, Jericho Troy E. Martin.
+
+Barangay 183, Zone 20, Villamor, Pasay City gave its written go-ahead to use
+its seal.
+
+## Licence
+
+Barangay 183 holds a perpetual, royalty-free licence to use, operate, modify
+and maintain the system; other barangays and local government units may use
+it on the same terms for non-commercial governmental use. See [LICENSE](LICENSE).

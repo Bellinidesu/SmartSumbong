@@ -1,39 +1,34 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# smartsumbong_core
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+The shared Flutter package behind the [SmartSumbong app](../resident): the
+services every screen relies on, kept apart from the screens so they can be
+tested and reused. Not published; the app depends on it by path.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+| File (`lib/src/`) | Does |
+|---|---|
+| `auth.dart` | sign-in, registration, sign-out, password changes against Supabase Auth |
+| `secure_session_storage.dart` | keeps the session tokens in the OS keystore, not in plain preferences |
+| `saved_login.dart` | remembered sign-in details, one set per role |
+| `biometric_auth.dart`, `biometric_lock_gate.dart` | fingerprint or face unlock, and the lock when the app returns from the background |
+| `media_upload.dart` | photo and video uploads to Cloudinary: signed by the `sign-upload` function, EXIF stripped first, the unsigned preset only as a fallback |
+| `video_location_strip.dart` | strips location metadata from videos |
+| `media_viewer.dart` | shared video playback |
+| `push_notifications.dart` | registers the device's FCM token and opens the right screen from a push |
+| `crash_reporting.dart` | Firebase Crashlytics |
+| `id_ocr.dart` | on-device ML Kit reading of ID photos (`kIdOcrEnabled`, off); only what it reads is sent, the server judges it |
+| `json_cache.dart` | the last-seen copy of each screen's data, for opening offline |
+| `connectivity_banner.dart` | the offline strip |
+| `permissions.dart` | camera and gallery permission prompts |
+| `names.dart` | how a name is written: casual "Ace Lediac" for greetings, formal "Lediac, Ace" for records, as the portal |
+| `app_dialog.dart` | the design's dialog card for core's own prompts |
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+`lib/smartsumbong_core.dart` exports them.
 
-## Features
-
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```bash
+flutter pub get
+flutter analyze      # must report nothing
+flutter test
 ```
 
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+Nothing here may hold a secret: everything in this package ships inside the
+APK.

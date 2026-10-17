@@ -1,0 +1,11 @@
+
+# Area: what changed, in plain words
+#
+# Why it changed, and anything a reader of `git log` needs: the cause of a
+# bug, the trade-off taken, what was checked. Wrap at about 72 columns.
+#
+# Co-Authored-By: Name <email>
+#
+# Area examples: Portal, App, Case page, Spatial Distribution, SMART,
+# Workspace widgets, CI, Docs, or a migration number (0132:).
+# See CONTRIBUTING.md, "Commit messages". Lines starting with # are dropped.

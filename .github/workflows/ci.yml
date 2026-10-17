@@ -20,8 +20,8 @@
 # Actions are pinned to commit hashes (Dependabot keeps them current) and
 # every tool to an exact version, so a run means the same thing next month.
 #
-# Render deploys smartsumbong-ph only after these pass when its Auto-Deploy
-# is set to "After CI checks pass".
+# Render deploys smartsumbong-ph by hand (Manual Deploy) after a merge; if
+# its Auto-Deploy is ever set to "After CI checks pass", these gate it.
 
 name: CI
 
