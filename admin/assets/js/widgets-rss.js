@@ -11,10 +11,12 @@
   // one story card
   function story(x, o) {
     o = o || {}; var l = WS.link(x.link), tag = l ? 'a' : 'div', c = o.c || '#356CF9';
-    var pub = x.src || x.feed || '';
-    return '<' + tag + ' class="wx-story' + (x.match && x.match.length ? ' is-hit' : '') + '"' + (l ? ' href="' + esc(l) + '" target="_blank" rel="noopener noreferrer"' : '') + ' style="--c:' + c + '">' + (o.lead ? '<span class="lead">' + o.lead + '</span>' : '') + '<b>' + mark(x.t, x.match || o.words) + '</b>' + (x.sum && !o.nosum ? '<p>' + esc(x.sum) + '</p>' : '') + '<small>' + (pub ? esc(pub) + ' · ' : '') + (x.at ? esc(WS.ago(x.at)) : '') + (x.match && x.match.length ? ' · ' + A.pill(x.match.map(esc).join(', '), '#FFB000') : '') + '</small></' + tag + '>';
+    var pub = x.src || x.feed || '', t = String(x.t || '').replace(/^M\s*[0-9.]+\s*-\s*/, ''); if (x.src && t.slice(-x.src.length - 3) === ' - ' + x.src) t = t.slice(0, -x.src.length - 3);
+    var sm = x.sum && x.sum.indexOf(t.slice(0, 40)) !== 0 ? x.sum : '';
+    return '<' + tag + ' class="wx-story' + (x.match && x.match.length ? ' is-hit' : '') + '"' + (l ? ' href="' + esc(l) + '" target="_blank" rel="noopener noreferrer"' : '') + ' style="--c:' + c + '">' + (o.lead ? '<span class="lead">' + o.lead + '</span>' : '') + '<b>' + mark(t, x.match || o.words) + '</b>' + (sm && !o.nosum ? '<p>' + esc(sm) + '</p>' : '') + '<small>' + (pub ? esc(pub) + ' · ' : '') + (x.at ? esc(WS.ago(x.at)) : '') + (x.match && x.match.length ? ' · ' + A.pill(x.match.map(esc).join(', '), '#FFB000') : '') + '</small></' + tag + '>';
   }
-  var stories = function (items, o) { return items.length ? '<div class="wx-stories">' + items.map(function (x) { return story(x, o); }).join('') + '</div>' : A.empty('news', T('Nothing new in this feed', 'Walang bago sa feed na ito')); };
+  var byNew = function (a) { return a.slice().sort(function (p, q) { return String(q.at || '').localeCompare(String(p.at || '')); }); };
+  var stories = function (items, o) { items = byNew(items); return items.length ? '<div class="wx-stories">' + items.map(function (x) { return story(x, o); }).join('') + '</div>' : A.empty('news', T('Nothing new in this feed', 'Walang bago sa feed na ito')); };
   var viaNote = function () { return '<p class="wx-note">' + T('News stories from a search, with the publisher named. Not an official notice: confirm with the utility or the city.', 'Mga balita mula sa paghahanap, may pangalan ng naglathala. Hindi opisyal na abiso: kumpirmahin sa utility o sa lungsod.') + '</p>'; };
   var feedOf = function (key) { return ok(WS.group('rss:' + key)); };
   var head = function (d, extra) { return '<div class="wx-row"><b style="font:800 15px Urbanist">' + esc(d.name) + '</b>' + (d.search ? A.pill(T('via Google News', 'sa pamamagitan ng Google News'), L.low) : '') + '<span class="wx-note" style="margin-left:auto">' + d.items.length + ' ' + T('stories', 'balita') + '</span></div>' + (extra || ''); };

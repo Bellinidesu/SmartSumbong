@@ -55,9 +55,9 @@
     bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21a2 2 0 0 0 4 0', flag: 'M5 21V4M5 4h11l-2 4 2 4H5', map: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14', bolt: 'M13 2L4 14h6l-1 8 9-12h-6z',
     battery: 'M3 8h15a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM21 11v2M5 10.500v3', compass: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M15.500 8.500l-2 5-5 2 2-5z', plus: 'M12 5v14M5 12h14', cross: 'M6 6l12 12M18 6L6 18',
     up: 'M6 15l6-6 6 6', down: 'M6 9l6 6 6-6', grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z', gear: 'M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.400-2.300.9a7 7 0 0 0-2-1.200L14 3h-4l-.6 2.600a7 7 0 0 0-2 1.200l-2.300-.9-2 3.400 2 1.500a7 7 0 0 0 0 2.400l-2 1.500 2 3.400 2.300-.9a7 7 0 0 0 2 1.200L10 21h4l.6-2.600a7 7 0 0 0 2-1.200l2.300.9 2-3.400-2-1.500c.1-.4.1-.8.1-1.200z',
-    refresh: 'M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5', warn: 'M12 3l10 18H2zM12 10v5M12 18v.01', wifi: 'M2 9a15 15 0 0 1 20 0M5 12.500a10 10 0 0 1 14 0M8.500 16a5 5 0 0 1 7 0M12 19.500v.01',
+    refresh: 'M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5', warn: 'M12 3l10 18H2zM12 10v5M12 18v.01',
     book: 'M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10', text: 'M5 6h14M12 6v13M9 19h6', ball: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 8m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0', coin: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 7v10M9 9.500c0-1 1-1.500 3-1.500s3 .7 3 1.700-1 1.300-3 1.800-3 .8-3 1.800S10 15 12 15s3-.5 3-1.500',
-    lock: 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3', key: 'M8 14a4 4 0 1 1 3.900-4.800L21 10v3h-2v2h-3v-2.500h-3.100A4 4 0 0 1 8 14z', link: 'M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700L12 6.300M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700L12 17.700', mood: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M8 14.500a5 5 0 0 0 8 0M9 9.500h.01M15 9.500h.01'
+    key: 'M8 14a4 4 0 1 1 3.900-4.800L21 10v3h-2v2h-3v-2.500h-3.100A4 4 0 0 1 8 14z', link: 'M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700L12 6.300M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700L12 17.700', mood: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M8 14.500a5 5 0 0 0 8 0M9 9.500h.01M15 9.500h.01'
   };
   var IC = { brief: 'brain', flood: 'drop', ty: 'storm', wx: 'cloud', heat: 'temp', quake: 'quake', aq: 'wind', tide: 'wave', sun: 'sun', news: 'news', fuel: 'fuel', uv: 'sun', wind: 'wind', hourly: 'clock', week: 'cal', press: 'pulse', sea: 'wave',
     risk: 'pin', queue: 'list', due: 'clock', rec: 'refresh', mix: 'ring', pace: 'pulse', street: 'map', eff: 'chart', minimap: 'map', recent: 'list', photos: 'camera', search: 'search', trend: 'chart', hours: 'clock', status: 'chart', sla: 'check', escal: 'up', today: 'check',
@@ -95,11 +95,11 @@
     vals.forEach(function (x, i) { if (x == null) return; pts.push(X(i).toFixed(1) + ',' + Y(x).toFixed(1)); last = [X(i), Y(x)]; });
     if (!pts.length) return '';
     area = 'M' + pts[0] + ' L' + pts.join(' L') + ' L' + X(vals.length - 1).toFixed(1) + ',' + (H - 2) + ' L' + X(0).toFixed(1) + ',' + (H - 2) + 'Z';
-    return '<svg class="wx-spark" viewBox="0 0 ' + W + ' ' + H + '" style="--c:' + c + '" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="' + area + '"/><polyline class="l" points="' + pts.join(' ') + '"/>' + (last ? '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3.4"/>' : '') + '</svg>';
+    return '<svg class="wx-spark" viewBox="0 0 ' + W + ' ' + H + '" style="--c:' + c + ';height:' + H + 'px" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="' + area + '"/><polyline class="l" points="' + pts.join(' ') + '"/>' + (last ? '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3.4"/>' : '') + '</svg>';
   };
   A.bars = function (vals, c, o) {
     o = o || {}; var W = 240, H = o.h || 64, mx = Math.max.apply(null, vals.concat([o.max || 1])), n = vals.length, bw = W / n;
-    return '<svg class="wx-bars" viewBox="0 0 ' + W + ' ' + H + '" style="--c:' + c + '" preserveAspectRatio="none" aria-hidden="true">' + vals.map(function (x, i) { var h = Math.max(x ? 3 : 1.5, x / mx * (H - 4)); return '<rect x="' + (i * bw + 1.5).toFixed(1) + '" y="' + (H - h).toFixed(1) + '" width="' + (bw - 3).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2.5"' + (o.hi === i ? ' class="hi"' : '') + ' style="--d:' + (i * 14) + 'ms"/>'; }).join('') + '</svg>';
+    return '<svg class="wx-bars" viewBox="0 0 ' + W + ' ' + H + '" style="--c:' + c + ';height:' + H + 'px" preserveAspectRatio="none" aria-hidden="true">' + vals.map(function (x, i) { var h = Math.max(x ? 3 : 1.5, x / mx * (H - 4)); return '<rect x="' + (i * bw + 1.5).toFixed(1) + '" y="' + (H - h).toFixed(1) + '" width="' + (bw - 3).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2.5"' + (o.hi === i ? ' class="hi"' : '') + ' style="--d:' + (i * 14) + 'ms"/>'; }).join('') + '</svg>';
   };
   A.ago = function (at, stale) { return at ? '<span class="wx-ago' + (stale ? ' is-old' : '') + '">' + (stale ? T('older reading · ', 'lumang basa · ') : '') + WS.ago(at) + '</span>' : ''; };
   A.src = function (s) { return '<span class="wx-src">' + esc(s) + '</span>'; };
@@ -123,8 +123,9 @@
       if (r.status === 401) { location.href = 'login.php?expired=1'; throw 0; }
       return r.json();
     }).then(function (j) {
-      var now = Date.now(); Object.keys(j.groups || {}).forEach(function (g) { S.data[g] = j.groups[g]; S.at[g] = now; });
-      return j;
+      var now = Date.now(), jobs = [];
+      Object.keys(j.groups || {}).forEach(function (g) { S.data[g] = j.groups[g]; S.at[g] = now; if (!j.groups[g].ok && WS.fallback && WS.fallback[g]) jobs.push(WS.fallback[g]().then(function (r) { if (r && r.ok) { S.data[g] = r; S.at[g] = Date.now(); } }).catch(function () {})); });
+      return Promise.all(jobs).then(function () { return j; });
     });
   };
   WS.group = function (g) { return S.data[g] || null; };
@@ -172,6 +173,7 @@
     }).join('');
     var cur = rail.querySelector('[aria-selected="true"]'); if (cur && cur.scrollIntoView && !reduce) { try { cur.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
   }
+  function whyOf(gs) { for (var i = 0; i < gs.length; i++) { var d = S.data[gs[i]]; if (d && d.why) return d.why; } return ''; }
   function skeleton() { return '<div class="wx-skel" aria-hidden="true"><i></i><i></i><i></i></div>'; }
   function needsOf(id) { return groupsFor(id); }
   function paint(force) {
@@ -185,7 +187,7 @@
     bad = bad.filter(function (g) { return optional.indexOf(g) < 0; });
     var html;
     if (bad.length) {
-      html = S.busy2.has(id) ? skeleton() : '<div class="wx-empty is-bad">' + WS.svg('warn', 30, 1.5) + '<b>' + T('This could not be read right now', 'Hindi mabasa ito sa ngayon') + '</b><span>' + T('The source did not answer. It will try again by itself.', 'Hindi sumagot ang pinagkukunan. Susubukan itong muli nang kusa.') + '</span>' + A.btn(WS.svg('refresh', 15) + T('Try again', 'Subukan muli'), 'refresh') + '</div>';
+      html = S.busy2.has(id) ? skeleton() : '<div class="wx-empty is-bad">' + WS.svg('warn', 30, 1.5) + '<b>' + T('This could not be read right now', 'Hindi mabasa ito sa ngayon') + '</b><span>' + T('The source did not answer. It will try again by itself.', 'Hindi sumagot ang pinagkukunan. Susubukan itong muli nang kusa.') + (whyOf(bad) ? ' (' + esc(whyOf(bad)) + ')' : '') + '</span>' + A.btn(WS.svg('refresh', 15) + T('Try again', 'Subukan muli'), 'refresh') + '</div>';
     } else {
       try { html = def.r({ D: S.data, S: S, id: id }); } catch (e) { html = '<div class="wx-empty is-bad">' + WS.svg('warn', 30, 1.5) + '<b>' + T('This widget hit a problem', 'May problema ang widget na ito') + '</b></div>'; if (window.console) console.error(e); }
     }

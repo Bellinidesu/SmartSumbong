@@ -65,7 +65,7 @@
   W.hol = {
     r: function () {
       var h = ok(WS.group('holidays')).next, now = new Date(today() + 'T12:00:00+08:00');
-      return '<div class="wx-list">' + h.slice(0, 7).map(function (x) { var d = Math.round((new Date(x.date + 'T12:00:00+08:00') - now) / 864e5); return A.item({ av: esc(x.date.slice(8)), c: '#2D4FA8', sq: 1, t: esc(x.local || x.name), s: esc(WS.fmt.wdl(x.date + 'T12:00:00+08:00')) + ', ' + esc(WS.fmt.day(x.date + 'T12:00:00+08:00')) + (x.local && x.local !== x.name ? ' · ' + esc(x.name) : ''), r: d === 0 ? A.pill(T('Today', 'Ngayon'), L.ok) : d === 1 ? T('Tomorrow', 'Bukas') : d + ' ' + T('days', 'araw') }); }).join('') + '</div>';
+      return '<div class="wx-list">' + h.slice(0, 7).map(function (x) { var d = Math.round((new Date(x.date + 'T12:00:00+08:00') - now) / 864e5); return A.item({ av: esc(x.date.slice(8)), c: '#2D4FA8', sq: 1, t: esc(WS.C.lang === 'fil' ? (x.local || x.name) : x.name), s: esc(WS.fmt.wdl(x.date + 'T12:00:00+08:00')) + ', ' + esc(WS.fmt.day(x.date + 'T12:00:00+08:00')) + (x.local && x.local !== x.name ? ' · ' + esc(WS.C.lang === 'fil' ? x.name : x.local) : ''), r: d === 0 ? A.pill(T('Today', 'Ngayon'), L.ok) : d === 1 ? T('Tomorrow', 'Bukas') : d + ' ' + T('days', 'araw') }); }).join('') + '</div>';
     }, src: 'Nager.Date'
   };
   W.cal = {

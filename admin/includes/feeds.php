@@ -57,7 +57,7 @@ function feed_cached(string $key, int $ttl, callable $make): array
     if (is_array($old)) {
         return ['ok' => true, 'stale' => true, 'at' => $old['at'] ?? null, 'data' => $old['data'] ?? null];
     }
-    return ['ok' => false, 'stale' => false, 'at' => null, 'data' => null];
+    return ['ok' => false, 'stale' => false, 'at' => null, 'data' => null, 'why' => mb_substr((string) ($GLOBALS['ss_feed_why'] ?? ''), 0, 120)];
 }
 
 /** Shared cURL options: https only, short timeouts, a cap on the size of the answer. */
@@ -92,7 +92,9 @@ function feed_get(string $url, int $timeout = 8, array $headers = []): ?string
     curl_setopt_array($ch, [CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 3, CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS]);
     $ok   = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    return ($ok !== false && $code === 200 && $body !== '') ? $body : null;
+    $good = $ok !== false && $code === 200 && $body !== '';
+    $GLOBALS['ss_feed_why'] = $good ? '' : ($ok === false ? curl_error($ch) : 'HTTP ' . $code);
+    return $good ? $body : null;
 }
 
 /** GET JSON from a fixed address, decoded to an array; null on failure. */
