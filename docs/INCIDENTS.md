@@ -117,7 +117,12 @@ rotating, which would need a new app release.
 
 Then: `gitleaks` (Security workflow) to make sure nothing else is in the
 history; if the secret is in git history, rotating is the fix: rewriting
-history does not un-publish a public repository.
+history does not un-publish a public repository. GitHub's secret scanning
+(Security → Secret scanning) lists keys it recognises in the history; close
+an alert only once the key is rotated, or, for a key public by design, once
+it is restricted. Push protection refuses a push that contains a new key: take
+the key out of the commit (`git commit --amend` before it is pushed) and keep
+it in `.env` or the provider's secret store instead.
 
 ## Personal data exposed (Level 1)
 

@@ -17,10 +17,15 @@ when something breaks. Written for whoever maintains it next (October 2026).
 
 1. Work on a branch; open a pull request to `main`.
 2. **CI** (`.github/workflows/ci.yml`) runs on every push and pull request:
-   - **portal** — every PHP and JS file parses; the portal starts and answers
-     (login, sign-in redirect, ping, 404 page, security headers, a nonce on
-     every script, no inline event handlers);
-   - **mobile** — `flutter analyze` with no findings allowed, all tests;
+   - **portal** — every PHP and JS file parses; the web manifest is valid;
+     every English string has its Tagalog (`i18n-check.php`); the size
+     budgets hold (`perf-budget.sh`); the portal starts and answers (login,
+     sign-in redirect, ping, 404 page, security headers, a nonce on every
+     script, no inline event handlers);
+   - **mobile** — only when `mobile/` changed: `flutter analyze` with no
+     findings allowed and all tests, for `core` and the app;
+   - **app-size** — only when `mobile/` changed: the arm64 release APK is
+     built and must stay under 60 MB;
    - **functions** — the Edge Functions type-check, lint and pass their tests;
    - **database** — every migration applied to a throwaway PostgreSQL in the
      runner, every rolled-back check in `supabase/tests`, and the baseline
@@ -37,9 +42,12 @@ when something breaks. Written for whoever maintains it next (October 2026).
    JavaScript, TypeScript and workflows. Actions are pinned to commit hashes
    and tools to exact versions; Dependabot proposes updates weekly
    (Flutter packages, Actions, the Docker base image).
-3. Merge when CI is green. Render deploys the portal automatically **only
-   after CI passes** (Auto-Deploy: *After CI checks pass*), and checks
-   `/admin/ping.php` before switching traffic to the new version.
+3. Merge when CI is green (squash merge; the branch deletes itself). Then
+   deploy the portal by hand: Render → smartsumbong-ph → **Manual Deploy →
+   Deploy latest commit**. Render checks `/admin/ping.php` before switching
+   traffic to the new version, and keeps the previous deploy for a rollback.
+   (Auto-Deploy is off on purpose; *After CI checks pass* is the setting to
+   use if it is ever turned back on.)
 4. Database changes and Edge Functions: Actions → **Deploy** → Run
    workflow on main (`.github/workflows/deploy.yml`), first with *apply*
    off to see which migrations would run, then with it on. It pushes the
@@ -69,22 +77,18 @@ Rules the code must keep (CI enforces most of them):
 
 ## Configuration
 
-Render environment variables (smartsumbong-ph): `SUPABASE_URL`,
-`SUPABASE_PUBLISHABLE_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
-`CLOUDINARY_API_SECRET`.
+Every value, where it is set and what breaks without it, is in
+[DEPLOY.md](../DEPLOY.md): Render's environment variables (section 5), the
+Edge Function secrets (section 2), GitHub's secrets (section 6) and the app's
+`dart_defines.json` (section 7). The points that need care in production:
 
-GitHub Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
-`BACKUP_PASSPHRASE` (the nightly backup), `CLOUDINARY_API_KEY` and
-`CLOUDINARY_API_SECRET` (the Deploy workflow passes them to the functions), `STAGING_DB_PASSWORD` and the
-variable `STAGING_PROJECT_REF` (optional staging checks) (also `SUPABASE_URL`, `SUPABASE_ANON_KEY` for the daily
-keep-awake job).
-
-Supabase secrets (Edge Functions): FCM service account values for
-`send-dispatch-push`, and optionally `PUSH_WEBHOOK_SECRET` (0114: once set,
-the function only answers a caller sending it as `x-webhook-secret`, so add
-that header to the Database Webhook first or pushes stop); `SEMAPHORE_API_KEY` and the OTP secret for
-`password-otp` (SMS reset is switched off in the app until Semaphore credits
-are bought).
+- **`PUSH_WEBHOOK_SECRET`** (0114): once set, `send-dispatch-push` only
+  answers a caller sending it as `x-webhook-secret`, so add that header to
+  the Database Webhook *first*, or pushes stop.
+- **SMS** (`password-otp`, `SEMAPHORE_API_KEY`) is built and switched off in
+  the app (`kSmsResetEnabled`) until Semaphore credits are bought.
+- A value that lives only in a laptop's `.env` is not on Render: add it there
+  by hand.
 
 **Signed uploads (0116).** `sign-upload` needs `CLOUDINARY_API_KEY` and
 `CLOUDINARY_API_SECRET` as Supabase secrets; until they are set it answers
@@ -165,7 +169,7 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   grouped, newest in Settings → System status. App crashes go to Firebase
   Crashlytics.
 - **Performance budgets** (CI) — the sign-in page under 320 KB as a
-  browser receives it, each portal script under 8 KB and stylesheet under
+  browser receives it, each portal script under 16 KB and stylesheet under
   20 KB compressed, each photo under 160 KB
   (`.github/scripts/perf-budget.sh`); the arm64 release APK under 60 MB
   (app-size job, size in each run's summary); and the most-run queries
@@ -175,7 +179,15 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   call's time in the page source. Lighthouse: 100 on performance,
   accessibility and best practices.
 - **Dependencies** — Dependabot opens weekly update pull requests (Flutter
-  packages, GitHub Actions). Merge them through CI like any change.
+  packages, GitHub Actions, the Docker base image) and security-fix pull
+  requests when an advisory lands. Merge them through CI like any change;
+  a major version waits until it is stable and there is time to test it.
+- **GitHub security** — Security → Code scanning (CodeQL), Dependabot alerts
+  and Secret scanning. Push protection refuses a commit that contains a key.
+  The three secret-scanning alerts on the Firebase API keys stay open until
+  those keys are restricted in Google Cloud (DEPLOY.md, section 4).
+- **Actions storage** — caches past their use are evicted by GitHub; the
+  nightly backups expire after 30 days on their own.
 
 ## Backups and restore
 
@@ -219,7 +231,8 @@ be updated, only reinstalled.
 
 ## Secrets hygiene
 
-Never commit `.env`, `dart_defines.json`, `key.properties` or keystores (all
-in `.gitignore`; the repository is public). Rotate a key that was shared in
+Never commit `.env`, `key.properties` or keystores (all in `.gitignore`; the
+repository is public). `dart_defines.json` is committed and must only ever
+hold the app's public client values. Rotate a key that was shared in
 chat or a screenshot. Delete API keys made for one-off jobs (the Render API
 key used for the Singapore move) when the job is done.

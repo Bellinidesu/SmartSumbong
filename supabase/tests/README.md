@@ -1,8 +1,9 @@
 # Database checks
 
-Three scripts that walk the whole system through the real database, as each
-role (resident, second resident, tanod, admin), and then **roll everything
-back** — they end by raising `SWEEP-ROLLBACK`, so nothing they do is saved.
+Fourteen scripts (283 checks) that walk the whole system through the real
+database, as each role (resident, second resident, tanod, admin), and then
+**roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
+it does is saved. Add a check here for every new behaviour.
 
 | File | What it covers |
 |---|---|

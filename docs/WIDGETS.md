@@ -1,7 +1,11 @@
 # Workspace widgets: the backend
 
 Ace approved all 120 widgets on 17 Oct 2026 (aesthetics page, sections 33 and 34). This is what the portal serves
-them; the Workspace page itself (the slim rail, the sky bar, the library picker) is built on top of it.
+them (migration 0132, PR #131). The screen is built on top of it (#132–#136): the slim rail on the Workspace
+(`admin/includes/widget_panel.php`), the library with a live preview behind each widget's eye button
+(`admin/widget-view.php?w=id`, which saves nothing), the engine `assets/js/widgets-core.js` and eight lazy modules
+(`widgets-{live,cases,team,tools,apps,rss,games,me}.js`). Twelve are on by default (`WS_DEFAULT_TABS` in
+`admin/includes/widgets.php`).
 
 ## Doors
 
@@ -14,7 +18,10 @@ them; the Workspace page itself (the slim rail, the sky bar, the library picker)
 
 All three are administrators only, answer JSON, and never redirect: signed out is `401 {"error":"signed_out"}`. A
 background call does not keep the session alive (the two-hour idle sign-out still applies). The browser never calls
-an outside host: everything outside goes through the portal (the content-security policy stays as it is).
+an outside host for data, with one exception: when the portal's own request to a free weather source is refused
+(shared hosting addresses sometimes are), the weather, air, sea and quake widgets ask the same public API from the
+browser (`WS.fallback` in `widgets-live.js`), and the content-security policy allows exactly those hosts
+(api, air-quality-api and marine-api.open-meteo.com, earthquake.usgs.gov). The answer is marked `direct`.
 
 A failed group is `ok: false, data: null` and never takes another group down. An outside source that fails serves its
 last good copy with `stale: true`.

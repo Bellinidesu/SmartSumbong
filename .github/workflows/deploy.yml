@@ -14,7 +14,8 @@
 # "photos" runs scripts/privatize-identity-photos.mjs (dry-run lists, apply
 # moves); it needs the Cloudinary secrets here and the account already on
 # SHA-256 signing.
-# The portal is not deployed here: Render does that itself after CI passes.
+# The portal is not deployed here: after the merge, Render -> smartsumbong-ph ->
+# Manual Deploy (Auto-Deploy is off; docs/OPERATIONS.md).
 # Take a backup first (Actions -> Nightly backup -> Run workflow).
 #
 # Secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD (as for the backup);

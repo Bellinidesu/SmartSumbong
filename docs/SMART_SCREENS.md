@@ -1,9 +1,17 @@
 # SMART on screen: what to add, and where
 
-This is the screen side of the SMART engine (`docs/SMART.md`). The engine
-lives in the database; nothing below exists on screen yet. Each item
-gives where it goes, what it shows, the function or table it reads, and
-what it must not do.
+This is the screen side of the SMART engine (`docs/SMART.md`): where each
+part shows, what it shows, the function or table it reads, and what it must
+not do. Written as the plan on 10 Oct 2026; the portal built it on 14–16 Oct
+(#31, #32, #36, #37 and the drawer and mark passes after them), so read it as
+the specification each screen keeps to. Items marked *Nothing for now* were
+left out on purpose.
+
+Not on screen yet (17 Oct 2026): words to learn (6c, `smart_word_suggestions`,
+`smart_teach_word`), the week's patterns in 6d (`smart_time_patterns`; the
+scorecard is built), the ID checks in 7 (`smart_verify_queue`; waits for
+`ID_OCR_ENABLED`), and the storm notice on *every* page in 6b (storm mode
+shows on the dashboard and in Settings only).
 
 ## Rules for every SMART screen
 

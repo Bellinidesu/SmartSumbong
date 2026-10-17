@@ -1,5 +1,5 @@
 name: smartsumbong_core
-description: "A new Flutter package project."
+description: "Shared services for the SmartSumbong app: sign-in, uploads, push, OCR, biometrics, offline cache."
 version: 0.0.1
 homepage:
 
