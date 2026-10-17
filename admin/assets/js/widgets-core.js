@@ -8,8 +8,8 @@
   var WS = window.WS = { w: {}, a: {}, ic: {}, mods: {}, C: C };
   var fil = C.lang === 'fil', reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var T = WS.T = function (en, tl) { return fil ? tl : en; };
-  var S = WS.S = { tabs: C.tabs.slice(), tab: C.tab, data: {}, at: {}, busy: {}, err: {}, st: C.settings || null, lead: !!C.lead, dismissed: {}, firing: [] };
-  try { S.dismissed = JSON.parse(sessionStorage.getItem('wsx-dismissed') || '{}') || {}; } catch (e) {}
+  var S = WS.S = { tabs: C.tabs.slice(), tab: C.tab, data: {}, at: {}, err: {}, st: C.settings || null, lead: !!C.lead, dismissed: [], firing: [], busy2: new Set() };
+  try { var dj = JSON.parse(sessionStorage.getItem('wsx-dismissed') || '[]'); S.dismissed = Array.isArray(dj) ? dj.filter(function (x) { return typeof x === 'string'; }).slice(-50) : []; } catch (e) {}
 
   // ---- small helpers every widget uses
   var esc = WS.esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -167,6 +167,7 @@
   function drawRail() {
     rail.innerHTML = S.tabs.map(function (id) {
       var on = id === S.tab, d = dotFor(id);
+      id = esc(id);
       return '<button type="button" role="tab" id="wxt-' + id + '" data-id="' + id + '" aria-selected="' + on + '" aria-controls="wxp" tabindex="' + (on ? 0 : -1) + '" title="' + esc(WS.name_of(id)) + '">' + WS.icon(id, 21) + '<span>' + esc(WS.name_of(id)) + '</span>' + (d ? '<i class="wx-dot" style="--c:' + d + '"></i>' : '') + '</button>';
     }).join('');
     var cur = rail.querySelector('[aria-selected="true"]'); if (cur && cur.scrollIntoView && !reduce) { try { cur.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
@@ -184,7 +185,7 @@
     bad = bad.filter(function (g) { return optional.indexOf(g) < 0; });
     var html;
     if (bad.length) {
-      html = S.busy[id] ? skeleton() : '<div class="wx-empty is-bad">' + WS.svg('warn', 30, 1.5) + '<b>' + T('This could not be read right now', 'Hindi mabasa ito sa ngayon') + '</b><span>' + T('The source did not answer. It will try again by itself.', 'Hindi sumagot ang pinagkukunan. Susubukan itong muli nang kusa.') + '</span>' + A.btn(WS.svg('refresh', 15) + T('Try again', 'Subukan muli'), 'refresh') + '</div>';
+      html = S.busy2.has(id) ? skeleton() : '<div class="wx-empty is-bad">' + WS.svg('warn', 30, 1.5) + '<b>' + T('This could not be read right now', 'Hindi mabasa ito sa ngayon') + '</b><span>' + T('The source did not answer. It will try again by itself.', 'Hindi sumagot ang pinagkukunan. Susubukan itong muli nang kusa.') + '</span>' + A.btn(WS.svg('refresh', 15) + T('Try again', 'Subukan muli'), 'refresh') + '</div>';
     } else {
       try { html = def.r({ D: S.data, S: S, id: id }); } catch (e) { html = '<div class="wx-empty is-bad">' + WS.svg('warn', 30, 1.5) + '<b>' + T('This widget hit a problem', 'May problema ang widget na ito') + '</b></div>'; if (window.console) console.error(e); }
     }
@@ -211,8 +212,8 @@
     var ok = g.every(function (x) { return S.data[x] && S.data[x].ok && Date.now() - S.at[x] < 45000; });
     if (def && (ok && !force)) { paint(); return; }
     if (!g.length) { if (def) paint(); return; }
-    S.busy[id] = true; if (!def || !(g.every(function (x) { return S.data[x] && S.data[x].ok; }))) paint();
-    WS.fetch([id], []).catch(function () {}).then(function () { S.busy[id] = false; if (S.tab === id) paint(); drawRail(); });
+    S.busy2.add(id); if (!def || !(g.every(function (x) { return S.data[x] && S.data[x].ok; }))) paint();
+    WS.fetch([id], []).catch(function () {}).then(function () { S.busy2.delete(id); if (S.tab === id) paint(); drawRail(); });
   }
   function ensure(id, then) {
     var m = C.cat[id] && C.cat[id].m;
@@ -262,7 +263,7 @@
     deadline: [T('A case will miss its deadline', 'May kasong lalampas sa takdang oras'), T('Deadlines are slipping', 'Lumalampas ang takdang oras'), T('The engine expects a case to miss its deadline.', 'Inaasahan ng engine na lalampas ang isang kaso sa takdang oras.')] };
   function drawAlarm(list, test) {
     if (!alarmEl) return;
-    var f = test ? [{ rule: 'test', tab: 'brief', detail: '' }] : list.filter(function (x) { return !S.dismissed[x.rule + '|' + x.detail]; });
+    var f = test ? [{ rule: 'test', tab: 'brief', detail: '' }] : list.filter(function (x) { return S.dismissed.indexOf(x.rule + '|' + x.detail) < 0; });
     if (!f.length) { alarmEl.innerHTML = ''; alarmEl.hidden = true; return; }
     var x = f[0], r = RULE[x.rule] || [T('Test', 'Pagsubok'), T('This is only a test', 'Pagsubok lamang ito'), T('Nothing is wrong. This is how the alarm looks and sounds.', 'Walang problema. Ganito ang itsura ng alarma.')];
     alarmEl.hidden = false;
@@ -277,7 +278,7 @@
   if (alarmEl) alarmEl.addEventListener('click', function (e) {
     var b = e.target.closest('[data-al]'); if (!b) return;
     if (b.dataset.al === 'go') { alarmEl.hidden = true; alarmEl.innerHTML = ''; if (b.dataset.tab) { if (S.tabs.indexOf(b.dataset.tab) < 0) { S.tabs.push(b.dataset.tab); } open(b.dataset.tab, true); root.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); } }
-    else { var k = b.dataset.key; if (k && k !== 'test|') { S.dismissed[k] = Date.now(); try { sessionStorage.setItem('wsx-dismissed', JSON.stringify(S.dismissed)); } catch (x) {} } drawAlarm(S.firing); }
+    else { var k = b.dataset.key; if (k && k !== 'test|' && S.dismissed.indexOf(k) < 0) { S.dismissed.push(k); try { sessionStorage.setItem('wsx-dismissed', JSON.stringify(S.dismissed.slice(-50))); } catch (x) {} } drawAlarm(S.firing); }
   });
 
   // ---- the library: choose, order, and the barangay's switches
@@ -287,13 +288,13 @@
     var chosen = S.tabs;
     var head = '<div class="wx-lh"><div><h3 id="wx-lt">' + T('Your widgets', 'Iyong mga widget') + '</h3><p>' + T(chosen.length + ' of ' + ids.length + ' on your Workspace. Press one to add or remove it.', chosen.length + ' sa ' + ids.length + ' ang nasa Workspace mo. Pindutin para idagdag o alisin.') + '</p></div><button type="button" class="wx-x" data-l="close" aria-label="' + T('Close', 'Isara') + '">' + WS.svg('cross', 18) + '</button></div>';
     var tools = '<div class="wx-ltools"><label class="wx-search">' + WS.svg('search', 16) + '<input type="search" id="wx-lq" placeholder="' + T('Search 120 widgets', 'Maghanap sa 120 widget') + '" value="' + esc(libQ) + '" autocomplete="off"></label><div class="wx-gtabs" role="group" aria-label="' + T('Group', 'Pangkat') + '"><button type="button" data-l="g" data-g="" aria-pressed="' + (libG === '') + '">' + T('All', 'Lahat') + '</button>' + Object.keys(C.groups).map(function (g) { return '<button type="button" data-l="g" data-g="' + g + '" aria-pressed="' + (libG === g) + '">' + esc(C.groups[g]) + '</button>'; }).join('') + '</div></div>';
-    var mine_ = '<div class="wx-order" aria-label="' + T('Order of your widgets', 'Pagkakasunod ng mga widget mo') + '">' + chosen.map(function (id, i) { return '<span class="wx-oc" data-id="' + id + '">' + WS.icon(id, 15) + '<em>' + esc(WS.name_of(id)) + '</em><button type="button" data-l="mv" data-id="' + id + '" data-d="-1" aria-label="' + T('Move earlier', 'Ilipat pauna') + '"' + (i === 0 ? ' disabled' : '') + '>' + WS.svg('up', 13, 2.2) + '</button><button type="button" data-l="mv" data-id="' + id + '" data-d="1" aria-label="' + T('Move later', 'Ilipat pahuli') + '"' + (i === chosen.length - 1 ? ' disabled' : '') + '>' + WS.svg('down', 13, 2.2) + '</button></span>'; }).join('') + '</div>';
+    var mine_ = '<div class="wx-order" aria-label="' + T('Order of your widgets', 'Pagkakasunod ng mga widget mo') + '">' + chosen.map(function (id, i) { return '<span class="wx-oc" data-id="' + esc(id) + '">' + WS.icon(id, 15) + '<em>' + esc(WS.name_of(id)) + '</em><button type="button" data-l="mv" data-id="' + esc(id) + '" data-d="-1" aria-label="' + T('Move earlier', 'Ilipat pauna') + '"' + (i === 0 ? ' disabled' : '') + '>' + WS.svg('up', 13, 2.2) + '</button><button type="button" data-l="mv" data-id="' + esc(id) + '" data-d="1" aria-label="' + T('Move later', 'Ilipat pahuli') + '"' + (i === chosen.length - 1 ? ' disabled' : '') + '>' + WS.svg('down', 13, 2.2) + '</button></span>'; }).join('') + '</div>';
     var cards = Object.keys(C.groups).filter(function (g) { return !libG || libG === g; }).map(function (g) {
       var items = ids.filter(function (id) { var l = C.labels[id]; return cat[id].g === g && (!q || (l[0] + ' ' + l[1]).toLowerCase().indexOf(q) >= 0); });
       if (!items.length) return '';
       return '<section class="wx-lg"><h4>' + esc(C.groups[g]) + '</h4><div class="wx-lgrid">' + items.map(function (id) {
-        var on = chosen.indexOf(id) >= 0, l = C.labels[id], isGame = cat[id].g === 'games';
-        return '<button type="button" class="wx-lc' + (on ? ' is-on' : '') + '" data-l="tg" data-id="' + id + '" aria-pressed="' + on + '"><span class="ic">' + WS.icon(id, 22) + '</span><span class="tx"><b>' + esc(l[0]) + '</b><small>' + esc(l[1]) + '</small></span><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 14, 3) : WS.svg('plus', 14, 2.4)) + '</span></button>';
+        var on = chosen.indexOf(id) >= 0, l = C.labels[id], eid = esc(id);
+        return '<button type="button" class="wx-lc' + (on ? ' is-on' : '') + '" data-l="tg" data-id="' + eid + '" aria-pressed="' + on + '"><span class="ic">' + WS.icon(id, 22) + '</span><span class="tx"><b>' + esc(l[0]) + '</b><small>' + esc(l[1]) + '</small></span><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 14, 3) : WS.svg('plus', 14, 2.4)) + '</span></button>';
       }).join('') + '</div></section>';
     }).join('') || '<p class="wx-none">' + T('No widget matches that.', 'Walang widget na tugma doon.') + '</p>';
     var st = S.st || {}, lead = S.lead, rules = st.alarm_rules || [];
@@ -343,7 +344,6 @@
   }
 
   // ---- keeping it fresh
-  var polling = 0;
   function poll() {
     if (document.hidden) return;
     var ids = ['flood', 'wx', 'brief'];
@@ -366,6 +366,6 @@
   ensure(S.tab, function () { load(S.tab); });
   poll();
   // a widget asked for elsewhere in the page can open here
-  WS.openFromHash = function () { var m = /^#w=([a-z0-9]+)$/.exec(location.hash); if (m && C.cat[m[1]]) { if (S.tabs.indexOf(m[1]) < 0) S.tabs.push(m[1]); open(m[1]); } };
+  WS.openFromHash = function () { var m = /^#w=([a-z0-9]+)$/.exec(location.hash); if (m && Object.prototype.hasOwnProperty.call(C.cat, m[1])) { if (S.tabs.indexOf(m[1]) < 0) S.tabs.push(m[1]); open(m[1]); } };
   window.addEventListener('hashchange', WS.openFromHash); WS.openFromHash();
 })();

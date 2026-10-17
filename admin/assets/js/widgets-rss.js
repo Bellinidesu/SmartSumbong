@@ -2,10 +2,9 @@
 // feeds, and a person's own feeds and watch words. Every feed is read by the portal (widgets.php), never by the
 // browser, and news searches say so: they are stories that mention a subject, not official notices.
 (function () {
-  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, n = WS.n, W = WS.w, L = WS.lvl;
+  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, W = WS.w, L = WS.lvl;
   var ok = function (g) { return g && g.ok ? g.data : null; };
   var field = function (label, html) { return '<label class="wx-f"><span>' + label + '</span>' + html + '</label>'; };
-  var done = function (msg) { return function (r) { if (r && r.error) { WS.toast(r.error, true); return false; } if (msg) WS.toast(msg); WS.refresh(); return true; }; };
   var host = function (u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
   var mark = function (s, words) { s = esc(s); (words || []).forEach(function (w) { if (!w) return; var re = new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'); s = s.replace(re, '<mark>$1</mark>'); }); return s; };
 
@@ -34,7 +33,7 @@
   W.rssgdacs = {
     r: function () {
       var d = feedOf('gdacs'), col = function (t) { return /red/i.test(t) ? L.urgent : /orange/i.test(t) ? L.high : /green/i.test(t) ? L.ok : L.low; };
-      var its = d.items.slice(0, 6).map(function (x) { var c = col(x.t); return x; });
+      var its = d.items.slice(0, 6);
       return head(d) + '<div class="wx-stories">' + its.map(function (x) { return story(x, { c: col(x.t), lead: A.pill((x.t.match(/(red|orange|green)/i) || ['', T('alert', 'alerto')])[1].toUpperCase(), col(x.t)) }); }).join('') + '</div><p class="wx-note">' + T('Global Disaster Alert and Coordination System, worldwide; the storms near the Philippines are in Typhoon watch.', 'Pandaigdigang sistema ng alerto sa sakuna; ang mga bagyo malapit sa Pilipinas ay nasa Bantay-bagyo.') + '</p>';
     }, src: 'GDACS'
   };
@@ -46,8 +45,8 @@
   };
   W.fuel = {
     r: function () {
-      var d = feedOf('fuel'), dir = function (t) { return /rollback|cut|decrease|lower|bawas|ibaba/i.test(t) && /hike|increase|rise|dagdag/i.test(t) ? 0 : /rollback|cut|decrease|lower/i.test(t) ? -1 : /hike|increase|rise/i.test(t) ? 1 : 0; };
-      var first = d.items[0], k = first ? dir(first.t) : 0;
+      var d = feedOf('fuel');
+      var first = d.items[0];
       return (first ? '<div class="wx-hero" style="--hg:linear-gradient(135deg,#3B2A12,#C2410C);--hc:#FF9800"><span class="eb">' + T('Pump prices, next week', 'Presyo ng gasolina, susunod na linggo') + '</span><div class="hb" style="font-size:22px;line-height:1.25">' + esc(first.t.replace(/ - [^-]+$/, '')) + '</div><p class="hs">' + esc(first.src || '') + (first.at ? ' · ' + esc(WS.ago(first.at)) : '') + '</p></div>' : '') +
         stories(d.items.slice(1, 6), { c: '#FF9800', nosum: 1, lead: '' }).replace(/<span class="lead"><\/span>/g, '') + viaNote();
     }, src: 'Google News (oil prices)'

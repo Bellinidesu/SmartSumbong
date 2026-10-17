@@ -126,7 +126,7 @@
   var GE = [], GL = [];
   (function () { var x = 1; for (var i = 0; i < 255; i++) { GE[i] = x; GL[x] = i; x <<= 1; if (x & 256) x ^= 285; } }());
   var gm = function (a, b) { return a && b ? GE[(GL[a] + GL[b]) % 255] : 0; };
-  function rs(data, ec) { var g = [1]; for (var i = 0; i < ec; i++) { var ng = []; for (var j = 0; j <= g.length; j++) ng[j] = (g[j] || 0) ^ gm(g[j - 1] || 0, GE[i]); g = ng; } var res = data.concat(new Array(ec).fill(0)); for (i = 0; i < data.length; i++) { var c = res[i]; if (c) for (j = 0; j < g.length; j++) res[i + j] ^= gm(g[j], c); } return res.slice(data.length); }
+  function rs(data, ec) { var g = [1]; for (var i = 0; i < ec; i++) { var ng = []; for (var q = 0; q <= g.length; q++) ng.push(0); for (var j = 0; j < g.length; j++) { ng[j] ^= g[j]; ng[j + 1] ^= gm(g[j], GE[i]); } g = ng; } var res = data.concat(new Array(ec).fill(0)); for (i = 0; i < data.length; i++) { var c = res[i]; if (c) for (j = 0; j < g.length; j++) res[i + j] ^= gm(g[j], c); } return res.slice(data.length); }
   var VER = [null, [26, 7, 1], [44, 10, 1], [70, 15, 1], [100, 20, 1], [134, 26, 1], [172, 18, 2]], ALN = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34]];
   function qr(text) {
     var bytes = unescape(encodeURIComponent(text)).split('').map(function (c) { return c.charCodeAt(0); }), v = 1;
@@ -148,8 +148,8 @@
     var al = ALN[v]; al.forEach(function (r) { al.forEach(function (c) { if (F[r][c]) return; for (var y = -2; y <= 2; y++) for (var x = -2; x <= 2; x++) set(r + y, c + x, Math.max(Math.abs(y), Math.abs(x)) !== 1); }); });
     set(N - 8, 8, 1);
     for (i = 0; i < 9; i++) { if (!F[8][i]) F[8][i] = true; if (!F[i][8]) F[i][8] = true; } for (i = 0; i < 8; i++) { F[8][N - 1 - i] = true; F[N - 1 - i][8] = true; }
-    var data = [], dr = true; out.forEach(function (b) { for (var k = 7; k >= 0; k--) data.push((b >> k) & 1); });
-    var idx = 0, up = true, masked = function (m, r, c) { return [(r + c) % 2 === 0, r % 2 === 0, c % 3 === 0, (r + c) % 3 === 0, (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0, (r * c) % 2 + (r * c) % 3 === 0, ((r * c) % 2 + (r * c) % 3) % 2 === 0, ((r + c) % 2 + (r * c) % 3) % 2 === 0][m]; };
+    var data = []; out.forEach(function (b) { for (var k = 7; k >= 0; k--) data.push((b >> k) & 1); });
+    var up = true, masked = function (m, r, c) { return [(r + c) % 2 === 0, r % 2 === 0, c % 3 === 0, (r + c) % 3 === 0, (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0, (r * c) % 2 + (r * c) % 3 === 0, ((r * c) % 2 + (r * c) % 3) % 2 === 0, ((r + c) % 2 + (r * c) % 3) % 2 === 0][m]; };
     var place = []; for (var col = N - 1; col > 0; col -= 2) { if (col === 6) col--; for (var k2 = 0; k2 < N; k2++) { var r = up ? N - 1 - k2 : k2; for (var d = 0; d < 2; d++) { var c = col - d; if (!F[r][c]) place.push([r, c]); } } up = !up; }
     var best = null, bp = 1e9;
     for (var m = 0; m < 8; m++) {

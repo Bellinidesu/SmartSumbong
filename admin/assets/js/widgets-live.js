@@ -23,7 +23,7 @@
   W.brief = {
     r: function () {
       var b = ok(WS.group('brief')), who = (WS.C.me.name || '').split(' ')[0], hello = { morning: T('Good morning', 'Magandang umaga'), afternoon: T('Good afternoon', 'Magandang hapon'), night: T('Good evening', 'Magandang gabi') }[b.period];
-      var wait = b.urgent_waiting + b.high_waiting, hot = wait > 0 || b.overdue > 0;
+      var wait = b.urgent_waiting + b.high_waiting;
       var line = b.period === 'morning' ? T(n(b.open) + ' cases are open and ' + n(wait) + ' wait for a tanod. ' + n(b.due_today) + ' are due today and ' + n(b.may_miss) + ' may miss their deadline.', n(b.open) + ' ang bukás na kaso at ' + n(wait) + ' ang naghihintay ng tanod. ' + n(b.due_today) + ' ang takdang oras ngayon at ' + n(b.may_miss) + ' ang maaaring lumampas.')
         : b.period === 'afternoon' ? T(n(b.in_today) + ' cases came in today and ' + n(b.out_today) + ' were resolved. ' + n(wait) + ' urgent or high still wait for a tanod; ' + n(b.overdue) + ' are overdue.', n(b.in_today) + ' ang pumasok ngayon at ' + n(b.out_today) + ' ang nalutas. ' + n(wait) + ' na madalian o mataas ang naghihintay pa ng tanod; ' + n(b.overdue) + ' ang lampas na.')
         : T(n(b.in_today) + ' filed and ' + n(b.out_today) + ' resolved today. ' + n(b.open) + ' stay open overnight and ' + n(b.overdue) + ' are overdue.', n(b.in_today) + ' ang naisampa at ' + n(b.out_today) + ' ang nalutas ngayon. ' + n(b.open) + ' ang mananatiling bukás at ' + n(b.overdue) + ' ang lampas na.');
@@ -162,7 +162,7 @@
 
   W.tide = {
     r: function () {
-      var t = ok(WS.group('marine')), cv = t.curve, ms = cv.map(function (x) { return x.m; }), mx = Math.max.apply(null, ms), mn = Math.min.apply(null, ms);
+      var t = ok(WS.group('marine')), cv = t.curve, ms = cv.map(function (x) { return x.m; }), mn = Math.min.apply(null, ms);
       return '<div class="wx-grid2"><div class="wx-card2"><span class="wx-h">' + T('Sea level, next 24 hours', 'Taas ng dagat, susunod na 24 oras') + '</span>' + A.big(num(t.level, 2) + ' m', t.rising ? T('rising', 'tumataas') : T('falling', 'bumababa'), t.rising ? '#2D7DD2' : '#00A5B5') + A.spark(ms, '#2D7DD2', { h: 70, min: mn - .1 }) + '<div class="wx-ax"><span>' + esc(time(cv[0].t)) + '</span><span>' + esc(time(cv[12].t)) + '</span><span>' + esc(time(cv[cv.length - 1].t)) + '</span></div></div>' +
         '<div class="wx-card2"><span class="wx-h">' + T('Next highs and lows', 'Susunod na taas at baba') + '</span><div class="wx-list">' + t.turns.map(function (x) { return A.item({ av: x.kind === 'high' ? '▲' : '▼', c: x.kind === 'high' ? '#2D7DD2' : '#00A5B5', t: (x.kind === 'high' ? T('High tide', 'Taas ng tubig') : T('Low tide', 'Baba ng tubig')) + ' · ' + esc(time(x.t)), s: num(x.m, 2) + ' m', sq: 1 }); }).join('') + '</div><p class="wx-note">' + T('A sea-level model for Manila Bay, not the official tide table.', 'Modelo ng taas ng dagat para sa Manila Bay, hindi ang opisyal na talaan ng tubig.') + '</p></div></div>';
     }, src: 'Open-Meteo Marine'

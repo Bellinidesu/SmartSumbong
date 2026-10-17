@@ -1,7 +1,7 @@
 // Workspace widgets: just for me (17 Oct 2026). A checklist, a sticky note, a countdown, a water reminder, a goal for the
 // week, a line for the shift, daily habits and notes for the next shift. Each person's own, kept with their account.
 (function () {
-  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, n = WS.n, W = WS.w, L = WS.lvl, M = WS.mine;
+  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, W = WS.w, L = WS.lvl, M = WS.mine;
   var ok = function (g) { return g && g.ok ? g.data : null; };
   var today = function () { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }); };
   var field = function (label, html) { return '<label class="wx-f"><span>' + label + '</span>' + html + '</label>'; };

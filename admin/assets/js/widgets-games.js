@@ -1,7 +1,7 @@
 // Workspace widgets: minigames (17 Oct 2026). Fourteen small games for a quiet minute on a long shift. They are off
 // until the Chairman or the Secretary allows them, and each keeps a personal best and a team top three.
 (function () {
-  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, n = WS.n, W = WS.w, L = WS.lvl;
+  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, W = WS.w, L = WS.lvl;
   var ok = function (g) { return g && g.ok ? g.data : null; };
   var rnd = function (m) { return Math.floor(Math.random() * m); };
   var day = function () { return Math.floor(Date.now() / 864e5); };
@@ -117,7 +117,7 @@
   var g4new = function () { g4 = { g: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], s: 0, over: false }; g4add(); g4add(); };
   var g4add = function () { var e = []; g4.g.forEach(function (r, y) { r.forEach(function (v, x) { if (!v) e.push([y, x]); }); }); if (e.length) { var p = e[rnd(e.length)]; g4.g[p[0]][p[1]] = Math.random() < .9 ? 2 : 4; } };
   var g4mv = function (d) {
-    var g = g4.g, moved = false, rot = function (m) { return m[0].map(function (_, i) { return m.map(function (r) { return r[i]; }).reverse(); }); }, t = [0, 1, 2, 3].map(function () { return 0; });
+    var g = g4.g, moved = false, rot = function (m) { return m[0].map(function (_, i) { return m.map(function (r) { return r[i]; }).reverse(); }); };
     var k = { l: 0, u: 3, r: 2, d: 1 }[d], m = g; for (var i = 0; i < k; i++) m = rot(m);
     m = m.map(function (r) { var a = r.filter(Boolean), o = []; for (var j = 0; j < a.length; j++) { if (a[j] === a[j + 1]) { o.push(a[j] * 2); g4.s += a[j] * 2; j++; } else o.push(a[j]); } while (o.length < 4) o.push(0); if (o.join() !== r.join()) moved = true; return o; });
     for (i = 0; i < (4 - k) % 4; i++) m = rot(m);
@@ -146,10 +146,10 @@
   // ---- sudoku
   var sd = null;
   function sdGen() {
-    var g = [], i, j; for (i = 0; i < 81; i++) g.push(0);
+    var g = [], i; for (i = 0; i < 81; i++) g.push(0);
     var ok2 = function (g, p, v) { var r = Math.floor(p / 9), c = p % 9; for (var k = 0; k < 9; k++) { if (g[r * 9 + k] === v || g[k * 9 + c] === v) return false; } var br = r - r % 3, bc = c - c % 3; for (var y = 0; y < 3; y++) for (var x = 0; x < 3; x++) if (g[(br + y) * 9 + bc + x] === v) return false; return true; };
     var solve = function (g) { var p = g.indexOf(0); if (p < 0) return true; var o = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(function () { return Math.random() - .5; }); for (var k = 0; k < 9; k++) if (ok2(g, p, o[k])) { g[p] = o[k]; if (solve(g)) return true; g[p] = 0; } return false; };
-    solve(g); var sol = g.slice(), pz = g.slice(), rm = 0, idx = []; for (i = 0; i < 81; i++) idx.push(i); idx.sort(function () { return Math.random() - .5; }); idx.slice(0, 42).forEach(function (p) { pz[p] = 0; });
+    solve(g); var sol = g.slice(), pz = g.slice(), idx = []; for (i = 0; i < 81; i++) idx.push(i); idx.sort(function () { return Math.random() - .5; }); idx.slice(0, 42).forEach(function (p) { pz[p] = 0; });
     return { sol: sol, p: pz, g: pz.slice(), sel: -1, t0: 0, ms: 0, done: false, fixed: pz.map(function (v) { return v > 0; }) };
   }
   game('sudoku', {

@@ -2,7 +2,7 @@
 // waits for approval, the Chairman's notice and announcements, handovers, the team board, a poll, birthdays, trainings
 // and patrol checkpoints, and a one-tap check-in. Writes go through workspace-act.php; the database decides who may.
 (function () {
-  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, n = WS.n, W = WS.w, L = WS.lvl;
+  var WS = window.WS, T = WS.T, A = WS.a, esc = WS.esc, W = WS.w, L = WS.lvl;
   var ok = function (g) { return g && g.ok ? g.data : null; };
   var team = function () { return ok(WS.group('team')); };
   var DUTY = { on_duty: [T('On duty', 'Naka-duty'), '#2E9E4F'], break: [T('On a break', 'Nagpapahinga'), '#F5A524'], lunch: [T('At lunch', 'Kumakain'), '#F5A524'], offline: [T('Offline', 'Offline'), '#8E9ABB'] };
@@ -116,7 +116,7 @@
   };
   W.checkpt = {
     r: function () {
-      var c = ok(WS.group('checkpoints')), tan = team().tanods.filter(function (x) { return x.duty !== 'offline'; });
+      var c = ok(WS.group('checkpoints'));
       return (c.length ? '<div class="wx-list">' + c.map(function (x, i) { var d = x.today; return A.item({ av: d ? '✓' : (i + 1), c: d ? L.ok : L.low, sq: 1, t: esc(x.name), s: d ? T('Reached at ', 'Narating nang ') + esc(WS.fmt.time(d.at)) + ' · ' + esc(WS.name(d.tanod || '')) : T('Not reached today', 'Hindi pa narating ngayon'), r: '<select data-c="checkpt:scan" data-cp="' + esc(x.id) + '" aria-label="' + T('Mark reached by', 'Markahang narating ni') + '"><option value="">' + T('Mark reached…', 'Markahan…') + '</option>' + team().tanods.map(function (t) { return '<option value="' + esc(t.id) + '">' + esc(WS.name(t.name)) + '</option>'; }).join('') + '</select>' }); }).join('') + '</div>' : A.empty('flag', T('No checkpoints yet', 'Wala pang checkpoint'))) +
         '<form class="wx-compose wx-inline" data-s="checkpt:add">' + field(T('New checkpoint', 'Bagong checkpoint'), '<input name="name" maxlength="120" required placeholder="' + T('Libertad Market', 'Palengke ng Libertad') + '">') + '<button type="button" class="wx-btn" data-a="checkpt:here">' + WS.svg('pin', 14) + T('Use my place', 'Gamitin ang lugar ko') + '</button><input type="hidden" name="lat" value="14.5194"><input type="hidden" name="lng" value="121.0122"><button class="wx-btn is-pri">' + T('Add', 'Idagdag') + '</button></form><p class="wx-note">' + T('Without "Use my place" a checkpoint is put at the barangay hall.', 'Kung hindi gagamitin ang "Gamitin ang lugar ko", ilalagay ang checkpoint sa barangay hall.') + '</p>';
     },
