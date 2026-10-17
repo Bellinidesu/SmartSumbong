@@ -163,7 +163,6 @@
 
   // the server agreed: the card glides into its new column, then the board is made true from the server
   function settle(card, stage, message, slot) {
-    var T = L();
     slot.textContent = ''; slot.appendChild(el('p', 'bd-done', '✓ ' + message));
     var target = document.querySelector('.bd-col[data-stage="' + stage + '"] .bd-list');
     if (target && card.isConnected) {
