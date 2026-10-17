@@ -22,11 +22,11 @@ Three actors: **Resident**, **Barangay Tanod**, **Barangay Admin**.
 | Media | Cloudinary (unsigned uploads, EXIF stripped on the phone) |
 | Push | Firebase Cloud Messaging, via the `send-dispatch-push` Edge Function |
 | Walking routes | OpenStreetMap FOSSGIS router (tanod navigation) |
-| SMS / Email | Not used. See below. |
+| SMS | Semaphore, via the `password-otp` Edge Function, behind a switch (see below) |
 
 ### On SMS and email
 
-Neither is a dependency, and no path through the system requires one.
+Neither is a dependency: every path through the system works without one.
 
 The sign-in identity is the mobile number, and the auth address derived
 from it (`639XXXXXXXXX@auth.smartsumbong.local`) is on a reserved domain
@@ -53,12 +53,12 @@ no equivalent for residents or tanods — see above.
 Verification is a human decision that takes minutes to hours. The
 pending screen polls rather than waiting on a message.
 
-SMS through Semaphore remains an option and would improve the
-experience — it reaches a handset with no data connection, which no
-push notification can. It is not built because it carries a per-message
-cost against a system specified to run at no ongoing cost, and because
-making it a dependency would mean the barangay stops being able to
-verify accounts when the load runs out.
+SMS codes are built as the faster route alongside the counter
+(migrations 0085 and 0104): forgot password, and moving an account to a
+new mobile number, by a 6-digit code sent through Semaphore from the
+`password-otp` Edge Function. They carry a per-message cost, so the app
+keeps them behind `kSmsResetEnabled` and the counter stays the route that
+always works, with no load, no signal, or no credits.
 
 ## Getting started
 
@@ -92,7 +92,9 @@ admin/                   PHP admin portal
   cases.php, case.php      Case Reports: the list, and one complaint with every
                            admin action (validate, assign, reroute, approve
                            resolution, status, escalate, threads)
-  spatial.php              map: pins, heatmap, hotspots
+  spatial.php              map: pins, heatmap, hotspots, layers, the SMART engine
+  widgets.php,
+  workspace-act.php        the Workspace widgets: data and saves (docs/WIDGETS.md)
   summary.php              Report Summary
   complaint-summary.php    its PDF: the barangay's Complaint Summary form
   certificate.php          Certification of Lack of Jurisdiction (escalated cases)
@@ -100,15 +102,23 @@ admin/                   PHP admin portal
   personnel.php            accounts (includes/accounts.php)
   retirement-requests.php  Extra Administrative Services (includes/retirement.php)
   includes/                auth, Supabase client, layout, i18n (t(en, fil))
-  assets/                  css, js (map-theme.js), map data, vendored libraries
+  assets/                  css, js, map data, vendored libraries
 mobile/core/             shared Flutter package (auth, media upload, push, …)
 mobile/resident/         the SmartSumbong app — residents, and tanods under
                          lib/tanod/ (dispatch window, navigation, outbox)
-supabase/migrations/     0001–0083, applied in order (see docs/schema.md)
-supabase/functions/      Edge Functions: delete-account, send-dispatch-push
+supabase/migrations/     0001–0132, applied in order (see docs/schema.md)
+supabase/baseline/       the same schema as one file, rebuilt and proven by CI
+supabase/tests/          database checks, run in CI and by tests/local/run-local.sh
+supabase/functions/      Edge Functions: delete-account, media-cleanup, password-otp,
+                         send-dispatch-push, sign-upload
 supabase/seed.sql        SLA guide hours (placeholders) + boundary
 docs/schema.md           tables, functions by actor, rules, use-case coverage
+docs/SMART*.md           the SMART engine and its screens
+docs/OPERATIONS.md,
+docs/INCIDENTS.md        running the live system, and what went wrong before
 docs/chat/               admin ↔ tanod chat: draft schema (not a migration)
+docs/email/              the admin password-reset mail template for Supabase Auth
+tools/                   builders for the portal's map data (transit, safe points)
 DEPLOY.md                portal on Render, database, building the APK
 run-dev-server.bat       local portal on http://127.0.0.1:8000/admin/
 ```
@@ -124,6 +134,8 @@ run-dev-server.bat       local portal on http://127.0.0.1:8000/admin/
   outside office. A tanod's resolution waits for the admin's approval.
 - Features put away for later stay in the code behind a switch rather than
   being deleted (`ID_OCR_ENABLED`, `ADMIN_SUCCESSION_ENABLED`, `kIdOcrEnabled`).
+  The one exception is the 3D City view: it lives on the `bellinist`
+  branch only, so `main` carries none of its code.
 
 ## Security
 

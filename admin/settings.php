@@ -652,17 +652,6 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <button type="button" class="st-surf" role="radio" data-surf="solid" aria-checked="false"><span class="sv-pic s"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Solid', 'Buo')) ?></b><small><?= e(t('Flat graphite, no blur or gloss', 'Patag na graphite, walang blur o kinang')) ?></small></span></button>
     </div>
   </div>
-<?php if (is_file(__DIR__ . '/assets/js/sd-city.js')): /* the 3D City view is parked (14 Oct): its detail setting shows only where the view exists */ ?>
-  <div class="p-card p-card-pad st-look">
-    <p class="p-eyebrow"><?= e(t('City view detail', 'Detalye ng City view')) ?></p>
-    <p class="st-note" style="margin-top:0"><?= e(t('When you tilt the map: Full draws pitched roofs and the landmark models; Light draws plain boxes and is easier on slow screens. Auto starts with Full and drops to Light by itself if the map runs slowly. Kept on this computer.', 'Kapag ini-tilt ang mapa: ang Full ay may bubong na may anggulo at mga modelo ng landmark; ang Light ay payak na kahon at mas magaan sa mabagal na screen. Ang Auto ay nagsisimula sa Full at nagiging Light kung bumabagal ang mapa. Nakatago sa computer na ito.')) ?></p>
-    <div class="st-surfs st-opts" role="radiogroup" aria-label="<?= e(t('City view detail', 'Detalye ng City view')) ?>">
-      <button type="button" class="st-surf st-opt" role="radio" data-city="auto" aria-checked="true"><span class="ss-t"><b><?= e(t('Auto', 'Auto')) ?></b><small><?= e(t('Full, then Light if slow', 'Full, tapos Light kung mabagal')) ?></small></span></button>
-      <button type="button" class="st-surf st-opt" role="radio" data-city="full" aria-checked="false"><span class="ss-t"><b><?= e(t('Full', 'Kumpleto')) ?></b><small><?= e(t('Pitched roofs and models', 'May bubong at modelo')) ?></small></span></button>
-      <button type="button" class="st-surf st-opt" role="radio" data-city="light" aria-checked="false"><span class="ss-t"><b><?= e(t('Light', 'Magaan')) ?></b><small><?= e(t('Plain boxes', 'Payak na kahon')) ?></small></span></button>
-    </div>
-  </div>
-<?php endif; ?>
 </section>
 
 <section class="st-pane" data-pane="usage" hidden>
@@ -890,11 +879,6 @@ if (location.hash === '#admins' || location.hash === '#smart') { var b = documen
     paint();
   }); });
   paint();
-  // City view detail
-  var city = document.querySelectorAll('.st-opt'); function cur() { try { return localStorage.getItem('ss-city') || 'auto'; } catch (e) { return 'auto'; } }
-  function paintCity() { var c = cur(); city.forEach(function (b) { b.setAttribute('aria-checked', String(b.dataset.city === c)); }); }
-  city.forEach(function (b) { b.addEventListener('click', function () { try { localStorage.setItem('ss-city', b.dataset.city); } catch (e) { /* this visit only */ } paintCity(); }); });
-  paintCity();
 })();
 </script>
 <?php layout_foot(); ?>
