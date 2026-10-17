@@ -297,7 +297,7 @@
       if (!items.length) return '';
       return '<section class="wx-lg"><h4>' + esc(C.groups[g]) + '</h4><div class="wx-lgrid">' + items.map(function (id) {
         var on = chosen.indexOf(id) >= 0, l = C.labels[id], eid = esc(id);
-        return '<div class="wx-lw"><button type="button" class="wx-lc' + (on ? ' is-on' : '') + '" data-l="tg" data-id="' + eid + '" aria-pressed="' + on + '"><span class="ic">' + WS.icon(id, 22) + '</span><span class="tx"><b>' + esc(l[0]) + '</b><small>' + esc(l[1]) + '</small></span><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 14, 3) : WS.svg('plus', 14, 2.4)) + '</span></button><button type="button" class="wx-vw" data-l="vw" data-id="' + eid + '" aria-label="' + T('View', 'Tingnan') + ': ' + esc(l[0]) + '">' + WS.svg('eye', 14) + T('View', 'Tingnan') + '</button></div>';
+        return '<div class="wx-lw"><button type="button" class="wx-lc' + (on ? ' is-on' : '') + '" data-l="tg" data-id="' + eid + '" aria-pressed="' + on + '"><span class="ic">' + WS.icon(id, 22) + '</span><span class="tx"><b>' + esc(l[0]) + '</b><small>' + esc(l[1]) + '</small></span><span class="ck" aria-hidden="true">' + (on ? WS.svg('check', 14, 3) : WS.svg('plus', 14, 2.4)) + '</span></button><button type="button" class="wx-vw" data-l="vw" data-id="' + eid + '" aria-label="' + T('View', 'Tingnan') + ': ' + esc(l[0]) + '" title="' + T('View live', 'Tingnan nang live') + '">' + WS.svg('eye', 14, 2) + '</button></div>';
       }).join('') + '</div></section>';
     }).join('') || '<p class="wx-none">' + T('No widget matches that.', 'Walang widget na tugma doon.') + '</p>';
     var st = S.st || {}, lead = S.lead, rules = st.alarm_rules || [];
