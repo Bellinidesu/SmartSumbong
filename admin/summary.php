@@ -146,7 +146,7 @@ function select_all_many(Supabase $db, array $tables, array &$truncated): array
 
 try {
     $reportsQuery = [
-        'select'     => 'id,tracking_id,subject,category,status,is_anonymous,created_at,'
+        'select'     => 'id,tracking_id,subject,category,status,is_anonymous,is_sensitive,created_at,'
                       . 'due_at,resolved_at,closed_at,referred_to,referral_note,referred_at,'
                       . 'resident:users!reports_resident_id_fkey(full_name)',
         'deleted_at' => 'is.null',
@@ -337,7 +337,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
                   : e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></td>
           <td><?= e(category_label($r['category'])) ?></td>
           <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
-              <?php else: ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
+              <?php else: ?><?= sensitive_badge($r) ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
           <td class="p-num"><?= e(short_date($r['resolved_at'] ?? $r['closed_at'] ?? null)) ?: '<span class="p-sub">—</span>' ?></td>
         </tr>

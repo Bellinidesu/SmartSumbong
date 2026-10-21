@@ -424,6 +424,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php endif; ?>
 
     <div class="p-acc-flags">
+      <?= sensitive_badge($report) ?>
       <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
       <?php if (!empty($report['referred_to'])): ?>
         <span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($report['referred_to']) ?></span>
@@ -1486,6 +1487,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <span class="p-mono-id"><?= e($report['tracking_id']) ?></span>
           <h3><?= e(category_label($report['category'])) ?></h3>
           <div class="ss-ms-pills">
+            <?= sensitive_badge($report) ?>
             <span class="p-badge p-b-<?= e(status_class($status)) ?>"><?= e(status_label($status)) ?></span>
             <?php if ($msLv !== ''): ?><span class="ss-ms-lv"><?= e($msName[$msLv] ?? $msLv) ?><?= isset($smart['score']) ? ' <b>' . (int) $smart['score'] . '</b>' : '' ?></span><?php endif; ?>
           </div>

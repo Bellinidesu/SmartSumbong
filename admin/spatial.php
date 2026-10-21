@@ -312,6 +312,7 @@ const SHAPE = {
 // status is in the filter and the pin's detail. (The status shapes above
 // stay for the legend-by-status this replaced.)
 const CATEGORY_COLOUR = <?= json_encode(category_colours()) ?>;
+const SENSITIVE_BADGE = <?= json_encode(sensitive_badge(['is_sensitive' => true])) ?>;   // a sensitive case's own status, as the rest of the portal draws it
 const catColour = c => CATEGORY_COLOUR[c] || CATEGORY_COLOUR.other;
 const heatLayers = () => Object.keys(CATEGORY_COLOUR).map(c => 'heat-' + c).filter(id => map.getLayer(id));   // one heat layer per kind of complaint, in its own legend colour
 const pinName = category => 'pin-cat-' + (CATEGORY_COLOUR[category] ? category : 'other');
@@ -862,7 +863,7 @@ async function draw() {
 // ---- data + realtime ---------------------------------------------
 async function load() {
   const { data, error } = await sb.from('reports')
-    .select('id,tracking_id,subject,category,status,latitude,longitude,location_label,created_at,due_at')
+    .select('id,tracking_id,subject,category,status,latitude,longitude,location_label,created_at,due_at,is_sensitive')
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
@@ -1007,7 +1008,7 @@ function showDetail(r) {
       '<svg class="cs-mark cs-glyph" viewBox="0 0 24 24" aria-hidden="true">' + glyph + '</svg></div>' +
     '<div class="cs-body">' +
       '<h2 class="cs-title">' + esc(r.subject || label(r.category)) + '</h2>' +
-      '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span></p>' +
+      '<p class="cs-meta"><span class="cs-id">' + esc(r.tracking_id) + '</span> · <span class="cs-st" style="--st:' + (COLOUR[r.status] || '#9aa1ab') + '">' + esc(label(r.status)) + '</span>' + (r.is_sensitive ? ' ' + SENSITIVE_BADGE : '') + '</p>' +
       '<div class="cs-acts' + (MLY ? ' four' : '') + '">' +
         '<a class="ac-send" data-act="dispatch" href="case.php?id=' + encodeURIComponent(r.id) + '#dispatch"><span>' + ACT_SCENE.send + csIcon(SD_ICONS.send) + '</span>' + T('Dispatch', 'I-dispatch') + '</a>' +
         '<button type="button" class="ac-zoom" data-act="zoom"><span>' + ACT_SCENE.zoom + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
