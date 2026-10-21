@@ -1373,3 +1373,7 @@
 .ss-people.ss-tanods table th:nth-child(2) { width: 18%; } .ss-people.ss-tanods table th:nth-child(3) { width: 14%; }
 .ss-people.ss-tanods table th:nth-child(4) { width: 11%; } .ss-people.ss-tanods table th:nth-child(5) { width: 27%; }   /* room for a whole email */
 .bd-cols.has-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+/* On Spatial Distribution the map is the page, so the storm notice floats over it as a slim pill above the Layers tile and takes no height from the map. */
+.ss-storm--map { position: fixed; z-index: 30; left: 272px; bottom: 104px; width: max-content; max-width: min(720px, calc(100vw - 420px)); margin: 0; padding: 8px 8px 8px 18px; border-radius: 99px; box-shadow: 0 6px 22px rgba(20,27,52,.28); }
+.ss-storm--map small { display: none; }
+@media (max-width: 900px) { .ss-storm--map { left: 16px; bottom: 150px; max-width: calc(100vw - 32px); } }

@@ -1603,21 +1603,12 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 #s-spatial .ss-pin:focus-visible { outline: 3px solid var(--p-link); outline-offset: 2px; }
 #s-spatial .p-map-search.ss-pinned .p-row,
 #s-spatial.ss-dragging .p-map-search.ss-pinned .p-row { max-height: 110px; opacity: 1; margin-top: 10px; overflow: visible; pointer-events: auto; }
-#s-spatial .p-map-search.ss-pinned .ss-layers-row,
-#s-spatial.ss-dragging .p-map-search.ss-pinned .ss-layers-row { max-height: 150px; }
 
-/* The layers are part of the floating tab again: one row under the switches. */
-#s-spatial .p-map-search:hover .ss-layers-row, #s-spatial .p-map-search:focus-within .ss-layers-row, #s-spatial.ss-peek .p-map-search .ss-layers-row, html.sdp-live #s-spatial .p-map-search .ss-layers-row { max-height: 150px; }
-#s-spatial .p-map-search .ss-layers-row { display: block; }
-#s-spatial .p-map-search .ss-layers-row .ss-lyr.ss-lyr--inline { position: static; width: auto; padding: 0; border-radius: 0; background: none !important; box-shadow: none !important; border: 0; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; animation: none; }
-#s-spatial .p-map-search .ss-layers-row .ss-lyr.ss-lyr--inline::before, #s-spatial .p-map-search .ss-layers-row .ss-lyr.ss-lyr--inline::after { display: none; }
-#s-spatial .p-map-search .ss-layers-row .ss-lyr--inline .lyr-list { display: grid; grid-template-columns: repeat(6, 74px); gap: 8px 12px; }
-@media (max-width: 900px) { #s-spatial .p-map-search .ss-layers-row .ss-lyr--inline .lyr-list { grid-template-columns: repeat(3, 74px); } }
-
-/* The buttons at the bottom right say what they are. */
+/* The buttons at the bottom right are squircles at rest, and widen to show what they are while the mouse is on them. */
 #s-spatial .p-map-dock { justify-items: end; }
-#s-spatial .p-map-dock .p-dock-btn:has(.dl) { display: inline-flex; align-items: center; justify-content: flex-start; gap: 9px; width: auto; min-width: 42px; padding: 0 14px 0 12px; }
-#s-spatial .p-map-dock .p-dock-btn .dl { font: 700 12.5px Urbanist, sans-serif; letter-spacing: .01em; white-space: nowrap; }
-#s-spatial.fw-fold .p-map-dock .p-dock-btn .dl, #s-spatial.ss-dock-tight .p-map-dock .p-dock-btn .dl { display: none; }
-#s-spatial.fw-fold .p-map-dock .p-dock-btn:has(.dl), #s-spatial.ss-dock-tight .p-map-dock .p-dock-btn:has(.dl) { padding: 0; width: 42px; justify-content: center; }
+#s-spatial .p-map-dock .p-dock-btn:has(.dl) { display: inline-flex; align-items: center; justify-content: center; gap: 0; width: 42px; padding: 0; transition: width .22s cubic-bezier(.2,.9,.3,1), padding .22s, gap .22s, background .2s; }
+#s-spatial .p-map-dock .p-dock-btn .dl { max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .01em; transition: max-width .22s cubic-bezier(.2,.9,.3,1), opacity .18s; }
+#s-spatial .p-map-dock:hover .p-dock-btn:has(.dl), #s-spatial .p-map-dock:focus-within .p-dock-btn:has(.dl) { width: auto; justify-content: flex-start; gap: 9px; padding: 0 14px 0 12px; }
+#s-spatial .p-map-dock:hover .p-dock-btn .dl, #s-spatial .p-map-dock:focus-within .p-dock-btn .dl { max-width: 140px; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #s-spatial .p-map-dock .p-dock-btn, #s-spatial .p-map-dock .p-dock-btn .dl { transition: none; } }
 #s-spatial .p-map-dock .ss-dock-logo .dl { color: #EDFA04; }
