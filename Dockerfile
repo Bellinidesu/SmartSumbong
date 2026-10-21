@@ -22,7 +22,7 @@ FROM composer:2.10.3 AS composer
 # Apache's mod_php by any request, before the portal's code runs). The
 # floating 8.5 tag let a rebuild reuse an older cached image; a pinned tag
 # cannot, and Dependabot raises it with each new patch.
-FROM php:8.5.12-apache
+FROM php:8.6.0RC2-apache
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
