@@ -1331,6 +1331,17 @@
 .ss-cases-t tr.ss-sens .p-mono-id, .ss-cases-t tr.ss-sens td:nth-child(3), .ss-cases-t tr.ss-sens td:nth-child(3) .p-sub { color: #B4231A; font-weight: 700; }
 :root[data-theme="dark"] .ss-cases-t tr.ss-sens .p-mono-id, :root[data-theme="dark"] .ss-cases-t tr.ss-sens td:nth-child(3), :root[data-theme="dark"] .ss-cases-t tr.ss-sens td:nth-child(3) .p-sub { color: #FF9C93; }
 .p-period-band .p-btn-pdf2 { margin-left: auto; }   /* the PDF button rests at the band's right edge, on the row it lands on */
+/* Report Summary's two downloads (22 Oct 2026) sit together at the band's right edge: the spreadsheet is the PDF's tile
+   in a spreadsheet green, the same size, shape, halo and motion, so the pair reads as one set. */
+.p-period-band .rs-dl { margin-left: auto; display: inline-flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.p-period-band .rs-dl .p-btn-pdf2 { margin-left: 0; }
+.p-period-band .p-btn-xls{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;text-decoration:none;font-size:14px;height:48px;padding:0 24px 0 16px;gap:12px;border:0;border-radius:16px;background:linear-gradient(145deg,#4CC37A,#1E8A4A 55%,#12592F);color:#fff;font-weight:800;box-shadow:0 8px 22px rgba(30,138,74,.5),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 4px rgba(255,255,255,.28);transition:transform .3s cubic-bezier(.2,1.25,.3,1),box-shadow .3s}
+.p-period-band .p-btn-xls:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 16px 32px rgba(30,138,74,.6),inset 0 1px 0 rgba(255,255,255,.4),0 0 0 6px rgba(255,255,255,.3)}
+.p-period-band .p-btn-xls:active{transform:translateY(0) scale(.96)}
+.p-btn-xls .xls-ico{overflow:visible;flex:none}
+.p-btn-xls .pg{fill:none;stroke:#fff;stroke-width:1.9;stroke-linejoin:round}
+.p-btn-xls .ln{stroke:#fff;stroke-width:1.6;stroke-linecap:round}
+@media (prefers-reduced-motion:reduce){.p-period-band .p-btn-xls{transition:none}}
 /* Storm mode on every page (Rose's asks, 21 Oct): the banner sits at the top of the content, level with the page's own gutter. */
 .ss-storm--page { margin: 0 0 16px; }
 .ss-storm--page small { display: block; margin-top: 2px; font-weight: 500; opacity: .85; }

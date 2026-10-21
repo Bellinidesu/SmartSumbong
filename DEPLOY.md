@@ -161,6 +161,7 @@ Settings → Secrets and variables → Actions:
 |---|---|---|
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` | secret | Deploy, Nightly backup, staging checks |
 | `BACKUP_PASSPHRASE` | secret | Nightly backup (encrypts the dump; keep it in the team's password manager) |
+| `HEALTHCHECKS_BACKUP_URL` | secret, optional | Nightly backup: a check's ping address on healthchecks.io, which emails the team when a night's backup fails or does not run |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | secret | Keep Supabase awake |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | secret, optional | Deploy (sets them as function secrets) |
 | `STAGING_DB_PASSWORD` + variable `STAGING_PROJECT_REF` | optional | CI's staging checks after a merge |

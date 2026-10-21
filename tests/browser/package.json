@@ -1,0 +1,13 @@
+{
+  "name": "smartsumbong-browser-tests",
+  "private": true,
+  "description": "Every portal page opened in a real browser: no console errors, no serious accessibility problems (axe-core).",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "lighthouse": "13.5.0"
+  }
+}

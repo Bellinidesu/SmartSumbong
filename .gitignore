@@ -40,3 +40,9 @@ Drop/
 # Claude-session scratch/delivery folder — not project source, and has
 # held local env dumps before. Never meant to be tracked.
 Claude outputs/
+# browser tests: installed packages and failure screenshots
+tests/browser/node_modules/
+tests/browser/test-results/
+tests/browser/lighthouse/
+
+admin/includes/vendor/
