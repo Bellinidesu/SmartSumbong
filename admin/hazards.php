@@ -9,6 +9,8 @@
  *            cyclone tracks (/api/CycloneTrack) and the hourly forecast for Port Area, Manila
  *            (/api/meteogram/425/0). PAGASA publishes these for its own pages; it documents
  *            no public API, so every reading is tolerant and the last good copy is kept.
+ *   PAGASA NCR  the Metro Manila desk's page (/regional-forecast/ncrprsd): its rainfall and
+ *            thunderstorm advisories, read as jakewarren/pagasa-feeds (MIT) found them laid out.
  *   GDACS    the UN / EU disaster alert feed: a second opinion on any cyclone near the
  *            Philippines, with the wind speed.
  *
@@ -22,7 +24,7 @@
  * is a self-hosted stack (Postgres, Redis, a worker) with no public instance, too much to run
  * for one barangay; its idea, signals read per area, is what this follows.
  *
- *   hazards.php            -> {ok, at, stale, warnings[], cyclone, forecast[], sources{}}
+ *   hazards.php            -> {ok, at, stale, warnings[], cyclone, forecast[], ncr, sources{}}
  */
 declare(strict_types=1);
 

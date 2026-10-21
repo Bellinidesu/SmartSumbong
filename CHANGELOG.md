@@ -37,6 +37,11 @@ Changes on `main` not yet deployed belong here.
   pill when the barangay marked the case sensitive, so the designated woman
   responder handles it discreetly. Residents never see it.
 
+**Added (open-source data, 21 Oct)**
+- Flood watch shows PAGASA's Metro Manila advisories, read from its NCR
+  desk's page: the thunderstorm advisory while it is current, saying whether
+  Pasay is named, and any rainfall advisory.
+
 **Fixed (21 Oct)**
 - Typhoon watch: PAGASA lists a storm's wind signals under the storm's own name,
   so the signal was never read and the Signal 3 alarm could not fire. The

@@ -107,6 +107,70 @@ function hz_dir(float $lat1, float $lng1, float $lat2, float $lng2): string
     return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][(int) round($b / 45) % 8];
 }
 
+/** PAGASA's Metro Manila regional desk (NCR PRSD): its own rainfall and thunderstorm advisories. */
+const HZ_NCR_PAGE = 'https://www.pagasa.dost.gov.ph/regional-forecast/ncrprsd';
+
+/**
+ * The NCR desk's page read for its two advisory tabs (21 Oct 2026). The page's layout (the #rainfalls and
+ * #thunderstorms tabs, one <div> per advisory, newest first) was found by jakewarren/pagasa-feeds (MIT), which
+ * turns it into RSS; it is read here directly, so it is as fresh as PAGASA's page. A thunderstorm advisory covers
+ * the next two hours or so; it counts as current for three hours from its issue time.
+ *
+ * @return ?array{rain:?string, thunder:?array{no:?int, issued:?string, current:bool, metro:bool, pasay:bool, places:string, text:string}, url:string}
+ */
+function hz_ncr(?string $html, int $now): ?array
+{
+    if ($html === null) {
+        return null;
+    }
+    $tab = static function (string $id, string $next) use ($html): ?array {
+        $a = strpos($html, 'id="' . $id . '"');
+        if ($a === false) {
+            return null;
+        }
+        $b = strpos($html, 'id="' . $next . '"', $a);
+        $part = substr($html, $a, $b === false ? 8000 : $b - $a);
+        preg_match_all('#<div>(.*?)</div>#s', $part, $m);
+        return array_values(array_filter(array_map(static function (string $x): string {
+            $x = preg_replace('#<br\s*/?>#i', "\n", $x) ?? '';
+            $x = html_entity_decode(strip_tags($x), ENT_QUOTES | ENT_HTML5);
+            $lines = array_map(static fn ($l) => trim((string) preg_replace('/[ \t\x{00A0}]+/u', ' ', $l)), explode("\n", $x));
+            return trim(implode("\n", array_filter($lines, static fn ($l) => $l !== '')));
+        }, $m[1])));
+    };
+    $rains = $tab('rainfalls', 'thunderstorms');
+    $storms = $tab('thunderstorms', 'special-forecasts');
+    if ($rains === null && $storms === null) {
+        return null;   // the page changed or did not load: not the same as "no advisory"
+    }
+    $rain = $rains[0] ?? null;
+    if ($rain !== null && preg_match('/no\s+heavy\s+rainfall\s+warning/i', $rain)) {
+        $rain = null;
+    }
+    $thunder = null;
+    if (!empty($storms[0])) {
+        $t = $storms[0];
+        $issued = null;
+        if (preg_match('/Issued at:\s*(\d{1,2}:\d{2}\s*[AP]M),\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i', $t, $m)) {
+            $d = DateTimeImmutable::createFromFormat('!j F Y g:i A', $m[2] . ' ' . strtoupper(preg_replace('/\s+/', ' ', $m[1])), new DateTimeZone('Asia/Manila'));
+            $issued = $d ? $d->getTimestamp() : null;
+        }
+        // "Metro Manila (Caloocan, Quezon City, ...)" names cities; "Metro Manila" alone is the whole region
+        $places = preg_match('/Metro Manila\s*\(([^)]*)\)/i', $t, $mm) ? trim($mm[1]) : '';
+        $metro = (bool) preg_match('/\bMetro Manila\b/i', $t);
+        $thunder = [
+            'no'      => preg_match('/Advisory\s+No\.?\s*(\d+)/i', $t, $mn) ? (int) $mn[1] : null,
+            'issued'  => $issued ? gmdate('c', $issued) : null,
+            'current' => $issued !== null && $now - $issued <= 3 * 3600 && $issued <= $now + 600,
+            'metro'   => $metro,
+            'pasay'   => $metro && ($places === '' || (bool) preg_match('/\bPasay\b/i', $places)),
+            'places'  => mb_substr($places, 0, 160),
+            'text'    => mb_substr($t, 0, 700),
+        ];
+    }
+    return ['rain' => $rain !== null ? mb_substr($rain, 0, 700) : null, 'thunder' => $thunder, 'url' => HZ_NCR_PAGE];
+}
+
 /** A tropical cyclone wind signal block in PAGASA's ActiveWarning: its blocks carry class tcws1..tcws5. */
 function hz_is_tcws(string $type, array $bySeverity): bool
 {
@@ -168,6 +232,7 @@ function hazards_read(): array
         'gd'   => ['https://www.gdacs.org/xml/rss.xml', false, 4],      // the slow one: 4 s, then the last copy it gave
         'mg0'  => ['https://bagong.pagasa.dost.gov.ph/api/meteogram/425/0', false, null],
         'mg1'  => ['https://bagong.pagasa.dost.gov.ph/api/meteogram/425/1', false, null],
+        'ncr'  => [HZ_NCR_PAGE, false, 6],
     ]);
     // GDACS answers in 3 to 9 seconds; its last good copy (up to six hours old) stands in when it is slow
     $gdFile = sys_get_temp_dir() . '/ss-gdacs-v1.xml';
@@ -177,7 +242,7 @@ function hazards_read(): array
         $B['gd'] = (string) file_get_contents($gdFile);
     }
 
-    $sources = ['pagasa_warnings' => false, 'pagasa_cyclone' => false, 'pagasa_forecast' => false, 'gdacs' => false];
+    $sources = ['pagasa_warnings' => false, 'pagasa_cyclone' => false, 'pagasa_forecast' => false, 'gdacs' => false, 'pagasa_ncr' => false];
     $out     = ['ok' => true, 'at' => gmdate('c'), 'stale' => false, 'warnings' => [], 'cyclone' => null, 'forecast' => [], 'sources' => []];
 
     // ---- PAGASA: the warnings that touch Metro Manila -------------------------------------------
@@ -328,6 +393,10 @@ function hazards_read(): array
             $out['forecast'][] = ['h' => $t->format('H:i'), 'mm' => (float) ($row['precipitation']['@attributes']['value'] ?? 0)];
         }
     }
+
+    // ---- PAGASA's Metro Manila desk: its rainfall and thunderstorm advisories -------------------------
+    $out['ncr'] = hz_ncr($B['ncr'], time());
+    $sources['pagasa_ncr'] = $out['ncr'] !== null;
 
     $out['sources'] = $sources;
 
