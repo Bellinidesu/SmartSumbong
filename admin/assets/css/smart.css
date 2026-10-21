@@ -1319,3 +1319,15 @@
 .ss-glow b { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 4px #fff, 0 0 22px 6px var(--c); }
 @keyframes ssGlowRing { 0% { transform: scale(.12); opacity: .95; } 70% { opacity: .5; } 100% { transform: scale(1); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .ss-glow i { animation: none; opacity: .6; } .ss-glow i:nth-child(n+2) { display: none; } }
+
+/* Case Reports (Rose, 21 Oct): the search takes the rest of its row; Open now and Action are centred over their cells. */
+.ss-cr-band .p-search { max-width: none; flex: 1 1 320px; }
+.ss-cases-t th.ss-c, .ss-cases-t td.ss-c { text-align: center; }
+.ss-cases-t th.ss-c { white-space: nowrap; }
+.ss-cases-t td.ss-c .ss-who { justify-content: center; }
+.ss-cases-t thead th.ss-c { white-space: nowrap !important; }
+.ss-cases-t th:nth-child(7) { width: 13%; } .ss-cases-t th:nth-child(8) { width: 9%; }
+/* A sensitive complaint reads in its own colour in the Case Reports list (Rose, 21 Oct): its ID, its category and its place. */
+.ss-cases-t tr.ss-sens .p-mono-id, .ss-cases-t tr.ss-sens td:nth-child(3), .ss-cases-t tr.ss-sens td:nth-child(3) .p-sub { color: #B4231A; font-weight: 700; }
+:root[data-theme="dark"] .ss-cases-t tr.ss-sens .p-mono-id, :root[data-theme="dark"] .ss-cases-t tr.ss-sens td:nth-child(3), :root[data-theme="dark"] .ss-cases-t tr.ss-sens td:nth-child(3) .p-sub { color: #FF9C93; }
+.p-period-band .p-btn-pdf2 { margin-left: auto; }   /* the PDF button rests at the band's right edge, on the row it lands on */

@@ -9,6 +9,28 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Rose's notes on the portal, 21 Oct)**
+- Sign-in: the appearance and language options are back on the sign-in page;
+  signing in lands on Notifications first.
+- Dashboard: "Resolution status report" is now "Complaint status".
+- Report Summary: the period chips sit on the same line as Report Period; the
+  case-timeline list is paged like the ledger, escalations and tanod activity,
+  and every pager keeps you at its own section.
+- Spatial Distribution: the floating tab can be locked open and remembers it;
+  the layers (heatmap, flood zones, dim outside, transit, air quality, safe
+  points) are back inside it; the heatmap is drawn in each complaint kind's own
+  legend colour; safe points are white signs instead of coloured beads, so they
+  no longer look like complaints; the buttons at the bottom right carry a word
+  beside the icon (icons alone while a drawer is open); a recurring problem you
+  click in the SMART drawer glows on the map and in the list.
+- Case Reports: the "Needs attention", "Assigned to me", "Unassigned" and
+  "Overdue" filters are removed; the search bar takes the rest of its row;
+  "Open now" and the Review button are centred under their headings; a
+  sensitive complaint reads in its own colour in the list.
+
+**Removed**
+- The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
+
 ## 2026-10-17 — Workspace widgets; house clean
 
 The full record, with what was checked and what is still open:
