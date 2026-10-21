@@ -293,7 +293,11 @@ function ws_quake(): array
     });
 }
 
-/** Philippine public holidays this year and next (Nager.Date). */
+/**
+ * Philippine public holidays this year and next (Nager.Date). It misses the holidays proclaimed each year (Eid'l Fitr,
+ * Eid'l Adha) and does not tell regular holidays from special days. PhilippineHolidayAPI (MIT) was weighed on
+ * 21 Oct 2026: its public copy had no 2026 data, and its source, the Official Gazette, refuses automated reads.
+ */
 function ws_holidays(): array
 {
     $r = feed_cached('holidays-v1-' . date('Y'), 86400, static function (): ?array {

@@ -204,6 +204,7 @@ nothing.
 | [docs/INCIDENTS.md](docs/INCIDENTS.md) | What to do when something breaks or leaks |
 | [docs/schema.md](docs/schema.md) | Tables, functions by actor, scheduled jobs, the rules, use-case coverage |
 | [docs/SMART_ENGINE.md](docs/SMART_ENGINE.md) | The SMART engine as a whole: its parts, version 1, how it connects, what can be added per client |
+| [docs/OPEN_SOURCE.md](docs/OPEN_SOURCE.md) | Open source we use, learned from and weighed, with licences; related work for the defense |
 | [docs/SMART.md](docs/SMART.md), [docs/SMART_SCREENS.md](docs/SMART_SCREENS.md) | SMART's exact rules, and where each part shows |
 | [docs/WIDGETS.md](docs/WIDGETS.md) | The Workspace widgets' contract |
 | [docs/DEFENSE_ASKS.md](docs/DEFENSE_ASKS.md) | What the capstone panel asked for, and where each stands |
