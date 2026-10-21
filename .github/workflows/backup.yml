@@ -9,6 +9,12 @@
 #   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD  as for CI
 #   BACKUP_PASSPHRASE                           a long passphrase, kept in
 #                                               the team's password manager
+#   HEALTHCHECKS_BACKUP_URL (optional)          a check's ping address on
+#                                               healthchecks.io (Healthchecks,
+#                                               BSD-3): it is told when the
+#                                               backup starts, succeeds or
+#                                               fails, and emails the team when
+#                                               a night is missed. Unset: no ping.
 # Restore: gpg --decrypt smartsumbong-<date>.tgz.gpg | tar xz, then load
 # roles.sql, schema.sql and data.sql with psql into a fresh project.
 
@@ -30,7 +36,10 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      HC_URL: ${{ secrets.HEALTHCHECKS_BACKUP_URL }}
     steps:
+      - name: Tell the backup check it has started
+        run: if [ -n "$HC_URL" ]; then curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/start" || true; fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Secrets present?
         run: |
@@ -58,3 +67,9 @@ jobs:
           name: smartsumbong-backup
           path: out/
           retention-days: 30
+      - name: Tell the backup check how it went
+        if: always()
+        run: |
+          [ -n "$HC_URL" ] || exit 0
+          if [ "${{ job.status }}" = success ]; then curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL" || true
+          else curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/fail" || true; fi
