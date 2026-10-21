@@ -86,12 +86,15 @@ begin
     end if;
   end loop;
   c := nxt;
-  -- English endings (fires, burning, flooded, stabbed); only a known word or word-list entry counts
+  -- English endings (fires, burning, flooded, stabbed); only a known word or word-list entry counts.
+  -- A plural -s or -es comes off only when what is left does not end in a, i, o or u: Tagalog words end
+  -- that way and their -s is part of the word (batas is law, not batas -> bata, child).
   if v_tok ~ '[a-z]{3,}(ies|es|s|ing|ed)$' then
     foreach p in array array[regexp_replace(v_tok, 'ies$', 'y'), regexp_replace(v_tok, 'es$', ''),
                              regexp_replace(v_tok, 's$', ''), regexp_replace(v_tok, 'ing$', ''),
                              regexp_replace(v_tok, 'ing$', 'e'), regexp_replace(v_tok, 'ed$', ''),
                              regexp_replace(v_tok, 'd$', '')] loop
+      if p <> v_tok and v_tok ~ 's$' and v_tok !~ 'ies$' and p ~ '[aiou]$' then continue; end if;
       if p <> v_tok and length(p) >= 3 then
         c := c || p;
         if p ~ '([b-df-hj-np-tv-z])\1$' then c := c || left(p, -1); end if;   -- stabb -> stab

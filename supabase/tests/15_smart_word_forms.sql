@@ -54,12 +54,17 @@ begin
     v_log := v_log || E'\n' || 'ok  bigas and pulis stay unknown; a negation still cancels the new forms';
   exception when others then v_log := v_log || E'\n' || 'FAIL over-reading: ' || sqlerrm; end;
 
-  -- 0125's forms are still read the same way
+  -- 0125's forms are still read the same way, one word at a time (a sentence of four urgent words hits the word cap)
   begin
-    select * into s from public._smart_score('other', '', 'Nasusunog yung bahay, may sinaksak, duguan, binaha.', null, now(), null);
-    if not (s.reasons @> '[{"detail": "fire", "matched": "nasusunog → sunog"}]' and s.reasons @> '[{"detail": "weapon", "matched": "sinaksak → saksak"}]'
-            and s.reasons @> '[{"detail": "injury", "matched": "duguan → dugo"}]') then raise exception '%', s.reasons; end if;
-    v_log := v_log || E'\n' || 'ok  nasusunog, sinaksak and duguan read as before';
+    select root into r from public._smart_read('nasusunog') where word = 'nasusunog';
+    if r is distinct from 'sunog' then raise exception 'nasusunog read as %', r; end if;
+    select root into r from public._smart_read('sinaksak') where word = 'sinaksak';
+    if r is distinct from 'saksak' then raise exception 'sinaksak read as %', r; end if;
+    select root into r from public._smart_read('duguan') where word = 'duguan';
+    if r is distinct from 'dugo' then raise exception 'duguan read as %', r; end if;
+    select root into r from public._smart_read('batas') where word = 'batas';
+    if r is not distinct from 'bata' then raise exception 'batas (law) read as bata (child)'; end if;
+    v_log := v_log || E'\n' || 'ok  nasusunog, sinaksak and duguan read as before, and batas is not read as bata';
   exception when others then v_log := v_log || E'\n' || 'FAIL old forms: ' || sqlerrm; end;
 
   -- the helper is not for the app
