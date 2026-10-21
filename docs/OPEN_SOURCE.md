@@ -37,6 +37,9 @@ rules decide, and a person approves anything new.
 
 ## Kept for later
 
+The wider menu, with about 120 projects by feature area, is
+[OPEN_SOURCE_SHORTLIST.md](OPEN_SOURCE_SHORTLIST.md). In short:
+
 These were checked for licence and fit and are not built in yet:
 
 - **SMART, offline checks only** (never in the live path): RapidFuzz (MIT),
