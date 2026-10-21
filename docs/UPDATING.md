@@ -12,6 +12,7 @@ Nothing updates itself in production.
 | The portal's Docker base image (PHP, Apache) | `Dockerfile` | Dependabot, weekly | merge its pull request, then Manual Deploy |
 | Flutter packages | `mobile/*/pubspec.yaml` and `pubspec.lock` | Dependabot, weekly | merge its pull request; build a new APK |
 | Browser libraries in the portal (MapLibre, supabase-js, Mapillary, fonts) | `admin/assets/vendor/vendor.json` | the **Vendored libraries** workflow, weekly: one issue listing newer versions and known advisories | `python tools/vendor.py fetch <library>`, below |
+| Browser-test tools (Playwright, axe-core) | `tests/browser/package-lock.json` | Dependabot, monthly | merge its pull request |
 | Supabase CLI | `version:` in the CI, Backup and Deploy workflows | its release notes; the CLI warns locally | change the three pins and the laptop together |
 | Edge Functions' imports | versions written in the import (`jsr:@std/assert@1.0.19`) | by hand, when a function is touched | change the version, run `deno test` |
 | Database extensions (PostGIS, pg_trgm, pg_cron…) | Supabase manages them | Supabase's dashboard | Supabase upgrades them; a migration only if we need a new one |
