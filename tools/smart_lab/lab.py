@@ -49,9 +49,14 @@ def words():
     ws = ','.join("'" + c['word'].replace("'", "''") + "'" for c in cases)
     smart = {r['w']: r['root'] for r in sql(f"select w, (select root from public._smart_read(w) limit 1) as root from unnest(array[{ws}]) as w")}
     known = lambda w: w if w in vocab else lex.get(w)
-    import calamancy, jellyfish
-    nlp = calamancy.load('tl_calamancy_md-0.2.0')
-    lemma = {c['word']: known(nlp(c['word'].replace('-', ''))[0].lemma_.lower()) for c in cases}
+    import jellyfish
+    try:   # optional (README): it pins a 2021 transformers with known advisories, so it is not in requirements.txt
+        import calamancy
+        nlp = calamancy.load('tl_calamancy_md-0.2.0')
+        lemma = {c['word']: known(nlp(c['word'].replace('-', ''))[0].lemma_.lower()) for c in cases}
+    except ImportError:
+        lemma = None
+        print('  (calamanCy not installed: its rows are skipped; see README)')
     keys = defaultdict(set)
     for v in vocab | set(lex):
         if len(v) >= 4:
@@ -61,15 +66,18 @@ def words():
         return next(iter(hits)) if len(hits) == 1 else None
     systems = {
         'SMART rules': lambda w: smart.get(w),
-        'calamanCy lemma, then the word list': lambda w: lemma[w],
         'phonetic key (Metaphone) alone': phon,
-        'SMART, calamanCy when SMART knows nothing': lambda w: smart.get(w) or lemma[w],
     }
+    if lemma is not None:
+        systems['calamanCy lemma, then the word list'] = lambda w: lemma[w]
+        systems['SMART, calamanCy when SMART knows nothing'] = lambda w: smart.get(w) or lemma[w]
     want = lambda c, got: got is None if c['root'] == 'NONE' else got == c['root']
     rec = [c for c in cases if c['root'] != 'NONE']; trap = [c for c in cases if c['root'] == 'NONE']
     for name, fn in systems.items():
         r = sum(want(c, fn(c['word'])) for c in rec); t = sum(want(c, fn(c['word'])) for c in trap)
         print(f'  {name:44s} recovered {r:2d}/{len(rec)}   traps kept unknown {t}/{len(trap)}')
+    if lemma is None:
+        return
     extra = [c['word'] for c in rec if not smart.get(c['word']) and lemma[c['word']] == c['root']]
     wrong = [c['word'] for c in trap if not smart.get(c['word']) and lemma[c['word']]]
     print(f'  calamanCy adds: {", ".join(extra) or "nothing SMART misses"}; and misreads: {", ".join(wrong) or "no trap"}')

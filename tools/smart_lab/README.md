@@ -9,8 +9,13 @@ a weak rule shows up before anyone changes it.
     py -3.12 lab.py all                              # or one: words, language, hotspots, duplicates, patterns, explain
 
 It reads the live project **read-only** through the Supabase CLI and prints
-tracking IDs and counts, never a resident's name or words. calamanCy downloads
-its Tagalog model (about 200 MB) the first time.
+tracking IDs and counts, never a resident's name or words.
+
+**calamanCy is optional** and not in `requirements.txt`: version 0.2.3 pins
+`transformers` 4.5.1 (2021) and an old Pillow, both with known advisories,
+and it added nothing to SMART here. To rerun its rows, install it into a
+throwaway environment: `pip install calamanCy==0.2.3` (its Tagalog model,
+about 200 MB, downloads on first use).
 
 | Check | Open-source tool (licence) | Measured against |
 |---|---|---|
