@@ -47,6 +47,13 @@ COPY index.php .htaccess ./
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Not root (22 Oct 2026, Trivy DS-0002). Apache runs as www-data from the start: the port is above 1024 so
+# it needs no root to bind, the base image already gives www-data Apache's run, lock and log folders, and the
+# entrypoint rewrites the two files that hold the port, so www-data owns those. The code stays root-owned
+# and read-only to it.
+RUN chown www-data:www-data /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
+USER www-data
+
 # Render (and most Docker hosts) inject the real port to bind to as $PORT
 # at container start — Apache's own config only knows the literal 80 baked
 # in at build time, so the entrypoint rewrites both files before starting.
