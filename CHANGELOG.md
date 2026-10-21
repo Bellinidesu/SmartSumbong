@@ -64,6 +64,11 @@ Changes on `main` not yet deployed belong here.
 - Dashboard: **When complaints come in** (`smart_time_patterns`): the weekday
   and three-hour blocks well above usual for each kind, with the place.
 
+**Changed (SMS codes, 21 Oct)**
+- SMS codes go by Semaphore's OTP route instead of its bulk one, and carry
+  the barangay's sender name once `SEMAPHORE_SENDER_NAME` is set (both found
+  in pravennn08/semaphore-sdk, MIT). SMS stays off until credits are bought.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 

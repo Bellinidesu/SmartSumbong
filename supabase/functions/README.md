@@ -10,7 +10,7 @@ shows them.
 |---|---|---|---|---|
 | `send-dispatch-push` | on | the Database Webhook on `notifications` inserts | sends the phone banner over FCM's HTTP v1 API, reading the notification as stored | `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY`; optional `PUSH_WEBHOOK_SECRET` |
 | `sign-upload` | off (checks its own) | the app | signs Cloudinary uploads (SHA-256) within per-address limits; signs a viewing link for the caller's own private ID photo | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
-| `password-otp` | off (the caller is signed out) | the app | SMS codes for a forgotten password and for moving to a new number: hashed, 10 minutes, 5 tries, 3 an hour | `SEMAPHORE_API_KEY` |
+| `password-otp` | off (the caller is signed out) | the app | SMS codes for a forgotten password and for moving to a new number: hashed, 10 minutes, 5 tries, 3 an hour; sent by Semaphore's OTP route | `SEMAPHORE_API_KEY`, `SEMAPHORE_SENDER_NAME` (optional) |
 | `delete-account` | on | the app | finishes the caller's own account deletion with GoTrue's Admin API | — |
 | `media-cleanup` | off (a shared secret) | pg_cron, daily | deletes identity photos from Cloudinary a week after nothing uses them | `MEDIA_CLEANUP_SECRET`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 
