@@ -21,5 +21,13 @@ so the repo's real `.env` is never read and the live project is never
 touched. `router.php` signs every request in; it exists only in that copy and
 is never in the Docker image. CI runs the same in the **browser** job.
 
+Lighthouse 13 (`node lighthouse.mjs`) scores sign-in, the dashboard, cases and
+the summary in the same Chromium: accessibility must stay at 95 or more and
+best practices at 90 or more; performance under 80 only warns, because CI
+machines vary. On 22 Oct 2026: accessibility 98 to 100, best practices 96 to
+100, performance 93 to 99. The reports land in `lighthouse/`. (Lighthouse CI,
+the usual wrapper, was not used: its dependencies carry 17 known advisories
+and it has not been updated since June 2025; Lighthouse itself has none.)
+
 To check a new page, add it to `PAGES` in `pages.spec.mjs`; if it needs data
 the fake does not have yet, add it to `fake/fake_sb.py` (keep it invented).
