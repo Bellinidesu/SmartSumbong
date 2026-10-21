@@ -167,7 +167,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
             .from('reports')
             .select(
               'tracking_id, subject, description, created_at, '
-              'latitude, longitude, location_label, is_anonymous, category',
+              'latitude, longitude, location_label, is_anonymous, is_sensitive, category',
             )
             .eq('id', widget.ticket.reportId)
             .single(),
@@ -354,6 +354,10 @@ class _DispatchOrderState extends State<_DispatchOrder>
       Text(context.tr('DISPATCH ORDER', 'DISPATCH ORDER'), style: DType.label(d.muted)),
       const SizedBox(height: 10),
       Text(widget.ticket.subject, style: DType.body(d.ink, size: 19, w: FontWeight.w800).copyWith(height: 1.25)),
+      if (_report?['is_sensitive'] == true) ...[
+        const SizedBox(height: 10),
+        const Align(alignment: Alignment.centerLeft, child: DSensitivePill()),
+      ],
       const SizedBox(height: 10),
       Text.rich(TextSpan(children: [
         TextSpan(text: widget.ticket.trackingId, style: DType.mono(d.link, size: 13)),
