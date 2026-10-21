@@ -157,4 +157,26 @@ void main() {
       expect(await viewableMediaUrl(url), url);
     });
   });
+
+  group('writeFileAtomically', () {
+    test('writes the whole file and leaves no temporary file behind', () async {
+      final dir = await Directory.systemTemp.createTemp('ss-atomic');
+      final f = File('${dir.path}/outbox.json');
+      await f.writeAsString('[{"id":"old"}]');
+      await writeFileAtomically(f, '[{"id":"a"},{"id":"b"}]');
+      expect(await f.readAsString(), '[{"id":"a"},{"id":"b"}]');
+      expect(File('${f.path}.tmp').existsSync(), isFalse);
+      await dir.delete(recursive: true);
+    });
+
+    test('a write that fails leaves the old file as it was', () async {
+      final dir = await Directory.systemTemp.createTemp('ss-atomic');
+      final f = File('${dir.path}/outbox.json');
+      await f.writeAsString('[{"id":"kept"}]');
+      Directory('${f.path}.tmp').createSync();   // the temporary path is taken, so the write cannot happen
+      await expectLater(writeFileAtomically(f, '[]'), throwsA(isA<FileSystemException>()));
+      expect(await f.readAsString(), '[{"id":"kept"}]');
+      await dir.delete(recursive: true);
+    });
+  });
 }

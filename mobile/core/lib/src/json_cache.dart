@@ -16,6 +16,17 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Writes [file] whole or not at all: to a temporary file beside it, then a
+/// rename, which the file system does in one step. A phone that dies mid-write
+/// leaves the old file as it was, never half of the new one. (22 Oct 2026: the
+/// report outboxes wrote straight to their file, so a write cut short read back
+/// as an empty outbox and the unsent reports were lost.)
+Future<void> writeFileAtomically(File file, String contents) async {
+  final tmp = File('${file.path}.tmp');
+  await tmp.writeAsString(contents, flush: true);
+  await tmp.rename(file.path);
+}
+
 class JsonCache {
   JsonCache._();
 
@@ -51,9 +62,7 @@ class JsonCache {
       final d = await _dir(create: true);
       if (d == null) return;
       final f = File('${d.path}/${_name(key)}.json');
-      final tmp = File('${f.path}.tmp');
-      await tmp.writeAsString(jsonEncode(value));
-      await tmp.rename(f.path);
+      await writeFileAtomically(f, jsonEncode(value));
     } catch (_) {}
   }
 
