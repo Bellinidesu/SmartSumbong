@@ -626,6 +626,19 @@ function status_labels(): array
     return $out;
 }
 
+/**
+ * A sensitive case's own status (Rose, 21 Oct 2026). 0130 marks VAWC and similar complaints sensitive; the mark sits beside
+ * the case's progress (Under review, In progress, Resolved…) rather than replacing it, because a sensitive case still
+ * goes through every step. Shown wherever the portal shows a case's status. Never shown to the resident.
+ */
+function sensitive_badge(?array $r): string
+{
+    if (empty($r['is_sensitive'])) { return ''; }
+    return '<span class="p-badge p-b-sensitive" title="' . e(t('Sensitive case: elevate it, and send a designated woman responder if a tanod is needed', 'Sensitibong kaso: i-elevate, at magpadala ng itinalagang babaeng responder kung kailangan ng tanod')) . '">'
+         . '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.7 7 9.5 4.1-1.8 7-5.2 7-9.5V6z"/></svg>'
+         . e(t('Sensitive', 'Sensitibo')) . '</span>';
+}
+
 function status_class(string $s): string
 {
     // The preview's badge colours: p-b-<this>.

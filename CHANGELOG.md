@@ -27,6 +27,12 @@ Changes on `main` not yet deployed belong here.
   "Overdue" filters are removed; the search bar takes the rest of its row;
   "Open now" and the Review button are centred under their headings; a
   sensitive complaint reads in its own colour in the list.
+- Sensitive cases have their own status: a plum **Sensitive** pill with a
+  shield beside the case's progress (Case Reports, the case page and its map
+  panel, Report Summary, Spatial Distribution's case sheet), and **Sensitive**
+  in the Status filter. It sits beside the lifecycle status rather than
+  replacing it, because a sensitive case still goes through every step. The
+  resident never sees it.
 
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).

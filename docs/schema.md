@@ -242,7 +242,9 @@ reports are counted.
   `referred_to` set (0072/0073).
 - **Sensitive cases** (0130). VAWC and domestic-violence complaints are marked
   on filing, kept out of the dispatch waiting line, and can go to a designated
-  woman responder.
+  woman responder. The mark is its own status in the portal, shown
+  beside the lifecycle status (`reports.status` is unchanged, so every step
+  still applies) and filterable; it is never shown to the resident.
 - **No live tracking.** A tanod's location is taken at key moments only (going
   on duty, returning to the app, each dispatch step, navigation start).
 - **Photos stay in their folder** (0083): complaint photos in `reports/`, tanod

@@ -124,7 +124,7 @@ if (!in_array($category, CATEGORIES, true)) { $category = ''; }
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
 // Rose (7 Oct 2026): Overdue and Escalated sit in the same Status menu.
 const OPEN_STATES = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
-if (!isset(STATUS_GROUPS[$filter]) && !in_array($filter, ['overdue', 'escalated', 'with_kagawad', 'with_chairman'], true)) { $filter = ''; }
+if (!isset(STATUS_GROUPS[$filter]) && !in_array($filter, ['overdue', 'escalated', 'with_kagawad', 'with_chairman', 'sensitive'], true)) { $filter = ''; }
 
 // Clicking a column heading sorts by it; clicking the same one again
 // reverses. PostgREST cannot order by an embedded resident name, so that
@@ -182,6 +182,9 @@ try {
     } elseif ($filter === 'escalated') {
         // To an outside office, or handed up to a higher official inside the barangay.
         $and[] = 'or(referred_to.not.is.null,higher_official.not.is.null)';
+    } elseif ($filter === 'sensitive') {
+        // Rose (21 Oct): sensitive cases have their own status in this menu (0130's mark, alongside the case's progress).
+        $query['is_sensitive'] = 'eq.true';
     } elseif ($filter === 'with_kagawad' || $filter === 'with_chairman') {
         // 0130: where the case sits on the ladder inside the barangay.
         $query['tier'] = 'eq.' . ($filter === 'with_kagawad' ? 1 : 2);
@@ -517,6 +520,7 @@ $noteBadge = $notesUnread + $escCount;
             'escalated'    => t('Escalated', 'In-escalate'),
             'with_kagawad'  => t('With a Kagawad', 'Nasa Kagawad'),
             'with_chairman' => t('With the Chairman', 'Nasa Punong Barangay'),
+            'sensitive'     => t('Sensitive', 'Sensitibo'),
         ] as $s => $lbl): ?>
           <option value="<?= e($s) ?>" <?= $filter === $s ? 'selected' : '' ?>><?= e($lbl) ?></option>
         <?php endforeach; ?>
@@ -557,6 +561,7 @@ $noteBadge = $notesUnread + $escCount;
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?></td>
           <td><div class="p-badges">
+            <?= sensitive_badge($r) ?>
             <span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?></span>
             <?php if (report_is_overdue($r)): ?><span class="p-badge p-b-denied"><?= e(t('Overdue', 'Lampas na sa takdang oras')) ?></span><?php endif; ?>
             <?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ')) . e($r['referred_to']) ?></span><?php endif; ?>
@@ -760,7 +765,7 @@ $noteBadge = $notesUnread + $escCount;
         '<td><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span></td>' +
         '<td>' + escapeHtml(CATEGORY_LABEL[r.category] || titleCase(r.category)) +
           (r.location_label ? '<div class="p-sub">' + escapeHtml(r.location_label) + '</div>' : '') + '</td>' +
-        '<td><div class="p-badges"><span class="p-badge p-b-' + statusClass(r.status) + '">' +
+        '<td><div class="p-badges">' + (r.is_sensitive ? SENSITIVE_BADGE : '') + '<span class="p-badge p-b-' + statusClass(r.status) + '">' +
           escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</div></td>' +
         '<td class="p-num">' + shortDate(r.created_at) + '</td>' +
         '<td class="ss-smart">' + smartBadge(r.triage) + '</td>' +
@@ -773,6 +778,7 @@ $noteBadge = $notesUnread + $escCount;
   }
 
   const BRAIN_SVG = <?= json_encode(smart_brain(20)) ?>;
+  const SENSITIVE_BADGE = <?= json_encode(sensitive_badge(['is_sensitive' => true])) ?>;   // the same pill the server draws
   // Today / Yesterday / "Oct 12", in Manila, to group the list like a timeline.
   function dayLabel(iso) {
     const fmt = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(d);
@@ -863,6 +869,7 @@ $noteBadge = $notesUnread + $escCount;
     else if (STATUS === 'escalated' && !SEARCH) q = q.or('referred_to.not.is.null,higher_official.not.is.null');
     else if (STATUS === 'with_kagawad') q = q.eq('tier', 1);
     else if (STATUS === 'with_chairman') q = q.eq('tier', 2);
+    else if (STATUS === 'sensitive') q = q.eq('is_sensitive', true);
     else if (STATUS && STATUS !== 'escalated') q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
     if (CATEGORY) q = q.eq('category', CATEGORY);
     if (WHO === 'unclaimed') q = q.is('handler_id', null);

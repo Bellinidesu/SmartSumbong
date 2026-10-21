@@ -786,3 +786,9 @@
   .p-side-foot .p-seg{ display: none; }
 }
 @media (prefers-reduced-motion: reduce) { :where(.p-body) *{ animation: none !important; transition: none !important; } }
+
+/* A sensitive case's own status (Rose, 21 Oct): plum, with a shield, beside the case's progress. */
+.p-b-sensitive{ display: inline-flex; align-items: center; gap: 4px; background: #F7E2F1; color: #8A1F6B; box-shadow: inset 0 0 0 1px #E9B9DA; }
+.p-b-sensitive svg{ flex: none; }
+:root[data-theme="dark"] .p-b-sensitive{ background: #4A1D3E; color: #FFB8E6; box-shadow: inset 0 0 0 1px #7A3168; }
+.p-b-sensitive::before{ display: none; }   /* the shield is its mark */
