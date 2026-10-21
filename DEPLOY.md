@@ -62,7 +62,8 @@ Set the secrets (Edge Functions → Secrets, or `supabase secrets set NAME=value
 | `PUSH_WEBHOOK_SECRET` (optional) | `send-dispatch-push` | once set, only a caller sending it as `x-webhook-secret` is answered |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | `sign-upload`, `media-cleanup` | signing uploads and private links; deleting old identity photos |
 | `MEDIA_CLEANUP_SECRET` | `media-cleanup` | the shared secret pg_cron sends (also stored in Vault, below) |
-| `SEMAPHORE_API_KEY` | `password-otp` | sending SMS codes |
+| `SEMAPHORE_API_KEY` | `password-otp` | sending SMS codes (by Semaphore's OTP route, `/api/v4/otp`) |
+| `SEMAPHORE_SENDER_NAME` (optional) | `password-otp` | a sender name Semaphore has approved for the account; without it codes come from Semaphore's default name |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
 injected into every function by Supabase.

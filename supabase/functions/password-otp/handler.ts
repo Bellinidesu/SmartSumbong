@@ -17,13 +17,16 @@
 // share a count; a reset by code signs the account out everywhere.
 //
 // Secrets: SEMAPHORE_API_KEY (set with `supabase secrets set`), plus the
-// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets.
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY every function gets. Optional:
+// SEMAPHORE_SENDER_NAME, a sender name Semaphore has approved for the account
+// (without it the text comes from Semaphore's default name).
 
 import { logError } from "../_shared/log.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SEMAPHORE_API_KEY = Deno.env.get("SEMAPHORE_API_KEY") ?? "";
+const SEMAPHORE_SENDER_NAME = (Deno.env.get("SEMAPHORE_SENDER_NAME") ?? "").trim();
 
 const CODE_MINUTES = 10;
 const MAX_TRIES = 5;
@@ -192,13 +195,19 @@ async function verify(mobile: string, code: string, password: string): Promise<R
   return json({ ok: true, message: "Your password has been changed. Sign in with the new one." });
 }
 
+// Semaphore's OTP route, not its bulk one: codes go out on their own priority
+// route and are not held behind ordinary messages. It takes our own code (the
+// database keeps only its hash) and puts it where the message says {otp}.
+// The route and its fields as in pravennn08/semaphore-sdk (MIT).
 async function textCode(mobile: string, code: string): Promise<boolean> {
   const form = new URLSearchParams({
     apikey: SEMAPHORE_API_KEY,
     number: "0" + mobile.slice(3),
-    message: `Your SmartSumbong code is ${code}. It expires in ${CODE_MINUTES} minutes. Do not share it with anyone.`,
+    message: `Your SmartSumbong code is {otp}. It expires in ${CODE_MINUTES} minutes. Do not share it with anyone.`,
+    code,
   });
-  const sms = await fetch("https://api.semaphore.co/api/v4/messages", { method: "POST", body: form });
+  if (SEMAPHORE_SENDER_NAME) form.set("sendername", SEMAPHORE_SENDER_NAME);
+  const sms = await fetch("https://api.semaphore.co/api/v4/otp", { method: "POST", body: form });
   const body = await sms.text();
   try {
     const parsed = JSON.parse(body);

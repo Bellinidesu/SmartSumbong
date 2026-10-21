@@ -63,6 +63,21 @@ Deno.test("asking for a code answers the same whether or not the number has an a
   } finally { s.restore(); }
 });
 
+Deno.test("the code goes by Semaphore's OTP route, as our own code in the {otp} place", async () => {
+  const s = supabase("ok");
+  try {
+    await handler(post({ action: "send", mobile: "09171234567" }));
+    const sms = s.calls.find((c) => c.url.hostname === "api.semaphore.co")!;
+    assertEquals(sms.url.pathname, "/api/v4/otp");
+    const form = new URLSearchParams(sms.body);
+    assertEquals(form.get("number"), "09171234567");
+    assertMatch(form.get("code") ?? "", /^\d{6}$/);
+    assertMatch(form.get("message") ?? "", /\{otp\}/);
+    assert(!(form.get("message") ?? "").includes(form.get("code")!), "the code is Semaphore's to place, not written in");
+    assert(!form.has("sendername"), "no sender name unless one is set");
+  } finally { s.restore(); }
+});
+
 Deno.test("bad input is refused before anything is looked up", async () => {
   const s = supabase("ok");
   try {

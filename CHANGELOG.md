@@ -85,6 +85,11 @@ Changes on `main` not yet deployed belong here.
   (fires, wires, stabbing, crashed). Rules still decide; a form counts only
   when it ends at a word SMART knows.
 
+**Changed (SMS codes, 21 Oct)**
+- SMS codes go by Semaphore's OTP route instead of its bulk one, and carry
+  the barangay's sender name once `SEMAPHORE_SENDER_NAME` is set (both found
+  in pravennn08/semaphore-sdk, MIT). SMS stays off until credits are bought.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 
