@@ -1,0 +1,72 @@
+word	root	note
+sunog	sunog	exact
+nasusunog	sunog	prefix + repeat
+sinusunog	sunog	infix + repeat
+susunugin	sunog	suffix + repeat
+sunog-sunog	sunog	doubled
+sunoooog	sunog	stretched
+snog	sunog	texting
+sonog	sunog	spelling
+fire	sunog	english
+fires	sunog	english plural
+burning	burning	exact (listed word)
+baha	baha	exact
+binaha	baha	infix
+bumabaha	baha	infix + repeat
+bahaaaa	baha	stretched
+flooded	baha	english ed
+flooding	baha	english ing
+bumaha	baha	infix
+kabaha	baha	trap prefix
+saksak	saksak	exact
+sinaksak	saksak	infix
+sasaksakin	saksak	repeat + suffix
+sinasaksak	saksak	infix + repeat
+stabbed	stabbed	exact (listed word)
+stabbing	stab	english ing
+dugo	dugo	exact
+duguan	dugo	suffix
+dumudugo	dugo	infix + repeat
+nagdudugo	dugo	prefix + repeat
+sugat	sugat	exact
+nasugatan	sugat	prefix + suffix
+sugatan	sugat	suffix
+sinugatan	sugat	infix + suffix
+bata	bata	exact
+batang	bata	linker
+kids	bata	english
+basura	basura	exact
+nagbabasura	basura	prefix + repeat
+bsura	basura	texting
+garbage	basura	english
+kanal	kanal	exact
+barado	barado	exact
+aso	aso	exact
+asong	aso	linker
+nangangagat	kagat	listed form
+kagat	kagat	exact
+kinakagat	kagat	infix + repeat
+kuryente	kuryente	exact
+kuryinte	kuryente	texting
+koryente	kuryente	spelling
+wires	kawad	english plural
+aksidente	aksidente	exact
+naaksidente	aksidente	prefix
+accident	aksidente	english
+gulo	gulo	exact
+nagkagulo	gulo	listed form
+nag-aaway	gulo	listed form
+rambol	rambol	exact
+batas	NONE	trap: law, not bata
+bigas	NONE	trap: rice
+pulis	NONE	trap
+bahay	NONE	trap: house, not baha
+bahagi	NONE	trap: part, not baha
+basa	NONE	trap: wet, not basura
+sunod	NONE	trap: follow, not sunog
+dugong	dugo	linker
+lubak	lubak	exact
+pothole	lubak	english
+tulay	tulay	exact
+guho	guho	exact
+gumuho	guho	infix
