@@ -66,6 +66,9 @@ jobs:
           test "$(curl -fs http://127.0.0.1:10000/admin/ping.php)" = ok || { docker logs portal; exit 1; }
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:10000/admin/includes/config.php)" = 403 || { echo "includes/ is reachable"; exit 1; }
           uid=$(docker exec portal id -u); echo "runs as uid $uid"; test "$uid" != 0
+          docker exec portal php -r 'echo "PHP ", PHP_VERSION, PHP_EOL;'
+          # 8.5.12 fixes CVE-2026-109618 and CVE-2026-109619 (remote code execution); never ship below it
+          docker exec portal php -r 'exit(version_compare(PHP_VERSION, "8.5.12", "<") ? 1 : 0);'
           docker rm -f portal
       - name: Trivy 0.75.0 (checksum pinned)
         run: |
