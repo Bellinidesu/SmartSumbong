@@ -11,6 +11,9 @@ Changes on `main` not yet deployed belong here.
 
 ## 2026-10-17 — Workspace widgets; house clean
 
+The full record, with what was checked and what is still open:
+[docs/changes/2026-10-17.md](docs/changes/2026-10-17.md).
+
 **Added**
 - The Workspace becomes each staff member's own screen: a slim rail of
   widgets chosen from a library of 120 (cases, team, weather and hazards,
@@ -20,8 +23,9 @@ Changes on `main` not yet deployed belong here.
   good copy standing in; weather, air, tides and quakes fall back to the browser
   when the server's request is refused (#133).
 - The app on tablets: it may turn, and shows in a phone-width column (#137).
-- Documentation: ARCHITECTURE, CONTRIBUTING, SECURITY, DEFENSE_ASKS and this
-  changelog; README, DEPLOY, OPERATIONS and the schema reference rewritten.
+- Documentation: ARCHITECTURE, SMART_ENGINE, CONTRIBUTING, SECURITY,
+  DEFENSE_ASKS and this changelog; README, DEPLOY, OPERATIONS and the schema
+  reference rewritten (#141, #143).
 
 **Changed**
 - `main` carries no 3D City view code; it lives on `bellinist` only (#138).
