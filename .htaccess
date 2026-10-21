@@ -53,6 +53,11 @@ RewriteRule ^favicon\.ico$ admin/assets/img/favicon-64.png [L]
 # fetched (backend review, 10 Oct 2026).
 RewriteRule ^admin/includes/ - [F]
 
+# The dependency lists (Composer's two files, the vendored-library manifest) tell a visitor exactly which
+# library versions run here, and no page uses them (22 Oct 2026: found public on the live site).
+RewriteRule ^admin/(composer\.json|composer\.lock)$ - [F]
+RewriteRule ^admin/assets/vendor/vendor\.json$ - [F]
+
 # Block everything except the two things this project actually serves.
 RewriteCond %{REQUEST_URI} !^/admin/
 RewriteCond %{REQUEST_URI} !^/index\.php$

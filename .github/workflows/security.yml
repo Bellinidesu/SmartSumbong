@@ -65,6 +65,9 @@ jobs:
           for i in $(seq 1 20); do curl -fs http://127.0.0.1:10000/admin/ping.php > /dev/null && break; sleep 1; done
           test "$(curl -fs http://127.0.0.1:10000/admin/ping.php)" = ok || { docker logs portal; exit 1; }
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:10000/admin/includes/config.php)" = 403 || { echo "includes/ is reachable"; exit 1; }
+          for f in admin/composer.json admin/composer.lock admin/assets/vendor/vendor.json admin/includes/vendor/autoload.php; do
+            test "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:10000/$f")" = 403 || { echo "$f is public"; exit 1; }
+          done
           uid=$(docker exec portal id -u); echo "runs as uid $uid"; test "$uid" != 0
           docker exec portal php -r 'echo "PHP ", PHP_VERSION, PHP_EOL;'
           # 8.5.12 fixes CVE-2026-109618 and CVE-2026-109619 (remote code execution); never ship below it
