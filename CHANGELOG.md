@@ -64,6 +64,12 @@ Changes on `main` not yet deployed belong here.
 - Dashboard: **When complaints come in** (`smart_time_patterns`): the weekday
   and three-hour blocks well above usual for each kind, with the place.
 
+**Changed (SMART reads more word forms, 0133, 21 Oct)**
+- The reader knows the present tense (bumabaha, sinusunog, kinakagat), doubled
+  words (sunog-sunog), stretched letters (sunoooog) and English endings
+  (fires, wires, stabbing, crashed). Rules still decide; a form counts only
+  when it ends at a word SMART knows.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 

@@ -116,7 +116,7 @@ on screen on 14–16 October.
 | 5 | **Usual time (ETA)** | 0122 | How long this kind of complaint usually takes *here* (median and slow case) | The case card |
 | 6 | **Overrides, patterns, watcher, calibration** | 0123 | Admins raise or lower a level with a reason; recurring problems at one spot; alerts for urgent cases nobody sent; how the rules compare with people's judgement | The case card, the map, notifications, Settings → SMART |
 | 7 | **Screens' calls** | 0124 | One call per screen: the case card, the dashboard tiles, *Try it* (score a sample complaint without saving) | Dashboard, Settings → SMART |
-| 8 | **Reader (Taglish)** | 0125 | Tagalog word forms, texting spellings, synonyms, negation ("walang sunog" is not a fire), one-letter slips | Everywhere words are scored; *Try it* shows the reading |
+| 8 | **Reader (Taglish)** | 0125, 0133 | Tagalog word forms, texting spellings, synonyms, negation ("walang sunog" is not a fire), one-letter slips | Everywhere words are scored; *Try it* shows the reading |
 | 9 | **Verifier (ID checks)** | 0126 | The phone's OCR only reads an ID; the server checks the type, the name, the number's shape and reuse on another account | Built, waiting for ID reading to be switched on |
 | 10 | **Foresight** | 0127 | Storm mode, deadline risk, spikes, similar past cases and the usual office, the morning digest | Settings, dashboard, case card, notifications |
 | 11 | **Learning and routing** | 0128 | Words residents use that SMART does not know (an admin teaches each one), quiet cases, the week's patterns, the on-time scorecard, SMART's pick for the system's dispatches | Dashboard scorecard, notifications, dispatch instructions |
@@ -140,7 +140,9 @@ SMART understands them.
 Each word goes through, in order: is it a known word; is it in the word list
 (a texting spelling, a synonym, an irregular form); can grammar reduce it to
 a known word (prefixes *na-, nag-, ma-, naka-*, infixes *-um-, -in-*,
-suffixes *-an, -in*, the repeated first syllable, the linker *-ng*); is it
+suffixes *-an, -in*, the repeated first syllable before and after the infix
+(*bumabaha → baha*, 0133), a doubled word, stretched letters, the English
+endings *-s, -ing, -ed*, the linker *-ng*); is it
 one letter from exactly one known long word. So *nasusunog → sunog*, *binaha
 → baha*, *snog → sunog*, *garbage → basura*. Negation (*walang, hindi, di,
 huwag, no, not, never, without*) cancels the next two words until a comma,
