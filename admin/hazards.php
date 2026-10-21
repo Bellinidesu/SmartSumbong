@@ -15,6 +15,13 @@
  * NDRRMC publishes no machine-readable feed (its situation reports are PDFs behind a bot
  * check), so it is not read here; the widgets link to it instead.
  *
+ * Wind signals (21 Oct 2026): a storm comes in ActiveWarning under its own name, one block
+ * per signal (class tcws1..tcws5) listing the regions and areas under it. cyclone.signal is
+ * the signal over Metro Manila (null when none), cyclone.signalTop the highest anywhere.
+ * BagyoAPI (edwardguevarra/bagyo-api, MIT) parses the full bulletins into PSGC areas, but it
+ * is a self-hosted stack (Postgres, Redis, a worker) with no public instance, too much to run
+ * for one barangay; its idea, signals read per area, is what this follows.
+ *
  *   hazards.php            -> {ok, at, stale, warnings[], cyclone, forecast[], sources{}}
  */
 declare(strict_types=1);

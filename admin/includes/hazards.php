@@ -107,10 +107,54 @@ function hz_dir(float $lat1, float $lng1, float $lat2, float $lng2): string
     return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][(int) round($b / 45) % 8];
 }
 
+/** A tropical cyclone wind signal block in PAGASA's ActiveWarning: its blocks carry class tcws1..tcws5. */
+function hz_is_tcws(string $type, array $bySeverity): bool
+{
+    if ($type === 'Tropical Cyclone Alert') {
+        return true;
+    }
+    foreach ($bySeverity as $block) {
+        if (is_array($block) && preg_match('/^tcws[1-5]$/', (string) ($block['class'] ?? ''))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * The signal over Metro Manila and the highest one anywhere, from one or more storms' tcws blocks.
+ * @return array{metro:?int, top:?array{n:int, areas:string}}
+ */
+function hz_signals(array $storms): array
+{
+    $metro = null; $top = null;
+    foreach ($storms as $bySeverity) {
+        foreach ((array) $bySeverity as $sevKey => $block) {
+            $n = preg_match('/^tcws([1-5])$/', (string) ($block['class'] ?? ''), $m) ? (int) $m[1]
+               : (preg_match('/^([1-5])\b/', (string) $sevKey, $m) ? (int) $m[1] : 0);
+            if (!$n) {
+                continue;
+            }
+            $areas = [];
+            foreach ((array) ($block['regions'] ?? []) as $region => $r) {
+                $a = trim(preg_replace('/\s+/', ' ', (string) ($r['areas'] ?? '')) ?? '');
+                $areas[] = $a !== '' ? $a : trim((string) $region);
+                if (preg_match('/\b(NCR|National Capital|Metro Manila|Pasay)\b/i', $region . ' ' . $a)) {
+                    $metro = max($metro ?? 0, $n);
+                }
+            }
+            if ($areas && (!$top || $n > $top['n'])) {
+                $top = ['n' => $n, 'areas' => mb_substr(implode(', ', $areas), 0, 120)];
+            }
+        }
+    }
+    return ['metro' => $metro, 'top' => $top];
+}
+
 /** @return array{ok:bool, at:string, stale:bool, warnings:list<array>, cyclone:?array, forecast:list<array>, sources:array} */
 function hazards_read(): array
 {
-    $cache = sys_get_temp_dir() . '/ss-hazards-v1.json';
+    $cache = sys_get_temp_dir() . '/ss-hazards-v2.json';
     if (is_file($cache) && filemtime($cache) > time() - HZ_TTL) {
         $hit = json_decode((string) file_get_contents($cache), true);
         if (is_array($hit)) {
@@ -139,10 +183,17 @@ function hazards_read(): array
     // ---- PAGASA: the warnings that touch Metro Manila -------------------------------------------
     $raw = $B['aw'];
     $aw  = $raw !== null ? json_decode($raw, true) : null;
+    $tcws = [];   // the wind signals, read apart from the rain and flood warnings
     if (is_array($aw)) {
         $sources['pagasa_warnings'] = true;
         foreach ($aw as $type => $bySeverity) {
-            if (!is_array($bySeverity) || $type === 'Tropical Cyclone Alert') {
+            if (!is_array($bySeverity)) {
+                continue;
+            }
+            // A storm comes keyed by its own name ("Super Typhoon Rosal (CHAMPI)"), one block per signal
+            // number, each with class tcws1 to tcws5. It is a wind signal, not a rain warning.
+            if (hz_is_tcws((string) $type, $bySeverity)) {
+                $tcws[(string) $type] = $bySeverity;
                 continue;
             }
             foreach ($bySeverity as $sevKey => $block) {
@@ -215,12 +266,14 @@ function hazards_read(): array
         }
     }
 
-    // ---- PAGASA: the cyclone's wind signal, when its alert type carries one ------------------------
-    if ($out['cyclone'] && is_array($aw) && isset($aw['Tropical Cyclone Alert'])) {
-        $txt = json_encode($aw['Tropical Cyclone Alert']);
-        if (preg_match('/signal\s*(?:no\.?|number|#)?\s*([1-5])/i', (string) $txt, $m)) {
-            $out['cyclone']['signal'] = (int) $m[1];
-        }
+    // ---- PAGASA: the wind signals: the one over Metro Manila, and the highest anywhere --------------
+    // `signal` is Metro Manila's own (null when none is raised here), so the Signal 3 alarm fires only for us.
+    // The storm whose name matches the track is read first; with no match, every storm's signals count.
+    if ($out['cyclone'] && $tcws) {
+        $mine = array_filter($tcws, static fn ($k) => $out['cyclone']['name'] !== '' && stripos($k, $out['cyclone']['name']) !== false, ARRAY_FILTER_USE_KEY) ?: $tcws;
+        $sig = hz_signals($mine);
+        $out['cyclone']['signal']    = $sig['metro'];
+        $out['cyclone']['signalTop'] = $sig['top'];
     }
 
     // ---- GDACS: a second opinion on cyclones near the Philippine area of responsibility ------------
