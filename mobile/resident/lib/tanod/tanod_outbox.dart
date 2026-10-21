@@ -153,7 +153,8 @@ class TanodOutbox extends ChangeNotifier {
   Future<void> _save() async {
     try {
       final f = File('${(await _dir()).path}/outbox.json');
-      await f.writeAsString(jsonEncode([for (final i in items) i.toJson()]));
+      // whole or not at all: a write cut short must not read back as an empty outbox
+      await writeFileAtomically(f, jsonEncode([for (final i in items) i.toJson()]));
     } catch (_) {}
   }
 
