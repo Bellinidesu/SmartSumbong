@@ -17,6 +17,10 @@ declare
   best    double precision;
   ms      double precision;
   n       integer;
+  v_q     text[] := '{}';   -- the plain selects timed below, for index_advisor
+  v_lbl   text[] := '{}';
+  adv     record;
+  hints   integer := 0;
 begin
   -- ---------- volume ----------
   insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at)
@@ -128,6 +132,10 @@ begin
       -- :me is the signed-in user's id as a value, the way the app sends
       -- it (.eq('resident_id', uid)), so the planner can use the index.
       execute replace(r.sql, ':me', quote_literal(case when r.who = 'admin' then v_adm else v_res end));
+      if i = 1 and r.sql ~* '^\s*select' then
+        v_q := v_q || replace(r.sql, ':me', quote_literal(case when r.who = 'admin' then v_adm else v_res end));
+        v_lbl := v_lbl || r.label::text;
+      end if;
       ms := extract(epoch from clock_timestamp() - t0) * 1000;
       if i > 1 and (best is null or ms < best) then best := ms; end if;  -- first run warms the cache
     end loop;
@@ -135,6 +143,32 @@ begin
     v_log := v_log || E'\n' || case when best <= r.budget_ms then 'ok  ' else 'FAIL ' end
           || format('%s: %s ms (budget %s)', r.label, round(best::numeric, 1), r.budget_ms);
   end loop;
+
+  -- ---------- index_advisor (Supabase, PostgreSQL licence) ----------
+  -- At this volume, would a new index make any of the plain queries above cheaper? Advice only: it prints the
+  -- CREATE INDEX it would add and the planner's cost before and after, and never fails the run. CI installs it
+  -- with hypopg (.github/workflows/ci.yml); anywhere else it is skipped.
+  if exists (select 1 from pg_available_extensions where name = 'index_advisor')
+     and exists (select 1 from pg_available_extensions where name = 'hypopg') then
+    create extension if not exists hypopg;
+    create extension if not exists index_advisor;
+    for i in 1 .. coalesce(array_length(v_q, 1), 0) loop
+      begin
+        select * into adv from index_advisor(v_q[i]);
+        if cardinality(adv.index_statements) > 0 then
+          hints := hints + 1;
+          v_log := v_log || E'\n' || format('ok  index_advisor: %s: %s (cost %s -> %s)', v_lbl[i],
+                   array_to_string(adv.index_statements, '; '), adv.total_cost_before, adv.total_cost_after);
+        end if;
+      exception when others then
+        v_log := v_log || E'\n' || format('ok  index_advisor could not read "%s": %s', v_lbl[i], left(sqlerrm, 80));
+      end;
+    end loop;
+    v_log := v_log || E'\n' || format('ok  index_advisor: %s plain queries checked, %s with a suggested index',
+             coalesce(array_length(v_q, 1), 0), hints);
+  else
+    v_log := v_log || E'\n' || 'ok  index_advisor not installed here; skipped';
+  end if;
 
   raise exception 'SWEEP-ROLLBACK%', E'\n' || v_log;
 end $perf$;

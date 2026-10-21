@@ -227,7 +227,12 @@ jobs:
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -q
-          sudo apt-get install -y -q postgresql-17 postgresql-17-postgis-3 postgresql-17-cron
+          sudo apt-get install -y -q postgresql-17 postgresql-17-postgis-3 postgresql-17-cron postgresql-17-hypopg
+      - name: index_advisor 0.2.0 (Supabase's, pinned to its tag's commit), for the query budget's advice
+        run: |
+          for f in index_advisor.control index_advisor--0.2.0.sql; do
+            sudo curl -fsSL -o "/usr/share/postgresql/17/extension/$f" "https://raw.githubusercontent.com/supabase/index_advisor/d37723555e6425f18e6a45cb0956ced2250a3fe7/$f"
+          done
       - name: Every migration, then every rolled-back check
         env:
           PGVER: '17'
