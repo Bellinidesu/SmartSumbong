@@ -1552,6 +1552,7 @@ addEventListener('resize', () => { if (!side.hasAttribute('hidden')) placeSide()
 // side of the map, so opening one closes the others.
 function mapDrawer(which) {
   if (which !== 'sheet' && csFor) closeCaseSheet();
+  if (which !== 'layers') { const lc = document.getElementById('ss-lyr'); if (lc && !lc.hidden) { lc.hidden = true; document.getElementById('layers-btn').setAttribute('aria-expanded', 'false'); } }
   if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
   if (which !== 'smart' && window.sdSmart) { sdSmart.close(); }
   if (which !== 'legend') { document.getElementById('map-legend').hidden = true; document.getElementById('legend-toggle').setAttribute('aria-expanded', 'false'); }
@@ -1636,10 +1637,7 @@ window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 98
 })();
 // The buttons at the bottom right carry a word beside the icon (Rose, 21 Oct); buttons added later by sd-tools.js get theirs too.
 (function () {
-  const sec = document.getElementById('s-spatial'), dock = document.querySelector('#s-spatial .p-map-dock'); if (!dock) return;
-  // While a drawer is open on the right the buttons go back to icons alone, so they never cover it.
-  const tight = () => sec.classList.toggle('ss-dock-tight', ['map-side', 'smart-side', 'hotspot-side', 'map-legend'].some(id => { const e = document.getElementById(id); return e && !e.hidden; }));
-  ['map-side', 'smart-side', 'hotspot-side', 'map-legend'].forEach(id => { const e = document.getElementById(id); if (e && window.MutationObserver) new MutationObserver(tight).observe(e, { attributes: true, attributeFilter: ['hidden'] }); });
+  const dock = document.querySelector('#s-spatial .p-map-dock'); if (!dock) return;
   const L = { 'search-btn': ['Search', 'Hanapin'], 'expand-btn': ['Full screen', 'Buong screen'], 'fit-btn': ['Frame all', 'Ipakita lahat'], 'tl-btn': ['Timeline', 'Timeline'],
               'views-btn': ['Saved views', 'Mga view'], 'legend-toggle': ['Legend', 'Alamat'], 'incident-toggle': ['Incidents', 'Insidente'], 'smart-toggle': ['SMART', 'SMART'], 'hotspot-toggle': ['Hotspots', 'Hotspot'] };
   const label = () => dock.querySelectorAll('.p-dock-btn').forEach(b => { const l = L[b.id]; if (!l || b.querySelector('.dl')) return;
@@ -1909,10 +1907,7 @@ function layerSync() {
   // Like the Maps chooser: a picture tile at the map's bottom-left, and the layers open in a row beside it.
   btn.classList.add('lyr-tile'); btn.classList.remove('p-dock-btn');
   btn.innerHTML = '<span class="lt-pic" aria-hidden="true"></span><span class="lt-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS.layers + '</svg>' + T('Layers', 'Layers') + '</span>';
-  // Rose (21 Oct): the layers are part of the floating tab again, one row under the switches, not a tile of their own.
-  const lyrRow = document.createElement('div'); lyrRow.className = 'p-row ss-layers-row'; lyrRow.appendChild(card);
-  card.classList.add('ss-lyr--inline'); card.hidden = false; btn.style.display = 'none';
-  document.getElementById('map-search').appendChild(lyrRow);
+  sec.appendChild(btn); sec.appendChild(card);
   document.querySelectorAll('.p-map-search .map-sw').forEach(l => list.appendChild(l));
   document.querySelectorAll('.p-map-search .p-row').forEach(r => { if (!r.children.length) r.remove(); });
   // Each switch's box carries its own mark: it fills in when the layer is on. Project NOAH's is an N.
@@ -1953,12 +1948,14 @@ function layerSync() {
     if (k === 'noah') { sc.innerHTML = TILE.noah; return; }
     if (k === 'dim') sc.innerHTML = DIMPIC; if (k === 'transit') sc.innerHTML = ROUTEPIC;
     sc.querySelectorAll('svg.mk-ic').forEach(v => v.remove()); sc.insertAdjacentHTML('beforeend', TILE[k]); });
+  btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
   card.addEventListener('click', e => { if (!e.target.closest('#lyr-off')) return; document.querySelectorAll('#lyr-list input:checked').forEach(c => c.click()); });
   card.addEventListener('change', e => {
     const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
     LAYER[k] = e.target.checked; layerSync();
     layerDraw(k).then(() => { if (LAYER[k] && !LAYER_DATA[k]) LAYER[k] = false; layerSync(); });
   });
+  document.addEventListener('click', e => { if (!card.hidden && !e.target.closest('#ss-lyr, #layers-btn')) { card.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   window.addEventListener('themechange', () => ['aq', 'transit'].forEach(k => { if (map.getLayer(k === 'aq' ? 'aq-fill' : 'transit-glow')) layerDraw(k); }));
   // The outline arrives after the page does; the air-quality tint follows it.
   const wait = setInterval(() => { if (rings.length) { clearInterval(wait); if (map.getSource('aq')) map.getSource('aq').setData(layerShape()); } }, 600); setTimeout(() => clearInterval(wait), 20000);

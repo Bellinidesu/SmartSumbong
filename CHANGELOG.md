@@ -17,11 +17,11 @@ Changes on `main` not yet deployed belong here.
   case-timeline list is paged like the ledger, escalations and tanod activity,
   and every pager keeps you at its own section.
 - Spatial Distribution: the floating tab can be locked open and remembers it;
-  the layers (heatmap, flood zones, dim outside, transit, air quality, safe
-  points) are back inside it; the heatmap is drawn in each complaint kind's own
+  the Layers tile stays at the map's bottom-left, with its row of pictures
+  (the layers were briefly moved into the tab, and put back); the heatmap is drawn in each complaint kind's own
   legend colour; safe points are white signs instead of coloured beads, so they
-  no longer look like complaints; the buttons at the bottom right carry a word
-  beside the icon (icons alone while a drawer is open); a recurring problem you
+  no longer look like complaints; the buttons at the bottom right are squircles
+  at rest and widen to show their words while the mouse is on them; a recurring problem you
   click in the SMART drawer glows on the map and in the list.
 - Case Reports: the "Needs attention", "Assigned to me", "Unassigned" and
   "Overdue" filters are removed; the search bar takes the rest of its row;
@@ -36,6 +36,11 @@ Changes on `main` not yet deployed belong here.
 - App: a tanod's dispatch order shows a plum **Sensitive case · handle with care**
   pill when the barangay marked the case sensitive, so the designated woman
   responder handles it discreetly. Residents never see it.
+
+**Fixed (21 Oct)**
+- Spatial Distribution: the storm notice no longer takes height from the map
+  (which hid the bottom of it, the Layers row included, while storm mode was
+  on); it floats above the Layers tile as a slim pill.
 
 **Polish (a look at every page, 21 Oct)**
 - The search box takes the rest of its row on every page's band (Residents,

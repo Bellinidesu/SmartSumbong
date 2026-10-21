@@ -252,7 +252,7 @@ window.ssAccessToken = function (initial) {
 <?php
     $storm = storm_state();
     if ($storm): ?>
-    <div class="ss-storm ss-storm--page" role="status"><span><b><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></b>
+    <div class="ss-storm ss-storm--page<?= $active === 'spatial.php' ? ' ss-storm--map' : '' ?>" role="status"><span><b><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></b>
       <?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $storm['storm_until']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, g:i A')) ?>
       <?= !empty($storm['storm_reason']) ? '· ' . e((string) $storm['storm_reason']) : '' ?>
       <small><?= e(t('Flood zones and flood, live-wire and collapse reports count double.', 'Doble ang bilang ng mga bahaing lugar at ng mga ulat ng baha, live wire at pagguho.')) ?></small></span>
