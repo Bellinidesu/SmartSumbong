@@ -17,7 +17,12 @@ FROM composer:2.10.3 AS composer
 
 # PHP 8.5 (7 Oct 2026), the version the portal is developed on. It also
 # keeps database connections open between page loads (supabase.php).
-FROM php:8.5-apache
+# Pinned to the patch (22 Oct 2026): 8.5.12 fixes two critical remote code
+# execution flaws (CVE-2026-109618, CVE-2026-109619; the first reachable on
+# Apache's mod_php by any request, before the portal's code runs). The
+# floating 8.5 tag let a rebuild reuse an older cached image; a pinned tag
+# cannot, and Dependabot raises it with each new patch.
+FROM php:8.5.12-apache
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
