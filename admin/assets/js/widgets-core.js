@@ -173,7 +173,11 @@
       return '<button type="button" role="tab" id="wxt-' + id + '" data-id="' + id + '" aria-selected="' + on + '" aria-controls="wxp" tabindex="' + (on ? 0 : -1) + '" title="' + esc(WS.name_of(id)) + '">' + WS.icon(id, 21) + '<span>' + esc(WS.name_of(id)) + '</span>' + (d ? '<i class="wx-dot" style="--c:' + d + '"></i>' : '') + '</button>';
     }).join('');
     var cur = rail.querySelector('[aria-selected="true"]'); if (cur && cur.scrollIntoView && !reduce) { try { cur.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+    moreBelow();
   }
+  // a faded foot on the rail while more widgets wait below (its scrollbar is hidden, so nothing else says so)
+  function moreBelow() { rail.classList.toggle('has-more', rail.scrollHeight - rail.scrollTop - rail.clientHeight > 6); }
+  rail.addEventListener('scroll', moreBelow, { passive: true }); addEventListener('resize', moreBelow);
   function whyOf(gs) { for (var i = 0; i < gs.length; i++) { var d = S.data[gs[i]]; if (d && d.why) return d.why; } return ''; }
   function skeleton() { return '<div class="wx-skel" aria-hidden="true"><i></i><i></i><i></i></div>'; }
   function needsOf(id) { return groupsFor(id); }

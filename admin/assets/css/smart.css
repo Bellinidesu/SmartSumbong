@@ -1353,3 +1353,23 @@
 #smart-words .p-eyebrow em { margin-left: 8px; padding: 1px 8px; border-radius: 99px; background: var(--p-surface-2); font-style: normal; font-weight: 800; }
 .ss-words .sw-forms select { flex: 0 0 220px; width: 220px; }
 .ss-words .sw-forms input.p-input-plain { flex: 1 1 160px; min-width: 0; }
+
+/* ======= Polish audit, 21 Oct 2026 ======= */
+/* The dashboard's SMART tables: spikes and the weekly table stack in one column, level with the on-time table beside them. */
+.ss-two > .ss-stack { display: grid; gap: 14px; align-content: start; }
+.ss-two > .ss-stack > section { margin: 0; }
+.ss-two > .ss-wide { grid-column: auto; }
+/* Every band's search takes the rest of its row, so the controls beside it sit at the band's edge with no gap (Rose, 21 Oct, for Case Reports). */
+.p-band .p-search { max-width: none; flex: 1 1 260px; }
+.p-band > .p-spacer { flex: 0 0 0; }
+/* Settings: the map credits run the width of their card. */
+.st-credit-line { max-width: none; }
+/* A long email never breaks mid-word in the account tables: the column keeps room for it, and wraps at the @ or a dot if it must. */
+.ss-people td.ss-em { min-width: 240px; overflow-wrap: anywhere; word-break: normal; }
+.ss-people td.ss-em { hyphens: none; }
+/* The Workspace rail fades at its foot while more widgets wait below it (its scrollbar is hidden). */
+.wx-rail-list.has-more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 38px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 38px), transparent); }
+.ss-table.ss-nowrap td:not(:first-child), .ss-table.ss-nowrap th:not(:first-child) { white-space: nowrap; }   /* a time or a place never splits across two lines */
+.ss-people.ss-tanods table th:nth-child(2) { width: 18%; } .ss-people.ss-tanods table th:nth-child(3) { width: 14%; }
+.ss-people.ss-tanods table th:nth-child(4) { width: 11%; } .ss-people.ss-tanods table th:nth-child(5) { width: 27%; }   /* room for a whole email */
+.bd-cols.has-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }

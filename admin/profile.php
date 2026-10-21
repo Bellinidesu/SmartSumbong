@@ -265,7 +265,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
   <div class="p-card ss-pf-rows">
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Full name', 'Buong pangalan')) ?></span><span class="ss-pf-v"><?= e($shown) ?></span><?= $change('first_name') ?></div>
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Mobile number', 'Mobile number')) ?></span>
-      <span class="ss-pf-v"><?= e(preg_replace('/^\+63(\d{3})(\d{3})(\d{4})$/', '0$1 $2 $3', (string) $me['mobile_number'])) ?><?php if ($mobileLocked): ?><small><?= e(t('You sign in to the app with it, so it stays as is.', 'Ito ang pang-sign in mo sa app, kaya hindi ito pinapalitan.')) ?></small><?php endif; ?></span>
+      <span class="ss-pf-v"><?= trim((string) ($me['mobile_number'] ?? '')) === '' ? '<span class="p-sub">' . e(t('Not set', 'Wala pa')) . '</span>' : e(preg_replace('/^\+63(\d{3})(\d{3})(\d{4})$/', '0$1 $2 $3', (string) $me['mobile_number'])) ?><?php if ($mobileLocked): ?><small><?= e(t('You sign in to the app with it, so it stays as is.', 'Ito ang pang-sign in mo sa app, kaya hindi ito pinapalitan.')) ?></small><?php endif; ?></span>
       <?= $mobileLocked ? '<span></span>' : $change('mobile_number') ?></div>
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Email', 'Email')) ?></span>
       <span class="ss-pf-v"><?= e($me['email']) ?><small><?= e(t('Your sign-in, and where password links are sent.', 'Ang iyong pang-sign in, at dito ipinapadala ang password link.')) ?></small></span><span></span></div>

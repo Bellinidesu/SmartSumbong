@@ -174,4 +174,10 @@
     }
     setTimeout(function () { closePanel(); if (window.ssBoardRefresh) window.ssBoardRefresh(); }, 1500);
   }
+  // The board scrolls sideways when its stages do not fit: the edge fades while more waits beyond it, so a cut-off column does not look like a mistake.
+  (function () {
+    var cols = document.querySelector('.bd-cols'); if (!cols) return;
+    var more = function () { cols.classList.toggle('has-more', cols.scrollWidth - cols.scrollLeft - cols.clientWidth > 6); };
+    cols.addEventListener('scroll', more, { passive: true }); addEventListener('resize', more); more(); setTimeout(more, 600);
+  })();
 })();
