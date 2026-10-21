@@ -37,7 +37,17 @@ Changes on `main` not yet deployed belong here.
   pill when the barangay marked the case sensitive, so the designated woman
   responder handles it discreetly. Residents never see it.
 
+**Added (open-source data, 21 Oct)**
+- Flood watch shows PAGASA's Metro Manila advisories, read from its NCR
+  desk's page: the thunderstorm advisory while it is current, saying whether
+  Pasay is named, and any rainfall advisory.
+
 **Fixed (21 Oct)**
+- Typhoon watch: PAGASA lists a storm's wind signals under the storm's own name,
+  so the signal was never read and the Signal 3 alarm could not fire. The
+  signal now shown is the one over Metro Manila; when there is none, Typhoon
+  watch says so and names the highest signal and where it is (found with
+  Super Typhoon Rosal live on 21 Oct: Signal 2, Batanes; none here).
 - Spatial Distribution: the storm notice no longer takes height from the map
   (which hid the bottom of it, the Layers row included, while storm mode was
   on); it floats above the Layers tile as a slim pill.

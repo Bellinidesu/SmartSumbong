@@ -31,7 +31,7 @@ last good copy with `stale: true`.
 | Group | From | Used by |
 |---|---|---|
 | `brief` | smart_summary, counts | Briefing |
-| `hazards` | PAGASA, GDACS (includes/hazards.php, 10 min) | Flood watch, Typhoon watch, the alarm |
+| `hazards` | PAGASA, GDACS (includes/hazards.php, 10 min): warnings, the cyclone with `signal` (Metro Manila's) and `signalTop`, the forecast, and `ncr` (PAGASA's Metro Manila desk: its rainfall advisory and current thunderstorm advisory, with whether Pasay is named) | Flood watch, Typhoon watch, the alarm |
 | `wx` | Open-Meteo forecast (10 min): now, 24 hours, 7 days, heat index now and the day's peak with PAGASA's band, pressure change over 3 h, moon, daylight left | Weather, Heat index, Sun and moon, UV, Wind, Next 24 hours, 7-day outlook, Barometer, Flood watch, Drink water |
 | `air` | Open-Meteo air quality (30 min), US AQI band | Air quality |
 | `marine` | Open-Meteo Marine for Manila Bay (30 min): sea level, next highs and lows, waves. A global tide model, not an official tide table (`model: true`) | Tide, Sea and waves |
