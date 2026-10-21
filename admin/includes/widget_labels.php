@@ -15,7 +15,7 @@ function widget_labels(): array
         'ty'     => [t('Typhoon watch', 'Bantay-bagyo'), t('Wind signals, how far the storm is and where it is heading.', 'Mga signal ng hangin, gaano kalayo ang bagyo at saan ito papunta.')],
         'wx'     => [t('Weather', 'Panahon'), t('Temperature, feels like, wind and humidity.', 'Temperatura, pakiramdam, hangin at halumigmig.')],
         'heat'   => [t('Heat index', 'Heat index'), t('How hot it feels, with PAGASA\'s caution bands.', 'Gaano kainit ang pakiramdam, kasama ang mga antas ng babala ng PAGASA.')],
-        'quake'  => [t('Earthquakes', 'Lindol'), t('The latest quakes near Luzon (USGS).', 'Ang pinakabagong lindol malapit sa Luzon (USGS).')],
+        'quake'  => [t('Earthquakes', 'Lindol'), t('The latest quakes in the Philippines (PHIVOLCS, USGS).', 'Ang pinakabagong lindol sa Pilipinas (PHIVOLCS, USGS).')],
         'aq'     => [t('Air quality', 'Kalidad ng hangin'), t('The air quality index and the main pollutants.', 'Ang indeks ng kalidad ng hangin at ang mga pangunahing dumi.')],
         'tide'   => [t('Tide', 'Tubig'), t('Sea level in Manila Bay with the next high and low.', 'Taas ng dagat sa Manila Bay at ang susunod na taas at baba.')],
         'sun'    => [t('Sun and moon', 'Araw at buwan'), t('Sunrise, sunset, daylight left and the moon.', 'Pagsikat, paglubog, natitirang liwanag at ang buwan.')],

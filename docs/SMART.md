@@ -52,7 +52,13 @@ and a word list, not a model. Each word goes through these steps:
    -in-, the suffixes -an and -in, a repeated first syllable, and the
    linker -ng are taken off. The result only counts if it is a known word:
    nasusunog → sunog, binaha → baha, sinaksak → saksak, duguan → dugo,
-   batang → bata.
+   batang → bata. Since 0133 also: the present tense, where the infix
+   leaves a repeated syllable (bumabaha → baha, sinusunog → sunog,
+   kinakagat → kagat); a doubled word (sunog-sunog → sunog); a letter
+   stretched three times or more (sunoooog → sunog, read as a spelling);
+   and the English endings -s, -es, -ies, -ing, -ed (fires → sunog, wires →
+   kawad, stabbing → stab, crashed → crash). The ideas follow open-source
+   Tagalog stemmers (calamanCy, MIT); no model or library is added.
 4. **Guess**: one letter away from exactly one known word of five letters
    or more (kurynte → kuryente). If two words are that close, nothing is
    guessed.

@@ -31,11 +31,11 @@ last good copy with `stale: true`.
 | Group | From | Used by |
 |---|---|---|
 | `brief` | smart_summary, counts | Briefing |
-| `hazards` | PAGASA, GDACS (includes/hazards.php, 10 min) | Flood watch, Typhoon watch, the alarm |
+| `hazards` | PAGASA, GDACS (includes/hazards.php, 10 min): warnings, the cyclone with `signal` (Metro Manila's) and `signalTop`, the forecast, and `ncr` (PAGASA's Metro Manila desk: its rainfall advisory and current thunderstorm advisory, with whether Pasay is named) | Flood watch, Typhoon watch, the alarm |
 | `wx` | Open-Meteo forecast (10 min): now, 24 hours, 7 days, heat index now and the day's peak with PAGASA's band, pressure change over 3 h, moon, daylight left | Weather, Heat index, Sun and moon, UV, Wind, Next 24 hours, 7-day outlook, Barometer, Flood watch, Drink water |
 | `air` | Open-Meteo air quality (30 min), US AQI band | Air quality |
 | `marine` | Open-Meteo Marine for Manila Bay (30 min): sea level, next highs and lows, waves. A global tide model, not an official tide table (`model: true`) | Tide, Sea and waves |
-| `quake` | USGS, magnitude 3+, the Philippines, 7 days (10 min), distance and direction from the hall | Earthquakes |
+| `quake` | PHIVOLCS (its public table; the server's missing certificate is supplied in `includes/certs`), then USGS for what PHIVOLCS has not posted; magnitude 3+, the Philippines, 7 days (10 min), distance and direction from the hall; `count`, and `src`/`usgs_mag` per quake | Earthquakes |
 | `holidays` | Nager.Date, this year and next (1 day) | Holidays, This week |
 | `evac` | `admin/assets/data/safe-b183.json` (tools/build_safe.php), live Overpass as fallback, plus `safe_point_notes` | Evacuation centres |
 | `rss:<key>` | the built-in feeds (10 min): philstar, rappler, gma, inquirer, gdacs, who, usgs, and news searches pna, doh, water (Maynilad), power (Meralco), fuel | Headlines, Fuel prices, each RSS widget |

@@ -268,29 +268,104 @@ function ws_marine(): array
     ]];
 }
 
-/** Quakes of magnitude 3 and up in and around the Philippines in the last week (USGS; PHIVOLCS has no public feed). */
+/**
+ * Quakes of magnitude 3 and up in and around the Philippines in the last week (21 Oct 2026). PHIVOLCS, the official
+ * source, first: it has no API, so its public table is read (the way ravvdevv/phivocs-api and arielbatoon09/betterquake,
+ * both MIT, do). USGS fills in what PHIVOLCS has not posted (its page holds the current month only) and stands in when
+ * PHIVOLCS cannot be read. One quake listed by both is shown once, PHIVOLCS's reading, with the USGS magnitude beside it.
+ */
 function ws_quake(): array
 {
-    return feed_cached('quake-v1', 600, static function (): ?array {
-        $url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?' . http_build_query([
-            'format' => 'geojson', 'starttime' => gmdate('Y-m-d\TH:i:s', time() - 7 * 86400), 'minmagnitude' => 3,
-            'minlatitude' => 4, 'maxlatitude' => 21.5, 'minlongitude' => 116, 'maxlongitude' => 127, 'orderby' => 'time', 'limit' => 30,
-        ]);
-        $j = feed_json($url, 10);
-        if (!isset($j['features'])) {
+    return feed_cached('quake-v2', 600, static function (): ?array {
+        $since = time() - 7 * 86400;
+        $ph = ws_quake_phivolcs($since);
+        $us = ws_quake_usgs($since);
+        if ($ph === null && $us === null) {
             return null;
         }
-        $out = [];
-        foreach ($j['features'] as $f) {
-            $p = $f['properties'] ?? []; $g = $f['geometry']['coordinates'] ?? [null, null, null];
-            if ($g[0] === null) continue;
-            $out[] = ['mag' => round((float) $p['mag'], 1), 'place' => (string) ($p['place'] ?? ''), 'at' => gmdate('c', (int) (($p['time'] ?? 0) / 1000)),
-                      'depth_km' => round((float) $g[2]), 'km' => (int) round(hz_km(HZ_LAT, HZ_LNG, (float) $g[1], (float) $g[0])),
-                      'dir' => hz_dir(HZ_LAT, HZ_LNG, (float) $g[1], (float) $g[0]), 'lat' => (float) $g[1], 'lng' => (float) $g[0],
-                      'url' => preg_match('#^https://earthquake\.usgs\.gov/#', (string) ($p['url'] ?? '')) ? (string) $p['url'] : ''];
+        $out = $ph ?? [];
+        foreach ($us ?? [] as $u) {
+            $twin = null;
+            foreach ($out as $i => $p) {
+                // the same quake: within three minutes and 80 km (the two agencies place it a little apart)
+                if ($p['src'] === 'PHIVOLCS' && abs(strtotime($p['at']) - strtotime($u['at'])) <= 180 && hz_km($p['lat'], $p['lng'], $u['lat'], $u['lng']) <= 80) {
+                    $twin = $i; break;
+                }
+            }
+            if ($twin === null) {
+                $out[] = $u;
+            } else {
+                $out[$twin]['usgs_mag'] = $u['mag'];
+            }
         }
-        return ['quakes' => $out, 'source' => 'USGS'];
+        usort($out, static fn ($a, $b) => strcmp($b['at'], $a['at']));
+        return ['quakes' => array_slice($out, 0, 30), 'count' => count($out), 'source' => $ph !== null ? ($us !== null ? 'PHIVOLCS · USGS' : 'PHIVOLCS') : 'USGS'];
     });
+}
+
+/** PHIVOLCS's latest-earthquakes table: magnitude 3 and up since $since; null when the page cannot be read. */
+function ws_quake_phivolcs(int $since): ?array
+{
+    $base = 'https://earthquake.phivolcs.dost.gov.ph/';
+    // The whole month in one page, about 2.5 MB. Its server leaves out its certificate's intermediate, so the
+    // missing two are supplied for this host alone (certs/phivolcs-chain.crt); verification stays on.
+    $html = '';
+    $ch = feed_curl_base($base, 12, ['Accept: text/html'], $html, 6_000_000);
+    curl_setopt($ch, CURLOPT_CAINFO, __DIR__ . '/certs/phivolcs-chain.crt');
+    $ok = curl_exec($ch) !== false && (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE) === 200 && $html !== '';
+    if (!$ok || !preg_match_all('#<tr[^>]*>(.*?)</tr>#si', $html, $rows)) {
+        return null;
+    }
+    $tz = new DateTimeZone('Asia/Manila');
+    $out = []; $seen = 0;
+    foreach ($rows[1] as $row) {
+        if (!preg_match_all('#<td[^>]*>(.*?)</td>#si', $row, $c) || count($c[1]) < 6) {
+            continue;
+        }
+        $cell = static fn (int $i): string => trim((string) preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($c[1][$i]))));
+        $t = DateTimeImmutable::createFromFormat('!j F Y - h:i A', $cell(0), $tz);
+        if (!$t) {
+            continue;
+        }
+        $seen++;
+        if ($t->getTimestamp() < $since) {
+            break;   // newest first: the rest is older
+        }
+        $lat = (float) $cell(1); $lng = (float) $cell(2); $mag = (float) $cell(4);
+        if ($mag < 3 || !$lat || !$lng) {
+            continue;
+        }
+        // the date links to the event's own page, written with backslashes: kept only if it stays on PHIVOLCS's site
+        $href = preg_match('#href="([^"]+\.html)"#i', $c[1][0], $m) ? str_replace('\\', '/', html_entity_decode($m[1])) : '';
+        $url = preg_match('#^[A-Za-z0-9_][A-Za-z0-9_./-]*\.html$#', $href) && !str_contains($href, '..') ? $base . $href : '';
+        $out[] = ['mag' => round($mag, 1), 'place' => $cell(5), 'at' => gmdate('c', $t->getTimestamp()), 'depth_km' => (int) $cell(3),
+                  'km' => (int) round(hz_km(HZ_LAT, HZ_LNG, $lat, $lng)), 'dir' => hz_dir(HZ_LAT, HZ_LNG, $lat, $lng),
+                  'lat' => $lat, 'lng' => $lng, 'url' => $url, 'src' => 'PHIVOLCS'];
+    }
+    return $seen ? $out : null;   // a page with no dated rows is a changed page, not a quiet week
+}
+
+/** USGS's list for the Philippine area: magnitude 3 and up since $since; null on failure. */
+function ws_quake_usgs(int $since): ?array
+{
+    $url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?' . http_build_query([
+        'format' => 'geojson', 'starttime' => gmdate('Y-m-d\TH:i:s', $since), 'minmagnitude' => 3,
+        'minlatitude' => 4, 'maxlatitude' => 21.5, 'minlongitude' => 116, 'maxlongitude' => 127, 'orderby' => 'time', 'limit' => 30,
+    ]);
+    $j = feed_json($url, 10);
+    if (!isset($j['features'])) {
+        return null;
+    }
+    $out = [];
+    foreach ($j['features'] as $f) {
+        $p = $f['properties'] ?? []; $g = $f['geometry']['coordinates'] ?? [null, null, null];
+        if ($g[0] === null) continue;
+        $out[] = ['mag' => round((float) $p['mag'], 1), 'place' => (string) ($p['place'] ?? ''), 'at' => gmdate('c', (int) (($p['time'] ?? 0) / 1000)),
+                  'depth_km' => round((float) $g[2]), 'km' => (int) round(hz_km(HZ_LAT, HZ_LNG, (float) $g[1], (float) $g[0])),
+                  'dir' => hz_dir(HZ_LAT, HZ_LNG, (float) $g[1], (float) $g[0]), 'lat' => (float) $g[1], 'lng' => (float) $g[0],
+                  'url' => preg_match('#^https://earthquake\.usgs\.gov/#', (string) ($p['url'] ?? '')) ? (string) $p['url'] : '', 'src' => 'USGS'];
+    }
+    return $out;
 }
 
 /**

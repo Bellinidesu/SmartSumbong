@@ -209,7 +209,7 @@ jobs:
       - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         if: steps.have.outputs.yes
         with:
-          version: 2.120.0
+          version: 2.121.0
       - name: Migrations, then rolled-back checks, on staging
         if: steps.have.outputs.yes
         run: bash .github/scripts/db-checks.sh
