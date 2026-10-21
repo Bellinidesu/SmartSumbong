@@ -67,6 +67,12 @@ Changes on `main` not yet deployed belong here.
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 
+**Checked (open-source data, 21 Oct)**
+- The barangay boundary against the official PSA/NAMRIA line
+  (docs/BOUNDARY.md, `tools/boundary_compare.py`): they agree on every place
+  people live and every complaint so far; ours adds 2.39 km² of NAIA airside.
+  OpenStreetMap's line stays; our PSGC code `1381100183` is the current one.
+
 ## 2026-10-17 — Workspace widgets; house clean
 
 The full record, with what was checked and what is still open:
