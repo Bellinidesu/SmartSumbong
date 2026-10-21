@@ -1331,3 +1331,25 @@
 .ss-cases-t tr.ss-sens .p-mono-id, .ss-cases-t tr.ss-sens td:nth-child(3), .ss-cases-t tr.ss-sens td:nth-child(3) .p-sub { color: #B4231A; font-weight: 700; }
 :root[data-theme="dark"] .ss-cases-t tr.ss-sens .p-mono-id, :root[data-theme="dark"] .ss-cases-t tr.ss-sens td:nth-child(3), :root[data-theme="dark"] .ss-cases-t tr.ss-sens td:nth-child(3) .p-sub { color: #FF9C93; }
 .p-period-band .p-btn-pdf2 { margin-left: auto; }   /* the PDF button rests at the band's right edge, on the row it lands on */
+/* Storm mode on every page (Rose's asks, 21 Oct): the banner sits at the top of the content, level with the page's own gutter. */
+.ss-storm--page { margin: 0 0 16px; }
+.ss-storm--page small { display: block; margin-top: 2px; font-weight: 500; opacity: .85; }
+.ss-storm-act { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.ss-storm-act form { margin: 0; }
+
+/* Words to learn (Settings -> SMART, SMART_SCREENS 6c). */
+.ss-words { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.ss-words li { padding: 12px 14px; border: 1px solid var(--p-line); border-radius: 12px; background: var(--p-surface-2); }
+.ss-words .sw-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.ss-words .sw-w { font: 800 16px Urbanist, sans-serif; }
+.ss-words .sw-ex { margin: 6px 0 0; color: var(--p-ink-2); font-size: 13px; font-style: italic; }
+.ss-words .sw-likely { margin: 4px 0 0; font-size: 13px; }
+.ss-words .sw-teach { margin-top: 10px; }
+.ss-words .sw-teach summary { cursor: pointer; color: var(--p-link); font-weight: 700; font-size: 13px; }
+.ss-words .sw-forms { display: grid; gap: 12px; margin-top: 10px; }
+.ss-words .sw-forms form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ss-words .sw-forms .p-flabel { flex: 1 0 100%; margin: 0; }
+.ss-two > .ss-wide { grid-column: 1 / -1; }   /* a third table takes the full row rather than leaving a gap beside it */
+#smart-words .p-eyebrow em { margin-left: 8px; padding: 1px 8px; border-radius: 99px; background: var(--p-surface-2); font-style: normal; font-weight: 800; }
+.ss-words .sw-forms select { flex: 0 0 220px; width: 220px; }
+.ss-words .sw-forms input.p-input-plain { flex: 1 1 160px; min-width: 0; }

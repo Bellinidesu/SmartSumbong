@@ -250,6 +250,38 @@ window.ssAccessToken = function (initial) {
 
   <main class="p-main">
 <?php
+    $storm = storm_state();
+    if ($storm): ?>
+    <div class="ss-storm ss-storm--page" role="status"><span><b><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></b>
+      <?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $storm['storm_until']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, g:i A')) ?>
+      <?= !empty($storm['storm_reason']) ? '· ' . e((string) $storm['storm_reason']) : '' ?>
+      <small><?= e(t('Flood zones and flood, live-wire and collapse reports count double.', 'Doble ang bilang ng mga bahaing lugar at ng mga ulat ng baha, live wire at pagguho.')) ?></small></span>
+      <span class="ss-storm-act">
+        <a class="p-btn p-btn-ghost p-btn-sm" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a>
+        <form method="post" action="settings.php" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_storm"><input type="hidden" name="on" value="0">
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('End it', 'Tapusin')) ?></button></form>
+      </span></div>
+<?php endif;
+}
+
+/**
+ * Storm mode, for the banner on every page (SMART_SCREENS 5; Rose's asks, 21 Oct 2026). One small read, kept in the session
+ * for a minute so no page pays for it twice; Settings clears it the moment storm mode is switched. Null when it is off,
+ * has ended, or the read failed: a missing banner must never stop a page.
+ */
+function storm_state(): ?array
+{
+    static $memo = false;
+    if ($memo !== false) return $memo;
+    $c = $_SESSION['ss_storm'] ?? null;
+    if (is_array($c) && ($c['at'] ?? 0) > time() - 60) { return $memo = $c['row']; }
+    $row = null;
+    try {
+        $r = db()->select('smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'])[0] ?? null;
+        if ($r && !empty($r['storm_mode']) && !empty($r['storm_until']) && strtotime((string) $r['storm_until']) > time()) { $row = $r; }
+    } catch (Throwable) { /* no banner this minute */ }
+    $_SESSION['ss_storm'] = ['at' => time(), 'row' => $row];
+    return $memo = $row;
 }
 
 /** The admin's picture on their sidebar card, or their initials. */

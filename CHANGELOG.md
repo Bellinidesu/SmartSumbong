@@ -34,6 +34,16 @@ Changes on `main` not yet deployed belong here.
   replacing it, because a sensitive case still goes through every step. The
   resident never sees it.
 
+**Added (SMART screens, 21 Oct)**
+- Storm mode shows as a banner at the top of every portal page, with **Manage**
+  and **End it**, not only on the dashboard.
+- Settings → SMART: **Words to learn** (`smart_word_suggestions`): each word with
+  its reports, usual kind and an example; teach it as a spelling, synonym or
+  form, as a word of a kind, as an urgent word, or dismiss it. A person approves
+  every word.
+- Dashboard: **When complaints come in** (`smart_time_patterns`): the weekday
+  and three-hour blocks well above usual for each kind, with the place.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 
