@@ -1,5 +1,7 @@
 -- 0133: SMART reads more word forms (21 Oct 2026).
 --
+-- JIT stays off for these, as for every SMART function since 0127.
+--
 -- Rules still decide; this only teaches the reader (0125's _smart_stem)
 -- forms residents write every day that it missed. The ideas follow the
 -- Tagalog stemmers and lemmatisers in open source (calamanCy, MIT, and
@@ -29,6 +31,7 @@ language plpgsql
 stable
 security definer
 set search_path = public, extensions
+set jit = off
 as $$
 declare
   c text[];
@@ -119,6 +122,7 @@ returns text
 language plpgsql
 immutable
 set search_path = public, extensions
+set jit = off
 as $$
 declare
   v_out text := '';
@@ -144,6 +148,7 @@ returns text[]
 language plpgsql
 immutable
 set search_path = public, extensions
+set jit = off
 as $$
 declare
   v_out text[] := '{}';
