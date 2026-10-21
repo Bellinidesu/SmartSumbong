@@ -17,6 +17,35 @@ from here), academic code, and the private BetterGov repo.
 **Rule for the SMART engine:** nothing below decides a case. A model may
 suggest; rules decide; a person approves anything new.
 
+## What became of the "use" and "try" items (21–22 Oct 2026)
+
+Every item marked *use* or *try* below was built, tested or turned down,
+each with its reason. Pull request numbers in brackets.
+
+| Item | Outcome |
+|---|---|
+| **Update system** for the libraries copied into the portal | Built: `vendor.json`, `tools/vendor.py`, a weekly report, [UPDATING.md](UPDATING.md) (#166); supabase-js and MapLibre brought up to date with it (#169) |
+| **Trivy** | Built: scans the Docker image and the Dockerfile (#167). It found the container ran as root; it now runs as `www-data`, and CI starts the image to prove it |
+| **Playwright + axe-core** | Built: every portal page in a real browser, no console errors and no serious accessibility problem, light and dark (#170). It found the document desk's Print button and pills under WCAG AA; fixed |
+| **OpenSpout** (with Composer) | Built: Report Summary's *Download spreadsheet* (#171). Text from people can never become a formula |
+| **index_advisor** | Built into CI's query budget at 50,000 complaints; advice only (#172). First run: 23 queries, 3 suggestions, none worth adding (two help only the test's own way of picking a case; one saves 10% where a `(level, score)` index already serves) |
+| **Healthchecks** | Built, optional: the nightly backup reports in; one secret to switch it on (#173) |
+| **drift** | Not added: a few queued reports per phone need no database. Weighing it found that the outboxes could lose unsent reports on a cut-short write; fixed (#176) |
+| **calamanCy, taglid, lingua, jellyfish, RapidFuzz** | Measured in the reader benchmark and the SMART lab (#163, #168): SMART's rules recover 64/64 words; calamanCy adds nothing and pins old packages with advisories (left optional); TagLID tells Taglish best (18/20) |
+| **datasketch, ruptures, PyOD, Prophet, InterpretML, H3** | In the SMART lab, offline (#168): H3 and DBSCAN agree on all 5 hotspots; MinHash is too strict for short complaints; the rest run and wait for more data |
+| **barangay-boundaries-repository** | Turned down: it is simplified to 0.005° (about 550 m), too coarse for one barangay; the full NAMRIA file is read instead (#156) |
+| **uPlot, Chart.js** | Not needed: the portal draws its charts as plain SVG, within its size budget |
+| **MiniSearch** | Not needed: every list is searched on the server across all pages; a browser index would see one page |
+| **pdf.js, DOMPurify** | Not needed: the portal shows no uploaded PDFs and no rich text from users |
+| **pg_jsonschema** | Turned down: available on Supabase but not in CI's PostgreSQL, so a check on it could not be tested; `smart_rules` is already checked in SQL |
+| **pg_textsearch, h3-pg** | Not available on Supabase |
+| **GraphHopper** | Turned down for now: street-following travel times need a routing server (Java) running all the time |
+| **libpostal** | Turned down: 2 GB of data to parse addresses inside one barangay |
+| **maplibre-gl-geocoder** | Not needed: Spatial Distribution has its own search |
+| **Uptime Kuma** | Not added: needs its own server; the portal records its own uptime (0096–0098) |
+| **Lighthouse** | Built into the browser job (#178): accessibility 98–100, best practices 96–100, performance 93–99 on four pages. Lighthouse CI, its usual wrapper, was not used: 17 known advisories in its dependencies, no release since June 2025 |
+| **QR on the printed complaint, H3 cells on the map, web push, textbee, JKAN** | Waiting on a decision: the printout is the barangay's official form; Rose asked for the hotspots switch to go (2 Oct); web push and an SMS fallback are new features with keys to manage; publishing statistics is the barangay's call |
+
 ## SMART: reading Tagalog and Taglish
 
 | Project | Licence | What it gives | Verdict |
