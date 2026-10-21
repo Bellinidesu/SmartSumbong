@@ -6,7 +6,8 @@
 #              redirect, ping, 404, security headers, script nonces).
 #   browser    every portal page opened in Chromium (Playwright) against a fake
 #              Supabase: no console errors, no serious accessibility problem
-#              (axe-core), light and dark. tests/browser.
+#              (axe-core), light and dark; Lighthouse scores on four pages.
+#              tests/browser.
 #   mobile     flutter analyze (no findings allowed) and the tests, for the
 #              shared core and the resident app (flows on the real screens,
 #              accessibility, translations).
@@ -111,6 +112,15 @@ jobs:
       - name: Every page, in a browser
         working-directory: tests/browser
         run: npx playwright test
+      - name: Lighthouse on sign-in, dashboard, cases and summary (accessibility 95+, best practices 90+)
+        working-directory: tests/browser
+        run: node lighthouse.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: lighthouse
+          path: tests/browser/lighthouse
+          retention-days: 14
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
