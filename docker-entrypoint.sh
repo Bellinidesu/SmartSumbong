@@ -6,7 +6,10 @@ set -e
 
 PORT="${PORT:-10000}"
 
-sed -ri "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
-sed -ri "s/:80>/:${PORT}>/" /etc/apache2/sites-available/000-default.conf
+# Rewritten in place, not with sed -i: the container runs as www-data, which owns these two files but not
+# /etc/apache2, where sed -i would make its temporary copy.
+set_port() { sed -r "$1" "$2" > /tmp/port.conf && cat /tmp/port.conf > "$2" && rm -f /tmp/port.conf; }
+set_port "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
+set_port "s/:[0-9]+>/:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 
 exec "$@"
