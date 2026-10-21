@@ -46,6 +46,8 @@ if [ $fail = 0 ]; then
     okc=$(printf '%s\n' "$out" | grep -cE '^ok' || true)
     bad=$(printf '%s\n' "$out" | grep -E '^(FAIL|BAD)' || true)
     echo "$(basename "$f"): $okc ok"
+    printf '%s
+' "$out" | grep -E '^ok  index_advisor' || true   # its advice, shown even when all is well
     if [ -n "$bad" ] || [ "$okc" -eq 0 ]; then printf '%s\n' "${bad:-$(printf '%s\n' "$out" | tail -5)}"; fail=1; fi
   done
 fi
