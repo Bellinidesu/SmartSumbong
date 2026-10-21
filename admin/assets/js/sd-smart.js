@@ -147,6 +147,20 @@
     placeBadges();
   }
 
+  // A recurring problem you click lights up: its row in the list, and a glowing ring over the place on the map, about as wide as the
+  // 60 m the rules use to say the same problem is coming back. The ring stays until you click another, click it again, or close the drawer.
+  var glow = null, glowRow = null;
+  function clearGlow() {
+    if (glow) { glow.remove(); glow = null; }
+    if (glowRow) { glowRow.classList.remove('is-on'); glowRow.setAttribute('aria-pressed', 'false'); glowRow = null; }
+  }
+  function glowAt(row) {
+    var same = glowRow === row; clearGlow(); if (same) return;
+    var el = document.createElement('div'); el.className = 'ss-glow'; el.style.setProperty('--c', row.dataset.c || '#FF9800'); el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<i></i><i></i><i></i><b></b>';
+    glow = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([parseFloat(row.dataset.lng), parseFloat(row.dataset.lat)]).addTo(map);
+    glowRow = row; row.classList.add('is-on'); row.setAttribute('aria-pressed', 'true'); row.style.setProperty('--c', row.dataset.c || '#FF9800');
+  }
   function clearBadges() { badges.forEach(function (m) { m.remove(); }); badges = []; }
   function placeBadges() { clearBadges(); }   // no numbers on the map: hovering a case in the list rings its pin
   function focusPin(r) {
@@ -251,7 +265,7 @@
   }
   function close() {
     side.setAttribute('hidden', ''); btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('is-open');
-    clearBadges(); focusPin(null); Object.keys(pills).forEach(function (id) { pills[id].marker.remove(); delete pills[id]; });
+    clearGlow(); clearBadges(); focusPin(null); Object.keys(pills).forEach(function (id) { pills[id].marker.remove(); delete pills[id]; });
   }
 
   side.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !side.hasAttribute('hidden')) { e.stopPropagation(); close(); btn.focus(); } });
@@ -259,7 +273,7 @@
     var tg = e.target.closest('[data-slayer]');
     if (tg) { on[tg.dataset.slayer] = !on[tg.dataset.slayer]; ensureLayers(); apply(); sync(true); return; }
     var rc = e.target.closest('.ss-recur');
-    if (rc) { map.flyTo({ center: [parseFloat(rc.dataset.lng), parseFloat(rc.dataset.lat)], zoom: 18, essential: true }); return; }
+    if (rc) { glowAt(rc); map.flyTo({ center: [parseFloat(rc.dataset.lng), parseFloat(rc.dataset.lat)], zoom: 18, essential: true }); return; }
     var sq = e.target.closest('.sq-row');
     if (sq) {
       var rr = typeof byId !== 'undefined' ? byId.get(sq.dataset.id) : null;

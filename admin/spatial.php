@@ -68,7 +68,8 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
   <div class="p-map-float p-map-search" id="map-search">
     <div class="p-ttl"><h1><?= e(t('Spatial Distribution', 'Mapa ng mga Sumbong')) ?></h1>
       <span class="p-live" id="map-live"><i></i><?= e(t('Live', 'Live')) ?></span>
-      <span class="p-note" id="map-status"><?= e(t('Connecting…', 'Kumokonekta…')) ?></span></div>
+      <span class="p-note" id="map-status"><?= e(t('Connecting…', 'Kumokonekta…')) ?></span>
+      <button type="button" class="ss-pin" id="map-pin" aria-pressed="false" title="<?= e(t('Keep this open', 'Panatilihing bukas ito')) ?>" aria-label="<?= e(t('Keep this open', 'Panatilihing bukas ito')) ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/></svg><span class="ss-pin-l"><?= e(t('Lock open', 'I-lock')) ?></span></button></div>
     <div class="p-row">
       <label class="p-pill-select"><span class="p-sr"><?= e(t('Filter by complaint type', 'Salain ayon sa uri ng sumbong')) ?></span>
         <select id="f-category">
@@ -124,14 +125,6 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <div class="ss-queue" id="ss-queue"></div>
       <button type="button" class="ss-more" id="ss-more" hidden></button>
 
-      <p class="p-eyebrow"><?= e(t('Show on the map', 'Ipakita sa mapa')) ?></p>
-      <div class="ss-dtog" role="group" aria-label="<?= e(t('SMART marks', 'Mga marka ng SMART')) ?>">
-        <button type="button" data-slayer="halo" aria-pressed="false"><span class="ex"><i class="m-ring"></i><?= e(t('Ring each case by how urgent it is', 'Bilugan ang bawat kaso ayon sa antas')) ?></span><span class="sw"></span></button>
-        <button type="button" data-slayer="late" aria-pressed="false"><span class="ex"><i class="m-pulse"></i><?= e(t('Pulse the ones that may be late', 'Pintig sa maaaring maantala')) ?></span><span class="sw"></span></button>
-        <button type="button" data-slayer="rings" aria-pressed="false"><span class="ex"><i class="m-dash"></i><?= e(t('Outline problems that repeat', 'Bakuran ang paulit-ulit na problema')) ?></span><span class="sw"></span></button>
-      </div>
-      <div class="ss-onmap" id="ss-onmap" hidden></div>
-
       <p class="p-eyebrow ss-also"><?= e(t('Also noticed', 'Napansin din')) ?></p>
       <p class="p-eyebrow"><?= e(t('Recurring problems', 'Paulit-ulit na problema')) ?><em><?= count($patterns) ?></em></p>
       <?php if (!$patterns): ?>
@@ -139,7 +132,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <?php else: ?>
       <ol class="p-pin-list">
         <?php foreach ($patterns as $pt): ?>
-          <li><button type="button" class="p-pin-row ss-recur" data-lat="<?= e((string) $pt['lat']) ?>" data-lng="<?= e((string) $pt['lng']) ?>">
+          <li><button type="button" class="p-pin-row ss-recur" data-lat="<?= e((string) $pt['lat']) ?>" data-lng="<?= e((string) $pt['lng']) ?>" data-c="<?= e(category_colours()[(string) $pt['category']] ?? '#FF9800') ?>" aria-pressed="false">
             <b><?= e(category_label((string) $pt['category'])) ?></b>
             <small><?= (int) $pt['reports'] ?> <?= e(t('reports from', 'ulat mula sa')) ?> <?= (int) $pt['residents'] ?> <?= e(t('residents over', 'residente sa loob ng')) ?> <?= (int) $pt['weeks'] ?> <?= e(t('weeks', 'linggo')) ?>
               · <?= (int) $pt['still_open'] ?> <?= e(t('still open', 'bukas pa')) ?><?= !empty($pt['hazard']) ? ' · ' . e((string) $pt['hazard']) : '' ?></small>
@@ -320,6 +313,7 @@ const SHAPE = {
 // stay for the legend-by-status this replaced.)
 const CATEGORY_COLOUR = <?= json_encode(category_colours()) ?>;
 const catColour = c => CATEGORY_COLOUR[c] || CATEGORY_COLOUR.other;
+const heatLayers = () => Object.keys(CATEGORY_COLOUR).map(c => 'heat-' + c).filter(id => map.getLayer(id));   // one heat layer per kind of complaint, in its own legend colour
 const pinName = category => 'pin-cat-' + (CATEGORY_COLOUR[category] ? category : 'other');
 
 function pinSvg(shape, fill) {
@@ -502,20 +496,22 @@ const mapReady = new Promise(resolve => map.on('load', async () => {
   map.addLayer({ id: 'risk', type: 'circle', source: 'risk',
     paint: { 'circle-radius': 20, 'circle-color': 'rgba(14,165,233,0)', 'circle-stroke-color': '#0EA5E9', 'circle-stroke-width': 3 } });
 
-  // Leaflet.heat's own default ramp (blue, lime, red), so the heat reads
-  // the way it always has.
+  // The heat is drawn in each complaint kind's own legend colour (Rose, 21 Oct): where animal-welfare reports pile up the heat is
+  // animal-welfare green, not a blue-to-red ramp shared by every kind. One heat layer per kind, each filtered to its own complaints;
+  // where two kinds overlap their colours mix. MapLibre's density is absolute, so a barangay's worth of points needs more intensity
+  // and a radius that grows with the zoom.
   map.addSource('heat', { type: 'geojson', data: EMPTY });
-  map.addLayer({ id: 'heat', type: 'heatmap', source: 'heat', layout: { visibility: 'none' },
-    // Leaflet.heat scaled each view to its own peak; MapLibre's density
-    // is absolute, so a barangay's worth of points needs more intensity
-    // and a radius that grows with the zoom to read the same way.
-    paint: {
-      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 15, 22, 18, 60],
-      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 15, 2, 18, 4],
-      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(0,0,255,0)', 0.2, 'rgba(0,0,255,.6)', 0.4, 'blue', 0.65, 'lime', 1, 'red'],
-      'heatmap-opacity': .8, 'heatmap-opacity-transition': { duration: 0, delay: 0 },
-    } });
+  const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+  Object.keys(CATEGORY_COLOUR).forEach(c => {
+    const hex = CATEGORY_COLOUR[c];
+    map.addLayer({ id: 'heat-' + c, type: 'heatmap', source: 'heat', filter: ['==', ['get', 'cat'], c], layout: { visibility: 'none' },
+      paint: {
+        'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 15, 22, 18, 60],
+        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 15, 2, 18, 4],
+        'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'], 0, rgba(hex, 0), 0.2, rgba(hex, .38), 0.5, rgba(hex, .72), 1, rgba(hex, 1)],
+        'heatmap-opacity': .8, 'heatmap-opacity-transition': { duration: 0, delay: 0 },
+      } });
+  });
 
   map.addSource('hotspots', { type: 'geojson', data: EMPTY });
   map.addLayer({ id: 'hotspots', type: 'circle', source: 'hotspots', layout: { visibility: 'none' },
@@ -825,8 +821,8 @@ async function draw() {
 
   const heatOn = document.getElementById('f-heat').checked && pinRows.length;
   map.getSource('heat').setData(heatOn
-    ? { type: 'FeatureCollection', features: pinRows.map(r => point(r.longitude, r.latitude)) } : EMPTY);
-  map.setLayoutProperty('heat', 'visibility', heatOn ? 'visible' : 'none');
+    ? { type: 'FeatureCollection', features: pinRows.map(r => { const f = point(r.longitude, r.latitude); f.properties = Object.assign({}, f.properties, { cat: CATEGORY_COLOUR[r.category] ? r.category : 'other' }); return f; }) } : EMPTY);
+  heatLayers().forEach(id => map.setLayoutProperty(id, 'visibility', heatOn ? 'visible' : 'none'));
 
   fwRisk();
   if (window.sdSmart) { sdSmart.redraw(pinRows); }
@@ -1555,7 +1551,6 @@ addEventListener('resize', () => { if (!side.hasAttribute('hidden')) placeSide()
 // side of the map, so opening one closes the others.
 function mapDrawer(which) {
   if (which !== 'sheet' && csFor) closeCaseSheet();
-  if (which !== 'layers') { const lc = document.getElementById('ss-lyr'); if (lc && !lc.hidden) { lc.hidden = true; document.getElementById('layers-btn').setAttribute('aria-expanded', 'false'); } }
   if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
   if (which !== 'smart' && window.sdSmart) { sdSmart.close(); }
   if (which !== 'legend') { document.getElementById('map-legend').hidden = true; document.getElementById('legend-toggle').setAttribute('aria-expanded', 'false'); }
@@ -1612,6 +1607,44 @@ window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 98
   };
   fit(); addEventListener('resize', fit); addEventListener('orientationchange', fit);
 })();
+// The floating tab folds to its title row when the mouse leaves it. The lock keeps it open, and remembers (Rose, 21 Oct).
+(function () {
+  const bar = document.getElementById('map-search'), b = document.getElementById('map-pin'); if (!bar || !b) return;
+  const KEY = 'ss-map-pinned'; let on = false; try { on = localStorage.getItem(KEY) === '1'; } catch (e) { /* the lock just does not stay */ }
+  const set = v => { on = v; bar.classList.toggle('ss-pinned', v); b.setAttribute('aria-pressed', String(v)); b.title = v ? T('Let it fold away', 'Hayaang magsara') : T('Keep this open', 'Panatilihing bukas ito');
+    b.setAttribute('aria-label', b.title); b.querySelector('.ss-pin-l').textContent = v ? T('Locked', 'Naka-lock') : T('Lock open', 'I-lock'); try { localStorage.setItem(KEY, v ? '1' : '0'); } catch (e) { /* the lock just does not stay */ } };
+  set(on); b.addEventListener('click', () => set(!on));
+})();
+// The drawers on the right (incidents, SMART, hotspots) open below the floating tab wherever the two would overlap, which is more often now the tab can be locked open.
+(function () {
+  const sec = document.getElementById('s-spatial'), bar = document.getElementById('map-search'); if (!sec || !bar) return;
+  const drawers = [...sec.querySelectorAll('.p-map-stats')];
+  const place = () => {
+    if (innerWidth <= 980) { drawers.forEach(d => { d.style.top = ''; d.style.maxHeight = ''; }); return; }
+    const shell = sec.getBoundingClientRect(), sr = bar.getBoundingClientRect();
+    drawers.forEach(d => {
+      if (d.hasAttribute('hidden')) return;
+      const lr = d.getBoundingClientRect(), top = lr.left < sr.right + 8 ? Math.max(84, sr.bottom - shell.top + 12) : 84;
+      if (top === 84) { d.style.top = ''; d.style.maxHeight = ''; } else { d.style.top = top + 'px'; d.style.maxHeight = 'calc(100% - ' + (top + 16) + 'px)'; }
+    });
+  };
+  if (window.ResizeObserver) new ResizeObserver(place).observe(bar);
+  if (window.MutationObserver) drawers.forEach(d => new MutationObserver(place).observe(d, { attributes: true, attributeFilter: ['hidden'] }));
+  ['mouseenter', 'mouseleave', 'focusin', 'focusout', 'transitionend'].forEach(ev => bar.addEventListener(ev, place));
+  addEventListener('resize', place); place();
+})();
+// The buttons at the bottom right carry a word beside the icon (Rose, 21 Oct); buttons added later by sd-tools.js get theirs too.
+(function () {
+  const sec = document.getElementById('s-spatial'), dock = document.querySelector('#s-spatial .p-map-dock'); if (!dock) return;
+  // While a drawer is open on the right the buttons go back to icons alone, so they never cover it.
+  const tight = () => sec.classList.toggle('ss-dock-tight', ['map-side', 'smart-side', 'hotspot-side', 'map-legend'].some(id => { const e = document.getElementById(id); return e && !e.hidden; }));
+  ['map-side', 'smart-side', 'hotspot-side', 'map-legend'].forEach(id => { const e = document.getElementById(id); if (e && window.MutationObserver) new MutationObserver(tight).observe(e, { attributes: true, attributeFilter: ['hidden'] }); });
+  const L = { 'search-btn': ['Search', 'Hanapin'], 'expand-btn': ['Full screen', 'Buong screen'], 'fit-btn': ['Frame all', 'Ipakita lahat'], 'tl-btn': ['Timeline', 'Timeline'],
+              'views-btn': ['Saved views', 'Mga view'], 'legend-toggle': ['Legend', 'Alamat'], 'incident-toggle': ['Incidents', 'Insidente'], 'smart-toggle': ['SMART', 'SMART'], 'hotspot-toggle': ['Hotspots', 'Hotspot'] };
+  const label = () => dock.querySelectorAll('.p-dock-btn').forEach(b => { const l = L[b.id]; if (!l || b.querySelector('.dl')) return;
+    const s = document.createElement('span'); s.className = 'dl'; s.textContent = T(l[0], l[1]); b.appendChild(s); });
+  label(); if (window.MutationObserver) new MutationObserver(label).observe(dock, { childList: true });
+})();
 // The air-quality and safe-points boxes hang just under the main Spatial Distribution box and ride down with it when it opens on hover.
 (function () {
   const sec = document.getElementById('s-spatial'), main = document.getElementById('map-search'), info = document.getElementById('ss-lyr-info');
@@ -1644,19 +1677,15 @@ const AQ_BANDS = [[50, 'Good', 'Mabuti', '#34C759'], [100, 'Moderate', 'Katamtam
                   [200, 'Unhealthy', 'Hindi mabuti', '#E5383B'], [300, 'Very unhealthy', 'Napakasama', '#8E3FD6'], [1e9, 'Hazardous', 'Mapanganib', '#7E0023']];
 const aqBand = v => AQ_BANDS.find(b => v <= b[0]);
 
-// The safe points are the complaint pins' twin: the same bead (a soft gradient, a bright rim, a highlight, a shadow by day or a glow by night) and the same size,
-// but a squircle, so a place you go to never reads as a complaint. Redrawn when the theme changes, as the pins are.
+// A safe point is a SIGN, not a bead (Rose, 21 Oct: switched on, they looked like complaints). Complaints are filled, glowing beads with a white mark; a safe point is a white
+// squared sign with a thick ring and a mark in its own colour, and a little foot, so a place you go to never reads as a problem somebody reported.
 function safeTile(d, dark) {
   const fill = d.c;
   return '<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="-22 -22 44 44"><defs>' +
-    '<linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + fill + '" stop-opacity="1"/><stop offset=".55" stop-color="' + fill + '" stop-opacity="' + (dark ? .86 : .78) + '"/><stop offset="1" stop-color="' + fill + '" stop-opacity=".96"/></linearGradient>' +
-    '<linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>' +
-    '<radialGradient id="h" cx=".3" cy=".2" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
-    '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.8 : 1.8) + '" flood-color="' + (dark ? fill : '#000') + '" flood-opacity="' + (dark ? .9 : .4) + '"/></filter>' +
-    '<clipPath id="c"><rect x="-14.5" y="-14.5" width="29" height="29" rx="9.5"/></clipPath></defs>' +
-    '<g filter="url(#s)"><rect x="-14.5" y="-14.5" width="29" height="29" rx="9.5" fill="url(#a)"/><rect x="-14.5" y="-14.5" width="29" height="29" rx="9.5" fill="url(#h)" clip-path="url(#c)"/>' +
-    '<rect x="-13.7" y="-13.7" width="27.4" height="27.4" rx="8.8" fill="none" stroke="url(#r)" stroke-width="1.6"/>' +
-    '<g transform="translate(-8.5 -8.5) scale(.71)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + d.g + '</g></g></svg>';
+    '<filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dy="' + (dark ? 0 : 1.6) + '" stdDeviation="' + (dark ? 2.6 : 1.8) + '" flood-color="' + (dark ? '#fff' : '#000') + '" flood-opacity="' + (dark ? .45 : .4) + '"/></filter></defs>' +
+    '<g filter="url(#s)"><path d="M-4.2 13 L0 19.2 L4.2 13 Z" fill="' + fill + '"/>' +
+    '<rect x="-14" y="-15" width="28" height="28.4" rx="6" fill="#fff" stroke="' + fill + '" stroke-width="3.4"/>' +
+    '<g transform="translate(-8.4 -9.4) scale(.7)" fill="none" stroke="' + fill + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' + d.g + '</g></g></svg>';
 }
 function layerSafeImages() {
   const dark = isDark();
@@ -1879,7 +1908,10 @@ function layerSync() {
   // Like the Maps chooser: a picture tile at the map's bottom-left, and the layers open in a row beside it.
   btn.classList.add('lyr-tile'); btn.classList.remove('p-dock-btn');
   btn.innerHTML = '<span class="lt-pic" aria-hidden="true"></span><span class="lt-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS.layers + '</svg>' + T('Layers', 'Layers') + '</span>';
-  sec.appendChild(btn); sec.appendChild(card);
+  // Rose (21 Oct): the layers are part of the floating tab again, one row under the switches, not a tile of their own.
+  const lyrRow = document.createElement('div'); lyrRow.className = 'p-row ss-layers-row'; lyrRow.appendChild(card);
+  card.classList.add('ss-lyr--inline'); card.hidden = false; btn.style.display = 'none';
+  document.getElementById('map-search').appendChild(lyrRow);
   document.querySelectorAll('.p-map-search .map-sw').forEach(l => list.appendChild(l));
   document.querySelectorAll('.p-map-search .p-row').forEach(r => { if (!r.children.length) r.remove(); });
   // Each switch's box carries its own mark: it fills in when the layer is on. Project NOAH's is an N.
@@ -1920,14 +1952,12 @@ function layerSync() {
     if (k === 'noah') { sc.innerHTML = TILE.noah; return; }
     if (k === 'dim') sc.innerHTML = DIMPIC; if (k === 'transit') sc.innerHTML = ROUTEPIC;
     sc.querySelectorAll('svg.mk-ic').forEach(v => v.remove()); sc.insertAdjacentHTML('beforeend', TILE[k]); });
-  btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
   card.addEventListener('click', e => { if (!e.target.closest('#lyr-off')) return; document.querySelectorAll('#lyr-list input:checked').forEach(c => c.click()); });
   card.addEventListener('change', e => {
     const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
     LAYER[k] = e.target.checked; layerSync();
     layerDraw(k).then(() => { if (LAYER[k] && !LAYER_DATA[k]) LAYER[k] = false; layerSync(); });
   });
-  document.addEventListener('click', e => { if (!card.hidden && !e.target.closest('#ss-lyr, #layers-btn')) { card.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   window.addEventListener('themechange', () => ['aq', 'transit'].forEach(k => { if (map.getLayer(k === 'aq' ? 'aq-fill' : 'transit-glow')) layerDraw(k); }));
   // The outline arrives after the page does; the air-quality tint follows it.
   const wait = setInterval(() => { if (rings.length) { clearInterval(wait); if (map.getSource('aq')) map.getSource('aq').setData(layerShape()); } }, 600); setTimeout(() => clearInterval(wait), 20000);
@@ -1959,7 +1989,7 @@ function heatBlend() {
   const on = document.getElementById('f-heat').checked, z = map.getZoom();
   const k = on ? Math.max(0, Math.min(1, (z - HEAT_FROM) / (HEAT_TO - HEAT_FROM))) : 1, mapEl = document.getElementById('map');
   heatK = k; mapEl.style.setProperty('--pk', k.toFixed(3)); mapEl.classList.toggle('heat-view', on && k < .25);
-  if (map.getLayer('heat')) map.setPaintProperty('heat', 'heatmap-opacity', on ? .94 * (1 - .78 * k) : .9);
+  heatLayers().forEach(id => map.setPaintProperty(id, 'heatmap-opacity', on ? .94 * (1 - .78 * k) : .9));
   if (!introHide && map.getLayer('pins')) map.setPaintProperty('pins', 'icon-opacity', k);
   if (!heatHint) { heatHint = document.createElement('div'); heatHint.className = 'heat-hint'; heatHint.setAttribute('aria-live', 'polite'); document.getElementById('s-spatial').appendChild(heatHint); }
   heatHint.textContent = T('Heat view · zoom in to see each case', 'Heat view · mag-zoom in para makita ang bawat kaso');

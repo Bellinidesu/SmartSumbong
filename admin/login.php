@@ -4,7 +4,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 
 if (current_admin()) {
-    header('Location: cases.php');
+    header('Location: notifications.php');
     exit;
 }
 
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             attempt_login($email, $password);
             @unlink(login_tries_file($email));
-            header('Location: cases.php');
+            header('Location: notifications.php');
             exit;
         } catch (SupabaseError $ex) {
             // GoTrue phrases a wrong password as invalid credentials; say
@@ -124,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!-- Right panel: orange field with the barangay photo washed behind it.
        Accepts either extension — whichever the team exported. -->
   <section class="login-panel">
+    <?= prefs_switches('prefs--login') ?>
     <?php
     $bg = null;
     foreach (['villamor-street.webp', 'villamor-street.jpg'] as $candidate) {

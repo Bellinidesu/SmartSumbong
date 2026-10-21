@@ -165,7 +165,7 @@ try {
     // The embedded resident is a PostgREST foreign-key expansion; the
     // join happens in the database, not in a second round trip.
     $query = [
-        'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
+        'select' => 'id,tracking_id,subject,category,status,created_at,is_anonymous,is_sensitive,location_label,'
                   . 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
                   . 'resident:users!reports_resident_id_fkey(full_name),'
                   . 'handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
@@ -464,12 +464,9 @@ $noteBadge = $notesUnread + $escCount;
 <?php if ($tab === 'all'): ?>
 <!-- ---------- complaint register ---------- -->
 <?php $atc = count($attention ?? []); ?>
-<div class="p-band">
+<?php $vAnyBand = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $month !== '' || $tanod !== '' || $search !== ''; ?>
+<div class="p-band ss-cr-band">
   <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= (int) $regTotal ?></span></h2>
-  <a class="p-chip p-chip-band<?= $view === 'attention' ? ' p-on' : '' ?>" id="attention-chip"
-     href="?<?= e(http_build_query(array_filter(['view' => $view === 'attention' ? '' : 'attention', 'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month]))) ?>">
-    <?= e(t('Needs attention', 'Kailangang asikasuhin')) ?> <span class="p-chip-num<?= $atc > 0 ? ' p-hot' : '' ?>" id="attention-count"><?= $atc ?></span>
-  </a>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
     <input type="search" name="q" placeholder="<?= e(t('Search name, ID or category', 'Hanapin ang pangalan, ID o kategorya')) ?>" value="<?= e($search) ?>" aria-label="<?= e(t('Search reports', 'Maghanap sa mga ulat')) ?>">
@@ -481,7 +478,7 @@ $noteBadge = $notesUnread + $escCount;
     <input type="hidden" name="tab" value="all">
     <input type="hidden" name="tanod" value="<?= e($tanod) ?>">
   </form>
-  <span class="p-spacer"></span>
+  <?php if ($vAnyBand): ?><a class="p-chip p-chip-band" href="cases.php?clear=1"><?= e(t('Clear filters', 'I-clear ang mga filter')) ?></a><?php endif; ?>
   <form method="get" class="ss-band-filters">
     <input type="hidden" name="tab" value="all">
     <input type="hidden" name="q" value="<?= e($search) ?>">
@@ -527,28 +524,6 @@ $noteBadge = $notesUnread + $escCount;
   </form>
 </div>
 
-<?php
-// Saved views (Ace, 16 Oct): one tap sets the filters an admin reaches for most; counts are over all open cases.
-$vOpen = fn(array $r) => !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true);
-$vMine = count(array_filter($openRows ?? [], fn($r) => ($r['handler_id'] ?? null) === $admin['id']));
-$vFree = count(array_filter($openRows ?? [], fn($r) => empty($r['handler_id'])));
-$vLate = count(array_filter($openRows ?? [], fn($r) => $vOpen($r) && !empty($r['due_at']) && strtotime($r['due_at']) < time()));
-$vBase = array_filter(['q' => $search]);
-$vDefs = [
-  ['attention', t('Needs attention', 'Kailangang asikasuhin'), $atc, array_merge($vBase, ['view' => 'attention']), $view === 'attention'],
-  ['mine',      t('Assigned to me', 'Hawak ko'),               $vMine, array_merge($vBase, ['who' => $admin['id']]), $who === $admin['id'] && $view !== 'attention'],
-  ['free',      t('Unassigned', 'Walang hawak'),               $vFree, array_merge($vBase, ['who' => 'unclaimed']), $who === 'unclaimed' && $view !== 'attention'],
-  ['late',      t('Overdue', 'Lampas-oras'),                   $vLate, array_merge($vBase, ['status' => 'overdue']), $filter === 'overdue' && $view !== 'attention'],
-];
-$vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $month !== '' || $tanod !== '' || $search !== '';
-?>
-<div class="ss-views" role="group" aria-label="<?= e(t('Saved views', 'Mga naka-save na tanaw')) ?>">
-  <?php foreach ($vDefs as [$vk, $vl, $vn, $vq, $von]): ?>
-    <a class="ss-view<?= $von ? ' on' : '' ?>" data-view="<?= e($vk) ?>" href="?<?= e(http_build_query($vq)) ?>"<?= $von ? ' aria-current="true"' : '' ?>><?= e($vl) ?> <b><?= (int) $vn ?></b></a>
-  <?php endforeach; ?>
-  <?php if ($vAny): ?><a class="ss-view ss-clear" href="cases.php?clear=1"><?= e(t('Clear filters', 'I-clear ang mga filter')) ?></a><?php endif; ?>
-</div>
-
 <div class="p-card p-table-card"><div class="p-tscroll">
   <table class="p-t ss-cases-t">
     <thead><tr>
@@ -559,8 +534,8 @@ $vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== 
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><?= e(t('SMART', 'SMART')) ?></th>
       <th scope="col"><?= e(t('Handler', 'Humahawak')) ?></th>
-      <th scope="col"><?= e(t('Open now', 'Bukas ngayon')) ?></th>
-      <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
+      <th scope="col" class="ss-c"><?= e(t('Open now', 'Bukas ngayon')) ?></th>
+      <th scope="col" class="ss-c"><?= e(t('Action', 'Aksyon')) ?></th>
     </tr></thead>
     <tbody id="reports-tbody">
       <?php if (!$reports): ?>
@@ -571,7 +546,7 @@ $vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== 
         </td></tr>
       <?php endif; ?>
       <?php foreach ($reports as $r): ?>
-        <tr class="p-click" data-href="case.php?id=<?= e($r['id']) ?>">
+        <tr class="p-click<?= !empty($r['is_sensitive']) ? ' ss-sens' : '' ?>" data-href="case.php?id=<?= e($r['id']) ?>"<?= !empty($r['is_sensitive']) ? ' title="' . e(t('Sensitive case', 'Sensitibong kaso')) . '"' : '' ?>>
           <td>
             <?php if (!empty($r['is_anonymous'])): ?>
               <span class="p-anon"><?= e(t('Anonymous', 'Hindi nagpakilala')) ?></span>
@@ -594,8 +569,8 @@ $vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== 
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
           <td class="ss-smart"><?= smart_badge($r['triage'] ?? null) ?></td>
           <td><?= handler_cell($r, $admin['id']) ?></td>
-          <td class="ss-open" data-report="<?= e($r['id']) ?>"></td>
-          <td class="p-right"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a></td>
+          <td class="ss-open ss-c" data-report="<?= e($r['id']) ?>"></td>
+          <td class="ss-c"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
@@ -746,7 +721,6 @@ $vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== 
   function renderReports(all, total, attentionN) {
     const filtered = all;
     document.getElementById('reports-count').textContent = total;
-    if (attentionN != null) document.getElementById('attention-count').textContent = attentionN;
     document.getElementById('reports-pager').innerHTML = pagerHtml(total, PAGE, 'page');
 
     const tbody = document.getElementById('reports-tbody');
@@ -781,7 +755,7 @@ $vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== 
         ? '<span class="p-badge p-b-pending">' + T('Reopened ', 'Binuksang muli ') + r.reopened_count + '&times;</span>' : '';
       const appealed = r.appealed_at
         ? '<span class="p-badge p-b-pending" title="' + T('Reinstated on appeal', 'Ibinalik dahil sa apela') + '">' + T('Appealed', 'Inapela') + '</span>' : '';
-      return '<tr class="p-click" data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
+      return '<tr class="p-click' + (r.is_sensitive ? ' ss-sens' : '') + '"' + (r.is_sensitive ? ' title="' + T('Sensitive case', 'Sensitibong kaso') + '"' : '') + ' data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
         '<td>' + who + '</td>' +
         '<td><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span></td>' +
         '<td>' + escapeHtml(CATEGORY_LABEL[r.category] || titleCase(r.category)) +
@@ -791,8 +765,8 @@ $vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== 
         '<td class="p-num">' + shortDate(r.created_at) + '</td>' +
         '<td class="ss-smart">' + smartBadge(r.triage) + '</td>' +
         '<td>' + handlerCell(r) + '</td>' +
-        '<td class="ss-open" data-report="' + escapeHtml(r.id) + '"></td>' +
-        '<td class="p-right"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=' +
+        '<td class="ss-open ss-c" data-report="' + escapeHtml(r.id) + '"></td>' +
+        '<td class="ss-c"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=' +
           encodeURIComponent(r.id) + '">' + T('Review', 'Suriin') + '</a></td>' +
         '</tr>';
     }).join('');
@@ -876,7 +850,7 @@ $vAny = $view === 'attention' || $who !== '' || $filter !== '' || $category !== 
 
   async function loadReports() {
     let q = sb.from('reports')
-      .select('id,tracking_id,subject,category,status,created_at,is_anonymous,location_label,'
+      .select('id,tracking_id,subject,category,status,created_at,is_anonymous,is_sensitive,location_label,'
         + 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
         + 'resident:users!reports_resident_id_fkey(full_name),handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
         + 'triage:report_triage(score,effective_level,override_level,possible_duplicates)', { count: 'exact' })
