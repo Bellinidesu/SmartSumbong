@@ -59,6 +59,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build the portal image, as Render does
         run: docker build -t smartsumbong-portal:ci .
+      - name: It starts, answers and is not root
+        run: |
+          docker run -d --name portal -p 10000:10000 -e PORT=10000 smartsumbong-portal:ci
+          for i in $(seq 1 20); do curl -fs http://127.0.0.1:10000/admin/ping.php > /dev/null && break; sleep 1; done
+          test "$(curl -fs http://127.0.0.1:10000/admin/ping.php)" = ok || { docker logs portal; exit 1; }
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:10000/admin/includes/config.php)" = 403 || { echo "includes/ is reachable"; exit 1; }
+          uid=$(docker exec portal id -u); echo "runs as uid $uid"; test "$uid" != 0
+          docker rm -f portal
       - name: Trivy 0.75.0 (checksum pinned)
         run: |
           curl -sSfL -o trivy.tgz https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz
