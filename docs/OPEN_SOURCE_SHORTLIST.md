@@ -138,7 +138,7 @@ grammar.
 | cure53/DOMPurify | Apache-2.0 | Client-side HTML sanitiser | Use: any rich text shown in the portal |
 | chartjs/Chart.js, leeoniya/uPlot | MIT | Charts | Try: uPlot is far smaller (the budget is 16 KB gzip a script) |
 | flatpickr/flatpickr | MIT | Date picker | Reference: we have our own |
-| alpinejs/alpine, bigskysoftware/htmx, lit/lit | MIT, BSD-style, BSD-3-Clause | Light interactivity | Reference |
+| alpinejs/alpine, bigskysoftware/htmx, lit/lit | MIT, 0BSD, BSD-3-Clause | Light interactivity | Reference |
 | spatie/laravel-activitylog | MIT | Audit-log design | Reference: ours is hash-chained |
 
 ## Security, quality and operations
@@ -194,13 +194,31 @@ grammar.
 | notifo-io/notifo | MIT | Multi-channel notification service | Reference |
 | nikoksr/notify, kha7iq/pingme | MIT | Send to many channels | Reference |
 
-## Left out on purpose
+## Left out, and the open alternative
 
-- **Copyleft**, read but never copied: FixMyStreet, Ushahidi, Mark-a-Spot,
-  uReport, Decidim, Polis, ParadeDB (AGPL), mPDF (GPL), Typesense (GPL),
-  Open-Meteo's server (AGPL), pa11y (LGPL).
-- **Not fully open:** Meilisearch (MIT core, commercial extras), Metabase
-  (AGPL), Sentry (Functional Source License), Grafana (AGPL).
-- **Licence not stated** by GitHub; confirm first: TCPDF (LGPL), pgBackRest
-  (MIT), htmx.
-- **Hits of no use** from broad queries: AI-agent tools, trading APIs, games.
+Checked 21 Oct 2026 by reading each project's own licence file where GitHub
+could not name it.
+
+| Left out | Why | Open alternative |
+|---|---|---|
+| Meilisearch | MIT core, but parts under the Business Source License | MiniSearch (MIT) in the browser; FlexSearch (Apache-2.0); Quickwit (Apache-2.0) or tantivy (MIT) for a server; PostgreSQL's own search (`pg_trgm`, pg_textsearch) |
+| Typesense, Manticore | GPL-3.0 | as above |
+| ParadeDB | AGPL-3.0 | pg_textsearch (PostgreSQL licence) |
+| Metabase | AGPL-3.0 | Apache Superset (Apache-2.0), Redash (BSD-2-Clause), Evidence (MIT) |
+| Grafana, OpenObserve | AGPL-3.0 | Superset or Redash for charts; Uptime Kuma (MIT) and Healthchecks (BSD-3) for monitoring |
+| Sentry | Functional Source License | GlitchTip (MIT, on GitLab, speaks Sentry's protocol); our own error and uptime tables (0096–0098) |
+| mPDF | GPL-2.0 | FPDF (setasign, permissive), pdf-lib or jsPDF (MIT) |
+| TCPDF | its own licence, not checked line by line | FPDF |
+| pa11y | LGPL-3.0 | axe-core (MPL-2.0), Lighthouse CI (Apache-2.0) |
+| FixMyStreet, Ushahidi, Mark-a-Spot, uReport, Decidim, Polis | AGPL or GPL | Libre311 (Apache-2.0) and the Open311 API shape; ours stays our own |
+| Zammad, FreeScout, osTicket, Frappe Helpdesk | AGPL or GPL | none permissive found; the case flow stays our own |
+| Open-Meteo's server | AGPL-3.0 | its public API (we call it, not run it) |
+
+Licences now confirmed from the files themselves: **htmx** Zero-Clause BSD,
+**MapLibre GL JS** BSD-3-Clause, **pgBackRest** MIT, **pgvector** PostgreSQL
+licence, **PMTiles** BSD-3-Clause (its specification public domain), **FPDF**
+permissive. Bugsink and SigNoz were not taken further: neither is plainly
+under one open licence.
+
+Hits of no use from the broad queries (AI-agent tools, trading APIs, games)
+are not listed.
