@@ -90,6 +90,13 @@ Changes on `main` not yet deployed belong here.
   the barangay's sender name once `SEMAPHORE_SENDER_NAME` is set (both found
   in pravennn08/semaphore-sdk, MIT). SMS stays off until credits are bought.
 
+**Added (22 Oct)**
+- Report Summary: **Download spreadsheet**, beside Download PDF Report: the
+  same rows as the page (complaints, escalations, tanod activity, case
+  timeline) in an Excel file, one sheet each. No complaint text; anonymous
+  residents stay anonymous. Made with OpenSpout (MIT), the portal's first
+  library through Composer.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 

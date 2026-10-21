@@ -43,3 +43,5 @@ Claude outputs/
 # browser tests: installed packages and failure screenshots
 tests/browser/node_modules/
 tests/browser/test-results/
+
+admin/includes/vendor/

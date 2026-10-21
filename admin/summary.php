@@ -11,12 +11,17 @@
  * and right, the issuing body centred between them, a ruled name/section
  * line under it, and the date bottom right.
  *
- * The export is print-to-PDF rather than a server-side PDF library. That
- * is a deliberate choice: it adds no composer dependency to a barangay
- * server that has to be maintained after turnover, it renders the same
- * letterhead the screen already has, and "Save as PDF" is one step in
- * every browser's print dialog. If the barangay later wants a generated
- * file attached to an email, that is an Edge Function, not this page.
+ * The PDF is print-to-PDF rather than a server-side PDF library: it
+ * renders the same letterhead the screen already has, and "Save as PDF" is
+ * one step in every browser's print dialog. If the barangay later wants a
+ * generated file attached to an email, that is an Edge Function.
+ *
+ * The spreadsheet (22 Oct 2026) is a generated file: the same rows, one
+ * sheet per section, made with OpenSpout through Composer
+ * (includes/spreadsheet.php). This page once avoided Composer so the server
+ * needed no upkeep after turnover; the image now installs the locked
+ * versions itself on every deploy and Dependabot proposes updates
+ * (docs/UPDATING.md), so nobody has to do it by hand.
  */
 declare(strict_types=1);
 
@@ -207,6 +212,12 @@ try {
     $error = safe_error($ex);
 }
 
+// The spreadsheet: the same rows, before any page is drawn.
+if (($_GET['export'] ?? '') === 'xlsx' && $error === null) {
+    require_once __DIR__ . '/includes/spreadsheet.php';
+    summary_spreadsheet($reports, $dispatches, $logs, $from, $to, $category, $admin, $truncated);
+}
+
 // ---------- the four tiles ----------
 $total    = count($reports);
 $resolved = count(array_filter($reports, fn($r) => in_array($r['status'], ['resolved','closed','archived'], true)));
@@ -282,8 +293,11 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
     <?php endforeach; ?>
   </span>
   <span class="p-spacer"></span>
+  <span class="rs-dl">
+    <a class="p-btn-xls" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'export' => 'xlsx']))) ?>"><svg class="xls-ico" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true"><path class="pg" d="M4 2h14l8 8v21a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line class="ln" x1="6" y1="15" x2="22" y2="15"/><line class="ln" x1="6" y1="21" x2="22" y2="21"/><line class="ln" x1="6" y1="27" x2="22" y2="27"/><line class="ln" x1="13" y1="12" x2="13" y2="29"/></svg><?= e(t('Download spreadsheet', 'I-download ang spreadsheet')) ?></a>
   <?php // Rose (30 Sep 2026): the PDF is the barangay's Complaint Summary form. ?>
   <a class="p-btn-pdf2" target="_blank" rel="noopener" href="complaint-summary.php?month=<?= e($from->format('Y-m')) ?>"><svg class="pdf-ico" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true"><path class="pg" d="M4 2h14l8 8v21a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line class="ln" x1="7" y1="16" x2="21" y2="16"/><line class="ln" x1="7" y1="21" x2="21" y2="21"/><line class="ln" x1="7" y1="26" x2="17" y2="26"/></svg><?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?></a>
+  </span>
 </div>
 
 <?php if ($isOngoing): ?>

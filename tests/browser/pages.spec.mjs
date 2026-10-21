@@ -50,6 +50,13 @@ test('login.php, signed out', async ({ browser }) => {
   expect(await axe(page), 'serious or critical accessibility problems').toEqual([]);
 });
 
+test('Report Summary downloads as a spreadsheet', async ({ request }) => {
+  const r = await request.get('summary.php?from=2026-01-01&to=2026-12-31&export=xlsx');
+  expect(r.status()).toBe(200);
+  expect(r.headers()['content-type']).toContain('spreadsheetml');
+  expect((await r.body()).subarray(0, 2).toString()).toBe('PK');   // an .xlsx is a zip
+});
+
 test('dark mode: dashboard and cases', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   for (const path of ['dashboard.php', 'cases.php']) {

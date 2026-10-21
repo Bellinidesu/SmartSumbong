@@ -8,15 +8,20 @@
 # the transparency page we dont need it" — see .htaccess and index.php for
 # the rest of that removal. The portal talks to Supabase over HTTPS (cURL,
 # PostgREST + GoTrue), so there is nothing to install beyond PHP + curl +
-# mbstring — no database driver, no composer, no build step.
+# mbstring — no database driver. Since 22 Oct 2026 one PHP library comes
+# through Composer (OpenSpout, for the Report Summary spreadsheet), installed
+# here at the versions in admin/composer.lock; docs/UPDATING.md.
+
+# Composer only installs admin/composer.lock; it is not left in the image.
+FROM composer:2.10.3 AS composer
 
 # PHP 8.5 (7 Oct 2026), the version the portal is developed on. It also
 # keeps database connections open between page loads (supabase.php).
 FROM php:8.5-apache
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev \
-    && docker-php-ext-install curl mbstring \
+    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
+    && docker-php-ext-install curl mbstring zip \
     && a2enmod rewrite expires headers deflate \
     && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
@@ -33,6 +38,10 @@ RUN { echo 'opcache.enable=1'; echo 'opcache.memory_consumption=64'; echo 'opcac
 WORKDIR /var/www/html
 
 COPY admin/ ./admin/
+# The locked library versions, into admin/includes/vendor (forbidden to the web by .htaccess); nothing for development.
+COPY --from=composer /usr/bin/composer /tmp/composer
+RUN COMPOSER_ALLOW_SUPERUSER=1 /tmp/composer install --working-dir=admin --no-dev --no-interaction --no-progress --classmap-authoritative \
+    && rm /tmp/composer
 COPY index.php .htaccess ./
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
