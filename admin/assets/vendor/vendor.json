@@ -3,7 +3,7 @@
   "libraries": {
     "supabase-js": {
       "npm": "@supabase/supabase-js",
-      "version": "2.117.3",
+      "version": "2.118.0",
       "licence": "MIT",
       "how": "copy",
       "licence_file": "supabase/LICENSE",
@@ -11,13 +11,13 @@
       "files": {
         "supabase/supabase.js": {
           "from": "dist/umd/supabase.js",
-          "sha256": "d6a5c4414a5d4ce646d9c1de223aa7067d3ff664c15394ffeb7fcffc763354a3"
+          "sha256": "ee3be8de192b97cb1d73d1e95d6b82bb1f6b658c0f97c4ef757fc331996ed3d3"
         }
       }
     },
     "maplibre-gl": {
       "npm": "maplibre-gl",
-      "version": "6.13.0",
+      "version": "6.15.0",
       "licence": "BSD-3-Clause",
       "how": "build",
       "note": "maplibre-gl.js is dist/maplibre-gl.mjs compiled to a classic script with esbuild; the worker and the CSS are copied. Steps in maplibre/README.md.",
@@ -25,15 +25,15 @@
       "files": {
         "maplibre/maplibre-gl.js": {
           "from": "dist/maplibre-gl.mjs (built)",
-          "sha256": "3804d80e395a6e099ead7b2fc6f094ab374e470a82b7bbe11d53603522b35b3c"
+          "sha256": "94980a0c52c24f09d1e6bf503673cd30de550b284d73b5e0d8ccfe332bcbd5e0"
         },
         "maplibre/maplibre-gl-worker.mjs": {
           "from": "dist/maplibre-gl-worker.mjs",
-          "sha256": "53a2dd60f76c7b9201a3cc007b755d98ce4b52403843fef5c90c41780fe62e91"
+          "sha256": "1c69066368331aae63967ed24a9affcf962cf55fcc6d8f532a8b040f736dbcfa"
         },
         "maplibre/maplibre-gl.css": {
           "from": "dist/maplibre-gl.css",
-          "sha256": "20fc3054e6c769ae9502ec5c7ea46dae05b544fdc4fca2108553fb8c07265bf3"
+          "sha256": "a90798a1953017790e590f7e1bd35ff103a8a4263972cb47290b78adf86f8c20"
         }
       }
     },

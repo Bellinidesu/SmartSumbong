@@ -1,4 +1,4 @@
-# MapLibre GL JS 6.13.0
+# MapLibre GL JS 6.15.0
 
 MapLibre 6 ships only as an ES module. The portal pages load it as a classic
 script and use the global `maplibregl`, so `maplibre-gl.js` here is the
