@@ -5,6 +5,9 @@
 #             client keys that are public by design).
 #   deps      osv-scanner over the lockfiles and vendored libraries, against
 #             the OSV advisory database.
+#   image     Trivy over the portal's Docker image as Render builds it (the Debian, Apache and PHP
+#             packages under the portal, which no lockfile lists) and over the Dockerfile's settings.
+#             Fails on a HIGH or CRITICAL finding that has a fix; all findings go to code scanning.
 #   codeql    GitHub's static analysis of the portal's JavaScript, the Edge
 #             Functions' TypeScript and these workflows; results appear
 #             under Security -> Code scanning.
@@ -45,6 +48,38 @@ jobs:
           curl -sSfL -o osv-scanner https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64
           chmod +x osv-scanner
           ./osv-scanner scan source -r .
+
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the portal image, as Render does
+        run: docker build -t smartsumbong-portal:ci .
+      - name: Trivy 0.75.0 (checksum pinned)
+        run: |
+          curl -sSfL -o trivy.tgz https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz
+          echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  trivy.tgz" | sha256sum -c -
+          tar xzf trivy.tgz trivy
+      - name: Every finding, to code scanning
+        run: |
+          ./trivy image --scanners vuln --format sarif -o image.sarif smartsumbong-portal:ci
+          ./trivy config --format sarif -o config.sarif Dockerfile
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: image.sarif
+          category: trivy-image
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: config.sarif
+          category: trivy-config
+      - name: Fail on a HIGH or CRITICAL finding that has a fix
+        run: |
+          ./trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 smartsumbong-portal:ci
+          ./trivy config --severity HIGH,CRITICAL --exit-code 1 Dockerfile
 
   codeql:
     runs-on: ubuntu-24.04
