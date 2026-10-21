@@ -61,7 +61,7 @@ function feed_cached(string $key, int $ttl, callable $make): array
 }
 
 /** Shared cURL options: https only, short timeouts, a cap on the size of the answer. */
-function feed_curl_base(string $url, int $timeout, array $headers, ?string &$body): CurlHandle
+function feed_curl_base(string $url, int $timeout, array $headers, ?string &$body, int $max = FEED_MAX_BYTES): CurlHandle
 {
     $body = '';
     $ch = curl_init($url);
@@ -73,8 +73,8 @@ function feed_curl_base(string $url, int $timeout, array $headers, ?string &$bod
         CURLOPT_USERAGENT      => FEED_UA,
         CURLOPT_HTTPHEADER     => $headers ?: ['Accept: application/json, application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.5'],
         CURLOPT_ENCODING       => '',
-        CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$body): int {
-            if (strlen($body) + strlen($chunk) > FEED_MAX_BYTES) {
+        CURLOPT_WRITEFUNCTION  => static function ($ch, string $chunk) use (&$body, $max): int {
+            if (strlen($body) + strlen($chunk) > $max) {
                 return 0;   // too big: stop reading (the transfer then fails)
             }
             $body .= $chunk;
@@ -85,10 +85,10 @@ function feed_curl_base(string $url, int $timeout, array $headers, ?string &$bod
 }
 
 /** GET a fixed, trusted address. Null on any failure or a non-200 answer. */
-function feed_get(string $url, int $timeout = 8, array $headers = []): ?string
+function feed_get(string $url, int $timeout = 8, array $headers = [], int $max = FEED_MAX_BYTES): ?string
 {
     $body = '';
-    $ch = feed_curl_base($url, $timeout, $headers, $body);
+    $ch = feed_curl_base($url, $timeout, $headers, $body, $max);
     curl_setopt_array($ch, [CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 3, CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS]);
     $ok   = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);

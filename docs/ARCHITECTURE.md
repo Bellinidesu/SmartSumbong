@@ -181,7 +181,7 @@ inline handler.
 each English string has its Tagalog. Light and dark themes are token sets
 in CSS; the choice is kept per browser.
 
-**Outside data.** Weather, air quality, tides and quakes (Open-Meteo, USGS),
+**Outside data.** Weather, air quality, tides and quakes (Open-Meteo, PHIVOLCS, USGS),
 PAGASA and GDACS hazard feeds, OpenStreetMap layers and RSS are read on the
 server, cached in the temp directory, and guarded against redirects to
 private addresses (`feeds.php`). When the server's request is refused, the

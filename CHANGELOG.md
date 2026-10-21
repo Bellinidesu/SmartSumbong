@@ -64,6 +64,11 @@ Changes on `main` not yet deployed belong here.
 - Dashboard: **When complaints come in** (`smart_time_patterns`): the weekday
   and three-hour blocks well above usual for each kind, with the place.
 
+**Added (open-source data, 21 Oct)**
+- Earthquakes: PHIVOLCS, the official list, read first; USGS fills in what
+  PHIVOLCS has not posted and stands in when it cannot be read. A quake both
+  list shows once, with the USGS magnitude beside it.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 
