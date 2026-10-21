@@ -4,6 +4,9 @@
 #              English string has a Tagalog one, the portal stays within
 #              its size budget, and it starts and answers (login, sign-in
 #              redirect, ping, 404, security headers, script nonces).
+#   browser    every portal page opened in Chromium (Playwright) against a fake
+#              Supabase: no console errors, no serious accessibility problem
+#              (axe-core), light and dark. tests/browser.
 #   mobile     flutter analyze (no findings allowed) and the tests, for the
 #              shared core and the resident app (flows on the real screens,
 #              accessibility, translations).
@@ -58,6 +61,8 @@ jobs:
           node-version: '24'
       - name: Portal scripts parse
         run: for f in admin/assets/js/*.js; do node --check "$f"; done
+      - name: Vendored libraries match vendor.json
+        run: python3 tools/vendor.py check
       - name: Web manifest is valid JSON
         run: node -e "JSON.parse(require('fs').readFileSync('admin/manifest.webmanifest','utf8'))"
       - name: Every English string has a Tagalog one
@@ -72,6 +77,35 @@ jobs:
           SUPABASE_URL: https://example.supabase.co
           SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
         run: bash .github/scripts/portal-smoke.sh
+
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Playwright and axe-core (pinned in tests/browser/package-lock.json)
+        working-directory: tests/browser
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: The portal against a fake Supabase
+        run: bash tests/browser/serve.sh
+      - name: Every page, in a browser
+        working-directory: tests/browser
+        run: npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-failures
+          path: tests/browser/test-results
+          retention-days: 7
 
   mobile:
     runs-on: ubuntu-24.04

@@ -1,4 +1,4 @@
-# MapLibre GL JS 6.13.0
+# MapLibre GL JS 6.15.0
 
 MapLibre 6 ships only as an ES module. The portal pages load it as a classic
 script and use the global `maplibregl`, so `maplibre-gl.js` here is the
@@ -19,4 +19,5 @@ npx esbuild@0.25.10 package/dist/maplibre-gl.mjs --bundle --minify \
 cp package/dist/maplibre-gl-worker.mjs package/dist/maplibre-gl.css package/LICENSE.txt .
 ```
 
-Then open a map page (case, print, spatial) and check the browser console.
+Then open a map page (case, print, spatial) and check the browser console, and record the
+new files: `python tools/vendor.py rehash maplibre-gl <version>` (docs/UPDATING.md).
