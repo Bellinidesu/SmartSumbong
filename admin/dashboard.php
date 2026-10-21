@@ -198,6 +198,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <?php endif; ?>
 <?php if (!empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times'])): ?>
 <div class="ss-two">
+  <?php if (!empty($sm['spikes']) || !empty($sm['times'])): ?><div class="ss-stack"><?php endif; ?>
   <?php if (!empty($sm['spikes'])): ?>
   <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Spikes this week', 'Pagtaas ngayong linggo')) ?></p>
     <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('This week', 'Linggong ito')) ?></th><th class="n"><?= e(t('Usually', 'Karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
@@ -205,6 +206,15 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
       <tr><td><?= e(category_label((string) $sp['category'])) ?></td><td class="n"><?= (int) $sp['this_week'] ?></td><td class="n"><?= e(rtrim(rtrim(number_format((float) $sp['usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($sp['place'] ?? '')) ?></td></tr>
     <?php endforeach; ?></tbody></table></section>
   <?php endif; ?>
+  <?php if (!empty($sm['times'])): ?>
+  <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('When complaints come in', 'Kailan dumarating ang mga sumbong')) ?></p>
+    <table class="ss-table ss-nowrap"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th><?= e(t('When', 'Kailan')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Times usual', 'Beses ng karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
+    <?php foreach (array_slice((array) $sm['times'], 0, 5) as $tp): ?>
+      <tr><td><?= e(category_label((string) $tp['category'])) ?></td><td><?= e((string) $tp['weekday'] . ' ' . (string) $tp['hours']) ?></td><td class="n"><?= (int) $tp['reports'] ?></td><td class="n">&times;<?= e(rtrim(rtrim(number_format((float) $tp['times_usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($tp['place'] ?? '')) ?></td></tr>
+    <?php endforeach; ?></tbody></table>
+    <p class="p-hint"><?= e(t('Blocks of three hours well above the usual for that kind, for planning patrols and duty (90 days).', 'Mga tatlong-oras na bahagi na higit sa karaniwan para sa uring iyon, para sa pagpaplano ng patrol at duty (90 araw).')) ?></p></section>
+  <?php endif; ?>
+  <?php if (!empty($sm['spikes']) || !empty($sm['times'])): ?></div><?php endif; ?>
   <?php if (!empty($sm['score'])): ?>
   <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('On time, by kind of complaint', 'Sa takdang oras, ayon sa uri')) ?></p>
     <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('On time', 'Sa oras')) ?></th><th class="n"><?= e(t('Change', 'Pagbabago')) ?></th><th class="n"><?= e(t('Overdue now', 'Lampas ngayon')) ?></th></tr></thead><tbody>
@@ -214,14 +224,6 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
         <td class="n"><?= $ch === null ? '—' : ((float) $ch > 0 ? '▲ ' : ((float) $ch < 0 ? '▼ ' : '')) . e(abs(round((float) $ch)) . '%') ?></td>
         <td class="n"><?= (int) $sc['overdue_now'] ?></td></tr>
     <?php endforeach; ?></tbody></table></section>
-  <?php endif; ?>
-  <?php if (!empty($sm['times'])): ?>
-  <section class="p-card p-card-pad ss-wide"><p class="p-eyebrow"><?= e(t('When complaints come in', 'Kailan dumarating ang mga sumbong')) ?></p>
-    <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th><?= e(t('When', 'Kailan')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Times usual', 'Beses ng karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
-    <?php foreach (array_slice((array) $sm['times'], 0, 5) as $tp): ?>
-      <tr><td><?= e(category_label((string) $tp['category'])) ?></td><td><?= e((string) $tp['weekday'] . ' ' . (string) $tp['hours']) ?></td><td class="n"><?= (int) $tp['reports'] ?></td><td class="n">&times;<?= e(rtrim(rtrim(number_format((float) $tp['times_usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($tp['place'] ?? '')) ?></td></tr>
-    <?php endforeach; ?></tbody></table>
-    <p class="p-hint"><?= e(t('Blocks of three hours well above the usual for that kind, for planning patrols and duty (90 days).', 'Mga tatlong-oras na bahagi na higit sa karaniwan para sa uring iyon, para sa pagpaplano ng patrol at duty (90 araw).')) ?></p></section>
   <?php endif; ?>
 </div>
 <?php endif; ?>

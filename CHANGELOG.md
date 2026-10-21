@@ -37,6 +37,18 @@ Changes on `main` not yet deployed belong here.
   pill when the barangay marked the case sensitive, so the designated woman
   responder handles it discreetly. Residents never see it.
 
+**Polish (a look at every page, 21 Oct)**
+- The search box takes the rest of its row on every page's band (Residents,
+  Personnel, Extra Administrative Services, Notifications), not only Case Reports.
+- Dashboard: Spikes and When complaints come in stack in one column, level with
+  the On-time table, so no card is left with an empty half; the weekly table's
+  times and places stay on one line.
+- Personnel: the email column has room for a whole address.
+- Settings: the map credits run the width of their card.
+- Edit Profile: an empty mobile number reads "Not set".
+- Workspace: the widget rail fades at its foot while more widgets wait below it;
+  the board fades at its right edge while more stages wait beyond it.
+
 **Added (SMART screens, 21 Oct)**
 - Storm mode shows as a banner at the top of every portal page, with **Manage**
   and **End it**, not only on the dashboard.
