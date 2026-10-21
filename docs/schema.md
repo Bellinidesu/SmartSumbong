@@ -1,6 +1,6 @@
 # SmartSumbong — Schema Reference
 
-What the migrations in `supabase/migrations/` add up to: 125 files, 0001–0132
+What the migrations in `supabase/migrations/` add up to: 126 files, 0001–0133
 (numbers 0048 and 0108–0113 are unused; 0108–0113 became 0114–0120 to follow
 production's 0107). The exact current schema, every column and grant, is
 `supabase/baseline/baseline.sql`; this file is the map. If the manuscript's
@@ -154,7 +154,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `smart_duplicates_of`, `smart_tanod_ranking`, `smart_eta` | 0122 | Likely duplicates; who to send, best first; resolution-time estimate |
 | `smart_override` | 0123 | Raise or lower a level, with a reason |
 | `smart_case_card`, `smart_summary`, `smart_preview` | 0124 | The case card, the dashboard tiles, Try it |
-| `smart_read` | 0125 | How SMART read a text (word forms, spellings, negation) |
+| `smart_read` | 0133 | How SMART read a text (word forms, spellings, negation); 0133 added the present tense, doubled words, stretched letters, English endings |
 | `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what the phone's OCR read |
 | `smart_storm_mode`, `smart_deadline_risk`, `smart_spikes`, `smart_similar_cases` | 0127 | Foresight |
 | `smart_word_suggestions`, `smart_teach_word`, `smart_stuck_cases`, `smart_time_patterns`, `smart_sla_scorecard` | 0128 | Learning and the scorecard |

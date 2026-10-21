@@ -20,7 +20,7 @@ The production system today:
 ## What you need
 
 PHP 8.5, Flutter 3.47 with Android Studio (its bundled JDK), Node 24, Deno 2.9,
-the Supabase CLI 2.120 and the GitHub CLI. Accounts: Supabase, Render,
+the Supabase CLI 2.121 and the GitHub CLI. Accounts: Supabase, Render,
 Cloudinary, Firebase (Google Cloud), GitHub; Semaphore and Cloudflare only for
 SMS and the bot check.
 

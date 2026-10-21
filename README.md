@@ -130,7 +130,7 @@ mobile/
   core/                     shared Flutter package: auth, uploads, push, OCR, biometrics, offline cache
   resident/                 the SmartSumbong app; tanod screens under lib/tanod/
 supabase/
-  migrations/               0001–0132, applied in order, never edited once applied
+  migrations/               0001–0133, applied in order, never edited once applied
   baseline/                 the whole schema as one generated file, proven equal to the migrations
   functions/                Edge Functions: delete-account, media-cleanup, password-otp,
                             send-dispatch-push, sign-upload
@@ -147,7 +147,7 @@ run-dev-server.bat        the portal on this PC at http://127.0.0.1:8000/admin/
 
 ## Getting started
 
-You need PHP 8.5, Flutter 3.47, Node 24, Deno 2.9 and the Supabase CLI 2.120
+You need PHP 8.5, Flutter 3.47, Node 24, Deno 2.9 and the Supabase CLI 2.121
 (the versions CI pins).
 
 **The portal, locally**
