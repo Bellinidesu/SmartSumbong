@@ -7,11 +7,10 @@ not do. Written as the plan on 10 Oct 2026; the portal built it on 14–16 Oct
 the specification each screen keeps to. Items marked *Nothing for now* were
 left out on purpose.
 
-Not on screen yet (17 Oct 2026): words to learn (6c, `smart_word_suggestions`,
-`smart_teach_word`), the week's patterns in 6d (`smart_time_patterns`; the
-scorecard is built), the ID checks in 7 (`smart_verify_queue`; waits for
-`ID_OCR_ENABLED`), and the storm notice on *every* page in 6b (storm mode
-shows on the dashboard and in Settings only).
+Not on screen yet (21 Oct 2026): the ID checks in 7 (`smart_verify_queue`; waits for
+`ID_OCR_ENABLED`). Built on 21 Oct: words to learn (Settings → SMART, 6c), the
+week's patterns (dashboard, 6d) and the storm notice, now on every page (5, 6b),
+with **End it** beside **Manage**.
 
 ## Rules for every SMART screen
 

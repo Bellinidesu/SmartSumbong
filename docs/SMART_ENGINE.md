@@ -405,7 +405,7 @@ call for a screen. What to add depends on who the client is.
 | **Replay (backtest)** | "If we changed this rule, which of the last 90 days' complaints would move?" before changing it |
 | **"Was it fixed?"** | The resident is asked after resolution; "no" brings the case back to the top of the queue |
 | **Duty roster suggestion** | Expected complaints per weekday and 3-hour block against the tanods usually on duty, with the gap |
-| **The screens still to build** | Words to learn, the week's patterns, the ID-check queue, the storm notice on every page |
+| **The screen still to build** | The ID-check queue (waits for ID reading to be switched on) |
 
 ### 9.2 For a flood- or typhoon-prone barangay
 

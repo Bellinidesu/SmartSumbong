@@ -65,6 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             } elseif ($_POST['action'] === 'set_responder') {
                 $db->rpc('set_official_role', ['p_user' => $uid, 'p_role' => null, 'p_committee' => null, 'p_women' => !empty($_POST['on'])]);
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Responder designation saved.', 'Nai-save ang pagtatalaga ng responder.')];
+            } elseif ($act === 'smart_word') {
+                // Words to learn (SMART_SCREENS 6c, 0128): an administrator approves every word; nothing is learned silently.
+                $how = (string) ($_POST['as'] ?? ''); $word = trim((string) ($_POST['word'] ?? ''));
+                $db->rpc('smart_teach_word', ['p_word' => $word, 'p_as' => $how, 'p_target' => trim((string) ($_POST['target'] ?? '')) ?: null]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => $how === 'dismiss'
+                    ? t('Not a word to learn. It will not be suggested again.', 'Hindi salitang aaralin. Hindi na ito imumungkahi.')
+                    : t('Learned. Open reports were scored again.', 'Natutunan. Muling minarkahan ang mga bukas na ulat.')];
             } else {
                 $cat = (string) ($_POST['category'] ?? ''); $comm = (string) ($_POST['committee'] ?? '');
                 if (isset(COMMITTEES[$comm]) && preg_match('/^[a-z_]+$/', $cat)) {
@@ -81,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 }
 
 // Settings -> SMART (docs/SMART_SCREENS.md, 6 and 6b): the rules, storm mode, the digest, trying a rule, re-scoring.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['smart_rules', 'smart_storm', 'smart_digest', 'smart_try', 'smart_rescore'], true)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['smart_rules', 'smart_storm', 'smart_digest', 'smart_try', 'smart_rescore', 'smart_word'], true)) {
     session_start_once();
     if (!csrf_check($_POST['csrf'] ?? null)) {
         $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
@@ -103,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             } elseif ($act === 'smart_storm') {
                 $on = ($_POST['on'] ?? '') === '1';
                 $db->rpc('smart_storm_mode', ['p_on' => $on, 'p_reason' => trim((string) ($_POST['reason'] ?? '')) ?: null, 'p_hours' => max(1, min(168, (int) ($_POST['hours'] ?? 24)))]);
+                unset($_SESSION['ss_storm']);   // the banner on every page reads it fresh
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $on ? t('Storm mode is on.', 'Naka-on ang storm mode.') : t('Storm mode is off.', 'Naka-off ang storm mode.')];
             } elseif ($act === 'smart_digest') {
                 $db->update('smart_rules', ['id' => 'eq.1'], ['digest_enabled' => ($_POST['on'] ?? '') === '1']);
@@ -518,7 +526,7 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
 
 <?php
 // ---------- SMART ----------
-$sr = null; $cal = []; $fac = []; $digest = '';
+$sr = null; $cal = []; $fac = []; $digest = ''; $words = [];
 $try = $_SESSION['smart_try'] ?? null; unset($_SESSION['smart_try']);
 try {
     $got = $db->selectMany([
@@ -526,10 +534,12 @@ try {
         'cal'    => ['rpc/smart_calibration', ['p_days' => 90], true],
         'fac'    => ['rpc/smart_factor_stats', ['p_days' => 90], true],
         'digest' => ['rpc/smart_digest_preview', [], true],
+        'words'  => ['rpc/smart_word_suggestions', ['p_days' => 30], true],
     ]);
     $sr     = !($got['rules'] instanceof SupabaseError) ? ($got['rules'][0] ?? null) : null;
     $cal    = !($got['cal'] instanceof SupabaseError) ? (array) $got['cal'] : [];
     $fac    = !($got['fac'] instanceof SupabaseError) ? array_slice((array) $got['fac'], 0, 12) : [];
+    $words  = !($got['words'] instanceof SupabaseError) ? array_slice((array) $got['words'], 0, 12) : [];
     $digest = !($got['digest'] instanceof SupabaseError) && is_string($got['digest']) ? $got['digest'] : '';
 } catch (SupabaseError) { /* the tab says so below */ }
 $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Madalian')];
@@ -564,6 +574,45 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <?php if ($digest !== ''): ?><p class="ss-digest"><?= nl2br(e($digest)) ?></p><?php endif; ?>
     </div>
   </div>
+
+  <section class="p-card p-card-pad" id="smart-words">
+    <p class="p-eyebrow"><?= e(t('Words to learn', 'Mga salitang aaralin')) ?><em><?= count($words) ?></em></p>
+    <p class="p-hint"><?= e(t('Words residents keep using that SMART does not know yet. You teach each one, or dismiss it; nothing is learned on its own.', 'Mga salitang madalas gamitin ng mga residente na hindi pa alam ng SMART. Ikaw ang nagtuturo ng bawat isa, o hindi ito pinapansin; walang natututuhan nang kusa.')) ?></p>
+    <?php if (!$words): ?>
+      <p class="p-hint"><?= e(t('Nothing new right now. A word shows here once it appears in 3 reports within 30 days.', 'Wala pang bago. Lalabas dito ang isang salita kapag nasa 3 ulat ito sa loob ng 30 araw.')) ?></p>
+    <?php else: ?>
+    <ul class="ss-words">
+      <?php foreach ($words as $w): $wd = (string) $w['word']; $kindLabel = CATEGORY_POINT_LABELS[(string) ($w['mostly_category'] ?? '')] ?? null; ?>
+        <li>
+          <div class="sw-head"><b class="sw-w"><?= e($wd) ?></b>
+            <span class="p-hint"><?= (int) $w['reports'] ?> <?= e(t('reports', 'ulat')) ?><?= $kindLabel ? ' · ' . (int) round((float) $w['share'] * 100) . '% ' . e(t($kindLabel[0], $kindLabel[1])) : '' ?></span></div>
+          <?php if (!empty($w['example'])): ?><p class="sw-ex">&ldquo;<?= e((string) $w['example']) ?>&rdquo;</p><?php endif; ?>
+          <?php if (!empty($w['likely_spelling_of'])): ?><p class="sw-likely"><?= e(t('Likely a spelling of', 'Posibleng baybay ng')) ?> <b><?= e((string) $w['likely_spelling_of']) ?></b></p><?php endif; ?>
+          <details class="sw-teach"><summary><?= e(t('Teach it', 'Ituro ito')) ?></summary>
+            <div class="sw-forms">
+              <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_word"><input type="hidden" name="word" value="<?= e($wd) ?>">
+                <label class="p-flabel" for="sw-m-<?= e($wd) ?>"><?= e(t('It means a known word', 'Ibig sabihin ay kilalang salita')) ?></label>
+                <select class="p-input-plain" name="as" aria-label="<?= e(t('How it relates', 'Paano ito nauugnay')) ?>"><option value="spelling"><?= e(t('Spelling of', 'Baybay ng')) ?></option><option value="synonym"><?= e(t('Same meaning as', 'Kapareho ng kahulugan ng')) ?></option><option value="form"><?= e(t('Another form of', 'Ibang anyo ng')) ?></option></select>
+                <input class="p-input-plain" id="sw-m-<?= e($wd) ?>" name="target" maxlength="30" placeholder="<?= e(t('e.g. sunog', 'hal. sunog')) ?>" value="<?= e((string) ($w['likely_spelling_of'] ?? '')) ?>" required>
+                <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></form>
+              <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_word"><input type="hidden" name="word" value="<?= e($wd) ?>"><input type="hidden" name="as" value="category">
+                <label class="p-flabel" for="sw-k-<?= e($wd) ?>"><?= e(t('A word for a kind of complaint', 'Salita para sa isang uri ng sumbong')) ?></label>
+                <select class="p-input-plain" id="sw-k-<?= e($wd) ?>" name="target"><?php foreach (CATEGORY_POINT_LABELS as $ck => $cl): ?><option value="<?= e($ck) ?>"<?= (string) ($w['mostly_category'] ?? '') === $ck ? ' selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?></select>
+                <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></form>
+              <?php if (!empty($sr['keyword_groups']) && is_array($sr['keyword_groups'])): ?>
+              <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_word"><input type="hidden" name="word" value="<?= e($wd) ?>"><input type="hidden" name="as" value="urgent">
+                <label class="p-flabel" for="sw-u-<?= e($wd) ?>"><?= e(t('An urgent word for', 'Madalian na salita para sa')) ?></label>
+                <select class="p-input-plain" id="sw-u-<?= e($wd) ?>" name="target"><?php foreach ($sr['keyword_groups'] as $g): ?><option value="<?= e((string) ($g['label'] ?? '')) ?>"><?= e((string) ($g['label'] ?? '')) ?> (+<?= (int) ($g['points'] ?? 0) ?>)</option><?php endforeach; ?></select>
+                <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></form>
+              <?php endif; ?>
+              <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_word"><input type="hidden" name="word" value="<?= e($wd) ?>"><input type="hidden" name="as" value="dismiss">
+                <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Not a word to learn', 'Hindi salitang aaralin')) ?></button></form>
+            </div></details>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+  </section>
 
   <form method="post" class="p-card p-card-pad">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rules">

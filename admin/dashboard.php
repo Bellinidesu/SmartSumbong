@@ -124,7 +124,7 @@ function delta_html(?array $d): string
 }
 
 // What SMART sees today (0124, 0127, 0128). Each call is optional: a failure hides its own tile, never the page.
-$sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null];
+$sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null, 'times' => []];
 if (!$error) {
     try {
         $got = $db->selectMany([
@@ -133,6 +133,7 @@ if (!$error) {
             'spikes'  => ['rpc/smart_spikes', [], true],
             'score'   => ['rpc/smart_sla_scorecard', [], true],
             'quiet'   => ['rpc/smart_stuck_cases', [], true],
+            'times'   => ['rpc/smart_time_patterns', ['p_days' => 90], true],
             'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
         ]);
         foreach ($got as $k => $v) { if (!($v instanceof SupabaseError)) { $sm[$k] = $v; } }
@@ -165,13 +166,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 </div>
 
 <!-- ---------- what SMART sees ---------- -->
-<?php if ($smStorm): ?>
-  <div class="ss-storm" role="status"><span><b><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></b>
-    <?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $smStorm['storm_until']))->setTimezone($tz)->format('M j, g:i A')) ?>
-    <?= !empty($smStorm['storm_reason']) ? '· ' . e($smStorm['storm_reason']) : '' ?></span>
-    <a class="p-btn p-btn-ghost p-btn-sm" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a></div>
-<?php endif; ?>
-<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score'])):
+<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times'])):
     $peek = [];
     if ($smSum !== null) {
         $uwp = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0);
@@ -201,7 +196,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <span><?= e(t('open with no news for days', 'bukas na walang balita nang ilang araw')) ?></span></a>
 </div>
 <?php endif; ?>
-<?php if (!empty($sm['spikes']) || !empty($sm['score'])): ?>
+<?php if (!empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times'])): ?>
 <div class="ss-two">
   <?php if (!empty($sm['spikes'])): ?>
   <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Spikes this week', 'Pagtaas ngayong linggo')) ?></p>
@@ -220,9 +215,17 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
         <td class="n"><?= (int) $sc['overdue_now'] ?></td></tr>
     <?php endforeach; ?></tbody></table></section>
   <?php endif; ?>
+  <?php if (!empty($sm['times'])): ?>
+  <section class="p-card p-card-pad ss-wide"><p class="p-eyebrow"><?= e(t('When complaints come in', 'Kailan dumarating ang mga sumbong')) ?></p>
+    <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th><?= e(t('When', 'Kailan')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Times usual', 'Beses ng karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
+    <?php foreach (array_slice((array) $sm['times'], 0, 5) as $tp): ?>
+      <tr><td><?= e(category_label((string) $tp['category'])) ?></td><td><?= e((string) $tp['weekday'] . ' ' . (string) $tp['hours']) ?></td><td class="n"><?= (int) $tp['reports'] ?></td><td class="n">&times;<?= e(rtrim(rtrim(number_format((float) $tp['times_usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($tp['place'] ?? '')) ?></td></tr>
+    <?php endforeach; ?></tbody></table>
+    <p class="p-hint"><?= e(t('Blocks of three hours well above the usual for that kind, for planning patrols and duty (90 days).', 'Mga tatlong-oras na bahagi na higit sa karaniwan para sa uring iyon, para sa pagpaplano ng patrol at duty (90 araw).')) ?></p></section>
+  <?php endif; ?>
 </div>
 <?php endif; ?>
-<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score'])): ?>
+<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times'])): ?>
   </div></div>
 </section>
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
