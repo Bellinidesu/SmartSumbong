@@ -79,6 +79,12 @@ Changes on `main` not yet deployed belong here.
   PHIVOLCS has not posted and stands in when it cannot be read. A quake both
   list shows once, with the USGS magnitude beside it.
 
+**Changed (SMART reads more word forms, 0133, 21 Oct)**
+- The reader knows the present tense (bumabaha, sinusunog, kinakagat), doubled
+  words (sunog-sunog), stretched letters (sunoooog) and English endings
+  (fires, wires, stabbing, crashed). Rules still decide; a form counts only
+  when it ends at a word SMART knows.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 
