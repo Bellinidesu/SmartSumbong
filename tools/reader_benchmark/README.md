@@ -32,4 +32,5 @@ resident data is read. `pip install rapidfuzz` for the baseline.
 - This is a small, hand-made set. It shows the rules beat fuzzy matching on
   these forms; it is not an accuracy figure for real complaints (the barangay
   has too few real reports to measure on yet). Add words to `cases.tsv` when a
-  miss turns up.
+  miss turns up. `../smart_lab` runs the same words through calamanCy and a
+  phonetic key.
