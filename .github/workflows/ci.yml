@@ -58,6 +58,8 @@ jobs:
           node-version: '24'
       - name: Portal scripts parse
         run: for f in admin/assets/js/*.js; do node --check "$f"; done
+      - name: Vendored libraries match vendor.json
+        run: python3 tools/vendor.py check
       - name: Web manifest is valid JSON
         run: node -e "JSON.parse(require('fs').readFileSync('admin/manifest.webmanifest','utf8'))"
       - name: Every English string has a Tagalog one

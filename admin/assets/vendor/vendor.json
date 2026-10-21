@@ -1,0 +1,168 @@
+{
+  "_about": "What each file in admin/assets/vendor is, where it came from and its SHA-256. Kept by tools/vendor.py; see docs/UPDATING.md.",
+  "libraries": {
+    "supabase-js": {
+      "npm": "@supabase/supabase-js",
+      "version": "2.117.3",
+      "licence": "MIT",
+      "how": "copy",
+      "licence_file": "supabase/LICENSE",
+      "licence_from": "LICENSE",
+      "files": {
+        "supabase/supabase.js": {
+          "from": "dist/umd/supabase.js",
+          "sha256": "d6a5c4414a5d4ce646d9c1de223aa7067d3ff664c15394ffeb7fcffc763354a3"
+        }
+      }
+    },
+    "maplibre-gl": {
+      "npm": "maplibre-gl",
+      "version": "6.13.0",
+      "licence": "BSD-3-Clause",
+      "how": "build",
+      "note": "maplibre-gl.js is dist/maplibre-gl.mjs compiled to a classic script with esbuild; the worker and the CSS are copied. Steps in maplibre/README.md.",
+      "licence_file": "maplibre/LICENSE.txt",
+      "files": {
+        "maplibre/maplibre-gl.js": {
+          "from": "dist/maplibre-gl.mjs (built)",
+          "sha256": "3804d80e395a6e099ead7b2fc6f094ab374e470a82b7bbe11d53603522b35b3c"
+        },
+        "maplibre/maplibre-gl-worker.mjs": {
+          "from": "dist/maplibre-gl-worker.mjs",
+          "sha256": "53a2dd60f76c7b9201a3cc007b755d98ce4b52403843fef5c90c41780fe62e91"
+        },
+        "maplibre/maplibre-gl.css": {
+          "from": "dist/maplibre-gl.css",
+          "sha256": "20fc3054e6c769ae9502ec5c7ea46dae05b544fdc4fca2108553fb8c07265bf3"
+        }
+      }
+    },
+    "mapillary-js": {
+      "npm": "mapillary-js",
+      "version": "4.1.2",
+      "licence": "MIT",
+      "how": "patched",
+      "note": "dist/mapillary.js with its filter compiler rewritten so the CSP needs no unsafe-eval (mapillary/PATCH.txt); apply the same change to a new version. The CSS is copied.",
+      "licence_file": "mapillary/LICENSE.txt",
+      "files": {
+        "mapillary/mapillary.js": {
+          "from": "dist/mapillary.js (patched)",
+          "sha256": "a446b3081cd76f5f37beaaba6db7a72b1ea0627d9691312e6bcdd7ad4ef14296"
+        },
+        "mapillary/mapillary.css": {
+          "from": "dist/mapillary.css",
+          "sha256": "08db5ff8f071faaa677d58989e2f7c7685442f8b88244792eff0d76ab7add2c7"
+        }
+      }
+    },
+    "fonts": {
+      "version": "Inter and Urbanist, from Google Fonts",
+      "licence": "OFL-1.1",
+      "how": "copy",
+      "note": "Not from npm: woff and woff2 files of Inter and Urbanist. The OFL text for each is beside them; the second is listed as a file.",
+      "licence_file": "fonts/Inter-OFL.txt",
+      "files": {
+        "fonts/inter-bold.woff": {
+          "from": "Google Fonts",
+          "sha256": "d1cbeff11a993e15ca17c0c1dfd362925759f8b19ba381ae1c3c24e62f7817ab"
+        },
+        "fonts/inter-bold.woff2": {
+          "from": "Google Fonts",
+          "sha256": "50055c3a507eca7e18615310cd29295feb59aa1225c2e0633c9a09d21c7202a7"
+        },
+        "fonts/inter-medium.woff": {
+          "from": "Google Fonts",
+          "sha256": "86008087348f035d55a6403df90d7c072df3bb793bbb49de3bb11d8b0abed0c3"
+        },
+        "fonts/inter-medium.woff2": {
+          "from": "Google Fonts",
+          "sha256": "9ea4f58b58e810e1db467dc949ec672f65a4842740813e501b76d0a5e353d55e"
+        },
+        "fonts/inter-regular.woff": {
+          "from": "Google Fonts",
+          "sha256": "ed7a6f4c3a384b6c12fe6c46b2800dd8594019be5903469a010eaa382470e270"
+        },
+        "fonts/inter-regular.woff2": {
+          "from": "Google Fonts",
+          "sha256": "ab174a2fd7b82547bb7195841b3c8aa494563fe974f95139868b58c81f59be3f"
+        },
+        "fonts/inter-semibold.woff": {
+          "from": "Google Fonts",
+          "sha256": "3110fe2391020973749c2ad4156dcb3b6d840479715c4127d8753cbe1f1ed638"
+        },
+        "fonts/inter-semibold.woff2": {
+          "from": "Google Fonts",
+          "sha256": "802935af2d05d2bcb448f9f76f63751eb0216dc9adaa41da3a0b9f3f2c861f16"
+        },
+        "fonts/urbanist-bold.woff": {
+          "from": "Google Fonts",
+          "sha256": "9cb73c99f2b2586f264645cb96611228b71bd430d0a43f1f94939e1059e577bd"
+        },
+        "fonts/urbanist-bold.woff2": {
+          "from": "Google Fonts",
+          "sha256": "f260978c97a926bc9cff1c334ac77e99c9b0a06f41b886f4c242b5c8d32dfd37"
+        },
+        "fonts/urbanist-bolditalic.woff": {
+          "from": "Google Fonts",
+          "sha256": "02d395fae43ad688c6ea17a686286b8267ab4a48a4feffd700a9cb622de914d9"
+        },
+        "fonts/urbanist-bolditalic.woff2": {
+          "from": "Google Fonts",
+          "sha256": "6aa94ba0e639abf5ea606a80008fdcc293e8a0b64f531448f08ed2c9d21baa83"
+        },
+        "fonts/urbanist-extrabold.woff": {
+          "from": "Google Fonts",
+          "sha256": "6cea97b914872971620b3824a8be0bddf1eff5e17ca6293ce7d57e287bed550a"
+        },
+        "fonts/urbanist-extrabold.woff2": {
+          "from": "Google Fonts",
+          "sha256": "3284fe938d8583f0f0264c339f70b94f7a32b655bb3cf50b6b41ca9a1f040208"
+        },
+        "fonts/urbanist-italic.woff": {
+          "from": "Google Fonts",
+          "sha256": "7b0218e1fb590d6b62e578956ad8b30a58b6fbf3663feef842caacbef7290b8f"
+        },
+        "fonts/urbanist-italic.woff2": {
+          "from": "Google Fonts",
+          "sha256": "16f6f869da385d0e8fa480ce48dad9e56d763775515649df22dc927e461adcef"
+        },
+        "fonts/urbanist-medium.woff": {
+          "from": "Google Fonts",
+          "sha256": "402a83796396eee7fe5138aab27f3e81bfd7b41dfcc34b31c6284d9f2a85872b"
+        },
+        "fonts/urbanist-medium.woff2": {
+          "from": "Google Fonts",
+          "sha256": "d77f619786d3498739f5331f6837423474d41975738eccda63efd78830f43115"
+        },
+        "fonts/urbanist-mediumitalic.woff": {
+          "from": "Google Fonts",
+          "sha256": "779461444648c8d656a65abe3380ce004175b20c21b5779fca4429e36cf4db06"
+        },
+        "fonts/urbanist-mediumitalic.woff2": {
+          "from": "Google Fonts",
+          "sha256": "973a5c11b9fd7ddaf11f43ce31489f31066d017de1863d39e0a80ceef2bb7d92"
+        },
+        "fonts/urbanist-regular.woff": {
+          "from": "Google Fonts",
+          "sha256": "8a86749e783b24a77da2841959c62c25a01d6fca57c83f4a0a9ceb675f141761"
+        },
+        "fonts/urbanist-regular.woff2": {
+          "from": "Google Fonts",
+          "sha256": "37f3520e4714977a10b335225b891a6621c06d2a67213b1c308a0999ad7740d8"
+        },
+        "fonts/urbanist-semibold.woff": {
+          "from": "Google Fonts",
+          "sha256": "8eee07de6c8ce4d238ca65a012b2eecfa38b326f2831c98bba0ae2ebeaa7b3ae"
+        },
+        "fonts/urbanist-semibold.woff2": {
+          "from": "Google Fonts",
+          "sha256": "39c491fe3aecc794c77b0a369d4ce43e91be157cea0ab9ebd25dc96e3ff402e7"
+        },
+        "fonts/Urbanist-OFL.txt": {
+          "from": "Google Fonts",
+          "sha256": "ee1221b1c2d08920e5f9ca764eb228dafa5c8090df9cf665373c2287b9cb8f49"
+        }
+      }
+    }
+  }
+}

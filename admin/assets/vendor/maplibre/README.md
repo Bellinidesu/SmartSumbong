@@ -19,4 +19,5 @@ npx esbuild@0.25.10 package/dist/maplibre-gl.mjs --bundle --minify \
 cp package/dist/maplibre-gl-worker.mjs package/dist/maplibre-gl.css package/LICENSE.txt .
 ```
 
-Then open a map page (case, print, spatial) and check the browser console.
+Then open a map page (case, print, spatial) and check the browser console, and record the
+new files: `python tools/vendor.py rehash maplibre-gl <version>` (docs/UPDATING.md).

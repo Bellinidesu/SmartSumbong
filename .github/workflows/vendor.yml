@@ -1,0 +1,35 @@
+# The portal's browser libraries (admin/assets/vendor) are copied in, not installed, so Dependabot cannot see them.
+# Every Monday this asks npm for newer versions and OSV for advisories against the versions we ship, and keeps one
+# open issue, "Vendored libraries to update", listing what to do (closed again when nothing is left). docs/UPDATING.md
+name: Vendored libraries
+
+on:
+  schedule:
+    - cron: '23 1 * * 1' # Mondays, 09:23 Philippine time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Files match vendor.json
+        run: python3 tools/vendor.py check
+      - name: Newer versions and advisories
+        run: python3 tools/vendor.py outdated --md report.md
+      - name: Keep the issue up to date
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Vendored libraries to update"
+          n=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -s report.md ]; then
+            if [ -n "$n" ]; then gh issue edit "$n" --body-file report.md; else gh issue create --title "$title" --body-file report.md; fi
+          elif [ -n "$n" ]; then
+            gh issue close "$n" --comment "Every vendored library is current with no known advisory."
+          fi
