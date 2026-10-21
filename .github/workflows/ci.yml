@@ -47,7 +47,14 @@ jobs:
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.5'
-          extensions: curl, mbstring
+          extensions: curl, mbstring, zip
+          tools: composer:2.10.3
+      - name: PHP libraries (admin/composer.lock), with no known advisory
+        working-directory: admin
+        run: |
+          composer validate --strict --no-check-publish
+          composer install --no-dev --no-interaction --no-progress
+          composer audit --locked
       - name: PHP files parse
         run: |
           fail=0

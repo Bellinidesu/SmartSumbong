@@ -1,0 +1,20 @@
+{
+    "name": "smartsumbong/portal",
+    "description": "SmartSumbong admin portal: the PHP libraries it uses. Installed into includes/vendor (never served: .htaccess forbids admin/includes). docs/UPDATING.md",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "~8.5.0",
+        "ext-zip": "*",
+        "openspout/openspout": "^5.12"
+    },
+    "config": {
+        "vendor-dir": "includes/vendor",
+        "optimize-autoloader": true,
+        "classmap-authoritative": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.5.0"
+        }
+    }
+}

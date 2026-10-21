@@ -40,3 +40,4 @@ Drop/
 # Claude-session scratch/delivery folder — not project source, and has
 # held local env dumps before. Never meant to be tracked.
 Claude outputs/
+admin/includes/vendor/
