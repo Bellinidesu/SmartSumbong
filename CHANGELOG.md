@@ -33,6 +33,9 @@ Changes on `main` not yet deployed belong here.
   in the Status filter. It sits beside the lifecycle status rather than
   replacing it, because a sensitive case still goes through every step. The
   resident never sees it.
+- App: a tanod's dispatch order shows a plum **Sensitive case · handle with care**
+  pill when the barangay marked the case sensitive, so the designated woman
+  responder handles it discreetly. Residents never see it.
 
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).

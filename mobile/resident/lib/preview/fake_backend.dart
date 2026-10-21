@@ -21,6 +21,9 @@ class DemoBackend extends http.BaseClient {
 
   final _t = buildDemoTables();
 
+  /// One demo table's rows, for a test to change before the screen reads them.
+  List<Map<String, dynamic>> table(String name) => _t[name]!;
+
   /// Every RPC called, in order ("rpc accept_dispatch"), for tests to check.
   final calls = <String>[];
   String _me;

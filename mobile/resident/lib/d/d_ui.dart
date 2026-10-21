@@ -623,6 +623,33 @@ class DNote extends StatelessWidget {
   }
 }
 
+/// A sensitive case's mark on the tanod's dispatch (Rose, 21 Oct 2026): the barangay marked it sensitive, so the tanod
+/// handles it with care. The same plum the portal's Sensitive status uses. Residents never see it.
+class DSensitivePill extends StatelessWidget {
+  const DSensitivePill({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final fg = d.dark ? const Color(0xFFFFB8E6) : const Color(0xFF8A1F6B);
+    final bg = d.dark ? const Color(0xFF4A1D3E) : const Color(0xFFF7E2F1);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: fg.withValues(alpha: .35)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.shield_outlined, size: 14, color: fg),
+        const SizedBox(width: 6),
+        Text(context.tr('Sensitive case · handle with care', 'Sensitibong kaso · ingatan'),
+            style: DType.body(fg, size: 12, w: FontWeight.w700)),
+      ]),
+    );
+  }
+}
+
 /// Page title block used on the inner pages: a heading and a lead line.
 class DHeading extends StatelessWidget {
   const DHeading(this.title, {super.key, this.lead});

@@ -3,6 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/app_harness.dart';
 
 void main() {
+  testWidgets('a sensitive case shows the tanod its mark', (tester) async {
+    final backend = await bootApp(tester, role: 'tanod');
+    for (final r in backend.table('reports')) { r['is_sensitive'] = true; }
+    await tester.tap(find.text('View Details'));
+    await settle(tester);
+    expect(find.text('Sensitive case · handle with care'), findsOneWidget);
+    await finish(tester);
+  });
+
   testWidgets('a tanod opens an incoming dispatch and accepts it', (tester) async {
     final backend = await bootApp(tester, role: 'tanod');
     expect(find.text('INCOMING DISPATCH'), findsOneWidget);
@@ -11,6 +20,7 @@ void main() {
     for (final expected in ['DISPATCH ORDER', 'Clogged Drainage', 'Complainant: Anonymous', 'Admin Directives:', 'Reroute', 'Accept']) {
       expect(screenText().any((t) => t.contains(expected)), isTrue, reason: expected);
     }
+    expect(find.text('Sensitive case · handle with care'), findsNothing);   // an ordinary case carries no mark
     await tester.ensureVisible(find.text('Accept'));
     await tester.tap(find.text('Accept'));
     await settle(tester);
