@@ -26,6 +26,8 @@ rules decide, and a person approves anything new.
 
 ## Already in use
 
+- **Report Summary spreadsheet.** OpenSpout (MIT), through Composer.
+
 - **Maps.** OpenStreetMap data (ODbL), OpenFreeMap vector tiles, MapLibre GL
   (BSD-3), Project NOAH flood zones, Nominatim, Overpass.
 - **Weather and hazards.** Open-Meteo (weather, air, marine), PAGASA, GDACS,

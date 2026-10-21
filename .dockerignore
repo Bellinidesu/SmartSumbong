@@ -15,3 +15,6 @@
 # env vars supply these at runtime instead (see config.php's env()).
 .env
 .env.*
+
+# Composer installs the locked versions inside the image; a local install is never copied in.
+admin/includes/vendor/
