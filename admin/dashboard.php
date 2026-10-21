@@ -243,8 +243,8 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></span><b class="p-num" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></b><small><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?></small><span class="p-delta-t" id="tile-overdue-delta"></span></div>
   </div>
   <div class="p-card p-donut-card">
-    <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Resolution status report', 'Ulat sa katayuan ng paglutas')) ?></h2></div>
-    <div class="p-donut"><svg id="donut-status" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Resolution status', 'Katayuan ng paglutas')) ?>"></svg><div class="p-center"><b class="p-num" id="status-donut-total">0</b><span id="status-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
+    <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?></h2></div>
+    <div class="p-donut"><svg id="donut-status" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?>"></svg><div class="p-center"><b class="p-num" id="status-donut-total">0</b><span id="status-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-status"></div>
     <p class="p-hint" style="margin:0"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
     <div class="p-empty-state" id="status-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>

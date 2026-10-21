@@ -39,12 +39,12 @@ function nav_icon(string $name): string
 }
 
 /** Page links for a list: Previous, a window of numbers, Next. $param is the query key that holds the page. */
-function pager(int $total, int $page, string $param = 'page', ?int $per = null): string
+function pager(int $total, int $page, string $param = 'page', ?int $per = null, string $anchor = ''): string
 {
     $per = $per ?? (defined('PER_PAGE') ? PER_PAGE : 15);
     $pages = max(1, (int) ceil($total / $per));
     if ($pages <= 1) { return ''; }
-    $href = function (int $n) use ($param): string { $q = $_GET; $q[$param] = $n; return '?' . http_build_query($q); };
+    $href = function (int $n) use ($param, $anchor): string { $q = $_GET; $q[$param] = $n; return '?' . http_build_query($q) . ($anchor !== '' ? '#' . $anchor : ''); };
     $from = max(1, min($page - 2, $pages - 4)); $to = min($pages, $from + 4);
     $o = '<nav class="ss-pager" aria-label="' . e(t('Pages', 'Mga pahina')) . '">';
     $o .= $page > 1 ? '<a href="' . e($href($page - 1)) . '" rel="prev">&lsaquo; ' . e(t('Previous', 'Nakaraan')) . '</a>' : '<span class="off">&lsaquo; ' . e(t('Previous', 'Nakaraan')) . '</span>';

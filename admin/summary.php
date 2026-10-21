@@ -276,7 +276,6 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
       </select></label>
     <button class="p-btn p-btn-primary p-btn-sm" style="height:36px" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
   </form>
-  <span class="p-break" aria-hidden="true"></span>
   <span class="p-chips-q">
     <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
       <a class="p-chip<?= $range === $key ? ' p-on' : '' ?>" href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>"><?= e($lbl) ?></a>
@@ -345,7 +344,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php endforeach; ?>
     </tbody>
   </table></div>
-  <?= pager(count($reports), $lp, 'lp', 15) ?>
+  <?= pager(count($reports), $lp, 'lp', 15, 'rs-ledger') ?>
 </div>
 
 <!-- ---------- Referrals (0072) ---------- -->
@@ -376,7 +375,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php endforeach; ?>
     </tbody>
   </table></div>
-  <?= pager(count($referrals), $rp, 'rp', 15) ?>
+  <?= pager(count($referrals), $rp, 'rp', 15, 'rs-esc') ?>
 </div>
 <?php endif; ?>
 
@@ -404,7 +403,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php endforeach; ?>
     </tbody>
   </table></div>
-  <?= pager(count($dispatches), $tp, 'tp', 15) ?>
+  <?= pager(count($dispatches), $tp, 'tp', 15, 'rs-tanod') ?>
 </div>
 <?php endif; ?>
 
@@ -415,6 +414,9 @@ foreach ($logs as $l) {
     $tid = $l['report']['tracking_id'] ?? '—';
     $byReport[$tid][] = $l;
 }
+$byReportAll = count($byReport);
+$cp = min(max(1, (int) ($_GET['cp'] ?? 1)), max(1, (int) ceil($byReportAll / 10)));
+$byReport = array_slice($byReport, ($cp - 1) * 10, 10, true);   // ten complaints a page, like every other list on this page
 ?>
 <?php if (!$byReport): ?>
 <div class="p-card ss-slim" id="rs-tl"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2>
@@ -423,14 +425,15 @@ foreach ($logs as $l) {
 <div class="p-card" id="rs-tl">
   <div class="p-card-head"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2></div>
   <div class="p-rs-split" style="display:grid;grid-template-columns:minmax(260px,340px) 1fr;padding:14px 0 0">
-    <div class="p-tscroll" style="max-height:440px;border-right:1px solid var(--p-line)"><table class="p-t ss-ohead">
+    <div style="border-right:1px solid var(--p-line)"><table class="p-t ss-ohead">
       <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th class="p-right"><?= e(t('Changes', 'Pagbabago')) ?></th></tr></thead>
       <tbody id="tl-pick">
         <?php $i = 0; foreach ($byReport as $tid => $list): ?>
           <tr class="p-click<?= $i === 0 ? ' p-sel' : '' ?>" data-tl="<?= $i ?>" tabindex="0"><td><span class="p-mono-id"><?= e($tid) ?></span></td><td class="p-right p-num"><?= count($list) ?></td></tr>
         <?php $i++; endforeach; ?>
       </tbody>
-    </table></div>
+    </table>
+    <?= pager($byReportAll, $cp, 'cp', 10, 'rs-tl') ?></div>
     <div style="padding:6px 22px 22px">
       <?php $i = 0; foreach ($byReport as $tid => $list): ?>
         <div class="p-tl-group" data-tl="<?= $i ?>"<?= $i === 0 ? '' : ' hidden' ?>>

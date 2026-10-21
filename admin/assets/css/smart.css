@@ -1297,7 +1297,8 @@
 .p-main > .ss-views { padding: 0; display: flex; }                         /* the saved-views row starts on the page grid, like the band and table under it */
 .p-donut-card { align-content: start; grid-template-rows: auto auto 1fr auto; } /* both donuts sit at the same height; the hint line rests at the foot */
 .p-dash-mid .p-stack { align-content: stretch; grid-auto-rows: 1fr; }          /* the three tiles end level with the cards beside them */
-.p-period-band .p-break { flex-basis: 100%; height: 0; }                       /* chips and the PDF button share the second row, one at each end */
+.p-period-band { flex-wrap: wrap; }                                              /* the period, the dates, the chips and the PDF button are one row (Rose, 21 Oct); it wraps only when the screen is too narrow */
+.p-period-band .p-chips-q { flex-wrap: nowrap; }
 .ss-ohead th { white-space: normal; line-height: 1.2; vertical-align: middle; }
 .ss-people td.ss-em { min-width: 230px; overflow-wrap: anywhere; }
 .ss-people td.p-right .p-btn { min-width: 72px; justify-content: center; }       /* Review and View are one width */
@@ -1308,3 +1309,13 @@
 .ss-people.ss-tanods table th:nth-child(4) { width: 14%; } .ss-people.ss-tanods table th:nth-child(5) { width: 22%; }
 .p-body .ss-cases-t thead th { white-space: normal; line-height: 1.2; overflow: visible; }
 .ss-cases-t td.ss-smart { white-space: nowrap; } .ss-cases-t td.ss-smart .ss-score { margin-left: 4px; }
+
+/* A recurring problem you click lights up (Rose, 21 Oct): the row, and a glowing ring over the place. */
+.ss-recur { position: relative; transition: background .2s, box-shadow .2s; }
+.ss-recur.is-on { background: color-mix(in srgb, var(--c, #FF9800) 16%, transparent); box-shadow: inset 3px 0 0 var(--c, #FF9800), 0 0 0 1px color-mix(in srgb, var(--c, #FF9800) 40%, transparent); }
+.ss-glow { position: relative; width: 208px; height: 208px; pointer-events: none; }
+.ss-glow i { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--c); box-shadow: 0 0 18px 4px var(--c), inset 0 0 22px 2px color-mix(in srgb, var(--c) 55%, transparent); opacity: 0; animation: ssGlowRing 2.4s ease-out infinite; }
+.ss-glow i:nth-child(2) { animation-delay: .8s; } .ss-glow i:nth-child(3) { animation-delay: 1.6s; }
+.ss-glow b { position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 4px #fff, 0 0 22px 6px var(--c); }
+@keyframes ssGlowRing { 0% { transform: scale(.12); opacity: .95; } 70% { opacity: .5; } 100% { transform: scale(1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ss-glow i { animation: none; opacity: .6; } .ss-glow i:nth-child(n+2) { display: none; } }
