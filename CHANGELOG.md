@@ -102,6 +102,12 @@ Changes on `main` not yet deployed belong here.
   about 66 m across, coloured by count (1, 3, 6, 10 or more); click one for
   its count. It follows the filters and the time slider. Off until switched on.
 
+**Added (printed complaint, 22 Oct)**
+- The printed Barangay Complaint carries a QR code at the bottom left, level
+  with "Requested by": staff scan the paper to open that case in the portal
+  (it only works for a signed-in administrator). Made on the server with
+  chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 
