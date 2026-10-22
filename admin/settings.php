@@ -504,6 +504,11 @@ $up = null;
 try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
 $eng = null;   // the engine (0137): reads ID photos on the server
 try { $eng = $db->rpc('engine_status'); } catch (SupabaseError) {}
+// 0140: is SMART running, and how often was its advice taken and its fixes confirmed
+$smh = $smp = $smf = null;
+try { $smh = $db->rpc('smart_engine_health'); } catch (SupabaseError) {}
+try { $smp = $db->rpc('smart_pick_stats', ['p_days' => 90]); } catch (SupabaseError) {}
+try { $smf = $db->rpc('smart_fix_stats', ['p_days' => 90]); } catch (SupabaseError) {}
 $errs = null;
 try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5']); } catch (SupabaseError) {}
 // 0119: what the hourly health check found and has not seen clear yet.
@@ -549,6 +554,17 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
     </div>
     <?php endif; ?>
     <p class="st-note"><?= e(t('Render\'s free plan shows no metrics, so the portal reports its own with each check. Reading an ID photo on this server would need about 220 MB more, for under a second.', 'Walang metrics ang libreng plan ng Render, kaya ang portal mismo ang nag-uulat sa bawat pagsusuri. Ang pagbasa ng ID sa server na ito ay mangangailangan ng mga 220 MB pa, sa wala pang isang segundo.')) ?></p>
+  </div>
+  <?php endif; ?>
+  <?php if (is_array($smh)): ?>
+  <div class="p-card p-card-pad st-uptime" id="smart-health">
+    <p class="p-eyebrow"><?= e(t('SMART engine', 'Makina ng SMART')) ?></p>
+    <div class="st-uptime-tiles">
+      <div class="st-uptime-tile<?= empty($smh['watch_last_ok']) ? ' st-down' : '' ?>"><b><?= e(!empty($smh['watch_last_at']) ? relative_time($smh['watch_last_at']) : '—') ?></b><span><?= e(!empty($smh['watch_last_ok']) ? t('The watcher last ran, and succeeded', 'Huling tumakbo ang watcher, at nagtagumpay') : t('The watcher last ran, and failed', 'Huling tumakbo ang watcher, at pumalpak')) ?></span></div>
+      <div class="st-uptime-tile<?= (int) ($smh['unscored'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($smh['unscored'] ?? 0) ?></b><span><?= e(sprintf(t('Open reports not scored, of %d', 'Bukas na ulat na walang marka, sa %d'), (int) ($smh['open_reports'] ?? 0))) ?></span></div>
+      <div class="st-uptime-tile<?= (int) ($smh['watch_failures_24h'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($smh['watch_failures_24h'] ?? 0) ?></b><span><?= e(sprintf(t('Failed runs in 24 hours · %d things decided or asked', 'Pumalpak na takbo sa 24 oras · %d ang pinasya o itinanong'), (int) ($smh['events_24h'] ?? 0))) ?></span></div>
+    </div>
+    <p class="st-note"><?= e(t('SMART scores every report, ranks the tanods and keeps the queue. It runs inside the database every few minutes; this says whether it did.', 'Minamarkahan ng SMART ang bawat ulat, nire-rank ang mga tanod at pinananatili ang pila. Tumatakbo ito sa loob ng database kada ilang minuto; ito ang nagsasabi kung ginawa nga.')) ?></p>
   </div>
   <?php endif; ?>
   <?php if (is_array($eng)): ?>
@@ -610,6 +626,17 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
   <div class="ss-head"><?= smart_logo(44) ?><p><?= e(t('How the engine scores and sorts complaints. Change a rule, try it, then re-score.', 'Paano minamarkahan at inaayos ng engine ang mga sumbong. Baguhin ang patakaran, subukan, saka muling markahan.')) ?></p></div>
+  <?php if (is_array($smp) || is_array($smf)): $pk = (array) $smp; $fx = (array) $smf; ?>
+  <div class="p-card p-card-pad st-uptime" id="smart-measured">
+    <p class="p-eyebrow"><?= e(t('How SMART is doing, last 90 days', 'Kumusta ang SMART, nakaraang 90 araw')) ?></p>
+    <div class="st-uptime-tiles">
+      <div class="st-uptime-tile"><b><?= isset($pk['top_pick_pct']) ? e(rtrim(rtrim(number_format((float) $pk['top_pick_pct'], 1), '0'), '.')) . '%' : '—' ?></b><span><?= e(sprintf(t('Its first choice of tanod was taken · %d of %d dispatches ranked', 'Kinuha ang unang pinili nitong tanod · %d sa %d na dispatch ang na-rank'), (int) ($pk['top_pick'] ?? 0), (int) ($pk['ranked'] ?? 0))) ?></span></div>
+      <div class="st-uptime-tile"><b><?= (int) ($fx['answered'] ?? 0) > 0 ? e((string) round(100 * (int) ($fx['fixed'] ?? 0) / (int) $fx['answered'])) . '%' : '—' ?></b><span><?= e(sprintf(t('Residents confirmed it was fixed · %d of %d answered', 'Kinumpirma ng mga residente na naayos · %d sa %d ang sumagot'), (int) ($fx['fixed'] ?? 0), (int) ($fx['answered'] ?? 0))) ?></span></div>
+      <div class="st-uptime-tile<?= (int) ($fx['waiting_for_barangay'] ?? 0) > 0 ? ' st-down' : '' ?>"><b><?= (int) ($fx['waiting_for_barangay'] ?? 0) ?></b><span><?= e(t('Cases a resident says are not fixed, waiting for the barangay', 'Mga kasong sabi ng residente ay hindi pa naayos, naghihintay sa barangay')) ?></span></div>
+    </div>
+    <p class="st-note"><?= e(t('SMART advises; the barangay decides. The first figure is how often the barangay chose the tanod SMART ranked first. It is not a score of anyone: a lower pick is often the right call.', 'Nagpapayo ang SMART; ang barangay ang nagpapasya. Ang unang bilang ay kung gaano kadalas pinili ng barangay ang tanod na unang nire-rank ng SMART. Hindi ito marka ng sinuman: madalas tama ang mas mababang pinili.')) ?></p>
+  </div>
+  <?php endif; ?>
   <?php if (!$sr): ?>
     <p class="p-none-line"><?= e(t('SMART could not be read. Try again in a moment.', 'Hindi mabasa ang SMART. Subukan muli mamaya.')) ?></p>
   <?php else: ?>

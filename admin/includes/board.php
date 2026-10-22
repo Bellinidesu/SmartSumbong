@@ -64,6 +64,7 @@ function render_board(array $queue, array $meta, array $admin, string $scope, bo
         'reply'      => [t('Reply', 'Sagutin'), 1, t('Reply to the resident', 'Sagutin ang residente'), '', t('Open the case and answer in its messages.', 'Buksan ang kaso at sumagot sa mga mensahe nito.')],
         'approve'    => [t('Approve', 'Aprubahan'), 0, '', '', t('Cases arrive here when a tanod hands in a resolution. You cannot drop a case in this column.', 'Dumarating dito ang kaso kapag nagsumite ng resolusyon ang tanod. Hindi mo ito mailalagay rito.')],
         'escalation' => [t('Escalation', 'Eskalasyon'), 1, t('Escalate the case', 'I-escalate ang kaso'), '', t('Pass it up to a Kagawad or the Chairman, or out to another office.', 'Ipasa sa Kagawad o Punong Barangay, o sa ibang tanggapan.')],
+        'recheck'    => [t('Not fixed', 'Hindi pa naayos'), 1, t('Reopen it or answer the resident', 'Buksan muli o sagutin ang residente'), '', t('The resident says the problem is still there. Open the case: reopen it, or write back to them.', 'Sabi ng residente, nariyan pa rin ang problema. Buksan ang kaso: buksan muli, o sulatan sila.')],
         'follow_up'  => [t('Follow up', 'Sundan'), 1, t('Follow up the case', 'Sundan ang kaso'), '', t('Ask for news and nudge the people on it.', 'Humingi ng balita at paalalahanan ang mga may hawak.')],
     ];
     $rows = array_values(array_filter($queue, fn($q) => board_visible($q, $meta, $admin, $scope)));
