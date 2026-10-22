@@ -136,3 +136,16 @@ test('SMART Iteration 3: rules need a reason, can be tested first, and have a hi
   expect(await axe(page), 'Settings > SMART with a replay').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('SMART Iteration 3: planning (forecast, roster, work orders, sharing)', async ({ page }) => {
+  const r = await open(page, 'settings.php#plan');
+  await expect(page.locator('#plan-forecast .st-uptime-tile')).toHaveCount(3);
+  await expect(page.locator('#plan-forecast')).toContainText('does not guess');
+  await expect(page.locator('#plan-roster li')).toHaveCount(2);
+  await expect(page.locator('#plan-roster')).toContainText('needs +1');
+  await expect(page.locator('#plan-hotspots .ss-vlist li').first()).toBeVisible();
+  await expect(page.locator('#plan-fair')).toContainText('One tanod had most of the dispatches');
+  await expect(page.locator('#plan-fair')).toContainText('One administrator holds most of the open cases');
+  expect(await axe(page), 'Settings > Planning').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
