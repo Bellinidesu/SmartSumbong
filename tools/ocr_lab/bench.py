@@ -102,21 +102,33 @@ def score(text, truth):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--tessdata', required=True); ap.add_argument('--n', type=int, default=15); ap.add_argument('--save')
+    ap.add_argument('--engine', choices=['tesseract', 'paddle'], default='tesseract')
+    ap.add_argument('--tessdata'); ap.add_argument('--n', type=int, default=15); ap.add_argument('--save')
     ap.add_argument('--lang', default='eng')
     a = ap.parse_args()
-    os.environ['TESSDATA_PREFIX'] = a.tessdata
-    cfg = '--psm 6'
+    if a.engine == 'paddle':
+        # PaddleOCR's PP-OCR models (Apache-2.0) through RapidOCR on ONNX Runtime: the same models run on a phone
+        from rapidocr import RapidOCR
+        import numpy as np
+        eng = RapidOCR()
+        def read(ph):
+            r = eng(np.array(ph))
+            return ' / '.join(r.txts or ())
+        print(f'PaddleOCR PP-OCR via RapidOCR  ({a.n} invented cards per type per level)')
+    else:
+        if not a.tessdata: ap.error('--tessdata is needed for tesseract')
+        os.environ['TESSDATA_PREFIX'] = a.tessdata
+        read = lambda ph: pytesseract.image_to_string(ph.convert('L'), lang=a.lang, config='--psm 6')
+        print(f'Tesseract {pytesseract.get_tesseract_version()}  lang {a.lang}  ({a.n} invented cards per type per level)')
     rnd = random.Random(183)
-    print(f'Tesseract {pytesseract.get_tesseract_version()}  lang {a.lang}  ({a.n} invented cards per type per level)')
-    for level, label in ((0, 'clean scan'), (1, 'good phone photo'), (2, 'poor phone photo')):
+    for level, label in ((0, 'clean scan'), (1, 'good phone photo'), (2, 'poor phone photo'), (3, 'bad phone photo')):
         tot = {'type': 0, 'name': 0, 'number': 0, 'all': 0}; n = 0
         for kind in KIND_WORDS:
             for i in range(a.n):
                 im, truth = card(kind, rnd)
                 ph = photo(im, rnd, level)
                 if a.save and i == 0: ph.save(f'{a.save}/{kind}-{level}.jpg')
-                t = pytesseract.image_to_string(ph.convert('L'), lang=a.lang, config=cfg)
+                t = read(ph)
                 k, nm, nu = score(t, truth)
                 tot['type'] += k; tot['name'] += nm; tot['number'] += nu; tot['all'] += (k and nm and nu); n += 1
         print(f'  {label:17s} type {tot["type"]:3d}/{n}  name {tot["name"]:3d}/{n}  number {tot["number"]:3d}/{n}  all three {tot["all"]:3d}/{n}')
