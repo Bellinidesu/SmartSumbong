@@ -1,6 +1,6 @@
 # Database checks
 
-Nineteen scripts (316 checks) that walk the whole system through the real
+Twenty scripts (321 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -26,6 +26,7 @@ it does is saved. Add a check here for every new behaviour.
 | `17_push_choices.sql` | 7 checks (0136): every notification pushed out of the box; a muted kind held; "only my cases" passing the cases one handles, was sent to or reported, and notices about no case; quiet hours (also across midnight) with urgent cases through only by choice; a test alert past every choice; browsers limited to push services and ten each, choices saved, one test a minute, plans unreadable to people; others' browsers hidden and a browser following its new sign-in |
 | `18_engine.sql` | 7 checks (0137): a private photo link signed exactly as the portal signs it; the engine off without its Vault settings; one reading queued per pending account; the engine asked with a signed link and its answer saved and judged like the app's, then removed from pg_net; a rescan queued, three refusals and it gives up; a new photo, even mid-reading, read anew; status for administrators only, nobody runs it by hand |
 | `19_portal_memory.sql` | 2 checks (0138): a keep-awake check files the memory the portal reports (in use, highest, limit) and an answer without it as before; Settings gets the week's figures |
+| `20_reroute_guard.sql` | 5 checks (0139): a reroute that finds no one waits in line and six sweeps write nothing new; past the cap "gave up" and its notice are written once and the line lets go; a case leaves the line after a day; an administrator's reroute starts a fresh run of offers; an identical system line within ten minutes is not written again |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

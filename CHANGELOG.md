@@ -118,6 +118,15 @@ Changes on `main` not yet deployed belong here.
   "Anonymous to others") and can write to them; tanods, lists, the map and
   the printouts still do not show the name.
 
+**Fixed (the reroute queue, 22 Oct)**
+- The auto reroute and its waiting line cannot log without end any more. Two
+  old test reports had written "No tanod available" about 13,000 and 9,500
+  times; an earlier fix stopped that, and this closes the rest: a reroute
+  that finds no one waits in line for a day at most and never past the cap on
+  offers; "gave up" and its notice to the administrators are written once; an
+  administrator's reroute starts a fresh run; and a system line identical to
+  one just written on the same report is not written again (0139).
+
 **Added (server memory, 22 Oct)**
 - Settings → System status → Server memory: how much of its memory the
   portal's server uses now, at most this week, and on average. Render's free

@@ -115,7 +115,10 @@ try {
             'select'    => 'id,old_status,new_status,remark,is_system,created_at,'
                          . 'by:users!status_logs_changed_by_fkey(full_name,role)',
             'report_id' => 'eq.' . $id,
-            'order'     => 'created_at.asc',
+            // Newest first, then flipped below: the API returns at most 1000 rows, and a report that once logged the same
+            // line thousands of times (0139) would otherwise lose its newest entries instead of its oldest repeats.
+            'order'     => 'created_at.desc',
+            'limit'     => '600',
         ]],
         'dispatches' => ['dispatches', [
             'select'    => 'id,state,assigned_at,accept_due_at,accepted_at,admin_instructions,'
@@ -146,7 +149,7 @@ try {
 
     if ($report) {
         $media      = $first['media'];
-        $logs       = $first['logs'];
+        $logs       = array_reverse($first['logs']);
         $dispatches = $first['dispatches'];
         $feedback   = $first['feedback'][0] ?? null;
         $trail      = $first['trail'] instanceof SupabaseError ? [] : (array) $first['trail'];
