@@ -377,6 +377,32 @@ advice. Now it does, and the phone can be told why.
   the last report was scored, events in 24 hours, and whether routing and
   the queue are on.
 
+## 23. Rule versions, rollback and replay (0141, Iteration 3)
+
+SMART's scoring rules (`smart_rules`) and word list (`smart_lexicon`) now keep
+a history, and a change can be tried before it is made.
+
+- **Versions.** Every change to the rules or the word list is saved as a
+  numbered snapshot with who, when and why (`smart_rule_versions`), by
+  triggers, whoever makes the change. Storm mode and the morning digest are
+  switches, not rules, and are not versions. The rules as they stood when
+  versions began are version 1.
+- **Each score remembers its version** (`report_triage.rules_version`). A
+  score made before versions began has none. An administrator's override does
+  not change it.
+- **Changing the rules** goes through `smart_save_rules(changes, reason)`:
+  only the keys given, only real rules (not the id, the bookkeeping, storm
+  mode or the digest), and a reason is required.
+- **Rollback.** `smart_rollback(version, reason)` restores a version's rules
+  and word list as one new version, then re-scores the open reports.
+- **Replay.** `smart_replay(changes, days, limit)` scores the recent reports
+  under the proposed rules and under the current ones, the same way, and
+  returns how many would move, between which levels, and the biggest moves. It
+  runs inside a block that always rolls back: no rule, no version and no
+  stored score changes, ever.
+- `smart_rule_history(limit)` lists the versions with what changed in each.
+  Every version is also an event in the SMART event log.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
