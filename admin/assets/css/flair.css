@@ -1404,6 +1404,18 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .sh-acts a:hover, .sh-acts button:hover, .cs-maps a:hover { background: color-mix(in srgb, var(--p-orange) 16%, var(--p-surface-2)); box-shadow: inset 0 0 0 1.5px var(--p-orange); transform: translateY(-1px); }
 .sh-acts a:active, .sh-acts button:active, .cs-maps a:active { transform: scale(.95); }
 .sh-acts b, .cs-maps b { font-weight: 700; }
+.sh-add { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; height: 40px; margin-top: 8px; border: 0; border-radius: 12px; background: transparent; box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-ink); font: 700 12.5px Inter, sans-serif; cursor: pointer; }
+.sh-add:hover { box-shadow: inset 0 0 0 1.5px var(--p-orange); }
+.sh-add svg { width: 16px; height: 16px; }
+.sh-addf { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.sh-addf label { display: grid; gap: 4px; font: 600 11.5px Inter, sans-serif; color: var(--p-muted); }
+.sh-addf input, .sh-addf select { height: 36px; padding: 0 10px; border: 1px solid var(--p-line-2); border-radius: 10px; background: var(--p-surface); color: var(--p-ink); font: 13px Inter, sans-serif; min-width: 0; }
+.sh-addf p, .sh-addf output, .sh-done { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--p-muted); }
+.sh-addf output:empty { display: none; }
+.sh-addf output { color: var(--p-red, #C62828); }
+.sh-addf [type=submit] { grid-column: 1 / -1; height: 38px; border: 0; border-radius: 12px; background: var(--p-orange); color: #1A1206; font: 700 12.5px Inter, sans-serif; cursor: pointer; }
+.sh-addf [type=submit]:disabled { opacity: .55; cursor: default; }
+.sh-done { margin-top: 10px; color: var(--p-ink); }
 .cs-rows li.cs-maps { display: grid; grid-template-columns: 1fr 1fr; padding: 11px 0; }
 .cs-rows li.cs-maps a svg { color: color-mix(in srgb, var(--cs) 70%, var(--p-ink)); margin: 0; }
 :root[data-theme="dark"] .cs-rows li.cs-maps a svg { color: color-mix(in srgb, var(--cs) 60%, #fff); }

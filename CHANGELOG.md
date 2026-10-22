@@ -118,6 +118,11 @@ Changes on `main` not yet deployed belong here.
   Tagalog words for a kind work too (botika, simbahan, palengke) (0134).
 - App: the address field on a new report suggests the same places first,
   then Photon's, as before.
+- The barangay names its own places: right-click a spot on Spatial (or press
+  and hold) and choose "Add a place here"; Settings > Appearance lists them to
+  rename, re-kind, give other names ("brgy hall") or remove. Search finds them
+  first, in the portal and the app. Places only, never a home; within 5 km of
+  the hall; administrators only (0134).
 
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).

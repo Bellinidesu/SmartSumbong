@@ -250,6 +250,40 @@ if (($_GET['usage'] ?? '') === '1') {
     exit;
 }
 
+// The barangay's own places (0134): what search finds that no map has, by the names residents and tanods use.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['place_save', 'place_remove'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            if ($_POST['action'] === 'place_remove') {
+                $db->rpc('place_remove', ['p_id' => (int) ($_POST['id'] ?? 0)]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Removed. Search no longer finds it.', 'Inalis. Hindi na ito mahahanap.')];
+            } else {
+                $aliases = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['aliases'] ?? ''))), fn ($a) => $a !== ''));
+                $db->rpc('place_save', ['p_id' => (int) ($_POST['id'] ?? 0) ?: null, 'p_name' => trim((string) ($_POST['name'] ?? '')),
+                    'p_grp' => (string) ($_POST['grp'] ?? ''), 'p_lat' => (float) ($_POST['lat'] ?? 0), 'p_lng' => (float) ($_POST['lng'] ?? 0),
+                    'p_aliases' => array_slice($aliases, 0, 8)]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved. Search finds it now.', 'Na-save. Mahahanap na ito.')];
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#places');
+    exit;
+}
+$places = []; $kinds = [];
+try {
+    $got = $db->selectMany([
+        'places' => ['places', ['select' => 'id,name,grp,aliases,lat,lng', 'source' => 'eq.barangay', 'active' => 'eq.true', 'order' => 'name.asc', 'limit' => '200'], true],
+        'kinds'  => ['place_kinds', ['select' => 'grp,label', 'order' => 'label.asc'], true],
+    ]);
+    $places = is_array($got['places'] ?? null) ? $got['places'] : [];
+    $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
+} catch (SupabaseError $ex) { /* the card says so below */ }
+
 layout_head(t('Settings', 'Mga Setting'), 'settings.php');
 ?>
 <div class="p-topbar"><h1><?= e(t('Settings', 'Mga Setting')) ?></h1><span class="p-updated" id="st-checked"></span><span style="flex:1"></span>
@@ -701,6 +735,35 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <button type="button" class="st-surf" role="radio" data-surf="solid" aria-checked="false"><span class="sv-pic s"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Solid', 'Buo')) ?></b><small><?= e(t('Flat graphite, no blur or gloss', 'Patag na graphite, walang blur o kinang')) ?></small></span></button>
     </div>
   </div>
+  <div class="p-card p-card-pad st-places" id="places">
+    <p class="p-eyebrow"><?= e(t('The barangay\'s places', 'Mga lugar ng barangay')) ?><em><?= count($places) ?></em></p>
+    <p class="st-note" style="margin-top:0"><?= e(t('Search on the map and in the app finds these first: the landmarks the barangay keeps, and any place no map has, by the names people use (Other names, separated by commas). To add one, open Spatial Distribution, right-click the spot (or press and hold), and choose Add a place here. Places only, never anyone\'s home.', 'Ito ang unang nahahanap sa mapa at sa app: ang mga landmark ng barangay, at anumang lugar na wala sa mapa, sa pangalang ginagamit ng mga tao (Ibang pangalan, pinaghihiwalay ng kuwit). Para magdagdag, buksan ang Spatial Distribution, i-right-click ang lugar (o pindutin nang matagal), at piliin ang Magdagdag ng lugar dito. Mga lugar lamang, hindi kailanman ang bahay ng sinuman.')) ?></p>
+    <?php if (!$places): ?>
+      <p class="st-note"><?= e(t('No places yet, or they could not be read just now.', 'Wala pang lugar, o hindi mabasa ngayon.')) ?></p>
+    <?php else: ?>
+    <ul class="st-plist">
+      <?php foreach ($places as $pl): ?>
+        <li>
+          <form method="post" class="st-prow">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="place_save">
+            <input type="hidden" name="id" value="<?= (int) $pl['id'] ?>"><input type="hidden" name="lat" value="<?= e((string) $pl['lat']) ?>"><input type="hidden" name="lng" value="<?= e((string) $pl['lng']) ?>">
+            <label class="p-sr" for="pl-n-<?= (int) $pl['id'] ?>"><?= e(t('Name', 'Pangalan')) ?></label>
+            <input class="p-input-plain" id="pl-n-<?= (int) $pl['id'] ?>" name="name" maxlength="120" required value="<?= e((string) $pl['name']) ?>">
+            <label class="p-sr" for="pl-k-<?= (int) $pl['id'] ?>"><?= e(t('Kind', 'Uri')) ?></label>
+            <select class="p-input-plain" id="pl-k-<?= (int) $pl['id'] ?>" name="grp"><?php foreach ($kinds as $k): ?><option value="<?= e((string) $k['grp']) ?>"<?= $k['grp'] === $pl['grp'] ? ' selected' : '' ?>><?= e((string) $k['label']) ?></option><?php endforeach; ?></select>
+            <label class="p-sr" for="pl-a-<?= (int) $pl['id'] ?>"><?= e(t('Other names', 'Ibang pangalan')) ?></label>
+            <input class="p-input-plain" id="pl-a-<?= (int) $pl['id'] ?>" name="aliases" maxlength="300" placeholder="<?= e(t('Other names', 'Ibang pangalan')) ?>" value="<?= e(implode(', ', (array) ($pl['aliases'] ?? []))) ?>">
+            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
+          </form>
+          <form method="post" class="st-prm">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="place_remove"><input type="hidden" name="id" value="<?= (int) $pl['id'] ?>">
+            <button class="p-btn p-btn-ghost p-btn-sm" type="submit" aria-label="<?= e(t('Remove ', 'Alisin ang ') . $pl['name']) ?>"><?= e(t('Remove', 'Alisin')) ?></button>
+          </form>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+  </div>
 </section>
 
 <section class="st-pane" data-pane="usage" hidden>
@@ -914,7 +977,9 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 </script>
 <script>
 // Back on the Administrators tab after adding or resetting.
-if (location.hash === '#admins' || location.hash === '#smart') { var b = document.querySelector('.st-tabs [data-st="' + location.hash.slice(1) + '"]'); if (b) b.click(); }
+// #places is a card inside Appearance: open that tab, then bring the card into view
+var stTab = { '#admins': 'admins', '#smart': 'smart', '#look': 'look', '#places': 'look' }[location.hash];
+if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 </script>
 <script>
 // Map surfaces: Glass or Solid, kept in this browser.

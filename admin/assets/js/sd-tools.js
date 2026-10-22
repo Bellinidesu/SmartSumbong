@@ -191,17 +191,42 @@
       '<div class="sh-acts' + (canLook ? ' four' : '') + '"><button type="button" data-do="zoom">' + sdIcon('zoom') + '<b>' + esc(T('Zoom here', 'Lapitan')) + '</b></button>' +
       (canLook ? '<button type="button" data-do="look">' + sdIcon('view360') + '<b>' + esc(T('Look around', 'Luminga')) + '</b></button>' : '') +
       '<a href="' + gUrl(lat, lng) + '" target="_blank" rel="noopener">' + sdIcon('external') + '<b>Google Maps</b></a>' +
-      '<a href="' + aUrl(lat, lng, street || '') + '" target="_blank" rel="noopener">' + sdIcon('external') + '<b>Apple Maps</b></a></div>';
+      '<a href="' + aUrl(lat, lng, street || '') + '" target="_blank" rel="noopener">' + sdIcon('external') + '<b>Apple Maps</b></a></div>' +
+      // a place no map has: the barangay names it here and search finds it (0134); places only, never a home
+      (dHall <= 5000 ? '<button type="button" class="sh-add" data-do="add">' + sdIcon('plus') + '<b>' + esc(T('Add a place here', 'Magdagdag ng lugar dito')) + '</b></button>' +
+        '<form class="sh-addf" hidden><label><span>' + esc(T('Name people use', 'Pangalang ginagamit')) + '</span><input name="n" maxlength="120" required autocomplete="off"></label>' +
+        '<label><span>' + esc(T('Kind', 'Uri')) + '</span><select name="g">' + Object.keys(KIND).map(g => '<option value="' + g + '"' + (g === 'area' ? ' selected' : '') + '>' + esc(KIND[g][1]) + '</option>').join('') + '</select></label>' +
+        '<p>' + esc(T('A place, never anyone’s home.', 'Lugar, hindi kailanman bahay ng sinuman.')) + '</p><button type="submit">' + esc(T('Save the place', 'I-save ang lugar')) + '</button><output></output></form>' : '');
     hCard.hidden = false;
-    const cb = map.getContainer().getBoundingClientRect(), sb = sec.getBoundingClientRect(), w = hCard.offsetWidth, h = hCard.offsetHeight;
-    const x = pt.x + cb.left - sb.left, y = pt.y + cb.top - sb.top;
-    hCard.style.left = Math.max(12, Math.min(sb.width - w - 76, x + 22 + w > sb.width - 76 ? x - w - 22 : x + 22)) + 'px';
-    hCard.style.top = Math.max(84, Math.min(sb.height - h - 16, y - 40)) + 'px';
+    const cb = map.getContainer().getBoundingClientRect(), sr = sec.getBoundingClientRect(), w = hCard.offsetWidth, h = hCard.offsetHeight;
+    const x = pt.x + cb.left - sr.left, y = pt.y + cb.top - sr.top;
+    hCard.style.left = Math.max(12, Math.min(sr.width - w - 76, x + 22 + w > sr.width - 76 ? x - w - 22 : x + 22)) + 'px';
+    hCard.style.top = Math.max(84, Math.min(sr.height - h - 16, y - 40)) + 'px';
     hCard.querySelector('.sh-x').addEventListener('click', hereClose);
     hCard.querySelector('.sh-co').addEventListener('click', e => copyText(e.currentTarget.dataset.copy, e.currentTarget));
     hCard.querySelector('[data-do=zoom]').addEventListener('click', () => { hCard.hidden = true; map.easeTo({ center: [lng, lat], zoom: 18, duration: reduced() ? 0 : 800 }); });
     const lb = hCard.querySelector('[data-do=look]');
     if (lb) lb.addEventListener('click', () => { hCard.hidden = true; lkOpen({ id: null, tracking_id: '', category: 'other', subject: name, location_label: street || '', longitude: lng, latitude: lat }); });
+    const ab = hCard.querySelector('[data-do=add]'), af = hCard.querySelector('.sh-addf');
+    if (ab) {
+      ab.addEventListener('click', () => {
+        ab.hidden = true; af.hidden = false;
+        hCard.style.top = Math.max(84, Math.min(parseFloat(hCard.style.top), sec.getBoundingClientRect().height - hCard.offsetHeight - 16)) + 'px';
+        af.elements.n.focus();
+      });
+      af.addEventListener('submit', async e => {
+        e.preventDefault();
+        const out = af.querySelector('output'), go = af.querySelector('[type=submit]'), nm = af.elements.n.value.trim();
+        if (nm.length < 2) { out.textContent = T('Give it a name.', 'Bigyan ng pangalan.'); return; }
+        go.disabled = true; out.textContent = '';
+        try {
+          if (typeof sb === 'undefined') throw new Error(T('Not connected', 'Hindi konektado'));
+          const { error } = await sb.rpc('place_save', { p_id: null, p_name: nm, p_grp: af.elements.g.value, p_lat: lat, p_lng: lng, p_aliases: [] });
+          if (error) throw error;
+          af.replaceChildren(Object.assign(document.createElement('p'), { className: 'sh-done', textContent: T('Saved. Search finds ', 'Na-save. Mahahanap na ang ') + nm + T(' now.', '.') }));
+        } catch (err) { go.disabled = false; out.textContent = (err && err.message) || T('Could not save.', 'Hindi ma-save.'); }
+      });
+    }
   }
   closers.sheet = () => {};
   map.on('contextmenu', e => { if (e.originalEvent) e.originalEvent.preventDefault(); hereOpen(e.lngLat, e.point); });
