@@ -119,6 +119,8 @@ test('SMART Iteration 2: measured, healthy, and the recheck stage', async ({ pag
   r = await open(page, 'cases.php?tab=next');
   await expect(page.locator('.bd-col[data-stage="recheck"]')).toHaveCount(1);
   r = await open(page, `case.php?id=${CASE}`);
+  expect(r.errors, 'console errors').toEqual([]);
+});
 
 test('SMART Iteration 3: rules need a reason, can be tested first, and have a history', async ({ page }) => {
   const r = await open(page, 'settings.php#smart');
