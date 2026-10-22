@@ -117,6 +117,19 @@ Changes on `main` not yet deployed belong here.
   is, in English and Tagalog, for the resident. Engine health. One event log
   for all of it. The portal and phone screens for these follow.
 
+**Added (SMART in the app, Iteration 2, 22 Oct)**
+- Tanod: a "Why you" card on the dispatch window. SMART's rank among the tanods
+  it could have sent, and why (how near, how busy, who knows the area), in
+  English and Filipino. Kind words: second place is no fault of the tanod.
+- Resident: "Naayos na ba? / Was it fixed?" on a resolved report (Yes, or Not
+  yet with a line for what is still wrong), and a "Why this order" row on an
+  open report, in words and never a score.
+- Sign-up: a quiet line under the ID photo ("SMART is reading your ID…", read,
+  or "a person will check it").
+- Settings: the build name ("SmartSumbong • D · v…") and "Powered by SMART".
+- All of it is optional on the phone: an older database or a failed request
+  never blanks a screen.
+
 **Added (SMART in the portal, Iteration 2, 22 Oct)**
 - Settings → SMART: "How SMART is doing, last 90 days": how often the barangay
   chose the tanod SMART ranked first, how many fixes residents confirmed, and

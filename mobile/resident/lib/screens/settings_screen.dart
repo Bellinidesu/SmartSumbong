@@ -357,7 +357,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           if (_version != null) ...[
             const SizedBox(height: 18),
-            Center(child: Text('SmartSumbong • v$_version', style: DType.body(d.muted, size: 11.5))),
+            // D: the branch the app came from, in the build name. (The easter eggs come later.)
+            Center(child: Text('SmartSumbong • D · v$_version', style: DType.body(d.muted, size: 11.5))),
+            const SizedBox(height: 2),
+            Center(child: Text(context.tr('Powered by SMART', 'Pinatatakbo ng SMART'), style: DType.body(d.muted, size: 11))),
           ],
         ],
       ),

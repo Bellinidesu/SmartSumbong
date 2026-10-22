@@ -134,6 +134,10 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   List<({String url, String kind})> _evidence = const [];
   // 0130: each concern in this report, open or resolved on its own (panel ask 3b).
   List<Map<String, dynamic>> _concerns = const [];
+  // 0140: "Was it fixed?", while the barangay's question is open and unanswered.
+  Map<String, dynamic>? _fixCheck;
+  // 0140: why this report is where it is, in words (English and Filipino), for an open report.
+  Map<String, dynamic>? _whyOrder;
   String? _official;
   String? _officialNote;
   bool _reasonsOpen = false;
@@ -411,7 +415,31 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         } catch (_) {}
       }
 
-      await Future.wait([detail(), _loadTimelineAuthors(), barangay(), concerns()]);
+      // 0140: the barangay's "Was it fixed?" and SMART's "why this order". Separate and optional, so an older
+      // database (or a failure here) never blanks the report.
+      Future<void> fixCheck() async {
+        try {
+          final c = await client
+              .from('resolution_checks')
+              .select('id, asked_at')
+              .eq('report_id', widget.reportId)
+              .isFilter('answered_at', null)
+              .maybeSingle();
+          final asked = DateTime.tryParse(c?['asked_at'] as String? ?? '');
+          final open = asked != null && asked.isAfter(DateTime.now().subtract(const Duration(days: 14)));
+          if (mounted) setState(() => _fixCheck = open ? c : null);
+        } catch (_) {}
+      }
+
+      Future<void> whyOrder() async {
+        try {
+          if (!ReportStatus.parse(r['status'] as String?).isOngoing) return;
+          final j = await client.rpc('smart_why_order', params: {'p_report': widget.reportId});
+          if (mounted && j is Map) setState(() => _whyOrder = Map<String, dynamic>.from(j));
+        } catch (_) {}
+      }
+
+      await Future.wait([detail(), _loadTimelineAuthors(), barangay(), concerns(), fixCheck(), whyOrder()]);
     } catch (_) {
       if (!mounted) return;
       // No signal, but the saved copy is on screen: keep it (the offline
@@ -668,6 +696,9 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 
     final actions = <Widget>[];
     if (finished) {
+      if (_fixCheck != null && status == ReportStatus.resolved) {
+        actions.add(_FixCheckCard(reportId: widget.reportId, onDone: _load));
+      }
       if (_feedback == null) {
         actions.add(_RateCard(reportId: widget.reportId, onSaved: _load));
       } else {
@@ -762,6 +793,12 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             title: _hasTanod(status) ? context.tr('A tanod is assigned', 'May naka-assign na tanod') : context.tr('No tanod assigned yet', 'Wala pang tanod'),
             sub: _hasTanod(status) ? context.tr('Assigned to your report', 'Naka-assign sa iyong report') : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
           ),
+          if (_whyOrder != null && status.isOngoing)
+            DRow(
+              icon: Icons.format_list_numbered_rounded,
+              title: context.tr('Why this order', 'Bakit ganito ang pagkakasunod'),
+              sub: context.tr(_whyOrder!['en'] as String? ?? '', _whyOrder!['fil'] as String? ?? ''),
+            ),
           if (_official != null)
             DRow(
               icon: Icons.account_balance_outlined,
@@ -1795,6 +1832,101 @@ class _PhotoViewerState extends State<_PhotoViewer> {
 /// 16px/13px. Centered as of the same round's follow-up feedback --
 /// reads as the card's closing summary now, not a left-aligned body
 /// section, matching _StatusNote's own centering right above it.
+/// 0140: "Naayos na ba? / Was it fixed?", asked of the resident when the barangay resolves their report. One
+/// answer, within 14 days. "No" opens a line for what is still wrong and tells the barangay, who then reopen the
+/// report or write back.
+class _FixCheckCard extends StatefulWidget {
+  const _FixCheckCard({required this.reportId, required this.onDone});
+
+  final String reportId;
+  final VoidCallback onDone;
+
+  @override
+  State<_FixCheckCard> createState() => _FixCheckCardState();
+}
+
+class _FixCheckCardState extends State<_FixCheckCard> {
+  final _note = TextEditingController();
+  bool _no = false;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send(bool fixed) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final note = _note.text.trim();
+      await Supabase.instance.client.rpc('confirm_fix', params: {
+        'p_report': widget.reportId,
+        'p_fixed': fixed,
+        'p_note': fixed || note.isEmpty ? null : note,
+      });
+      if (mounted) widget.onDone();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = context.tr('Could not send that. Please try again.', 'Hindi naipadala. Subukan muli.');
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(context.tr('Was it fixed?', 'Naayos na ba?'), style: DType.body(d.ink, size: 16, w: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text(
+          context.tr('The barangay marked this report resolved. Tell us if the problem is really gone.',
+              'Minarkahan ng barangay na naresolba ang report na ito. Sabihin sa amin kung wala na talaga ang problema.'),
+          style: DType.body(d.muted, size: 13).copyWith(height: 1.4),
+        ),
+        const SizedBox(height: 12),
+        if (!_no)
+          Row(children: [
+            Expanded(child: DButton(context.tr('Yes, fixed', 'Oo, naayos na'), expand: true, busy: _busy, onTap: _busy ? null : () => _send(true))),
+            const SizedBox(width: 10),
+            Expanded(child: DButton(context.tr('Not yet', 'Hindi pa'), kind: DButtonKind.line, expand: true, onTap: _busy ? null : () => setState(() => _no = true))),
+          ])
+        else ...[
+          TextField(
+            controller: _note,
+            maxLength: 300,
+            maxLines: 3,
+            minLines: 2,
+            enabled: !_busy,
+            style: DType.body(d.ink, size: 14),
+            decoration: InputDecoration(
+              hintText: context.tr('What is still wrong? (optional)', 'Ano ang problema pa? (opsyonal)'),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          DButton(context.tr('Send to the barangay', 'Ipadala sa barangay'), expand: true, busy: _busy, onTap: _busy ? null : () => _send(false)),
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
+        ],
+      ]),
+    );
+  }
+}
+
 class _FeedbackCard extends StatelessWidget {
   const _FeedbackCard({required this.feedback, required this.onRate});
 
