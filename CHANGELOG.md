@@ -108,6 +108,19 @@ Changes on `main` not yet deployed belong here.
   (it only works for a signed-in administrator). Made on the server with
   chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
 
+**Added (SMART in the app, Iteration 2, 22 Oct)**
+- Tanod: a "Why you" card on the dispatch window. SMART's rank among the tanods
+  it could have sent, and why (how near, how busy, who knows the area), in
+  English and Filipino. Kind words: second place is no fault of the tanod.
+- Resident: "Naayos na ba? / Was it fixed?" on a resolved report (Yes, or Not
+  yet with a line for what is still wrong), and a "Why this order" row on an
+  open report, in words and never a score.
+- Sign-up: a quiet line under the ID photo ("SMART is reading your ID…", read,
+  or "a person will check it").
+- Settings: the build name ("SmartSumbong • D · v…") and "Powered by SMART".
+- All of it is optional on the phone: an older database or a failed request
+  never blanks a screen.
+
 **Changed (the engine on the phone, 22 Oct)**
 - ID reading is back, on the phone, with open-source PaddleOCR (PP-OCRv6
   small on ONNX Runtime, via the paddle_ocr_native plugin) instead of Google

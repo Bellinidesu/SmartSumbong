@@ -90,6 +90,13 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
       'id': _id('c1000000', 2), 'report_id': _id('b1000000', 103), 'tanod_id': demoTanodId, 'state': 'accepted', 'step': null,
       'accept_due_at': null, 'assigned_at': _ago(hours: 3), 'accepted_at': _ago(hours: 2, minutes: 50), 'resolved_at': null,
       'admin_instructions': 'Yung kalye siyempre. Check both ends of 10th Street.', 'field_report_text': null,
+      // 0140: SMART's view of this pick (the barangay's own choice; second of two it could have sent)
+      'smart_rank': 2, 'smart_of': 2, 'smart_score': 71,
+      'smart_reasons': [
+        {'factor': 'distance', 'detail': '330 m away', 'points': -16},
+        {'factor': 'workload', 'detail': '1 job(s) in hand', 'points': -15},
+        {'factor': 'knows the area', 'detail': '2 case(s) closed within 300 m, last 90 days', 'points': 10},
+      ],
     },
     {
       'id': _id('c1000000', 3), 'report_id': _id('b1000000', 88), 'tanod_id': demoTanodId, 'state': 'resolved', 'step': 'arrived',
@@ -193,6 +200,10 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
     'report_messages': reportMessages,
     'dispatch_updates': dispatchUpdates,
     // 0130: a report can carry several concerns, each open or resolved on its own.
+    // 0140: the barangay asked whether the resolved report 088 was fixed; not answered yet.
+    'resolution_checks': <Map<String, dynamic>>[
+      {'id': _id('d1000000', 1), 'report_id': _id('b1000000', 88), 'resident_id': demoResidentId, 'asked_at': _ago(hours: 20), 'answered_at': null, 'fixed': null, 'note': null, 'handled_at': null},
+    ],
     'report_concerns': <Map<String, dynamic>>[
       {'report_id': 'b1000000-0000-4000-8000-000000000103', 'category': 'public_safety_infrastructure', 'note': null, 'status': 'open', 'resolved_at': null, 'remark': null, 'created_at': '2026-10-21T08:00:00Z'},
       {'report_id': 'b1000000-0000-4000-8000-000000000103', 'category': 'barangay_service', 'note': 'Nobody answered the hotline', 'status': 'resolved', 'resolved_at': '2026-10-22T02:00:00Z', 'remark': 'The hotline was fixed', 'created_at': '2026-10-21T09:00:00Z'},

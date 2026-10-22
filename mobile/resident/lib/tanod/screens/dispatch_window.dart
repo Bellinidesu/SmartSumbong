@@ -329,6 +329,8 @@ class _DispatchWindowState extends State<DispatchWindow>
   /// Bellinist (9 Oct 2026): the admin's Look around, sent to this tanod for
   /// this case: a note, the street view to open, which way the spot lies.
   Map<String, dynamic>? _look;
+  // 0140: where SMART ranked this tanod when the dispatch was made, with the reasons ("Why you").
+  Map<String, dynamic>? _smartPick;
   List<_Post> _posts = const [];
   String? _step;
   String _state = 'accepted';
@@ -549,6 +551,18 @@ class _DispatchWindowState extends State<DispatchWindow>
         look = null;
       }
 
+      // Separate and optional, like the look-around note: an older database or a failure here never blanks the window.
+      Map<String, dynamic>? pick;
+      try {
+        pick = await client
+            .from('dispatches')
+            .select('smart_rank, smart_of, smart_reasons')
+            .eq('id', _dispatchId)
+            .maybeSingle();
+      } catch (_) {
+        pick = null;
+      }
+
       final d = got[2] as Map<String, dynamic>;
       if (!mounted) return;
       final grew = posts.length > _posts.length;
@@ -565,6 +579,7 @@ class _DispatchWindowState extends State<DispatchWindow>
         _reportStatus = (got[0] as Map<String, dynamic>)['status'] as String?;
         _escalation = got[6] as Map<String, dynamic>?;
         _look = look;
+        _smartPick = pick;
         _state = d['state'] as String? ?? 'accepted';
         _step = d['step'] as String?;
         _posts = posts;
@@ -951,6 +966,7 @@ class _DispatchWindowState extends State<DispatchWindow>
                           if (!kJobPinnedDock && _open) _stepActions(),
                           if (kJobPinnedDock && (widget.ticket.instructions ?? '').trim().isNotEmpty) _instructionsCard(),
                           if (_look != null) _lookCard(),
+                          if (_smartPick?['smart_rank'] != null) _whyYouCard(),
                           if (kTanodNavAndChat && _open && onsite && _casePoint != null) ...[
                             const SizedBox(height: 12),
                             _againCard(),
@@ -1643,6 +1659,40 @@ class _DispatchWindowState extends State<DispatchWindow>
           Text(context.tr('BARANGAY INSTRUCTIONS', 'TAGUBILIN NG BARANGAY'), style: DType.label(amberInk)),
           const SizedBox(height: 4),
           Text(widget.ticket.instructions!.trim(), style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+
+  /// 0140: "Why you", from SMART. Where it ranked this tanod among those it could have sent, and the reasons
+  /// (how near, how busy, who knows the area). It is advice the barangay may or may not have followed: the
+  /// kind words matter, since second or third is no fault of the tanod.
+  Widget _whyYouCard() {
+    final d = context.d;
+    final bg = d.dark ? const Color(0xFF14264A) : const Color(0xFFEEF3FF);
+    final line = d.dark ? const Color(0xFF2B4380) : const Color(0xFFC9D8FF);
+    final ink = d.dark ? const Color(0xFF8DB2FF) : const Color(0xFF00308F);
+    final fil = AppLocaleScope.of(context) == AppLocale.fil;
+    final rank = (_smartPick!['smart_rank'] as num).toInt();
+    final of = (_smartPick!['smart_of'] as num?)?.toInt();
+    final lines = smartPickLines(_smartPick!['smart_reasons'], fil: fil);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.auto_awesome, size: 18, color: ink),
+            const SizedBox(width: 8),
+            Text(context.tr('WHY YOU', 'BAKIT IKAW'), style: DType.label(ink)),
+          ]),
+          const SizedBox(height: 6),
+          Text(smartPickTitle(rank, of, fil: fil), style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
+          if (lines.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(lines.join(' · '), style: DType.body(d.muted, size: 13)),
+          ],
         ]),
       ),
     );

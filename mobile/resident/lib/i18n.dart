@@ -1122,6 +1122,11 @@ class Strings {
       'Isa lang itong paalala, hindi pagtanggi — susuriin pa rin ng '
       'barangay ang iyong aplikasyon.');
   String get registerRetakePhoto => _t('Retake Photo', 'Kumuha Ulit');
+  // 0140: what SMART's on-device reader is doing with the ID photo (a status line under it).
+  String get registerIdReading => _t('SMART is reading your ID…', 'Binabasa ng SMART ang iyong ID…');
+  String get registerIdRead => _t('SMART read your ID.', 'Nabasa ng SMART ang iyong ID.');
+  String get registerIdUnread => _t("SMART couldn't read it clearly. A person at the barangay will check it.",
+      'Hindi ito malinaw na nabasa ng SMART. Susuriin ito ng isang tao sa barangay.');
   String get registerContinueAnyway =>
       _t('Continue Anyway', 'Magpatuloy Pa Rin');
   // the actual decision either way. See register_screen.dart's _submit().

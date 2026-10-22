@@ -36,7 +36,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../duty.dart';
-import '../../i18n.dart' show AppLocale;
+import '../../i18n.dart' show AppLocale, AppLocaleScope;
 import '../navigation.dart';
 import '../tanod_outbox.dart';
 import '../../outbox.dart' show Outbox;
@@ -52,6 +52,7 @@ import '../../theme.dart';
 import '../../widgets/brgy_map.dart';
 import '../../widgets/figma_ui.dart';
 import 'tickets_screen.dart';
+import '../../smart_text.dart';
 
 part 'dispatch_nav.dart';
 part 'dispatch_window.dart';
