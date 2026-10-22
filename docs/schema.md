@@ -50,6 +50,7 @@ How the database fits the rest of the system is in
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
 | `engine_jobs` | Work handed to the engine (`engine/`): ID photos to read, with tries and the last error | 0137 |
 | `smart_events` | What SMART decided and what people did with it: picks, "was it fixed?" questions and answers; kept 180 days | 0140 |
+| `smart_work_orders` | A recurring problem kept as one permanent-fix item for the council, with its reports as evidence | 0142 |
 | `smart_rule_versions` | Every version of SMART's scoring rules and word list, with who, when and why | 0141 |
 | `resolution_checks` | "Naayos na ba? / Was it fixed?" asked of the resident when a case is resolved, and the answer | 0140 |
 | `retirement_requests` | A tanod's request to retire, and the admin's decision | 0052 |
@@ -169,6 +170,8 @@ policy by design. "Latest" is the migration that last redefined it.
 | `engine_status` | 0137 | The engine: set up or not, read and waiting, could not read |
 | `confirm_fix(report, fixed, note)` | 0140 | The resident answers "Was it fixed?" once, within 14 days; "no" tells the admins and queues a recheck |
 | `smart_why_order(report)` | 0140 | A plain sentence (English and Tagalog) on why a report is where it is; the owner or an admin |
+| `smart_roster_suggestion`, `smart_forecast`, `smart_fairness` | 0142 | Duty roster suggested by weekday and 3-hour block; the open cases a week ahead and the kinds expected; how the work is shared |
+| `smart_workorder_create`, `smart_workorder_set` | 0142 | Open a work order from a recurring problem; move it open, planned, done or dropped |
 | `smart_save_rules`, `smart_rollback`, `smart_rule_history`, `smart_replay` | 0141 | Change SMART's rules with a reason; roll back to a version; list the versions; try a change on recent reports without making it |
 | `smart_engine_health`, `smart_pick_stats`, `smart_fix_stats` | 0140 | Is it running; how often SMART's top pick was taken; how many fixes residents confirmed |
 | `auto_dispatch`, `redispatch_report`, `sweep_awaiting_units` | 0139 | The reroute queue: a reroute that finds no one waits in line (a day at most, and not past the cap on offers); "gave up" is said once; an identical system line within ten minutes is not written again |

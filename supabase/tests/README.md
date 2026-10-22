@@ -1,6 +1,6 @@
 # Database checks
 
-Twenty-two scripts (333 checks) that walk the whole system through the real
+Twenty-three scripts (337 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -29,6 +29,7 @@ it does is saved. Add a check here for every new behaviour.
 | `20_reroute_guard.sql` | 5 checks (0139): a reroute that finds no one waits in line and six sweeps write nothing new; past the cap "gave up" and its notice are written once and the line lets go; a case leaves the line after a day; an administrator's reroute starts a fresh run of offers; an identical system line within ten minutes is not written again |
 | `21_smart_explain.sql` | 6 checks (0140): an admin's dispatch saves SMART's rank of the tanod chosen with the reasons, and the stats count the top picks; resolving a case asks the resident "Was it fixed?" once; only the owner answers, once, and "not fixed" tells every administrator; "not fixed" is a queue stage until the barangay answers or reopens; the resident's sentence in both languages with reasons and no number; engine health and the statistics are for administrators |
 | `22_smart_rule_versions.sql` | 6 checks (0141): the rules as they were are version 1, with the word list and without the switches; an administrator changes a rule with a reason and it is a new version in the history and the log, while no reason, a switch, the id or a resident are refused; storm mode and the digest are not versions but a word-list change is; a new score carries its version and an override does not change it; replay shows what would move and saves nothing; a rollback restores the rules and the word list as one new version |
+| `23_smart_planning.sql` | 4 checks (0142): the roster counts reports by weekday and 3-hour block with the tanods usually on duty and the gap; a recurring problem becomes one work order with its reports as evidence, one open order per problem, refusals, a resident cannot; the forecast gives next week's open cases and says the seasonal forecast needs a year of history; fairness shows each tanod's share and how fast they accept and flags one tanod with most of the work, and all four views are for administrators |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times
