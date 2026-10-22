@@ -1,6 +1,6 @@
 # SmartSumbong — Schema Reference
 
-What the migrations in `supabase/migrations/` add up to: 126 files, 0001–0133
+What the migrations in `supabase/migrations/` add up to: 127 files, 0001–0134
 (numbers 0048 and 0108–0113 are unused; 0108–0113 became 0114–0120 to follow
 production's 0107). The exact current schema, every column and grant, is
 `supabase/baseline/baseline.sql`; this file is the map. If the manuscript's
