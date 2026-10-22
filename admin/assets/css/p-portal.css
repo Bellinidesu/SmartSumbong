@@ -71,6 +71,7 @@ a.p-back { text-decoration: none; }
 .p-th-sort:hover { color: var(--p-ink); }
 .p-mono-id { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-size: 12.5px; font-weight: 600; color: var(--p-link); white-space: nowrap; }
 .p-anon { font-style: italic; color: var(--p-muted); }
+.p-meta-strip .p-anon { display: block; font-size: 13px; font-weight: 500; }
 :where(.p-body) .p-band .p-pill-select input[type="month"] { border: 0; outline: 0; background: transparent; font-weight: 600; color: #141B34; }
 
 /* Dashboard */

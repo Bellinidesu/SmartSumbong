@@ -12,6 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/briefing.php';
+require_once __DIR__ . '/includes/issues.php';
 require_once __DIR__ . '/includes/board.php';
 require_once __DIR__ . '/includes/widget_panel.php';
 
@@ -74,6 +75,7 @@ const STATUS_GROUPS = [
 $search   = trim((string) ($_GET['q'] ?? ''));
 $filter   = (string) ($_GET['status'] ?? '');
 $category = (string) ($_GET['category'] ?? '');
+$issue    = (string) ($_GET['issue'] ?? '');       // the specific type under a category (panel ask 3a)
 $month    = (string) ($_GET['month'] ?? '');
 $view     = (string) ($_GET['view'] ?? '');
 // 0087: whose cases — mine, unclaimed, or other admins'.
@@ -121,6 +123,7 @@ $nAll     = ($_GET['nview'] ?? '') === 'all';   // Unread (the default) or every
 $nSort    = ($_GET['nsort'] ?? 'newest') === 'oldest' ? 'oldest' : 'newest';
 
 if (!in_array($category, CATEGORIES, true)) { $category = ''; }
+if ($category === '' || !in_array($issue, CATEGORY_ISSUES[$category] ?? [], true)) { $issue = ''; }
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
 // Rose (7 Oct 2026): Overdue and Escalated sit in the same Status menu.
 const OPEN_STATES = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
@@ -137,7 +140,7 @@ $sort = $SORTABLE[$sortCol] . '.' . $sortDir;
 
 if ($registerPage) {
     $_SESSION['cases_view'] = array_filter([
-        'q' => $search, 'status' => $filter, 'category' => $category, 'month' => $month, 'view' => $view,
+        'q' => $search, 'status' => $filter, 'category' => $category, 'issue' => $issue, 'month' => $month, 'view' => $view,
         'by' => $sortCol, 'dir' => $sortDir, 'tanod' => $tanod,
     ], fn($v) => $v !== '');
 }
@@ -203,6 +206,9 @@ try {
     }
     if ($category !== '') {
         $query['category'] = 'eq.' . $category;
+    }
+    if ($issue !== '') {
+        $query['subject'] = 'eq.' . $issue;   // the app writes the issue picked into the subject
     }
     if ($month !== '') {
         $mtz   = new DateTimeZone('Asia/Manila');
@@ -347,7 +353,7 @@ layout_head($workspace ? t('Workspace', 'Tablero ng Gawain') : ($notices ? t('No
 <?php
 // Both forms carry the Reports panel's filters along, so searching
 // notifications does not reset the list below.
-$keep = array_filter(['tab' => $tab, 'q' => $search, 'status' => $filter, 'category' => $category, 'tanod' => $tanod,
+$keep = array_filter(['tab' => $tab, 'q' => $search, 'status' => $filter, 'category' => $category, 'issue' => $issue, 'tanod' => $tanod,
                       'month' => $month, 'view' => $view, 'by' => $sortCol, 'dir' => $sortDir],
                      fn($v) => $v !== '');
 ?>
@@ -467,7 +473,7 @@ $noteBadge = $notesUnread + $escCount;
 <?php if ($tab === 'all'): ?>
 <!-- ---------- complaint register ---------- -->
 <?php $atc = count($attention ?? []); ?>
-<?php $vAnyBand = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $month !== '' || $tanod !== '' || $search !== ''; ?>
+<?php $vAnyBand = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $issue !== '' || $month !== '' || $tanod !== '' || $search !== ''; ?>
 <div class="p-band ss-cr-band">
   <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= (int) $regTotal ?></span></h2>
   <form class="p-search" method="get" role="search">
@@ -475,6 +481,7 @@ $noteBadge = $notesUnread + $escCount;
     <input type="search" name="q" placeholder="<?= e(t('Search name, ID or category', 'Hanapin ang pangalan, ID o kategorya')) ?>" value="<?= e($search) ?>" aria-label="<?= e(t('Search reports', 'Maghanap sa mga ulat')) ?>">
     <input type="hidden" name="status" value="<?= e($filter) ?>">
     <input type="hidden" name="category" value="<?= e($category) ?>">
+    <input type="hidden" name="issue" value="<?= e($issue) ?>">
     <input type="hidden" name="month" value="<?= e($month) ?>">
     <input type="hidden" name="sort" value="<?= e($_GET['sort'] ?? 'newest') ?>">
     <input type="hidden" name="who" value="<?= e($who) ?>">
@@ -482,7 +489,7 @@ $noteBadge = $notesUnread + $escCount;
     <input type="hidden" name="tanod" value="<?= e($tanod) ?>">
   </form>
   <?php if ($vAnyBand): ?><a class="p-chip p-chip-band" href="cases.php?clear=1"><?= e(t('Clear filters', 'I-clear ang mga filter')) ?></a><?php endif; ?>
-  <form method="get" class="ss-band-filters">
+  <form method="get" class="ss-band-filters<?= !empty(CATEGORY_ISSUES[$category]) ? ' ss-six' : '' ?>">
     <input type="hidden" name="tab" value="all">
     <input type="hidden" name="q" value="<?= e($search) ?>">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Filter by month', 'Salain ayon sa buwan')) ?></span>
@@ -494,6 +501,15 @@ $noteBadge = $notesUnread + $escCount;
           <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select></label>
+    <?php if (!empty(CATEGORY_ISSUES[$category])): ?>
+    <label class="p-pill-select"><span class="p-lbl"><?= e(t('Issue', 'Isyu')) ?></span>
+      <select name="issue" data-autosubmit>
+        <option value=""><?= e(t('All', 'Lahat')) ?></option>
+        <?php foreach (CATEGORY_ISSUES[$category] as $is): ?>
+          <option value="<?= e($is) ?>" <?= $issue === $is ? 'selected' : '' ?>><?= e($is) ?></option>
+        <?php endforeach; ?>
+      </select></label>
+    <?php endif; ?>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Handled by', 'Hawak ni')) ?></span>
       <select name="who" data-autosubmit>
         <option value=""><?= e(t('Anyone', 'Kahit sino')) ?></option>
@@ -627,6 +643,7 @@ $noteBadge = $notesUnread + $escCount;
   const STATUS_GROUPS = <?= json_encode(STATUS_GROUPS) ?>;
   const OPEN_STATES = <?= json_encode(OPEN_STATES) ?>;
   const CATEGORY   = <?= json_encode($category) ?>;
+  const ISSUE      = <?= json_encode($issue) ?>;
   const MONTH_FROM = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->format(DateTimeInterface::ATOM) : null) ?>;
   const MONTH_TO   = <?= json_encode($month !== '' ? (DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', new DateTimeZone('Asia/Manila')))->modify('first day of next month')->format(DateTimeInterface::ATOM) : null) ?>;
   const SEARCH     = <?= json_encode($search) ?>;
@@ -872,6 +889,7 @@ $noteBadge = $notesUnread + $escCount;
     else if (STATUS === 'sensitive') q = q.eq('is_sensitive', true);
     else if (STATUS && STATUS !== 'escalated') q = q.in('status', STATUS_GROUPS[STATUS] || [STATUS]);
     if (CATEGORY) q = q.eq('category', CATEGORY);
+    if (ISSUE) q = q.eq('subject', ISSUE);
     if (WHO === 'unclaimed') q = q.is('handler_id', null);
     else if (WHO) q = q.eq('handler_id', WHO);
     if (MONTH_FROM) q = q.gte('created_at', MONTH_FROM).lt('created_at', MONTH_TO);

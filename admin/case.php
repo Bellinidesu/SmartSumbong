@@ -560,9 +560,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
 
   <!-- ---------- the register row, as designed ---------- -->
   <div class="p-card p-meta-strip">
-    <div><small><?= e(t('Resident', 'Residente')) ?></small><b><?= !empty($report['is_anonymous'])
-              ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
-              : e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></b></div>
+    <div><small><?= e(t('Resident', 'Residente')) ?></small><b><?= e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?><?php if (!empty($report['is_anonymous'])): ?>
+        <span class="p-anon" title="<?= e(t('Filed as anonymous: only the barangay office sees the name. Tanods, the map and the printouts do not.', 'Isinampa bilang hindi nagpakilala: ang opisina ng barangay lamang ang nakakakita ng pangalan. Hindi ito nakikita ng mga tanod, ng mapa at ng mga print.')) ?>"><?= e(t('Anonymous to others', 'Hindi nagpakilala sa iba')) ?></span><?php endif; ?></b></div>
     <div><small><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></small><b class="p-num"><?= e($report['tracking_id']) ?></b></div>
     <div><small><?= e(t('Category', 'Kategorya')) ?></small><b><?= e(category_label($report['category'])) ?></b></div>
     <div><small><?= e(t('Filed', 'Naisampa')) ?></small><b class="p-num"><?= e(short_date($report['created_at'])) ?></b></div>
@@ -881,7 +880,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
       <div class="p-card p-card-pad p-thread-card" id="resident-messages">
         <p class="p-eyebrow"><?= e(t('Questions from the Resident', 'Mga Tanong ng Residente')) ?></p>
         <?php if (!$messages): ?>
-          <p class="p-none-line"><?= e(t('No questions yet. The resident can ask from their app, and you can write to them first.', 'Wala pang tanong. Maaaring magtanong ang residente mula sa app, at maaari mo rin silang sulatan muna.')) ?></p>
+          <p class="p-none-line"><?= e(t('No questions yet. The resident can ask from their app, and you can write to them first.', 'Wala pang tanong. Maaaring magtanong ang residente mula sa app, at maaari mo rin silang sulatan muna.')) ?><?= !empty($report['is_anonymous']) ? e(' ' . t('They filed as anonymous, and you can still write to them: only you see who they are.', 'Hindi sila nagpakilala, at maaari mo pa rin silang sulatan: ikaw lamang ang nakakakita kung sino sila.')) : '' ?></p>
         <?php else: ?>
           <ol class="p-thread">
             <?php foreach ($messages as $m): ?>
@@ -1503,7 +1502,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <div><dt><?= e(t('Filed', 'Naisampa')) ?></dt><dd><?= e(long_datetime($report['created_at'])) ?></dd></div>
           <?php if (!empty($report['location_label'])): ?><div><dt><?= e(t('Place', 'Lugar')) ?></dt><dd><?= e($report['location_label']) ?></dd></div><?php endif; ?>
           <div><dt><?= e(t('Coordinates', 'Mga coordinate')) ?></dt><dd class="p-mono-id"><?= e(coord_label((float) $report['latitude'], (float) $report['longitude'])) ?></dd></div>
-          <div><dt><?= e(t('Resident', 'Residente')) ?></dt><dd><?= !empty($report['is_anonymous']) ? e(t('Anonymous', 'Hindi nagpakilala')) : e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></dd></div>
+          <div><dt><?= e(t('Resident', 'Residente')) ?></dt><dd><?= e(formal_or($report['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?><?= !empty($report['is_anonymous']) ? ' <span class="p-anon">' . e(t('Anonymous to others', 'Hindi nagpakilala sa iba')) . '</span>' : '' ?></dd></div>
           <div><dt><?= e(t('Handled by', 'Hawak ni')) ?></dt><dd><?php $mh = (string) ($report['handler_id'] ?? ''); if ($mh !== ''): ?><span class="ss-who"><?= admin_chip($mh, (string) ($report['handler']['full_name'] ?? ''), 24) ?><?= e($mh === $admin['id'] ? t('You', 'Ikaw') : formal_name((string) ($report['handler']['full_name'] ?? ''))) ?></span><?php else: ?><span class="p-sub"><?= e(t('Nobody yet', 'Wala pa')) ?></span><?php endif; ?></dd></div>
           <?php if (!empty($report['due_at'])): ?><div><dt><?= e(t('Due', 'Takdang oras')) ?></dt><dd><?= e(long_datetime($report['due_at'])) ?></dd></div><?php endif; ?>
           <?php if ($concerns): ?><div><dt><?= e(t('Concerns', 'Mga alalahanin')) ?></dt><dd><?= count($concerns) ?></dd></div><?php endif; ?>
