@@ -11,7 +11,7 @@ Status as of 22 October 2026.
 | # | The panel asked | Status | Where |
 |---|---|---|---|
 | 1 | **Case Reports lists only real cases**, not general notifications (a filter or a separate tab) | Done | Case Reports' tabs; notifications have their own page |
-| 2 | **Pagination everywhere** ("no scroll scroll"): case reports, the activity timeline, the report ledger, the map's sample lists | Done | the pager on Case Reports, Activity, Report Summary, the case page, Residents, Personnel |
+| 2 | **Pagination everywhere** ("no scroll scroll"): case reports, the activity timeline, the report ledger, the map's sample lists | Done | the pager on Case Reports, Activity, Report Summary, the case page, Residents, Personnel; in the app, My reports shows twenty at a time with *Show more* (22 Oct) |
 | 3 | **Several categories per report** (e.g. Barangay service: delayed response *and* duty negligence), also when a case is raised again, each resolved or reviewed on its own | Done | `report_concerns`, `add_report_concern`, `set_concern_status` (0130); the case page |
 | 3a | …and filtering by the specific type under a category (e.g. under Street obstruction) | Done | Case Reports' **Issue** filter, shown once a category is chosen; a report's subject holds the issue the resident picked (`admin/includes/issues.php` mirrors the app's list) |
 | 3b | …and the resident seeing each concern's own status in the app | Done | the report screen's *Concerns in this report* card, when a report has two or more (residents already could read their own concerns, 0130) |

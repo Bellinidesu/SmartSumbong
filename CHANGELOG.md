@@ -113,6 +113,7 @@ Changes on `main` not yet deployed belong here.
   (the Issue filter appears once a category is chosen).
 - 3b: the resident's report screen shows each concern in the report and
   whether it is resolved, when there is more than one.
+- 2, in the app: My reports shows twenty at a time, with a Show more button.
 - 4: on an anonymous report the barangay sees who filed it (tagged
   "Anonymous to others") and can write to them; tanods, lists, the map and
   the printouts still do not show the name.
