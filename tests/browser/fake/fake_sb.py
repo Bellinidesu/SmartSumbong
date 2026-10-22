@@ -51,6 +51,7 @@ TABLES = {
     'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id']},{'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id']}],
     'places': [{'id': 1, 'name': 'Barangay 183 Hall', 'grp': 'hall', 'aliases': ['brgy hall'], 'lat': 14.525104, 'lng': 121.012596, 'source': 'barangay'},
                {'id': 2, 'name': 'Harvard Street', 'grp': 'street', 'aliases': [], 'lat': 14.5236, 'lng': 121.0129, 'source': 'barangay'}],
+    'web_push_subscriptions': [{'id': 1, 'endpoint': 'https://fcm.googleapis.com/fcm/send/demo', 'label': 'Chrome on Windows', 'created_at': ago(3000), 'last_ok_at': ago(40)}],
     'place_kinds': [{'grp': g, 'label': l} for g, l in [('area', 'Area'), ('hall', 'Barangay hall'), ('shop', 'Shop'), ('street', 'Street')]],
     'dispatches': [], 'status_logs': [], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24}],
 }

@@ -108,6 +108,18 @@ Changes on `main` not yet deployed belong here.
   (it only works for a signed-in administrator). Made on the server with
   chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
 
+**Added (alerts, 22 Oct)**
+- Alerts that each person sets up (Profile → Alerts): which kinds (overdue
+  cases, SMART warnings, things to do, dispatch changes, personnel), every
+  case or only the ones they handle, quiet hours with urgent cases let
+  through or not, and a test button. The same choices hold for the app on
+  their phone. The inbox in Notifications always keeps everything (0136).
+- Browser alerts: an alert reaches the portal's staff even with the portal
+  closed, and a click opens the case. Encrypted for that one browser (RFC
+  8291) and signed with our own key (RFC 8292), written with the standard
+  Web Crypto API and no library; free, no Google account. Works in Chrome,
+  Edge and Firefox; on an iPhone, once the portal is on the Home Screen.
+
 **Changed (search, 22 Oct)**
 - Spatial's search finds places the way Google Maps does: every named place
   and street in and around the barangay from OpenStreetMap, refreshed every

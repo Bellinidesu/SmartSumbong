@@ -60,6 +60,7 @@ Set the secrets (Edge Functions → Secrets, or `supabase secrets set NAME=value
 |---|---|---|
 | `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY` | `send-dispatch-push` | the Firebase service account that sends pushes |
 | `PUSH_WEBHOOK_SECRET` (optional) | `send-dispatch-push` | once set, only a caller sending it as `x-webhook-secret` is answered |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `send-dispatch-push` | browser alerts (0136): our key pair (P-256, base64url) and an https or mailto address for the push services; without them browsers get nothing, phones still do |
 | `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | `sign-upload`, `media-cleanup` | signing uploads and private links; deleting old identity photos |
 | `MEDIA_CLEANUP_SECRET` | `media-cleanup` | the shared secret pg_cron sends (also stored in Vault, below) |
 | `SEMAPHORE_API_KEY` | `password-otp` | sending SMS codes (by Semaphore's OTP route, `/api/v4/otp`) |
@@ -67,6 +68,11 @@ Set the secrets (Edge Functions → Secrets, or `supabase secrets set NAME=value
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are
 injected into every function by Supabase.
+
+Making the VAPID pair (once; a new pair means every browser turns alerts on
+again): `node -e "const e=require('crypto').createECDH('prime256v1');e.generateKeys();console.log(e.getPublicKey('base64url'), e.getPrivateKey('base64url'))"`.
+The private half goes only to the function's secrets. `send-dispatch-push`
+reads `push_plan()` from 0136, so apply 0136 before deploying it.
 
 Deploy them all (Actions → **Deploy** does this, see OPERATIONS), or by hand:
 
@@ -146,6 +152,7 @@ Render:
 | `TURNSTILE_SITE_KEY` | the bot check on sign-in pages | no bot check |
 | `BARANGAY_HALL_HOURS`, `BARANGAY_HALL_PHONE` | the hall line shown to residents | the default text |
 | `RESIDENT_APP_URL` | the Workspace's Report QR widget (an https link) | the widget asks for the link |
+| `VAPID_PUBLIC_KEY` | browser alerts (Profile → Alerts); the same public key as the function's | the card says browser alerts are not set up |
 | `PORTAL_MOVED_TO` | only on an old host: forwards every page to the new address | no forwarding |
 
 Nothing on Render needs the service-role key.

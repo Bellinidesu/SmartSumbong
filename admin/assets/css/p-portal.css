@@ -338,10 +338,39 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-pf-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .ss-pf-sec2 { margin: 10px 0 8px; padding-top: 16px; border-top: 1px solid var(--p-line); }
 .ss-pf-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+/* Alerts (0136): this browser first, then the person's choices, every section on the same left edge */
+.ss-al { display: grid; gap: 14px; }
+.ss-al-here { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--p-line); }
+.ss-al-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--p-blue-50); color: var(--p-link); }
+.ss-al-what b { display: block; }
+.ss-al-what small { color: var(--p-muted); font-size: 13px; }
+.ss-al-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.ss-al-h { margin: 4px 0 0; font-weight: 700; font-size: 13px; color: var(--p-muted); }
+/* five switches: a row of three over a row of two, both full width */
+.ss-al-kinds { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.ss-al-kinds > * { grid-column: span 2; }
+.ss-al-kinds > :nth-child(n+4) { grid-column: span 3; }
+.ss-al-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.ss-al-pair .ss-al-h { margin-bottom: 8px; }
+.ss-al-quiet { display: flex; align-items: center; gap: 8px; }
+.ss-al-quiet select { height: 36px; width: auto; min-width: 0; flex: 1; }
+.ss-al-to { display: contents; }
+.ss-al-to[hidden] { display: none; }
+.ss-al-urgent { margin-top: 8px; }
+.ss-al-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ss-al-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--p-line); border-radius: var(--p-r); }
+.ss-al-list small { display: block; color: var(--p-muted); font-size: 12.5px; }
+.ss-al-note { margin: 0; }
+#ss-al-saved { font-weight: 700; color: var(--p-green); }
+#ss-al-saved.bad { color: var(--p-red); }
 @media (max-width: 760px) {
   .ss-pf-2, .ss-pf-3 { grid-template-columns: 1fr; }
   .ss-pf-row { grid-template-columns: minmax(0, 1fr) auto; }
   .ss-pf-l { grid-column: 1 / -1; }
+  .ss-al-here { grid-template-columns: auto minmax(0, 1fr); }
+  .ss-al-btns { grid-column: 1 / -1; justify-content: flex-start; }
+  .ss-al-pair { grid-template-columns: 1fr; }
+  .ss-al-kinds > *, .ss-al-kinds > :nth-child(n+4) { grid-column: 1 / -1; }
 }
 
 /* Sweep (7 Oct): Case Reports filters as one even row under the search */

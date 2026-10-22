@@ -57,6 +57,7 @@
 // would drop information a resident hasn't seen yet.
 
 import { logError } from "../_shared/log.ts";
+import { type Browser, importP256, sendWebPush, unb64u } from "./webpush.ts";
 
 interface NotificationRecord {
   id: string;
@@ -91,6 +92,9 @@ const TITLES: Record<string, string> = {
   escalation: "Escalation",
   sla_warning: "SLA warning",
   verification: "Account update",
+  retirement: "Personnel update",
+  look_around: "Shared view",
+  test: "SmartSumbong alerts",
 };
 
 function base64UrlEncode(bytes: Uint8Array): string {
@@ -181,37 +185,72 @@ async function mintAccessToken(): Promise<string> {
 // account. Now only a real, stored notification is ever sent, to its own
 // owner; a forged call can at most repeat one.
 //
-// One request (10 Oct 2026) brings along what the push needs about the
-// owner: the kinds they muted (migration 0044; checked here and only here,
-// since this is the one place a push is sent) and their phones' tokens.
-// It used to be three requests in a row for every notification.
-interface Delivery {
+// One request brings along everything the push needs: push_plan() (0136)
+// reads the owner's choices (kinds muted since 0044; all cases or only
+// their own; quiet hours) and answers whether to send, and to which
+// phones and browsers. The choices are read there and only there.
+interface Plan {
+  send: boolean;
+  why: string | null;
   record: NotificationRecord;
-  muted: string[];
+  urgent: boolean;
   tokens: string[];
+  web: Browser[];
 }
 
-async function delivery(id: unknown): Promise<Delivery | null> {
+async function delivery(id: unknown): Promise<Plan | null> {
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return null;
-  // notifications has two links to users (owner and subject): name the owner's.
-  const select = "id,user_id,report_id,kind,message," +
-    "owner:users!notifications_user_id_fkey(muted_notification_kinds,device_tokens(fcm_token))";
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}&select=${encodeURIComponent(select)}`,
-    { headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` } },
-  );
-  if (!res.ok) throw new Error(`could not read notification ${id}: ${res.status} ${await res.text()}`);
-  const rows = (await res.json()) as (NotificationRecord & {
-    owner: { muted_notification_kinds: string[] | null; device_tokens: { fcm_token: string }[] | null } | null;
-  })[];
-  const row = rows[0];
-  if (!row) return null;
-  const { owner, ...record } = row;
-  return {
-    record,
-    muted: owner?.muted_notification_kinds ?? [],
-    tokens: (owner?.device_tokens ?? []).map((t) => t.fcm_token),
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/push_plan`, {
+    method: "POST",
+    headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_id: id }),
+  });
+  if (!res.ok) throw new Error(`could not plan notification ${id}: ${res.status} ${await res.text()}`);
+  return (await res.json()) as Plan | null;
+}
+
+function rest(path: string, method: string, body?: unknown): Promise<Response> {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+// Browser alerts (0136). Without the VAPID keys this part simply stays off.
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "";
+let vapidKey: Promise<CryptoKey> | null = null;
+
+async function sendToBrowsers(plan: Plan): Promise<void> {
+  if (!plan.web.length || !VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) return;
+  vapidKey ??= importP256(unb64u(VAPID_PRIVATE_KEY), unb64u(VAPID_PUBLIC_KEY), "ECDSA");
+  const privateKey = await vapidKey;
+  const r = plan.record;
+  const payload = {
+    title: TITLES[r.kind] ?? "SmartSumbong",
+    body: r.message,
+    // the service worker opens this, relative to the portal
+    url: r.report_id ? `case.php?id=${r.report_id}` : "notifications.php",
+    tag: r.report_id ?? r.id,
   };
+  await Promise.all(plan.web.map(async (b) => {
+    try {
+      const out = await sendWebPush(b, payload, {
+        subject: VAPID_SUBJECT, publicKey: VAPID_PUBLIC_KEY, privateKey,
+        urgent: plan.urgent || r.kind === "test", topic: r.report_id ?? undefined,
+      });
+      if (out.gone) await rest(`web_push_subscriptions?id=eq.${b.id}`, "DELETE");
+      else if (out.ok) await rest(`web_push_subscriptions?id=eq.${b.id}`, "PATCH", { last_ok_at: new Date().toISOString(), failures: 0 });
+      else {
+        console.error(`Web push refused (status ${out.status}) for browser ${b.id}`);
+        await logError("send-dispatch-push", `A push service refused a browser alert (HTTP ${out.status})`);
+      }
+    } catch (e) {
+      console.error(`Web push failed for browser ${b.id}:`, e);
+    }
+  }));
 }
 
 async function deleteStaleToken(token: string): Promise<void> {
@@ -319,29 +358,33 @@ export async function handler(req: Request): Promise<Response> {
       return new Response("ignored", { status: 200 });
     }
 
-    const found = await delivery(payload.record?.id);
-    if (!found) {
+    const plan = await delivery(payload.record?.id);
+    if (!plan) {
       return new Response("no such notification", { status: 200 });
     }
-    const { record, muted, tokens } = found;
+    const { record, tokens } = plan;
 
-    if (muted.includes(record.kind)) {
+    if (!plan.send) {
       // Still a real notification -- the row this webhook fired for
       // already exists and already did its job as the in-app record.
-      // This only skips the phone buzz the recipient asked not to get.
-      return new Response("muted by recipient", { status: 200 });
+      // This only skips the buzz the recipient's own choices hold back.
+      return new Response(plan.why === "muted" ? "muted by recipient" : `held: ${plan.why}`, { status: 200 });
     }
 
-    if (tokens.length === 0) {
+    if (tokens.length === 0 && plan.web.length === 0) {
       // Normal, not an error: most users have not opened a build with
       // push wired in yet, or never granted the notification permission.
       return new Response("no devices registered", { status: 200 });
     }
 
-    const accessToken = await getAccessToken();
-    await Promise.all(
-      tokens.map((token) => sendToToken(accessToken, token, record)),
-    );
+    await Promise.all([
+      tokens.length
+        ? getAccessToken().then((accessToken) => Promise.all(tokens.map((token) => sendToToken(accessToken, token, record))))
+        : null,
+      sendToBrowsers(plan),
+    ]);
+    // A test alert (push_test, 0136) has done its job; the inbox does not keep it.
+    if (record.kind === "test") await rest(`notifications?id=eq.${record.id}&kind=eq.test`, "DELETE");
 
     return new Response("sent", { status: 200 });
   } catch (e) {
