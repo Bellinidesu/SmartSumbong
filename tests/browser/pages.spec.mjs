@@ -136,3 +136,36 @@ test('SMART Iteration 3: rules need a reason, can be tested first, and have a hi
   expect(await axe(page), 'Settings > SMART with a replay').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('SMART Iteration 4: the command center (suggest, look, turn on, hand over, turn off)', async ({ page }) => {
+  await page.request.get('http://127.0.0.1:54399/__cmd_reset');
+  const r = await open(page, 'spatial.php');
+  const sug = page.locator('#cc-suggest');
+  await expect(sug).toContainText('SMART suggests Flood Watch');
+  await expect(sug).toContainText('3 reports in the last 3 hours mention flood water');
+  await page.locator('#cc-toggle').click();
+  await expect(page.locator('#cc-side .cc-modes li')).toHaveCount(4);
+  // look first: Fire Surroundings names what is within 50 m
+  await page.locator('#cc-side [data-look="fire"]').click();
+  await expect(page.locator('#cc-side .cc-rings')).toContainText('Within 50 m');
+  await expect(page.locator('#cc-side .cc-rings')).toContainText('Gasolinahan sa Kanto');
+  await expect(page.locator('#cc-side .cc-foot')).toContainText('does not predict');
+  expect(await axe(page), 'Command center, looking at Fire Surroundings').toEqual([]);
+  // turn Flood Watch on from the suggestion
+  await sug.getByRole('button', { name: /Turn on Flood Watch/ }).click();
+  await expect(page.locator('#cc-bar')).toBeVisible();
+  await expect(page.locator('#cc-bar')).toContainText('Flood Watch');
+  await expect(page.locator('#cc-side .cc-tags')).toContainText('waist-deep');
+  await expect(page.locator('#cc-side .cc-gauge span')).toHaveCount(7);
+  await page.locator('#cc-side [data-tab="checklist"]').click();
+  await expect(page.locator('#cc-side .cc-check li')).toHaveCount(2);
+  await page.locator('#cc-side [data-tab="feed"]').click();
+  await expect(page.locator('#cc-side .cc-feed li').first()).toContainText('SS-2610-1021');
+  await page.locator('#cc-side [data-tab="handover"]').click();
+  await expect(page.locator('#cc-side .cc-last')).toContainText('Bukas ang covered court');
+  expect(await axe(page), 'Command center, Flood Watch on').toEqual([]);
+  await page.locator('#cc-endn').fill('Humupa na ang baha, sarado ang evacuation center');
+  await page.locator('#cc-side form[data-end] button[type=submit]').click();
+  await expect(page.locator('#cc-bar')).toBeHidden();
+  expect(r.errors, 'console errors').toEqual([]);
+});
