@@ -94,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// applicant finishes the rest of the form -- see _capture and _submit.
   /// Never awaited anywhere that could block or fail the signup itself;
   /// see AuthService.submitIdOcrResult for why a failure here is silent.
-  Future<IdOcrResult>? _ocrFuture;
+  Future<IdOcrResult?>? _ocrFuture;
 
   final _errors = <String, String>{};
 
@@ -356,9 +356,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         await widget.auth.submitIdOcrResult(ocrPreCheck);
       } else if (ocrFuture != null) {
         try {
-          final result = await ocrFuture.timeout(const Duration(seconds: 8));
-          await widget.auth
-              .submitIdOcrResult(result.withSelectedType(_idType!));
+          final result = await ocrFuture.timeout(const Duration(seconds: 15));
+          if (result != null) {
+            await widget.auth.submitIdOcrResult(result.withSelectedType(_idType!));
+          }
         } catch (_) {
           // Advisory only -- see id_ocr.dart's header.
         }
@@ -441,8 +442,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final future = _ocrFuture;
     if (future == null || _idType == null) return null;
     try {
-      final result = await future.timeout(const Duration(seconds: 8));
-      return result.withSelectedType(_idType!);
+      final result = await future.timeout(const Duration(seconds: 15));
+      return result?.withSelectedType(_idType!);
     } catch (_) {
       return null;
     }

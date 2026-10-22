@@ -22,12 +22,12 @@ require_once __DIR__ . '/layout.php';
  * @param 'resident'|'tanod' $role
  */
 /**
- * OCR ID triage (0039/0050) is off for now (Rose, 27–30 Sep 2026): no
- * flags, no "read as", no re-check, no Quick Verify. The code stays for a
- * future update; true brings it all back. The app has the same switch
- * (kIdOcrEnabled in mobile/core/lib/src/id_ocr.dart).
+ * OCR ID triage (0039/0050): flags, "read as", re-check, Quick Verify. Off from Rose's call of
+ * 27–30 Sep 2026 until 22 Oct 2026, when the reading came back on the phone with open-source
+ * PaddleOCR (tools/ocr_lab). A reading only points to what to check: a person verifies. The app has
+ * the same switch (kIdOcrEnabled in mobile/core/lib/src/id_ocr.dart).
  */
-const ID_OCR_ENABLED = false;
+const ID_OCR_ENABLED = true;
 
 function render_account_screen(string $role): void
 {

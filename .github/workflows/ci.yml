@@ -160,7 +160,9 @@ jobs:
   app-size:
     # Performance budget: the Android app a resident downloads. The arm64
     # release APK (what nearly every phone in use installs) must stay under
-    # 60 MB; the size of each build is written to the run's summary.
+    # 120 MB (was 60 until the ID reader came on the phone, 22 Oct 2026: ONNX Runtime, OpenCV and
+    # 30 MB of models took it from 55 to 107; MyNaga, a city app, is 92-102 MB); the size of each
+    # build is written to the run's summary.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: mobile
@@ -190,16 +192,16 @@ jobs:
         if: steps.app.outputs.run == 'true'
         working-directory: mobile/resident
         run: flutter build apk --release --target-platform android-arm64 --split-per-abi --dart-define-from-file=dart_defines.json
-      - name: Within 60 MB
+      - name: Within 120 MB
         if: steps.app.outputs.run == 'true'
         working-directory: mobile/resident
         run: |
           apk=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
           bytes=$(stat -c %s "$apk")
           mb=$(awk "BEGIN { printf \"%.1f\", $bytes / 1048576 }")
-          echo "Resident app, arm64 release APK: **$mb MB** (budget 60 MB)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Resident app, arm64 release APK: **$mb MB** (budget 120 MB)" >> "$GITHUB_STEP_SUMMARY"
           echo "APK: $mb MB"
-          [ "$bytes" -le 62914560 ] || { echo "::error::The APK is $mb MB, over the 60 MB budget."; exit 1; }
+          [ "$bytes" -le 125829120 ] || { echo "::error::The APK is $mb MB, over the 120 MB budget."; exit 1; }
 
   functions:
     runs-on: ubuntu-24.04

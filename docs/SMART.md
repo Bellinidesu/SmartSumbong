@@ -169,9 +169,10 @@ the kind, and the score is not affected.
 The line SMART draws for OCR is that a model may read, but rules decide.
 
 - **Reading (on the phone).** When the barangay turns ID reading back on
-  (`ID_OCR_ENABLED`, `kIdOcrEnabled`; off since Rose, 27–30 Sep 2026), the
-  app reads the ID photo with Google ML Kit on the phone. That is offline
-  and free, and the photo does not leave the phone for it. The app sends
+  (`ID_OCR_ENABLED`, `kIdOcrEnabled`; off from Rose's call of 27–30 Sep 2026
+  until 22 Oct 2026), the app reads the ID photo with PaddleOCR (PP-OCRv6
+  small, on ONNX Runtime) on the phone. That is offline, open source, and the
+  photo does not leave the phone for it. The app sends
   only what it read: the ID type it recognised, the name and the number.
 - **Deciding (on the server).** `submit_id_reading` stores the reading and
   works out the checks itself:

@@ -70,7 +70,13 @@ dependencies:
   # phone, no network call, nothing about the photo leaves the device.
   # Not identity verification (see id_ocr.dart's header); the admin
   # still decides everything, this only orders/labels their queue.
-  google_mlkit_text_recognition: ^0.17.1
+  # PaddleOCR's PP-OCRv6 small models on ONNX Runtime (22 Oct 2026, replacing
+  # Google ML Kit): all Apache-2.0 / MIT, nothing closed. Android only (minSdk
+  # 26, arm64); audited before use: no network, no permissions, no file writes.
+  # Pinned exactly. tools/ocr_lab has the measurements.
+  paddle_ocr_native: 0.1.1
+  # The phone's Android version, so the engine (minSdk 26) is skipped on an older one instead of crashing it.
+  device_info_plus: 13.3.0
 
 dev_dependencies:
   flutter_test:
