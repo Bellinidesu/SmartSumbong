@@ -43,6 +43,7 @@ It scores what the app needs: the card's type, the name, and the ID number.
 - Reading stays advisory, as 0126 already treats it: "no reading" or a
   mismatch sends the account to a person, never refuses it, and **a reading
   never verifies anyone**.
-- Size: the models are about 31 MB and the APK is 55 MB of a 60 MB budget,
-  so on the phone they are fetched once, at the ID step, from our own
-  storage and checked by SHA-256, rather than shipped inside the APK.
+- Where it runs: on the server, as the engine's first job (`engine/`, 0137;
+  Ace, 22 Oct: the portal's features and labs run as engine functions). The
+  app only uploads the photo, so it carries no 31 MB model, and every app
+  version, old ones too, gets the same reader.
