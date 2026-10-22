@@ -345,6 +345,38 @@ in this queue, so a fire filed 20 minutes ago goes before a cedula
 request waiting 3 hours. `smart_rules.smart_queue` switches the waiting
 line back to first come, first served.
 
+## 22. Explaining itself and being measured (0140, Iteration 2)
+
+Until 0140 SMART decided and nothing recorded what people did with its
+advice. Now it does, and the phone can be told why.
+
+- **The event log** (`smart_events`, admins read it, kept 180 days): each
+  pick, each "was it fixed?" question and answer. Later modes and rule
+  changes use the same log.
+- **SMART's pick, saved with the dispatch.** When an admin assigns a tanod,
+  `dispatches.smart_rank` and `smart_of` say where SMART ranked that tanod
+  among the ones it could have sent ("#2 of 4"), with `smart_score` and the
+  reasons. The system's own dispatches are SMART's first choice. The tanod
+  reads it as "Why you". `smart_pick_stats(days)` gives how often the top
+  pick was taken. Nothing is forced: an admin's choice stands either way.
+- **"Naayos na ba? / Was it fixed?"** When a case becomes resolved the
+  resident is asked (a notification and a card on the report). They answer
+  once, within 14 days, through `confirm_fix()`. "No" tells every admin and
+  puts the case back in the queue as stage **recheck** ("The resident says
+  it is not fixed: reopen it or answer them", +30 points,
+  `smart_rules.queue_recheck_points`) until an admin reopens it or writes
+  to the resident. `smart_fix_stats(days)` gives asked, answered, fixed and
+  not fixed, per kind.
+- **"Why this order", for the resident.** `smart_why_order(report)` returns
+  a sentence in English and Tagalog built from the reasons ("Yours is higher
+  because it involves public safety and other residents reported the same
+  problem nearby"). Words only, never a score or a position. Only the owner
+  and admins can ask.
+- **Engine health.** `smart_engine_health()`: when the watcher last ran and
+  whether it succeeded, failures in 24 hours, open and unscored reports, when
+  the last report was scored, events in 24 hours, and whether routing and
+  the queue are on.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,

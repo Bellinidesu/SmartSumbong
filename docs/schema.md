@@ -49,6 +49,8 @@ How the database fits the rest of the system is in
 | `device_tokens` | FCM push tokens | 0035 |
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
 | `engine_jobs` | Work handed to the engine (`engine/`): ID photos to read, with tries and the last error | 0137 |
+| `smart_events` | What SMART decided and what people did with it: picks, "was it fixed?" questions and answers; kept 180 days | 0140 |
+| `resolution_checks` | "Naayos na ba? / Was it fixed?" asked of the resident when a case is resolved, and the answer | 0140 |
 | `retirement_requests` | A tanod's request to retire, and the admin's decision | 0052 |
 | `profile_requests` | A resident's or tanod's name change or new ID photo, and the admin's decision | 0086 |
 | `login_attempts` | Lockout after repeated failures | 0031 |
@@ -164,6 +166,9 @@ policy by design. "Latest" is the migration that last redefined it.
 | `place_save` / `place_remove` | 0134 | Admins: the barangay's own places (within 5 km of the hall) |
 | `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what was read from the ID (by the engine since 0137) |
 | `engine_status` | 0137 | The engine: set up or not, read and waiting, could not read |
+| `confirm_fix(report, fixed, note)` | 0140 | The resident answers "Was it fixed?" once, within 14 days; "no" tells the admins and queues a recheck |
+| `smart_why_order(report)` | 0140 | A plain sentence (English and Tagalog) on why a report is where it is; the owner or an admin |
+| `smart_engine_health`, `smart_pick_stats`, `smart_fix_stats` | 0140 | Is it running; how often SMART's top pick was taken; how many fixes residents confirmed |
 | `auto_dispatch`, `redispatch_report`, `sweep_awaiting_units` | 0139 | The reroute queue: a reroute that finds no one waits in line (a day at most, and not past the cap on offers); "gave up" is said once; an identical system line within ten minutes is not written again |
 | `smart_storm_mode`, `smart_deadline_risk`, `smart_spikes`, `smart_similar_cases` | 0127 | Foresight |
 | `smart_word_suggestions`, `smart_teach_word`, `smart_stuck_cases`, `smart_time_patterns`, `smart_sla_scorecard` | 0128 | Learning and the scorecard |
