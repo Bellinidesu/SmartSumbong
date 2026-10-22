@@ -96,6 +96,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// see AuthService.submitIdOcrResult for why a failure here is silent.
   Future<IdOcrResult?>? _ocrFuture;
 
+  /// What the on-device reader is doing with the ID photo, for the status line under it:
+  /// 'reading', 'read', 'unread', or null (nothing to say: no photo, or this phone cannot read).
+  String? _idRead;
+
   final _errors = <String, String>{};
 
   @override
@@ -248,8 +252,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // filling in the rest of the form. _submit awaits this later,
           // matched against whatever _idType ends up being at that point
           // (see runIdOcr's own doc comment for why not now).
+          _idRead = null;
           if (kIdOcrEnabled) {
-            _ocrFuture = runIdOcr(f, enteredFullName: _fullName.text);
+            final reading = runIdOcr(f, enteredFullName: _fullName.text);
+            _ocrFuture = reading;
+            _idRead = 'reading';
+            reading.then((r) {
+              if (!mounted || _ocrFuture != reading) return;
+              setState(() => _idRead = r == null ? null : (r.flags.contains('unreadable') ? 'unread' : 'read'));
+            }, onError: (_) {
+              if (mounted && _ocrFuture == reading) setState(() => _idRead = null);
+            });
           }
         }
       });
@@ -698,6 +711,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 enabled: !_busy && _idType != null,
                 onTap: () => _capture(selfie: false),
               ),
+              if (_idRead != null) _IdReadLine(state: _idRead!),
               // No selfie step for a tanod (0036).
               if (!tanod) ...[
                 const SizedBox(height: 20),
@@ -958,6 +972,36 @@ class _IdTypeDropdown extends StatelessWidget {
                 style: TextStyle(color: context.colors.hint, fontSize: 11)),
           ),
       ],
+    );
+  }
+}
+
+/// 0140: one quiet line under the ID photo about what SMART's on-device reader is doing: reading, read, or
+/// "a person will check it". Never a warning, never a block.
+class _IdReadLine extends StatelessWidget {
+  const _IdReadLine({required this.state});
+
+  final String state;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final colors = context.colors;
+    final (IconData icon, String text) = switch (state) {
+      'read' => (Icons.check_circle_outline, s.registerIdRead),
+      'unread' => (Icons.info_outline, s.registerIdUnread),
+      _ => (Icons.auto_awesome, s.registerIdReading),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (state == 'reading')
+          SizedBox(width: 14, height: 14, child: Padding(padding: const EdgeInsets.all(1), child: CircularProgressIndicator(strokeWidth: 2, color: colors.navy)))
+        else
+          Icon(icon, size: 16, color: colors.navy),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: TextStyle(fontSize: 12.5, height: 1.35, color: colors.muted))),
+      ]),
     );
   }
 }

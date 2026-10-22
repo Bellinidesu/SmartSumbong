@@ -306,6 +306,20 @@ class DemoBackend extends http.BaseClient {
       case 'follow_up_report':
         _find('reports', a['p_report'])?['followed_up_at'] = _now();
         return _empty(204);
+      case 'smart_why_order':
+        return _json(200, {
+          'en': 'Reports are handled in order of how urgent they are, and the longer one waits, the higher it moves. Yours is higher because it involves public safety and other residents reported the same problem nearby.',
+          'fil': 'Inaayos ang mga report ayon sa pagkaapurahan, at habang tumatagal ang isa, tumataas ito. Mas mataas ang sa iyo dahil may kinalaman ito sa kaligtasan ng publiko at may iba pang residente na nag-ulat ng parehong problema sa malapit.',
+        });
+      case 'confirm_fix':
+        for (final c in _t['resolution_checks'] ?? <Map<String, dynamic>>[]) {
+          if (c['report_id'] == a['p_report'] && c['answered_at'] == null) {
+            c['answered_at'] = _now();
+            c['fixed'] = a['p_fixed'];
+            c['note'] = a['p_note'];
+          }
+        }
+        return _empty(204);
       case 'post_report_message':
         _t['report_messages']!.add({'id': _uid(), 'report_id': a['p_report'], 'from_barangay': false, 'body': a['p_body'], 'created_at': _now()});
         return _empty(204);
