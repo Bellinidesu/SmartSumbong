@@ -1,6 +1,6 @@
 # SmartSumbong — Schema Reference
 
-What the migrations in `supabase/migrations/` add up to: 127 files, 0001–0134
+What the migrations in `supabase/migrations/` add up to: 128 files, 0001–0135
 (numbers 0048 and 0108–0113 are unused; 0108–0113 became 0114–0120 to follow
 production's 0107). The exact current schema, every column and grant, is
 `supabase/baseline/baseline.sql`; this file is the map. If the manuscript's
@@ -158,7 +158,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `smart_override` | 0123 | Raise or lower a level, with a reason |
 | `smart_case_card`, `smart_summary`, `smart_preview` | 0124 | The case card, the dashboard tiles, Try it |
 | `smart_read` | 0133 | How SMART read a text (word forms, spellings, negation); 0133 added the present tense, doubled words, stretched letters, English endings |
-| `search_places(q, lat, lng, limit)` | 0134 | Places for what was typed: forgives shorthand, slips and accents; kind words list that kind nearest first; chains counted once |
+| `search_places(q, lat, lng, limit)` | 0135 | Places for what was typed: forgives shorthand, slips and accents; kind words list that kind nearest first; chains counted once |
 | `place_save` / `place_remove` | 0134 | Admins: the barangay's own places (within 5 km of the hall) |
 | `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what the phone's OCR read |
 | `smart_storm_mode`, `smart_deadline_risk`, `smart_spikes`, `smart_similar_cases` | 0127 | Foresight |
