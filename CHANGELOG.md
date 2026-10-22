@@ -108,6 +108,15 @@ Changes on `main` not yet deployed belong here.
   (it only works for a signed-in administrator). Made on the server with
   chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
 
+**Added (SMART, Iteration 2: explaining itself and being measured, 22 Oct)**
+- The database side (0140). SMART's rank of the tanod an admin chooses is
+  saved with the dispatch, with the reasons, and the top-pick rate can be
+  read. Resolving a case asks the resident "Naayos na ba? / Was it fixed?";
+  "not fixed" tells the admins and queues the case for a recheck until the
+  barangay reopens it or answers. A plain sentence on why a report is where it
+  is, in English and Tagalog, for the resident. Engine health. One event log
+  for all of it. The portal and phone screens for these follow.
+
 **Added (SMART in the app, Iteration 2, 22 Oct)**
 - Tanod: a "Why you" card on the dispatch window. SMART's rank among the tanods
   it could have sent, and why (how near, how busy, who knows the area), in
