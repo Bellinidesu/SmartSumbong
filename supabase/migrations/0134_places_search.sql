@@ -47,6 +47,14 @@ as $$
    where w <> ''
 $$;
 
+/** A place's searchable text: its name and its other names. (array_to_string is only "stable", so a generated column needs this.) */
+create or replace function public._places_text(p_name text, p_aliases text[])
+returns text
+language sql
+immutable
+set search_path = public, extensions
+as $$ select public.places_norm(coalesce(p_name, '') || ' ' || coalesce(array_to_string(p_aliases, ' '), '')) $$;
+
 /** The kinds of place, and the words people use for each (English, Tagalog, Taglish). */
 create table public.place_kinds (
   grp   text primary key,
@@ -85,7 +93,7 @@ create table public.places (
   lat         double precision not null check (lat between -90 and 90),
   lng         double precision not null check (lng between -180 and 180),
   info        jsonb not null default '{}',       -- opening_hours, brand, operator, website, cuisine
-  search_text text generated always as (public.places_norm(name || ' ' || array_to_string(aliases, ' '))) stored,
+  search_text text generated always as (public._places_text(name, aliases)) stored,
   geom        geography(Point, 4326) generated always as (st_setsrid(st_makepoint(lng, lat), 4326)::geography) stored,
   active      boolean not null default true,
   added_by    uuid references public.users (id) on delete set null,
