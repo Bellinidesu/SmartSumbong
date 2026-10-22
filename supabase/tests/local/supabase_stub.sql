@@ -70,6 +70,13 @@ create function net.http_post(url text, body jsonb default '{}', params jsonb de
                               headers jsonb default '{}', timeout_milliseconds integer default 5000)
 returns bigint language sql as $$ select nextval('net.request_seq') $$;
 
+-- Vault: secrets by name, kept in plain text here (Supabase encrypts them).
+create schema vault;
+create table vault.secrets (id uuid primary key default gen_random_uuid(), name text unique, secret text not null);
+create view vault.decrypted_secrets as select id, name, secret as decrypted_secret from vault.secrets;
+create function vault.create_secret(new_secret text, new_name text default null, new_description text default '')
+returns uuid language sql as $$ insert into vault.secrets (name, secret) values (new_name, new_secret) returning id $$;
+
 create schema storage;
 create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, metadata jsonb);
 
