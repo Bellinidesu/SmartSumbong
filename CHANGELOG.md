@@ -130,6 +130,14 @@ Changes on `main` not yet deployed belong here.
 - All of it is optional on the phone: an older database or a failed request
   never blanks a screen.
 
+**Added (SMART, Iteration 3: rule versions, rollback, replay, 22 Oct)**
+- Every change to SMART's scoring rules or word list is now a numbered
+  version with who, when and why; each score remembers the version that made
+  it. A change can be tried on the last 90 days of reports first ("this would
+  move 6 reports from normal to high") without making it, and any version can
+  be rolled back, as one new version, with the open reports re-scored (0141).
+  The portal screens for these follow.
+
 **Changed (the engine on the phone, 22 Oct)**
 - ID reading is back, on the phone, with open-source PaddleOCR (PP-OCRv6
   small on ONNX Runtime, via the paddle_ocr_native plugin) instead of Google
