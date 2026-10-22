@@ -48,6 +48,7 @@ How the database fits the rest of the system is in
 | `attendance` | Tanod duty logging | 0001 |
 | `device_tokens` | FCM push tokens | 0035 |
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
+| `engine_jobs` | Work handed to the engine (`engine/`): ID photos to read, with tries and the last error | 0137 |
 | `retirement_requests` | A tanod's request to retire, and the admin's decision | 0052 |
 | `profile_requests` | A resident's or tanod's name change or new ID photo, and the admin's decision | 0086 |
 | `login_attempts` | Lockout after repeated failures | 0031 |
@@ -161,7 +162,8 @@ policy by design. "Latest" is the migration that last redefined it.
 | `smart_read` | 0133 | How SMART read a text (word forms, spellings, negation); 0133 added the present tense, doubled words, stretched letters, English endings |
 | `search_places(q, lat, lng, limit)` | 0135 | Places for what was typed: forgives shorthand, slips and accents; kind words list that kind nearest first; chains counted once |
 | `place_save` / `place_remove` | 0134 | Admins: the barangay's own places (within 5 km of the hall) |
-| `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what the phone's OCR read |
+| `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what was read from the ID (by the engine since 0137) |
+| `engine_status` | 0137 | The engine: set up or not, read and waiting, could not read |
 | `smart_storm_mode`, `smart_deadline_risk`, `smart_spikes`, `smart_similar_cases` | 0127 | Foresight |
 | `smart_word_suggestions`, `smart_teach_word`, `smart_stuck_cases`, `smart_time_patterns`, `smart_sla_scorecard` | 0128 | Learning and the scorecard |
 | `smart_queue` | 0129 | Every open case in one order, by urgency plus waiting |
@@ -227,6 +229,8 @@ Times in UTC; Philippine time is UTC+8.
 | `keep-portal-awake` | every 10 min | Pings the portal and records uptime; two misses alert every admin |
 | `purge-old-notifications` | daily 03:20 | Read notifications after 90 days, any after a year (0115) |
 | `media-cleanup` | daily 03:40 | Calls the `media-cleanup` function with the secret from Vault (0118) |
+| `engine-tick` | every minute | Files the engine's answers and hands it the next ID photos, with a link signed here (0137); off until Vault has its settings |
+| `engine-jobs-purge` | daily 03:50 | Finished engine jobs after 30 days (0137) |
 
 `dashboard_metrics` is deliberately **not** definer: RLS still decides which
 reports are counted.

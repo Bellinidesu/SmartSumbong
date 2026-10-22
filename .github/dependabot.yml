@@ -30,6 +30,19 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+  - package-ecosystem: pip
+    directory: /engine
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /engine
+    schedule:
+      interval: weekly
+    # Python: patches only (3.12.x); a new minor is a planned upgrade
+    ignore:
+      - dependency-name: python
+        update-types: ['version-update:semver-minor', 'version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:

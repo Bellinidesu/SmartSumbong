@@ -502,6 +502,8 @@ try {
 // and keeps score.
 $up = null;
 try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
+$eng = null;   // the engine (0137): reads ID photos on the server
+try { $eng = $db->rpc('engine_status'); } catch (SupabaseError) {}
 $errs = null;
 try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5']); } catch (SupabaseError) {}
 // 0119: what the hourly health check found and has not seen clear yet.
@@ -532,6 +534,17 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
       <div class="st-uptime-tile<?= $up['last_ok'] === false ? ' st-down' : '' ?>"><b><?= e($up['last_at'] ? ($up['last_ok'] ? t('Answering', 'Sumasagot') : t('Not answering', 'Hindi sumasagot')) : '—') ?></b><span><?= e($up['last_at'] ? t('Last check ', 'Huling pagsusuri ') . relative_time($up['last_at']) : t('No checks yet', 'Wala pang pagsusuri')) ?></span></div>
     </div>
     <p class="st-note"><?= e(t('The database asks the portal for a tiny page every 10 minutes, which also keeps the free server from going to sleep.', 'Tuwing 10 minuto, humihingi ang database ng maliit na pahina sa portal; pinipigilan din nito ang pagtulog ng libreng server.')) ?></p>
+  </div>
+  <?php endif; ?>
+  <?php if (is_array($eng)): ?>
+  <div class="p-card p-card-pad st-uptime" id="engine">
+    <p class="p-eyebrow"><?= e(t('Engine', 'Makina')) ?></p>
+    <div class="st-uptime-tiles">
+      <div class="st-uptime-tile<?= $eng['configured'] ? '' : ' st-down' ?>"><b><?= e($eng['configured'] ? t('On', 'Bukas') : t('Not set up', 'Hindi pa naka-set up')) ?></b><span><?= e(t('Reads ID photos on the server', 'Nagbabasa ng ID sa server')) ?></span></div>
+      <div class="st-uptime-tile"><b><?= (int) $eng['read_week'] ?></b><span><?= e(t('Read in the last 7 days', 'Nabasa sa nakaraang 7 araw')) ?><?= !empty($eng['last_read_at']) ? e(' · ' . relative_time($eng['last_read_at'])) : '' ?></span></div>
+      <div class="st-uptime-tile<?= (int) $eng['failed_week'] > 0 ? ' st-down' : '' ?>"><b><?= (int) $eng['waiting'] ?></b><span><?= e(sprintf(t('Waiting · %d could not be read this week', 'Naghihintay · %d hindi nabasa ngayong linggo'), (int) $eng['failed_week'])) ?></span></div>
+    </div>
+    <p class="st-note"><?= e(t('Every minute the database hands the engine the ID photos of new sign-ups to read (type, name and number), and saves what it reads. A reading only points to what to check; a person verifies.', 'Bawat minuto, ibinibigay ng database sa engine ang mga ID ng bagong nag-sign up para basahin (uri, pangalan at numero), at sine-save ang nabasa. Tinuturo lamang ng pagbasa kung ano ang susuriin; tao ang nagve-verify.')) ?></p>
   </div>
   <?php endif; ?>
   <?php if (is_array($errs)): ?>

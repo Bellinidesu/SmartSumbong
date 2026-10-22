@@ -92,7 +92,7 @@ RPC = {
   {'id':'u4','full_name':'Deleted Resident','email':'deleted+f3f2193fe8ba406ca910b5635eba2b5e@smartsumbong.invalid','mobile_number':'deleted-f3f2193fe8','verification_status':'verified','is_suspended':True,'suspended_reason':'Account deleted by the resident','is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'},
   {'id':'u5','full_name':'Martin, Jericho Troy','email':'person4@example.test','mobile_number':'+639170000004','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':'lunch','holding_incident':True,'is_retired':False,'role':'resident'},
   {'id':'u6','full_name':'Martin, Jericho Troy','email':'person6@example.test','mobile_number':'+639170000000','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'}
-], 'portal_uptime_summary': None,
+], 'portal_uptime_summary': None, 'engine_status': {'configured': True, 'waiting': 1, 'failed_week': 0, 'read_week': 6, 'last_read_at': ago(2)},
 }
 
 

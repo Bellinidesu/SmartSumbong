@@ -95,6 +95,53 @@ jobs:
           ./trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 smartsumbong-portal:ci
           ./trivy config --severity HIGH,CRITICAL --exit-code 1 Dockerfile
 
+  engine:
+    # The engine (engine/, 0137): its own image. Its reader's tests, the image as Render builds it, a real reading
+    # inside it, then the same Trivy gate as the portal.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: The reader's tests (no model needed)
+        working-directory: engine
+        run: python3 -m unittest -v test_reader
+      - name: Build the engine image (checks the models' SHA-256)
+        run: docker build -t smartsumbong-engine:ci engine
+      - name: It reads an invented card, starts, answers, refuses strangers, and is not root
+        run: |
+          docker run --rm smartsumbong-engine:ci python selftest.py
+          docker run -d --name engine -p 8080:8080 -e ENGINE_SECRET=ci-secret smartsumbong-engine:ci
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/health > /dev/null && break; sleep 1; done
+          curl -fs http://127.0.0.1:8080/health || { docker logs engine; exit 1; }
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8080/read -d '{"url":"x"}')" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'x-engine-secret: ci-secret' http://127.0.0.1:8080/read -d '{"url":"http://169.254.169.254/"}')" = 400
+          uid=$(docker exec engine id -u); echo "runs as uid $uid"; test "$uid" != 0
+          docker rm -f engine
+      - name: Trivy 0.75.0 (checksum pinned)
+        run: |
+          curl -sSfL -o trivy.tgz https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz
+          echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  trivy.tgz" | sha256sum -c -
+          tar xzf trivy.tgz trivy
+      - name: Every finding, to code scanning
+        run: |
+          ./trivy image --scanners vuln --format sarif -o engine-image.sarif smartsumbong-engine:ci
+          ./trivy config --format sarif -o engine-config.sarif engine/Dockerfile
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: engine-image.sarif
+          category: trivy-engine-image
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: engine-config.sarif
+          category: trivy-engine-config
+      - name: Fail on a HIGH or CRITICAL finding that has a fix
+        run: |
+          ./trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 smartsumbong-engine:ci
+          ./trivy config --severity HIGH,CRITICAL --exit-code 1 engine/Dockerfile
+
   codeql:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
