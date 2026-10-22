@@ -10,6 +10,8 @@
 #     so a secret key (sb_secret_...) or service-role JWT is still caught.
 # The same files from the former separate tanod app (mobile/tanod, removed)
 # are in the history too.
+#   - RFC 8291's worked example (section 5): its sample auth secret is used
+#     as a fixed value in the Web Push tests. Published in the RFC; no key.
 # Anything else gitleaks finds is a real leak: rotate it, then remove it.
 [extend]
 useDefault = true
@@ -23,4 +25,5 @@ paths = [
 ]
 regexes = [
   '''sb_publishable_[A-Za-z0-9_-]+''',
+  '''BTBZMqHH6r4Tts7J_aSIgg''',
 ]
