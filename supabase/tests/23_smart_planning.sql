@@ -19,6 +19,7 @@ begin
   update public.users set verification_status = 'verified', verified_at = now() where id in (v_adm, v_adm2, v_res, v_t1, v_t2, v_t3);
   update public.users set role = 'admin' where id in (v_adm, v_adm2);
   v_log := 'setup ok';
+  perform set_config('request.jwt.claim.sub', v_adm::text, true);
 
   -- the roster: reports by weekday and 3-hour block, and who is usually on duty
   begin
@@ -26,8 +27,8 @@ begin
       insert into public.reports (resident_id, category, subject, description, latitude, longitude, created_at)
       values (v_res, 'barangay_service', 'Ilaw ' || i, 'Patay ang ilaw.', lat + i * 0.01, lng, (d + time '14:30') at time zone 'Asia/Manila');
     end loop;
-    insert into public.attendance (tanod_id, duty_status, logged_at, shift_date)
-    values (v_t1, 'on_duty', (d + time '14:10') at time zone 'Asia/Manila', d), (v_t2, 'on_duty', (d + time '14:20') at time zone 'Asia/Manila', d);
+    insert into public.attendance (tanod_id, duty_status, logged_at)
+    values (v_t1, 'on_duty', (d + time '14:10') at time zone 'Asia/Manila'), (v_t2, 'on_duty', (d + time '14:20') at time zone 'Asia/Manila');
     perform set_config('request.jwt.claim.sub', v_adm::text, true);
     j := public.smart_roster_suggestion(30);
     select x into j from jsonb_array_elements(j -> 'blocks') x
@@ -88,7 +89,7 @@ begin
   begin
     for i in 1..8 loop
       insert into public.reports (resident_id, category, subject, description, latitude, longitude, handler_id)
-      values (v_res, 'barangay_service', 'Gawa ' || i, 'Pakisuri.', lat, lng + i * 0.001, case when i <= 7 then v_adm else v_adm2 end) returning id into r;
+      values (v_res, 'barangay_service', 'Gawa ' || i, 'Pakisuri po ang problemang ito.', lat, lng + i * 0.001, case when i <= 7 then v_adm else v_adm2 end) returning id into r;
       insert into public.dispatches (report_id, tanod_id, assigned_by, state, assigned_at, accepted_at, resolved_at)
       values (r, case when i <= 6 then v_t1 when i = 7 then v_t2 else v_t3 end, v_adm, 'resolved',
               now() - interval '2 days', now() - interval '2 days' + interval '6 minutes', now() - interval '1 day');
