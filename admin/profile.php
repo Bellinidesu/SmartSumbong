@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/alerts.php';
 
 $admin = require_admin();
 $db    = db();
@@ -186,14 +187,18 @@ unset($_SESSION['flash']);
 
 $error = null;
 $me    = null;
+$browsers = [];
 
 try {
     $rows = $db->select('users', [
-        'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url',
+        'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url,'
+                  . 'muted_notification_kinds,push_scope,push_quiet_from,push_quiet_to,push_quiet_urgent',
         'id'     => 'eq.' . $admin['id'],
         'limit'  => '1',
     ]);
     $me = $rows[0] ?? null;
+    // their browsers with alerts on (0136); row-level security shows only their own
+    $browsers = $db->select('web_push_subscriptions', ['select' => 'id,endpoint,label,created_at,last_ok_at', 'order' => 'created_at.desc']);
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
 }
@@ -280,6 +285,67 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
       <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Last signed in', 'Huling pag-sign in')) ?></span><span class="ss-pf-v"><?= e(long_datetime($lastSeen)) ?></span><span></span></div>
     <?php endif; ?>
   </div>
+
+  <?php
+  // Alerts (0136): each person sets up what reaches them, on this browser and in the app on their phone.
+  $alMuted = (array) ($me['muted_notification_kinds'] ?? []);
+  $alFrom  = $me['push_quiet_from'] ?? null;
+  $alTo    = $me['push_quiet_to'] ?? null;
+  $alHour  = static fn (int $h): string => date('g A', mktime($h, 0, 0));
+  try { $vapid = env('VAPID_PUBLIC_KEY', ''); } catch (Throwable) { $vapid = ''; }
+  ?>
+  <p class="p-eyebrow ss-pf-sec" id="alerts"><?= e(t('Alerts', 'Mga alerto')) ?></p>
+  <div class="p-card p-card-pad ss-al" id="ss-al" data-vapid="<?= e($vapid) ?>" data-csrf="<?= e(csrf_token()) ?>">
+    <div class="ss-al-here">
+      <span class="ss-al-ico" aria-hidden="true"><?= p_icon('i-bell', 20) ?></span>
+      <div class="ss-al-what"><b><?= e(t('This browser', 'Ang browser na ito')) ?></b><small id="ss-al-state"><?= e($vapid === '' ? t('Browser alerts are not set up on this server yet.', 'Hindi pa naka-set up ang browser alerts sa server na ito.') : t('Checking…', 'Sinusuri…')) ?></small></div>
+      <div class="ss-al-btns">
+        <button type="button" class="p-btn p-btn-orange p-btn-sm" id="ss-al-on" hidden><?= e(t('Turn on alerts here', 'Buksan ang alerto rito')) ?></button>
+        <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="ss-al-off" hidden><?= e(t('Turn off here', 'Isara rito')) ?></button>
+        <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="ss-al-test"><?= e(t('Send me a test', 'Padalhan ako ng test')) ?></button>
+      </div>
+    </div>
+
+    <p class="ss-al-h"><?= e(t('What to alert me about', 'Ano ang ia-alerto sa akin')) ?></p>
+    <div class="ss-al-kinds">
+      <?php foreach (alert_kinds() as $k => [$name, $about]): ?>
+        <label class="p-pub"><span><b><?= e($name) ?></b><small><?= e($about) ?></small></span><input type="checkbox" role="switch" data-kind="<?= e($k) ?>"<?= in_array($k, $alMuted, true) ? '' : ' checked' ?>></label>
+      <?php endforeach; ?>
+    </div>
+
+    <div class="ss-al-pair">
+      <div>
+        <p class="ss-al-h" id="ss-al-scope-l"><?= e(t('Which cases', 'Aling mga kaso')) ?></p>
+        <div class="p-seg-mini" role="radiogroup" aria-labelledby="ss-al-scope-l" id="ss-al-scope">
+          <button type="button" role="radio" data-scope="all" aria-checked="<?= ($me['push_scope'] ?? 'all') === 'all' ? 'true' : 'false' ?>"<?= ($me['push_scope'] ?? 'all') === 'all' ? ' class="p-on"' : '' ?>><?= e(t('Every case', 'Lahat ng kaso')) ?></button>
+          <button type="button" role="radio" data-scope="mine" aria-checked="<?= ($me['push_scope'] ?? '') === 'mine' ? 'true' : 'false' ?>"<?= ($me['push_scope'] ?? '') === 'mine' ? ' class="p-on"' : '' ?>><?= e(t('Only cases I handle', 'Mga hawak ko lamang')) ?></button>
+        </div>
+      </div>
+      <div>
+        <p class="ss-al-h"><?= e(t('Quiet hours', 'Tahimik na oras')) ?></p>
+        <div class="ss-al-quiet">
+          <label class="p-sr" for="ss-al-from"><?= e(t('Quiet from', 'Tahimik mula')) ?></label>
+          <select class="p-input-plain" id="ss-al-from"><option value=""><?= e(t('Off', 'Wala')) ?></option><?php for ($h = 0; $h < 24; $h++): ?><option value="<?= $h ?>"<?= $alFrom !== null && (int) $alFrom === $h ? ' selected' : '' ?>><?= e($alHour($h)) ?></option><?php endfor; ?></select>
+          <span class="ss-al-to" id="ss-al-tow"><span aria-hidden="true"><?= e(t('to', 'hanggang')) ?></span>
+          <label class="p-sr" for="ss-al-to"><?= e(t('Quiet until', 'Tahimik hanggang')) ?></label>
+          <select class="p-input-plain" id="ss-al-to"><?php for ($h = 0; $h < 24; $h++): ?><option value="<?= $h ?>"<?= ($alTo !== null ? (int) $alTo : 6) === $h ? ' selected' : '' ?>><?= e($alHour($h)) ?></option><?php endfor; ?></select></span>
+        </div>
+        <label class="p-check ss-al-urgent"><input type="checkbox" id="ss-al-urgent"<?= ($me['push_quiet_urgent'] ?? true) ? ' checked' : '' ?>> <?= e(t('Still alert me for urgent cases', 'Alertuhan pa rin ako sa urgent na kaso')) ?></label>
+      </div>
+    </div>
+
+    <?php if ($browsers): ?>
+      <p class="ss-al-h"><?= e(t('Your browsers with alerts on', 'Mga browser mong may alerto')) ?></p>
+      <ul class="ss-al-list" id="ss-al-list">
+        <?php foreach ($browsers as $b): ?>
+          <li data-endpoint="<?= e((string) $b['endpoint']) ?>"><span><b><?= e((string) ($b['label'] ?: t('A browser', 'Isang browser'))) ?></b><small><?= e(t('Since ', 'Mula ') . long_datetime($b['created_at'])) ?><?= !empty($b['last_ok_at']) ? e(t(' · last alert ', ' · huling alerto ') . long_datetime($b['last_ok_at'])) : '' ?></small></span>
+            <button type="button" class="p-btn p-btn-ghost p-btn-sm" data-remove><?= e(t('Remove', 'Alisin')) ?></button></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+    <p class="st-note ss-al-note"><span id="ss-al-saved" role="status"></span><?= e(t('These choices also apply to the SmartSumbong app on your phone. Notifications here in the portal always keeps everything; only the alert is held back.', 'Ganito rin sa SmartSumbong app sa telepono mo. Laging kumpleto ang Notifications dito sa portal; ang alerto lamang ang hindi ipinapadala.')) ?></p>
+  </div>
+  <script src="assets/js/alerts.js?v=<?= e(asset_version('../js/alerts.js')) ?>" defer></script>
 <?php else: ?>
   <form method="post" id="profile-form" enctype="multipart/form-data" class="p-card p-card-pad ss-pf-form" data-native-confirm="<?= e(t('Save the changes to your account?', 'I-save ang mga pagbabago sa iyong account?')) ?>">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

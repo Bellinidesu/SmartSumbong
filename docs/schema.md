@@ -47,6 +47,7 @@ How the database fits the rest of the system is in
 | `account_audit` | Hash-chained log of account changes | 0014 |
 | `attendance` | Tanod duty logging | 0001 |
 | `device_tokens` | FCM push tokens | 0035 |
+| `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
 | `retirement_requests` | A tanod's request to retire, and the admin's decision | 0052 |
 | `profile_requests` | A resident's or tanod's name change or new ID photo, and the admin's decision | 0086 |
 | `login_attempts` | Lockout after repeated failures | 0031 |
@@ -170,6 +171,16 @@ policy by design. "Latest" is the migration that last redefined it.
 `workspace_save`, `workspace_numbers`, `workspace_risk`, `workspace_team`,
 `workspace_activity`, `workspace_find`, `workspace_photos`, `workspace_alarm_db`,
 `poll_vote`, `shift_checkin`, `shift_mood_totals`, `record_game_score` (0132).
+
+**Everyone: alerts** (each person's own; they apply to the app and the browser alike)
+
+| Function | Latest | Does |
+|---|---|---|
+| `set_notification_mute(kind, muted)` | 0044 | One kind of alert off or on (`verification` cannot be muted) |
+| `set_push_choices(scope, quiet_from, quiet_to, quiet_urgent)` | 0136 | Every case or only one's own; quiet hours (Manila) with urgent cases let through or not |
+| `web_push_subscribe` / `web_push_unsubscribe` | 0136 | A browser's alerts on or off (push services only) |
+| `push_test()` | 0136 | A test alert past every choice, once a minute; not kept in the inbox |
+| `push_plan(notification)` | 0136 | Service role only: whether the owner's choices let a push through, and to which phones and browsers (`send-dispatch-push` calls it) |
 
 **Tanod (app)**
 

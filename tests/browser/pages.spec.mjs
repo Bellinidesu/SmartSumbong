@@ -79,3 +79,17 @@ test('the barangay\'s places: listed in Settings, added from the map', async ({ 
   await expect(page.locator('.sh-done')).toContainText('Aling Nena Store');
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('alerts: each person sets up what reaches them (profile)', async ({ page }) => {
+  const r = await open(page, 'profile.php#alerts');
+  await expect(page.locator('#ss-al [data-kind]')).toHaveCount(5);
+  await page.locator('#ss-al [data-kind="escalation"]').uncheck();
+  await expect(page.locator('#ss-al-saved')).toContainText('Saved');
+  await page.locator('#ss-al-scope [data-scope="mine"]').click();
+  await expect(page.locator('#ss-al-scope [data-scope="mine"]')).toHaveAttribute('aria-checked', 'true');
+  await page.locator('#ss-al-from').selectOption('22');
+  await expect(page.locator('#ss-al-to')).toBeVisible();
+  await expect(page.locator('#ss-al-list li')).toHaveCount(1);
+  expect(await axe(page), 'the Alerts card').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
