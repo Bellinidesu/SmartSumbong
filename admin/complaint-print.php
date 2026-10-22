@@ -89,6 +89,11 @@ doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
   .cp .cp-media img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid #222; }
   .cp .cp-none { font-style: italic; color: #555; }
   .cp [hidden] { display: none !important; }
+  .cp-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.3in; }
+  .cp-foot .req { margin-right: 0; }
+  .cp-qr { margin: 0.6in 0 0; display: flex; align-items: center; gap: 10px; }
+  .cp-qr img { width: 1in; height: 1in; image-rendering: pixelated; }
+  .cp-qr figcaption { font-size: 8pt; line-height: 1.3; color: #444; }
   @media print { .maplibregl-ctrl { display: none !important; } }
 </style>
 
@@ -138,7 +143,14 @@ doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
   </div>
   <?php endif; ?>
 
-  <?php doc_requested_by($by); ?>
+  <?php // A code staff can scan from the paper to open this case (22 Oct 2026); it sits level with "Requested by". ?>
+  <div class="cp-foot">
+    <?php if (!$error && $report): require_once __DIR__ . '/includes/qr.php'; ?>
+    <figure class="cp-qr"><img src="<?= e(qr_data_uri(portal_url('case.php?id=' . $id))) ?>" alt="QR code that opens complaint <?= e((string) $report['tracking_id']) ?> in the barangay portal" width="96" height="96">
+      <figcaption><?= e((string) $report['tracking_id']) ?><br>Scan to open this case<br>(barangay staff)</figcaption></figure>
+    <?php endif; ?>
+    <?php doc_requested_by($by); ?>
+  </div>
 </div>
     </div></div>
     <div class="cd-tools" role="toolbar" aria-label="Zoom">
