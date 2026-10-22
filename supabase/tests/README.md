@@ -1,6 +1,6 @@
 # Database checks
 
-Twenty-three scripts (337 checks) that walk the whole system through the real
+Twenty-four scripts (344 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -30,6 +30,7 @@ it does is saved. Add a check here for every new behaviour.
 | `21_smart_explain.sql` | 6 checks (0140): an admin's dispatch saves SMART's rank of the tanod chosen with the reasons, and the stats count the top picks; resolving a case asks the resident "Was it fixed?" once; only the owner answers, once, and "not fixed" tells every administrator; "not fixed" is a queue stage until the barangay answers or reopens; the resident's sentence in both languages with reasons and no number; engine health and the statistics are for administrators |
 | `22_smart_rule_versions.sql` | 6 checks (0141): the rules as they were are version 1, with the word list and without the switches; an administrator changes a rule with a reason and it is a new version in the history and the log, while no reason, a switch, the id or a resident are refused; storm mode and the digest are not versions but a word-list change is; a new score carries its version and an override does not change it; replay shows what would move and saves nothing; a rollback restores the rules and the word list as one new version |
 | `23_smart_planning.sql` | 4 checks (0142): the roster counts reports by weekday and 3-hour block with the tanods usually on duty and the gap; a recurring problem becomes one work order with its reports as evidence, one open order per problem, refusals, a resident cannot; the forecast gives next week's open cases and says the seasonal forecast needs a year of history; fairness shows each tanod's share and how fast they accept and flags one tanod with most of the work, and all four views are for administrators |
+| `24_command_center.sql` | 7 checks (0143): reading (knee-deep, half-knee before knee, "walang baha", stretched letters, people inside, cracks after a quake; a sore knee is not a flood); SMART suggests Flood Watch at three reports from three residents in words, "not now" quiets it, a PAGASA signal suggests Typhoon Board; Flood Watch on with a reason once, the board, cells, checklist, handover; switching to Fire Surroundings closes the flood session and names what is within 50/100/200 m and the nearest tanod; Quake Check lists schools not fuel stations, a place is marked, the feed, ending needs a note; the auto switch (off does nothing, on turns a mode on as SMART and tells the administrators, never twice); the hall display shows counts only by a link kept as a hash and turned off at will, tanods see the banner, residents are refused |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

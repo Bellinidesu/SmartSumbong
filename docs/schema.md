@@ -50,6 +50,10 @@ How the database fits the rest of the system is in
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
 | `engine_jobs` | Work handed to the engine (`engine/`): ID photos to read, with tries and the last error | 0137 |
 | `smart_events` | What SMART decided and what people did with it: picks, "was it fixed?" questions and answers; kept 180 days | 0140 |
+| `command_modes`, `command_tags`, `command_words`, `command_checklist`, `command_place_kinds` | The command center's four modes, what each reads (depth on MMDA's flood gauge, fire and damage words), each mode's checklist, and the places a quake check or fire surroundings names | 0143 |
+| `command_sessions` | One command-center mode at a time: who turned it on (or SMART, by the auto switch), why, and the closing note | 0143 |
+| `command_checks`, `command_place_checks`, `command_handovers` | Checklist ticks, places checked, and handovers (a note with the counts) of a session | 0143 |
+| `command_state`, `command_reads`, `command_display_links` | The auto switch and "not now"; each report's reading, kept; hall display links (a hash of the secret only) | 0143 |
 | `smart_work_orders` | A recurring problem kept as one permanent-fix item for the council, with its reports as evidence | 0142 |
 | `smart_rule_versions` | Every version of SMART's scoring rules and word list, with who, when and why | 0141 |
 | `resolution_checks` | "Naayos na ba? / Was it fixed?" asked of the resident when a case is resolved, and the answer | 0140 |
@@ -170,6 +174,9 @@ policy by design. "Latest" is the migration that last redefined it.
 | `engine_status` | 0137 | The engine: set up or not, read and waiting, could not read |
 | `confirm_fix(report, fixed, note)` | 0140 | The resident answers "Was it fixed?" once, within 14 days; "no" tells the admins and queues a recheck |
 | `smart_why_order(report)` | 0140 | A plain sentence (English and Tagalog) on why a report is where it is; the owner or an admin |
+| `command_board`, `command_feed`, `command_suggest` | 0143 | The board of a mode (one envelope for all four), what happened, and SMART's suggestion with its reason |
+| `command_start`, `command_handover`, `command_end`, `command_check`, `command_place_check`, `command_dismiss`, `command_set_auto` | 0143 | Turn a mode on (a reason) or off (a note), hand over, tick, mark a place, put a suggestion off, the auto switch |
+| `command_hall`, `command_display_link_create`, `command_display_link_revoke`, `command_now` | 0143 | The hall display (counts only, by a link; anon may call it with a live link), its links, and the app's banner |
 | `smart_roster_suggestion`, `smart_forecast`, `smart_fairness` | 0142 | Duty roster suggested by weekday and 3-hour block; the open cases a week ahead and the kinds expected; how the work is shared |
 | `smart_workorder_create`, `smart_workorder_set` | 0142 | Open a work order from a recurring problem; move it open, planned, done or dropped |
 | `smart_save_rules`, `smart_rollback`, `smart_rule_history`, `smart_replay` | 0141 | Change SMART's rules with a reason; roll back to a version; list the versions; try a change on recent reports without making it |

@@ -429,6 +429,65 @@ nothing in them is enforced.
   noted as a reason to look, never a verdict: the nearest tanod often has
   the most.
 
+## 25. The command center (0143, Iteration 4)
+
+Spatial Distribution turns into a command center for one situation at a
+time. It shows and presents; it does not predict. Every line is what
+residents reported, where and when: "reported knee-deep", "within 100 m",
+"as of 3:40 PM", "tagged by 3 reports". Never "likely", "spread" or a risk
+score. Sensitive cases (0130) stay off the board and the hall display.
+
+**The four modes**
+
+| Mode | What it reads | What the board shows |
+|---|---|---|
+| Fire Surroundings | fire and gas-leak words; smoke, flames, gas, people inside | each place a fire is reported (reports within 150 m are one site), and what is within 50, 100 and 200 m: fuel stations, schools, clinics, churches; other reports; the nearest fire station; the nearest tanods on duty with a fresh location |
+| Quake Check | quake words; cracks, broken glass, things fell, collapsed, injured | damage by 100 m square, and the public buildings inside the barangay to check one by one (OK, damage seen, closed) |
+| Flood Watch | flood words; depth on **MMDA's flood gauge** (gutter 8 in, half-knee 10, half-tire 13, knee 19, tire 26, waist 37, chest 45, above the chest) | the worst depth reported in each 100 m square, with Project NOAH's flood zone for that square |
+| Typhoon Board | storm words; flood water, roofing, fallen trees, power lines, collapse, injured | PAGASA's wind signal over Metro Manila, storm mode, and damage by 100 m square |
+
+**Reading.** `_command_read` uses the engine's own tokens, spelling list and
+roots ("binaha" is "baha", "sunoooog" is "sunog"). Phrases are read first
+and taken out, so "kalahating tuhod" is half-knee and not knee. A word after
+hindi, wala or walang is not read ("walang baha"). For flood and fire a
+detail word counts only in a report about the mode ("masakit ang tuhod" is
+not a flood); for quake and typhoon a damage word alone puts a report on the
+board. Readings are kept per report (`command_reads`) and forgotten when the
+report's words, the mode words or the keyword groups change.
+
+**The grid** is square cells of 100 m in true metres (UTM zone 51N).
+
+**Turning a mode on.** An administrator turns a mode on with a reason, or
+accepts SMART's suggestion. SMART suggests a mode when enough reports about
+it came from enough residents lately (fire: 2 from 2 in an hour; quake: 3
+from 2 in an hour; flood: 3 from 2 in 3 hours; typhoon: 4 from 3 in 6 hours,
+or storm mode, or a PAGASA wind signal over Metro Manila), with the reason
+in words. "Not now" quiets a suggestion for two hours. One mode is on at a
+time; turning another on closes the first, noted as switched.
+
+**The auto switch** (Settings → SMART → Command center) is off unless an
+administrator turns it on. When on, a check every five minutes turns on what
+SMART would suggest and tells the administrators. **SMART can switch a mode
+on; only a person switches it off**, with a closing note.
+
+**While a mode is on:** a checklist for the mode (what a barangay does, in
+order); places marked during a quake check; handovers, each a note with the
+counts and the checklist as they stood, told to the other administrators;
+and a feed of what happened (reports filed, status changes, dispatches,
+SMART's events, ticks, places). Every session is kept with who turned it
+on, why, and the closing note.
+
+**The hall display** (`hall.php?k=...`) shows counts only: filed today, open
+now, finished today, tanods on duty, and the mode's counts and checklist
+progress. No names, places or tracking numbers. A television has no account,
+so it opens with a display link made in Settings; only the SHA-256 of the
+link's secret is kept, the secret is shown once (with a QR code), and a link
+can be turned off at any time. The page refreshes itself every 30 seconds
+without a script.
+
+**On the phone**, `command_now()` tells a tanod or administrator which mode
+is on, for a banner.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
