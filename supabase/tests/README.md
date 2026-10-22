@@ -1,6 +1,6 @@
 # Database checks
 
-Fifteen scripts (289 checks) that walk the whole system through the real
+Sixteen scripts (299 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -21,6 +21,7 @@ it does is saved. Add a check here for every new behaviour.
 | `12_defense_structure.sql` | 12 checks (0130): positions and committees, the escalation ladder (Kagawad by committee, then the Chairman, and back down), several concerns in one report, sensitive cases (marked on filing, kept out of the waiting line) |
 | `13_three_briefings.sql` | 4 checks (0131): the morning, afternoon and night briefings read right, an unknown period is refused, they reach every administrator and honour the switch, all three are scheduled |
 | `14_workspace_widgets.sql` | 10 checks (0132): each person's widgets and notes kept private, the lead's settings and switches, team posts (who may post what, text never edited), polls, staff birthdays / leave / credentials / roster with late and weekly hours, patrol checkpoints, the private shift check-in and its totals, relief packs and safe-point notes, minigame bests, and the widget reads answering staff only |
+| `16_places.sql` | 10 checks (0134): the curated landmarks as the barangay's own places; search forgiving shorthand, slips and accents; a chain counted once; kind words (botika, simbahan, botika malapit) listing that kind nearest first; filing an Overpass answer (map id, a street once, a pharmacy as health); a removed place going inactive, an empty or failed answer changing nothing and trying the next mirror; the schedule; admins' own places (alias, 5 km, map places untouched); residents search but cannot add |
 | `15_smart_word_forms.sql` | 6 checks (0133): the present tense (bumabaha, sinusunog, kinakagat), doubled words and stretched letters, English endings (wires, stabbing, crashed, fires), no over-reading (bigas, pulis) and negation still cancelling, 0125's forms unchanged (and batas, law, not read as bata), the helpers kept from residents |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few

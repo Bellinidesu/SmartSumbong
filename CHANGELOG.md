@@ -97,6 +97,11 @@ Changes on `main` not yet deployed belong here.
   residents stay anonymous. Made with OpenSpout (MIT), the portal's first
   library through Composer.
 
+**Added (Spatial, 22 Oct)**
+- Layers → **Density**: the complaints the filters show, counted in hexagons
+  about 66 m across, coloured by count (1, 3, 6, 10 or more); click one for
+  its count. It follows the filters and the time slider. Off until switched on.
+
 **Changed (search, 22 Oct)**
 - Spatial's search finds places the way Google Maps does: every named place
   and street in and around the barangay from OpenStreetMap, refreshed every

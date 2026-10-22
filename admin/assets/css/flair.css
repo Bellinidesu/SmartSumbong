@@ -545,6 +545,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .map-sw--transit:has(input:checked) circle { opacity: 1; }
 /* Air quality: a green haze that drifts, with specks in it */
 .map-sw--air { background: #2A4A45; --tick: #2A6B55; }
+.map-sw--grid { background: #4A2B22; --tick: #B5532A; }
 .map-sw--air .scene span { position: absolute; border-radius: 50%; filter: blur(8px); transform: scale(.3); opacity: .5; transition: transform .6s cubic-bezier(.4,1.3,.5,1), opacity .4s; }
 .map-sw--air .scene span:nth-child(1) { width: 70px; height: 50px; left: 0; top: 30%; background: #34C759; }
 .map-sw--air .scene span:nth-child(2) { width: 60px; height: 46px; left: 32%; top: 10%; background: #F9C74F; }
@@ -585,7 +586,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .ss-lyr .map-sw:has(input:checked) .scene { filter: none; box-shadow: 0 0 0 3px var(--p-orange), 0 6px 14px rgba(0,0,0,.3); }
 .ss-lyr .map-sw:has(input:focus-visible) { outline: none; } .ss-lyr .map-sw:has(input:focus-visible) .scene { box-shadow: 0 0 0 3px var(--p-link); }
 .ss-lyr .map-sw--heat .scene { background: #2B2026; } .ss-lyr .map-sw--noah .scene { background: #333438; } .ss-lyr .map-sw--dim .scene { background: #3B4D7E; }
-.ss-lyr .map-sw--transit .scene { background: #26356F; } .ss-lyr .map-sw--air .scene { background: #2A4A45; } .ss-lyr .map-sw--safe .scene { background: #1D4A3A; }
+.ss-lyr .map-sw--transit .scene { background: #26356F; } .ss-lyr .map-sw--air .scene { background: #2A4A45; } .ss-lyr .map-sw--safe .scene { background: #1D4A3A; } .ss-lyr .map-sw--grid .scene { background: #4A2B22; }
 .ss-lyr .map-sw > i { position: absolute; top: 6px; left: 6px; z-index: 2; width: 22px; height: 22px; }
 .ss-lyr .map-sw b { position: static; font-size: 12px; font-weight: 700; letter-spacing: 0; white-space: normal; line-height: 1.2; color: var(--p-ink); text-shadow: none; }
 .ss-lyr .map-sw b em { display: block; font-size: 10.5px; font-weight: 600; color: var(--p-muted); opacity: 1; }
@@ -603,7 +604,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .ss-lyr .map-sw--transit .scene svg.mk-ic { filter: drop-shadow(0 0 4px rgba(10,16,40,.9)) drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
 /* on: a thin white ring and a soft halo in the layer's own colour */
 .ss-lyr .map-sw--heat { --lc: #FF8A3D; } .ss-lyr .map-sw--noah { --lc: #2F6BFF; } .ss-lyr .map-sw--dim { --lc: #8DB2FF; }
-.ss-lyr .map-sw--transit { --lc: #5FA8FF; } .ss-lyr .map-sw--air { --lc: #43D6A0; } .ss-lyr .map-sw--safe { --lc: #34C759; }
+.ss-lyr .map-sw--transit { --lc: #5FA8FF; } .ss-lyr .map-sw--air { --lc: #43D6A0; } .ss-lyr .map-sw--safe { --lc: #34C759; } .ss-lyr .map-sw--grid { --lc: #FF9F43; }
 .ss-lyr .map-sw:has(input:checked) .scene { box-shadow: 0 0 0 2px #fff, 0 0 0 5px color-mix(in srgb, var(--lc) 55%, transparent), 0 8px 18px rgba(0,0,0,.35); }
 .ss-lyr .map-sw:has(input:checked) b { color: var(--p-ink); }
 .ss-lyr .map-sw:has(input:focus-visible) .scene { box-shadow: 0 0 0 3px var(--p-link); }
@@ -640,6 +641,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 /* safe points: the shield fills white and the plus is cut out of it */
 .ss-lyr .ti.safe .sh { fill: transparent; transition: fill .35s; } .ss-lyr .ti.safe .pl { transition: opacity .25s; }
 .ss-lyr .map-sw:has(input:checked) .ti.safe .sh { fill: #fff; } .ss-lyr .map-sw:has(input:checked) .ti.safe .pl { opacity: 0; }
+.ss-lyr .ti.grid .hx2 { fill: transparent; transition: fill .35s; } .ss-lyr .map-sw:has(input:checked) .ti.grid .hx2 { fill: #fff; }
 /* Project NOAH: the old logo, and when it is on the signal pings */
 .ss-lyr .np { position: absolute; left: 64%; top: 27%; width: 0; height: 0; }
 .ss-lyr .np i { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%; border: 1.6px solid #fff; opacity: 0; transform: scale(.3); }
@@ -650,7 +652,7 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 
 /* on: the tile glows in its own colour (or both ends of its gradient), no outline */
 .ss-lyr .map-sw--heat { --g1: #FF8A3D; --g2: #C2185B; } .ss-lyr .map-sw--noah { --g1: #1A8CFF; --g2: #6FD0FF; } .ss-lyr .map-sw--dim { --g1: #8DB2FF; --g2: #4B5F96; }
-.ss-lyr .map-sw--transit { --g1: #6B8CFF; --g2: #2F4FD6; } .ss-lyr .map-sw--air { --g1: #F9C74F; --g2: #43AA8B; } .ss-lyr .map-sw--safe { --g1: #34C759; --g2: #0F9D9A; }
+.ss-lyr .map-sw--transit { --g1: #6B8CFF; --g2: #2F4FD6; } .ss-lyr .map-sw--air { --g1: #F9C74F; --g2: #43AA8B; } .ss-lyr .map-sw--safe { --g1: #34C759; --g2: #0F9D9A; } .ss-lyr .map-sw--grid { --g1: #FFB15C; --g2: #C2410C; }
 .ss-lyr .lyr-list .map-sw.tile:has(input:checked) .scene { box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), 0 0 14px 1px var(--g1), 0 6px 24px var(--g2); animation: tiGlow 2.6s ease-in-out infinite; }
 @keyframes tiGlow { 50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), 0 0 20px 3px var(--g1), 0 8px 32px var(--g2); } }
 /* Project NOAH: the real logo in two layers (letters and signal on top, water and wave below); the water flows when it is on */

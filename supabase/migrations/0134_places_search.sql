@@ -177,12 +177,16 @@ declare
 begin
   if length(q) < 2 then return; end if;
 
-  -- a kind of place on its own ("botika", "simbahan", "pharmacy near me"), unless a place is named so
+  -- a kind of place on its own ("botika", "simbahan malapit", "pharmacy near me"): every word a kind word or a
+  -- little word, so a name that holds one ("Shrine of St. Therese") is still searched as a name
   select k.grp into v_kind
     from public.place_kinds k, unnest(regexp_split_to_array(q, ' ')) w
    where w = any (k.words) and k.grp <> 'street'
    group by k.grp order by count(*) desc, k.grp limit 1;
-  if v_kind is not null and q !~ '[0-9]' and coalesce(array_length(regexp_split_to_array(q, ' '), 1), 0) <= 3
+  if v_kind is not null
+     and not exists (select 1 from unnest(regexp_split_to_array(q, ' ')) w
+                      where not exists (select 1 from public.place_kinds k where w = any (k.words))
+                        and w not in ('near', 'me', 'nearby', 'nearest', 'malapit', 'pinakamalapit', 'sa', 'ng', 'na', 'the', 'a', 'in', 'around', 'dito', 'here'))
      and not exists (select 1 from public.places p where p.active and p.search_text like q || '%') then
     return query
       select p.id, p.name, p.grp, p.kind, p.lat, p.lng, round(st_distance(p.geom, here))::integer, 1, p.source, p.info
