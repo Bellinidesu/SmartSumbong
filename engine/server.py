@@ -8,7 +8,7 @@ The database asks (engine_tick, 0137), with the shared secret in x-engine-secret
 or Cloudinary credential: it reads only the photo the database signed a link for, and only from the barangay's
 own Cloudinary ID folder. It keeps nothing: the photo and the text live in memory for one request, and the log
 has times and sizes, never names or numbers. PaddleOCR's PP-OCR models (Apache-2.0) through RapidOCR
-(Apache-2.0) on ONNX Runtime (MIT), one photo at a time, one thread: it fits a small instance.
+(Apache-2.0) on ONNX Runtime (MIT), one photo at a time, one thread: about 220 MB at its peak.
 """
 import hmac
 import json
@@ -36,8 +36,12 @@ def ocr():
     global _ocr
     if _ocr is None:
         from rapidocr import RapidOCR
+        # Measured (22 Oct 2026): RapidOCR's defaults enlarge the photo to find text and peaked at 482 MB on a
+        # 1600 px photo. Shrinking instead (longest side 736 for finding text), one line at a time, on a 1024 px
+        # photo: about 220 MB at peak, 80 MB idle, 0.4 s a card, and as accurate (tools/ocr_lab).
         _ocr = RapidOCR(params={'EngineConfig.onnxruntime.intra_op_num_threads': 1,
-                                'EngineConfig.onnxruntime.inter_op_num_threads': 1})
+                                'EngineConfig.onnxruntime.inter_op_num_threads': 1,
+                                'Det.limit_type': 'max', 'Det.limit_side_len': 736, 'Rec.rec_batch_num': 1})
     return _ocr
 
 

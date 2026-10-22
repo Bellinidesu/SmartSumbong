@@ -184,7 +184,8 @@ begin
   end loop;
 
   for j in select * from public.engine_jobs where state = 'waiting' order by created_at limit 2 for update skip locked loop
-    v_link := public._cld_sign(j.photo_url, 'c_limit,w_1600', c.cloudinary);
+    -- 1024 px wide is plenty for a card's print and keeps the engine near 220 MB (engine/server.py)
+    v_link := public._cld_sign(j.photo_url, 'c_limit,w_1024', c.cloudinary);
     if v_link is null then
       update public.engine_jobs set state = 'failed', last_error = 'not a private ID photo' where id = j.id;
       continue;

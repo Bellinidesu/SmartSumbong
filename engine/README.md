@@ -6,7 +6,7 @@ the work needs memory the portal's instance does not have.
 
 | Job | What | Since |
 |---|---|---|
-| Reading ID photos | The card's type, name and number, with PaddleOCR (tools/ocr_lab), judged by `_smart_verify` (0126) | 0137 |
+| Reading ID photos | The card's type, name and number, with PaddleOCR (tools/ocr_lab), judged by `_smart_verify` (0126); about 220 MB at peak, 80 MB idle, 0.4 s a card | 0137 |
 
 How a job flows: `engine-tick` (pg_cron, every minute) queues what needs doing, signs one Cloudinary link per
 photo, and posts it to `/read` with the shared secret; the next tick files the answer. The engine has no

@@ -163,8 +163,9 @@ Free instances sleep after about 15 minutes idle; the database pings
 ### The engine (Render, a second service)
 
 `engine/` reads ID photos on the server (0137; tools/ocr_lab for why
-PaddleOCR). It needs about 300 MB of memory, so it does not share the
-portal's instance: one tight moment there would take the portal down.
+PaddleOCR). It needs about 220 MB of memory at its peak (80 MB idle), so it
+does not share the portal's instance: one tight moment there would take the
+portal down.
 
 1. Render → New → Web Service → this repository, branch `main`, Docker,
    **Root Directory `engine`** (it has its own Dockerfile), region Singapore.

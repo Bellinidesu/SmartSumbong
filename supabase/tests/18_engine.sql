@@ -20,8 +20,8 @@ begin
 
   -- links are signed exactly as the portal signs them (cld_private_url, a reference value made with PHP)
   begin
-    t := public._cld_sign(photo, 'c_limit,w_1600', 'not-a-real-secret');
-    if t <> 'https://res.cloudinary.com/nwb2kryl/image/authenticated/s--Ow_mwAfX--/c_limit,w_1600/v1760000000/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg' then
+    t := public._cld_sign(photo, 'c_limit,w_1024', 'not-a-real-secret');
+    if t <> 'https://res.cloudinary.com/nwb2kryl/image/authenticated/s--H7uQKTzb--/c_limit,w_1024/v1760000000/ids/0d9c6c1e-5b7a-4c1e-9a52-3f1f2b6d8e11.jpg' then
       raise exception 'signed: %', t;
     end if;
     if public._cld_sign(replace(photo, '/authenticated/', '/upload/'), 'c_limit,w_1600', 'x') is not null then raise exception 'signed a public link'; end if;

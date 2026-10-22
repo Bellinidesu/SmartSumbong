@@ -1,8 +1,12 @@
 # SmartSumbong engine (0137): the work the database hands out, starting with reading ID photos.
 # Build context: engine/ (Render: Root Directory "engine"). Its own image, apart from the portal's.
-FROM python:3.12.14-slim-bookworm
+# 3.12.15: newer than two weeks, taken for its security fixes (Debian's libpcre2 and perl among them)
+FROM python:3.12.15-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Debian's security updates since the base image was built
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /engine
 COPY requirements.txt models.sha256 ./
