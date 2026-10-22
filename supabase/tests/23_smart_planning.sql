@@ -36,9 +36,7 @@ begin
     if j is null then raise exception 'no row for the Wednesday-style block of the test day'; end if;
     if (j ->> 'reports')::int < 4 or (j ->> 'suggested')::int < 1 then raise exception 'row %', j; end if;
     if (j ->> 'usual')::numeric < 2 then raise exception 'usual on duty % (two tanods logged)', j ->> 'usual'; end if;
-    if (j ->> 'gap')::int <> (j ->> 'suggested')::int - (j ->> 'usual')::numeric::int and (j ->> 'gap')::numeric <> (j ->> 'suggested')::numeric - (j ->> 'usual')::numeric then
-      raise exception 'gap %', j;
-    end if;
+    if (j ->> 'gap')::numeric <> (j ->> 'suggested')::numeric - (j ->> 'usual')::numeric then raise exception 'gap %', j; end if;
     v_log := v_log || E'\n' || 'ok  the roster suggestion counts reports by weekday and 3-hour block and the tanods usually on duty, with the gap';
   exception when others then v_log := v_log || E'\n' || 'FAIL roster: ' || sqlerrm; end;
 
