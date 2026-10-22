@@ -1361,6 +1361,12 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .sx-in input::-webkit-search-cancel-button { display: none; }
 .sx-in kbd { font: 700 11px Inter, sans-serif; padding: 2px 7px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-muted); }
 .sx-res { max-height: min(54vh, 420px); overflow: auto; margin-top: 8px; scrollbar-width: thin; display: grid; gap: 2px; }
+/* Kinds of place, one tap (0134): shown before anything is typed. */
+.sx-kinds { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 6px 4px; }
+.sx-kind { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--p-surface-2); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-ink); font: 700 12.5px Inter, sans-serif; cursor: pointer; }
+.sx-kind i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+.sx-kind:hover { box-shadow: inset 0 0 0 1.5px var(--c); }
+.sx-kind:focus-visible { outline: 2px solid var(--p-orange); outline-offset: 2px; }
 .sx-h { padding: 10px 8px 4px; font: 800 10.5px Urbanist, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--p-muted); }
 .sx-r { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 7px 8px; border: 0; border-radius: 12px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
 .sx-r:hover, .sx-r.cur { background: color-mix(in srgb, var(--c) 16%, transparent); }
@@ -1368,7 +1374,7 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 .sx-i { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--c) 70%, #fff), var(--c) 70%); box-shadow: 0 3px 8px color-mix(in srgb, var(--c) 40%, transparent); }
 .sx-i svg { width: 18px; height: 18px; }
 .sx-t { min-width: 0; } .sx-t b { display: block; font: 700 14px Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sx-t small { margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: capitalize; }
+.sx-t small { margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sx-none { margin: 12px 8px; color: var(--p-muted); font: 600 13px Inter, sans-serif; }
 .sx-pulse, .sh-pin { width: 18px; height: 18px; pointer-events: none; position: relative; }
 .sx-pulse i, .sh-pin i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #FF8A3D; animation: sxPing 1.8s cubic-bezier(.2,.6,.4,1) infinite; }

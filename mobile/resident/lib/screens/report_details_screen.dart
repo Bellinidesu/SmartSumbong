@@ -180,10 +180,71 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
 
   // ---------- location ---------------------------------------
 
-  /// Places matching what is typed, from Photon (komoot's open-source
-  /// geocoder over OpenStreetMap, made for search-as-you-type), limited to
-  /// the barangay's box and then to its outline.
+  /// Places matching what is typed: first the barangay's own search
+  /// (search_places, 0134: OpenStreetMap refreshed every six hours plus the
+  /// barangay's own places; it forgives slips and shorthand and knows
+  /// Tagalog words for kinds of place, like "botika" or "simbahan"), then
+  /// Photon (komoot's open-source geocoder) for anything it does not have.
+  /// Only places inside the barangay's outline are offered.
   Future<List<_Place>> _lookup(String q) async {
+    final out = <_Place>[];
+    try {
+      final rows = await Supabase.instance.client.rpc('search_places', params: {
+        'p_q': q,
+        'p_lat': _pin.latitude,
+        'p_lng': _pin.longitude,
+        'p_limit': 8,
+      }).timeout(const Duration(seconds: 6)) as List;
+      if (!mounted) return out;
+      for (final r in rows) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final at = LatLng((m['lat'] as num).toDouble(), (m['lng'] as num).toDouble());
+        if (!insideBrgy(_rings, at)) continue;
+        final kind = _kindName(m['grp'] as String?);
+        final n = (m['branches'] as num?)?.toInt() ?? 1;
+        out.add(_Place('${m['name']}', [
+          ?kind,
+          if (n > 1) context.tr('$n branches, nearest shown', '$n sangay, pinakamalapit ang ipinapakita'),
+          'Barangay 183',
+        ].join(' · '), at));
+        if (out.length == 5) return out;
+      }
+    } catch (_) {
+      // Offline or the search is down: Photon below may still answer.
+    }
+    try {
+      for (final p in await _photon(q)) {
+        if (out.any((o) => o.title.toLowerCase() == p.title.toLowerCase())) continue;
+        out.add(p);
+        if (out.length == 5) break;
+      }
+    } catch (_) {
+      if (out.isEmpty) rethrow;
+    }
+    return out;
+  }
+
+  /// The kind of place, in the app's language, for a search_places group.
+  String? _kindName(String? grp) => switch (grp) {
+        'health' => context.tr('Health', 'Kalusugan'),
+        'school' => context.tr('School', 'Paaralan'),
+        'worship' => context.tr('Church', 'Simbahan'),
+        'safety' => context.tr('Police and fire', 'Pulis at bumbero'),
+        'hall' => context.tr('Barangay hall', 'Bulwagan ng barangay'),
+        'government' => context.tr('Government', 'Gobyerno'),
+        'transport' => context.tr('Transport', 'Sakayan'),
+        'food' => context.tr('Food', 'Pagkain'),
+        'shop' => context.tr('Shop', 'Tindahan'),
+        'service' => context.tr('Bank and service', 'Bangko at serbisyo'),
+        'lodging' => context.tr('Hotel', 'Tuluyan'),
+        'park' => context.tr('Park', 'Parke'),
+        'street' => context.tr('Street', 'Kalye'),
+        _ => null,
+      };
+
+  /// Photon (komoot's open-source geocoder over OpenStreetMap, made for
+  /// search-as-you-type), limited to the barangay's box.
+  Future<List<_Place>> _photon(String q) async {
     final uri = Uri.https('photon.komoot.io', '/api/', {
       'q': q,
       'limit': '8',
