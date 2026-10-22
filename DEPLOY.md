@@ -160,6 +160,35 @@ Nothing on Render needs the service-role key.
 Free instances sleep after about 15 minutes idle; the database pings
 `/admin/ping.php` every 10 minutes (`keep-portal-awake`) so this one does not.
 
+### The engine (Render, a second service)
+
+`engine/` reads ID photos on the server (0137; tools/ocr_lab for why
+PaddleOCR). It needs about 220 MB of memory at its peak (80 MB idle), so it
+does not share the portal's instance: one tight moment there would take the
+portal down.
+
+1. Render → New → Web Service → this repository, branch `main`, Docker,
+   **Root Directory `engine`** (it has its own Dockerfile), region Singapore.
+2. Environment: `ENGINE_SECRET` = a long random value (also into Vault below).
+   Nothing else: the engine holds no database or Cloudinary key.
+3. Deploy, then open `https://<engine>/health` (answers `{"ok": true}`).
+4. Vault (SQL editor), so the database can hand it work:
+
+   ```sql
+   select vault.create_secret('https://<engine>.onrender.com', 'engine_url');
+   select vault.create_secret('<the ENGINE_SECRET value>', 'engine_secret');
+   select vault.create_secret('<CLOUDINARY_API_SECRET>', 'cloudinary_api_secret');
+   ```
+
+   The database signs one link per photo with the Cloudinary secret and
+   sends only that link. Settings → System status → Engine then says *On*.
+5. Portal: `ID_OCR_ENABLED` in `admin/includes/accounts.php` to `true`, so
+   Residents shows the readings and the rescan button.
+
+On a free instance the engine sleeps when idle and takes up to a minute to
+wake for the next photo, which the queue allows for; but Render's free hours
+are shared by every free service, and the portal alone uses most of them.
+
 ## 6. GitHub
 
 Settings → Secrets and variables → Actions:

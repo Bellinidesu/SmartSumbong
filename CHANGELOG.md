@@ -108,6 +108,17 @@ Changes on `main` not yet deployed belong here.
   (it only works for a signed-in administrator). Made on the server with
   chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
 
+**Added (the engine, 22 Oct)**
+- The engine: heavy work runs on the server, not the phone (Ace: the
+  portal's features and labs run as engine functions). Its first job reads
+  each new sign-up's ID photo with PaddleOCR (the OCR lab's pick): the card's
+  type, the name and the number, judged by the same checks as before (0126).
+  On invented cards: 48/48 clean, 42/48 good photos, 48/48 poor, 32/48 badly
+  blurred; about 220 MB of memory at its peak. The app no longer needs an OCR model. The engine is its own small
+  service (`engine/`) with no database or Cloudinary key; the database queues
+  the photos, signs one link each, and files the answers every minute (0137).
+  Settings → System status shows it. A reading never verifies anyone.
+
 **Added (alerts, 22 Oct)**
 - Alerts that each person sets up (Profile → Alerts): which kinds (overdue
   cases, SMART warnings, things to do, dispatch changes, personnel), every

@@ -130,12 +130,13 @@ mobile/
   core/                     shared Flutter package: auth, uploads, push, OCR, biometrics, offline cache
   resident/                 the SmartSumbong app; tanod screens under lib/tanod/
 supabase/
-  migrations/               0001–0136, applied in order, never edited once applied
+  migrations/               0001–0137, applied in order, never edited once applied
   baseline/                 the whole schema as one generated file, proven equal to the migrations
   functions/                Edge Functions: delete-account, media-cleanup, password-otp,
                             send-dispatch-push, sign-upload
   tests/                    rolled-back database checks and the query performance budget
   seed.sql, config.toml     SLA guide hours and boundary; per-function JWT settings
+engine/                   the engine: work the database hands out (reading ID photos), its own small service
 docs/                     architecture, operations, incidents, schema, SMART, widgets, panel asks
 tools/                    builders for the portal's map data (transit routes, safe points)
 scripts/                  one-off maintenance scripts

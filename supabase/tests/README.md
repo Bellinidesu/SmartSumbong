@@ -1,6 +1,6 @@
 # Database checks
 
-Seventeen scripts (307 checks) that walk the whole system through the real
+Eighteen scripts (314 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -24,6 +24,7 @@ it does is saved. Add a check here for every new behaviour.
 | `16_places.sql` | 11 checks (0134, 0135): the curated hall and the map's copy as one place, ours, ahead of a hall outside; the curated landmarks as the barangay's own places; search forgiving shorthand, slips and accents; a chain counted once; kind words (botika, simbahan, botika malapit) listing that kind nearest first; filing an Overpass answer (map id, a street once, a pharmacy as health); a removed place going inactive, an empty or failed answer changing nothing and trying the next mirror; the schedule; admins' own places (alias, 5 km, map places untouched); residents search but cannot add |
 | `15_smart_word_forms.sql` | 6 checks (0133): the present tense (bumabaha, sinusunog, kinakagat), doubled words and stretched letters, English endings (wires, stabbing, crashed, fires), no over-reading (bigas, pulis) and negation still cancelling, 0125's forms unchanged (and batas, law, not read as bata), the helpers kept from residents |
 | `17_push_choices.sql` | 7 checks (0136): every notification pushed out of the box; a muted kind held; "only my cases" passing the cases one handles, was sent to or reported, and notices about no case; quiet hours (also across midnight) with urgent cases through only by choice; a test alert past every choice; browsers limited to push services and ten each, choices saved, one test a minute, plans unreadable to people; others' browsers hidden and a browser following its new sign-in |
+| `18_engine.sql` | 7 checks (0137): a private photo link signed exactly as the portal signs it; the engine off without its Vault settings; one reading queued per pending account; the engine asked with a signed link and its answer saved and judged like the app's, then removed from pg_net; a rescan queued, three refusals and it gives up; a new photo, even mid-reading, read anew; status for administrators only, nobody runs it by hand |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times
