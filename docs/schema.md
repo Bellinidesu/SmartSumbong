@@ -164,6 +164,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `place_save` / `place_remove` | 0134 | Admins: the barangay's own places (within 5 km of the hall) |
 | `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what was read from the ID (by the engine since 0137) |
 | `engine_status` | 0137 | The engine: set up or not, read and waiting, could not read |
+| `auto_dispatch`, `redispatch_report`, `sweep_awaiting_units` | 0139 | The reroute queue: a reroute that finds no one waits in line (a day at most, and not past the cap on offers); "gave up" is said once; an identical system line within ten minutes is not written again |
 | `smart_storm_mode`, `smart_deadline_risk`, `smart_spikes`, `smart_similar_cases` | 0127 | Foresight |
 | `smart_word_suggestions`, `smart_teach_word`, `smart_stuck_cases`, `smart_time_patterns`, `smart_sla_scorecard` | 0128 | Learning and the scorecard |
 | `smart_queue` | 0129 | Every open case in one order, by urgency plus waiting |
