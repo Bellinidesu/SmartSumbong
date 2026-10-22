@@ -71,16 +71,16 @@ declare
   v_id bigint;
 begin
   if v_uid is null then raise exception 'Not signed in'; end if;
-  insert into public.web_push_subscriptions (user_id, endpoint, p256dh, auth, label)
-  values (v_uid, p_endpoint, p_p256dh, p_auth, left(p_label, 80))
+  insert into public.web_push_subscriptions (user_id, endpoint, p256dh, auth, label, created_at)
+  values (v_uid, p_endpoint, p_p256dh, p_auth, left(p_label, 80), clock_timestamp())
   on conflict (endpoint) do update
     set user_id = v_uid, p256dh = excluded.p256dh, auth = excluded.auth, label = excluded.label,
-        failures = 0, created_at = now()
+        failures = 0, created_at = clock_timestamp()
   returning id into v_id;
   -- ten browsers each is plenty; the oldest go first
   delete from public.web_push_subscriptions
    where user_id = v_uid
-     and id not in (select id from public.web_push_subscriptions where user_id = v_uid order by created_at desc limit 10);
+     and id not in (select id from public.web_push_subscriptions where user_id = v_uid order by created_at desc, id desc limit 10);
   return v_id;
 end $$;
 

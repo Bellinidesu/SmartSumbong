@@ -78,7 +78,7 @@ begin
   exception when others then v_log := v_log || E'\n' || 'FAIL quiet: ' || sqlerrm; end;
 
   begin
-    insert into public.notifications (user_id, kind, message, is_read) values (v_adm, 'test', 't', true) returning id into n_id;
+    insert into public.notifications (user_id, kind, message, is_read, created_at) values (v_adm, 'test', 't', true, now() - interval '2 minutes') returning id into n_id;
     update public.users set muted_notification_kinds = '{test}', push_scope = 'mine' where id = v_adm;
     if not (public.push_plan(n_id) ->> 'send')::boolean then raise exception 'a test alert was held'; end if;
     update public.users set muted_notification_kinds = '{}', push_scope = 'all', push_quiet_from = null, push_quiet_to = null where id = v_adm;
@@ -98,6 +98,7 @@ begin
     for n in 1..11 loop perform public.web_push_subscribe('https://updates.push.services.mozilla.com/wpush/v2/adm-' || n, k, a, 'Firefox'); end loop;
     select count(*) into n from public.web_push_subscriptions;
     if n <> 10 then raise exception '% browsers kept, not 10', n; end if;
+    if exists (select 1 from public.web_push_subscriptions where endpoint like '%/adm-1') then raise exception 'the oldest browsers were not the ones let go'; end if;
     perform public.set_push_choices('mine', 22::smallint, 6::smallint, true);
     begin perform public.set_push_choices('mine', 22::smallint, null, true); raise exception 'took a start with no end';
     exception when raise_exception then if sqlerrm not like '%start and an end%' then raise; end if; end;
@@ -108,7 +109,7 @@ begin
     exception when insufficient_privilege then null; end;
     execute 'reset role';
     if (select push_quiet_from from public.users where id = v_adm) <> 22 then raise exception 'choices not saved'; end if;
-    v_log := v_log || E'\n' || 'ok  a person adds browsers (push services only, ten at most), saves choices, tests once a minute, cannot read plans';
+    v_log := v_log || E'\n' || 'ok  a person adds browsers (push services only, ten at most, the oldest let go), saves choices, tests once a minute, cannot read plans';
   exception when others then execute 'reset role'; v_log := v_log || E'\n' || 'FAIL browsers: ' || sqlerrm; end;
 
   begin
@@ -117,10 +118,10 @@ begin
     execute 'set local role authenticated';
     select count(*) into n from public.web_push_subscriptions;
     if n <> 0 then raise exception 'saw % of someone else''s browsers', n; end if;
-    perform public.web_push_unsubscribe('https://fcm.googleapis.com/fcm/send/adm-1');
+    perform public.web_push_unsubscribe('https://updates.push.services.mozilla.com/wpush/v2/adm-10');
     perform public.web_push_subscribe('https://updates.push.services.mozilla.com/wpush/v2/adm-11', k, a, 'Firefox');
     execute 'reset role';
-    if not exists (select 1 from public.web_push_subscriptions where endpoint like '%/adm-1') then raise exception 'removed someone else''s browser'; end if;
+    if not exists (select 1 from public.web_push_subscriptions where endpoint like '%/adm-10') then raise exception 'removed someone else''s browser'; end if;
     if (select user_id from public.web_push_subscriptions where endpoint like '%/adm-11') <> v_res then raise exception 'a browser did not follow its new sign-in'; end if;
     v_log := v_log || E'\n' || 'ok  others'' browsers stay hidden and untouched; a browser follows whoever signs in on it';
   exception when others then execute 'reset role'; v_log := v_log || E'\n' || 'FAIL others: ' || sqlerrm; end;
