@@ -1,0 +1,4 @@
+# OCR lab (offline only). Python 3.12; tesseract on PATH (scoop install tesseract, Apache-2.0) and tessdata from
+# github.com/tesseract-ocr/tessdata_fast (Apache-2.0).
+pillow==13.0.0              # MIT-CMU (HPND)
+pytesseract==0.3.13         # Apache-2.0

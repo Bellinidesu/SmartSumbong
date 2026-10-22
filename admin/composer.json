@@ -6,6 +6,7 @@
     "require": {
         "php": "~8.5.0",
         "ext-zip": "*",
+        "chillerlan/php-qrcode": "^6.0.1",
         "openspout/openspout": "^5.12"
     },
     "config": {

@@ -1,8 +1,8 @@
 # Baseline: the whole schema in one file
 
 `baseline.sql` is what applying every migration in `supabase/migrations`
-produces, as a single file: about 19,700 lines instead of 127 migration
-files (0001–0134), with the history between them gone. Use it to read the current schema, or to
+produces, as a single file: about 19,700 lines instead of 128 migration
+files (0001–0135), with the history between them gone. Use it to read the current schema, or to
 start a **new** Supabase project without replaying every migration.
 
 It is generated, never edited. After adding a migration, rebuild it:

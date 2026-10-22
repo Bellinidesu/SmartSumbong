@@ -119,6 +119,18 @@ begin
   exception when others then v_log := v_log || E'\n' || 'FAIL refresh guards: ' || sqlerrm; end;
 
   begin
+    -- 0135: the curated hall and the map's copy of it are one place, ours, first; a far-off hall comes after
+    insert into public.places (source, osm_ref, name, grp, lat, lng) values
+      ('osm', 'n990183', 'Barangay 183 Hall', 'hall', 14.525110, 121.012600),
+      ('osm', 'n990001', 'Baclaran Barangay Hall', 'hall', 14.5310, 120.9990);
+    select name, branches, source into r from public.search_places('brgy hall') limit 1;
+    if r.name <> 'Barangay 183 Hall' or r.branches <> 1 or r.source <> 'barangay' then raise exception 'brgy hall -> % x% (%)', r.name, r.branches, r.source; end if;
+    select count(*) into n from public.search_places('barangay 183 hall') s where s.name = 'Barangay 183 Hall';
+    if n <> 1 then raise exception 'the hall came back % times', n; end if;
+    v_log := v_log || E'\n' || 'ok  the curated hall and the map''s copy are one place, ours, ahead of a hall outside the barangay';
+  exception when others then v_log := v_log || E'\n' || 'FAIL one place: ' || sqlerrm; end;
+
+  begin
     select count(*) into n from cron.job where jobname in ('places-ask', 'places-file');
     if n <> 2 then raise exception '% jobs', n; end if;
     v_log := v_log || E'\n' || 'ok  the refresh is scheduled every six hours';
