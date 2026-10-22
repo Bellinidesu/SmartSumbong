@@ -55,7 +55,7 @@ begin
     update public.smart_rules set storm_mode = false, storm_until = null, storm_reason = null where id = 1;
     insert into public.smart_lexicon (variant, root, kind) values ('snogg', 'sunog', 'spelling');
     select version, reason into v, t from public.smart_rule_versions order by version desc limit 1;
-    if v <> n0 + (select min(version) from public.smart_rule_versions) or t <> 'Word list changed' then raise exception 'word list: % %', v, t; end if;
+    if (select count(*) from public.smart_rule_versions) <> n0 + 1 or t <> 'Word list changed' then raise exception 'word list: % %', v, t; end if;
     v_log := v_log || E'\n' || 'ok  storm mode and the digest are not versions; a change to the word list is';
   exception when others then v_log := v_log || E'\n' || 'FAIL switches: ' || sqlerrm; end;
 
