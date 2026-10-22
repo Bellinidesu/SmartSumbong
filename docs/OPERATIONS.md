@@ -25,7 +25,7 @@ when something breaks. Written for whoever maintains it next (October 2026).
    - **mobile** — only when `mobile/` changed: `flutter analyze` with no
      findings allowed and all tests, for `core` and the app;
    - **app-size** — only when `mobile/` changed: the arm64 release APK is
-     built and must stay under 60 MB;
+     built and must stay under 120 MB (107 MB since the ID reader moved onto the phone);
    - **functions** — the Edge Functions type-check, lint and pass their tests;
    - **database** — every migration applied to a throwaway PostgreSQL in the
      runner, every rolled-back check in `supabase/tests`, and the baseline
@@ -171,7 +171,7 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
 - **Performance budgets** (CI) — the sign-in page under 320 KB as a
   browser receives it, each portal script under 16 KB and stylesheet under
   20 KB compressed, each photo under 160 KB
-  (`.github/scripts/perf-budget.sh`); the arm64 release APK under 60 MB
+  (`.github/scripts/perf-budget.sh`); the arm64 release APK under 120 MB
   (app-size job, size in each run's summary); and the most-run queries
   within their time at 50,000 complaints (`supabase/tests/perf`). Raise a
   budget on purpose, in the pull request that needs it.

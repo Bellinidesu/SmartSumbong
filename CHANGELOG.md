@@ -108,6 +108,15 @@ Changes on `main` not yet deployed belong here.
   (it only works for a signed-in administrator). Made on the server with
   chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
 
+**Changed (the engine on the phone, 22 Oct)**
+- ID reading is back, on the phone, with open-source PaddleOCR (PP-OCRv6
+  small on ONNX Runtime, via the paddle_ocr_native plugin) instead of Google
+  ML Kit. The same reader logic as the server engine, in Dart. Phones older
+  than Android 8 skip it (a person checks the ID, as before). On invented
+  cards: 48/48 clean, 42/48 good, 48/48 poor, 32/48 heavily blurred. The app
+  grows from 55 to 107 MB (budget 120). The portal shows the readings again
+  (ID_OCR_ENABLED). A reading never verifies anyone.
+
 **Added (the panel's open asks, 22 Oct)**
 - 3a: Case Reports can be filtered by the specific issue under a category
   (the Issue filter appears once a category is chosen).

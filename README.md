@@ -190,7 +190,7 @@ nothing.
 | Every English string has its Tagalog | `php .github/scripts/i18n-check.php` | every push |
 | Page, script, stylesheet and photo size budgets | `bash .github/scripts/perf-budget.sh` | every push |
 | App and core: analyzer, unit, widget and flow tests | `flutter analyze && flutter test` (in each package) | when `mobile/` changes |
-| Release APK under 60 MB | `flutter build apk --release` | when `mobile/` changes |
+| Release APK under 120 MB | `flutter build apk --release` | when `mobile/` changes |
 | Edge Functions | `deno check supabase/functions/*/index.ts && deno lint supabase/functions && deno test --allow-env supabase/functions` | every push |
 | Database: every migration, then every rolled-back check | `bash supabase/tests/local/run-local.sh` (needs PostgreSQL) | every push |
 | Secrets, dependency advisories, CodeQL | the Security workflow | every PR, push and weekly |
