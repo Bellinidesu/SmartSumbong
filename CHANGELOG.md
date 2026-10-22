@@ -97,6 +97,11 @@ Changes on `main` not yet deployed belong here.
   residents stay anonymous. Made with OpenSpout (MIT), the portal's first
   library through Composer.
 
+**Added (Spatial, 22 Oct)**
+- Layers → **Density**: the complaints the filters show, counted in hexagons
+  about 66 m across, coloured by count (1, 3, 6, 10 or more); click one for
+  its count. It follows the filters and the time slider. Off until switched on.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 

@@ -858,6 +858,7 @@ async function draw() {
   }
   heatBlend();
   if (loaded) runIntro();
+  if (LAYER.grid && map.getSource('grid')) map.getSource('grid').setData(gridData());   // the density follows the filters
 }
 
 // ---- data + realtime ---------------------------------------------
@@ -1661,8 +1662,32 @@ window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 98
 // Air quality (Open-Meteo), safe points and public transport (OpenStreetMap,
 // through layers.php, cached). Each is its own tile in the Layers card; what
 // is on says what it is saying in a small card under the filter card.
-const LAYER = { aq: false, transit: false, safe: false };
-const LAYER_DATA = { aq: null, transit: null, safe: null }, LAYER_ERR = {};
+const LAYER = { aq: false, transit: false, safe: false, grid: false };
+const LAYER_DATA = { aq: null, transit: null, safe: null, grid: null }, LAYER_ERR = {};
+
+// Complaint density (22 Oct 2026): the complaints the filters show, counted in hexagons about 66 m across, so one
+// street can be compared with the next and one week with the last. H3's cells were measured against the hotspot
+// clusters in tools/smart_lab (they agree); h3-js itself is far over this page's script budget, so the grid is drawn
+// here with the same cell size. Off until switched on in Layers (Rose, 2 Oct: no "Hotspots" switch in the filters).
+const GRID_SIDE = 38;   // metres from centre to corner: about 66 m across
+function gridData() {
+  const rows = (CLIP_PINS ? visible().filter(r => inBoundary(+r.longitude, +r.latitude)) : visible()).filter(r => r.latitude != null && r.longitude != null);
+  const LAT0 = 14.52, KX = 111320 * Math.cos(LAT0 * Math.PI / 180), KY = 110574, S3 = Math.sqrt(3), cells = new Map();
+  rows.forEach(r => {
+    const x = (+r.longitude - 121) * KX, y = (+r.latitude - LAT0) * KY;
+    let q = (S3 / 3 * x - y / 3) / GRID_SIDE, k = (2 / 3 * y) / GRID_SIDE, c = -q - k;
+    let rq = Math.round(q), rk = Math.round(k), rc = Math.round(c);
+    const dq = Math.abs(rq - q), dk = Math.abs(rk - k), dc = Math.abs(rc - c);
+    if (dq > dk && dq > dc) rq = -rk - rc; else if (dk > dc) rk = -rq - rc;
+    const key = rq + ',' + rk; cells.set(key, (cells.get(key) || 0) + 1);
+  });
+  const features = [...cells].map(([key, n]) => {
+    const [q, k] = key.split(',').map(Number), cx = GRID_SIDE * S3 * (q + k / 2), cy = GRID_SIDE * 1.5 * k, ring = [];
+    for (let i = 0; i <= 6; i++) { const a = Math.PI / 180 * (60 * i - 30); ring.push([121 + (cx + GRID_SIDE * Math.cos(a)) / KX, LAT0 + (cy + GRID_SIDE * Math.sin(a)) / KY]); }
+    return { type: 'Feature', properties: { n }, geometry: { type: 'Polygon', coordinates: [ring] } };
+  });
+  return { type: 'FeatureCollection', features };
+}
 let layerQ = Promise.resolve();
 const ROUTE_COLOURS = ['#FF8A3D', '#2F6BFF', '#1E9E56', '#E0609A', '#8E3FD6', '#0F9D9A', '#E5383B', '#F9AB00'];
 const SAFE_KINDS = {
@@ -1749,6 +1774,21 @@ async function layerDraw(k) {
     }
     ['transit-glow', 'transit-case', 'transit-line', 'transit-stops'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
     if (map.getLayer('transit-glow')) map.setPaintProperty('transit-glow', 'line-opacity', dark ? .75 : 0);
+  } else if (k === 'grid') {
+    if (LAYER.grid && !map.getSource('grid')) {
+      map.addSource('grid', { type: 'geojson', data: gridData() });
+      map.addLayer({ id: 'grid-fill', type: 'fill', source: 'grid', paint: {
+        'fill-color': ['interpolate', ['linear'], ['get', 'n'], 1, '#FFD08A', 3, '#FF9F43', 6, '#E5383B', 10, '#8E1B3A'],
+        'fill-opacity': dark ? .5 : .42 } }, layerBefore());
+      map.addLayer({ id: 'grid-line', type: 'line', source: 'grid', paint: { 'line-color': dark ? '#0B101C' : '#fff', 'line-width': 1, 'line-opacity': .8 } }, layerBefore());
+      map.on('mouseenter', 'grid-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'grid-fill', () => { map.getCanvas().style.cursor = ''; });
+      map.on('click', 'grid-fill', e => { const n = e.features[0].properties.n; new maplibregl.Popup({ closeButton: false, maxWidth: '240px' }).setLngLat(e.lngLat)
+        .setHTML('<b>' + n + T(n === 1 ? ' complaint' : ' complaints', ' sumbong') + '</b><br><small>' + T('in this cell, about 66 m across, with the filters as set', 'sa selulang ito, mga 66 m ang lapad, ayon sa mga filter') + '</small>').addTo(map); });
+    } else if (LAYER.grid) map.getSource('grid').setData(gridData());
+    if (LAYER.grid) LAYER_DATA.grid = true;
+    ['grid-fill', 'grid-line'].forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis); });
+    if (map.getLayer('grid-fill')) map.setPaintProperty('grid-fill', 'fill-opacity', dark ? .5 : .42);
   } else if (k === 'safe') {
     if (LAYER.safe && !map.getSource('safe')) {
       const d = await layerLoad('safe'); if (!d) return;
@@ -1881,6 +1921,11 @@ function layerInfo() {
         : '<small>' + T('OpenStreetMap has no routes mapped here yet.', 'Wala pang naka-map na ruta dito sa OpenStreetMap.') + '</small>') + '<small>' + stops + T(' stops · OpenStreetMap', ' hintuan · OpenStreetMap') + '</small></div>';
     })();
   }
+  if (LAYER.grid) {
+    const key = [['#FFD08A', '1'], ['#FF9F43', '3'], ['#E5383B', '6'], ['#8E1B3A', T('10 or more', '10 o higit')]];
+    h += '<div class="lyc tr"><b>' + T('Complaint density', 'Dami ng sumbong') + '</b><small>' + T('The complaints the filters show, counted in hexagons about 66 m across. Click one for its count.', 'Ang mga sumbong na ipinapakita ng filter, binilang sa mga heksagon na mga 66 m ang lapad. I-click ang isa para sa bilang.') + '</small>' +
+      key.map(k => '<div class="tr-r"><i class="sq" style="background:' + k[0] + '"></i><span>' + esc(k[1]) + '</span></div>').join('') + '</div>';
+  }
   if (LAYER.safe) {
     const d = LAYER_DATA.safe;
     h += !d ? '<div class="lyc">' + (LAYER_ERR.safe ? T('Safe points could not be loaded from OpenStreetMap.', 'Hindi ma-load ang mga ligtas na lugar.') : T('Finding safe points…', 'Hinahanap ang mga ligtas na lugar…')) + '</div>' : (() => {
@@ -1924,7 +1969,8 @@ function layerSync() {
     sw('transit', 'transit', T('Transit', 'Transit') + '',
       '<svg viewBox="0 0 180 36" preserveAspectRatio="none"><path class="r1" d="M-4 26 C30 8 60 30 96 16 S150 6 186 18"/><path class="r2" d="M-4 10 C34 28 70 4 110 22 S160 28 186 8"/><path class="r3" d="M20 40 C44 24 78 18 100 4"/><circle cx="52" cy="17" r="2.4"/><circle cx="108" cy="19" r="2.4"/><circle cx="150" cy="13" r="2.4"/></svg>') +
     sw('aq', 'air', T('Air quality', 'Kalidad ng hangin'), '<span></span><span></span><span></span><span></span><i></i><i></i><i></i><i></i><i></i>') +
-    sw('safe', 'safe', T('Safe points', 'Ligtas na lugar'), '<span></span><span></span><span></span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + SD_ICONS.safepoints + '</svg>'));
+    sw('safe', 'safe', T('Safe points', 'Ligtas na lugar'), '<span></span><span></span><span></span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + SD_ICONS.safepoints + '</svg>') +
+    sw('grid', 'grid', T('Density', 'Dami'), ''));
   list.querySelectorAll('.map-sw:not(.has-ic)').forEach(l => { const m = /map-sw--(\w+)/.exec(l.className), box = l.querySelector(':scope > i'); if (!m || !box || !MARK[m[1]]) return;
     l.classList.add('has-ic'); l.querySelector('.scene').insertAdjacentHTML('beforeend', '<svg class="mk-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SD_ICONS[MARK[m[1]]] + '</svg>'); });
   // Each layer is a small square: its picture, its icon centred with no frame. The icons move
@@ -1937,6 +1983,7 @@ function layerSync() {
     transit: TI('transit', '<g class="car"><path d="M3 16V9a2 2 0 0 1 2-2h9.5a2 2 0 0 1 1.6.8L19 11h1.2A1.8 1.8 0 0 1 22 12.8V16a1 1 0 0 1-1 1h-1M3 16a1 1 0 0 0 1 1h1M10 17h4"/><path d="M3 12h13M7 7v5M11.5 7v5"/>' +
       '<g class="wh"><circle cx="7.5" cy="17.5" r="2"/><path d="M7.5 16v3"/></g><g class="wh"><circle cx="17.5" cy="17.5" r="2"/><path d="M17.5 16v3"/></g></g><path class="road" d="M1 21.8H23"/>'),
     aq: TI('air', '<path class="a1" d="M3 8h9a3 3 0 1 0-3-3"/><path class="a2" d="M3 12.5h15a3 3 0 1 1-3 3"/><path class="a3" d="M3 17h6a2.5 2.5 0 1 1-2.5 2.5"/>'),
+    grid: TI('grid', '<path class="hx" d="M12 2.8l7.9 4.6v9.2L12 21.2l-7.9-4.6V7.4z"/><path class="hx2" d="M12 8l3.5 2v4L12 16l-3.5-2v-4z"/>'),
     safe: TI('safe', '<mask id="sf-m"><rect width="24" height="24" fill="#fff"/><path d="M12 8.6v6.8M8.6 12h6.8" stroke="#000" stroke-width="2.4" stroke-linecap="round"/></mask>' +
       '<path class="sh" mask="url(#sf-m)" d="M12 3 5 6v5.5c0 4.3 2.9 7.7 7 9.5 4.1-1.8 7-5.2 7-9.5V6z"/><path class="pl" d="M12 8.6v6.8M8.6 12h6.8"/>'),
   };
@@ -1956,7 +2003,7 @@ function layerSync() {
     layerDraw(k).then(() => { if (LAYER[k] && !LAYER_DATA[k]) LAYER[k] = false; layerSync(); });
   });
   document.addEventListener('click', e => { if (!card.hidden && !e.target.closest('#ss-lyr, #layers-btn')) { card.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
-  window.addEventListener('themechange', () => ['aq', 'transit'].forEach(k => { if (map.getLayer(k === 'aq' ? 'aq-fill' : 'transit-glow')) layerDraw(k); }));
+  window.addEventListener('themechange', () => ['aq', 'transit', 'grid'].forEach(k => { if (map.getLayer({ aq: 'aq-fill', transit: 'transit-glow', grid: 'grid-fill' }[k])) layerDraw(k); }));
   // The outline arrives after the page does; the air-quality tint follows it.
   const wait = setInterval(() => { if (rings.length) { clearInterval(wait); if (map.getSource('aq')) map.getSource('aq').setData(layerShape()); } }, 600); setTimeout(() => clearInterval(wait), 20000);
 })();
