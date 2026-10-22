@@ -66,6 +66,14 @@ RPC = {
     'smart_engine_health': {'watch_last_at': ago(0.05), 'watch_last_ok': True, 'watch_failures_24h': 0, 'open_reports': 19, 'unscored': 0, 'last_scored_at': ago(3), 'events_24h': 12, 'routing_on': True, 'queue_on': True},
     'smart_pick_stats': {'days': 90, 'dispatches': 16, 'ranked': 9, 'top_pick': 6, 'top_three': 9, 'top_pick_pct': 66.7},
     'smart_fix_stats': {'days': 90, 'asked': 12, 'answered': 8, 'fixed': 6, 'not_fixed': 2, 'waiting_for_barangay': 1, 'by_kind': []},
+
+    'smart_rule_history': [
+        {'version': 3, 'at': ago(2), 'reason': 'Flood reports rated too low in the storm season', 'by': 'Reyes, Marites', 'changed': ['urgent_from'], 'words': 56, 'current': True},
+        {'version': 2, 'at': ago(300), 'reason': 'Word list changed', 'by': 'Reyes, Marites', 'changed': ['word list'], 'words': 56, 'current': False},
+        {'version': 1, 'at': ago(900), 'reason': 'The rules as they were when versions began (0141)', 'by': None, 'changed': [], 'words': 55, 'current': False}],
+    'smart_replay': {'days': 90, 'reports': 15, 'moved': 2, 'transitions': [{'from': 'normal', 'to': 'high', 'reports': 2}, {'from': 'low', 'to': 'low', 'reports': 13}],
+                     'changed': [{'tracking_id': 'SS-2610-1004', 'subject': 'Clogged canal', 'score_before': 40, 'score_after': 47, 'level_before': 'normal', 'level_after': 'high'}]},
+    'smart_save_rules': 4, 'smart_rollback': 4,
     'smart_summary': {'urgent_waiting': 3, 'high_waiting': 5, 'recurring': 4, 'recurring_open': 2},
     'smart_deadline_risk': [{'report_id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'risk': 'high', 'hours_left': 5, 'typical_hours': 18}],
     'smart_spikes': [{'category': 'animal_welfare', 'this_week': 6, 'usual': 0.5, 'times_usual': 12, 'place': 'Purok 3'},

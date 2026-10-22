@@ -141,6 +141,13 @@ Changes on `main` not yet deployed belong here.
 - Case Reports' board has a "Not fixed" column: a resolved case the resident
   says is not fixed, until the barangay reopens it or writes back.
 
+**Added (SMART in the portal, Iteration 3, 22 Oct)**
+- Settings → SMART: saving the rules now asks why, and keeps the reason with
+  the version. "Test on the last 90 days" shows how many past reports would
+  change level (and which moved most) without saving anything. "Versions of
+  the rules" lists every change with who and why, and rolls any version back
+  as a new one.
+
 **Added (SMART, Iteration 3: rule versions, rollback, replay, 22 Oct)**
 - Every change to SMART's scoring rules or word list is now a numbered
   version with who, when and why; each score remembers the version that made

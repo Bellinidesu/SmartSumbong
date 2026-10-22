@@ -121,3 +121,18 @@ test('SMART Iteration 2: measured, healthy, and the recheck stage', async ({ pag
   r = await open(page, `case.php?id=${CASE}`);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('SMART Iteration 3: rules need a reason, can be tested first, and have a history', async ({ page }) => {
+  const r = await open(page, 'settings.php#smart');
+  await expect(page.locator('#rl-why')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Test on the last 90 days' })).toBeVisible();
+  await expect(page.locator('#smart-history .ss-vlist li')).toHaveCount(3);
+  await expect(page.locator('#smart-history')).toContainText('Flood reports rated too low');
+  // the current version has no rollback; the older ones do
+  await expect(page.locator('#smart-history .ss-vroll')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Test on the last 90 days' }).click();
+  await expect(page.locator('#smart-replay')).toContainText('2');
+  await expect(page.locator('#smart-replay')).toContainText('Nothing was saved');
+  expect(await axe(page), 'Settings > SMART with a replay').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
