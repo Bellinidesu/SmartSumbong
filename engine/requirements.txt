@@ -2,7 +2,7 @@
 rapidocr==3.10.0                 # Apache-2.0; ships PaddleOCR's PP-OCRv6 small models (Apache-2.0) inside the package
 onnxruntime==1.30.0              # MIT
 numpy==2.5.3                     # BSD-3-Clause
-opencv-python-headless==4.14.0.94  # Apache-2.0
+opencv-python-headless==5.0.0.93  # Apache-2.0
 pillow==13.0.0                   # MIT-CMU; 13.0.0 is the security release (19 advisories in 12.3), so newer than two weeks
 pyclipper==1.4.0                 # MIT
 shapely==2.2.0                   # BSD-3-Clause
