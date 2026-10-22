@@ -48,6 +48,9 @@ begin
     select count(*) into n from public.search_places('botika') s where s.grp <> 'health';
     if n <> 0 then raise exception 'botika listed % places that are not health', n; end if;
     select count(*) into n from public.search_places('simbahan');
+    select count(*) into n from public.search_places('botika malapit') s where s.grp <> 'health';
+    if n <> 0 then raise exception 'botika malapit listed % that are not health', n; end if;
+    select count(*) into n from public.search_places('simbahan');
     if n < 3 then raise exception 'simbahan listed %', n; end if;
     select array_agg(metres) into v_m from public.search_places('simbahan');
     if v_m <> (select array_agg(x order by x) from unnest(v_m) x) then raise exception 'simbahan not nearest first: %', v_m; end if;
