@@ -141,6 +141,15 @@ Changes on `main` not yet deployed belong here.
 - Case Reports' board has a "Not fixed" column: a resolved case the resident
   says is not fixed, until the barangay reopens it or writes back.
 
+**Added (SMART plans ahead, Iteration 3, 22 Oct)**
+- Settings → Planning: the open cases a week ahead at the current pace and
+  the kinds expected this week (the seasonal forecast says it needs a year of
+  history); a suggested duty roster by weekday and 3-hour block; problems that
+  keep coming back, which can be opened as work orders for the council with
+  their reports as evidence; and how the work is shared among tanods and
+  administrators. Counts of past reports, never predictions about anyone
+  (0142).
+
 **Added (SMART in the portal, Iteration 3, 22 Oct)**
 - Settings → SMART: saving the rules now asks why, and keeps the reason with
   the version. "Test on the last 90 days" shows how many past reports would

@@ -403,6 +403,32 @@ a history, and a change can be tried before it is made.
 - `smart_rule_history(limit)` lists the versions with what changed in each.
   Every version is also an event in the SMART event log.
 
+## 24. Planning ahead (0142, Iteration 3)
+
+Four views of the barangay's own history, for administrators (Settings →
+Planning). They count past reports; they predict nothing about a person and
+nothing in them is enforced.
+
+- **Duty roster, suggested** (`smart_roster_suggestion`). For each weekday and
+  3-hour block (Manila time): the reports usually expected a week, one tanod
+  suggested for about every two, the number usually on duty (from
+  attendance), and the gap. A suggestion to talk about.
+- **Hotspot work orders** (`smart_work_orders`). A problem that keeps coming
+  back (section 6) can be opened as one "permanent fix" item for the council,
+  with its reports as the evidence and a title the administrator writes.
+  Status: open, planned, done or dropped. One open order per problem;
+  finishing or dropping it frees the problem for a new one.
+- **The forecast** (`smart_forecast`). Cases filed and finished per day
+  lately, the open cases a week from now at that pace, and what each kind of
+  report is expected this week. The seasonal forecast (this month last year)
+  says plainly that it needs a year of history, and does not guess from less.
+- **Sharing the work** (`smart_fairness`). Each tanod's share of the
+  dispatches and how fast they usually accept, and each administrator's
+  share of the open cases. One tanod with most of the work (when three or
+  more share it), or one administrator holding most of the open cases, is
+  noted as a reason to look, never a verdict: the nearest tanod often has
+  the most.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,
