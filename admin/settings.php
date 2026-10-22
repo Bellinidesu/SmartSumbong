@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 }
 
 // Settings -> SMART (docs/SMART_SCREENS.md, 6 and 6b): the rules, storm mode, the digest, trying a rule, re-scoring.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['smart_rules', 'smart_storm', 'smart_digest', 'smart_try', 'smart_rescore', 'smart_word'], true)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['smart_rules', 'smart_storm', 'smart_digest', 'smart_try', 'smart_rescore', 'smart_word', 'smart_rollback'], true)) {
     session_start_once();
     if (!csrf_check($_POST['csrf'] ?? null)) {
         $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
@@ -98,14 +98,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             if ($act === 'smart_rules') {
                 $pts = [];
                 foreach (array_keys(CATEGORY_POINT_LABELS) as $ck) { $pts[$ck] = max(0, min(60, (int) ($_POST['pts'][$ck] ?? 0))); }
-                $db->update('smart_rules', ['id' => 'eq.1'], [
+                $changes = [
                     'category_points' => $pts,
                     'urgent_from'     => max(1, min(100, (int) ($_POST['urgent_from'] ?? 70))),
                     'high_from'       => max(1, min(100, (int) ($_POST['high_from'] ?? 45))),
                     'normal_from'     => max(1, min(100, (int) ($_POST['normal_from'] ?? 25))),
-                    'updated_at'      => gmdate('c'),
-                    'updated_by'      => $admin['id'],
-                ]);
+                ];
+                if (($_POST['do'] ?? '') === 'replay') {
+                    // 0141: what the change would do to the last 90 days of reports. Saves nothing.
+                    $_SESSION['smart_replay'] = ['changes' => $changes, 'result' => $db->rpc('smart_replay', ['p_changes' => $changes, 'p_days' => 90, 'p_limit' => 1000])];
+                    $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Nothing was saved. This is what the change would do.', 'Walang na-save. Ito ang magiging epekto ng pagbabago.')];
+                    header('Location: settings.php#smart');
+                    exit;
+                }
+                $reason = trim((string) ($_POST['reason'] ?? ''));
+                if ($reason === '') { throw new SupabaseError(t('Say why the rules are changing.', 'Sabihin kung bakit binabago ang mga patakaran.')); }
+                $db->rpc('smart_save_rules', ['p_changes' => $changes, 'p_reason' => mb_substr($reason, 0, 300)]);
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('The rules were saved. Press "Re-score open reports" to apply them to cases already open.', 'Nai-save ang mga patakaran. Pindutin ang "Muling markahan ang mga bukas na ulat" para ilapat sa mga kasong bukas na.')];
             } elseif ($act === 'smart_storm') {
                 $on = ($_POST['on'] ?? '') === '1';
@@ -115,6 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             } elseif ($act === 'smart_digest') {
                 $db->update('smart_rules', ['id' => 'eq.1'], ['digest_enabled' => ($_POST['on'] ?? '') === '1']);
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved.', 'Nai-save.')];
+            } elseif ($act === 'smart_rollback') {
+                $reason = trim((string) ($_POST['reason'] ?? ''));
+                if ($reason === '') { throw new SupabaseError(t('Say why you are rolling back.', 'Sabihin kung bakit ibabalik.')); }
+                $new = $db->rpc('smart_rollback', ['p_version' => (int) ($_POST['version'] ?? 0), 'p_reason' => mb_substr($reason, 0, 300)]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => sprintf(t('Rolled back. This is now version %d, and the open reports were re-scored.', 'Naibalik. Bersyon %d na ito ngayon, at muling minarkahan ang mga bukas na ulat.'), (int) $new)];
             } elseif ($act === 'smart_rescore') {
                 $n = $db->rpc('smart_retriage', []);
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => sprintf(t('%d open reports were re-scored.', '%d na bukas na ulat ang muling minarkahan.'), (int) $n)];
@@ -590,6 +603,9 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
 // ---------- SMART ----------
 $sr = null; $cal = []; $fac = []; $digest = ''; $words = [];
 $try = $_SESSION['smart_try'] ?? null; unset($_SESSION['smart_try']);
+$replay = $_SESSION['smart_replay'] ?? null; unset($_SESSION['smart_replay']);   // 0141: the last "test before saving"
+$hist = [];
+try { $hist = $db->rpc('smart_rule_history', ['p_limit' => 12]); $hist = is_array($hist) ? $hist : []; } catch (SupabaseError) {}
 try {
     $got = $db->selectMany([
         'rules'  => ['smart_rules', ['select' => '*', 'id' => 'eq.1', 'limit' => '1'], true],
@@ -693,11 +709,62 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <?php endforeach; ?>
     </div>
     <p class="p-hint"><?= e(t('Urgent must be higher than High, and High higher than Normal.', 'Dapat mas mataas ang Madalian kaysa Mataas, at ang Mataas kaysa Katamtaman.')) ?></p>
-    <div class="ss-posform"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save rules', 'I-save ang mga patakaran')) ?></button></div>
+    <div class="p-cfield" style="margin-top:12px"><label class="p-flabel" for="rl-why"><?= e(t('Why are the rules changing? (kept with the version)', 'Bakit binabago ang mga patakaran? (itatago kasama ng bersyon)')) ?></label>
+      <input class="p-input-plain" id="rl-why" name="reason" maxlength="300" placeholder="<?= e(t('For example: flood reports were rated too low in the storm season', 'Halimbawa: masyadong mababa ang marka ng mga ulat ng baha noong bagyo')) ?>"></div>
+    <div class="ss-posform">
+      <button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="do" value="replay" formnovalidate><?= e(t('Test on the last 90 days', 'Subukan sa nakaraang 90 araw')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit" name="do" value="save"><?= e(t('Save rules', 'I-save ang mga patakaran')) ?></button>
+    </div>
+    <p class="p-hint"><?= e(t('Test first: it shows how many past reports would change level, and saves nothing.', 'Subukan muna: ipinapakita kung ilang nakaraang ulat ang magbabago ng antas, at walang sine-save.')) ?></p>
   </form>
+  <?php if (is_array($replay) && is_array($replay['result'] ?? null)): $rp = $replay['result']; ?>
+  <div class="p-card p-card-pad" id="smart-replay">
+    <p class="p-eyebrow"><?= e(t('What the change would do', 'Ano ang gagawin ng pagbabago')) ?></p>
+    <p><b><?= (int) ($rp['moved'] ?? 0) ?></b> <?= e(sprintf(t('of %d reports from the last %d days would change level.', 'sa %d ulat sa nakaraang %d araw ang magbabago ng antas.'), (int) ($rp['reports'] ?? 0), (int) ($rp['days'] ?? 90))) ?>
+      <?= e(t('Nothing was saved.', 'Walang na-save.')) ?></p>
+    <?php $tr = array_values(array_filter((array) ($rp['transitions'] ?? []), fn ($x) => ($x['from'] ?? '') !== ($x['to'] ?? ''))); ?>
+    <?php if ($tr): ?>
+      <ul class="st-err-list"><?php foreach ($tr as $x): ?>
+        <li><span class="p-badge p-b-progress"><?= (int) $x['reports'] ?></span><div><b><?= e(ucfirst((string) $x['from']) . ' → ' . ucfirst((string) $x['to'])) ?></b></div></li>
+      <?php endforeach; ?></ul>
+    <?php else: ?><p class="p-none-line"><?= e(t('No report would change level.', 'Walang ulat na magbabago ng antas.')) ?></p><?php endif; ?>
+    <?php $moved = array_slice((array) ($rp['changed'] ?? []), 0, 8); ?>
+    <?php if ($moved): ?>
+      <p class="p-eyebrow" style="margin-top:14px"><?= e(t('The biggest moves', 'Ang pinakamalalaking pagbabago')) ?></p>
+      <ul class="st-err-list"><?php foreach ($moved as $m): ?>
+        <li><span class="p-badge p-b-progress"><?= (int) $m['score_before'] ?> → <?= (int) $m['score_after'] ?></span>
+          <div><b><?= e((string) $m['tracking_id']) ?> · <?= e((string) $m['subject']) ?></b><small><?= e(ucfirst((string) $m['level_before']) . ' → ' . ucfirst((string) $m['level_after'])) ?></small></div></li>
+      <?php endforeach; ?></ul>
+    <?php endif; ?>
+    <p class="st-note"><?= e(t('The form above keeps what you typed. Add a reason and press Save rules to make the change.', 'Nasa form sa itaas pa rin ang tinype mo. Maglagay ng dahilan at pindutin ang I-save ang mga patakaran para gawin ang pagbabago.')) ?></p>
+  </div>
+  <?php endif; ?>
   <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Re-score open reports', 'Muling markahan ang mga bukas na ulat')) ?></button>
     <span class="p-hint"><?= e(t('Applies the rules above to every case that is still open. Levels an administrator set by hand stay.', 'Ilalapat ang mga patakaran sa lahat ng kasong bukas pa. Mananatili ang antas na itinakda ng administrator.')) ?></span></form>
+
+  <?php if ($hist): ?>
+  <div class="p-card p-card-pad" id="smart-history">
+    <p class="p-eyebrow"><?= e(t('Versions of the rules', 'Mga bersyon ng mga patakaran')) ?><em><?= count($hist) ?></em></p>
+    <p class="p-hint"><?= e(t('Every change to the rules or the word list is kept, with who made it and why. Rolling back restores a version as a new one, and re-scores the open reports.', 'Itinatago ang bawat pagbabago sa mga patakaran o listahan ng salita, kasama kung sino at bakit. Ibinabalik ng rollback ang isang bersyon bilang bago, at muling minamarkahan ang mga bukas na ulat.')) ?></p>
+    <ul class="ss-vlist">
+      <?php foreach ($hist as $h): ?>
+        <li>
+          <div><b><?= e(t('Version', 'Bersyon')) ?> <?= (int) $h['version'] ?></b><?= !empty($h['current']) ? ' <span class="p-badge p-b-done">' . e(t('Now', 'Ngayon')) . '</span>' : '' ?>
+            <small><?= e(long_datetime($h['at'])) ?> · <?= e((string) ($h['by'] ?? t('the system', 'ang sistema'))) ?></small>
+            <span class="ss-vwhy"><?= e((string) $h['reason']) ?></span>
+            <?php if (!empty($h['changed'])): ?><small><?= e(t('Changed: ', 'Binago: ') . implode(', ', array_map(fn ($k) => str_replace('_', ' ', (string) $k), (array) $h['changed']))) ?></small><?php endif; ?></div>
+          <?php if (empty($h['current'])): ?>
+          <form method="post" class="ss-vroll"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rollback"><input type="hidden" name="version" value="<?= (int) $h['version'] ?>">
+            <label class="p-sr" for="rb-<?= (int) $h['version'] ?>"><?= e(t('Why roll back?', 'Bakit ibabalik?')) ?></label>
+            <input class="p-input-plain" id="rb-<?= (int) $h['version'] ?>" name="reason" required maxlength="300" placeholder="<?= e(t('Why roll back?', 'Bakit ibabalik?')) ?>">
+            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Roll back to this', 'Ibalik sa bersyong ito')) ?></button></form>
+          <?php endif; ?>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+  <?php endif; ?>
 
   <form method="post" class="p-card p-card-pad">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_try">

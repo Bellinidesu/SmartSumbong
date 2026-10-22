@@ -63,6 +63,13 @@ RPC = {
     {'id': 3, 'name': 'Air Force General Hospital', 'grp': 'health', 'kind': 'hospital', 'lat': 14.5161, 'lng': 121.0177, 'metres': 1150, 'branches': 1, 'source': 'osm', 'info': {}},
     {'id': 4, 'name': 'Sampaguita Street', 'grp': 'street', 'kind': 'street', 'lat': 14.5241, 'lng': 121.0118, 'metres': 140, 'branches': 1, 'source': 'osm', 'info': {}}],
     'place_save': 99, 'place_remove': None,
+    'smart_rule_history': [
+        {'version': 3, 'at': ago(2), 'reason': 'Flood reports rated too low in the storm season', 'by': 'Reyes, Marites', 'changed': ['urgent_from'], 'words': 56, 'current': True},
+        {'version': 2, 'at': ago(300), 'reason': 'Word list changed', 'by': 'Reyes, Marites', 'changed': ['word list'], 'words': 56, 'current': False},
+        {'version': 1, 'at': ago(900), 'reason': 'The rules as they were when versions began (0141)', 'by': None, 'changed': [], 'words': 55, 'current': False}],
+    'smart_replay': {'days': 90, 'reports': 15, 'moved': 2, 'transitions': [{'from': 'normal', 'to': 'high', 'reports': 2}, {'from': 'low', 'to': 'low', 'reports': 13}],
+                     'changed': [{'tracking_id': 'SS-2610-1004', 'subject': 'Clogged canal', 'score_before': 40, 'score_after': 47, 'level_before': 'normal', 'level_after': 'high'}]},
+    'smart_save_rules': 4, 'smart_rollback': 4,
     'smart_summary': {'urgent_waiting': 3, 'high_waiting': 5, 'recurring': 4, 'recurring_open': 2},
     'smart_deadline_risk': [{'report_id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'risk': 'high', 'hours_left': 5, 'typical_hours': 18}],
     'smart_spikes': [{'category': 'animal_welfare', 'this_week': 6, 'usual': 0.5, 'times_usual': 12, 'place': 'Purok 3'},
