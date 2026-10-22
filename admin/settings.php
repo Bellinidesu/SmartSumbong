@@ -536,6 +536,21 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
     <p class="st-note"><?= e(t('The database asks the portal for a tiny page every 10 minutes, which also keeps the free server from going to sleep.', 'Tuwing 10 minuto, humihingi ang database ng maliit na pahina sa portal; pinipigilan din nito ang pagtulog ng libreng server.')) ?></p>
   </div>
   <?php endif; ?>
+  <?php if (is_array($up)): $mLim = $up['mem_limit'] ?? null; $mOf = static fn ($v) => $v === null ? '—' : $v . ' MB'; ?>
+  <div class="p-card p-card-pad st-uptime" id="memory">
+    <p class="p-eyebrow"><?= e(t('Server memory', 'Memorya ng server')) ?></p>
+    <?php if (empty($up['mem_samples'])): ?>
+      <p class="p-none-line"><?= e(t('No reading yet. The check every 10 minutes starts recording it after the next deploy.', 'Wala pang sukat. Magsisimulang itala ito ng pagsusuri bawat 10 minuto pagkatapos ng susunod na deploy.')) ?></p>
+    <?php else: ?>
+    <div class="st-uptime-tiles">
+      <div class="st-uptime-tile"><b><?= e($mOf($up['mem_now'] ?? null)) ?></b><span><?= e($mLim ? sprintf(t('In use now, of %d MB', 'Gamit ngayon, sa %d MB'), (int) $mLim) : t('In use now', 'Gamit ngayon')) ?></span></div>
+      <div class="st-uptime-tile<?= $mLim && ($up['mem_week_max'] ?? 0) > $mLim * 0.85 ? ' st-down' : '' ?>"><b><?= e($mOf($up['mem_week_max'] ?? null)) ?></b><span><?= e(t('Highest this week', 'Pinakamataas ngayong linggo')) ?></span></div>
+      <div class="st-uptime-tile"><b><?= e($mOf($up['mem_week_avg'] ?? null)) ?></b><span><?= e(sprintf(t('Average this week · %d readings', 'Karaniwan ngayong linggo · %d sukat'), (int) $up['mem_samples'])) ?></span></div>
+    </div>
+    <?php endif; ?>
+    <p class="st-note"><?= e(t('Render\'s free plan shows no metrics, so the portal reports its own with each check. Reading an ID photo on this server would need about 220 MB more, for under a second.', 'Walang metrics ang libreng plan ng Render, kaya ang portal mismo ang nag-uulat sa bawat pagsusuri. Ang pagbasa ng ID sa server na ito ay mangangailangan ng mga 220 MB pa, sa wala pang isang segundo.')) ?></p>
+  </div>
+  <?php endif; ?>
   <?php if (is_array($eng)): ?>
   <div class="p-card p-card-pad st-uptime" id="engine">
     <p class="p-eyebrow"><?= e(t('Engine', 'Makina')) ?></p>
