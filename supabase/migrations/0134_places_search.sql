@@ -110,7 +110,8 @@ comment on table public.places is
   '0134: places and streets the portal and app search: OpenStreetMap (refreshed every 6 h) and the barangay''s own. Places only, never homes. Read by every signed-in user; changed by place_save/place_remove (admins) and the refresh.';
 
 -- the 38 landmarks the barangay curated (assets/map/landmarks.geojson), now its own places
-insert into public.places (source, name, grp, lat, lng) values
+insert into public.places (source, name, grp, lat, lng)
+select 'barangay', v.name, v.grp, v.lat, v.lng from (values
   ('Royal Air Charter', 'transport', 14.527416, 121.000992),
   ('Police Help Desk', 'safety', 14.509743, 121.012676),
   ('Metro Supermarket', 'shop', 14.524096, 121.013598),
@@ -148,7 +149,8 @@ insert into public.places (source, name, grp, lat, lng) values
   ('505th Squadron Serenity Park', 'park', 14.516823, 121.027393),
   ('Mini Playground', 'park', 14.518129, 121.027882),
   ('Air Force General Hospital', 'health', 14.516912, 121.019923),
-  ('Manila International Airport Fire Station', 'safety', 14.509001, 121.025333);
+  ('Manila International Airport Fire Station', 'safety', 14.509001, 121.025333)
+) as v(name, grp, lat, lng);
 
 -- ---------- searching ---------------------------------------------------------------------------
 
