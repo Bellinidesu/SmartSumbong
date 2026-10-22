@@ -121,7 +121,7 @@ try {
             'limit'     => '600',
         ]],
         'dispatches' => ['dispatches', [
-            'select'    => 'id,state,assigned_at,accept_due_at,accepted_at,admin_instructions,'
+            'select'    => 'id,state,assigned_at,accept_due_at,accepted_at,admin_instructions,smart_rank,smart_of,'
                          . 'rerouted_at,reroute_reason,field_report_text,resolved_at,'
                          . 'tanod:users!dispatches_tanod_id_fkey(id,full_name,mobile_number)',
             'report_id' => 'eq.' . $id,
@@ -1195,6 +1195,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
             <p class="p-kv-line">
               <?= e(t('Must accept by', 'Dapat tanggapin bago')) ?> <?= e(long_datetime($active['accept_due_at'])) ?>
             </p>
+          <?php endif; ?>
+          <?php if (isset($active['smart_rank'])): // 0140: where SMART ranked this tanod when the dispatch was made ?>
+            <p class="p-kv-line"><?= e(t('SMART ranked this tanod', 'Ang ranggo ng SMART sa tanod na ito')) ?>: <strong>#<?= (int) $active['smart_rank'] ?><?= isset($active['smart_of']) ? e(t(' of ', ' sa ') . (int) $active['smart_of']) : '' ?></strong><?= (int) $active['smart_rank'] === 1 ? e(' · ' . t('its first choice', 'unang pinili nito')) : '' ?></p>
           <?php endif; ?>
           <?php if (!empty($active['admin_instructions'])): ?>
             <p class="p-quote"><?= e($active['admin_instructions']) ?></p>

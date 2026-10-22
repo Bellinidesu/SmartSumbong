@@ -108,6 +108,18 @@ test('panel asks 3a and 4: filter by the issue under a category; the barangay se
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('SMART Iteration 2: measured, healthy, and the recheck stage', async ({ page }) => {
+  let r = await open(page, 'settings.php#smart');
+  await expect(page.locator('#smart-measured .st-uptime-tile')).toHaveCount(3);
+  await expect(page.locator('#smart-measured')).toContainText('66.7%');
+  await expect(page.locator('#smart-measured')).toContainText('75%');   // 6 of the 8 answered
+  expect(await axe(page), 'Settings > SMART').toEqual([]);
+  r = await open(page, 'settings.php');
+  await expect(page.locator('#smart-health .st-uptime-tile')).toHaveCount(3);
+  r = await open(page, 'cases.php?tab=next');
+  await expect(page.locator('.bd-col[data-stage="recheck"]')).toHaveCount(1);
+  r = await open(page, `case.php?id=${CASE}`);
+
 test('SMART Iteration 3: rules need a reason, can be tested first, and have a history', async ({ page }) => {
   const r = await open(page, 'settings.php#smart');
   await expect(page.locator('#rl-why')).toBeVisible();
