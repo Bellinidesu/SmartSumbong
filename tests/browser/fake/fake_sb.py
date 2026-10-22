@@ -27,14 +27,14 @@ def report(i, **kw):
          'created_at': ago(3 + i * 7), 'due_at': ahead(20 - i * 3), 'reporter_id': 'd0000000-0000-0000-0000-000000000001', 'is_anonymous': False,
          'latitude': 14.5, 'longitude': 121.0, 'handler_id': ADMIN['id'] if i % 3 == 0 else None, 'handler_name': 'Reyes, Marites' if i % 3 == 0 else None,
          'tier': 0, 'is_sensitive': False, 'deleted_at': None, 'referred_to': None, 'higher_official': None, 'higher_official_note': None, 'handed_up_at': None,
-         'location_text': 'Purok 2, Barangay 183', 'version': 1, 'reporter': {'full_name': 'Garcia, Juan', 'mobile_number': '09171234567'},
+         'location_text': 'Purok 2, Barangay 183', 'version': 1, 'reporter': {'full_name': 'Garcia, Juan', 'mobile_number': '09171234567'}, 'resident': {'id': 'd0000000-0000-0000-0000-000000000001', 'full_name': 'Garcia, Juan'},
          'triage': {'score': 80 - i * 6, 'effective_level': ['urgent', 'high', 'normal', 'low'][i % 4], 'override_level': None, 'possible_duplicates': []}}
     r.update(kw); return r
 
 REPORTS = [report(i) for i in range(1, 20)]
 for r in REPORTS:
     if r['handler_id']: r['handler'] = {'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None}
-REPORTS[0].update(status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order'}, subject='Live wire sparking near the school', is_sensitive=False)
+REPORTS[0].update(is_anonymous=True, status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order'}, subject='Live wire sparking near the school', is_sensitive=False)
 REPORTS[1].update(is_sensitive=True, subject='Husband hits wife, children scared', category='peace_order_nuisance', status='validated')
 
 TABLES = {

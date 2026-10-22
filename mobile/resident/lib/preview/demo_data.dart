@@ -192,6 +192,12 @@ Map<String, List<Map<String, dynamic>>> buildDemoTables() {
     'notifications': notifications,
     'report_messages': reportMessages,
     'dispatch_updates': dispatchUpdates,
+    // 0130: a report can carry several concerns, each open or resolved on its own.
+    'report_concerns': <Map<String, dynamic>>[
+      {'report_id': 'b1000000-0000-4000-8000-000000000103', 'category': 'public_safety_infrastructure', 'note': null, 'status': 'open', 'resolved_at': null, 'remark': null, 'created_at': '2026-10-21T08:00:00Z'},
+      {'report_id': 'b1000000-0000-4000-8000-000000000103', 'category': 'barangay_service', 'note': 'Nobody answered the hotline', 'status': 'resolved', 'resolved_at': '2026-10-22T02:00:00Z', 'remark': 'The hotline was fixed', 'created_at': '2026-10-21T09:00:00Z'},
+      {'report_id': 'b1000000-0000-4000-8000-000000000088', 'category': 'street_obstruction', 'note': null, 'status': 'resolved', 'resolved_at': '2026-10-19T05:00:00Z', 'remark': null, 'created_at': '2026-10-14T08:00:00Z'},
+    ],
     'detail_requests': <Map<String, dynamic>>[],
     'feedback': <Map<String, dynamic>>[],
     'escalation_requests': <Map<String, dynamic>>[],

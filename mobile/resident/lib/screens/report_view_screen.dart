@@ -132,6 +132,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
   bool _timelineExpanded = false;
   bool _mediaOpen = false;
   List<({String url, String kind})> _evidence = const [];
+  // 0130: each concern in this report, open or resolved on its own (panel ask 3b).
+  List<Map<String, dynamic>> _concerns = const [];
   String? _official;
   String? _officialNote;
   bool _reasonsOpen = false;
@@ -396,7 +398,20 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         } catch (_) {}
       }
 
-      await Future.wait([detail(), _loadTimelineAuthors(), barangay()]);
+      // Panel ask 3b (7 Sep 2026): the resident sees each concern's own status. Separate and
+      // optional, like the rest: an older database or a failure never blanks the report.
+      Future<void> concerns() async {
+        try {
+          final rows = await client
+              .from('report_concerns')
+              .select('category, note, status, resolved_at, remark')
+              .eq('report_id', widget.reportId)
+              .order('created_at', ascending: true);
+          if (mounted) setState(() => _concerns = List<Map<String, dynamic>>.from(rows));
+        } catch (_) {}
+      }
+
+      await Future.wait([detail(), _loadTimelineAuthors(), barangay(), concerns()]);
     } catch (_) {
       if (!mounted) return;
       // No signal, but the saved copy is on screen: keep it (the offline
@@ -759,6 +774,8 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         ]),
         const SizedBox(height: 10),
         Text(r['description'] as String? ?? '', style: DType.body(d.ink2, size: 14, w: FontWeight.w400).copyWith(height: 1.5)),
+        // A report with more than one concern shows each one's own state; one concern is the report itself.
+        if (_concerns.length > 1) ...[const SizedBox(height: 14), _ConcernsCard(concerns: _concerns)],
         for (final n in notes) ...[const SizedBox(height: 10), n],
         const SizedBox(height: 10),
         DStepList(
@@ -1036,6 +1053,42 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
 // Round 17 (30 Aug 2026): the top status field from Round 16 (_StatusBadge)
 // is gone -- direct feedback that it had no job on this single-report
 // screen and was just taking up space. Removed rather than left unused.
+
+/// The concerns in one report (0130), each open or resolved on its own: "Barangay service: delayed response"
+/// can be resolved while "Duty & negligence" is still being looked at. Shown only when there are two or more.
+class _ConcernsCard extends StatelessWidget {
+  const _ConcernsCard({required this.concerns});
+
+  final List<Map<String, dynamic>> concerns;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final done = concerns.where((c) => c['status'] == 'resolved').length;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(
+        context.tr('Concerns in this report · $done of ${concerns.length} resolved', 'Mga concern sa report na ito · $done sa ${concerns.length} ang nalutas'),
+        style: DType.body(d.muted, size: 12, w: FontWeight.w800),
+      ),
+      const SizedBox(height: 4),
+      for (var i = 0; i < concerns.length; i++)
+        DRow(
+          icon: concerns[i]['status'] == 'resolved' ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+          title: ComplaintCategory.parse(concerns[i]['category'] as String?).label,
+          sub: _sub(context, concerns[i]),
+          divider: i < concerns.length - 1,
+        ),
+    ]);
+  }
+
+  static String _sub(BuildContext context, Map<String, dynamic> c) {
+    final resolved = c['status'] == 'resolved';
+    final note = (c['note'] as String?)?.trim() ?? '';
+    final remark = (c['remark'] as String?)?.trim() ?? '';
+    final head = resolved ? context.tr('Resolved', 'Nalutas') : context.tr('Being handled', 'Inaasikaso pa');
+    return [head, if (resolved && remark.isNotEmpty) remark else if (note.isNotEmpty) note].join(' · ');
+  }
+}
 
 class _Timeline extends StatelessWidget {
   const _Timeline({
