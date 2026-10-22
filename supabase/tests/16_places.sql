@@ -127,10 +127,8 @@ begin
     if r.name <> 'Barangay 183 Hall' or r.branches <> 1 or r.source <> 'barangay' then raise exception 'brgy hall -> % x% (%)', r.name, r.branches, r.source; end if;
     select count(*) into n from public.search_places('barangay 183 hall') s where s.name = 'Barangay 183 Hall';
     if n <> 1 then raise exception 'the hall came back % times', n; end if;
-    v_log := v_log || E'
-' || 'ok  the curated hall and the map''s copy are one place, ours, ahead of a hall outside the barangay';
-  exception when others then v_log := v_log || E'
-' || 'FAIL one place: ' || sqlerrm; end;
+    v_log := v_log || E'\n' || 'ok  the curated hall and the map''s copy are one place, ours, ahead of a hall outside the barangay';
+  exception when others then v_log := v_log || E'\n' || 'FAIL one place: ' || sqlerrm; end;
 
   begin
     select count(*) into n from cron.job where jobname in ('places-ask', 'places-file');
