@@ -108,6 +108,16 @@ Changes on `main` not yet deployed belong here.
   (it only works for a signed-in administrator). Made on the server with
   chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
 
+**Added (the panel's open asks, 22 Oct)**
+- 3a: Case Reports can be filtered by the specific issue under a category
+  (the Issue filter appears once a category is chosen).
+- 3b: the resident's report screen shows each concern in the report and
+  whether it is resolved, when there is more than one.
+- 2, in the app: My reports shows twenty at a time, with a Show more button.
+- 4: on an anonymous report the barangay sees who filed it (tagged
+  "Anonymous to others") and can write to them; tanods, lists, the map and
+  the printouts still do not show the name.
+
 **Fixed (the reroute queue, 22 Oct)**
 - The auto reroute and its waiting line cannot log without end any more. Two
   old test reports had written "No tanod available" about 13,000 and 9,500

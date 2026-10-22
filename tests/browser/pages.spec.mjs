@@ -93,3 +93,17 @@ test('alerts: each person sets up what reaches them (profile)', async ({ page })
   expect(await axe(page), 'the Alerts card').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('panel asks 3a and 4: filter by the issue under a category; the barangay sees who filed anonymously', async ({ page }) => {
+  let r = await open(page, 'cases.php?tab=all&category=street_obstruction');
+  await expect(page.locator('select[name="issue"]')).toBeVisible();
+  await expect(page.locator('select[name="issue"] option')).toContainText(['All', 'Obstructed Sidewalks', 'Illegal Parking', 'Vendor Blocking Sidewalks']);
+  r = await open(page, 'cases.php?tab=all&category=street_obstruction&issue=Illegal%20Parking');
+  await expect(page.locator('select[name="issue"]')).toHaveValue('Illegal Parking');
+  r = await open(page, 'cases.php?tab=all&issue=Potholes');   // no category: the issue is dropped, not applied
+  await expect(page.locator('select[name="issue"]')).toHaveCount(0);
+  r = await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('.p-meta-strip')).toContainText('Garcia');
+  await expect(page.locator('.p-meta-strip')).toContainText('Anonymous to others');
+  expect(r.errors, 'console errors').toEqual([]);
+});

@@ -228,6 +228,9 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   ReportFilter _filter = ReportFilter.all;
+  // Panel ask 2 (7 Sep 2026, "no scroll scroll"): twenty reports at a time, then Show more.
+  static const _pageSize = 20;
+  int _shown = _pageSize;
   List<ReportSummary>? _reports;
   String? _error;
 
@@ -524,7 +527,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   void _setFilter(ReportFilter f) {
-    setState(() => _filter = f);
+    setState(() {
+      _filter = f;
+      _shown = _pageSize;
+    });
   }
 
   // ---------- actions ----------------------------------------
@@ -820,11 +826,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
       ]);
     }
+    final count = visible.length < _shown ? visible.length : _shown;
+    final more = visible.length - count;
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: visible.length,
+      itemCount: count + (more > 0 ? 1 : 0),
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (_, i) {
+        if (i == count) {
+          final next = more < _pageSize ? more : _pageSize;
+          return DButton(
+            context.tr('Show $next more · $more left', 'Magpakita ng $next pa · $more pa'),
+            kind: DButtonKind.line,
+            expand: true,
+            onTap: () => setState(() => _shown += _pageSize),
+          );
+        }
         final r = visible[i];
         return _ReportCard(
           report: r,
