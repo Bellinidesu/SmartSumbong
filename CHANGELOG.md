@@ -130,6 +130,17 @@ Changes on `main` not yet deployed belong here.
 - All of it is optional on the phone: an older database or a failed request
   never blanks a screen.
 
+**Added (SMART in the portal, Iteration 2, 22 Oct)**
+- Settings → SMART: "How SMART is doing, last 90 days": how often the barangay
+  chose the tanod SMART ranked first, how many fixes residents confirmed, and
+  how many "not fixed" cases wait for the barangay. SMART advises; the barangay
+  decides, and the page says so.
+- Settings → System status: a SMART engine card: when the watcher last ran and
+  whether it succeeded, open reports not scored, failed runs in 24 hours.
+- The case page shows SMART's rank of the tanod an admin assigned.
+- Case Reports' board has a "Not fixed" column: a resolved case the resident
+  says is not fixed, until the barangay reopens it or writes back.
+
 **Added (SMART plans ahead, Iteration 3, 22 Oct)**
 - Settings → Planning: the open cases a week ahead at the current pace and
   the kinds expected this week (the seasonal forecast says it needs a year of

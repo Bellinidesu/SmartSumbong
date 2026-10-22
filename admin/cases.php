@@ -86,7 +86,7 @@ if ($who !== '' && $who !== 'unclaimed' && !preg_match('/^[0-9a-f-]{36}$/i', $wh
 // real cases only, with the notifications on their own. Three tabs: Next up (the SMART queue, 0129),
 // All cases (the register) and Notifications. PER_PAGE rows a page everywhere.
 const PER_PAGE = 15;
-const QUEUE_STAGES = ['review', 'dispatch', 'accept', 'reply', 'approve', 'escalation', 'follow_up'];
+const QUEUE_STAGES = ['review', 'dispatch', 'accept', 'reply', 'approve', 'escalation', 'recheck', 'follow_up'];
 // Case Reports is the register of real cases. What needs doing and the notifications live on notifications.php,
 // which loads this same file (NOTICES_PAGE) so the two share one query and one live refresh.
 $workspace = defined('WORKSPACE_PAGE');     // the work board has its own page (workspace.php)
