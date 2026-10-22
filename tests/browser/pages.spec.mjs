@@ -65,3 +65,17 @@ test('dark mode: dashboard and cases', async ({ page }) => {
     expect(await axe(page), path + ' in dark mode').toEqual([]);
   }
 });
+
+test('the barangay\'s places: listed in Settings, added from the map', async ({ page }) => {
+  let r = await open(page, 'settings.php#places');
+  await expect(page.locator('#places .st-plist li')).toHaveCount(2);
+  expect(await axe(page), 'Settings > Appearance').toEqual([]);
+  r = await open(page, 'spatial.php');
+  const box = await page.locator('#s-spatial canvas').first().boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: 'right' });
+  await page.locator('[data-do=add]').click();
+  await page.locator('.sh-addf input[name=n]').fill('Aling Nena Store');
+  await page.locator('.sh-addf [type=submit]').click();
+  await expect(page.locator('.sh-done')).toContainText('Aling Nena Store');
+  expect(r.errors, 'console errors').toEqual([]);
+});

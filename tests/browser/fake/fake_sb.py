@@ -49,6 +49,9 @@ TABLES = {
                      'storm_mode': True, 'storm_until': ahead(20), 'storm_reason': 'PAGASA orange rainfall warning', 'digest_enabled': True}],
     'operational_settings': [{'max_deadline_extensions': 2}],
     'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id']},{'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id']}],
+    'places': [{'id': 1, 'name': 'Barangay 183 Hall', 'grp': 'hall', 'aliases': ['brgy hall'], 'lat': 14.525104, 'lng': 121.012596, 'source': 'barangay'},
+               {'id': 2, 'name': 'Harvard Street', 'grp': 'street', 'aliases': [], 'lat': 14.5236, 'lng': 121.0129, 'source': 'barangay'}],
+    'place_kinds': [{'grp': g, 'label': l} for g, l in [('area', 'Area'), ('hall', 'Barangay hall'), ('shop', 'Shop'), ('street', 'Street')]],
     'dispatches': [], 'status_logs': [], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24}],
 }
 
@@ -58,6 +61,7 @@ RPC = {
     {'id': 2, 'name': 'Watsons', 'grp': 'shop', 'kind': 'chemist', 'lat': 14.5235, 'lng': 121.0151, 'metres': 310, 'branches': 4, 'source': 'osm', 'info': {'opening_hours': 'Mo-Su 08:00-21:00'}},
     {'id': 3, 'name': 'Air Force General Hospital', 'grp': 'health', 'kind': 'hospital', 'lat': 14.5161, 'lng': 121.0177, 'metres': 1150, 'branches': 1, 'source': 'osm', 'info': {}},
     {'id': 4, 'name': 'Sampaguita Street', 'grp': 'street', 'kind': 'street', 'lat': 14.5241, 'lng': 121.0118, 'metres': 140, 'branches': 1, 'source': 'osm', 'info': {}}],
+    'place_save': 99, 'place_remove': None,
     'smart_summary': {'urgent_waiting': 3, 'high_waiting': 5, 'recurring': 4, 'recurring_open': 2},
     'smart_deadline_risk': [{'report_id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'risk': 'high', 'hours_left': 5, 'typical_hours': 18}],
     'smart_spikes': [{'category': 'animal_welfare', 'this_week': 6, 'usual': 0.5, 'times_usual': 12, 'place': 'Purok 3'},
