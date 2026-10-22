@@ -1,6 +1,6 @@
 # SmartSumbong — Schema Reference
 
-What the migrations in `supabase/migrations/` add up to: 126 files, 0001–0133
+What the migrations in `supabase/migrations/` add up to: 127 files, 0001–0134
 (numbers 0048 and 0108–0113 are unused; 0108–0113 became 0114–0120 to follow
 production's 0107). The exact current schema, every column and grant, is
 `supabase/baseline/baseline.sql`; this file is the map. If the manuscript's
@@ -83,6 +83,9 @@ How the database fits the rest of the system is in
 | `smart_overrides` | Every admin raise, lower or clear of a level, with the score and reasons of that moment | 0123 |
 | `smart_patterns_seen` | What the watcher already told the admins (recurring problems, spikes, deadline risks) | 0123 |
 | `smart_lexicon` | Words SMART reads as another word: texting spellings, English–Tagalog synonyms, irregular forms | 0125 |
+| `places` | Places and streets the portal and app search: OpenStreetMap (refreshed every 6 h) and the barangay's own; places only, never homes | 0134 |
+| `place_kinds` | Kinds of place and the English and Tagalog words for each (botika, simbahan, palengke) | 0134 |
+| `places_refresh` | The OpenStreetMap refresh's state: last request, mirror, last good count, last error | 0134 |
 | `smart_word_decisions` | Words an admin taught SMART or dismissed | 0128 |
 
 ### Workspace widgets
@@ -155,6 +158,8 @@ policy by design. "Latest" is the migration that last redefined it.
 | `smart_override` | 0123 | Raise or lower a level, with a reason |
 | `smart_case_card`, `smart_summary`, `smart_preview` | 0124 | The case card, the dashboard tiles, Try it |
 | `smart_read` | 0133 | How SMART read a text (word forms, spellings, negation); 0133 added the present tense, doubled words, stretched letters, English endings |
+| `search_places(q, lat, lng, limit)` | 0134 | Places for what was typed: forgives shorthand, slips and accents; kind words list that kind nearest first; chains counted once |
+| `place_save` / `place_remove` | 0134 | Admins: the barangay's own places (within 5 km of the hall) |
 | `smart_verify`, `smart_verify_queue` | 0126 | ID checks on what the phone's OCR read |
 | `smart_storm_mode`, `smart_deadline_risk`, `smart_spikes`, `smart_similar_cases` | 0127 | Foresight |
 | `smart_word_suggestions`, `smart_teach_word`, `smart_stuck_cases`, `smart_time_patterns`, `smart_sla_scorecard` | 0128 | Learning and the scorecard |
