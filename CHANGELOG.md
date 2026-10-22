@@ -97,6 +97,17 @@ Changes on `main` not yet deployed belong here.
   residents stay anonymous. Made with OpenSpout (MIT), the portal's first
   library through Composer.
 
+**Changed (search, 22 Oct)**
+- Spatial's search finds places the way Google Maps does: every named place
+  and street in and around the barangay from OpenStreetMap, refreshed every
+  six hours, and the barangay's own places; it forgives slips and shorthand
+  ("brgy hall", "villamor air bse"), groups a chain ("Watsons, 2 branches"),
+  shows each place's kind and distance from the hall, and offers one-tap
+  kinds (Health, School, Church, Police and fire, Food, Shop, Transport).
+  Tagalog words for a kind work too (botika, simbahan, palengke) (0134).
+- App: the address field on a new report suggests the same places first,
+  then Photon's, as before.
+
 **Removed**
 - The SMART drawer's "Show on the map" switches (rings, pulses, outlines).
 

@@ -53,6 +53,11 @@ TABLES = {
 }
 
 RPC = {
+  'search_places': [
+    {'id': 1, 'name': 'Barangay 183 Hall', 'grp': 'hall', 'kind': None, 'lat': 14.525104, 'lng': 121.012596, 'metres': 0, 'branches': 1, 'source': 'barangay', 'info': {}},
+    {'id': 2, 'name': 'Watsons', 'grp': 'shop', 'kind': 'chemist', 'lat': 14.5235, 'lng': 121.0151, 'metres': 310, 'branches': 4, 'source': 'osm', 'info': {'opening_hours': 'Mo-Su 08:00-21:00'}},
+    {'id': 3, 'name': 'Air Force General Hospital', 'grp': 'health', 'kind': 'hospital', 'lat': 14.5161, 'lng': 121.0177, 'metres': 1150, 'branches': 1, 'source': 'osm', 'info': {}},
+    {'id': 4, 'name': 'Sampaguita Street', 'grp': 'street', 'kind': 'street', 'lat': 14.5241, 'lng': 121.0118, 'metres': 140, 'branches': 1, 'source': 'osm', 'info': {}}],
     'smart_summary': {'urgent_waiting': 3, 'high_waiting': 5, 'recurring': 4, 'recurring_open': 2},
     'smart_deadline_risk': [{'report_id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'risk': 'high', 'hours_left': 5, 'typical_hours': 18}],
     'smart_spikes': [{'category': 'animal_welfare', 'this_week': 6, 'usual': 0.5, 'times_usual': 12, 'place': 'Purok 3'},

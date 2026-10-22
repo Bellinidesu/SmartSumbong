@@ -78,6 +78,29 @@
     return [...seen].map(([n, c]) => ({ n, c }));
   }
   const rank = (s, q) => s.toLowerCase().startsWith(q) ? 0 : 1;
+  // Places (0134): searched in the database, which forgives slips and shorthand and knows Tagalog words for kinds of
+  // place; the saved landmarks stand in when it cannot be reached. Colour and name for each kind of place.
+  const KIND = { health: ['#E5383B', T('Health', 'Kalusugan')], school: ['#2F6BFF', T('School', 'Paaralan')], worship: ['#8E3FD0', T('Church', 'Simbahan')],
+    safety: ['#00308F', T('Police and fire', 'Pulis at bumbero')], hall: ['#FF8A00', T('Barangay hall', 'Bulwagan ng barangay')], government: ['#5B6B8C', T('Government', 'Gobyerno')],
+    transport: ['#00A5B5', T('Transport', 'Sakayan')], food: ['#E8890C', T('Food', 'Pagkain')], shop: ['#2E9E4F', T('Shop', 'Tindahan')],
+    service: ['#6C7A89', T('Bank and service', 'Bangko at serbisyo')], lodging: ['#C2185B', T('Hotel', 'Tuluyan')], park: ['#43A047', T('Park', 'Parke')],
+    military: ['#556B2F', T('Military', 'Militar')], street: ['#8A8F9C', T('Street', 'Kalye')], area: ['#A0785A', T('Area', 'Lugar')] };
+  const CHIPS = [['health', 'hospital'], ['school', 'school'], ['worship', 'church'], ['safety', 'police'], ['food', 'food'], ['shop', 'store'], ['transport', 'terminal']];
+  async function placesFor(raw) {
+    try {
+      if (typeof sb === 'undefined') throw new Error('no client');
+      const { data, error } = await sb.rpc('search_places', { p_q: raw, p_lat: HALL.lat, p_lng: HALL.lng, p_limit: 8 });
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      const q = raw.trim().toLowerCase();
+      return (await landmarks()).filter(x => x.n.toLowerCase().includes(q)).sort((a, b) => rank(a.n, q) - rank(b.n, q)).slice(0, 5)
+        .map(x => ({ name: x.n, grp: x.g, lat: x.c[1], lng: x.c[0], metres: null, branches: 1, info: {} }));
+    }
+  }
+  const placeLine = x => [KIND[x.grp] ? KIND[x.grp][1] : T('Place', 'Lugar'),
+    x.metres != null && x.metres >= 20 ? fmtM(x.metres) + T(' from the hall', ' mula sa hall') : '',
+    x.branches > 1 ? x.branches + T(' branches', ' sangay') : ''].filter(Boolean).join(' · ');
   async function sFind(raw) {
     const q = raw.trim().toLowerCase(), out = [];
     const rows = q ? all.filter(r => [r.tracking_id, r.subject, r.location_label, label(r.category)].some(v => v && String(v).toLowerCase().includes(q)))
@@ -86,10 +109,12 @@
     rows.slice(0, 5).forEach(r => out.push({ k: 'case', col: catColour(r.category), glyph: (PIN_GLYPH[r.category] || PIN_GLYPH.other).replace(/__C__/g, '#fff'),
       t: r.subject || label(r.category), s: (r.tracking_id || '') + (r.location_label ? ' · ' + r.location_label : ''), go: () => { closeSearch(); showDetail(r); } }));
     if (q) {
-      const lm = (await landmarks()).filter(x => x.n.toLowerCase().includes(q)).sort((a, b) => rank(a.n, q) - rank(b.n, q)).slice(0, 5);
-      if (lm.length) out.push({ h: T('Places', 'Mga lugar') });
-      lm.forEach(x => out.push({ k: 'place', col: '#2F6BFF', icon: 'pin', t: x.n, s: x.g ? x.g.replace(/_/g, ' ') : T('Place', 'Lugar'), go: () => { closeSearch(); flyTo(x.c[0], x.c[1], 17.5); pulse(x.c[0], x.c[1], x.n); } }));
-      const st = streetsMatching(q).sort((a, b) => rank(a.n, q) - rank(b.n, q)).slice(0, 4);
+      const pl = await placesFor(raw);
+      if (pl.length) out.push({ h: T('Places', 'Mga lugar') });
+      pl.forEach(x => out.push({ k: 'place', col: KIND[x.grp] ? KIND[x.grp][0] : '#2F6BFF', icon: x.grp === 'street' ? 'directions' : 'pin', t: x.name, s: placeLine(x),
+        go: () => { closeSearch(); flyTo(x.lng, x.lat, x.grp === 'street' ? 17 : 17.5); pulse(x.lng, x.lat, x.name); } }));
+      const known = new Set(pl.map(x => String(x.name).toLowerCase()));
+      const st = streetsMatching(q).filter(x => !known.has(x.n.toLowerCase())).sort((a, b) => rank(a.n, q) - rank(b.n, q)).slice(0, 4);
       if (st.length) out.push({ h: T('Streets', 'Mga kalye') });
       st.forEach(x => out.push({ k: 'street', col: '#8A8F9C', icon: 'directions', t: x.n, s: T('Street', 'Kalye'), go: () => { closeSearch(); flyTo(x.c[0], x.c[1], 17); pulse(x.c[0], x.c[1], x.n); } }));
     }
@@ -99,11 +124,13 @@
   async function sRender() {
     const my = ++sSeq, items = await sFind(sq.value); if (my !== sSeq) return;
     sItems = items.filter(i => !i.h); sCur = 0; let n = 0;
-    sRes.innerHTML = items.length ? items.map(i => i.h ? '<div class="sx-h">' + esc(i.h) + '</div>' :
+    const chips = sq.value.trim() ? '' : '<div class="sx-kinds" role="group" aria-label="' + esc(T('Find a kind of place', 'Maghanap ng uri ng lugar')) + '">' +
+      CHIPS.map(([g, w]) => '<button type="button" class="sx-kind" data-q="' + w + '" style="--c:' + KIND[g][0] + '"><i aria-hidden="true"></i>' + esc(KIND[g][1]) + '</button>').join('') + '</div>';
+    sRes.innerHTML = chips + (items.length ? items.map(i => i.h ? '<div class="sx-h">' + esc(i.h) + '</div>' :
       '<button type="button" class="sx-r' + (n === 0 ? ' cur' : '') + '" role="option" data-i="' + (n++) + '" style="--c:' + i.col + '"><span class="sx-i">' +
       (i.glyph ? '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + i.glyph + '</svg>' : sdIcon(i.icon)) +
       '</span><span class="sx-t"><b>' + esc(i.t) + '</b><small>' + esc(i.s) + '</small></span></button>').join('')
-      : '<p class="sx-none">' + esc(T('Nothing matches. Try a tracking ID, a landmark or a street name.', 'Walang tugma. Subukan ang tracking ID, landmark o pangalan ng kalye.')) + '</p>';
+      : '<p class="sx-none">' + esc(T('Nothing matches. Try a tracking ID, a landmark or a street name.', 'Walang tugma. Subukan ang tracking ID, landmark o pangalan ng kalye.')) + '</p>');
     if (sPanel.hidden === false) place(sPanel, sBtn);
   }
   const sMark = () => sRes.querySelectorAll('.sx-r').forEach((b, i) => { b.classList.toggle('cur', i === sCur); if (i === sCur) b.scrollIntoView({ block: 'nearest' }); });
@@ -111,13 +138,14 @@
   function closeSearch() { shut(sBtn, sPanel); }
   closers.search = closeSearch;
   sBtn.addEventListener('click', e => { e.stopPropagation(); sPanel.hidden ? openSearch() : closeSearch(); });
-  sq.addEventListener('input', sRender);
+  let sWait = 0;   // one search a little after typing stops, not one per letter
+  sq.addEventListener('input', () => { clearTimeout(sWait); sWait = setTimeout(sRender, 160); });
   sq.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') { e.preventDefault(); sCur = Math.min(sItems.length - 1, sCur + 1); sMark(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); sCur = Math.max(0, sCur - 1); sMark(); }
     else if (e.key === 'Enter' && sItems[sCur]) { e.preventDefault(); sItems[sCur].go(); }
   });
-  sRes.addEventListener('click', e => { const b = e.target.closest('.sx-r'); if (b && sItems[+b.dataset.i]) sItems[+b.dataset.i].go(); });
+  sRes.addEventListener('click', e => { const k = e.target.closest('.sx-kind'); if (k) { sq.value = k.dataset.q; sRender(); sq.focus(); return; } const b = e.target.closest('.sx-r'); if (b && sItems[+b.dataset.i]) sItems[+b.dataset.i].go(); });
   document.addEventListener('keydown', e => {
     if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); openSearch(); }
     if (e.key === 'Escape') { if (!sPanel.hidden) closeSearch(); hereClose(); }
