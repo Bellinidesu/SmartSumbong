@@ -157,18 +157,18 @@ begin
     case r ->> 'factor'
       when 'category' then
         if r ->> 'detail' = 'public_safety_infrastructure' then
-          v_en := v_en || 'it involves public safety'; v_fil := v_fil || 'may kinalaman ito sa kaligtasan ng publiko';
+          v_en := array_append(v_en, 'it involves public safety'); v_fil := array_append(v_fil, 'may kinalaman ito sa kaligtasan ng publiko');
         elsif r ->> 'detail' = 'peace_order_nuisance' then
-          v_en := v_en || 'it involves peace and order'; v_fil := v_fil || 'may kinalaman ito sa katahimikan at kaayusan';
+          v_en := array_append(v_en, 'it involves peace and order'); v_fil := array_append(v_fil, 'may kinalaman ito sa katahimikan at kaayusan');
         elsif r ->> 'detail' = 'environmental_waste_hazard' then
-          v_en := v_en || 'it is a health or environment hazard'; v_fil := v_fil || 'panganib ito sa kalusugan o kapaligiran';
+          v_en := array_append(v_en, 'it is a health or environment hazard'); v_fil := array_append(v_fil, 'panganib ito sa kalusugan o kapaligiran');
         end if;
       when 'words' then
-        v_en := v_en || 'it mentions a danger to people'; v_fil := v_fil || 'may nabanggit itong panganib sa tao';
+        v_en := array_append(v_en, 'it mentions a danger to people'); v_fil := array_append(v_fil, 'may nabanggit itong panganib sa tao');
       when 'hazard zone' then
-        v_en := v_en || 'it is in an area that floods easily'; v_fil := v_fil || 'nasa lugar ito na madaling bahain';
+        v_en := array_append(v_en, 'it is in an area that floods easily'); v_fil := array_append(v_fil, 'nasa lugar ito na madaling bahain');
       when 'nearby reports' then
-        v_en := v_en || 'other residents reported the same problem nearby'; v_fil := v_fil || 'may iba pang residente na nag-ulat ng parehong problema sa malapit';
+        v_en := array_append(v_en, 'other residents reported the same problem nearby'); v_fil := array_append(v_fil, 'may iba pang residente na nag-ulat ng parehong problema sa malapit');
       else null;
     end case;
   end loop;
@@ -506,7 +506,7 @@ AS $$
                   select 1 from public.resolution_checks c
                    where c.report_id = r.id and c.fixed is false and c.handled_at is null
                      and not exists (select 1 from public.report_messages m
-                                      where m.report_id = r.id and m.from_barangay and m.created_at > c.answered_at))))
+                                      where m.report_id = r.id and m.from_barangay and m.created_at >= c.answered_at))))
   ),
   facts as materialized (
     select o.id, o.tracking_id, o.subject, o.category, o.status, o.due_at, o.created_at,
