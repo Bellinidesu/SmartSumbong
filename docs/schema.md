@@ -69,7 +69,7 @@ How the database fits the rest of the system is in
 
 | Table | Purpose | Since |
 |---|---|---|
-| `portal_uptime` | Every 10-minute check of `/admin/ping.php` and whether it answered | 0096 |
+| `portal_uptime` | Every 10-minute check of `/admin/ping.php`, whether it answered, and the container's memory it reported (0138) | 0096 |
 | `portal_errors` | Portal PHP and browser errors, grouped by message with a count | 0097 |
 | `portal_outages` | One row per outage (two missed checks), with how long it lasted | 0098 |
 | `system_alerts` | One row per problem the hourly health check watches; open ones show in Settings | 0119 |

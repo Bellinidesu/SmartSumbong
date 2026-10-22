@@ -108,6 +108,12 @@ Changes on `main` not yet deployed belong here.
   (it only works for a signed-in administrator). Made on the server with
   chillerlan/php-qrcode (MIT/Apache-2.0); a reader decodes it from a screenshot.
 
+**Added (server memory, 22 Oct)**
+- Settings → System status → Server memory: how much of its memory the
+  portal's server uses now, at most this week, and on average. Render's free
+  plan hides its metrics, so the portal reports its own with each 10-minute
+  check (0138). It decides what the engine can run on the free server.
+
 **Added (the engine, 22 Oct)**
 - The engine: heavy work runs on the server, not the phone (Ace: the
   portal's features and labs run as engine functions). Its first job reads
