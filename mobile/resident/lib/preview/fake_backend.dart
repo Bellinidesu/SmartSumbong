@@ -306,6 +306,9 @@ class DemoBackend extends http.BaseClient {
       case 'follow_up_report':
         _find('reports', a['p_report'])?['followed_up_at'] = _now();
         return _empty(204);
+      case 'command_now':
+        // the preview shows the strip: Flood Watch on since forty minutes ago
+        return _json(200, {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': DateTime.now().toUtc().subtract(const Duration(minutes: 40)).toIso8601String()});
       case 'smart_why_order':
         return _json(200, {
           'en': 'Reports are handled in order of how urgent they are, and the longer one waits, the higher it moves. Yours is higher because it involves public safety and other residents reported the same problem nearby.',
