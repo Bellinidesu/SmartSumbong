@@ -839,7 +839,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     final col = categoryColour(widget.choice.category);
     Widget section(int n, String title, List<Widget> body) => Container(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+          decoration: d.cardBox(18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
               Container(
@@ -1623,7 +1623,7 @@ class _Suggestions extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Container(
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
+      decoration: d.cardBox(14),
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (var i = 0; i < places.length; i++) ...[

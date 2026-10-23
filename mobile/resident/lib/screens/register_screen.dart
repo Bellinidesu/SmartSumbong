@@ -606,7 +606,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final d = tanod ? (context.isDark ? DColors.tanodDark : DColors.tanodLight) : context.dResident;
     Widget card(List<Widget> children) => Container(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+          decoration: d.cardBox(18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
         );
     return DPage(

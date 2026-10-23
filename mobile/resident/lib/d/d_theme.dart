@@ -89,6 +89,55 @@ class DColors {
   static const brandNavy = Color(0xFF00308F);
 
   /// The four dispatch steps, vivid (Ace, 4 Oct): Accepted, On the way,
+  /// Material elevation, as the portal's light mode draws it (16 Oct: "light mode shouldn't be glass, we do material"):
+  /// depth from shadows rather than an edge, the three levels of Material 3 in the portal's navy. Dark is Material too, with
+  /// black shadows and lighter surfaces (see [surface]).
+  List<BoxShadow> elevation(int level) {
+    if (dark) {
+      return switch (level) {
+        3 => const [
+            BoxShadow(color: Color(0x99000000), blurRadius: 12, spreadRadius: 3, offset: Offset(0, 6)),
+            BoxShadow(color: Color(0x66000000), blurRadius: 4, offset: Offset(0, 1)),
+          ],
+        2 => const [
+            BoxShadow(color: Color(0x8C000000), blurRadius: 6, offset: Offset(0, 2)),
+            BoxShadow(color: Color(0x59000000), blurRadius: 10, spreadRadius: 2, offset: Offset(0, 3)),
+          ],
+        _ => const [
+            BoxShadow(color: Color(0x73000000), blurRadius: 3, offset: Offset(0, 1)),
+            BoxShadow(color: Color(0x4D000000), blurRadius: 4, spreadRadius: 1, offset: Offset(0, 1)),
+          ],
+      };
+    }
+    const ink = Color(0xFF141B34);
+    return switch (level) {
+      3 => [
+          BoxShadow(color: ink.withValues(alpha: .14), blurRadius: 8, spreadRadius: 3, offset: const Offset(0, 4)),
+          BoxShadow(color: ink.withValues(alpha: .22), blurRadius: 3, offset: const Offset(0, 1)),
+        ],
+      2 => [
+          BoxShadow(color: ink.withValues(alpha: .20), blurRadius: 2, offset: const Offset(0, 1)),
+          BoxShadow(color: ink.withValues(alpha: .12), blurRadius: 6, spreadRadius: 2, offset: const Offset(0, 2)),
+        ],
+      _ => [
+          BoxShadow(color: ink.withValues(alpha: .14), blurRadius: 2, offset: const Offset(0, 1)),
+          BoxShadow(color: ink.withValues(alpha: .08), blurRadius: 3, spreadRadius: 1, offset: const Offset(0, 1)),
+        ],
+    };
+  }
+
+  /// A raised surface's colour. In light it is the card white; in dark, Material lifts a surface by lightening it a little
+  /// more with each level, since a shadow alone hardly shows on a dark page.
+  Color surface(int level) => dark ? Color.alphaBlend(Colors.white.withValues(alpha: level >= 3 ? .09 : level == 2 ? .06 : .035), card) : card;
+
+  /// A card: lifted by elevation 1, with no edge in either mode. [edge] draws a coloured edge.
+  BoxDecoration cardBox(double radius, {Color? edge}) => BoxDecoration(
+        color: surface(1),
+        borderRadius: BorderRadius.circular(radius),
+        border: edge != null ? Border.all(color: edge) : null,
+        boxShadow: elevation(1),
+      );
+
   /// Arrived, Resolved.
   List<Color> get steps => dark
       ? const [Color(0xFF5B9BFF), Color(0xFFFFA033), Color(0xFFC084FC), Color(0xFF34D976)]

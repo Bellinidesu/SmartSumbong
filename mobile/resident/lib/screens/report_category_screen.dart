@@ -150,7 +150,7 @@ class _Shell extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Container(
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+      decoration: d.cardBox(18),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

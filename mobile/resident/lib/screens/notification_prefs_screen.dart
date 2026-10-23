@@ -140,7 +140,7 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
             )
           else
             Container(
-              decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+              decoration: d.cardBox(18),
               clipBehavior: Clip.antiAlias,
               child: Column(children: [
                 for (var i = 0; i < _mutableKinds.length; i++) ...[

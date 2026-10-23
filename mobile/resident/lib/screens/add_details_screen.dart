@@ -389,7 +389,7 @@ class _PhotoChip extends StatelessWidget {
     final d = context.d;
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: d.card, border: Border.all(color: d.line), borderRadius: BorderRadius.circular(14)),
+      decoration: d.cardBox(14),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

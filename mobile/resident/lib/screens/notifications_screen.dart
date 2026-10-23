@@ -254,7 +254,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Text(title.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11.5, letterSpacing: 1.04, color: d.muted)),
             ),
             Container(
-              decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+              decoration: d.cardBox(18),
               clipBehavior: Clip.antiAlias,
               child: Column(children: [
                 for (var i = 0; i < list.length; i++) _NotificationRow(item: list[i], first: i == 0, report: list[i].reportId == null ? null : _reports[list[i].reportId]),

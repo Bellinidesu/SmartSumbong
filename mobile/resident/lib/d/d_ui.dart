@@ -193,11 +193,64 @@ class DSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     final r = BorderRadius.circular(radius);
-    return Material(
-      color: d.card,
-      shape: RoundedRectangleBorder(borderRadius: r, side: BorderSide(color: borderColor ?? d.line, width: 1)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
+    return DecoratedBox(
+      decoration: BoxDecoration(borderRadius: r, boxShadow: d.elevation(1)),
+      child: Material(
+        color: d.surface(1),
+        shape: RoundedRectangleBorder(borderRadius: r, side: borderColor != null ? BorderSide(color: borderColor!, width: 1) : BorderSide.none),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
+      ),
+    );
+  }
+}
+
+/// SMART's own surface, the same dark navy in light and in dark mode (as on the portal): a thin gradient line along the top,
+/// the engine's mark, and an eyebrow in the portal's amber. [child] reads in white on it.
+class DEngineCard extends StatelessWidget {
+  const DEngineCard({super.key, required this.label, required this.child, this.padding = const EdgeInsets.fromLTRB(16, 13, 16, 16)});
+
+  final String label;
+  final Widget child;
+  final EdgeInsets padding;
+
+  /// The text colours that read on the navy.
+  static const title = Color(0xFFFFFFFF);
+  static const body = Color(0xFFC9CCD1);
+  static const amber = Color(0xFFFFB454);
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return DecoratedBox(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), boxShadow: d.elevation(2)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1B2342), Color(0xFF0E1428)]),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Container(
+              height: 3,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(colors: [Color(0xFF2D4FA8), Color(0xFF356CF9), Color(0xFF2D4FA8), Color(0xFFFF9800), Color(0xFF2D4FA8)]),
+              ),
+            ),
+            Padding(
+              padding: padding,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(label, style: DType.label(amber))),
+                  Image.asset('assets/images/smart-engine-sm.webp', height: 22, semanticLabel: 'SMART engine', filterQuality: FilterQuality.medium),
+                ]),
+                const SizedBox(height: 8),
+                child,
+              ]),
+            ),
+          ]),
+        ),
+      ),
     );
   }
 }

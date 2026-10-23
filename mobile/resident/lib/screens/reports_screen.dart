@@ -1170,9 +1170,9 @@ class _ReportCard extends StatelessWidget {
     final d = context.d;
     final col = categoryColour(report.category);
     final st = reportStatusColour(report.status);
-    return Material(
-      color: d.card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: onAddDetails != null ? DColors.orange : d.line, width: onAddDetails != null ? 1.6 : 1)),
+    return DecoratedBox(decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: d.elevation(1)), child: Material(
+      color: d.surface(1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: onAddDetails != null ? BorderSide(color: DColors.orange, width: onAddDetails != null ? 1.6 : 1) : BorderSide.none),
       clipBehavior: Clip.antiAlias,
       child: Stack(children: [
         InkWell(
@@ -1259,7 +1259,7 @@ class _ReportCard extends StatelessWidget {
           child: _CardMenu(onView: onView, onCancel: onCancel, onReopen: onReopen, onAppeal: onAppeal, onAddDetails: onAddDetails),
         ),
       ]),
-    );
+    ));
   }
 
   static String _formatDate(Strings s, DateTime utc) {

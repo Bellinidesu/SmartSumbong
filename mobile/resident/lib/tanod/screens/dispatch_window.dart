@@ -1668,30 +1668,19 @@ class _DispatchWindowState extends State<DispatchWindow>
   /// (how near, how busy, who knows the area). It is advice the barangay may or may not have followed: the
   /// kind words matter, since second or third is no fault of the tanod.
   Widget _whyYouCard() {
-    final d = context.d;
-    final bg = d.dark ? const Color(0xFF14264A) : const Color(0xFFEEF3FF);
-    final line = d.dark ? const Color(0xFF2B4380) : const Color(0xFFC9D8FF);
-    final ink = d.dark ? const Color(0xFF8DB2FF) : const Color(0xFF00308F);
     final fil = AppLocaleScope.of(context) == AppLocale.fil;
     final rank = (_smartPick!['smart_rank'] as num).toInt();
     final of = (_smartPick!['smart_of'] as num?)?.toInt();
     final lines = smartPickLines(_smartPick!['smart_reasons'], fil: fil);
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)),
+      child: DEngineCard(
+        label: context.tr('WHY YOU', 'BAKIT IKAW'),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(Icons.auto_awesome, size: 18, color: ink),
-            const SizedBox(width: 8),
-            Text(context.tr('WHY YOU', 'BAKIT IKAW'), style: DType.label(ink)),
-          ]),
-          const SizedBox(height: 6),
-          Text(smartPickTitle(rank, of, fil: fil), style: DType.body(d.ink, size: 15, w: FontWeight.w700)),
+          Text(smartPickTitle(rank, of, fil: fil), style: DType.body(DEngineCard.title, size: 15, w: FontWeight.w700)),
           if (lines.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(lines.join(' · '), style: DType.body(d.muted, size: 13)),
+            Text(lines.join(' · '), style: DType.body(DEngineCard.body, size: 13)),
           ],
         ]),
       ),

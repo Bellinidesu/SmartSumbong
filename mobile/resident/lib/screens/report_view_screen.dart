@@ -705,7 +705,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         actions.add(Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+          decoration: d.cardBox(16),
           child: _FeedbackCard(feedback: _feedback, onRate: _openFeedback),
         ));
       }
@@ -794,10 +794,13 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
             sub: _hasTanod(status) ? context.tr('Assigned to your report', 'Naka-assign sa iyong report') : context.tr('The barangay is reviewing it', 'Sinusuri ng barangay'),
           ),
           if (_whyOrder != null && status.isOngoing)
-            DRow(
-              icon: Icons.format_list_numbered_rounded,
-              title: context.tr('Why this order', 'Bakit ganito ang pagkakasunod'),
-              sub: context.tr(_whyOrder!['en'] as String? ?? '', _whyOrder!['fil'] as String? ?? ''),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: DEngineCard(
+                label: context.tr('WHY THIS ORDER', 'BAKIT GANITO ANG PAGKAKASUNOD'),
+                child: Text(context.tr(_whyOrder!['en'] as String? ?? '', _whyOrder!['fil'] as String? ?? ''),
+                    style: DType.body(DEngineCard.body, size: 13.5).copyWith(height: 1.45)),
+              ),
             ),
           if (_official != null)
             DRow(
@@ -1882,25 +1885,20 @@ class _FixCheckCardState extends State<_FixCheckCard> {
 
   @override
   Widget build(BuildContext context) {
-    final d = context.d;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+    return DEngineCard(
+      label: context.tr('WAS IT FIXED?', 'NAAYOS NA BA?'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(context.tr('Was it fixed?', 'Naayos na ba?'), style: DType.body(d.ink, size: 16, w: FontWeight.w800)),
-        const SizedBox(height: 4),
         Text(
           context.tr('The barangay marked this report resolved. Tell us if the problem is really gone.',
               'Minarkahan ng barangay na naresolba ang report na ito. Sabihin sa amin kung wala na talaga ang problema.'),
-          style: DType.body(d.muted, size: 13).copyWith(height: 1.4),
+          style: DType.body(DEngineCard.title, size: 14, w: FontWeight.w600).copyWith(height: 1.4),
         ),
         const SizedBox(height: 12),
         if (!_no)
           Row(children: [
             Expanded(child: DButton(context.tr('Yes, fixed', 'Oo, naayos na'), expand: true, busy: _busy, onTap: _busy ? null : () => _send(true))),
             const SizedBox(width: 10),
-            Expanded(child: DButton(context.tr('Not yet', 'Hindi pa'), kind: DButtonKind.line, expand: true, onTap: _busy ? null : () => setState(() => _no = true))),
+            Expanded(child: DButton(context.tr('Not yet', 'Hindi pa'), kind: DButtonKind.white, expand: true, onTap: _busy ? null : () => setState(() => _no = true))),
           ])
         else ...[
           TextField(
@@ -1909,9 +1907,13 @@ class _FixCheckCardState extends State<_FixCheckCard> {
             maxLines: 3,
             minLines: 2,
             enabled: !_busy,
-            style: DType.body(d.ink, size: 14),
+            style: DType.body(const Color(0xFF141B34), size: 14),
             decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              counterStyle: DType.body(DEngineCard.body, size: 11),
               hintText: context.tr('What is still wrong? (optional)', 'Ano ang problema pa? (opsyonal)'),
+              hintStyle: DType.body(const Color(0xFF6B6B6B), size: 14),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
@@ -1920,7 +1922,7 @@ class _FixCheckCardState extends State<_FixCheckCard> {
         ],
         if (_error != null) ...[
           const SizedBox(height: 8),
-          Text(_error!, style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5, w: FontWeight.w700)),
+          Text(_error!, style: DType.body(const Color(0xFFFF8A8A), size: 12.5, w: FontWeight.w700)),
         ],
       ]),
     );
@@ -2307,7 +2309,7 @@ class _Drop extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Container(
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
+      decoration: d.cardBox(14),
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         InkWell(
@@ -2421,7 +2423,7 @@ class _RateCardState extends State<_RateCard> {
     final d = context.d;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      decoration: d.cardBox(16),
       child: Column(children: [
         Text(context.s.reportViewHowDidWeDo, style: DType.body(d.dark ? Colors.white : DColors.brandNavy, size: 16, w: FontWeight.w800)),
         const SizedBox(height: 8),
@@ -2491,7 +2493,7 @@ class _ReasonPanelState extends State<_ReasonPanel> {
     final last = _pick == widget.options.length - 1;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      decoration: d.cardBox(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(widget.title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
         const SizedBox(height: 6),
