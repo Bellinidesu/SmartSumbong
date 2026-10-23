@@ -52,6 +52,9 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
   FloodReading? _flood;
   Timer? _floodTimer;
 
+  /// The command-center mode the barangay has on (0143), or null.
+  Map<String, dynamic>? _command;
+
   RealtimeChannel? _liveChannel;
   Timer? _liveDebounce;
 
@@ -60,12 +63,25 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
     super.initState();
     _load();
     _readFlood();
-    _floodTimer = Timer.periodic(const Duration(minutes: 10), (_) => _readFlood());
+    _readCommand();
+    _floodTimer = Timer.periodic(const Duration(minutes: 10), (_) {
+      _readFlood();
+      _readCommand();
+    });
   }
 
   Future<void> _readFlood() async {
     final r = await FloodReading.read();
     if (mounted) setState(() => _flood = r);
+  }
+
+  /// Which command-center mode is on, if any (SMART Iteration 4). On its
+  /// own: an older database or no signal just shows no strip.
+  Future<void> _readCommand() async {
+    try {
+      final j = await Supabase.instance.client.rpc('command_now');
+      if (mounted) setState(() => _command = j is Map ? Map<String, dynamic>.from(j) : null);
+    } catch (_) {}
   }
 
   @override
@@ -277,6 +293,7 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
         onRefresh: () async {
           await _load();
           await _readFlood();
+          await _readCommand();
         },
         color: d.accent,
         child: ListView(
@@ -304,6 +321,10 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
             ),
             Text(s.homeHowAreYou, style: DType.body(d.muted, size: 14).copyWith(height: 1.3)),
             const SizedBox(height: 14),
+            if (_command != null) ...[
+              _CommandStrip(mode: _command!),
+              const SizedBox(height: 10),
+            ],
             const _LocCard(),
             DFloodCard(reading: _flood),
             const SizedBox(height: 14),
@@ -356,6 +377,55 @@ class _TanodHomeScreenState extends State<TanodHomeScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The barangay has a command-center mode on (Flood Watch, Fire
+/// Surroundings, Quake Check, Typhoon Board): which, and since when. The
+/// board in the hall reads where tanods are, so the line asks for that.
+class _CommandStrip extends StatelessWidget {
+  const _CommandStrip({required this.mode});
+
+  final Map<String, dynamic> mode;
+
+  static const _colours = {
+    'fire': Color(0xFFE5383B),
+    'quake': Color(0xFF8D6E63),
+    'flood': Color(0xFF1E88E5),
+    'typhoon': Color(0xFF6A4FD3),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    final c = _colours[mode['mode']] ?? d.accent;
+    final since = DateTime.tryParse(mode['since'] as String? ?? '')?.toLocal();
+    final at = since == null ? '' : TimeOfDay.fromDateTime(since).format(context);
+    final name = context.tr(mode['en'] as String? ?? '', mode['fil'] as String? ?? '');
+    return Semantics(
+      container: true,
+      label: context.tr('$name is on since $at', 'Naka-on ang $name mula $at'),
+      child: DSheet(
+        borderColor: c.withValues(alpha: .6),
+        child: Row(children: [
+          Container(width: 6, height: 40, decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(3))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ExcludeSemantics(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(context.tr('${name.toUpperCase()} IS ON', 'NAKA-ON ANG ${name.toUpperCase()}'), style: DType.label(c)),
+                const SizedBox(height: 3),
+                Text(
+                  context.tr('Since $at. Keep your duty status and location up to date; the hall\'s board reads them.',
+                      'Mula $at. Panatilihing tama ang iyong duty status at lokasyon; binabasa ito ng pisara sa hall.'),
+                  style: DType.body(d.ink, size: 13).copyWith(height: 1.3),
+                ),
+              ]),
+            ),
+          ),
+        ]),
       ),
     );
   }
