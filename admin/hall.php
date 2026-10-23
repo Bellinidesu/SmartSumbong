@@ -6,7 +6,7 @@
  *
  * A television has no account, so the page opens with a display link (hall.php?k=...) made in Settings -> SMART. The
  * database keeps only a hash of the link's secret and answers nothing to a wrong or turned-off one (command_hall). The
- * page refreshes itself every 30 seconds without a script.
+ * page reloads itself every 30 seconds (one line of script; a meta refresh fails the accessibility check).
  */
 declare(strict_types=1);
 
@@ -34,7 +34,6 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<?php if (is_array($h) || $h === false): ?><meta http-equiv="refresh" content="30"><?php endif; ?>
 <title>SmartSumbong · Hall display</title>
 <link href="assets/css/fonts.css?v=<?= $e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <style>
@@ -50,7 +49,11 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
   main { display: grid; gap: clamp(16px, 2vw, 28px); align-content: start; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: clamp(12px, 1.6vw, 24px); }
   .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: clamp(16px, 2vw, 28px); display: grid; gap: 4px; }
-  .tile b { font-size: clamp(48px, 7vw, 120px); line-height: 1; font-variant-numeric: tabular-nums; }
+  .tile b { font-size: clamp(44px, 5.6vw, 104px); line-height: 1; font-variant-numeric: tabular-nums; }
+  /* with a mode on, today's counts are the second thing on the screen, and smaller, so it all fits one television */
+  .tiles.small .tile { padding: clamp(10px, 1.2vw, 18px) clamp(14px, 1.6vw, 24px); }
+  .tiles.small .tile b { font-size: clamp(30px, 3.4vw, 60px); }
+  .tiles.small .tile span { font-size: clamp(14px, 1.2vw, 20px); }
   .tile span { color: var(--muted); font-size: clamp(16px, 1.6vw, 26px); }
   h2 { margin: 8px 0 0; font-size: clamp(16px, 1.5vw, 22px); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
   ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
@@ -68,7 +71,7 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
     <?php if ($h === false): ?>
       <p><b><?= $e(t('The display could not be read just now.', 'Hindi mabasa ang display ngayon.')) ?></b><?= $e(t('It tries again by itself every 30 seconds.', 'Susubukan itong muli kada 30 segundo.')) ?></p>
     <?php else: ?>
-      <p><b><?= $e(t('This display link is not valid, or it was turned off.', 'Hindi tama ang display link na ito, o naka-off na.')) ?></b><?= $e(t('An administrator makes a new one in Settings → SMART → Command center.', 'Gumagawa ng bago ang administrator sa Settings → SMART → Command center.')) ?></p>
+      <p><b><?= $e(t('This display link is not valid, or it was turned off.', 'Hindi tama ang display link na ito, o naka-off na.')) ?></b><?= $e(t('An administrator makes a new one in Settings → SMART → Command center.', 'Gumagawa ng bago ang administrator sa Settings → SMART → Sentro ng Pamamahala.')) ?></p>
     <?php endif; ?>
   </main>
   <footer><span>SmartSumbong · SMART</span></footer>
@@ -89,7 +92,7 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
       <?php endif; ?>
       <h2><?= $e(t('Today', 'Ngayong araw')) ?></h2>
     <?php endif; ?>
-    <div class="tiles">
+    <div class="tiles<?= $mode ? ' small' : '' ?>">
       <div class="tile"><b><?= (int) ($today['filed'] ?? 0) ?></b><span><?= $e(t('Filed today', 'Naisampa ngayon')) ?></span></div>
       <div class="tile"><b><?= (int) ($today['open'] ?? 0) ?></b><span><?= $e(t('Open now', 'Bukas ngayon')) ?></span></div>
       <div class="tile"><b><?= (int) ($today['resolved'] ?? 0) ?></b><span><?= $e(t('Finished today', 'Natapos ngayon')) ?></span></div>
@@ -98,5 +101,6 @@ if (!is_array($h)) http_response_code($h === false ? 503 : 404);
   </main>
   <footer><span><?= $e(t('Counts only. Reports stay private.', 'Mga bilang lamang. Pribado ang mga ulat.')) ?></span><span>SmartSumbong · SMART</span></footer>
 <?php endif; ?>
+<?php if (is_array($h) || $h === false): ?><script>setTimeout(function () { location.reload(); }, 30000);</script><?php endif; ?>
 </body>
 </html>

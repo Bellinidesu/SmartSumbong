@@ -192,9 +192,23 @@ test('SMART Iteration 4: the hall display shows counts only, and a wrong link sh
   await expect(page.locator('body')).toContainText('waist-deep');
   await expect(page.locator('body')).not.toContainText('SS-');
   expect(await axe(page), 'Hall display').toEqual([]);
+  expect(errors, 'console errors').toEqual([]);
+  // a wrong or missing link answers 404 (the browser logs that status), and says why on the page
   await page.goto('hall.php?k=' + 'a'.repeat(48));
   await expect(page.locator('body')).toContainText('not valid, or it was turned off');
   await page.goto('hall.php');
   await expect(page.locator('body')).toContainText('not valid, or it was turned off');
-  expect(errors, 'console errors').toEqual([]);
+});
+
+test('SMART Iteration 4: the command center in Settings (auto switch, sessions, hall display links)', async ({ page }) => {
+  const r = await open(page, 'settings.php#smart');
+  const c = page.locator('#cmd-settings');
+  await expect(c.locator('input[name="on"]')).not.toBeChecked();
+  await expect(c).toContainText('Flood Watch');
+  await expect(c).toContainText('Humupa na ang baha');
+  await expect(c).toContainText('Hall TV');
+  await expect(c.locator('form input[name="action"][value="cmd_unlink"]')).toHaveCount(1);
+  await expect(c.locator('#cmd-label')).toBeVisible();
+  expect(await axe(page), 'Settings > SMART > Command center').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
 });

@@ -155,7 +155,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     </div>
   </aside>
   <!-- The command center (SMART Iteration 4, 0143): assets/js/sd-command.js fills these. -->
-  <aside class="p-card p-map-stats cc-side" id="cc-side" hidden aria-label="<?= e(t('Command center', 'Command center')) ?>">
+  <aside class="p-card p-map-stats cc-side" id="cc-side" hidden aria-label="<?= e(t('Command center', 'Sentro ng Pamamahala')) ?>">
     <div class="cc-head"></div>
     <div class="cc-body"></div>
   </aside>
@@ -210,7 +210,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s5-4.4 5-8.8a5 5 0 1 0-10 0c0 4.4 5 8.8 5 8.8z"/><circle cx="12" cy="11.5" r="1.8"/><path d="M3.2 8a9.6 9.6 0 0 0 0 7M20.8 8a9.6 9.6 0 0 1 0 7"/></svg><span class="p-cnt" id="pin-count">0</span></button>
     <button class="p-dock-btn ss-dock ss-dock-logo" id="smart-toggle" type="button" aria-expanded="false" aria-controls="smart-side" title="SMART engine" aria-label="SMART engine">
       <?= smart_brain(24) ?><span class="p-cnt"><?= (int) ($smartSum['urgent_waiting'] ?? 0) + (int) ($smartSum['high_waiting'] ?? 0) ?></span></button>
-    <button class="p-dock-btn cc-dock" id="cc-toggle" type="button" aria-expanded="false" aria-controls="cc-side" title="<?= e(t('Command center', 'Command center')) ?>" aria-label="<?= e(t('Command center', 'Command center')) ?>">
+    <button class="p-dock-btn cc-dock" id="cc-toggle" type="button" aria-expanded="false" aria-controls="cc-side" title="<?= e(t('Command center', 'Sentro ng Pamamahala')) ?>" aria-label="<?= e(t('Command center', 'Sentro ng Pamamahala')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 4.4-3.4 8.3-8 9-4.6-.7-8-4.6-8-9V7z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></button>
     <?php if (HOTSPOTS_ENABLED): ?>
     <button class="p-dock-btn" id="hotspot-toggle" aria-expanded="false" aria-controls="hotspot-side" title="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>" aria-label="<?= e(t('Hotspot clusters', 'Mga kumpol ng hotspot')) ?>">

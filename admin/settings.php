@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/qr.php';
 
 $admin = require_admin();
 $db    = db();
@@ -88,6 +89,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 }
 
 // Settings -> SMART (docs/SMART_SCREENS.md, 6 and 6b): the rules, storm mode, the digest, trying a rule, re-scoring.
+// The command center (0143): SMART may switch a mode on by itself, and the hall display's links.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['cmd_auto', 'cmd_link', 'cmd_unlink'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            if ($_POST['action'] === 'cmd_auto') {
+                $db->rpc('command_set_auto', ['p_on' => !empty($_POST['on'])]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => !empty($_POST['on'])
+                    ? t('SMART may now switch a mode on by itself. The administrators are told each time.', 'Maaari nang mag-on ng mode ang SMART nang mag-isa. Sinasabihan ang mga administrator sa bawat pagkakataon.')
+                    : t('SMART will only suggest a mode.', 'Magmumungkahi na lamang ng mode ang SMART.')];
+            } elseif ($_POST['action'] === 'cmd_link') {
+                $tok = $db->rpc('command_display_link_create', ['p_label' => trim((string) ($_POST['label'] ?? ''))]);
+                if (is_string($tok) && preg_match('/^[0-9a-f]{48}$/', $tok)) {
+                    $_SESSION['cmd_link'] = portal_url('hall.php?k=' . $tok);   // shown once, below
+                }
+            } else {
+                $db->rpc('command_display_link_revoke', ['p_id' => (string) ($_POST['id'] ?? '')]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('That display link no longer works.', 'Hindi na gumagana ang display link na iyon.')];
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#smart');
+    exit;
+}
+
 // Planning (0142): a recurring problem becomes a work order for the council; a work order moves open -> planned -> done.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['wo_create', 'wo_set'], true)) {
     session_start_once();
@@ -665,13 +695,21 @@ try {
         'fac'    => ['rpc/smart_factor_stats', ['p_days' => 90], true],
         'digest' => ['rpc/smart_digest_preview', [], true],
         'words'  => ['rpc/smart_word_suggestions', ['p_days' => 30], true],
+        'cmd'    => ['command_state', ['select' => 'auto_switch', 'id' => 'eq.1', 'limit' => '1'], true],
+        'links'  => ['command_display_links', ['select' => 'id,label,created_at,revoked_at,last_seen_at', 'order' => 'created_at.desc', 'limit' => '8'], true],
+        'runs'   => ['command_sessions', ['select' => 'id,mode,how,reason,started_at,ended_at,end_note,starter:users!command_sessions_started_by_fkey(full_name)', 'order' => 'started_at.desc', 'limit' => '5'], true],
     ]);
     $sr     = !($got['rules'] instanceof SupabaseError) ? ($got['rules'][0] ?? null) : null;
     $cal    = !($got['cal'] instanceof SupabaseError) ? (array) $got['cal'] : [];
     $fac    = !($got['fac'] instanceof SupabaseError) ? array_slice((array) $got['fac'], 0, 12) : [];
     $words  = !($got['words'] instanceof SupabaseError) ? array_slice((array) $got['words'], 0, 12) : [];
     $digest = !($got['digest'] instanceof SupabaseError) && is_string($got['digest']) ? $got['digest'] : '';
+    $cmd = ['auto' => !($got['cmd'] instanceof SupabaseError) && !empty($got['cmd'][0]['auto_switch']),
+            'links' => !($got['links'] instanceof SupabaseError) ? (array) $got['links'] : [],
+            'runs' => !($got['runs'] instanceof SupabaseError) ? (array) $got['runs'] : []];
 } catch (SupabaseError) { /* the tab says so below */ }
+$cmd ??= ['auto' => false, 'links' => [], 'runs' => []];
+$cmdLink = $_SESSION['cmd_link'] ?? null; unset($_SESSION['cmd_link']);
 $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Madalian')];
 ?>
 <section class="st-pane" data-pane="smart" hidden>
@@ -715,6 +753,49 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <?php if ($digest !== ''): ?><p class="ss-digest"><?= nl2br(e($digest)) ?></p><?php endif; ?>
     </div>
   </div>
+
+  <section class="p-card p-card-pad" id="cmd-settings">
+    <p class="p-eyebrow"><?= e(t('Command center', 'Sentro ng Pamamahala')) ?></p>
+    <p class="p-hint"><?= e(t('Spatial Distribution becomes a command center for one situation at a time: Fire Surroundings, Quake Check, Flood Watch or Typhoon Board. SMART suggests a mode with its reason, and an administrator turns it on. Only a person turns a mode off, with a note.', 'Nagiging command center ang Spatial Distribution para sa isang sitwasyon sa bawat pagkakataon: Paligid ng Sunog, Suri sa Lindol, Bantay-baha o Pisara ng Bagyo. Nagmumungkahi ang SMART ng mode kasama ang dahilan, at ini-o-on ito ng administrator. Tao lamang ang nag-o-off ng mode, na may note.')) ?></p>
+    <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cmd_auto">
+      <label class="sd-c"><input type="checkbox" name="on" value="1" data-autosubmit <?= $cmd['auto'] ? 'checked' : '' ?>> <?= e(t('Let SMART switch a mode on by itself (checked every 5 minutes; the administrators are told)', 'Hayaang mag-on ng mode ang SMART nang mag-isa (sinusuri kada 5 minuto; sinasabihan ang mga administrator)')) ?></label></form>
+    <?php if ($cmd['runs']): ?>
+      <p class="st-note" style="margin-top:14px"><b><?= e(t('Recently', 'Kamakailan')) ?></b></p>
+      <ul class="ss-vlist"><?php foreach ($cmd['runs'] as $run):
+          $mn = ['fire' => t('Fire Surroundings', 'Paligid ng Sunog'), 'quake' => t('Quake Check', 'Suri sa Lindol'), 'flood' => t('Flood Watch', 'Bantay-baha'), 'typhoon' => t('Typhoon Board', 'Pisara ng Bagyo')][$run['mode']] ?? $run['mode'];
+          $when = static fn (?string $iso): string => $iso ? (new DateTimeImmutable($iso))->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, g:i A') : ''; ?>
+        <li><div><b><?= e($mn) ?></b><?php if (!$run['ended_at']): ?> <span class="p-badge p-b-done"><?= e(t('On', 'Naka-on')) ?></span><?php endif; ?>
+            <small><?= e($when($run['started_at'])) ?><?= $run['ended_at'] ? ' – ' . e($when($run['ended_at'])) : '' ?> · <?= e($run['how'] === 'auto' ? t('switched on by SMART', 'ini-on ng SMART') : formal_name((string) ($run['starter']['full_name'] ?? ''))) ?></small>
+            <span class="ss-vwhy"><?= e((string) $run['reason']) ?></span>
+            <?php if (!empty($run['end_note'])): ?><small><?= e(t('Closed:', 'Isinara:')) ?> <?= e((string) $run['end_note']) ?></small><?php endif; ?></div></li>
+      <?php endforeach; ?></ul>
+    <?php endif; ?>
+    <p class="p-eyebrow" style="margin-top:18px"><?= e(t('Hall display', 'Display sa hall')) ?></p>
+    <p class="p-hint"><?= e(t('A television in the barangay hall can show counts only (no names, places or tracking numbers) through its own link. It needs no account. Turn a link off at any time.', 'Maaaring magpakita ng mga bilang lamang (walang pangalan, lugar o tracking number) ang telebisyon sa barangay hall gamit ang sarili nitong link. Hindi ito nangangailangan ng account. I-off ang link anumang oras.')) ?></p>
+    <?php if ($cmdLink): ?>
+      <div class="cmd-new" role="status">
+        <img src="<?= e(qr_data_uri($cmdLink)) ?>" alt="<?= e(t('QR code of the new display link', 'QR code ng bagong display link')) ?>" width="132" height="132">
+        <div><p><b><?= e(t('The new display link. Copy it now: it is shown only once.', 'Ang bagong display link. Kopyahin ngayon: minsan lamang itong ipinapakita.')) ?></b></p>
+          <label class="p-sr" for="cmd-url"><?= e(t('Display link', 'Link ng display')) ?></label>
+          <input class="p-input-plain" id="cmd-url" readonly value="<?= e($cmdLink) ?>">
+          <p class="st-note"><?= e(t('Open it in the hall television\'s browser, or scan the code with the phone that casts to it.', 'Buksan ito sa browser ng telebisyon sa hall, o i-scan ang code gamit ang teleponong nagka-cast dito.')) ?></p></div>
+      </div>
+    <?php endif; ?>
+    <?php if ($cmd['links']): ?>
+      <ul class="ss-vlist"><?php foreach ($cmd['links'] as $lk): ?>
+        <li><div><b><?= e((string) $lk['label']) ?></b><?php if ($lk['revoked_at']): ?> <span class="p-badge p-b-denied"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?>
+            <small><?= e(t('Made', 'Ginawa')) ?> <?= e(relative_time($lk['created_at'])) ?> · <?= $lk['last_seen_at'] ? e(t('last shown', 'huling ipinakita')) . ' ' . e(relative_time($lk['last_seen_at'])) : e(t('not opened yet', 'hindi pa nabubuksan')) ?></small></div>
+          <?php if (!$lk['revoked_at']): ?>
+          <form method="post" class="ss-vroll"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cmd_unlink"><input type="hidden" name="id" value="<?= e((string) $lk['id']) ?>">
+            <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Turn off', 'I-off')) ?></button></form>
+          <?php endif; ?></li>
+      <?php endforeach; ?></ul>
+    <?php endif; ?>
+    <form method="post" class="ss-vroll cmd-make"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cmd_link">
+      <label class="p-sr" for="cmd-label"><?= e(t('Name of the display', 'Pangalan ng display')) ?></label>
+      <input class="p-input-plain" id="cmd-label" name="label" required minlength="2" maxlength="60" placeholder="<?= e(t('Name it, for example: Hall TV', 'Pangalanan, halimbawa: TV sa hall')) ?>">
+      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make a display link', 'Gumawa ng display link')) ?></button></form>
+  </section>
 
   <section class="p-card p-card-pad" id="smart-words">
     <p class="p-eyebrow"><?= e(t('Words to learn', 'Mga salitang aaralin')) ?><em><?= count($words) ?></em></p>

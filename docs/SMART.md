@@ -482,8 +482,7 @@ now, finished today, tanods on duty, and the mode's counts and checklist
 progress. No names, places or tracking numbers. A television has no account,
 so it opens with a display link made in Settings; only the SHA-256 of the
 link's secret is kept, the secret is shown once (with a QR code), and a link
-can be turned off at any time. The page refreshes itself every 30 seconds
-without a script.
+can be turned off at any time. The page reloads itself every 30 seconds.
 
 **On the phone**, `command_now()` tells a tanod or administrator which mode
 is on, for a banner.

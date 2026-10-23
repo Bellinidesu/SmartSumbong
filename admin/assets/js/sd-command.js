@@ -107,7 +107,7 @@
   // ---- the drawer ----------------------------------------------------------
   function paintHead() {
     var b = S.board || {}, m = b.mode, a = b.active;
-    var title = m ? nm(b) : tr('Command center', 'Command center');
+    var title = m ? nm(b) : tr('Command center', 'Sentro ng Pamamahala');
     side.setAttribute('data-m', m || '');
     head.innerHTML = '<span class="cc-head-ic" style="--cc:' + (COL[m] || 'var(--p-primary)') + '">' + ico(m || 'quake', 20) + '</span>' +
       '<div><b>' + esc(title) + '</b><small>' + (m ? (b.live ? esc(tr('On', 'Naka-on')) + ' · ' + esc(tr('as of', 'as of')) + ' ' + esc(tm(b.as_of))
