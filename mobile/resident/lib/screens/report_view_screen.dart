@@ -705,7 +705,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         actions.add(Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+          decoration: d.cardBox(16),
           child: _FeedbackCard(feedback: _feedback, onRate: _openFeedback),
         ));
       }
@@ -1886,7 +1886,7 @@ class _FixCheckCardState extends State<_FixCheckCard> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      decoration: d.cardBox(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(context.tr('Was it fixed?', 'Naayos na ba?'), style: DType.body(d.ink, size: 16, w: FontWeight.w800)),
         const SizedBox(height: 4),
@@ -2307,7 +2307,7 @@ class _Drop extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Container(
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: d.line)),
+      decoration: d.cardBox(14),
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         InkWell(
@@ -2421,7 +2421,7 @@ class _RateCardState extends State<_RateCard> {
     final d = context.d;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      decoration: d.cardBox(16),
       child: Column(children: [
         Text(context.s.reportViewHowDidWeDo, style: DType.body(d.dark ? Colors.white : DColors.brandNavy, size: 16, w: FontWeight.w800)),
         const SizedBox(height: 8),
@@ -2491,7 +2491,7 @@ class _ReasonPanelState extends State<_ReasonPanel> {
     final last = _pick == widget.options.length - 1;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      decoration: d.cardBox(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(widget.title, style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
         const SizedBox(height: 6),

@@ -193,11 +193,15 @@ class DSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     final r = BorderRadius.circular(radius);
-    return Material(
-      color: d.card,
-      shape: RoundedRectangleBorder(borderRadius: r, side: BorderSide(color: borderColor ?? d.line, width: 1)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
+    return DecoratedBox(
+      decoration: BoxDecoration(borderRadius: r, boxShadow: d.elevation(1)),
+      child: Material(
+        color: d.card,
+        shape: RoundedRectangleBorder(
+            borderRadius: r, side: borderColor != null || d.dark ? BorderSide(color: borderColor ?? d.line, width: 1) : BorderSide.none),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
+      ),
     );
   }
 }

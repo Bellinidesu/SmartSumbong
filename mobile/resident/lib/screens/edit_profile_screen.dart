@@ -586,7 +586,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 14),
                   ],
                   Container(
-                    decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+                    decoration: d.cardBox(18),
                     clipBehavior: Clip.antiAlias,
                     child: Column(children: [
                       _LockedField(first: true, label: s.editProfileNameLabel, value: _name ?? '', note: s.editProfileNameNote, onTap: () => _requestChange('full_name', s.editProfileNameWord)),

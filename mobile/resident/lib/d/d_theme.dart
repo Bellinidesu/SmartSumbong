@@ -89,6 +89,36 @@ class DColors {
   static const brandNavy = Color(0xFF00308F);
 
   /// The four dispatch steps, vivid (Ace, 4 Oct): Accepted, On the way,
+  /// Material elevation, as the portal's light mode draws it (16 Oct: "light mode shouldn't be glass, we do material"):
+  /// depth from shadows rather than an edge, the three levels of Material 3 in the portal's navy. Dark keeps its thin edge,
+  /// so it has none.
+  List<BoxShadow> elevation(int level) {
+    if (dark) return const [];
+    const ink = Color(0xFF141B34);
+    return switch (level) {
+      3 => [
+          BoxShadow(color: ink.withValues(alpha: .14), blurRadius: 8, spreadRadius: 3, offset: const Offset(0, 4)),
+          BoxShadow(color: ink.withValues(alpha: .22), blurRadius: 3, offset: const Offset(0, 1)),
+        ],
+      2 => [
+          BoxShadow(color: ink.withValues(alpha: .20), blurRadius: 2, offset: const Offset(0, 1)),
+          BoxShadow(color: ink.withValues(alpha: .12), blurRadius: 6, spreadRadius: 2, offset: const Offset(0, 2)),
+        ],
+      _ => [
+          BoxShadow(color: ink.withValues(alpha: .14), blurRadius: 2, offset: const Offset(0, 1)),
+          BoxShadow(color: ink.withValues(alpha: .08), blurRadius: 3, spreadRadius: 1, offset: const Offset(0, 1)),
+        ],
+    };
+  }
+
+  /// A white card: lifted by elevation 1 in light, a thin edge in dark. [edge] draws a coloured edge in both.
+  BoxDecoration cardBox(double radius, {Color? edge}) => BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(radius),
+        border: edge != null ? Border.all(color: edge) : (dark ? Border.all(color: line) : null),
+        boxShadow: elevation(1),
+      );
+
   /// Arrived, Resolved.
   List<Color> get steps => dark
       ? const [Color(0xFF5B9BFF), Color(0xFFFFA033), Color(0xFFC084FC), Color(0xFF34D976)]

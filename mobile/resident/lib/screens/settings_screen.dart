@@ -394,7 +394,7 @@ class _List extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = context.d;
     return Container(
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+      decoration: d.cardBox(18),
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
         for (var i = 0; i < children.length; i++) ...[

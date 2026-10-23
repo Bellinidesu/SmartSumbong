@@ -112,7 +112,7 @@ class _ExtraAdminServicesScreenState extends State<ExtraAdminServicesScreen> {
         child: Container(
           constraints: const BoxConstraints(maxWidth: 380),
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(26), border: Border.all(color: d.line)),
+          decoration: d.cardBox(26),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Center(
               child: Container(

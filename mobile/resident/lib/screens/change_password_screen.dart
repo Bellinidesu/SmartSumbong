@@ -202,7 +202,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         Text(s.changePasswordBody, style: DType.body(d.ink2, size: 13.5)),
         const SizedBox(height: 14),
         Container(
-          decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: d.line)),
+          decoration: d.cardBox(18),
           clipBehavior: Clip.antiAlias,
           child: Column(children: [
             _Field(

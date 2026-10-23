@@ -290,7 +290,7 @@ class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
     Widget stat(String n, String label) => Expanded(
           child: Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+            decoration: d.cardBox(16),
             child: Column(children: [
               Text(n, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 20, color: num)),
               Text(label, style: DType.body(d.muted, size: 11.5, w: FontWeight.w400)),
@@ -380,7 +380,7 @@ class _ActivityRowState extends State<_ActivityRow> {
     final subject = dash >= 0 ? entry.who.substring(dash + 3) : entry.who;
     final pillFg = d.dark ? Color.lerp(colour, Colors.white, .35)! : colour;
     return Container(
-      decoration: BoxDecoration(color: d.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: d.line)),
+      decoration: d.cardBox(16),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
