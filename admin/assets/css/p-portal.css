@@ -411,6 +411,7 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-vlist small { display: block; color: var(--p-muted); font-size: 12.5px; }
 .ss-vlist .ss-vwhy { display: block; color: var(--p-ink); font-size: 14px; }
 .ss-vlist .p-badge { margin-left: 6px; }
+.ss-vtag { justify-self: end; }
 .ss-vroll { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
 .ss-vroll .p-input-plain { height: 34px; min-width: 0; flex: 1; font-size: 13px; }
 @media (max-width: 760px) { .ss-vlist li { grid-template-columns: 1fr; } .ss-vroll { justify-content: stretch; } }

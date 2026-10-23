@@ -88,6 +88,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 }
 
 // Settings -> SMART (docs/SMART_SCREENS.md, 6 and 6b): the rules, storm mode, the digest, trying a rule, re-scoring.
+// Planning (0142): a recurring problem becomes a work order for the council; a work order moves open -> planned -> done.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['wo_create', 'wo_set'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            if ($_POST['action'] === 'wo_create') {
+                $db->rpc('smart_workorder_create', ['p_pattern_key' => (string) ($_POST['pattern'] ?? ''), 'p_title' => trim((string) ($_POST['title'] ?? '')),
+                    'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Work order opened.', 'Nabuksan ang work order.')];
+            } else {
+                $db->rpc('smart_workorder_set', ['p_id' => (string) ($_POST['id'] ?? ''), 'p_status' => (string) ($_POST['status'] ?? ''), 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved.', 'Nai-save.')];
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#plan');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['smart_rules', 'smart_storm', 'smart_digest', 'smart_try', 'smart_rescore', 'smart_word', 'smart_rollback'], true)) {
     session_start_once();
     if (!csrf_check($_POST['csrf'] ?? null)) {
@@ -307,6 +330,7 @@ layout_head(t('Settings', 'Mga Setting'), 'settings.php');
   <button type="button" role="tab" data-st="usage"><?= e(t('Plan and usage', 'Plano at paggamit')) ?></button>
   <button type="button" role="tab" data-st="admins"><?= e(t('Administrators', 'Mga Administrator')) ?></button>
   <button type="button" role="tab" data-st="smart">SMART</button>
+  <button type="button" role="tab" data-st="plan"><?= e(t('Planning', 'Pagpaplano')) ?></button>
   <button type="button" role="tab" data-st="look"><?= e(t('Appearance', 'Itsura')) ?></button>
 </div>
 
@@ -620,6 +644,18 @@ $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 10
 $sr = null; $cal = []; $fac = []; $digest = ''; $words = [];
 $try = $_SESSION['smart_try'] ?? null; unset($_SESSION['smart_try']);
 $replay = $_SESSION['smart_replay'] ?? null; unset($_SESSION['smart_replay']);   // 0141: the last "test before saving"
+// 0142: planning, one parallel round. Each part may fail on its own; the card then says so.
+$plan = ['roster' => null, 'forecast' => null, 'fair' => null, 'patterns' => null, 'orders' => null];
+try {
+    $pg = $db->selectMany([
+        'roster'   => ['rpc/smart_roster_suggestion', ['p_days' => 90], true],
+        'forecast' => ['rpc/smart_forecast', ['p_days' => 28], true],
+        'fair'     => ['rpc/smart_fairness', ['p_days' => 14], true],
+        'patterns' => ['rpc/smart_patterns', ['p_days' => 90], true],
+        'orders'   => ['smart_work_orders', ['select' => 'id,pattern_key,title,category,status,note,evidence,created_at', 'order' => 'created_at.desc', 'limit' => '40'], true],
+    ]);
+    foreach ($plan as $pk => $_) { $plan[$pk] = ($pg[$pk] ?? null) instanceof SupabaseError ? null : ($pg[$pk] ?? null); }
+} catch (SupabaseError) {}
 $hist = [];
 try { $hist = $db->rpc('smart_rule_history', ['p_limit' => 12]); $hist = is_array($hist) ? $hist : []; } catch (SupabaseError) {}
 try {
@@ -826,6 +862,104 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
   </div>
   <?php endif; ?>
   <?php endif; ?>
+</section>
+
+<section class="st-pane" data-pane="plan" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <div class="ss-head"><?= smart_logo(44) ?><p><?= e(t('What the barangay\'s own history says about the days ahead. These are counts of past reports, not predictions about anyone, and nothing here is enforced.', 'Ang sinasabi ng sariling kasaysayan ng barangay tungkol sa mga susunod na araw. Mga bilang ito ng mga nakaraang ulat, hindi hula tungkol sa sinuman, at walang ipinatutupad dito.')) ?></p></div>
+  <?php
+  $dayEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  $dayTl = ['Lin', 'Lun', 'Mar', 'Miy', 'Huw', 'Biy', 'Sab'];
+  $hr = static fn (int $h): string => date('g A', mktime($h % 24, 0, 0));
+  $fc = is_array($plan['forecast']) ? $plan['forecast'] : null;
+  $ro = is_array($plan['roster']) ? $plan['roster'] : null;
+  $fa = is_array($plan['fair']) ? $plan['fair'] : null;
+  ?>
+  <div class="p-card p-card-pad st-uptime" id="plan-forecast">
+    <p class="p-eyebrow"><?= e(t('Looking ahead', 'Tanaw sa susunod')) ?></p>
+    <?php if (!$fc): ?><p class="p-none-line"><?= e(t('The forecast could not be read just now.', 'Hindi mabasa ang forecast ngayon.')) ?></p><?php else: ?>
+    <div class="st-uptime-tiles">
+      <div class="st-uptime-tile"><b><?= (int) $fc['open_now'] ?></b><span><?= e(t('Open cases now', 'Bukas na kaso ngayon')) ?></span></div>
+      <div class="st-uptime-tile"><b><?= e(rtrim(rtrim(number_format((float) $fc['arrive_per_day'], 1), '0'), '.')) ?> / <?= e(rtrim(rtrim(number_format((float) $fc['close_per_day'], 1), '0'), '.')) ?></b><span><?= e(t('Filed / finished per day, lately', 'Naisampa / natapos kada araw, kamakailan')) ?></span></div>
+      <div class="st-uptime-tile<?= (int) $fc['open_in_7_days'] > (int) $fc['open_now'] ? ' st-down' : '' ?>"><b><?= (int) $fc['open_in_7_days'] ?></b><span><?= e(t('Open in a week at this pace', 'Bukas sa isang linggo sa ganitong takbo')) ?></span></div>
+    </div>
+    <?php if (!empty($fc['this_week'])): ?>
+      <p class="st-note"><b><?= e(t('Expected this week, by kind:', 'Inaasahan ngayong linggo, ayon sa uri:')) ?></b>
+        <?= e(implode(' · ', array_map(fn ($x) => category_label((string) $x['category']) . ' ' . rtrim(rtrim(number_format((float) $x['expected'], 1), '0'), '.'), array_slice((array) $fc['this_week'], 0, 6)))) ?></p>
+    <?php endif; ?>
+    <p class="st-note"><?= !empty($fc['seasonal_ready'])
+        ? e(t('This month last year:', 'Ngayong buwan noong nakaraang taon:') . ' ' . implode(' · ', array_map(fn ($x) => category_label((string) $x['category']) . ' ' . (int) $x['last_year'], array_slice((array) ($fc['seasonal'] ?? []), 0, 6))))
+        : e(sprintf(t('A seasonal forecast (this month last year) needs a year of history. There are %d days so far, so SMART does not guess.', 'Ang seasonal forecast (ngayong buwan noong nakaraang taon) ay nangangailangan ng isang taong kasaysayan. %d araw pa lamang ang mayroon, kaya hindi humuhula ang SMART.'), (int) $fc['history_days'])) ?></p>
+    <?php endif; ?>
+  </div>
+
+  <div class="p-card p-card-pad" id="plan-roster">
+    <p class="p-eyebrow"><?= e(t('Duty roster, suggested', 'Mungkahing duty roster')) ?></p>
+    <?php if (!$ro || empty($ro['blocks'])): ?><p class="p-none-line"><?= e(t('Not enough reports yet to suggest a roster.', 'Kulang pa ang mga ulat para magmungkahi ng roster.')) ?></p><?php else:
+        $blocks = array_values(array_filter((array) $ro['blocks'], fn ($b) => (int) $b['reports'] > 0));
+        usort($blocks, fn ($a, $b) => (float) $b['expected'] <=> (float) $a['expected']);
+        $blocks = array_slice($blocks, 0, 8); ?>
+      <ul class="st-err-list"><?php foreach ($blocks as $b): $gap = (float) $b['gap']; ?>
+        <li><span class="p-badge <?= $gap > 0 ? 'p-b-denied' : 'p-b-done' ?>"><?= e($gap > 0 ? sprintf(t('needs +%s', 'kulang ng %s'), rtrim(rtrim(number_format($gap, 1), '0'), '.')) : t('covered', 'sapat')) ?></span>
+          <div><b><?= e(t($dayEn[(int) $b['dow']], $dayTl[(int) $b['dow']]) . ' ' . $hr((int) $b['from_hour']) . '–' . $hr((int) $b['from_hour'] + 3)) ?></b>
+            <small><?= e(sprintf(t('About %s reports a week · suggest %d tanod(s) · usually %s on duty', 'Mga %s ulat kada linggo · mungkahi: %d tanod · karaniwang %s ang naka-duty'), rtrim(rtrim(number_format((float) $b['expected'], 1), '0'), '.'), (int) $b['suggested'], rtrim(rtrim(number_format((float) $b['usual'], 1), '0'), '.'))) ?></small></div></li>
+      <?php endforeach; ?></ul>
+      <p class="st-note"><?= e(sprintf(t('The busiest 3-hour blocks over the last %d days (%s weeks of history). One tanod is suggested for about every two reports a week. A suggestion to talk about, not a rule.', 'Ang pinakaabalang 3-oras na bloke sa nakaraang %d araw (%s linggo ng kasaysayan). Isang tanod bawat mga dalawang ulat kada linggo ang mungkahi. Mungkahing pag-usapan, hindi patakaran.'), (int) $ro['days'], rtrim(rtrim(number_format((float) $ro['weeks'], 1), '0'), '.'))) ?></p>
+    <?php endif; ?>
+  </div>
+
+  <div class="p-card p-card-pad" id="plan-hotspots">
+    <p class="p-eyebrow"><?= e(t('Problems that keep coming back', 'Mga problemang paulit-ulit')) ?></p>
+    <?php $pats = is_array($plan['patterns']) ? $plan['patterns'] : []; $orders = is_array($plan['orders']) ? $plan['orders'] : [];
+          $openKeys = []; foreach ($orders as $o) { if (in_array($o['status'], ['open', 'planned'], true)) { $openKeys[$o['pattern_key']] = true; } } ?>
+    <?php if (!$pats): ?><p class="p-none-line"><?= e(t('No problem has come back often enough in the last 90 days.', 'Walang problemang bumalik nang sapat sa nakaraang 90 araw.')) ?></p><?php else: ?>
+    <ul class="ss-vlist"><?php foreach (array_slice($pats, 0, 6) as $pt): ?>
+      <li><div><b><?= e(category_label((string) $pt['category'])) ?></b>
+            <small><?= e(sprintf(t('%d reports over %d weeks from %d residents · %d still open', '%d ulat sa loob ng %d linggo mula sa %d residente · %d bukas pa'), (int) $pt['reports'], (int) $pt['weeks'], (int) $pt['residents'], (int) $pt['still_open'])) ?><?= !empty($pt['hazard']) ? e(' · ' . $pt['hazard']) : '' ?></small>
+            <small><?= e(implode(', ', array_slice((array) ($pt['tracking_ids'] ?? []), 0, 4))) ?></small></div>
+        <?php if (isset($openKeys[$pt['pattern_key']])): ?><span class="p-badge p-b-progress ss-vtag"><?= e(t('Work order open', 'May bukas na work order')) ?></span>
+        <?php else: ?>
+        <form method="post" class="ss-vroll"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="wo_create"><input type="hidden" name="pattern" value="<?= e((string) $pt['pattern_key']) ?>">
+          <label class="p-sr" for="wo-<?= e(md5((string) $pt['pattern_key'])) ?>"><?= e(t('Title of the permanent fix', 'Pamagat ng permanenteng ayos')) ?></label>
+          <input class="p-input-plain" id="wo-<?= e(md5((string) $pt['pattern_key'])) ?>" name="title" required minlength="3" maxlength="140" placeholder="<?= e(t('Permanent fix, for example: replace the drain', 'Permanenteng ayos, halimbawa: palitan ang kanal')) ?>">
+          <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Make a work order', 'Gumawa ng work order')) ?></button></form>
+        <?php endif; ?></li>
+    <?php endforeach; ?></ul>
+    <?php endif; ?>
+    <?php if ($orders): ?>
+      <p class="p-eyebrow" style="margin-top:16px"><?= e(t('Work orders for the council', 'Mga work order para sa konseho')) ?><em><?= count($orders) ?></em></p>
+      <ul class="ss-vlist"><?php foreach ($orders as $o): $ev = (array) ($o['evidence'] ?? []); ?>
+        <li><div><b><?= e((string) $o['title']) ?></b>
+              <small><?= e(category_label((string) $o['category'])) ?> · <?= e(sprintf(t('%d reports as evidence', '%d ulat bilang ebidensya'), (int) ($ev['reports'] ?? 0))) ?> · <?= e(relative_time($o['created_at'])) ?></small>
+              <small><?= e(implode(', ', array_slice((array) ($ev['tracking_ids'] ?? []), 0, 6))) ?></small></div>
+          <form method="post" class="ss-vroll"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="wo_set"><input type="hidden" name="id" value="<?= e((string) $o['id']) ?>">
+            <label class="p-sr" for="ws-<?= e((string) $o['id']) ?>"><?= e(t('Status', 'Katayuan')) ?></label>
+            <select class="p-input-plain" id="ws-<?= e((string) $o['id']) ?>" name="status" data-autosubmit>
+              <?php foreach (['open' => t('Open', 'Bukas'), 'planned' => t('Planned', 'Nakaplano'), 'done' => t('Done', 'Tapos na'), 'dropped' => t('Dropped', 'Itinigil')] as $sv => $sl): ?>
+                <option value="<?= e($sv) ?>" <?= $o['status'] === $sv ? 'selected' : '' ?>><?= e($sl) ?></option><?php endforeach; ?></select></form></li>
+      <?php endforeach; ?></ul>
+    <?php endif; ?>
+  </div>
+
+  <div class="p-card p-card-pad" id="plan-fair">
+    <p class="p-eyebrow"><?= e(t('Sharing the work', 'Pagbabahagi ng trabaho')) ?></p>
+    <?php if (!$fa || (empty($fa['tanods']) && empty($fa['admins']))): ?><p class="p-none-line"><?= e(t('Nothing to compare yet.', 'Wala pang maikukumpara.')) ?></p><?php else: ?>
+      <?php if (($fa['tanod_note'] ?? null) === 'one_tanod_most'): ?><p class="p-hint"><b><?= e(t('One tanod had most of the dispatches.', 'Isang tanod ang may pinakamaraming dispatch.')) ?></b> <?= e(t('That may be right (the nearest, the one on duty). It is worth a look so the load is shared on purpose.', 'Maaaring tama iyon (pinakamalapit, ang naka-duty). Sulit tingnan para sinasadya ang pagbabahagi.')) ?></p><?php endif; ?>
+      <?php if (($fa['admin_note'] ?? null) === 'one_admin_most'): ?><p class="p-hint"><b><?= e(t('One administrator holds most of the open cases.', 'Isang administrator ang may hawak ng karamihan ng bukas na kaso.')) ?></b> <?= e(t('Consider sharing some of them.', 'Pag-isipang ibahagi ang ilan.')) ?></p><?php endif; ?>
+      <div class="ss-two">
+        <div><p class="st-note"><b><?= e(sprintf(t('Tanods, last %d days', 'Mga tanod, nakaraang %d araw'), (int) $fa['days'])) ?></b></p>
+          <ul class="st-err-list"><?php foreach (array_slice((array) $fa['tanods'], 0, 8) as $x): ?>
+            <li><span class="p-badge p-b-progress"><?= (int) $x['share_pct'] ?>%</span><div><b><?= e(formal_name((string) $x['name'])) ?></b><small><?= e(sprintf(t('%d dispatches · %d resolved%s', '%d dispatch · %d natapos%s'), (int) $x['assigned'], (int) $x['resolved'], $x['median_accept_minutes'] !== null ? sprintf(t(' · accepts in about %s min', ' · tumatanggap sa mga %s min'), rtrim(rtrim(number_format((float) $x['median_accept_minutes'], 1), '0'), '.')) : '')) ?></small></div></li>
+          <?php endforeach; ?></ul></div>
+        <div><p class="st-note"><b><?= e(t('Open cases by administrator', 'Mga bukas na kaso ayon sa administrator')) ?></b></p>
+          <ul class="st-err-list"><?php foreach (array_slice((array) $fa['admins'], 0, 8) as $x): ?>
+            <li><span class="p-badge p-b-progress"><?= (int) $x['share_pct'] ?>%</span><div><b><?= e(formal_name((string) $x['name'])) ?></b><small><?= e(sprintf(t('%d open cases', '%d bukas na kaso'), (int) $x['open'])) ?></small></div></li>
+          <?php endforeach; ?></ul></div>
+      </div>
+      <p class="st-note"><?= e(t('Counts only. A tanod with the most dispatches is often the one nearest, and a low share is not a mark against anyone.', 'Mga bilang lamang. Ang tanod na may pinakamaraming dispatch ay madalas ang pinakamalapit, at ang mababang bahagi ay hindi bahid sa sinuman.')) ?></p>
+    <?php endif; ?>
+  </div>
 </section>
 
 <section class="st-pane" data-pane="look" hidden>
@@ -1100,7 +1234,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 <script>
 // Back on the Administrators tab after adding or resetting.
 // #places is a card inside Appearance: open that tab, then bring the card into view
-var stTab = { '#admins': 'admins', '#smart': 'smart', '#look': 'look', '#places': 'look' }[location.hash];
+var stTab = { '#admins': 'admins', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
 if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 </script>
 <script>
