@@ -1171,8 +1171,8 @@ class _ReportCard extends StatelessWidget {
     final col = categoryColour(report.category);
     final st = reportStatusColour(report.status);
     return DecoratedBox(decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: d.elevation(1)), child: Material(
-      color: d.card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: onAddDetails != null || d.dark ? BorderSide(color: onAddDetails != null ? DColors.orange : d.line, width: onAddDetails != null ? 1.6 : 1) : BorderSide.none),
+      color: d.surface(1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: onAddDetails != null ? BorderSide(color: DColors.orange, width: onAddDetails != null ? 1.6 : 1) : BorderSide.none),
       clipBehavior: Clip.antiAlias,
       child: Stack(children: [
         InkWell(

@@ -90,10 +90,25 @@ class DColors {
 
   /// The four dispatch steps, vivid (Ace, 4 Oct): Accepted, On the way,
   /// Material elevation, as the portal's light mode draws it (16 Oct: "light mode shouldn't be glass, we do material"):
-  /// depth from shadows rather than an edge, the three levels of Material 3 in the portal's navy. Dark keeps its thin edge,
-  /// so it has none.
+  /// depth from shadows rather than an edge, the three levels of Material 3 in the portal's navy. Dark is Material too, with
+  /// black shadows and lighter surfaces (see [surface]).
   List<BoxShadow> elevation(int level) {
-    if (dark) return const [];
+    if (dark) {
+      return switch (level) {
+        3 => const [
+            BoxShadow(color: Color(0x99000000), blurRadius: 12, spreadRadius: 3, offset: Offset(0, 6)),
+            BoxShadow(color: Color(0x66000000), blurRadius: 4, offset: Offset(0, 1)),
+          ],
+        2 => const [
+            BoxShadow(color: Color(0x8C000000), blurRadius: 6, offset: Offset(0, 2)),
+            BoxShadow(color: Color(0x59000000), blurRadius: 10, spreadRadius: 2, offset: Offset(0, 3)),
+          ],
+        _ => const [
+            BoxShadow(color: Color(0x73000000), blurRadius: 3, offset: Offset(0, 1)),
+            BoxShadow(color: Color(0x4D000000), blurRadius: 4, spreadRadius: 1, offset: Offset(0, 1)),
+          ],
+      };
+    }
     const ink = Color(0xFF141B34);
     return switch (level) {
       3 => [
@@ -111,11 +126,15 @@ class DColors {
     };
   }
 
-  /// A white card: lifted by elevation 1 in light, a thin edge in dark. [edge] draws a coloured edge in both.
+  /// A raised surface's colour. In light it is the card white; in dark, Material lifts a surface by lightening it a little
+  /// more with each level, since a shadow alone hardly shows on a dark page.
+  Color surface(int level) => dark ? Color.alphaBlend(Colors.white.withValues(alpha: level >= 3 ? .09 : level == 2 ? .06 : .035), card) : card;
+
+  /// A card: lifted by elevation 1, with no edge in either mode. [edge] draws a coloured edge.
   BoxDecoration cardBox(double radius, {Color? edge}) => BoxDecoration(
-        color: card,
+        color: surface(1),
         borderRadius: BorderRadius.circular(radius),
-        border: edge != null ? Border.all(color: edge) : (dark ? Border.all(color: line) : null),
+        border: edge != null ? Border.all(color: edge) : null,
         boxShadow: elevation(1),
       );
 
