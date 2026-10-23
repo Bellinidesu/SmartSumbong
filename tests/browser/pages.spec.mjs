@@ -169,3 +169,19 @@ test('SMART Iteration 4: the command center (suggest, look, turn on, hand over, 
   await expect(page.locator('#cc-bar')).toBeHidden();
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('SMART Iteration 4: the hall display shows counts only, and a wrong link shows nothing', async ({ page }) => {
+  const errors = [];
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('hall.php?k=' + 'f'.repeat(48));
+  await expect(page.locator('.band')).toContainText('Flood Watch');
+  await expect(page.locator('.tile').first()).toContainText('3');
+  await expect(page.locator('body')).toContainText('waist-deep');
+  await expect(page.locator('body')).not.toContainText('SS-');
+  expect(await axe(page), 'Hall display').toEqual([]);
+  await page.goto('hall.php?k=' + 'a'.repeat(48));
+  await expect(page.locator('body')).toContainText('not valid, or it was turned off');
+  await page.goto('hall.php');
+  await expect(page.locator('body')).toContainText('not valid, or it was turned off');
+  expect(errors, 'console errors').toEqual([]);
+});

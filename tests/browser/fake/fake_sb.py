@@ -120,6 +120,11 @@ def _cmd_end(p):
 
 
 RPC = {
+    'command_hall': lambda p: None if p.get('p_token') != 'f' * 48 else {
+        'as_of': ago(0), 'barangay': 'Barangay 183, Zone 20', 'today': {'filed': 7, 'resolved': 3, 'open': 19}, 'tanods_on_duty': 4,
+        'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,
+                 'tags': [{'en': 'waist-deep (about 37 in)', 'fil': 'hanggang baywang (mga 37 pulgada)', 'reports': 1}, {'en': 'knee-deep (about 19 in)', 'fil': 'hanggang tuhod (mga 19 pulgada)', 'reports': 2}],
+                 'checklist_done': 2, 'checklist_total': 5}},
     'command_board': _cmd_board, 'command_start': _cmd_start, 'command_end': _cmd_end, 'command_handover': 1, 'command_check': None,
     'command_place_check': None, 'command_dismiss': None, 'command_suggest': None,
     'command_feed': [{'at': ago(5), 'kind': 'filed', 'report_id': 'x', 'tracking_id': 'SS-2610-1021', 'subject': 'Bumabaha na', 'place': 'Kalye Uno'},
