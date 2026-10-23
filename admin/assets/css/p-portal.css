@@ -412,6 +412,13 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-vlist .ss-vwhy { display: block; color: var(--p-ink); font-size: 14px; }
 .ss-vlist .p-badge { margin-left: 6px; }
 .ss-vtag { justify-self: end; }
+.cmd-new { display: grid; grid-template-columns: 132px 1fr; gap: 16px; align-items: start; padding: 14px; margin: 10px 0 14px; border-radius: 14px;
+  border: 1px solid var(--p-line); background: var(--p-surface-2); }
+.cmd-new img { border-radius: 10px; background: #fff; padding: 6px; }
+.cmd-new p { margin: 0 0 8px; }
+.cmd-new input { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.cmd-make { margin-top: 12px; }
+@media (max-width: 560px) { .cmd-new { grid-template-columns: 1fr; } }
 .ss-vroll { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
 .ss-vroll .p-input-plain { height: 34px; min-width: 0; flex: 1; font-size: 13px; }
 @media (max-width: 760px) { .ss-vlist li { grid-template-columns: 1fr; } .ss-vroll { justify-content: stretch; } }

@@ -141,6 +141,22 @@ Changes on `main` not yet deployed belong here.
 - Case Reports' board has a "Not fixed" column: a resolved case the resident
   says is not fixed, until the barangay reopens it or writes back.
 
+**Added (the command center, SMART Iteration 4, 23 Oct)**
+- Spatial Distribution becomes a command center for one situation at a time:
+  Fire Surroundings, Quake Check, Flood Watch or Typhoon Board. SMART suggests
+  a mode with its reason; an administrator turns it on with one press, or
+  looks first. While a mode is on: a bar across the map, the board (depth on
+  MMDA's flood gauge by 100 m square with NOAH's flood zones; what is within
+  50, 100 and 200 m of a reported fire and the nearest tanods; the public
+  buildings to check after a quake; PAGASA's wind signal and storm damage),
+  a checklist, a feed, and handovers. Only a person turns a mode off, with a
+  note. An auto switch in Settings (off unless turned on) lets SMART turn a
+  mode on by itself and tell the administrators.
+- The hall display: a page for a television in the barangay hall, counts
+  only, opened with a link made in Settings (shown once, with a QR code) and
+  turned off at any time. No names, places or tracking numbers.
+- It shows what was reported, where and when; nothing predicts (0143).
+
 **Added (SMART plans ahead, Iteration 3, 22 Oct)**
 - Settings → Planning: the open cases a week ahead at the current pace and
   the kinds expected this week (the seasonal forecast says it needs a year of

@@ -149,3 +149,66 @@ test('SMART Iteration 3: planning (forecast, roster, work orders, sharing)', asy
   expect(await axe(page), 'Settings > Planning').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('SMART Iteration 4: the command center (suggest, look, turn on, hand over, turn off)', async ({ page }) => {
+  await page.request.get('http://127.0.0.1:54399/__cmd_reset');
+  const r = await open(page, 'spatial.php');
+  const sug = page.locator('#cc-suggest');
+  await expect(sug).toContainText('SMART suggests Flood Watch');
+  await expect(sug).toContainText('3 reports in the last 3 hours mention flood water');
+  await page.locator('#cc-toggle').click();
+  await expect(page.locator('#cc-side .cc-modes li')).toHaveCount(4);
+  // look first: Fire Surroundings names what is within 50 m
+  await page.locator('#cc-side [data-look="fire"]').click();
+  await expect(page.locator('#cc-side .cc-rings')).toContainText('Within 50 m');
+  await expect(page.locator('#cc-side .cc-rings')).toContainText('Gasolinahan sa Kanto');
+  await expect(page.locator('#cc-side .cc-foot')).toContainText('does not predict');
+  expect(await axe(page), 'Command center, looking at Fire Surroundings').toEqual([]);
+  // turn Flood Watch on from the suggestion
+  await sug.getByRole('button', { name: /Turn on Flood Watch/ }).click();
+  await expect(page.locator('#cc-bar')).toBeVisible();
+  await expect(page.locator('#cc-bar')).toContainText('Flood Watch');
+  await expect(page.locator('#cc-side .cc-tags')).toContainText('waist-deep');
+  await expect(page.locator('#cc-side .cc-gauge span')).toHaveCount(7);
+  await page.locator('#cc-side [data-tab="checklist"]').click();
+  await expect(page.locator('#cc-side .cc-check li')).toHaveCount(2);
+  await page.locator('#cc-side [data-tab="feed"]').click();
+  await expect(page.locator('#cc-side .cc-feed li').first()).toContainText('SS-2610-1021');
+  await page.locator('#cc-side [data-tab="handover"]').click();
+  await expect(page.locator('#cc-side .cc-last')).toContainText('Bukas ang covered court');
+  expect(await axe(page), 'Command center, Flood Watch on').toEqual([]);
+  await page.locator('#cc-endn').fill('Humupa na ang baha, sarado ang evacuation center');
+  await page.locator('#cc-side form[data-end] button[type=submit]').click();
+  await expect(page.locator('#cc-bar')).toBeHidden();
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('SMART Iteration 4: the hall display shows counts only, and a wrong link shows nothing', async ({ page }) => {
+  const errors = [];
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('hall.php?k=' + 'f'.repeat(48));
+  await expect(page.locator('.band')).toContainText('Flood Watch');
+  await expect(page.locator('.tile').first()).toContainText('3');
+  await expect(page.locator('body')).toContainText('waist-deep');
+  await expect(page.locator('body')).not.toContainText('SS-');
+  expect(await axe(page), 'Hall display').toEqual([]);
+  expect(errors, 'console errors').toEqual([]);
+  // a wrong or missing link answers 404 (the browser logs that status), and says why on the page
+  await page.goto('hall.php?k=' + 'a'.repeat(48));
+  await expect(page.locator('body')).toContainText('not valid, or it was turned off');
+  await page.goto('hall.php');
+  await expect(page.locator('body')).toContainText('not valid, or it was turned off');
+});
+
+test('SMART Iteration 4: the command center in Settings (auto switch, sessions, hall display links)', async ({ page }) => {
+  const r = await open(page, 'settings.php#smart');
+  const c = page.locator('#cmd-settings');
+  await expect(c.locator('input[name="on"]')).not.toBeChecked();
+  await expect(c).toContainText('Flood Watch');
+  await expect(c).toContainText('Humupa na ang baha');
+  await expect(c).toContainText('Hall TV');
+  await expect(c.locator('form input[name="action"][value="cmd_unlink"]')).toHaveCount(1);
+  await expect(c.locator('#cmd-label')).toBeVisible();
+  expect(await axe(page), 'Settings > SMART > Command center').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});

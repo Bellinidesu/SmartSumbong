@@ -49,6 +49,11 @@ TABLES = {
                      'storm_mode': True, 'storm_until': ahead(20), 'storm_reason': 'PAGASA orange rainfall warning', 'digest_enabled': True}],
     'operational_settings': [{'max_deadline_extensions': 2}],
     'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id']},{'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id']}],
+    'command_state': [{'id': 1, 'auto_switch': False}],
+    'command_display_links': [{'id': 'd0000000-0000-0000-0000-000000000001', 'label': 'Hall TV', 'created_at': ago(2880), 'revoked_at': None, 'last_seen_at': ago(1)},
+                              {'id': 'd0000000-0000-0000-0000-000000000002', 'label': 'Old tablet', 'created_at': ago(9000), 'revoked_at': ago(4000), 'last_seen_at': ago(4100)}],
+    'command_sessions': [{'id': 'c0000000-0000-0000-0000-000000000009', 'mode': 'flood', 'how': 'suggested', 'reason': '3 reports in the last 3 hours mention flood water, from 3 residents.',
+                          'started_at': ago(1500), 'ended_at': ago(1320), 'end_note': 'Humupa na ang baha; sarado na ang evacuation center', 'starter': {'full_name': 'Reyes, Marites'}}],
     'smart_work_orders': [{'id': 'f0000000-0000-0000-0000-000000000001', 'pattern_key': 'zzz', 'title': 'Replace the drain on 13th Street', 'category': 'environmental_waste_hazard', 'status': 'planned', 'note': None, 'evidence': {'reports': 5, 'tracking_ids': ['SS-2610-1003', 'SS-2610-1011']}, 'created_at': ago(30)}],
     'places': [{'id': 1, 'name': 'Barangay 183 Hall', 'grp': 'hall', 'aliases': ['brgy hall'], 'lat': 14.525104, 'lng': 121.012596, 'source': 'barangay'},
                {'id': 2, 'name': 'Harvard Street', 'grp': 'street', 'aliases': [], 'lat': 14.5236, 'lng': 121.0129, 'source': 'barangay'}],
@@ -57,7 +62,80 @@ TABLES = {
     'dispatches': [], 'status_logs': [], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24}],
 }
 
+# The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
+CMD = {'active': None}
+CMD_MODES = [{'mode': 'fire', 'en': 'Fire Surroundings', 'fil': 'Paligid ng Sunog'}, {'mode': 'quake', 'en': 'Quake Check', 'fil': 'Suri sa Lindol'},
+             {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha'}, {'mode': 'typhoon', 'en': 'Typhoon Board', 'fil': 'Pisara ng Bagyo'}]
+
+
+def _cmd_square(lat, lng, d=0.00045):
+    return {'type': 'Polygon', 'coordinates': [[[lng - d, lat - d], [lng + d, lat - d], [lng + d, lat + d], [lng - d, lat + d], [lng - d, lat - d]]]}
+
+
+def _cmd_board(p):
+    a = CMD['active']
+    out = {'as_of': ago(0), 'auto_switch': False, 'modes': CMD_MODES,
+           'active': None if not a else {'id': 'c0000000-0000-0000-0000-000000000001', 'mode': a, 'how': 'admin', 'reason': 'Malakas ang ulan',
+                                          'started_at': ago(40), 'started_by': 'Reyes, Marites', 'en': next(m['en'] for m in CMD_MODES if m['mode'] == a),
+                                          'fil': next(m['fil'] for m in CMD_MODES if m['mode'] == a)},
+           'suggestion': None if a == 'flood' else {'mode': 'flood', 'name_en': 'Flood Watch', 'name_fil': 'Bantay-baha', 'reports': 3, 'residents': 3, 'hours': 3,
+                                                    'why_en': '3 reports in the last 3 hours mention flood water, from 3 residents.',
+                                                    'why_fil': '3 ulat sa nakaraang 3 oras ang bumanggit ng baha, mula sa 3 residente.'}}
+    mode = p.get('p_mode') or a
+    if not mode:
+        return out
+    m = next(x for x in CMD_MODES if x['mode'] == mode)
+    out.update({'mode': mode, 'en': m['en'], 'fil': m['fil'], 'live': a == mode, 'since': ago(160), 'window_hours': 24, 'cell_metres': 100,
+                'counts': {'reports': 3, 'residents': 3, 'open': 2, 'resolved': 1, 'dispatched': 1, 'last_at': ago(12)},
+                'tanods': {'on_duty': 4, 'located': 3},
+                'checklist': [{'key': 'pagasa', 'en': 'PAGASA rainfall advisory read', 'fil': 'Nabasa ang rainfall advisory ng PAGASA', 'done': a == mode, 'note': None, 'at': ago(20), 'by': 'Reyes, Marites'},
+                              {'key': 'evac', 'en': 'Evacuation center opened', 'fil': 'Nabuksan ang evacuation center', 'done': False, 'note': None, 'at': None, 'by': None}],
+                'handover': {'at': ago(15), 'note': 'Bukas ang covered court; tatlong kalye ang may baha', 'by': 'Reyes, Marites'} if a == mode else None,
+                'reports': []})
+    if mode == 'flood':
+        out['tags'] = [{'tag': 'waist', 'rank': 6, 'en': 'waist-deep (about 37 in)', 'fil': 'hanggang baywang (mga 37 pulgada)', 'reports': 1, 'last_at': ago(12)},
+                       {'tag': 'knee', 'rank': 4, 'en': 'knee-deep (about 19 in)', 'fil': 'hanggang tuhod (mga 19 pulgada)', 'reports': 2, 'last_at': ago(30)}]
+        out['cells'] = [{'key': '100:1', 'outline': _cmd_square(14.5194, 121.0122), 'lat': 14.5194, 'lng': 121.0122, 'reports': 1, 'open': 1, 'tag': 'waist', 'rank': 6,
+                         'tag_en': 'waist-deep (about 37 in)', 'tag_fil': 'hanggang baywang (mga 37 pulgada)', 'last_at': ago(12), 'tracking_ids': ['SS-2610-1021'], 'noah': 3, 'surge': None},
+                        {'key': '100:2', 'outline': _cmd_square(14.5203, 121.0131), 'lat': 14.5203, 'lng': 121.0131, 'reports': 2, 'open': 1, 'tag': 'knee', 'rank': 4,
+                         'tag_en': 'knee-deep (about 19 in)', 'tag_fil': 'hanggang tuhod (mga 19 pulgada)', 'last_at': ago(30), 'tracking_ids': ['SS-2610-1019', 'SS-2610-1020'], 'noah': 2, 'surge': None}]
+    elif mode == 'fire':
+        out['tags'] = [{'tag': 'people_inside', 'rank': 4, 'en': 'people inside', 'fil': 'may tao sa loob', 'reports': 1, 'last_at': ago(8)}]
+        out['sites'] = [{'lat': 14.5194, 'lng': 121.0122, 'reports': 2, 'first_at': ago(14), 'last_at': ago(8), 'tag': 'people_inside', 'tag_en': 'people inside', 'tag_fil': 'may tao sa loob',
+                         'tracking_ids': ['SS-2610-1030', 'SS-2610-1031'],
+                         'rings': [{'metres': 50, 'places': 1, 'other_reports': 0, 'named': [{'id': 1, 'name': 'Gasolinahan sa Kanto', 'kind': 'fuel', 'metres': 40}]},
+                                   {'metres': 100, 'places': 0, 'other_reports': 1, 'named': []},
+                                   {'metres': 200, 'places': 1, 'other_reports': 0, 'named': [{'id': 2, 'name': 'Paaralang Elementarya ng 183', 'kind': 'school', 'metres': 150}]}],
+                         'fire_station': {'name': 'Pasay Fire Station', 'metres': 1450},
+                         'tanods': [{'name': 'Bautista, Jose', 'metres': 300, 'as_of': ago(3)}]}]
+    elif mode == 'quake':
+        out['tags'] = [{'tag': 'crack', 'rank': 1, 'en': 'cracks', 'fil': 'bitak', 'reports': 2, 'last_at': ago(10)}]
+        out['cells'] = []
+        out['places'] = [{'id': 2, 'name': 'Paaralang Elementarya ng 183', 'kind': 'school', 'lat': 14.5206, 'lng': 121.0122, 'status': None, 'note': None, 'at': None, 'by': None, 'reports_near': 1}]
+    else:
+        out['tags'] = []; out['cells'] = []; out['storm'] = {'on': False, 'until': None, 'reason': None}; out['signal'] = None
+    return out
+
+
+def _cmd_start(p):
+    CMD['active'] = p.get('p_mode'); return 'c0000000-0000-0000-0000-000000000001'
+
+
+def _cmd_end(p):
+    CMD['active'] = None; return None
+
+
 RPC = {
+    'command_hall': lambda p: None if p.get('p_token') != 'f' * 48 else {
+        'as_of': ago(0), 'barangay': 'Barangay 183, Zone 20', 'today': {'filed': 7, 'resolved': 3, 'open': 19}, 'tanods_on_duty': 4,
+        'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,
+                 'tags': [{'en': 'waist-deep (about 37 in)', 'fil': 'hanggang baywang (mga 37 pulgada)', 'reports': 1}, {'en': 'knee-deep (about 19 in)', 'fil': 'hanggang tuhod (mga 19 pulgada)', 'reports': 2}],
+                 'checklist_done': 2, 'checklist_total': 5}},
+    'command_board': _cmd_board, 'command_start': _cmd_start, 'command_end': _cmd_end, 'command_handover': 1, 'command_check': None,
+    'command_place_check': None, 'command_dismiss': None, 'command_suggest': None,
+    'command_feed': [{'at': ago(5), 'kind': 'filed', 'report_id': 'x', 'tracking_id': 'SS-2610-1021', 'subject': 'Bumabaha na', 'place': 'Kalye Uno'},
+                     {'at': ago(9), 'kind': 'check', 'item': 'pagasa', 'done': True, 'en': 'PAGASA rainfall advisory read', 'fil': 'Nabasa ang rainfall advisory ng PAGASA', 'by': 'Reyes, Marites'},
+                     {'at': ago(20), 'kind': 'smart', 'event': 'command_on', 'summary': 'Flood Watch on (Reyes, Marites): Malakas ang ulan', 'report_id': None}],
   'search_places': [
     {'id': 1, 'name': 'Barangay 183 Hall', 'grp': 'hall', 'kind': None, 'lat': 14.525104, 'lng': 121.012596, 'metres': 0, 'branches': 1, 'source': 'barangay', 'info': {}},
     {'id': 2, 'name': 'Watsons', 'grp': 'shop', 'kind': 'chemist', 'lat': 14.5235, 'lng': 121.0151, 'metres': 310, 'branches': 4, 'source': 'osm', 'info': {'opening_hours': 'Mo-Su 08:00-21:00'}},
@@ -154,13 +232,17 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path); qs = parse_qs(u.query)
         n = int(self.headers.get('Content-Length') or 0)
         body = self.rfile.read(n) if n else b''
+        if u.path == '/__cmd_reset':   # the command-center test starts with nothing on
+            CMD['active'] = None; return self.send(200, {})
         if u.path.startswith('/auth/v1/'):
             if 'token' in u.path:
                 return self.send(200, {'access_token': 'fake', 'refresh_token': 'fake', 'expires_in': 3600, 'user': {'id': ADMIN['id']}})
             return self.send(200, {'id': ADMIN['id'], 'email': ADMIN['email'], 'last_sign_in_at': ago(1)})
         if u.path.startswith('/rest/v1/rpc/'):
             fn = u.path.split('/')[-1]
-            if fn in RPC: return self.send(200, RPC[fn])
+            if fn in RPC:
+                v = RPC[fn]
+                return self.send(200, v(json.loads(body or b'{}')) if callable(v) else v)
             print('RPC missing', fn, file=sys.stderr, flush=True)
             return self.send(200, [])
         if u.path.startswith('/rest/v1/'):
