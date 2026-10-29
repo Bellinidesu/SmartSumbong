@@ -141,6 +141,22 @@ Changes on `main` not yet deployed belong here.
 - Case Reports' board has a "Not fixed" column: a resolved case the resident
   says is not fixed, until the barangay reopens it or writes back.
 
+**Added (who sees what: super admins, committees, captains, 29 Oct)**
+- Every administrator has a tier (0145). A **super admin** sees and changes
+  everything and sets up access (at 183: Sir Kiko, Chairperson Zuniga and the
+  development team, who are also marked as developers). A **committee** admin
+  sees only the categories its committee ticked, and works those cases. A
+  **captain** sees everything and changes nothing.
+- Committees are a table the super admin edits; for 183 only Peace and Order,
+  Environment and Disaster Risk, Health and Sanitation, and the Anti-Drug Abuse
+  Council are on. The committees the barangay did not ask for stay in the table
+  switched off.
+- Enforced in the database: what is read, what is written, which functions
+  answer whom, and which notifications are made. The accounts that existed
+  (the development team) are super admins and developers, so nothing changes
+  for them. An administrator made from now on starts with no access until a
+  super admin sets it up. The Settings screens for this come next.
+
 **Changed (ready for Barangay 183, 29 Oct)**
 - The Bagong Pilipinas and Bagong Villamor logos are removed everywhere: the
   four sign-in pages, the printed letterhead (its right-hand column is now an
