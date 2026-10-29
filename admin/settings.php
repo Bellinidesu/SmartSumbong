@@ -79,6 +79,32 @@ const RULE_LIMITS = [
     'max_reports_per_day'        => ['Reports one resident may file a day', 'Ulat ng isang residente bawat araw', 'Stops flooding; real reports rarely come close.', 'Pumipigil sa pagbaha ng ulat; bihirang maabot ng totoong ulat.', 1, 200],
 ];
 
+// The barangay (0148): its name, place and seal, shown on the sign-in pages, the portal's title and every printed document.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'brgy_save') {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            $name = trim((string) ($_POST['name'] ?? '')); $place = trim((string) ($_POST['place'] ?? ''));
+            if (mb_strlen($name) < 3 || mb_strlen($place) < 3) throw new SupabaseError(t('Type the barangay\'s name and its place.', 'I-type ang pangalan ng barangay at ang lugar nito.'));
+            $patch = ['name' => mb_substr($name, 0, 80), 'place' => mb_substr($place, 0, 120), 'updated_by' => current_admin()['id'] ?? null, 'updated_at' => gmdate('c')];
+            if (!empty($_POST['seal_shipped'])) {
+                $patch['seal_url'] = null;
+            } elseif ($pic = cloudinary_upload_files('seal', 1, 'barangay')) {
+                $patch['seal_url'] = $pic[0]['media_url'];
+            }
+            $db->update('barangay_profile', ['id' => 'eq.1'], $patch);
+            barangay_forget();
+            $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved. The sign-in pages, the title and new printouts show it now; the app shows the name the next time it opens with signal.', 'Nai-save. Makikita na ito sa sign-in, sa pamagat at sa mga bagong printout; makikita ng app ang pangalan sa susunod na pagbukas nito na may signal.')];
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#look');
+    exit;
+}
+
 // Rules (0147): the limits above, pausing new reports, and the deadlines of each category.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rules_save') {
     session_start_once();
@@ -1430,6 +1456,23 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 </section>
 
 <section class="st-pane" data-pane="look" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <form method="post" enctype="multipart/form-data" class="p-card p-card-pad" id="brgy-card">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="brgy_save">
+    <p class="p-eyebrow"><?= e(t('The barangay', 'Ang barangay')) ?></p>
+    <p class="p-hint"><?= e(t('Shown on the sign-in pages, in the portal\'s title, on every printed document and in the app.', 'Makikita sa sign-in, sa pamagat ng portal, sa bawat dokumentong ipi-print at sa app.')) ?></p>
+    <div class="bp-row">
+      <div class="bp-seal"><?= brgy_seal_img('bp-img') ?></div>
+      <div class="bp-fields">
+        <label class="ty-f"><span><?= e(t('Name', 'Pangalan')) ?></span><input class="p-input-plain" name="name" value="<?= e(barangay()['name']) ?>" required minlength="3" maxlength="80"></label>
+        <label class="ty-f"><span><?= e(t('Place, from the smallest to the city', 'Lugar, mula sa pinakamaliit hanggang sa lungsod')) ?></span><input class="p-input-plain" name="place" value="<?= e(barangay()['place']) ?>" required minlength="3" maxlength="120"></label>
+        <label class="ty-f"><span><?= e(t('A new seal (PNG, JPEG or WebP, square)', 'Bagong selyo (PNG, JPEG o WebP, parisukat)')) ?></span><input class="ss-file" type="file" name="seal[]" accept="image/png,image/jpeg,image/webp"></label>
+        <?php if (barangay()['seal_url'] !== null): ?><label class="sd-c"><input type="checkbox" name="seal_shipped" value="1"> <?= e(t('Go back to the seal the portal came with', 'Ibalik ang selyong kasama ng portal')) ?></label><?php endif; ?>
+      </div>
+    </div>
+    <div class="ss-posform"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></div>
+  </form>
   <div class="p-card p-card-pad st-look">
     <p class="p-eyebrow"><?= e(t('Theme and language', 'Tema at wika')) ?></p>
     <div class="st-prefs">
@@ -1701,7 +1744,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 <script>
 // Back on the Administrators tab after adding or resetting.
 // #places is a card inside Appearance: open that tab, then bring the card into view
-var stTab = { '#admins': 'admins', '#access': 'access', '#types': 'types', '#rules': 'rules', '#hotlines': 'hotlines', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
+var stTab = { '#look': 'look', '#admins': 'admins', '#access': 'access', '#types': 'types', '#rules': 'rules', '#hotlines': 'hotlines', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
 if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 </script>
 <script>

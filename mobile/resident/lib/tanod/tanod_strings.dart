@@ -8,6 +8,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../i18n.dart';
+import '../models/barangay_profile.dart';
 
 extension TanodStringsContext on BuildContext {
   TanodStrings get ts => TanodStrings(AppLocaleScope.of(this));
@@ -133,9 +134,9 @@ class TanodStrings {
       _t('You have retired', 'Nagretiro Ka Na');
   String get accountStatusRetiredBody => _t(
       'The barangay approved your retirement request. Thank you for your '
-      'service as a tanod of Barangay 183.',
+      'service as a tanod of ${BarangayProfile.name}.',
       'Inaprubahan ng barangay ang iyong kahilingan sa pagreretiro. '
-      'Salamat sa iyong paglilingkod bilang tanod ng Barangay 183.');
+      'Salamat sa iyong paglilingkod bilang tanod ng ${BarangayProfile.name}.');
   String get accountStatusRetiredDateLabel =>
       _t('Retired since', 'Nagretiro Noong');
   String get accountStatusRetiredNote => _t(
@@ -919,8 +920,8 @@ class TanodStrings {
   String get termsPrivacyTitle => _t('Terms & Privacy', 'Mga Tuntunin at Privacy');
   String get termsPrivacyBack => _t('Back', 'Bumalik');
   String get termsPrivacySubtitle => _t(
-      'For SmartSumbong Tanod — service personnel of Barangay 183',
-      'Para sa SmartSumbong Tanod — service personnel ng Barangay 183');
+      'For SmartSumbong Tanod — service personnel of ${BarangayProfile.name}',
+      'Para sa SmartSumbong Tanod — service personnel ng ${BarangayProfile.name}');
 
   List<(String heading, String body)> get termsPrivacySections => [
         (
@@ -928,12 +929,12 @@ class TanodStrings {
               '1. Ang app na ito ay para sa mga hinirang na service personnel'),
           _t(
               'This is not a consumer account. It is issued to you as a '
-              'tanod appointed by Barangay 183, and these terms cover '
+              'tanod appointed by ${BarangayProfile.name}, and these terms cover '
               'things the resident version of this app does not — your '
               'location while on duty, your dispatch records, and how '
               'your service with the barangay ends.',
               'Hindi ito isang consumer account. Ibinibigay ito sa iyo '
-              'bilang tanod na hinirang ng Barangay 183, at sinasaklaw ng '
+              'bilang tanod na hinirang ng ${BarangayProfile.name}, at sinasaklaw ng '
               'mga tuntuning ito ang mga bagay na wala sa resident '
               'version ng app na ito — ang iyong lokasyon habang naka-duty, '
               'ang iyong mga dispatch record, at kung paano magtatapos '
@@ -1054,9 +1055,9 @@ class TanodStrings {
           _t('9. Questions', '9. Mga Katanungan'),
           _t(
               'Bring questions about this account or these terms to the '
-              'Barangay 183 hall.',
+              '${BarangayProfile.name} hall.',
               'Dalhin ang mga katanungan tungkol sa account na ito o sa '
-              'mga tuntuning ito sa Barangay 183 hall.'),
+              'mga tuntuning ito sa ${BarangayProfile.name} hall.'),
         ),
       ];
 }

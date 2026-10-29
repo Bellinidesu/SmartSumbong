@@ -25,6 +25,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // for you (it needs your own Firebase login).
 import 'firebase_options.dart';
 import 'i18n.dart';
+import 'models/barangay_profile.dart';
 import 'models/complaint_catalogue.dart';
 import 'models/complaint_category.dart';
 import 'outbox.dart';
@@ -180,7 +181,10 @@ Future<void> main() async {
       if (event == AuthChangeEvent.signedIn ||
           event == AuthChangeEvent.initialSession) {
         PushNotifications.registerToken();
-        if (event == AuthChangeEvent.signedIn) unawaited(ComplaintCatalogue.refresh());
+        if (event == AuthChangeEvent.signedIn) {
+          unawaited(ComplaintCatalogue.refresh());
+          unawaited(BarangayProfile.refresh());
+        }
       } else if (event == AuthChangeEvent.signedOut) {
         PushNotifications.unregisterToken();
         // Signed out: duty stops, and the app goes back to the resident
@@ -205,6 +209,9 @@ Future<void> main() async {
     // fresh one in the background.
     await ComplaintCatalogue.loadCached();
     unawaited(ComplaintCatalogue.refresh());
+    // And its name and place (0148), the same way.
+    await BarangayProfile.loadCached();
+    unawaited(BarangayProfile.refresh());
     runApp(SmartSumbongApp(locale: locale, themeController: themeController));
   }, (error, stack) {
     CrashReporting.recordError(error, stack);

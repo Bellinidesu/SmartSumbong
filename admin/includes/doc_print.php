@@ -21,7 +21,7 @@ function doc_head(string $title, bool $desk = false): void
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= e($title) ?> — Barangay 183</title>
+<title><?= e($title) ?> — <?= e(barangay()['name']) ?></title>
 <link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <?= theme_head(false) ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,12 +98,15 @@ function doc_letterhead(): void
 {
     ?>
   <div class="letterhead">
-    <img class="seal" src="assets/img/brgy-183-seal.png" alt="Barangay 183 seal">
+    <?= brgy_seal_img('seal', 'png') ?>
     <div>
+      <?php // the profile's place, "Zone 20, Villamor, Pasay City", laid out as the barangay's own letterhead
+      $lhParts = array_map('trim', explode(',', barangay()['place']));
+      $lhCity = (string) end($lhParts); $lhFirst = count($lhParts) > 2 ? array_shift($lhParts) : null; ?>
       <p>Republic of the Philippines</p>
-      <p>City of Pasay</p>
-      <p>Barangay 183, Zone 20</p>
-      <p>Villamor, Pasay City</p>
+      <?php if (preg_match('/^(.+) City$/', $lhCity, $lhM)): ?><p>City of <?= e($lhM[1]) ?></p><?php endif; ?>
+      <p><?= e(barangay()['name'] . ($lhFirst !== null ? ', ' . $lhFirst : '')) ?></p>
+      <p><?= e(implode(', ', $lhParts)) ?></p>
     </div>
     <span aria-hidden="true"></span>
   </div>

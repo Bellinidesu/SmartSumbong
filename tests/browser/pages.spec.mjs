@@ -46,6 +46,7 @@ test('login.php, signed out', async ({ browser }) => {
   const page = await (await browser.newContext()).newPage();
   const { status, errors } = await open(page, 'login.php');
   expect(status).toBe(200);
+  await expect(page.locator('.login-rail img.rail-logo')).toHaveAttribute('alt', 'Barangay 183 seal');   // 0148: from the profile
   expect(errors, 'console errors').toEqual([]);
   expect(await axe(page), 'serious or critical accessibility problems').toEqual([]);
 });
@@ -284,6 +285,18 @@ test('0147 rules and hotlines: a super admin edits the deadlines, limits and eme
   await expect(page.locator('#hotlines-card details.hl-sub')).toContainText('Pasay City General Hospital');
   await page.locator('#hotlines-card details.hl-g summary').first().click();
   expect(await axe(page), 'Settings > Hotlines').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('0148 the barangay: its name, place and seal from Settings, on the sign-in page and the title', async ({ page }) => {
+  const r = await open(page, 'settings.php#look');
+  await expect(page.locator('#brgy-card input[name="name"]')).toHaveValue('Barangay 183');
+  await expect(page.locator('#brgy-card input[name="place"]')).toHaveValue('Zone 20, Villamor, Pasay City');
+  await expect(page.locator('#brgy-card .bp-img')).toHaveAttribute('src', /brgy-183-seal\.webp$/);
+  await expect(page).toHaveTitle(/Barangay 183/);
+  expect(await axe(page), 'Settings > Appearance').toEqual([]);
+  await page.locator('#brgy-card button[type="submit"]').click();
+  await expect(page.locator('section[data-pane="look"] .p-flash--ok')).toContainText('Saved');
   expect(r.errors, 'console errors').toEqual([]);
 });
 

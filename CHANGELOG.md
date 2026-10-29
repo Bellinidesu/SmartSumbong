@@ -193,6 +193,14 @@ Changes on `main` not yet deployed belong here.
 - A category made in Settings gets Others' deadline and first committee
   (0147); a report in a category with no deadline of its own takes Others'.
 
+**Added (the barangay's name, place and seal, 29 Oct)**
+- Settings > Appearance has a card for the barangay (0148): its name, its
+  place and a new seal (or back to the one shipped). The sign-in pages, the
+  portal's title, printed documents, spreadsheets and the map read them; the
+  letterhead keeps its layout. The app reads the name and the city (welcome,
+  map, share text, tanod terms), keeps the last copy, and still shows the
+  seal shipped with it.
+
 **Fixed**
 - Administrators could not see a hotline switched off, nor switch one off,
   since 0145 (0147).
