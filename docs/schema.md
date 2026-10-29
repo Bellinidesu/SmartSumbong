@@ -36,6 +36,8 @@ How the database fits the rest of the system is in
 | `sla_policies` | Per-category guide hours and the tanod's accept window | 0001 |
 | `sla_extensions` | Audited deadline extensions | 0002 |
 | `case_handler_log` | Admins taking, releasing and taking over cases (Activity page) | 0087 |
+| `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation, the Anti-Drug Abuse Council | 0145 |
+| `committee_categories` | The categories each committee sees (the super admin's ticks) | 0145 |
 | `committee_for_category` | The committee that usually takes each kind of complaint (editable defaults) | 0130 |
 | `look_shares` | "Look around" sent to a tanod: a note, the street image, which way the spot lies | 0107 |
 
@@ -43,7 +45,7 @@ How the database fits the rest of the system is in
 
 | Table | Purpose | Since |
 |---|---|---|
-| `users` | Accounts, role, official role and committee (0130), verification, suspension, retirement, duty status, last known location | 0001 |
+| `users` | Accounts, role, official role and committee (0130), an administrator's tier and developer mark (0145), verification, suspension, retirement, duty status, last known location | 0001 |
 | `account_audit` | Hash-chained log of account changes | 0014 |
 | `attendance` | Tanod duty logging | 0001 |
 | `device_tokens` | FCM push tokens | 0035 |
@@ -177,6 +179,8 @@ policy by design. "Latest" is the migration that last redefined it.
 | `smart_why_order(report)` | 0140 | A plain sentence (English and Tagalog) on why a report is where it is; the owner or an admin |
 | `command_board`, `command_feed`, `command_suggest` | 0143 | The board of a mode (one envelope for all four), what happened, and SMART's suggestion with its reason |
 | `command_start`, `command_handover`, `command_end`, `command_check`, `command_place_check`, `command_dismiss`, `command_set_auto` | 0143 | Turn a mode on (a reason) or off (a note), hand over, tick, mark a place, put a suggestion off, the auto switch |
+| `admin_tier`, `is_super_admin`, `is_full_viewer`, `admin_can_write`, `admin_sees_category`, `admin_sees_case`, `admin_sees_report`, `admin_sees_dispatch` | 0145 | What the signed-in administrator may see and do (used by the access rules and the functions) |
+| `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `feature_on`, `feature_set` | 0144 | Whether a part is on; an administrator turns one on or off. The command center's functions answer "off" when it is switched off |
 | `command_hall`, `command_display_link_create`, `command_display_link_revoke`, `command_now` | 0143 | The hall display (counts only, by a link; anon may call it with a live link), its links, and the app's banner |
 | `smart_roster_suggestion`, `smart_forecast`, `smart_fairness` | 0142 | Duty roster suggested by weekday and 3-hour block; the open cases a week ahead and the kinds expected; how the work is shared |

@@ -69,8 +69,25 @@ as `is_admin()` evaluated once per query (0061). In short:
 - a **resident** sees their own account and complaints, and the public
   incidents an admin chose to publish (category, status and place only);
 - a **tanod** sees their own dispatches and what those dispatches need;
-- an **admin** sees everything, and can act on a case only while handling it
-  (0087, enforced by triggers on everything an admin action writes).
+- an **admin** has a tier (0145):
+  - a **super admin** sees and changes everything, and sets up committees and
+    who sees what (at Barangay 183: the barangay's IT admin, the Chairperson,
+    and the development team, marked `is_dev`);
+  - a **committee** admin sees only the categories its committee ticked (a case
+    with a concern in them too, and any case it handles), and works those cases;
+    the barangay-wide numbers and the settings are not for it;
+  - a **captain** sees everything and changes nothing.
+
+  Every admin can act on a case only while handling it (0087, enforced by
+  triggers on everything an admin action writes). The tier is enforced in the
+  database: reports and the 18 tables that hang off a report are read through
+  `admin_sees_report()`, every case write passes `_scope_guard()` (also from
+  `_case_guard`), the functions are grouped (settings for super admins, the
+  analytics for super admins and captains, the case actions for those who can
+  write the case), and a committee admin is never notified about a case
+  outside its scope. Committees are a table a super admin edits
+  (`committee_save`, `committee_set_categories`); `set_admin_access` sets a
+  tier, and there is always at least one super admin.
 
 The portal sends every request with the signed-in admin's own access token,
 so RLS applies to the portal exactly as to the app. Nothing outside the Edge
