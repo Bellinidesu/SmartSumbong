@@ -27,6 +27,7 @@ begin
   insert into public.places (source, name, kind, grp, lat, lng) values ('barangay', 'Paaralang Elementarya ng 183', 'school', v_grp, lat + 0.00135, lng) returning id into v_school;
   perform set_config('request.jwt.claim.sub', v_adm::text, true);
   v_log := 'setup ok';
+  update public.feature_switches set enabled = true where key = 'command_center';   -- 0144: it ships switched off
 
   -- 1. reading: depth on MMDA's gauge, phrases before words, negation, stretched letters, roots
   begin
