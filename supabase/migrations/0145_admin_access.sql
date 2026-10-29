@@ -195,7 +195,7 @@ grant execute on function public.admin_tier(), public.is_super_admin(), public.i
 
 do $$
 declare
-  p record; v_using text; v_check text; v_new text; v_tok text;
+  rec record; v_using text; v_check text; v_new text; v_tok text;
   -- what replaces "is the user an administrator" in each read policy
   t_map jsonb := jsonb_build_object(
     'reports',              'public.admin_sees_case(reports.id, reports.category, reports.handler_id)',
@@ -217,14 +217,14 @@ declare
     'smart_events',         'public.admin_sees_report(smart_events.report_id)',
     'smart_overrides',      'public.admin_sees_report(smart_overrides.report_id)');
 begin
-  for p in select c.relname::text t, p.polname::text pol, pg_get_expr(p.polqual, p.polrelid) u
+  for rec in select c.relname::text t, p.polname::text pol, pg_get_expr(p.polqual, p.polrelid) u
              from pg_policy p join pg_class c on c.oid = p.polrelid
             where c.relnamespace = 'public'::regnamespace and p.polcmd = 'r' and t_map ? c.relname::text
               and pg_get_expr(p.polqual, p.polrelid) like '%is_admin()%' loop
-    v_tok := t_map ->> p.t;
-    v_new := replace(replace(replace(replace(p.u, '( SELECT public.is_admin() AS is_admin)', v_tok), '( SELECT is_admin() AS is_admin)', v_tok), 'public.is_admin()', 'is_admin()'), 'is_admin()', v_tok);
-    if v_new = p.u or v_new like '%is_admin()%' then raise exception 'read policy % on % not rewritten', p.pol, p.t; end if;
-    execute format('alter policy %I on public.%I using (%s)', p.pol, p.t, v_new);
+    v_tok := t_map ->> rec.t;
+    v_new := replace(replace(replace(replace(rec.u, '( SELECT public.is_admin() AS is_admin)', v_tok), '( SELECT is_admin() AS is_admin)', v_tok), 'public.is_admin()', 'is_admin()'), 'is_admin()', v_tok);
+    if v_new = rec.u or v_new like '%is_admin()%' then raise exception 'read policy % on % not rewritten', rec.pol, rec.t; end if;
+    execute format('alter policy %I on public.%I using (%s)', rec.pol, rec.t, v_new);
   end loop;
 end $$;
 
@@ -287,21 +287,21 @@ end $$;
 
 -- the other writes: the staff records to super admins, the operational ones to anyone who can write (not a captain)
 do $$
-declare p record; v_tok text; v_u text; v_c text;
+declare rec record; v_tok text; v_u text; v_c text;
 begin
-  for p in select c.relname::text t, p.polname::text pol, p.polcmd cmd, pg_get_expr(p.polqual, p.polrelid) u, pg_get_expr(p.polwithcheck, p.polrelid) c
+  for rec in select c.relname::text t, p.polname::text pol, p.polcmd cmd, pg_get_expr(p.polqual, p.polrelid) u, pg_get_expr(p.polwithcheck, p.polrelid) c
              from pg_policy p join pg_class c on c.oid = p.polrelid
             where c.relnamespace = 'public'::regnamespace and p.polcmd in ('a', 'w', 'd')
               and c.relname in ('staff_credentials', 'staff_dates', 'staff_leave', 'checkpoint_scans', 'duty_roster', 'patrol_checkpoints',
                                 'poll_votes', 'polls', 'relief_tally', 'shift_checkins', 'team_posts', 'team_post_reads')
               and (coalesce(pg_get_expr(p.polqual, p.polrelid), '') || coalesce(pg_get_expr(p.polwithcheck, p.polrelid), '')) like '%is_admin()%' loop
-    v_tok := case when p.t like 'staff\_%' then '(select public.is_super_admin())' else '(select public.admin_can_write())' end;
-    v_u := replace(replace(p.u, '( SELECT public.is_admin() AS is_admin)', v_tok), '( SELECT is_admin() AS is_admin)', v_tok);
-    v_c := replace(replace(p.c, '( SELECT public.is_admin() AS is_admin)', v_tok), '( SELECT is_admin() AS is_admin)', v_tok);
-    if p.cmd = 'a' then execute format('alter policy %I on public.%I with check (%s)', p.pol, p.t, v_c);
-    elsif p.cmd = 'd' then execute format('alter policy %I on public.%I using (%s)', p.pol, p.t, v_u);
-    elsif p.c is null then execute format('alter policy %I on public.%I using (%s)', p.pol, p.t, v_u);
-    else execute format('alter policy %I on public.%I using (%s) with check (%s)', p.pol, p.t, v_u, v_c);
+    v_tok := case when rec.t like 'staff\_%' then '(select public.is_super_admin())' else '(select public.admin_can_write())' end;
+    v_u := replace(replace(rec.u, '( SELECT public.is_admin() AS is_admin)', v_tok), '( SELECT is_admin() AS is_admin)', v_tok);
+    v_c := replace(replace(rec.c, '( SELECT public.is_admin() AS is_admin)', v_tok), '( SELECT is_admin() AS is_admin)', v_tok);
+    if rec.cmd = 'a' then execute format('alter policy %I on public.%I with check (%s)', rec.pol, rec.t, v_c);
+    elsif rec.cmd = 'd' then execute format('alter policy %I on public.%I using (%s)', rec.pol, rec.t, v_u);
+    elsif rec.c is null then execute format('alter policy %I on public.%I using (%s)', rec.pol, rec.t, v_u);
+    else execute format('alter policy %I on public.%I using (%s) with check (%s)', rec.pol, rec.t, v_u, v_c);
     end if;
   end loop;
 end $$;
