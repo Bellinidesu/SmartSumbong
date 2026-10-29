@@ -5,7 +5,7 @@
 -- is customizable and tunable to the needs of 183", the barangay's Sir Kiko:
 -- the super admin adds or edits the complaint options of each category).
 --
--- Until now the 8 categories were a fixed enum and the 38 options residents
+-- Until now the 8 categories were a fixed enum and the 34 options residents
 -- pick from ("Potholes", "Illegal Parking") were written into the app and the
 -- portal. They become two tables a super admin edits:
 --
@@ -58,7 +58,7 @@ create table public.complaint_options (
   updated_at timestamptz not null default now()
 );
 create unique index complaint_options_one_name on public.complaint_options (category, lower(label_en));
--- the 38 options the app and the portal carried (Rose's list); the Tagalog names start as the English ones
+-- the 34 options the app and the portal carried (Rose's list); the Tagalog names start as the English ones
 insert into public.complaint_options (category, label_en, label_fil, sort)
 select c, o, o, n from (values
   ('street_obstruction', array['Obstructed Sidewalks', 'Illegal Parking', 'Vendor Blocking Sidewalks']),

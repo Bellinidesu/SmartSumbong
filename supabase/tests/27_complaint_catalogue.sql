@@ -17,17 +17,17 @@ begin
   update public.users set role = 'admin', admin_tier = 'committee', committee = 'peace_order' where id = v_com;
   v_log := 'setup ok';
 
-  -- 1. the catalogue starts as the app's list: 8 categories, 38 options
+  -- 1. the catalogue starts as the app's list: 8 categories, 34 options
   begin
     perform set_config('request.jwt.claim.sub', v_res::text, true);
     j := public.complaint_catalogue(false);
     if jsonb_array_length(j) <> 8 then raise exception 'categories %', jsonb_array_length(j); end if;
     select sum(jsonb_array_length(c -> 'options')) into n from jsonb_array_elements(j) c;
-    if n <> 38 then raise exception 'options %', n; end if;
+    if n <> 34 then raise exception 'options %', n; end if;
     if j -> 0 ->> 'key' <> 'street_obstruction' or j -> 0 -> 'options' -> 1 ->> 'en' <> 'Illegal Parking' then raise exception 'order %', j -> 0; end if;
     if (select count(*) from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'complaint_category')
        <> (select count(*) from public.complaint_categories) then raise exception 'the table and the type disagree'; end if;
-    v_log := v_log || E'\n' || 'ok  the catalogue starts as the app''s list (8 categories, 38 options, in order), one row for each value of the type';
+    v_log := v_log || E'\n' || 'ok  the catalogue starts as the app''s list (8 categories, 34 options, in order), one row for each value of the type';
   exception when others then v_log := v_log || E'\n' || 'FAIL start: ' || sqlerrm; end;
 
   -- 2. a super admin edits: an option renamed, switched off, added; a category made (and added to the type)
