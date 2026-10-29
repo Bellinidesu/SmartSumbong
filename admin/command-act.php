@@ -15,6 +15,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 
 $admin = require_admin();
+feature_require('command_center', true);
 $db    = db();
 session_write_close();
 

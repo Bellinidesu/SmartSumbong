@@ -6,7 +6,8 @@ set -eu
 here=$(cd "$(dirname "$0")" && pwd); root=$(cd "$here/../.." && pwd)
 SITE=${SITE:-$(mktemp -d)}
 rm -rf "$SITE/admin"; cp -r "$root/admin" "$SITE/admin"; cp "$here/router.php" "$SITE/"
-printf 'SUPABASE_URL=http://127.0.0.1:54399\nSUPABASE_PUBLISHABLE_KEY=fake\nCLOUDINARY_CLOUD_NAME=fake\nCLOUDINARY_UPLOAD_PRESET=fake\nVAPID_PUBLIC_KEY=BF6und7IVdYoCyKU-iUigL7T4GtiSorz7hwO206W7Ru6IvICvAYOYwhwyXzaZ2sbuv9uRV2pg4qmL5V_WZfEJqU\n' > "$SITE/.env"
+printf 'FEATURE_CACHE_TTL=0
+SUPABASE_URL=http://127.0.0.1:54399\nSUPABASE_PUBLISHABLE_KEY=fake\nCLOUDINARY_CLOUD_NAME=fake\nCLOUDINARY_UPLOAD_PRESET=fake\nVAPID_PUBLIC_KEY=BF6und7IVdYoCyKU-iUigL7T4GtiSorz7hwO206W7Ru6IvICvAYOYwhwyXzaZ2sbuv9uRV2pg4qmL5V_WZfEJqU\n' > "$SITE/.env"
 PY=$(command -v python3 || command -v python)
 (cd "$here/fake" && exec "$PY" fake_ws.py) > "$SITE/fake.log" 2>&1 & echo $! > "$SITE/pids"
 (cd "$SITE" && exec php -S 127.0.0.1:8013 -t . router.php) > "$SITE/php.log" 2>&1 & echo $! >> "$SITE/pids"

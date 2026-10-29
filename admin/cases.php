@@ -95,7 +95,7 @@ $tab   = (string) ($_GET['tab'] ?? '');
 if ($workspace) {
     $tab = 'next';
 } elseif ($notices) {
-    if ($tab === 'next') {                       // an old link to the board
+    if ($tab === 'next' && feature_on('workspace')) {   // an old link to the board
         $q = $_GET; unset($q['tab']);
         header('Location: workspace.php' . ($q ? '?' . http_build_query($q) : ''), true, 302);
         exit;
@@ -104,7 +104,7 @@ if ($workspace) {
 } else {
     if ($tab === 'next' || $tab === 'notes') {   // an old link or bookmark
         $q = $_GET; unset($q['tab']);
-        header('Location: ' . ($tab === 'next' ? 'workspace.php' : 'notifications.php') . ($q ? '?' . http_build_query($q) : ''), true, 302);
+        header('Location: ' . ($tab === 'next' ? ws_href() : 'notifications.php') . ($q ? '?' . http_build_query($q) : ''), true, 302);
         exit;
     }
     $tab = 'all';

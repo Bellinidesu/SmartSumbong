@@ -283,41 +283,22 @@ class _LaunchGateState extends State<LaunchGate> {
               padding: const EdgeInsets.fromLTRB(32, 32, 32, 40),
               child: Column(
                 children: [
-                  // The official credential first: the three seals, on a
-                  // light plate so the navy line work in their captions
-                  // ("Bagong Pilipinas", "Bagong Villamor") stays legible
-                  // on the blue.
+                  // The barangay's seal first, alone, on a light plate so its
+                  // navy line work stays legible on the blue. (The Bagong
+                  // Pilipinas and Bagong Villamor marks came off on 29 Oct,
+                  // the barangay's call.)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: const Color(0xF2FBFBFB),
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(32),
                       boxShadow: kFigmaShadow,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/images/bagong-pilipinas.png',
-                            height: 56,
-                            filterQuality: FilterQuality.medium,
-                            semanticLabel: 'Bagong Pilipinas'),
-                        const SizedBox(width: 16),
-                        // Largest of the three: this is the barangay whose
-                        // system it is; its rim already names it.
-                        Image.asset('assets/images/brgy-183-seal.png',
-                            height: 76,
-                            filterQuality: FilterQuality.medium,
-                            semanticLabel: 'Barangay 183 Zone 20 Villamor, '
-                                'Pasay City'),
-                        const SizedBox(width: 16),
-                        Image.asset('assets/images/bagong-villamor.png',
-                            height: 56,
-                            filterQuality: FilterQuality.medium,
-                            semanticLabel: 'Bagong Villamor'),
-                      ],
-                    ),
+                    child: Image.asset('assets/images/brgy-183-seal.png',
+                        height: 104,
+                        filterQuality: FilterQuality.medium,
+                        semanticLabel: 'Barangay 183 Zone 20 Villamor, '
+                            'Pasay City'),
                   ),
 
                   Expanded(

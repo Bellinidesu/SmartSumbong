@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/widget_panel.php';
 
 $admin = require_admin();
+feature_require('workspace');
 $id = (string) ($_GET['w'] ?? '');
 if (!isset(widget_catalogue()[$id])) {
     http_response_code(404);

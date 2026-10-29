@@ -64,6 +64,7 @@ TABLES = {
 
 # The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
 CMD = {'active': None}
+FEAT = {'workspace': True, 'command_center': True}   # 0144: the real database ships both off; the tests flip them with /__feat
 CMD_MODES = [{'mode': 'fire', 'en': 'Fire Surroundings', 'fil': 'Paligid ng Sunog'}, {'mode': 'quake', 'en': 'Quake Check', 'fil': 'Suri sa Lindol'},
              {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha'}, {'mode': 'typhoon', 'en': 'Typhoon Board', 'fil': 'Pisara ng Bagyo'}]
 
@@ -126,7 +127,7 @@ def _cmd_end(p):
 
 
 RPC = {
-    'command_hall': lambda p: None if p.get('p_token') != 'f' * 48 else {
+    'command_hall': lambda p: None if (p.get('p_token') != 'f' * 48 or not FEAT['command_center']) else {
         'as_of': ago(0), 'barangay': 'Barangay 183, Zone 20', 'today': {'filed': 7, 'resolved': 3, 'open': 19}, 'tanods_on_duty': 4,
         'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,
                  'tags': [{'en': 'waist-deep (about 37 in)', 'fil': 'hanggang baywang (mga 37 pulgada)', 'reports': 1}, {'en': 'knee-deep (about 19 in)', 'fil': 'hanggang tuhod (mga 19 pulgada)', 'reports': 2}],
@@ -232,6 +233,9 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path); qs = parse_qs(u.query)
         n = int(self.headers.get('Content-Length') or 0)
         body = self.rfile.read(n) if n else b''
+        if u.path == '/__feat':   # ?ws=0&cc=0
+            FEAT['workspace'] = qs.get('ws', ['1'])[0] == '1'; FEAT['command_center'] = qs.get('cc', ['1'])[0] == '1'
+            return self.send(200, {})
         if u.path == '/__cmd_reset':   # the command-center test starts with nothing on
             CMD['active'] = None; return self.send(200, {})
         if u.path.startswith('/auth/v1/'):
@@ -248,6 +252,7 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith('/rest/v1/'):
             t = u.path.split('/')[-1]
             rows = TABLES.get(t)
+            if t == 'feature_switches': rows = [{'key': k, 'enabled': v} for k, v in FEAT.items()]
             if rows is None:
                 print('TABLE missing', t, file=sys.stderr, flush=True); rows = []
             if m != 'GET': return self.send(200, rows[:1])

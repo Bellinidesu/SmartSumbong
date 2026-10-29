@@ -3,7 +3,7 @@
  * The barangay's printed documents (30 Sep 2026): the Barangay Complaint
  * Summary and the Certification of Lack of Jurisdiction, laid out like the
  * barangay's own templates — seal left, the four heading lines centred,
- * Bagong Pilipinas right, Letter size.
+ * an empty balancing column on the right, Letter size.
  *
  * Each page shows the document on screen with a toolbar above it (fill in,
  * then Print); the toolbar never prints. Documents are always English,
@@ -43,10 +43,9 @@ function doc_head(string $title, bool $desk = false): void
   .doc-toolbar .spacer { flex: 1; }
   .doc-page { width: 8.5in; min-height: 11in; margin: 24px auto; background: #fff; padding: 0.6in 0.75in;
     box-shadow: 0 2px 14px rgba(0,0,0,.18); }
-  .letterhead { display: grid; grid-template-columns: 1.3in 1fr 1.6in; align-items: center; text-align: center; }
+  .letterhead { display: grid; grid-template-columns: 1.3in 1fr 1.3in; align-items: center; text-align: center; }
   .letterhead img { max-width: 100%; }
   .letterhead .seal { width: 1.2in; }
-  .letterhead .bp { width: 1.5in; justify-self: end; }
   .letterhead p { margin: 0; font-size: 12.5pt; line-height: 1.3; }
   .doc-title { text-align: center; font-weight: 700; margin: 0.45in 0 0.35in; font-size: 12.5pt; }
   .fill { font-weight: 700; text-decoration: underline; }
@@ -106,7 +105,7 @@ function doc_letterhead(): void
       <p>Barangay 183, Zone 20</p>
       <p>Villamor, Pasay City</p>
     </div>
-    <img class="bp" src="assets/img/bagong-pilipinas.png" alt="Bagong Pilipinas">
+    <span aria-hidden="true"></span>
   </div>
 <?php
 }

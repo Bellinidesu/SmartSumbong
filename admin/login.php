@@ -109,8 +109,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <aside class="login-rail">
     <?php foreach ([
         ['brgy-183-seal.webp',   'Barangay 183 Zone 20, Villamor, Pasay City'],
-        ['bagong-pilipinas.webp','Bagong Pilipinas'],
-        ['bagong-villamor.webp', 'Barangay 183 Bagong Villamor'],
     ] as [$file, $alt]): ?>
       <?php if (is_file(__DIR__ . '/assets/img/' . $file)): ?>
         <?php [$iw, $ih] = getimagesize(__DIR__ . '/assets/img/' . $file) ?: [0, 0]; ?>
