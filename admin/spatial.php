@@ -44,7 +44,9 @@ $categories = [
 
 // What the engine sees (0123, 0124, 0127): the SMART drawer lists it and the map can show it. Each call is optional.
 $patterns = []; $smartSum = []; $smartLate = []; $smartSpikes = []; $smartLevels = []; $smartBusy = [];
-try {
+// 0145: the drawer reads the barangay-wide analytics, which are for super admins and captains
+$smartOn = sees_everything();
+if ($smartOn) try {
     $sg = db()->selectMany([
         'patterns' => ['rpc/smart_patterns', ['p_days' => null], true],
         'risk'     => ['rpc/smart_deadline_risk', [], true],
@@ -116,6 +118,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
     <p class="p-eyebrow"><?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?></p>
     <ol class="p-pin-list" id="pin-list"></ol>
   </aside>
+  <?php if ($smartOn): ?>
   <aside class="p-card p-card-pad p-map-stats ss-drawer" id="smart-side" hidden aria-label="SMART engine">
     <div class="ss-drawer-head"><?= smart_logo(34) ?>
       <span class="ss-thinkline"><?= e(t('Reading the map…', 'Binabasa ang mapa…')) ?></span>
@@ -157,6 +160,7 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <?php endif; ?>
     </div>
   </aside>
+  <?php endif; ?>
   <?php if ($ccOn): ?>
   <!-- The command center (SMART Iteration 4, 0143): assets/js/sd-command.js fills these. -->
   <aside class="p-card p-map-stats cc-side" id="cc-side" hidden aria-label="<?= e(t('Command center', 'Sentro ng Pamamahala')) ?>">
@@ -213,8 +217,10 @@ layout_head(t('Spatial Distribution', 'Mapa ng mga Sumbong'), 'spatial.php');
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h.01" /> <path d="M3 12h.01" /> <path d="M3 19h.01" /> <path d="M8 5h13" /> <path d="M8 12h13" /> <path d="M8 19h13" /></svg></button>
     <button class="p-dock-btn" id="incident-toggle" aria-expanded="false" aria-controls="map-side" title="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>" aria-label="<?= e(t('Live incidents', 'Mga kasalukuyang insidente')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s5-4.4 5-8.8a5 5 0 1 0-10 0c0 4.4 5 8.8 5 8.8z"/><circle cx="12" cy="11.5" r="1.8"/><path d="M3.2 8a9.6 9.6 0 0 0 0 7M20.8 8a9.6 9.6 0 0 1 0 7"/></svg><span class="p-cnt" id="pin-count">0</span></button>
+    <?php if ($smartOn): ?>
     <button class="p-dock-btn ss-dock ss-dock-logo" id="smart-toggle" type="button" aria-expanded="false" aria-controls="smart-side" title="SMART engine" aria-label="SMART engine">
       <?= smart_brain(24) ?><span class="p-cnt"><?= (int) ($smartSum['urgent_waiting'] ?? 0) + (int) ($smartSum['high_waiting'] ?? 0) ?></span></button>
+    <?php endif; ?>
     <?php if ($ccOn): ?>
     <button class="p-dock-btn cc-dock" id="cc-toggle" type="button" aria-expanded="false" aria-controls="cc-side" title="<?= e(t('Command center', 'Sentro ng Pamamahala')) ?>" aria-label="<?= e(t('Command center', 'Sentro ng Pamamahala')) ?>">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 4.4-3.4 8.3-8 9-4.6-.7-8-4.6-8-9V7z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></button>
@@ -1586,7 +1592,7 @@ document.getElementById('legend-toggle').addEventListener('click', () => {
   lg.hidden = !open;
   document.getElementById('legend-toggle').setAttribute('aria-expanded', String(open));
 });
-document.getElementById('smart-toggle').addEventListener('click', () => {
+document.getElementById('smart-toggle')?.addEventListener('click', () => {   // not drawn for a committee admin (0145)
   if (!window.sdSmart) return;
   if (sdSmart.isClosed()) mapDrawer('smart');
   sdSmart.toggle();
@@ -2456,6 +2462,7 @@ loadBoundary();
 load();
 </script>
 <script src="assets/js/sd-tools.js?v=<?= e(asset_version('../js/sd-tools.js')) ?>"></script>
+<?php if ($smartOn): ?>
 <script>window.SS_SMART = <?= json_encode(['levels' => (object) $smartLevels, 'late' => array_column($smartLate, 'report_id'),
     'recur' => array_map(fn($p) => ['lat' => (float) $p['lat'], 'lng' => (float) $p['lng']], $patterns),
     'recurIds' => array_values(array_unique(array_merge(...array_map(fn($p) => array_map('strval', (array) ($p['tracking_ids'] ?? [])), $patterns ?: [[]])))),
@@ -2463,6 +2470,7 @@ load();
     'lateInfo' => (object) array_column(array_map(fn($r) => ['id' => $r['report_id'], 'left' => (float) $r['hours_left'], 'typical' => (float) $r['typical_hours']], $smartLate), null, 'id'),
     'spikes' => count($smartSpikes), 'recurring' => count($patterns)], JSON_UNESCAPED_UNICODE) ?>;</script>
 <script src="assets/js/sd-smart.js?v=<?= e(asset_version('../js/sd-smart.js')) ?>"></script>
+<?php endif; ?>
 <?php if ($ccOn): ?>
 <script>window.SS_CMD = <?= json_encode(['csrf' => csrf_token(), 'status' => status_labels()], JSON_UNESCAPED_UNICODE) ?>;</script>
 <script src="assets/js/sd-command.js?v=<?= e(asset_version('../js/sd-command.js')) ?>"></script>

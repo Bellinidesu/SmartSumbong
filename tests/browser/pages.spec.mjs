@@ -241,3 +241,45 @@ test('0144 feature switches: with the Workspace and the command center off, neit
     await page.request.get('http://127.0.0.1:54399/__feat?ws=1&cc=1');
   }
 });
+
+test('0145 access: a super admin sets up committees, access and switches in Settings', async ({ page }) => {
+  const r = await open(page, 'settings.php#access');
+  await expect(page.locator('#acc-committees form.acc-row:not(.acc-new)')).toHaveCount(5);
+  await expect(page.locator('#acc-committees')).toContainText('Anti-Drug');
+  await expect(page.locator('#acc-committees form.acc-off')).toHaveCount(1);
+  await expect(page.locator('#acc-switches li')).toHaveCount(2);
+  expect(await axe(page), 'Settings > Access').toEqual([]);
+  await page.goto('settings.php#admins');
+  await expect(page.locator('#jp-rows .ss-arow').first()).toContainText('Super admin');
+  await expect(page.locator('form.ss-access select[name="tier"]').first()).toHaveCount(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const r = await open(page, 'cases.php');
+  for (const href of ['dashboard.php', 'settings.php', 'residents.php', 'personnel.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
+  await expect(page.locator('#side-user')).toContainText('Peace and Order');
+  await page.goto('dashboard.php');
+  await expect(page).toHaveURL(/notifications\.php/);
+  await page.goto('settings.php');
+  await expect(page).toHaveURL(/notifications\.php/);
+  const s = await open(page, 'spatial.php');
+  await expect(page.locator('#smart-toggle')).toHaveCount(0);
+  await expect(page.locator('#smart-side')).toHaveCount(0);
+  expect(await axe(page), 'Spatial Distribution, committee admin').toEqual([]);
+  expect(r.errors.concat(s.errors), 'console errors').toEqual([]);
+});
+
+test('0145 access: a captain reads a case but its controls are view only', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'captain', url: 'http://127.0.0.1:8013' }]);
+  const r = await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('.p-controls.ss-viewonly')).toHaveCount(1);
+  await expect(page.locator('.p-controls')).toContainText('View only');
+  await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="residents.php"]')).toHaveCount(1);
+  await expect(page.locator('#side-user')).toContainText('Captain');
+  expect(await axe(page), 'Case page, captain').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});

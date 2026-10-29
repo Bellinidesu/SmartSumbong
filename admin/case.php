@@ -916,8 +916,9 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     $hName   = (string) ($report['handler']['full_name'] ?? '');
     $GLOBALS['ss_case'] = ['id' => $id, 'tracking' => $report['tracking_id']];
   ?>
-  <aside class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?>">
+  <aside class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?><?= is_captain() ? ' ss-viewonly' : '' ?>">
     <p class="p-eyebrow"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
+    <?php if (is_captain()): ?><div class="ss-locked" role="note"><?= e(t('View only: this account can read everything about the case, but not change it.', 'Tingin lamang: mababasa ng account na ito ang lahat tungkol sa kaso, pero hindi ito mababago.')) ?></div><?php endif; ?>
 
     <?php // 0087: who handles this case. ?>
     <?php if ($hid === ''): ?>

@@ -22,7 +22,7 @@ function nav_items(): array
         ['settings.php',   t('Settings', 'Mga Setting'),                      'i-gear'],
     ];
     // a part that is switched off (feature_switches, 0144) has no menu entry
-    return array_values(array_filter($items, static fn (array $i): bool => $i[0] !== 'workspace.php' || feature_on('workspace')));
+    return array_values(array_filter($items, static fn (array $i): bool => ($i[0] !== 'workspace.php' || feature_on('workspace')) && page_allowed($i[0])));
 }
 
 /** An icon from the preview's set (includes/p_sprite.svg). */
@@ -93,19 +93,16 @@ function waiting_text(?string $iso): string
 }
 
 
-/** The committees a Kagawad chairs, as (English, Tagalog); the key is what the database stores (0130). */
+/** The committees, as [label]; the key is what the database stores (0130). Since 0145 they come from the committees table
+    (its short names), which a super admin edits; the list below is only the fallback if it cannot be read. */
 function committee_labels(): array
 {
-    return [
+    $out = [];
+    foreach (committees_all() as $k => $c) { $out[$k] = [t((string) $c['short_en'], (string) $c['name_fil'])]; }
+    return $out ?: [
         'peace_order'       => [t('Peace and Order', 'Kapayapaan at Kaayusan')],
         'health_sanitation' => [t('Health and Sanitation', 'Kalusugan at Kalinisan')],
-        'education'         => [t('Education', 'Edukasyon')],
-        'infrastructure'    => [t('Infrastructure', 'Imprastraktura')],
         'environment'       => [t('Environment', 'Kapaligiran')],
-        'women_family'      => [t('Women and Family', 'Kababaihan at Pamilya')],
-        'youth_sports'      => [t('Youth and Sports', 'Kabataan at Palakasan')],
-        'agriculture'       => [t('Agriculture', 'Agrikultura')],
-        'appropriations'    => [t('Appropriations', 'Pondo')],
     ];
 }
 
@@ -115,8 +112,8 @@ function committee_colour(?string $c): string
     return [
         'peace_order' => '#E5383B', 'health_sanitation' => '#1E9E4A', 'education' => '#356CF9', 'infrastructure' => '#8D6E63',
         'environment' => '#26A69A', 'women_family' => '#EC407A', 'youth_sports' => '#FFA726', 'agriculture' => '#9CCC65',
-        'appropriations' => '#78909C',
-    ][(string) $c] ?? '#8E9ABB';
+        'appropriations' => '#78909C', 'anti_drug' => '#6A4FD3',
+    ][(string) $c] ?? ['#5C6BC0', '#00897B', '#F4511E', '#7CB342', '#8E24AA', '#039BE5'][abs(crc32((string) $c)) % 6];   // a committee made later gets a steady colour
 }
 
 /** Which rung of the barangay ladder an administrator's position sits on: staff, kagawad or chair. */
@@ -225,7 +222,7 @@ window.ssAccessToken = function (initial) {
     <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
             aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
-    <div class="p-side-top"><a class="p-brand" href="dashboard.php"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a></div>
+    <div class="p-side-top"><a class="p-brand" href="<?= e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) ?>"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a></div>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
@@ -243,7 +240,7 @@ window.ssAccessToken = function (initial) {
       <div class="p-side-user<?= $active === 'profile.php' ? ' p-active' : '' ?>" id="side-user">
         <a class="p-side-me" href="profile.php" title="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
           <?= admin_avatar_html($admin) ?>
-          <div class="p-who"><b><?= e(name_or($admin['full_name'] ?? null, t('Administrator', 'Tagapangasiwa'))) ?></b><small><?= e(t('Edit profile', 'I-edit ang profile')) ?></small></div>
+          <div class="p-who"><b><?= e(name_or($admin['full_name'] ?? null, t('Administrator', 'Tagapangasiwa'))) ?></b><small><?= e(access_label()) ?></small></div>
         </a>
         <button type="button" title="<?= e(t('Log out', 'Mag-log out')) ?>" aria-label="<?= e(t('Log out', 'Mag-log out')) ?>" data-p-open="p-m-logout"><?= p_icon('i-out', 18) ?></button>
       </div>
@@ -258,11 +255,12 @@ window.ssAccessToken = function (initial) {
       <?= e(t('until', 'hanggang')) ?> <?= e((new DateTimeImmutable((string) $storm['storm_until']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, g:i A')) ?>
       <?= !empty($storm['storm_reason']) ? '· ' . e((string) $storm['storm_reason']) : '' ?>
       <small><?= e(t('Flood zones and flood, live-wire and collapse reports count double.', 'Doble ang bilang ng mga bahaing lugar at ng mga ulat ng baha, live wire at pagguho.')) ?></small></span>
+      <?php if (is_super()): // 0145: storm mode is a super admin's setting ?>
       <span class="ss-storm-act">
         <a class="p-btn p-btn-ghost p-btn-sm" href="settings.php#smart"><?= e(t('Manage', 'Pamahalaan')) ?></a>
         <form method="post" action="settings.php" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_storm"><input type="hidden" name="on" value="0">
           <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('End it', 'Tapusin')) ?></button></form>
-      </span></div>
+      </span><?php endif; ?></div>
 <?php endif;
 }
 

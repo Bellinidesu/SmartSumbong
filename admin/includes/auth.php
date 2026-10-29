@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/supabase.php';
 require_once __DIR__ . '/features.php';
+require_once __DIR__ . '/access.php';
 
 function session_start_once(): void
 {
@@ -57,7 +58,7 @@ function attempt_login(string $email, string $password): void
 
     $client  = new Supabase($token);
     $profile = $client->select('users', [
-        'select' => 'id,full_name,email,role,verification_status,is_suspended,must_change_password,avatar_url',
+        'select' => 'id,full_name,email,role,verification_status,is_suspended,must_change_password,avatar_url,admin_tier,is_dev,committee',
         'id'     => 'eq.' . ($session['user']['id'] ?? ''),
         'limit'  => '1',
     ]);
@@ -95,6 +96,11 @@ function attempt_login(string $email, string $password): void
         'must_change'   => !empty($me['must_change_password']),
         'avatar_url'    => $me['avatar_url'] ?? null,
         'seen'          => time(),
+        // 0145: what this administrator may see and do (refreshed every two minutes by access_refresh)
+        'admin_tier'    => $me['admin_tier'] ?? null,
+        'is_dev'        => !empty($me['is_dev']),
+        'committee'     => $me['committee'] ?? null,
+        'access_at'     => time(),
     ];
 }
 
@@ -164,7 +170,9 @@ function require_admin(): array
         header('Location: change-password.php');
         exit;
     }
-    return $admin;
+    access_refresh();
+    require_page_access();
+    return current_admin() ?? $admin;
 }
 
 /**
