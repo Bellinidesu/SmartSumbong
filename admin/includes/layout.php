@@ -196,8 +196,8 @@ window.ssAccessToken = function (initial) {
   };
 };
 </script>
-<title><?= e($title) ?> — Smart Sumbong | Barangay 183</title>
-<meta name="description" content="Smart Sumbong: Barangay 183 Villamor, Pasay City complaint management portal for barangay staff.">
+<title><?= e($title) ?> — Smart Sumbong | <?= e(barangay()['name']) ?></title>
+<meta name="description" content="Smart Sumbong: <?= e(brgy_line()) ?> complaint management portal for barangay staff.">
 <link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <link rel="apple-touch-icon" href="assets/img/brgy-183-seal.png">
 <meta name="theme-color" content="#00308F">

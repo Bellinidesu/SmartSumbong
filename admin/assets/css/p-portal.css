@@ -432,6 +432,13 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ty-new { border-top: 1px dashed var(--p-line-2); margin-top: 8px; padding-top: 14px; }
 @media (max-width: 900px) { .ty-row, .ty-opt { grid-template-columns: 1fr 1fr; } .ty-opts { padding-left: 0; } }
 
+/* Settings, the barangay (0148): its seal beside its name and place */
+.bp-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 18px; align-items: start; }
+.bp-seal { width: 96px; height: 96px; display: grid; place-items: center; border-radius: 50%; background: var(--p-surface-2, var(--p-surface)); }
+.bp-img { width: 88px; height: 88px; object-fit: contain; }
+.bp-fields { display: grid; gap: 10px; }
+@media (max-width: 600px) { .bp-row { grid-template-columns: 1fr; } }
+
 /* Settings, Rules and Hotlines (0147) */
 .ru-t td { vertical-align: middle; }
 .ru-t input.p-input-plain { width: 110px; }

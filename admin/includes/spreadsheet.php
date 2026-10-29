@@ -110,7 +110,7 @@ function summary_spreadsheet(array $reports, array $dispatches, array $logs, Dat
     // ---- About this file
     $sheet(t('About', 'Tungkol'), [t('Report Summary', 'Buod ng mga Ulat'), ''], [26, 70]);
     foreach ([
-        [t('Barangay', 'Barangay'), 'Barangay 183, Zone 20, Villamor, Pasay City'],
+        [t('Barangay', 'Barangay'), brgy_line()],
         [t('Period', 'Panahon'), $from->format('Y-m-d') . t(' to ', ' hanggang ') . $to->format('Y-m-d')],
         [t('Category', 'Kategorya'), $category !== '' ? category_label($category) : t('All', 'Lahat')],
         [t('Made', 'Ginawa'), (new DateTimeImmutable('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d H:i')],

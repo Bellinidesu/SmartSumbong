@@ -13,14 +13,15 @@ declare(strict_types=1);
 // moment it printed its first stylesheet link.
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/barangay.php';
 ?><!DOCTYPE html>
 <html lang="<?= html_lang() ?>">
 <head>
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Smart Sumbong: Barangay 183 Villamor, Pasay City complaint management portal for barangay staff.">
-<title><?= e(t('Request access', 'Humiling ng access')) ?> — Smart Sumbong | Barangay 183</title>
+<meta name="description" content="Smart Sumbong: <?= e(brgy_line()) ?> complaint management portal for barangay staff.">
+<title><?= e(t('Request access', 'Humiling ng access')) ?> — Smart Sumbong | <?= e(barangay()['name']) ?></title>
 <link rel="icon" type="image/png" href="assets/img/favicon-64.png">
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/auth.css?v=<?= e(asset_version('auth.css')) ?>" rel="stylesheet">
@@ -32,14 +33,7 @@ require_once __DIR__ . '/includes/layout.php';
      access here" link lands on the same screen rather than a bare card. -->
 <div class="login-split">
   <aside class="login-rail">
-    <?php foreach ([
-        ['brgy-183-seal.webp',   'Barangay 183 Zone 20, Villamor, Pasay City'],
-    ] as [$file, $alt]): ?>
-      <?php if (is_file(__DIR__ . '/assets/img/' . $file)): ?>
-        <?php [$iw, $ih] = getimagesize(__DIR__ . '/assets/img/' . $file) ?: [0, 0]; ?>
-        <img class="rail-logo" src="assets/img/<?= e($file) ?>" width="<?= (int) $iw ?>" height="<?= (int) $ih ?>" alt="<?= e($alt) ?>">
-      <?php endif; ?>
-    <?php endforeach; ?>
+    <?= brgy_seal_img('rail-logo') ?>
   </aside>
 
   <section class="login-panel">

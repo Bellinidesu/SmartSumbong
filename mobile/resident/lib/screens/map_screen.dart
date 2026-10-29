@@ -28,6 +28,7 @@ import '../d/d_categories.dart';
 import '../d/d_ui.dart';
 import '../d/flood_watch.dart';
 import '../widgets/resident_nav_bar.dart';
+import '../models/barangay_profile.dart';
 import 'reports_screen.dart' show ReportStatus, reportStatusColour, reportSteps;
 
 class _Pin {
@@ -247,7 +248,7 @@ class _MapScreenState extends State<MapScreen> {
                           };
                     return Column(children: [
                       if (p.mine)
-                        DRow(icon: Icons.place_outlined, title: (p.locationLabel?.isNotEmpty ?? false) ? p.locationLabel! : 'Barangay 183', sub: 'Barangay 183, Zone 20, Villamor, Pasay City'),
+                        DRow(icon: Icons.place_outlined, title: (p.locationLabel?.isNotEmpty ?? false) ? p.locationLabel! : BarangayProfile.name, sub: '${BarangayProfile.name}, ${BarangayProfile.place}'),
                       if (p.mine && p.createdAt != null) DRow(icon: Icons.calendar_today_outlined, title: s.reportsSubmittedOn('${s.monthFull(p.createdAt!.toLocal().month)} ${p.createdAt!.toLocal().day}, ${p.createdAt!.toLocal().year}')),
                       if (p.mine)
                         DRow(

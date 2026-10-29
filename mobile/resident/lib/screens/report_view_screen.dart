@@ -96,6 +96,7 @@ import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import 'add_details_screen.dart';
 import 'report_messages_screen.dart';
+import '../models/barangay_profile.dart';
 import 'reports_screen.dart' show ReportStatus;
 
 class ReportViewScreen extends StatefulWidget {
@@ -786,7 +787,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         const SizedBox(height: 10),
         Column(children: [
           if (lat != null && lng != null)
-            DRow(icon: Icons.place_outlined, title: (r['location_label'] as String?)?.isNotEmpty == true ? r['location_label'] as String : 'Barangay 183', sub: 'Barangay 183, Zone 20, Villamor, Pasay City'),
+            DRow(icon: Icons.place_outlined, title: (r['location_label'] as String?)?.isNotEmpty == true ? r['location_label'] as String : BarangayProfile.name, sub: '${BarangayProfile.name}, ${BarangayProfile.place}'),
           if (createdAt != null) DRow(icon: Icons.calendar_today_outlined, title: s.reportsSubmittedOn(_fmtDate(s, createdAt))),
           DRow(
             icon: Icons.shield_outlined,

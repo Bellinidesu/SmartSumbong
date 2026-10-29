@@ -31,6 +31,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'models/barangay_profile.dart';
 
 /// Matches `languageKey` in the old languages_screen.dart exactly — 'en'
 /// / 'fil' — so a value an earlier build already saved to a handset
@@ -261,9 +262,9 @@ class Strings {
   String get homeViewReports => _t('View reports', 'Tingnan ang mga ulat');
   String get homeMapTitle => _t('View map', 'Tingnan ang mapa');
   String get homeMapBody => _t(
-      'Get a view of Barangay 183, Pasay City and see your reports '
+      'Get a view of ${BarangayProfile.name}, ${BarangayProfile.city} and see your reports '
       'pinned on the map.',
-      'Tingnan ang Barangay 183, Pasay City at makita ang iyong mga '
+      'Tingnan ang ${BarangayProfile.name}, ${BarangayProfile.city} at makita ang iyong mga '
       'ulat na naka-pin sa mapa.');
   String get homeViewMap => _t('View map', 'Tingnan ang mapa');
 
@@ -854,9 +855,9 @@ class Strings {
   ) =>
       _t(
         'SmartSumbong complaint $trackingId ($statusLabel): $subject\n'
-        'Filed with Barangay 183, Pasay City.',
+        'Filed with ${BarangayProfile.name}, ${BarangayProfile.city}.',
         'Reklamo sa SmartSumbong $trackingId ($statusLabel): $subject\n'
-        'Isinampa sa Barangay 183, Pasay City.',
+        'Isinampa sa ${BarangayProfile.name}, ${BarangayProfile.city}.',
       );
   String get reportViewShareFailed => _t(
       'Could not open the share menu.', 'Hindi mabuksan ang share menu.');
@@ -942,7 +943,7 @@ class Strings {
   String get messagesEmpty => _t(
       'Ask the barangay anything about this complaint. They answer here, and you will be notified.',
       'Itanong sa barangay ang anumang tungkol sa sumbong na ito. Dito sila sasagot, at aabisuhan ka.');
-  String get messagesBarangay => _t('Barangay 183', 'Barangay 183');
+  String get messagesBarangay => _t(BarangayProfile.name, BarangayProfile.name);
   String get messagesHint => _t('Write a message…', 'Sumulat ng mensahe…');
   String get messagesSendFailed =>
       _t("Couldn't send. Check your connection and try again.", 'Hindi naipadala. Suriin ang koneksyon at subukan muli.');
@@ -1289,9 +1290,9 @@ class Strings {
       _t('You have retired', 'Nagretiro Ka Na');
   String get accountStatusRetiredBody => _t(
       'The barangay approved your retirement request. Thank you for your '
-      'service as a tanod of Barangay 183.',
+      'service as a tanod of ${BarangayProfile.name}.',
       'Inaprubahan ng barangay ang iyong kahilingan sa pagreretiro. '
-      'Salamat sa iyong paglilingkod bilang tanod ng Barangay 183.');
+      'Salamat sa iyong paglilingkod bilang tanod ng ${BarangayProfile.name}.');
   String get accountStatusRetiredDateLabel =>
       _t('Retired since', 'Nagretiro Noong');
   String get accountStatusRetiredNote => _t(
@@ -1412,17 +1413,17 @@ class Strings {
   String get termsPrivacyBack => _t('Back', 'Bumalik');
   String get termsPrivacyDraftBanner => _t(
       'This is a draft prepared from how the app actually handles your '
-      'data, for Barangay 183 to review, correct, and formally adopt. '
+      'data, for ${BarangayProfile.name} to review, correct, and formally adopt. '
       'It is not yet an approved barangay document.',
       'Ito ay isang draft na inihanda batay sa aktwal na paghawak ng app '
       'sa iyong datos, para suriin, itama, at pormal na aprubahan ng '
-      'Barangay 183. Hindi pa ito isang inaprubahang dokumento ng '
+      '${BarangayProfile.name}. Hindi pa ito isang inaprubahang dokumento ng '
       'barangay.');
   String get termsPrivacySection1Title =>
       _t('Who is collecting your information',
           'Sino ang Kumokolekta ng Iyong Impormasyon');
   String get termsPrivacySection1Body => _t(
-      'SmartSumbong is operated for Barangay 183, Pasay City, as its '
+      'SmartSumbong is operated for ${BarangayProfile.name}, ${BarangayProfile.city}, as its '
       'local complaint-mapping system. For the purpose of the Data '
       'Privacy Act of 2012 (RA 10173), the barangay is the Personal '
       'Information Controller: it decides what this app collects and '
@@ -1430,8 +1431,8 @@ class Strings {
       'and contact details a resident should use go here once the '
       'barangay confirms them -- this app currently only lists the '
       'barangay\'s Facebook page in Settings.',
-      'Pinapatakbo ang SmartSumbong para sa Barangay 183, Lungsod ng '
-      'Pasay, bilang kanilang lokal na sistema ng pagmapa ng reklamo. '
+      'Pinapatakbo ang SmartSumbong para sa ${BarangayProfile.name}, ${BarangayProfile.cityFil}, '
+      'bilang kanilang lokal na sistema ng pagmapa ng reklamo. '
       'Para sa layunin ng Data Privacy Act of 2012 (RA 10173), ang '
       'barangay ang Personal Information Controller: sila ang '
       'nagpapasya kung ano ang kinokolekta ng app na ito at kung bakit, '
@@ -1615,7 +1616,7 @@ class Strings {
       'Hindi mabuksan ang dialer. Ang numero ay $number.');
 
   // ---------- map ----------
-  String get mapTitle => _t('Barangay 183 Map', 'Mapa ng Barangay 183');
+  String get mapTitle => _t('${BarangayProfile.name} Map', 'Mapa ng ${BarangayProfile.name}');
   String get mapHazardToggle => _t('Flood hazard', 'Panganib ng baha');
   String get mapHazardLow => _t('Low', 'Mababa');
   String get mapHazardMedium => _t('Medium', 'Katamtaman');

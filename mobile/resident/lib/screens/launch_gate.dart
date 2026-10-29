@@ -30,6 +30,7 @@ import '../d/d_theme.dart';
 import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
+import '../models/barangay_profile.dart';
 import 'login_screen.dart' show rememberMeKey;
 import 'onboarding_screen.dart' show onboardingSeenKey;
 
@@ -297,8 +298,7 @@ class _LaunchGateState extends State<LaunchGate> {
                     child: Image.asset('assets/images/brgy-183-seal.png',
                         height: 104,
                         filterQuality: FilterQuality.medium,
-                        semanticLabel: 'Barangay 183 Zone 20 Villamor, '
-                            'Pasay City'),
+                        semanticLabel: '${BarangayProfile.name} seal'),
                   ),
 
                   Expanded(

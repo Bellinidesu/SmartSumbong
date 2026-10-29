@@ -72,6 +72,7 @@ import '../theme.dart';
 import '../widgets/brgy_map.dart';
 import '../widgets/figma_ui.dart';
 import '../location_lookup.dart';
+import '../models/barangay_profile.dart';
 
 /// Barangay 183, Zone 20, Villamor, Pasay City — from OSM relation
 /// 2988704. Used only when the resident's own position is unavailable.
@@ -205,7 +206,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         out.add(_Place('${m['name']}', [
           ?kind,
           if (n > 1) context.tr('$n branches, nearest shown', '$n sangay, pinakamalapit ang ipinapakita'),
-          'Barangay 183',
+          BarangayProfile.name,
         ].join(' · '), at));
         if (out.length == 5) return out;
       }
@@ -268,7 +269,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       final name = (pr['name'] ?? '').toString();
       final street = [pr['housenumber'], pr['street']].where((e) => e != null && '$e'.isNotEmpty).join(' ');
       final title = name.isNotEmpty ? name : (street.isNotEmpty ? street : q);
-      final sub = [if (name.isNotEmpty && street.isNotEmpty) street, 'Barangay 183, Pasay City'].join(' · ');
+      final sub = [if (name.isNotEmpty && street.isNotEmpty) street, '${BarangayProfile.name}, ${BarangayProfile.city}'].join(' · ');
       if (out.any((o) => o.title == title && o.sub == sub)) continue;
       out.add(_Place(title, sub, at));
       if (out.length == 5) break;
@@ -662,8 +663,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
     _errors.clear();
     if (!insideBrgy(_rings, _pin)) {
       _errors['location'] = context.tr(
-          'This spot is outside Barangay 183. Move the pin inside the barangay or type the address.',
-          'Nasa labas ng Barangay 183 ang lugar na ito. Ilipat ang pin sa loob ng barangay o i-type ang address.');
+          'This spot is outside ${BarangayProfile.name}. Move the pin inside the barangay or type the address.',
+          'Nasa labas ng ${BarangayProfile.name} ang lugar na ito. Ilipat ang pin sa loob ng barangay o i-type ang address.');
     }
     if (_description.text.trim().length < 10) {
       _errors['description'] = context.s.reportDetailsDescriptionValidation;
@@ -897,8 +898,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                   const SizedBox(height: 6),
                   if (_outside && !_locating)
                     Text(
-                      context.tr('You seem to be outside Barangay 183, so the map shows the barangay centre. Drag the pin or type the address.',
-                          'Mukhang nasa labas ka ng Barangay 183, kaya nasa gitna ng barangay ang mapa. I-drag ang pin o i-type ang address.'),
+                      context.tr('You seem to be outside ${BarangayProfile.name}, so the map shows the barangay centre. Drag the pin or type the address.',
+                          'Mukhang nasa labas ka ng ${BarangayProfile.name}, kaya nasa gitna ng barangay ang mapa. I-drag ang pin o i-type ang address.'),
                       style: DType.body(d.dark ? const Color(0xFFFF8A8A) : DColors.red, size: 12.5),
                     )
                   else

@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import '../i18n.dart';
 import 'd_theme.dart';
 import 'd_ui.dart';
+import '../models/barangay_profile.dart';
 
 class FloodReading {
   const FloodReading({required this.online, this.mm});
@@ -70,7 +71,7 @@ class DFloodCard extends StatelessWidget {
                 _ => fil ? 'Bantay-baha · Pulang babala' : 'Flood watch · Red warning',
               };
     final sub = switch (lvl) {
-      0 => context.tr('Live rain over Barangay 183, checked every 10 minutes', 'Live na ulan sa Barangay 183, tinitingnan bawat 10 minuto'),
+      0 => context.tr('Live rain over ${BarangayProfile.name}, checked every 10 minutes', 'Live na ulan sa ${BarangayProfile.name}, tinitingnan bawat 10 minuto'),
       1 => context.tr('Flooding possible in high-hazard areas.', 'Posibleng bumaha sa mga lugar na mataas ang panganib.'),
       2 => context.tr('Flooding threatening in high and medium-hazard areas.', 'Banta ng baha sa mataas at katamtamang panganib.'),
       _ => context.tr('Serious flooding expected in every flood zone.', 'Inaasahan ang malubhang baha sa lahat ng bahaing lugar.'),

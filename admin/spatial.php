@@ -1888,7 +1888,7 @@ function safeSheet(f) {
         '<button type="button" class="ac-zoom" data-spzoom><span>' + ACT_SCENE.zoom + csIcon(SD_ICONS.zoom) + '</span>' + T('Zoom here', 'Lapitan') + '</button>' +
         '<button type="button" class="ac-copy" data-spcopy><span>' + ACT_SCENE.copy + csIcon(SD_ICONS.copy) + '</span>' + T('Copy coords', 'Kopyahin') + '</button></div>' +
       '<ul class="cs-rows">' +
-        row(SD_ICONS.pin, esc(p.addr || 'Barangay 183, Pasay City') + '<small>' + coord + '</small>') +
+        row(SD_ICONS.pin, esc(p.addr || <?= json_encode(brgy_line()) ?>) + '<small>' + coord + '</small>') +
         row(SD_ICONS.phone, esc(p.phone)) +
         row(SD_ICONS.clock, esc(p.hours)) +
         row(SD_ICONS.users, p.cap ? esc(p.cap) + T(' people', ' tao') + '<small>' + T('Capacity', 'Kapasidad') + '</small>' : '') +

@@ -122,7 +122,7 @@ doc_head('Barangay Complaint ' . ($report['tracking_id'] ?? ''), true);
     <div class="cp-row"><b>Date filed:</b><span><?= e(long_datetime($report['created_at'])) ?></span></div>
     <div class="cp-row"><b>Description:</b><span><?= e($report['description']) ?></span></div>
     <div class="cp-row"><b>Address:</b>
-      <div><?= e($report['location_label'] ?: 'Barangay 183, Zone 20, Villamor, Pasay City') ?>
+      <div><?= e($report['location_label'] ?: brgy_line()) ?>
         <div class="cp-coords"><?= e(coord_label($lat, $lng)) ?></div>
         <div class="cp-map" id="cp-map-wrap"><div id="cp-map"></div></div>
       </div>

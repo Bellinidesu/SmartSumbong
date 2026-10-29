@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <?= theme_head() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Smart Sumbong: Barangay 183 Villamor, Pasay City complaint management portal for barangay staff.">
+<meta name="description" content="Smart Sumbong: <?= e(brgy_line()) ?> complaint management portal for barangay staff.">
 <title><?= e(t('Sign in', 'Mag-sign in')) ?> — Smart Sumbong</title>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/auth.css?v=<?= e(asset_version('auth.css')) ?>" rel="stylesheet">
@@ -107,16 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!-- Left rail: barangay identity. Assets are dropped in by the team;
        each falls back to text so the page never shows a broken image. -->
   <aside class="login-rail">
-    <?php foreach ([
-        ['brgy-183-seal.webp',   'Barangay 183 Zone 20, Villamor, Pasay City'],
-    ] as [$file, $alt]): ?>
-      <?php if (is_file(__DIR__ . '/assets/img/' . $file)): ?>
-        <?php [$iw, $ih] = getimagesize(__DIR__ . '/assets/img/' . $file) ?: [0, 0]; ?>
-        <img class="rail-logo" src="assets/img/<?= e($file) ?>" width="<?= (int) $iw ?>" height="<?= (int) $ih ?>" alt="<?= e($alt) ?>">
-      <?php else: ?>
-        <div class="rail-logo rail-logo--missing" role="img" aria-label="<?= e($alt) ?>"><?= e($alt) ?></div>
-      <?php endif; ?>
-    <?php endforeach; ?>
+    <?= brgy_seal_img('rail-logo') ?>
   </aside>
 
   <!-- Right panel: orange field with the barangay photo washed behind it.
