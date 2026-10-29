@@ -38,7 +38,7 @@ layout_head('Log out', 'logout.php');
     <p><?= e(t('You are signed in as ', 'Naka-sign in ka bilang ')) ?><b><?= e(display_name($admin['full_name'])) ?></b>. <?= e(t('Any complaint you left open will still be there when you come back.', 'Nandito pa rin ang anumang sumbong na iniwan mong bukas pagbalik mo.')) ?></p>
     <form method="post" class="p-actions">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-      <a class="p-btn p-btn-ghost" href="dashboard.php"><?= e(t('Stay signed in', 'Manatiling naka-sign in')) ?></a>
+      <a class="p-btn p-btn-ghost" href="<?= e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) ?>"><?= e(t('Stay signed in', 'Manatiling naka-sign in')) ?></a>
       <button class="p-btn p-btn-primary" type="submit"><?= e(t('Log out', 'Mag-log out')) ?></button>
     </form>
   </div>

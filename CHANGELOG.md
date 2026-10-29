@@ -155,7 +155,16 @@ Changes on `main` not yet deployed belong here.
   answer whom, and which notifications are made. The accounts that existed
   (the development team) are super admins and developers, so nothing changes
   for them. An administrator made from now on starts with no access until a
-  super admin sets it up. The Settings screens for this come next.
+  super admin sets it up.
+- In the portal: the menu, the pages and the logo link follow the tier (a
+  committee admin gets Report Summary, Spatial Distribution, Case Reports and
+  Notifications; a captain also Residents, Personnel and Activity, read-only);
+  the sidebar says what the account is ("Peace and Order · DEV"); a captain's
+  case page shows the controls greyed out with a "View only" note; a committee
+  admin's map has no SMART drawer (the barangay-wide analytics); storm mode's
+  buttons are for super admins. Settings has an Access tab (committees, the
+  categories each sees, new committees, the feature switches) and each
+  administrator's access (tier, committee, DEV) on the Administrators tab.
 
 **Changed (ready for Barangay 183, 29 Oct)**
 - The Bagong Pilipinas and Bagong Villamor logos are removed everywhere: the

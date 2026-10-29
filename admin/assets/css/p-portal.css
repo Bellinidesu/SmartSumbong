@@ -254,6 +254,8 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-handler > div { flex: 1; min-width: 0; }
 .ss-locked { font-size: 13.5px; color: var(--p-ink-2); background: var(--p-amber-bg); border-radius: 12px; padding: 10px 12px; }
 .p-controls.ss-readonly form:not([data-keep]) { opacity: .45; pointer-events: none; }
+/* 0145: a captain reads the case and changes nothing (the database refuses it too) */
+.p-controls.ss-viewonly form, .p-controls.ss-viewonly details.p-fix > summary { opacity: .45; pointer-events: none; }
 .p-controls.ss-readonly details.p-fix:not([data-keep-details]) > summary { opacity: .45; pointer-events: none; }
 .ss-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .ss-feed li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; }
@@ -412,6 +414,19 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ss-vlist .ss-vwhy { display: block; color: var(--p-ink); font-size: 14px; }
 .ss-vlist .p-badge { margin-left: 6px; }
 .ss-vtag { justify-self: end; }
+/* Settings, Access (0145): one row per committee: its names, the categories it sees, on or off */
+.acc-head, .acc-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) 140px; gap: 14px 18px; align-items: start; padding: 14px 0; border-top: 1px solid var(--p-line); }
+.acc-head { gap: 18px; padding: 6px 0 2px; font-size: 12px; font-weight: 700; color: var(--p-muted); text-transform: uppercase; letter-spacing: .06em; }
+.acc-head + .acc-row { border-top: 0; }
+.acc-names { display: grid; gap: 6px; min-width: 0; }
+.acc-names input { width: 100%; }
+.acc-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.acc-cats { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; min-width: 0; }
+.acc-cats .sd-c { font-size: 13px; }
+.acc-act { display: grid; gap: 8px; justify-items: end; }
+.acc-off .acc-names input, .acc-off .acc-cats { opacity: .6; }
+.acc-new { border-top: 1px dashed var(--p-line-2); margin-top: 6px; }
+@media (max-width: 900px) { .acc-head { display: none; } .acc-row { grid-template-columns: 1fr; } .acc-act { justify-items: start; grid-auto-flow: column; } }
 .cmd-new { display: grid; grid-template-columns: 132px 1fr; gap: 16px; align-items: start; padding: 14px; margin: 10px 0 14px; border-radius: 14px;
   border: 1px solid var(--p-line); background: var(--p-surface-2); }
 .cmd-new img { border-radius: 10px; background: #fff; padding: 6px; }
