@@ -69,6 +69,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 }
 
 // Settings -> SMART (docs/SMART_SCREENS.md, 6 and 6b): the rules, storm mode, the digest, trying a rule, re-scoring.
+/** The barangay's limits (operational_settings, 0147 in the portal): column => [English, Tagalog, hint EN, hint TL, min, max]. */
+const RULE_LIMITS = [
+    'max_deadline_extensions'    => ['Times a deadline may be moved', 'Ilang beses mauusog ang deadline', 'After this the case goes to a higher official.', 'Pagkatapos nito, sa mas mataas na opisyal ang kaso.', 0, 10],
+    'awaiting_alert_hours'       => ['Hours a report may wait unattended', 'Oras na puwedeng maghintay ang ulat', 'Then the administrators are told nobody is on it.', 'Saka sasabihan ang mga administrator na walang humahawak.', 1, 48],
+    'max_active_dispatches'      => ['Jobs a tanod may hold at once', 'Trabahong sabay na hawak ng tanod', 'A tanod at this many is not offered another.', 'Hindi na aalukin ang tanod na umabot dito.', 1, 20],
+    'location_freshness_minutes' => ['Minutes a tanod\'s position stays fresh', 'Minutong sariwa ang lokasyon ng tanod', 'An older position is not used for "nearest".', 'Hindi ginagamit sa "pinakamalapit" ang mas lumang lokasyon.', 1, 120],
+    'max_report_photos'          => ['Photos per report', 'Litrato bawat ulat', 'Up to 5, the most the app attaches.', 'Hanggang 5, ang pinakamaraming kayang ilakip ng app.', 1, 5],
+    'max_reports_per_day'        => ['Reports one resident may file a day', 'Ulat ng isang residente bawat araw', 'Stops flooding; real reports rarely come close.', 'Pumipigil sa pagbaha ng ulat; bihirang maabot ng totoong ulat.', 1, 200],
+];
+
+// Rules (0147): the limits above, pausing new reports, and the deadlines of each category.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rules_save') {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            $patch = ['updated_at' => gmdate('c'), 'updated_by' => current_admin()['id'] ?? null,
+                      'filing_paused' => !empty($_POST['filing_paused']), 'filing_paused_message' => trim((string) ($_POST['filing_paused_message'] ?? '')) ?: null];
+            foreach (RULE_LIMITS as $col => [, , , , $lo, $hi]) {
+                $patch[$col] = max($lo, min($hi, (int) ($_POST['lim'][$col] ?? $lo)));
+            }
+            $db->update('operational_settings', ['id' => 'eq.1'], $patch);
+            foreach ((array) ($_POST['sla'] ?? []) as $cat => $v) {
+                if (!isset(categories_all()[$cat])) continue;
+                $db->upsert('sla_policies', ['category' => $cat, 'resolution_hours' => max(1, min(720, (int) ($v['hours'] ?? 72))),
+                    'accept_minutes' => max(1, min(240, (int) ($v['accept'] ?? 30))), 'updated_at' => gmdate('c')], 'category');
+            }
+            $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Rules saved. New reports follow them from now on.', 'Nai-save ang mga patakaran. Susundin ito ng mga bagong ulat mula ngayon.')];
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#rules');
+    exit;
+}
+
+// Hotlines (0025's tables, edited here since 0147): a group of numbers, or a number in a group.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['hl_group', 'hl_number'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            $p = static fn (string $k): string => trim((string) ($_POST[$k] ?? ''));
+            $id = preg_match('/^[0-9a-f-]{36}$/', $p('id')) ? $p('id') : null;
+            $now = gmdate('c');
+            if ($_POST['action'] === 'hl_group') {
+                $row = ['name' => mb_substr($p('name'), 0, 120), 'display' => $p('display') === 'link' ? 'link' : 'inline', 'updated_at' => $now];
+                if ($row['name'] === '') throw new SupabaseError(t('Name the group.', 'Pangalanan ang grupo.'));
+                if ($id) {
+                    $db->update('hotline_groups', ['id' => 'eq.' . $id], $row + ['is_active' => !empty($_POST['active'])]);
+                } else {
+                    $parent = preg_match('/^[0-9a-f-]{36}$/', $p('parent')) ? $p('parent') : null;
+                    $db->insert('hotline_groups', $row + ['parent_id' => $parent, 'sort_order' => (int) $p('sort')]);
+                }
+            } else {
+                $row = ['label' => mb_substr($p('label'), 0, 120) ?: null, 'number' => mb_substr($p('number'), 0, 32), 'carrier' => mb_substr($p('carrier'), 0, 20) ?: null, 'updated_at' => $now];
+                if (mb_strlen($row['number']) < 3) throw new SupabaseError(t('Type the number.', 'I-type ang numero.'));
+                if ($id) {
+                    $db->update('hotline_numbers', ['id' => 'eq.' . $id], $row + ['is_active' => !empty($_POST['active'])]);
+                } elseif (preg_match('/^[0-9a-f-]{36}$/', $p('group'))) {
+                    $db->insert('hotline_numbers', $row + ['group_id' => $p('group'), 'sort_order' => (int) $p('sort')]);
+                }
+            }
+            $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Hotlines saved. Phones get them the next time the Emergency screen opens with signal.', 'Nai-save ang mga hotline. Makukuha ito ng mga telepono sa susunod na pagbukas ng Emergency screen na may signal.')];
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#hotlines');
+    exit;
+}
+
 // Complaint types (0146): the categories and the options residents pick from.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['cat_save', 'opt_save'], true)) {
     session_start_once();
@@ -79,9 +153,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $p = static fn (string $k): string => trim((string) ($_POST[$k] ?? ''));
             if ($_POST['action'] === 'cat_save') {
                 $isNew = $p('key') === '';
-                $db->rpc('category_save', ['p_key' => $p('key') ?: null, 'p_label_en' => $p('label_en'), 'p_label_fil' => $p('label_fil') ?: null,
+                $madeKey = $db->rpc('category_save', ['p_key' => $p('key') ?: null, 'p_label_en' => $p('label_en'), 'p_label_fil' => $p('label_fil') ?: null,
                     'p_colour' => preg_match('/^#[0-9a-fA-F]{6}$/', $p('colour')) ? $p('colour') : null, 'p_icon' => preg_match('/^[a-z_]+$/', $p('icon')) ? $p('icon') : null,
                     'p_active' => $isNew ? true : !empty($_POST['active']), 'p_sort' => null]);
+                if ($isNew && $madeKey) $db->rpc('catalogue_fill');
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $isNew
                     ? t('Category made. Residents can pick it once the app refreshes its list.', 'Nagawa ang kategorya. Mapipili ito ng mga residente kapag na-refresh ng app ang listahan.')
                     : t('Category saved.', 'Nai-save ang kategorya.')];
@@ -408,6 +483,8 @@ layout_head(t('Settings', 'Mga Setting'), 'settings.php');
   <button type="button" role="tab" data-st="admins"><?= e(t('Administrators', 'Mga Administrator')) ?></button>
   <button type="button" role="tab" data-st="access"><?= e(t('Access', 'Pahintulot')) ?></button>
   <button type="button" role="tab" data-st="types"><?= e(t('Complaint types', 'Mga uri ng reklamo')) ?></button>
+  <button type="button" role="tab" data-st="rules"><?= e(t('Rules', 'Mga patakaran')) ?></button>
+  <button type="button" role="tab" data-st="hotlines"><?= e(t('Hotlines', 'Mga hotline')) ?></button>
   <button type="button" role="tab" data-st="smart">SMART</button>
   <button type="button" role="tab" data-st="plan"><?= e(t('Planning', 'Pagpaplano')) ?></button>
   <button type="button" role="tab" data-st="look"><?= e(t('Appearance', 'Itsura')) ?></button>
@@ -779,6 +856,113 @@ $iconChoices = ['street_obstruction' => t('Obstruction', 'Sagabal'), 'public_saf
       <label class="ty-f"><span><?= e(t('Symbol on the map', 'Simbolo sa mapa')) ?></span><select class="p-input-plain" name="icon"><?php foreach ($iconChoices as $iv => $il): ?><option value="<?= e($iv) ?>"><?= e($il) ?></option><?php endforeach; ?></select></label>
       <span></span>
       <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make category', 'Gumawa ng kategorya')) ?></button>
+    </form>
+  </div>
+</section>
+
+<?php
+// ---------- Rules and Hotlines (0147) ----------
+$ops = []; $slas = []; $hlGroups = []; $hlNums = [];
+try {
+    $got = $db->selectMany([
+        'ops' => ['operational_settings', ['select' => '*', 'id' => 'eq.1']],
+        'sla' => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes']],
+        'hg'  => ['hotline_groups', ['select' => 'id,parent_id,name,display,sort_order,is_active', 'order' => 'sort_order.asc,name.asc']],
+        'hn'  => ['hotline_numbers', ['select' => 'id,group_id,label,number,carrier,sort_order,is_active', 'order' => 'sort_order.asc']],
+    ]);
+    $rows = static fn (string $k): array => is_array($got[$k] ?? null) ? $got[$k] : [];
+    $ops = (array) ($rows('ops')[0] ?? []);
+    foreach ($rows('sla') as $x) $slas[(string) $x['category']] = $x;
+    $hlGroups = $rows('hg');
+    foreach ($rows('hn') as $x) $hlNums[(string) $x['group_id']][] = $x;
+} catch (SupabaseError) {}
+$otherSla = $slas['other'] ?? ['resolution_hours' => 120, 'accept_minutes' => 60];
+$hlTop = array_values(array_filter($hlGroups, fn ($g) => empty($g['parent_id'])));
+$hlKids = [];
+foreach ($hlGroups as $g) { if (!empty($g['parent_id'])) $hlKids[(string) $g['parent_id']][] = $g; }
+$hlNext = static fn (array $rows): int => $rows ? max(array_map(fn ($r) => (int) $r['sort_order'], $rows)) + 1 : 1;
+?>
+<section class="st-pane" data-pane="rules" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <form method="post" class="p-card p-card-pad" id="rules-card">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="rules_save">
+    <p class="p-eyebrow"><?= e(t('Deadlines for each kind of complaint', 'Mga deadline sa bawat uri ng reklamo')) ?></p>
+    <p class="p-hint"><?= e(t('A new report is due this many hours after it is filed; a tanod has this many minutes to accept a job. Reports already filed keep their deadline.', 'Dapat matapos ang bagong ulat sa ganitong dami ng oras mula nang maisampa; may ganitong dami ng minuto ang tanod para tanggapin ang trabaho. Hindi nagbabago ang deadline ng mga naisampa na.')) ?></p>
+    <div class="p-tscroll"><table class="p-t ru-t">
+      <thead><tr><th scope="col"><?= e(t('Kind of complaint', 'Uri ng reklamo')) ?></th><th scope="col"><?= e(t('Hours to resolve', 'Oras para malutas')) ?></th><th scope="col"><?= e(t('Minutes to accept', 'Minuto para tanggapin')) ?></th></tr></thead>
+      <tbody>
+      <?php foreach (categories_all() as $ck => $cc): $sl = $slas[$ck] ?? $otherSla; ?>
+        <tr<?= $cc['active'] ? '' : ' class="ty-off"' ?>><td><span class="ty-dot" style="--tc:<?= e($cc['colour']) ?>" aria-hidden="true"></span> <b><?= e(t($cc['en'], $cc['fil'])) ?></b></td>
+          <td><label class="p-sr" for="sh-<?= e($ck) ?>"><?= e(t('Hours to resolve', 'Oras para malutas')) ?>, <?= e(t($cc['en'], $cc['fil'])) ?></label><input class="p-input-plain" id="sh-<?= e($ck) ?>" type="number" name="sla[<?= e($ck) ?>][hours]" min="1" max="720" value="<?= (int) $sl['resolution_hours'] ?>"></td>
+          <td><label class="p-sr" for="sa-<?= e($ck) ?>"><?= e(t('Minutes to accept', 'Minuto para tanggapin')) ?>, <?= e(t($cc['en'], $cc['fil'])) ?></label><input class="p-input-plain" id="sa-<?= e($ck) ?>" type="number" name="sla[<?= e($ck) ?>][accept]" min="1" max="240" value="<?= (int) $sl['accept_minutes'] ?>"></td></tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+    <p class="p-eyebrow" style="margin-top:18px"><?= e(t('Limits', 'Mga hangganan')) ?></p>
+    <div class="ru-grid">
+      <?php foreach (RULE_LIMITS as $col => [$en, $fil, $hen, $hfil, $lo, $hi]): ?>
+        <div class="ru-f"><label for="lim-<?= e($col) ?>"><?= e(t($en, $fil)) ?></label>
+          <input class="p-input-plain" id="lim-<?= e($col) ?>" type="number" name="lim[<?= e($col) ?>]" min="<?= $lo ?>" max="<?= $hi ?>" value="<?= (int) ($ops[$col] ?? $lo) ?>">
+          <small><?= e(t($hen, $hfil)) ?></small></div>
+      <?php endforeach; ?>
+    </div>
+    <p class="p-eyebrow" style="margin-top:18px"><?= e(t('New reports', 'Mga bagong ulat')) ?></p>
+    <label class="sd-c"><input type="checkbox" name="filing_paused" value="1" <?= !empty($ops['filing_paused']) ? 'checked' : '' ?>> <?= e(t('Pause new reports (a resident who sends one gets the message below, and nothing is filed)', 'Ihinto muna ang mga bagong ulat (makukuha ng residenteng magpapadala ang mensahe sa ibaba, at walang maisasampa)')) ?></label>
+    <div class="p-cfield" style="margin-top:8px"><label class="p-flabel" for="ru-msg"><?= e(t('Message while paused', 'Mensahe habang nakahinto')) ?></label>
+      <input class="p-input-plain" id="ru-msg" name="filing_paused_message" maxlength="300" value="<?= e((string) ($ops['filing_paused_message'] ?? '')) ?>" placeholder="<?= e(t('For example: Closed for the holidays; call the hall for emergencies.', 'Halimbawa: Sarado ngayong pista opisyal; tumawag sa hall kung emergency.')) ?>"></div>
+    <div class="ss-posform"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save rules', 'I-save ang mga patakaran')) ?></button></div>
+  </form>
+</section>
+
+<section class="st-pane" data-pane="hotlines" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <div class="p-card p-card-pad" id="hotlines-card">
+    <p class="p-eyebrow"><?= e(t('Emergency hotlines', 'Mga emergency hotline')) ?></p>
+    <p class="p-hint"><?= e(t('What residents see on the app\'s Emergency screen, as it shows them. A group shows its numbers on the first screen, or opens as its own list. Switch a number off instead of deleting it.', 'Ang nakikita ng mga residente sa Emergency screen ng app. Ipinapakita ng grupo ang mga numero nito sa unang screen, o bumubukas bilang sariling listahan. I-off ang numero sa halip na burahin.')) ?></p>
+    <?php
+    $hlGroup = function (array $g, int $depth) use (&$hlGroup, $hlKids, $hlNums, $hlNext): void {
+        $gid = (string) $g['id']; $nums = $hlNums[$gid] ?? []; ?>
+      <details class="ty-cat hl-g<?= $depth ? ' hl-sub' : '' ?><?= !empty($g['is_active']) ? '' : ' ty-off' ?>">
+        <summary><b><?= e((string) $g['name']) ?></b><small><?= e(sprintf(t('%d numbers', '%d numero'), count($nums))) ?></small><?php if (empty($g['is_active'])): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
+        <form method="post" class="hl-row">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="hl_group"><input type="hidden" name="id" value="<?= e($gid) ?>">
+          <label class="ty-f"><span><?= e(t('Group name', 'Pangalan ng grupo')) ?></span><input class="p-input-plain" name="name" value="<?= e((string) $g['name']) ?>" required maxlength="120"></label>
+          <label class="ty-f"><span><?= e(t('On the first screen', 'Sa unang screen')) ?></span><select class="p-input-plain" name="display"><option value="inline" <?= $g['display'] === 'inline' ? 'selected' : '' ?>><?= e(t('Show its numbers', 'Ipakita ang mga numero')) ?></option><option value="link" <?= $g['display'] === 'link' ? 'selected' : '' ?>><?= e(t('A row that opens it', 'Hilerang nagbubukas nito')) ?></option></select></label>
+          <label class="sd-c ty-on"><input type="checkbox" name="active" value="1" <?= !empty($g['is_active']) ? 'checked' : '' ?>> <?= e(t('Shown', 'Ipinapakita')) ?></label>
+          <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save group', 'I-save ang grupo')) ?></button>
+        </form>
+        <ul class="ty-opts">
+          <?php foreach ($nums as $n): $nid = (string) $n['id']; ?>
+            <li><form method="post" class="hl-num<?= empty($n['is_active']) ? ' ty-off' : '' ?>">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="hl_number"><input type="hidden" name="id" value="<?= e($nid) ?>">
+              <label class="p-sr" for="hl-l-<?= e($nid) ?>"><?= e(t('Label', 'Pangalan')) ?></label><input class="p-input-plain" id="hl-l-<?= e($nid) ?>" name="label" value="<?= e((string) $n['label']) ?>" maxlength="120" placeholder="<?= e(t('Label', 'Pangalan')) ?>">
+              <label class="p-sr" for="hl-n-<?= e($nid) ?>"><?= e(t('Number', 'Numero')) ?></label><input class="p-input-plain" id="hl-n-<?= e($nid) ?>" name="number" value="<?= e((string) $n['number']) ?>" required minlength="3" maxlength="32" inputmode="tel">
+              <label class="p-sr" for="hl-c-<?= e($nid) ?>"><?= e(t('Network', 'Network ng SIM')) ?></label><input class="p-input-plain" id="hl-c-<?= e($nid) ?>" name="carrier" value="<?= e((string) $n['carrier']) ?>" maxlength="20" placeholder="<?= e(t('Network', 'Network ng SIM')) ?>">
+              <label class="sd-c"><input type="checkbox" name="active" value="1" <?= !empty($n['is_active']) ? 'checked' : '' ?>> <?= e(t('On', 'Naka-on')) ?></label>
+              <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
+            </form></li>
+          <?php endforeach; ?>
+          <li><form method="post" class="hl-num ty-add">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="hl_number"><input type="hidden" name="id" value=""><input type="hidden" name="group" value="<?= e($gid) ?>"><input type="hidden" name="sort" value="<?= $hlNext($nums) ?>">
+            <label class="p-sr" for="hl-l-new-<?= e($gid) ?>"><?= e(t('New number\'s label', 'Label ng bagong numero')) ?></label><input class="p-input-plain" id="hl-l-new-<?= e($gid) ?>" name="label" maxlength="120" placeholder="<?= e(t('Label, for example: Duty officer', 'Label, halimbawa: Duty officer')) ?>">
+            <label class="p-sr" for="hl-n-new-<?= e($gid) ?>"><?= e(t('New number', 'Bagong numero')) ?></label><input class="p-input-plain" id="hl-n-new-<?= e($gid) ?>" name="number" required minlength="3" maxlength="32" inputmode="tel" placeholder="<?= e(t('Number', 'Numero')) ?>">
+            <label class="p-sr" for="hl-c-new-<?= e($gid) ?>"><?= e(t('New number\'s network', 'Network ng bagong numero')) ?></label><input class="p-input-plain" id="hl-c-new-<?= e($gid) ?>" name="carrier" maxlength="20" placeholder="<?= e(t('Network', 'Network ng SIM')) ?>">
+            <span></span>
+            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Add number', 'Idagdag ang numero')) ?></button>
+          </form></li>
+        </ul>
+        <?php foreach ($hlKids[$gid] ?? [] as $k) $hlGroup($k, $depth + 1); ?>
+      </details>
+    <?php };
+    foreach ($hlTop as $g) $hlGroup($g, 0); ?>
+    <form method="post" class="hl-row ty-new">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="hl_group"><input type="hidden" name="id" value=""><input type="hidden" name="sort" value="<?= $hlNext($hlGroups) ?>">
+      <label class="ty-f"><span><?= e(t('New group', 'Bagong grupo')) ?></span><input class="p-input-plain" name="name" required maxlength="120" placeholder="<?= e(t('For example: Health Center', 'Halimbawa: Health Center')) ?>"></label>
+      <label class="ty-f"><span><?= e(t('On the first screen', 'Sa unang screen')) ?></span><select class="p-input-plain" name="display"><option value="inline"><?= e(t('Show its numbers', 'Ipakita ang mga numero')) ?></option><option value="link"><?= e(t('A row that opens it', 'Hilerang nagbubukas nito')) ?></option></select></label>
+      <label class="ty-f"><span><?= e(t('Inside', 'Sa loob ng')) ?></span><select class="p-input-plain" name="parent"><option value=""><?= e(t('The first screen', 'Ang unang screen')) ?></option><?php foreach ($hlTop as $g): ?><option value="<?= e((string) $g['id']) ?>"><?= e((string) $g['name']) ?></option><?php endforeach; ?></select></label>
+      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make group', 'Gumawa ng grupo')) ?></button>
     </form>
   </div>
 </section>
@@ -1517,7 +1701,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 <script>
 // Back on the Administrators tab after adding or resetting.
 // #places is a card inside Appearance: open that tab, then bring the card into view
-var stTab = { '#admins': 'admins', '#access': 'access', '#types': 'types', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
+var stTab = { '#admins': 'admins', '#access': 'access', '#types': 'types', '#rules': 'rules', '#hotlines': 'hotlines', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
 if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 </script>
 <script>

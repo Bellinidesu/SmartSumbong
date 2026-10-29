@@ -432,6 +432,20 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ty-new { border-top: 1px dashed var(--p-line-2); margin-top: 8px; padding-top: 14px; }
 @media (max-width: 900px) { .ty-row, .ty-opt { grid-template-columns: 1fr 1fr; } .ty-opts { padding-left: 0; } }
 
+/* Settings, Rules and Hotlines (0147) */
+.ru-t td { vertical-align: middle; }
+.ru-t input.p-input-plain { width: 110px; }
+.ru-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px 16px; }
+.ru-f { display: grid; gap: 4px; align-content: start; }
+.ru-f label { font-size: 12.5px; font-weight: 700; }
+.ru-f small { color: var(--p-muted); font-size: 12px; line-height: 1.35; }
+.hl-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto; gap: 10px 12px; align-items: end; padding: 6px 0 12px; }
+.hl-row.ty-new { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto; }
+.hl-num { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .7fr) auto auto; gap: 10px; align-items: center; }
+.hl-num input.p-input-plain { width: 100%; }
+.hl-sub { margin-left: 24px; }
+@media (max-width: 900px) { .hl-row, .hl-row.ty-new, .hl-num { grid-template-columns: 1fr 1fr; } .hl-sub { margin-left: 8px; } }
+
 /* Settings, Access (0145): one row per committee: its names, the categories it sees, on or off */
 .acc-head, .acc-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) 140px; gap: 14px 18px; align-items: start; padding: 14px 0; border-top: 1px solid var(--p-line); }
 .acc-head { gap: 18px; padding: 6px 0 2px; font-size: 12px; font-weight: 700; color: var(--p-muted); text-transform: uppercase; letter-spacing: .06em; }
