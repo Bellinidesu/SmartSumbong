@@ -687,36 +687,64 @@ function status_class(string $s): string
 }
 
 /**
- * One colour per category, shared by the dashboard's charts and the
- * spatial map's pins (Rose, 2 Oct 2026: colour by category, one shape).
+ * The complaint categories (0146: a table a super admin edits in Settings > Complaint types), read once per request:
+ * key => [en, fil, colour, icon, active]. The list below is only the fallback when the table cannot be read.
  */
-function category_colours(): array
+function categories_all(): array
 {
-    return [
-        'street_obstruction'           => '#F93535',
-        'public_safety_infrastructure' => '#356CF9',
-        'environmental_waste_hazard'   => '#F9AB35',
-        'animal_welfare'               => '#34C759',
-        'traffic_violation'            => '#8E9ABB',
-        'barangay_service'             => '#422F8A',
-        'peace_order_nuisance'         => '#E0609A',
-        'other'                        => '#0F9D9A',
-    ];
+    static $memo = null;
+    if ($memo !== null) return $memo;
+    $memo = [];
+    try {
+        if (access_token() !== null) {
+            foreach ((array) db()->select('complaint_categories', ['select' => 'key,label_en,label_fil,colour,icon,active,sort', 'order' => 'sort.asc,key.asc']) as $c) {
+                $memo[(string) $c['key']] = ['en' => (string) $c['label_en'], 'fil' => (string) $c['label_fil'], 'colour' => (string) $c['colour'],
+                                             'icon' => (string) $c['icon'], 'active' => !empty($c['active'])];
+            }
+        }
+    } catch (Throwable) {}
+    if (!$memo) {
+        foreach ([
+            'street_obstruction'           => ['Street Obstruction', 'Sagabal sa Kalsada', '#F93535'],
+            'public_safety_infrastructure' => ['Public Safety and Infrastructure', 'Kaligtasan at Imprastraktura', '#356CF9'],
+            'environmental_waste_hazard'   => ['Environmental and Waste Hazards', 'Kapaligiran at Basura', '#F9AB35'],
+            'animal_welfare'               => ['Animal Welfare', 'Kapakanan ng Hayop', '#34C759'],
+            'traffic_violation'            => ['Traffic Violation', 'Paglabag sa Trapiko', '#8E9ABB'],
+            'barangay_service'             => ['Barangay Service', 'Serbisyo ng Barangay', '#422F8A'],
+            'peace_order_nuisance'         => ['Peace, Order, & Nuisance', 'Kapayapaan, Kaayusan at Istorbo', '#E0609A'],
+            'other'                        => ['Others', 'Iba pa', '#0F9D9A'],
+        ] as $k => [$en, $fil, $col]) {
+            $memo[$k] = ['en' => $en, 'fil' => $fil, 'colour' => $col, 'icon' => $k, 'active' => true];
+        }
+    }
+    return $memo;
 }
 
-/** The barangay's own names for the categories (its Complaint Summary form). */
+/** The category keys, in the barangay's order; with $active, only the ones residents can still pick. */
+function category_keys(bool $active = false): array
+{
+    return array_keys(array_filter(categories_all(), fn (array $c): bool => !$active || $c['active']));
+}
+
+/** key => [English, Tagalog], the shape the Settings forms use. */
+function category_pairs(bool $active = false): array
+{
+    $out = [];
+    foreach (categories_all() as $k => $c) { if (!$active || $c['active']) $out[$k] = [$c['en'], $c['fil']]; }
+    return $out;
+}
+
+/** One colour per category, shared by the dashboard's charts and the spatial map's pins (Rose, 2 Oct 2026). */
+function category_colours(): array
+{
+    return array_map(fn (array $c): string => $c['colour'], categories_all());
+}
+
+/** The barangay's own names for the categories (its Complaint Summary form), in the portal's language. */
 function category_label(string $c): string
 {
-    return [
-        'street_obstruction'           => 'Street Obstruction',
-        'public_safety_infrastructure' => 'Public Safety and Infrastructure',
-        'environmental_waste_hazard'   => 'Environmental and Waste Hazards',
-        'animal_welfare'               => 'Animal Welfare',
-        'traffic_violation'            => 'Traffic Violation',
-        'barangay_service'             => 'Barangay Service',
-        'peace_order_nuisance'         => 'Peace, Order, & Nuisance',
-        'other'                        => 'Others',
-    ][$c] ?? ucwords(str_replace('_', ' ', $c));
+    $x = categories_all()[$c] ?? null;
+    return $x ? t($x['en'], $x['fil']) : ucwords(str_replace('_', ' ', $c));
 }
 
 function short_date(?string $iso): string

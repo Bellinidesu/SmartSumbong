@@ -39,6 +39,8 @@ How the database fits the rest of the system is in
 | `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation, the Anti-Drug Abuse Council | 0145 |
 | `committee_categories` | The categories each committee sees (the super admin's ticks) | 0145 |
 | `committee_for_category` | The committee that usually takes each kind of complaint (editable defaults) | 0130 |
+| `complaint_categories` | The complaint categories, edited by a super admin: English and Tagalog names, colour, map symbol, order, on or off; each key is a value of the `complaint_category` type | 0146 |
+| `complaint_options` | The options residents pick under each category (the one picked lands in `reports.subject`); switched off, never deleted | 0146 |
 | `look_shares` | "Look around" sent to a tanod: a note, the street image, which way the spot lies | 0107 |
 
 ### People and accounts
@@ -181,6 +183,8 @@ policy by design. "Latest" is the migration that last redefined it.
 | `command_start`, `command_handover`, `command_end`, `command_check`, `command_place_check`, `command_dismiss`, `command_set_auto` | 0143 | Turn a mode on (a reason) or off (a note), hand over, tick, mark a place, put a suggestion off, the auto switch |
 | `admin_tier`, `is_super_admin`, `is_full_viewer`, `admin_can_write`, `admin_sees_category`, `admin_sees_case`, `admin_sees_report`, `admin_sees_dispatch` | 0145 | What the signed-in administrator may see and do (used by the access rules and the functions) |
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
+| `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
+| `category_save`, `option_save` | 0146 | A super admin makes or changes a category (a new one is added to the `complaint_category` type) or an option |
 | `feature_on`, `feature_set` | 0144 | Whether a part is on; an administrator turns one on or off. The command center's functions answer "off" when it is switched off |
 | `command_hall`, `command_display_link_create`, `command_display_link_revoke`, `command_now` | 0143 | The hall display (counts only, by a link; anon may call it with a live link), its links, and the app's banner |
 | `smart_roster_suggestion`, `smart_forecast`, `smart_fairness` | 0142 | Duty roster suggested by weekday and 3-hour block; the open cases a week ahead and the kinds expected; how the work is shared |

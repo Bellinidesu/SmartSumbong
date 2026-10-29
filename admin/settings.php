@@ -29,16 +29,6 @@ $db    = db();
 // password. The password is shown once, here, and never stored by the portal.
 // 0130 (defense, 7 Sep): the barangay's positions. Which Kagawad chairs which committee, who is the Chairman, which tanods are the
 // designated women responders, and which committee usually takes which kind of complaint. Each is one action here.
-const CATEGORY_POINT_LABELS = [
-    'public_safety_infrastructure' => ['Public safety', 'Kaligtasan ng publiko'],
-    'peace_order_nuisance'         => ['Peace and order', 'Kapayapaan at kaayusan'],
-    'environmental_waste_hazard'   => ['Environment and waste', 'Kapaligiran at basura'],
-    'traffic_violation'            => ['Traffic', 'Trapiko'],
-    'street_obstruction'           => ['Street obstruction', 'Sagabal sa kalsada'],
-    'animal_welfare'               => ['Animal welfare', 'Kapakanan ng hayop'],
-    'barangay_service'             => ['Barangay service', 'Serbisyo ng barangay'],
-    'other'                        => ['Other', 'Iba pa'],
-];
 // The committees are a table since 0145 (committees_all() in includes/access.php), made and edited on the Access tab.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['set_role', 'set_responder', 'set_committee_map'], true)) {
     session_start_once();
@@ -79,6 +69,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 }
 
 // Settings -> SMART (docs/SMART_SCREENS.md, 6 and 6b): the rules, storm mode, the digest, trying a rule, re-scoring.
+// Complaint types (0146): the categories and the options residents pick from.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['cat_save', 'opt_save'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            $p = static fn (string $k): string => trim((string) ($_POST[$k] ?? ''));
+            if ($_POST['action'] === 'cat_save') {
+                $isNew = $p('key') === '';
+                $db->rpc('category_save', ['p_key' => $p('key') ?: null, 'p_label_en' => $p('label_en'), 'p_label_fil' => $p('label_fil') ?: null,
+                    'p_colour' => preg_match('/^#[0-9a-fA-F]{6}$/', $p('colour')) ? $p('colour') : null, 'p_icon' => preg_match('/^[a-z_]+$/', $p('icon')) ? $p('icon') : null,
+                    'p_active' => $isNew ? true : !empty($_POST['active']), 'p_sort' => null]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => $isNew
+                    ? t('Category made. Residents can pick it once the app refreshes its list.', 'Nagawa ang kategorya. Mapipili ito ng mga residente kapag na-refresh ng app ang listahan.')
+                    : t('Category saved.', 'Nai-save ang kategorya.')];
+            } else {
+                $isNew = $p('id') === '';
+                $db->rpc('option_save', ['p_id' => $isNew ? null : (int) $p('id'), 'p_category' => $p('category'), 'p_label_en' => $p('label_en'),
+                    'p_label_fil' => $p('label_fil') ?: null, 'p_active' => $isNew ? true : !empty($_POST['active']), 'p_sort' => null]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => $isNew ? t('Option added.', 'Naidagdag ang opsyon.') : t('Option saved.', 'Nai-save ang opsyon.')];
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: settings.php#types');
+    exit;
+}
+
 // Access (0145): an administrator's tier, committee and developer mark; the committees and what each sees; the feature switches.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['set_access', 'committee_save', 'feature_toggle'], true)) {
     session_start_once();
@@ -98,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 $saved = $db->rpc('committee_save', ['p_key' => $key ?: null, 'p_name_en' => trim((string) ($_POST['name_en'] ?? '')),
                     'p_name_fil' => trim((string) ($_POST['name_fil'] ?? '')) ?: null, 'p_active' => $key === '' ? true : !empty($_POST['active']),
                     'p_short' => trim((string) ($_POST['short_en'] ?? '')) ?: null]);
-                $cats = array_values(array_filter((array) ($_POST['cats'] ?? []), fn ($c) => isset(CATEGORY_POINT_LABELS[$c])));
+                $cats = array_values(array_filter((array) ($_POST['cats'] ?? []), fn ($c) => isset(category_pairs()[$c])));
                 if (is_string($saved) && ($key !== '' || $cats)) {
                     $db->rpc('committee_set_categories', ['p_key' => $saved, 'p_categories' => '{' . implode(',', $cats) . '}']);
                 }
@@ -177,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $act = (string) $_POST['action'];
             if ($act === 'smart_rules') {
                 $pts = [];
-                foreach (array_keys(CATEGORY_POINT_LABELS) as $ck) { $pts[$ck] = max(0, min(60, (int) ($_POST['pts'][$ck] ?? 0))); }
+                foreach (array_keys(category_pairs()) as $ck) { $pts[$ck] = max(0, min(60, (int) ($_POST['pts'][$ck] ?? 0))); }
                 $changes = [
                     'category_points' => $pts,
                     'urgent_from'     => max(1, min(100, (int) ($_POST['urgent_from'] ?? 70))),
@@ -387,6 +407,7 @@ layout_head(t('Settings', 'Mga Setting'), 'settings.php');
   <button type="button" role="tab" data-st="usage"><?= e(t('Plan and usage', 'Plano at paggamit')) ?></button>
   <button type="button" role="tab" data-st="admins"><?= e(t('Administrators', 'Mga Administrator')) ?></button>
   <button type="button" role="tab" data-st="access"><?= e(t('Access', 'Pahintulot')) ?></button>
+  <button type="button" role="tab" data-st="types"><?= e(t('Complaint types', 'Mga uri ng reklamo')) ?></button>
   <button type="button" role="tab" data-st="smart">SMART</button>
   <button type="button" role="tab" data-st="plan"><?= e(t('Planning', 'Pagpaplano')) ?></button>
   <button type="button" role="tab" data-st="look"><?= e(t('Appearance', 'Itsura')) ?></button>
@@ -661,7 +682,7 @@ try {
           </div>
         </div>
         <fieldset class="acc-cats"><legend class="p-sr"><?= e(sprintf(t('What %s sees', 'Ang nakikita ng %s'), (string) $cc['short_en'])) ?></legend>
-          <?php foreach (CATEGORY_POINT_LABELS as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>" <?= in_array($cv, $ticked, true) ? 'checked' : '' ?>> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>
+          <?php foreach (category_pairs() as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>" <?= in_array($cv, $ticked, true) ? 'checked' : '' ?>> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>
         </fieldset>
         <div class="acc-act">
           <label class="sd-c"><input type="checkbox" name="active" value="1" <?= !empty($cc['active']) ? 'checked' : '' ?>> <?= e(t('On', 'Naka-on')) ?></label>
@@ -682,7 +703,7 @@ try {
         </div>
       </div>
       <fieldset class="acc-cats"><legend class="p-sr"><?= e(t('What the new committee sees', 'Ang nakikita ng bagong komite')) ?></legend>
-        <?php foreach (CATEGORY_POINT_LABELS as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>"> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>
+        <?php foreach (category_pairs() as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>"> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>
       </fieldset>
       <div class="acc-act"><button class="p-btn p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button></div>
     </form>
@@ -696,6 +717,69 @@ try {
         <form method="post" class="ss-vroll"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="feature_toggle"><input type="hidden" name="key" value="<?= e((string) $sw['key']) ?>">
           <label class="sd-c"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($sw['enabled']) ? 'checked' : '' ?>> <?= e(t('On', 'Naka-on')) ?></label></form></li>
     <?php endforeach; ?></ul>
+  </div>
+</section>
+
+<?php
+// ---------- Complaint types (0146) ----------
+$catOpts = [];
+try {
+    foreach ((array) $db->select('complaint_options', ['select' => 'id,category,label_en,label_fil,active,sort', 'order' => 'category.asc,sort.asc,id.asc']) as $o) {
+        $catOpts[(string) $o['category']][] = $o;
+    }
+} catch (SupabaseError) {}
+$iconChoices = ['street_obstruction' => t('Obstruction', 'Sagabal'), 'public_safety_infrastructure' => t('Infrastructure', 'Imprastraktura'),
+    'environmental_waste_hazard' => t('Waste', 'Basura'), 'animal_welfare' => t('Animal', 'Hayop'), 'traffic_violation' => t('Traffic', 'Trapiko'),
+    'barangay_service' => t('Service', 'Serbisyo'), 'peace_order_nuisance' => t('Noise', 'Ingay'), 'other' => t('Other', 'Iba pa')];
+?>
+<section class="st-pane" data-pane="types" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <div class="p-card p-card-pad" id="types-card">
+    <p class="p-eyebrow"><?= e(t('Complaint types', 'Mga uri ng reklamo')) ?></p>
+    <p class="p-hint"><?= e(t('The categories and the options residents pick from in the app, in English and Tagalog. Nothing is deleted: switch a category or an option off and residents stop seeing it, while the reports filed under it keep it.', 'Ang mga kategorya at ang mga opsyong pinipili ng mga residente sa app, sa Ingles at Tagalog. Walang binubura: i-off ang kategorya o opsyon at hindi na ito makikita ng mga residente, pero nananatili ito sa mga ulat na naisampa sa ilalim nito.')) ?></p>
+    <?php foreach (categories_all() as $ck => $cc): $opts = $catOpts[$ck] ?? []; $on = count(array_filter($opts, fn ($o) => !empty($o['active']))); ?>
+      <details class="ty-cat<?= $cc['active'] ? '' : ' ty-off' ?>">
+        <summary><span class="ty-dot" style="--tc:<?= e($cc['colour']) ?>" aria-hidden="true"></span><b><?= e(t($cc['en'], $cc['fil'])) ?></b>
+          <small><?= e(sprintf(t('%d options', '%d opsyon'), $on)) ?></small><?php if (!$cc['active']): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
+        <form method="post" class="ty-row">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cat_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
+          <label class="ty-f"><span><?= e(t('In English', 'Sa Ingles')) ?></span><input class="p-input-plain" name="label_en" value="<?= e($cc['en']) ?>" required minlength="2" maxlength="60"></label>
+          <label class="ty-f"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span><input class="p-input-plain" name="label_fil" value="<?= e($cc['fil']) ?>" maxlength="60"></label>
+          <label class="ty-f ty-col"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" name="colour" value="<?= e($cc['colour']) ?>"></label>
+          <label class="ty-f"><span><?= e(t('Symbol on the map', 'Simbolo sa mapa')) ?></span><select class="p-input-plain" name="icon"><?php foreach ($iconChoices as $iv => $il): ?><option value="<?= e($iv) ?>" <?= $cc['icon'] === $iv ? 'selected' : '' ?>><?= e($il) ?></option><?php endforeach; ?></select></label>
+          <label class="sd-c ty-on"><input type="checkbox" name="active" value="1" <?= $cc['active'] ? 'checked' : '' ?>> <?= e(t('Residents can pick it', 'Mapipili ng mga residente')) ?></label>
+          <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save category', 'I-save ang kategorya')) ?></button>
+        </form>
+        <ul class="ty-opts">
+          <?php foreach ($opts as $o): ?>
+            <li><form method="post" class="ty-opt<?= empty($o['active']) ? ' ty-off' : '' ?>">
+              <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="opt_save"><input type="hidden" name="id" value="<?= (int) $o['id'] ?>"><input type="hidden" name="category" value="<?= e($ck) ?>">
+              <label class="p-sr" for="oe-<?= (int) $o['id'] ?>"><?= e(t('Option in English', 'Opsyon sa Ingles')) ?></label><input class="p-input-plain" id="oe-<?= (int) $o['id'] ?>" name="label_en" value="<?= e((string) $o['label_en']) ?>" required minlength="2" maxlength="60">
+              <label class="p-sr" for="of-<?= (int) $o['id'] ?>"><?= e(t('Option in Tagalog', 'Opsyon sa Tagalog')) ?></label><input class="p-input-plain" id="of-<?= (int) $o['id'] ?>" name="label_fil" value="<?= e((string) $o['label_fil']) ?>" maxlength="60">
+              <label class="sd-c"><input type="checkbox" name="active" value="1" <?= !empty($o['active']) ? 'checked' : '' ?>> <?= e(t('On', 'Naka-on')) ?></label>
+              <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
+            </form></li>
+          <?php endforeach; ?>
+          <li><form method="post" class="ty-opt ty-add">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="opt_save"><input type="hidden" name="id" value=""><input type="hidden" name="category" value="<?= e($ck) ?>">
+            <label class="p-sr" for="oe-new-<?= e($ck) ?>"><?= e(t('New option in English', 'Bagong opsyon sa Ingles')) ?></label><input class="p-input-plain" id="oe-new-<?= e($ck) ?>" name="label_en" required minlength="2" maxlength="60" placeholder="<?= e(t('New option, for example: Overgrown trees', 'Bagong opsyon, halimbawa: Lumagong puno')) ?>">
+            <label class="p-sr" for="of-new-<?= e($ck) ?>"><?= e(t('New option in Tagalog', 'Bagong opsyon sa Tagalog')) ?></label><input class="p-input-plain" id="of-new-<?= e($ck) ?>" name="label_fil" maxlength="60" placeholder="<?= e(t('In Tagalog', 'Sa Tagalog')) ?>">
+            <span></span>
+            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Add option', 'Idagdag ang opsyon')) ?></button>
+          </form></li>
+        </ul>
+      </details>
+    <?php endforeach; ?>
+    <form method="post" class="ty-row ty-new">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cat_save"><input type="hidden" name="key" value="">
+      <label class="ty-f"><span><?= e(t('New category', 'Bagong kategorya')) ?></span><input class="p-input-plain" name="label_en" required minlength="2" maxlength="60" placeholder="<?= e(t('For example: Overgrown Trees', 'Halimbawa: Lumagong Puno')) ?>"></label>
+      <label class="ty-f"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span><input class="p-input-plain" name="label_fil" maxlength="60"></label>
+      <label class="ty-f ty-col"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" name="colour" value="#2E7D32"></label>
+      <label class="ty-f"><span><?= e(t('Symbol on the map', 'Simbolo sa mapa')) ?></span><select class="p-input-plain" name="icon"><?php foreach ($iconChoices as $iv => $il): ?><option value="<?= e($iv) ?>"><?= e($il) ?></option><?php endforeach; ?></select></label>
+      <span></span>
+      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make category', 'Gumawa ng kategorya')) ?></button>
+    </form>
   </div>
 </section>
 
@@ -922,7 +1006,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <p class="p-hint"><?= e(t('Nothing new right now. A word shows here once it appears in 3 reports within 30 days.', 'Wala pang bago. Lalabas dito ang isang salita kapag nasa 3 ulat ito sa loob ng 30 araw.')) ?></p>
     <?php else: ?>
     <ul class="ss-words">
-      <?php foreach ($words as $w): $wd = (string) $w['word']; $kindLabel = CATEGORY_POINT_LABELS[(string) ($w['mostly_category'] ?? '')] ?? null; ?>
+      <?php foreach ($words as $w): $wd = (string) $w['word']; $kindLabel = category_pairs()[(string) ($w['mostly_category'] ?? '')] ?? null; ?>
         <li>
           <div class="sw-head"><b class="sw-w"><?= e($wd) ?></b>
             <span class="p-hint"><?= (int) $w['reports'] ?> <?= e(t('reports', 'ulat')) ?><?= $kindLabel ? ' · ' . (int) round((float) $w['share'] * 100) . '% ' . e(t($kindLabel[0], $kindLabel[1])) : '' ?></span></div>
@@ -937,7 +1021,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
                 <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></form>
               <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_word"><input type="hidden" name="word" value="<?= e($wd) ?>"><input type="hidden" name="as" value="category">
                 <label class="p-flabel" for="sw-k-<?= e($wd) ?>"><?= e(t('A word for a kind of complaint', 'Salita para sa isang uri ng sumbong')) ?></label>
-                <select class="p-input-plain" id="sw-k-<?= e($wd) ?>" name="target"><?php foreach (CATEGORY_POINT_LABELS as $ck => $cl): ?><option value="<?= e($ck) ?>"<?= (string) ($w['mostly_category'] ?? '') === $ck ? ' selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?></select>
+                <select class="p-input-plain" id="sw-k-<?= e($wd) ?>" name="target"><?php foreach (category_pairs() as $ck => $cl): ?><option value="<?= e($ck) ?>"<?= (string) ($w['mostly_category'] ?? '') === $ck ? ' selected' : '' ?>><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?></select>
                 <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></form>
               <?php if (!empty($sr['keyword_groups']) && is_array($sr['keyword_groups'])): ?>
               <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_word"><input type="hidden" name="word" value="<?= e($wd) ?>"><input type="hidden" name="as" value="urgent">
@@ -959,7 +1043,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     <p class="p-eyebrow"><?= e(t('Points for each kind of complaint', 'Puntos sa bawat uri ng sumbong')) ?></p>
     <p class="p-hint"><?= e(t('A report starts with these points; words, hazard zones, neighbours reporting the same thing and the hour add to them. The total decides the level.', 'Nagsisimula ang ulat sa mga puntos na ito; dinadagdagan ito ng mga salita, lugar na may panganib, kapitbahay na nag-ulat ng pareho at oras. Ang kabuuan ang magpapasya ng antas.')) ?></p>
     <div class="ss-cmap">
-      <?php foreach (CATEGORY_POINT_LABELS as $ck => $cl): ?>
+      <?php foreach (category_pairs() as $ck => $cl): ?>
         <div class="ss-cmap-row"><label for="pt-<?= e($ck) ?>"><?= e(t($cl[0], $cl[1])) ?></label>
           <input class="p-input-plain" id="pt-<?= e($ck) ?>" type="number" name="pts[<?= e($ck) ?>]" min="0" max="60" value="<?= (int) ($sr['category_points'][$ck] ?? 0) ?>"></div>
       <?php endforeach; ?>
@@ -1034,7 +1118,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     <p class="p-hint"><?= e(t('Type a complaint and see what level SMART would give it, and why. Nothing is saved.', 'Mag-type ng sumbong at tingnan ang antas na ibibigay ng SMART, at kung bakit. Walang mase-save.')) ?></p>
     <div class="p-ctl-stack">
       <div class="p-cfield"><label class="p-flabel" for="tr-cat"><?= e(t('Kind of complaint', 'Uri ng sumbong')) ?></label>
-        <select class="p-input-plain" id="tr-cat" name="category"><?php foreach (CATEGORY_POINT_LABELS as $ck => $cl): ?><option value="<?= e($ck) ?>"><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?></select></div>
+        <select class="p-input-plain" id="tr-cat" name="category"><?php foreach (category_pairs() as $ck => $cl): ?><option value="<?= e($ck) ?>"><?= e(t($cl[0], $cl[1])) ?></option><?php endforeach; ?></select></div>
       <div class="p-cfield"><label class="p-flabel" for="tr-sub"><?= e(t('Subject', 'Paksa')) ?></label><input class="p-input-plain" id="tr-sub" name="subject" required maxlength="120"></div>
       <div class="p-cfield"><label class="p-flabel" for="tr-desc"><?= e(t('What happened', 'Ano ang nangyari')) ?></label><textarea class="p-note" id="tr-desc" name="description" rows="2" maxlength="600"></textarea></div>
       <div class="p-cfield"><label class="p-flabel" for="tr-lat"><?= e(t('Latitude and longitude (optional)', 'Latitude at longitude (opsyonal)')) ?></label>
@@ -1433,7 +1517,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 <script>
 // Back on the Administrators tab after adding or resetting.
 // #places is a card inside Appearance: open that tab, then bring the card into view
-var stTab = { '#admins': 'admins', '#access': 'access', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
+var stTab = { '#admins': 'admins', '#access': 'access', '#types': 'types', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
 if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 </script>
 <script>

@@ -54,10 +54,6 @@ if ($registerPage && !isset($_GET['q'], $_GET['status'], $_GET['sort'], $_GET['m
 // The seven categories are fixed per the Scope and Limitations — the same
 // list cases.php's category dropdown and the resident app's own filing
 // form both draw from.
-const CATEGORIES = [
-    'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
-];
 
 // Rose's feedback (Sep 2026): stick to four buckets an admin actually
 // scans for — Under Review, In Progress, Rejected, Resolved/Completed —
@@ -122,8 +118,8 @@ $nSearch  = trim((string) ($_GET['nq'] ?? ''));
 $nAll     = ($_GET['nview'] ?? '') === 'all';   // Unread (the default) or everything, read ones too
 $nSort    = ($_GET['nsort'] ?? 'newest') === 'oldest' ? 'oldest' : 'newest';
 
-if (!in_array($category, CATEGORIES, true)) { $category = ''; }
-if ($category === '' || !in_array($issue, CATEGORY_ISSUES[$category] ?? [], true)) { $issue = ''; }
+if (!in_array($category, category_keys(), true)) { $category = ''; }
+if ($category === '' || !in_array($issue, category_issues()[$category] ?? [], true)) { $issue = ''; }
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) { $month = ''; }
 // Rose (7 Oct 2026): Overdue and Escalated sit in the same Status menu.
 const OPEN_STATES = ['pending_review', 'validated', 'assigned', 'in_progress', 'offline_investigation'];
@@ -489,7 +485,7 @@ $noteBadge = $notesUnread + $escCount;
     <input type="hidden" name="tanod" value="<?= e($tanod) ?>">
   </form>
   <?php if ($vAnyBand): ?><a class="p-chip p-chip-band" href="cases.php?clear=1"><?= e(t('Clear filters', 'I-clear ang mga filter')) ?></a><?php endif; ?>
-  <form method="get" class="ss-band-filters<?= !empty(CATEGORY_ISSUES[$category]) ? ' ss-six' : '' ?>">
+  <form method="get" class="ss-band-filters<?= !empty(category_issues()[$category]) ? ' ss-six' : '' ?>">
     <input type="hidden" name="tab" value="all">
     <input type="hidden" name="q" value="<?= e($search) ?>">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Filter by month', 'Salain ayon sa buwan')) ?></span>
@@ -497,15 +493,15 @@ $noteBadge = $notesUnread + $escCount;
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Category', 'Kategorya')) ?></span>
       <select name="category" data-autosubmit>
         <option value=""><?= e(t('All', 'Lahat')) ?></option>
-        <?php foreach (CATEGORIES as $c): ?>
+        <?php foreach (category_keys() as $c): ?>
           <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select></label>
-    <?php if (!empty(CATEGORY_ISSUES[$category])): ?>
+    <?php if (!empty(category_issues()[$category])): ?>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Issue', 'Isyu')) ?></span>
       <select name="issue" data-autosubmit>
         <option value=""><?= e(t('All', 'Lahat')) ?></option>
-        <?php foreach (CATEGORY_ISSUES[$category] as $is): ?>
+        <?php foreach (category_issues()[$category] as $is): ?>
           <option value="<?= e($is) ?>" <?= $issue === $is ? 'selected' : '' ?>><?= e($is) ?></option>
         <?php endforeach; ?>
       </select></label>
@@ -700,7 +696,7 @@ $noteBadge = $notesUnread + $escCount;
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     }[c]));
   }
-  const CATEGORY_LABEL = <?= json_encode(array_combine(CATEGORIES, array_map('category_label', CATEGORIES)), JSON_UNESCAPED_UNICODE) ?>;
+  const CATEGORY_LABEL = <?= json_encode(array_combine(category_keys(), array_map('category_label', category_keys())), JSON_UNESCAPED_UNICODE) ?>;
   const titleCase = s => String(s ?? '').replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
   function statusClass(s) {

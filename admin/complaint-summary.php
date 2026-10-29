@@ -40,26 +40,23 @@ $prevStart = $start->modify('first day of last month');
 $by        = trim((string) ($_GET['by'] ?? formal_name($admin['full_name'] ?? '')));
 
 // The form's own names and order; "Others" catches anything outside the seven.
-const FORM_CATEGORIES = [
-    'street_obstruction'           => 'Street Obstruction',
-    'public_safety_infrastructure' => 'Public Safety and Infrastructure',
-    'environmental_waste_hazard'   => 'Environmental and Waste Hazards',
-    'animal_welfare'               => 'Animal Welfare',
-    'traffic_violation'            => 'Traffic Violation',
-    'barangay_service'             => 'Barangay Service',
-    'peace_order_nuisance'         => 'Peace, Order, & Nuisance',
-    'other'                        => 'Others',
-];
+/** The form's own names and order (the catalogue, 0146), "Others" last: it catches anything not listed. */
+function form_categories(): array
+{
+    $out = [];
+    foreach (categories_all() as $k => $c) { if ($k !== 'other') $out[$k] = $c['en']; }
+    return $out + ['other' => categories_all()['other']['en'] ?? 'Others'];
+}
 
 /** Per form category: received, resolved, timed, hours, overdue, escalated. */
 function tally(array $rows): array
 {
     $t = [];
-    foreach (array_keys(FORM_CATEGORIES) as $k) {
+    foreach (array_keys(form_categories()) as $k) {
         $t[$k] = ['received' => 0, 'resolved' => 0, 'timed' => 0, 'hours' => 0.0, 'overdue' => 0, 'escalated' => 0];
     }
     foreach ($rows as $r) {
-        $k = isset(FORM_CATEGORIES[$r['category']]) ? $r['category'] : 'other';
+        $k = isset(form_categories()[$r['category']]) ? $r['category'] : 'other';
         $t[$k]['received']++;
         if (!empty($r['referred_to'])) {
             $t[$k]['escalated']++;
@@ -219,7 +216,7 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
       <td>Category</td><td>Reports Received</td><td>Resolution Efficiency</td>
       <td>Average Resolution Time</td><td>Number of Overdue Cases</td>
     </tr>
-    <?php foreach (FORM_CATEGORIES + ['__total' => 'Total'] as $k => $label):
+    <?php foreach (form_categories() + ['__total' => 'Total'] as $k => $label):
       $c = $k === '__total' ? $sum : $now[$k]; $r = rate($c); ?>
       <tr<?= $k === '__total' ? ' class="total"' : '' ?>>
         <td><?= e($label) ?></td>
@@ -244,7 +241,7 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
   // "diagram"). Inline SVG so it prints exactly as it shows.
   $W = 640; $H = 230; $left = 34; $bottom = 60; $top = 16;
   $plotW = $W - $left - 8; $plotH = $H - $bottom - $top;
-  $cats  = array_keys(FORM_CATEGORIES);
+  $cats  = array_keys(form_categories());
   $slot  = $plotW / count($cats);
   $barW  = min(22, $slot / 3);
   $y     = fn(float $pct) => $top + $plotH * (1 - $pct / 100);
@@ -268,7 +265,7 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
           <text x="<?= $x + $barW / 2 ?>" y="<?= $y($r) - 3 ?>" font-size="8" text-anchor="middle" fill="#222"><?= (int) round($r) ?></text>
         <?php endif;
       endforeach;
-      $words = explode(' ', str_replace(', &', ',&', FORM_CATEGORIES[$k]));
+      $words = explode(' ', str_replace(', &', ',&', form_categories()[$k]));
       $lines = []; $line = '';
       foreach ($words as $w) {
           if (strlen($line . ' ' . $w) > 13 && $line !== '') { $lines[] = $line; $line = $w; }
