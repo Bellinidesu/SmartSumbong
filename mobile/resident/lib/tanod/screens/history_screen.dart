@@ -1,7 +1,7 @@
 // SmartSumbong — History (branch B).
 //
 // Activity History, moved off Home into its own tab: the tanod's own
-// dispatches from the past seven days, All / Responded / Missed, a
+// dispatches, newest first, 30 at a time with Show older, All / Responded / Missed, a
 // responded one opening to show the field report and its photo/video
 // proof. Same query, same rows and the same live reload as when it was a
 // card on Home — only where it lives changed.
@@ -39,6 +39,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
   List<_ActivityEntry> _activity = const [];
   bool _loading = true;
   String? _error;
+
+  /// How many to show (Show older adds 30), whether there are older ones, and the true totals: until 29 Oct the list
+  /// only reached back seven days from when a dispatch was assigned, so a tanod whose last case was older saw an empty
+  /// Responded list while having answered many (the panel's note).
+  int _limit = 30;
+  bool _more = false;
+  int? _nResponded;
+  int? _nMissed;
 
   RealtimeChannel? _liveChannel;
   Timer? _liveDebounce;
@@ -101,13 +109,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final uid = client.auth.currentUser!.id;
       _subscribeLive(uid);
 
-      // "In the past 7 days" per the frame. Carries field_report_text and
+      // Newest first, [_limit] at a time (one more is asked for, to know
+      // whether there are older ones). Carries field_report_text and
       // dispatch_media so a responded row can show what the tanod
       // actually submitted.
-      final since = DateTime.now()
-          .toUtc()
-          .subtract(const Duration(days: 7))
-          .toIso8601String();
       // No resident name: users_self_read is `id = auth.uid() or
       // is_admin()`, so a tanod cannot read anyone else's row. The ticket
       // number identifies the case without identifying a person.
@@ -119,14 +124,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
               'dispatch_media(media_url, mime_type)')
           .eq('tanod_id', uid)
           .inFilter('state', ['accepted', 'resolved', 'expired'])
-          .gte('assigned_at', since)
-          .order('assigned_at', ascending: false);
+          .order('assigned_at', ascending: false)
+          .limit(_limit + 1);
+      // the true totals, whatever is loaded
+      int? nResponded, nMissed;
+      try {
+        final n = await Future.wait([
+          client.from('dispatches').count(CountOption.exact).eq('tanod_id', uid).inFilter('state', ['accepted', 'resolved']),
+          client.from('dispatches').count(CountOption.exact).eq('tanod_id', uid).eq('state', 'expired'),
+        ]);
+        nResponded = n[0];
+        nMissed = n[1];
+      } catch (_) {}
+      final more = past.length > _limit;
+      final shown = more ? past.sublist(0, _limit) : past;
 
-      unawaited(JsonCache.write('history', past));
+      unawaited(JsonCache.write('history', shown));
       if (!mounted) return;
       setState(() {
+        _more = more;
+        _nResponded = nResponded;
+        _nMissed = nMissed;
         _activity = [
-          for (final r in past) _ActivityEntry.fromRow(r),
+          for (final r in shown) _ActivityEntry.fromRow(r),
         ]..sort(_newestFirst);
         _loading = false;
         _error = null;
@@ -167,8 +187,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
           children: [
             DHeading(s.homeActivityHistory,
-                lead: context.tr('Everything you responded to or missed in the past 7 days.',
-                    'Lahat ng sinagot o nalampasan mo nitong nakaraang 7 araw.')),
+                lead: context.tr('Everything you responded to or missed, newest first.',
+                    'Lahat ng sinagot o nalampasan mo, pinakabago muna.')),
             const SizedBox(height: 16),
             if (_error != null) ...[
               DSheet(
@@ -177,7 +197,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               const SizedBox(height: 12),
             ],
-            _ActivityHistoryCard(loading: _loading, entries: _activity),
+            _ActivityHistoryCard(loading: _loading, entries: _activity, responded: _nResponded, missed: _nMissed),
+            if (_more && !_loading) ...[
+              const SizedBox(height: 12),
+              DButton(context.tr('Show older', 'Ipakita ang mas luma'), kind: DButtonKind.ghost, expand: true, onTap: () {
+                setState(() => _limit += 30);
+                _load();
+              }),
+            ],
           ],
         ),
       ),
@@ -266,10 +293,14 @@ int _newestFirst(_ActivityEntry a, _ActivityEntry b) =>
     (b.at ?? DateTime(0)).compareTo(a.at ?? DateTime(0));
 
 class _ActivityHistoryCard extends StatefulWidget {
-  const _ActivityHistoryCard({required this.loading, required this.entries});
+  const _ActivityHistoryCard({required this.loading, required this.entries, this.responded, this.missed});
 
   final bool loading;
   final List<_ActivityEntry> entries;
+
+  /// The true totals (all time), when the database gave them; otherwise the loaded rows are counted.
+  final int? responded;
+  final int? missed;
 
   @override
   State<_ActivityHistoryCard> createState() => _ActivityHistoryCardState();
@@ -283,8 +314,8 @@ class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
     final d = context.d;
     final s = context.ts;
     final shown = _filter == null ? widget.entries : widget.entries.where((a) => a.kind == _filter).toList();
-    final responded = widget.entries.where((a) => a.kind == ActivityKind.responded).length;
-    final missed = widget.entries.where((a) => a.kind == ActivityKind.missed).length;
+    final responded = widget.responded ?? widget.entries.where((a) => a.kind == ActivityKind.responded).length;
+    final missed = widget.missed ?? widget.entries.where((a) => a.kind == ActivityKind.missed).length;
     final num = d.dark ? Colors.white : d.link;
     // `.hstats`: three cards, the figure in Inter 800 20.
     Widget stat(String n, String label) => Expanded(
@@ -328,7 +359,7 @@ class _ActivityHistoryCardState extends State<_ActivityHistoryCard> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        stat('${widget.entries.length}', s.homeTabAll),
+        stat('${responded + missed}', s.homeTabAll),
         const SizedBox(width: 8),
         stat('$responded', s.homeTabResponded),
         const SizedBox(width: 8),
