@@ -524,7 +524,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
               children: [
                 Positioned(left: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.chevron_left_rounded, onTap: () => Navigator.of(context).maybePop())),
                 if (r != null) Positioned(right: 12, top: MediaQuery.paddingOf(context).top + 10, child: DHeroButton(icon: Icons.ios_share_rounded, onTap: _share)),
-                if (r != null) Positioned(left: 12, bottom: 10, child: DHeroChip(cat.label)),
+                if (r != null) Positioned(left: 12, bottom: 10, child: DHeroChip(context.tr(cat.label, cat.labelFil))),
               ],
             ),
           ),
@@ -1114,7 +1114,10 @@ class _ConcernsCard extends StatelessWidget {
       for (var i = 0; i < concerns.length; i++)
         DRow(
           icon: concerns[i]['status'] == 'resolved' ? Icons.check_circle_outline : Icons.radio_button_unchecked,
-          title: ComplaintCategory.parse(concerns[i]['category'] as String?).label,
+          title: () {
+            final c = ComplaintCategory.parse(concerns[i]['category'] as String?);
+            return context.tr(c.label, c.labelFil);
+          }(),
           sub: _sub(context, concerns[i]),
           divider: i < concerns.length - 1,
         ),

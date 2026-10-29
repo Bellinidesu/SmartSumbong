@@ -213,7 +213,7 @@ class _MapScreenState extends State<MapScreen> {
               radius: 18,
               glyph: cat == null ? null : categoryGlyph(cat),
               children: [
-                if (cat != null) Positioned(left: 12, bottom: 10, child: DHeroChip(cat.label)),
+                if (cat != null) Positioned(left: 12, bottom: 10, child: DHeroChip(context.tr(cat.label, cat.labelFil))),
                 Positioned(right: 8, top: 8, child: DHeroButton(icon: Icons.close_rounded, size: 30, onTap: () => Navigator.of(ctx).pop())),
               ],
             ),

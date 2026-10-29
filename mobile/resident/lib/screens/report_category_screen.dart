@@ -8,6 +8,7 @@ import '../d/d_categories.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../i18n.dart';
+import '../models/complaint_catalogue.dart';
 import '../models/complaint_category.dart';
 
 class ReportCategoryScreen extends StatefulWidget {
@@ -21,12 +22,21 @@ class ReportCategoryScreen extends StatefulWidget {
 /// category it files under.
 const _othersKey = 'others';
 
-String _keyOf(CategoryChoice c) => '${c.category.name}|${c.issue}';
+String _keyOf(CategoryChoice c) => '${c.category.wire}|${c.issue}';
 
 class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
   // Tapping a pill picks it; Continue (per the frame) advances with it.
   CategoryChoice? _choice;
   String? _choiceKey;
+
+  @override
+  void initState() {
+    super.initState();
+    // The barangay may have changed its list since the app opened (0146).
+    ComplaintCatalogue.refresh().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   void _pick(String key, CategoryChoice choice) => setState(() {
         _choiceKey = key;
@@ -72,7 +82,8 @@ class _ReportCategoryScreenState extends State<ReportCategoryScreen> {
                 _CategoryCard(category: c, selectedKey: _choiceKey, onPick: _pick),
                 const SizedBox(height: 12),
               ],
-              _OthersCard(selected: _choiceKey == _othersKey, onPick: _pick),
+              // Others stays last, unless the barangay switched it off.
+              if (ComplaintCategory.values.contains(ComplaintCategory.other)) _OthersCard(selected: _choiceKey == _othersKey, onPick: _pick),
             ],
           ),
         ),
@@ -103,13 +114,13 @@ class _CategoryCard extends StatelessWidget {
     final col = categoryColour(category);
     return _Shell(
       colour: col,
-      title: category.label,
+      title: context.tr(category.label, category.labelFil),
       child: Wrap(spacing: 6, runSpacing: 6, children: [
-        for (final issue in category.issues)
+        for (final o in category.options)
           Builder(builder: (context) {
-            final choice = CategoryChoice(category: category, issue: issue);
+            final choice = CategoryChoice(category: category, issue: o.en, issueFil: o.fil);
             final key = _keyOf(choice);
-            return _IssuePill(label: issue, colour: col, selected: selectedKey == key, onTap: () => onPick(key, choice));
+            return _IssuePill(label: context.tr(o.en, o.fil), colour: col, selected: selectedKey == key, onTap: () => onPick(key, choice));
           }),
       ]),
     );
@@ -124,7 +135,7 @@ class _OthersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final col = categoryColour(ComplaintCategory.other);
+    final col = categoryColour(ComplaintCategory.parse('other'));
     return _Shell(
       colour: col,
       title: context.s.reportCategoryOthersHeading,
@@ -133,7 +144,7 @@ class _OthersCard extends StatelessWidget {
         colour: col,
         selected: selected,
         // Its own category since 0076.
-        onTap: () => onPick(_othersKey, const CategoryChoice(category: ComplaintCategory.other)),
+        onTap: () => onPick(_othersKey, CategoryChoice(category: ComplaintCategory.parse('other'))),
       ),
     );
   }

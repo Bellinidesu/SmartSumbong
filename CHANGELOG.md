@@ -176,6 +176,11 @@ Changes on `main` not yet deployed belong here.
 - In the portal: Settings has a Complaint types tab; Case Reports, the
   Dashboard, Report Summary, the Complaint Summary form, the map and SMART's
   points read the barangay's list instead of a fixed one.
+- In the app: the report picker shows the barangay's categories and options,
+  in its order and in Tagalog when the app is; the colours and map symbols
+  follow it. The last list is kept on the phone, so it shows with no signal;
+  before the first read the built-in list stands in. A report filed under a
+  category switched off since keeps its name.
 
 **Changed (ready for Barangay 183, 29 Oct)**
 - The Bagong Pilipinas and Bagong Villamor logos are removed everywhere: the

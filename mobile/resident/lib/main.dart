@@ -25,6 +25,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // for you (it needs your own Firebase login).
 import 'firebase_options.dart';
 import 'i18n.dart';
+import 'models/complaint_catalogue.dart';
 import 'models/complaint_category.dart';
 import 'outbox.dart';
 import 'screens/account_status_screen.dart';
@@ -179,6 +180,7 @@ Future<void> main() async {
       if (event == AuthChangeEvent.signedIn ||
           event == AuthChangeEvent.initialSession) {
         PushNotifications.registerToken();
+        if (event == AuthChangeEvent.signedIn) unawaited(ComplaintCatalogue.refresh());
       } else if (event == AuthChangeEvent.signedOut) {
         PushNotifications.unregisterToken();
         // Signed out: duty stops, and the app goes back to the resident
@@ -199,6 +201,10 @@ Future<void> main() async {
     // And the role, so a tanod's cold start is in ink from the first
     // frame; the launch gate corrects it from the account itself.
     await AppRoleController.instance.load();
+    // The barangay's complaint categories (0146): last time's copy now, a
+    // fresh one in the background.
+    await ComplaintCatalogue.loadCached();
+    unawaited(ComplaintCatalogue.refresh());
     runApp(SmartSumbongApp(locale: locale, themeController: themeController));
   }, (error, stack) {
     CrashReporting.recordError(error, stack);
