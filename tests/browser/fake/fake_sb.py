@@ -47,7 +47,10 @@ TABLES = {
     'smart_rules': [{'id': 1, 'storm_mode': True, 'storm_until': ahead(8), 'storm_reason': 'PAGASA orange rainfall warning', 'category_points': {'public_safety_infrastructure': 35, 'peace_order_nuisance': 30, 'environmental_waste_hazard': 25, 'traffic_violation': 20,
                      'street_obstruction': 20, 'animal_welfare': 15, 'barangay_service': 10, 'other': 10}, 'urgent_from': 70, 'high_from': 45, 'normal_from': 25,
                      'storm_mode': True, 'storm_until': ahead(20), 'storm_reason': 'PAGASA orange rainfall warning', 'digest_enabled': True}],
-    'operational_settings': [{'max_deadline_extensions': 2}],
+    'operational_settings': [{'id': 1, 'max_deadline_extensions': 2, 'awaiting_alert_hours': 4, 'max_active_dispatches': 5, 'location_freshness_minutes': 15,
+                              'max_report_photos': 5, 'max_reports_per_day': 20, 'filing_paused': False, 'filing_paused_message': None}],
+    'hotline_numbers': [{'id': 'n0000000-0000-4000-8000-000000000001', 'group_id': 'g2', 'label': 'Duty officer', 'number': '0917 123 4567', 'carrier': 'Globe', 'sort_order': 1, 'is_active': True},
+                        {'id': 'n0000000-0000-4000-8000-000000000002', 'group_id': 'g4', 'label': 'Emergency room', 'number': '(02) 8831 8001', 'carrier': None, 'sort_order': 1, 'is_active': False}],
     'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id']},{'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id']}],
     'committees': [
         {'key': 'peace_order', 'name_en': 'Peace and Order, Human Rights, Transportation and Communication', 'name_fil': 'Kapayapaan at Kaayusan, Karapatang Pantao, Transportasyon at Komunikasyon', 'short_en': 'Peace and Order', 'active': True, 'sort': 1},
@@ -77,7 +80,7 @@ TABLES = {
                {'id': 2, 'name': 'Harvard Street', 'grp': 'street', 'aliases': [], 'lat': 14.5236, 'lng': 121.0129, 'source': 'barangay'}],
     'web_push_subscriptions': [{'id': 1, 'endpoint': 'https://fcm.googleapis.com/fcm/send/demo', 'label': 'Chrome on Windows', 'created_at': ago(3000), 'last_ok_at': ago(40)}],
     'place_kinds': [{'grp': g, 'label': l} for g, l in [('area', 'Area'), ('hall', 'Barangay hall'), ('shop', 'Shop'), ('street', 'Street')]],
-    'dispatches': [], 'status_logs': [], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24}],
+    'dispatches': [], 'status_logs': [], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24, 'resolution_hours': 48, 'accept_minutes': 20}, {'category': 'other', 'resolution_hours': 120, 'accept_minutes': 60}],
 }
 
 # The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
@@ -150,7 +153,7 @@ RPC = {
         'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,
                  'tags': [{'en': 'waist-deep (about 37 in)', 'fil': 'hanggang baywang (mga 37 pulgada)', 'reports': 1}, {'en': 'knee-deep (about 19 in)', 'fil': 'hanggang tuhod (mga 19 pulgada)', 'reports': 2}],
                  'checklist_done': 2, 'checklist_total': 5}},
-    'set_admin_access': None, 'committee_save': 'committee_on_senior_citizens', 'committee_set_categories': None, 'category_save': 'overgrown_trees', 'option_save': 7,
+    'set_admin_access': None, 'committee_save': 'committee_on_senior_citizens', 'committee_set_categories': None, 'category_save': 'overgrown_trees', 'option_save': 7, 'catalogue_fill': 2,
     'command_board': _cmd_board, 'command_start': _cmd_start, 'command_end': _cmd_end, 'command_handover': 1, 'command_check': None,
     'command_place_check': None, 'command_dismiss': None, 'command_suggest': None,
     'command_feed': [{'at': ago(5), 'kind': 'filed', 'report_id': 'x', 'tracking_id': 'SS-2610-1021', 'subject': 'Bumabaha na', 'place': 'Kalye Uno'},

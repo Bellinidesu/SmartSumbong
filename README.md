@@ -130,7 +130,7 @@ mobile/
   core/                     shared Flutter package: auth, uploads, push, OCR, biometrics, offline cache
   resident/                 the SmartSumbong app; tanod screens under lib/tanod/
 supabase/
-  migrations/               0001–0146, applied in order, never edited once applied
+  migrations/               0001–0147, applied in order, never edited once applied
   baseline/                 the whole schema as one generated file, proven equal to the migrations
   functions/                Edge Functions: delete-account, media-cleanup, password-otp,
                             send-dispatch-push, sign-upload

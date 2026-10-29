@@ -1,6 +1,6 @@
 # Database checks
 
-Twenty-seven scripts (358 checks) that walk the whole system through the real
+Twenty-eight scripts (361 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -34,6 +34,7 @@ it does is saved. Add a check here for every new behaviour.
 | `25_feature_switches.sql` | 4 checks (0144): the Workspace and the command center ship switched off and an unknown key reads as off; switched off, the command center refuses the board and starting a mode and gives no suggestion, banner or auto switch; switched on it works and the hall display answers, switched off again it stops, and each flip is kept as an event; a made-up key is refused and a resident cannot flip a switch |
 | `26_admin_access.sql` | 7 checks (0145), the reading ones as the API's own role so row level security applies: four committees on for 183 (the struck ones off, without ticks); a committee reads only its ticked categories (and a case with a concern in them), a captain and a super admin read all, a resident still reads their own; a committee admin works its own case and is refused one outside it, the captain cannot take or write; an admin handling a case outside its committee (an escalation) still sees it; the analytics are for super admins and captains, settings for super admins, the queue shows a committee only its own cases; a super admin makes a committee, ticks it and moves an admin into it, a committee admin cannot make committees or widen its own scope, the last super admin stays; a committee admin is never notified about a case outside its committee |
 | `27_complaint_catalogue.sql` | 3 checks (0146): the catalogue starts as the app's list (8 categories, 34 options, in order), one row for each value of the type; a super admin renames, adds and switches off options and makes a category (added to the type), duplicates and a bad colour are refused; residents are offered only what is on, a super admin sees everything, a committee admin and a resident cannot edit |
+| `28_barangay_rules.sql` | 3 checks (0147), the writing ones as the API's own role: a category without a deadline or first committee gets Others' (once), a committee admin cannot run the fill; a report in a category with no deadline row takes Others' hours; a super admin changes the limits, a deadline and the hotlines and still sees a number switched off, a committee admin cannot change them, a resident sees only what is on |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

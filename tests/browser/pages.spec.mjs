@@ -270,6 +270,23 @@ test('0146 catalogue: a super admin edits the complaint categories and options i
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('0147 rules and hotlines: a super admin edits the deadlines, limits and emergency numbers in Settings', async ({ page }) => {
+  const r = await open(page, 'settings.php#rules');
+  await expect(page.locator('#rules-card .ru-t tbody tr')).toHaveCount(8);
+  await expect(page.locator('#rules-card .ru-grid .ru-f')).toHaveCount(6);
+  await expect(page.locator('#lim-max_deadline_extensions')).toHaveValue('2');
+  expect(await axe(page), 'Settings > Rules').toEqual([]);
+  await page.locator('#rules-card button[type="submit"]').click();
+  await expect(page).toHaveURL(/settings\.php#rules/);
+  await expect(page.locator('section[data-pane="rules"] .p-flash--ok')).toContainText('Rules saved');
+  await page.locator('.st-tabs [data-st="hotlines"]').click();
+  await expect(page.locator('#hotlines-card details.hl-g')).toHaveCount(4);
+  await expect(page.locator('#hotlines-card details.hl-sub')).toContainText('Pasay City General Hospital');
+  await page.locator('#hotlines-card details.hl-g summary').first().click();
+  expect(await axe(page), 'Settings > Hotlines').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');

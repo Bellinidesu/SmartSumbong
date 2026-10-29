@@ -182,6 +182,21 @@ Changes on `main` not yet deployed belong here.
   before the first read the built-in list stands in. A report filed under a
   category switched off since keeps its name.
 
+**Added (the barangay's rules and hotlines, 29 Oct)**
+- Settings has a Rules tab (super admins): the deadline of each kind of
+  complaint and the minutes a tanod has to accept; how often a deadline may
+  be moved, how long a report may wait unattended, jobs per tanod, how fresh
+  a tanod's position must be, photos per report, reports per resident a day;
+  and pausing new reports with a message.
+- Settings has a Hotlines tab: the app's Emergency directory, its groups
+  and numbers, renamed, added and switched on or off.
+- A category made in Settings gets Others' deadline and first committee
+  (0147); a report in a category with no deadline of its own takes Others'.
+
+**Fixed**
+- Administrators could not see a hotline switched off, nor switch one off,
+  since 0145 (0147).
+
 **Changed (ready for Barangay 183, 29 Oct)**
 - The Bagong Pilipinas and Bagong Villamor logos are removed everywhere: the
   four sign-in pages, the printed letterhead (its right-hand column is now an
