@@ -255,6 +255,21 @@ test('0145 access: a super admin sets up committees, access and switches in Sett
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('0146 catalogue: a super admin edits the complaint categories and options in Settings', async ({ page }) => {
+  const r = await open(page, 'settings.php#types');
+  await expect(page.locator('#types-card details.ty-cat')).toHaveCount(8);
+  await expect(page.locator('#types-card details.ty-cat').first()).toContainText('Street Obstruction');
+  await page.locator('#types-card details.ty-cat summary').nth(3).click();
+  await expect(page.locator('#types-card form.ty-opt.ty-off')).toHaveCount(1);
+  await expect(page.locator('#types-card form.ty-new input[name="label_en"]')).toHaveCount(1);
+  expect(await axe(page), 'Settings > Complaint types').toEqual([]);
+  await page.locator('#types-card form.ty-new input[name="label_en"]').fill('Overgrown Trees');
+  await page.locator('#types-card form.ty-new button[type="submit"]').click();
+  await expect(page).toHaveURL(/settings\.php#types/);
+  await expect(page.locator('section[data-pane="types"] .p-flash--ok')).toContainText('Category made');
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');

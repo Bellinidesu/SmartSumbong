@@ -37,10 +37,7 @@ const HOTSPOTS_ENABLED = false;
 // The command center (0143) can be switched off (feature_switches, 0144): then none of its parts are drawn.
 $ccOn = feature_on('command_center');
 
-$categories = [
-    'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
-];
+$categories = category_keys();   // the catalogue (0146), in the barangay's order
 
 // What the engine sees (0123, 0124, 0127): the SMART drawer lists it and the map can show it. Each call is optional.
 $patterns = []; $smartSum = []; $smartLate = []; $smartSpikes = []; $smartLevels = []; $smartBusy = [];
@@ -366,6 +363,8 @@ const PIN_GLYPH = {
   street_obstruction: SD_ICONS.obstruction, public_safety_infrastructure: SD_ICONS.infra, environmental_waste_hazard: SD_ICONS.waste,
   animal_welfare: SD_ICONS.animal, traffic_violation: SD_ICONS.traffic, barangay_service: SD_ICONS.service, peace_order_nuisance: SD_ICONS.noise, other: SD_ICONS.other,
 };
+// 0146: a category made in Settings borrows the symbol of the icon it was given
+Object.entries(<?= json_encode(array_map(fn (array $c): string => $c['icon'], categories_all())) ?>).forEach(([k, ic]) => { if (!PIN_GLYPH[k] && PIN_GLYPH[ic]) PIN_GLYPH[k] = PIN_GLYPH[ic]; });
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 // The pins are glass beads: a tinted round body, a bright rim, a highlight where the light falls and a glow in its own colour by night.
 let selId = null;

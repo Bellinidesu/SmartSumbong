@@ -166,7 +166,6 @@ if (!$report && !$error) {
 }
 
 $mine = (string) ($report['handler_id'] ?? '') !== '' && (string) ($report['handler_id'] ?? '') === (string) ($admin['id'] ?? '');
-const CATEGORIES_ALL = ['street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard', 'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other'];
 
 /** The dispatch that is currently live, if any. */
 $active = null;
@@ -609,7 +608,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <input type="hidden" name="action" value="add_concern">
           <div class="p-cfield"><label class="p-flabel" for="ac-cat"><?= e(t('Kind of concern', 'Uri ng alalahanin')) ?></label>
             <select class="p-input-plain" id="ac-cat" name="category">
-              <?php $have = array_column($concerns, 'category'); foreach (CATEGORIES_ALL as $c0): if (in_array($c0, $have, true)) continue; ?>
+              <?php $have = array_column($concerns, 'category'); foreach (category_keys(true) as $c0): if (in_array($c0, $have, true)) continue; ?>
                 <option value="<?= e($c0) ?>"><?= e(category_label($c0)) ?></option>
               <?php endforeach; ?>
             </select></div>

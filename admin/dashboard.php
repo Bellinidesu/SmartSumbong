@@ -44,12 +44,8 @@ $next  = $month->modify('+1 month');
 // Same fixed 7-category list as cases.php/summary.php — only used here to
 // scope the Resolution Efficiency chart (0056); every other visual on
 // this page stays computed over the whole month.
-const CATEGORIES = [
-    'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
-];
 $effCategory = (string) ($_GET['eff_category'] ?? '');
-if (!in_array($effCategory, CATEGORIES, true)) { $effCategory = ''; }
+if (!in_array($effCategory, category_keys(), true)) { $effCategory = ''; }
 
 $error   = null;
 $metrics = null;
@@ -272,7 +268,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
       <label class="p-pill-select"><span class="p-sr"><?= e(t('Filter by category', 'Salain ayon sa kategorya')) ?></span>
         <select name="eff_category" id="eff_category" data-autosubmit>
           <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
-          <?php foreach (CATEGORIES as $c): ?>
+          <?php foreach (category_keys() as $c): ?>
             <option value="<?= e($c) ?>" <?= $effCategory === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
           <?php endforeach; ?>
         </select></label>
@@ -310,7 +306,7 @@ $_SESSION['dash_intro'] = true;
   var MONTH = <?= json_encode($month->format('Y-m')) ?>;
   var PREV_TOTAL = <?= json_encode($prev !== null ? $prevTotal : null) ?>;
   var PREV_TILES = <?= json_encode($prevTiles ?: null) ?>;
-  var CATEGORY_LABEL = <?= json_encode(array_combine(CATEGORIES, array_map('category_label', CATEGORIES)), JSON_UNESCAPED_UNICODE) ?>;
+  var CATEGORY_LABEL = <?= json_encode(array_combine(category_keys(), array_map('category_label', category_keys())), JSON_UNESCAPED_UNICODE) ?>;
   // The preview's colours per category, so a category keeps its colour month to month.
   var CATEGORY_COLOUR = <?= json_encode(category_colours()) ?>;
 

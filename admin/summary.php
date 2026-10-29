@@ -80,12 +80,8 @@ if (isset($_GET['print'])) {
 
 // The seven categories are fixed per the Scope and Limitations — same list
 // cases.php's category dropdown draws from.
-const CATEGORIES = [
-    'street_obstruction', 'public_safety_infrastructure', 'environmental_waste_hazard',
-    'animal_welfare', 'traffic_violation', 'barangay_service', 'peace_order_nuisance', 'other',
-];
 $category = (string) ($_GET['category'] ?? '');
-if (!in_array($category, CATEGORIES, true)) { $category = ''; }
+if (!in_array($category, category_keys(), true)) { $category = ''; }
 
 {
     $_SESSION['summary_period'] = [
@@ -281,7 +277,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
     <label class="p-pill-select"><span class="p-sr"><?= e(t('Category', 'Kategorya')) ?></span>
       <select id="category" name="category">
         <option value=""><?= e(t('All Categories', 'Lahat ng Kategorya')) ?></option>
-        <?php foreach (CATEGORIES as $c): ?>
+        <?php foreach (category_keys() as $c): ?>
           <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select></label>

@@ -166,6 +166,17 @@ Changes on `main` not yet deployed belong here.
   categories each sees, new committees, the feature switches) and each
   administrator's access (tier, committee, DEV) on the Administrators tab.
 
+**Added (complaint types the barangay edits, 29 Oct)**
+- The complaint categories and the options residents pick under each one
+  ("Potholes", "Illegal Parking") are tables a super admin edits (0146):
+  English and Tagalog names, colour, the symbol on the map, on or off. A new
+  category is added to the database's own list, so access, SMART points and
+  every filter take it. Nothing is deleted: a category or option switched off
+  is no longer offered, and the reports filed under it keep it.
+- In the portal: Settings has a Complaint types tab; Case Reports, the
+  Dashboard, Report Summary, the Complaint Summary form, the map and SMART's
+  points read the barangay's list instead of a fixed one.
+
 **Changed (ready for Barangay 183, 29 Oct)**
 - The Bagong Pilipinas and Bagong Villamor logos are removed everywhere: the
   four sign-in pages, the printed letterhead (its right-hand column is now an
