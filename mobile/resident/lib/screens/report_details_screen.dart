@@ -869,10 +869,10 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 Row(children: [
                   Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
                   const SizedBox(width: 8),
-                  Text(widget.choice.category.label.toUpperCase(), style: DType.label(d.muted)),
+                  Text(context.tr(widget.choice.category.label, widget.choice.category.labelFil).toUpperCase(), style: DType.label(d.muted)),
                 ]),
                 const SizedBox(height: 6),
-                DHeading(widget.choice.title, lead: s.reportDetailsCompleteBelow),
+                DHeading(widget.choice.issue == null ? context.tr(widget.choice.category.label, widget.choice.category.labelFil) : context.tr(widget.choice.issue!, widget.choice.issueFil ?? widget.choice.issue!), lead: s.reportDetailsCompleteBelow),
                 const SizedBox(height: 14),
                 if (_banner != null) ...[
                   _Banner(_banner!),

@@ -1,29 +1,22 @@
 // SmartSumbong — category colours (branch D), as the portal and the app
-// preview use them: the header of a report or dispatch, map pins.
+// preview use them: the header of a report or dispatch, map pins. Since
+// 0146 the colour is the barangay's (Settings > Complaint types), and a
+// category made there wears the symbol it was given.
 
 import 'package:flutter/material.dart';
 
 import '../models/complaint_category.dart';
 
-Color categoryColour(ComplaintCategory c) => switch (c) {
-      ComplaintCategory.streetObstruction => const Color(0xFFF93535),
-      ComplaintCategory.publicSafetyInfrastructure => const Color(0xFF356CF9),
-      ComplaintCategory.environmentalWasteHazard => const Color(0xFFF9AB35),
-      ComplaintCategory.animalWelfare => const Color(0xFF34C759),
-      ComplaintCategory.trafficViolation => const Color(0xFF8E9ABB),
-      ComplaintCategory.barangayService => const Color(0xFF422F8A),
-      ComplaintCategory.peaceOrderNuisance => const Color(0xFFE0609A),
-      ComplaintCategory.other => const Color(0xFF0F9D9A),
-    };
+Color categoryColour(ComplaintCategory c) => Color(c.colour);
 
 /// The glyph a category wears on its map badge.
-IconData categoryGlyph(ComplaintCategory c) => switch (c) {
-      ComplaintCategory.streetObstruction => Icons.local_parking_rounded,
-      ComplaintCategory.publicSafetyInfrastructure => Icons.construction_rounded,
-      ComplaintCategory.environmentalWasteHazard => Icons.water_drop_rounded,
-      ComplaintCategory.animalWelfare => Icons.pets_rounded,
-      ComplaintCategory.trafficViolation => Icons.traffic_rounded,
-      ComplaintCategory.barangayService => Icons.account_balance_rounded,
-      ComplaintCategory.peaceOrderNuisance => Icons.volume_up_rounded,
-      ComplaintCategory.other => Icons.more_horiz_rounded,
+IconData categoryGlyph(ComplaintCategory c) => switch (c.icon) {
+      'street_obstruction' => Icons.local_parking_rounded,
+      'public_safety_infrastructure' => Icons.construction_rounded,
+      'environmental_waste_hazard' => Icons.water_drop_rounded,
+      'animal_welfare' => Icons.pets_rounded,
+      'traffic_violation' => Icons.traffic_rounded,
+      'barangay_service' => Icons.account_balance_rounded,
+      'peace_order_nuisance' => Icons.volume_up_rounded,
+      _ => Icons.more_horiz_rounded,
     };
