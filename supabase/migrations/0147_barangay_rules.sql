@@ -23,9 +23,17 @@
 --                          portal calls this right after.
 --   set_report_deadline    a category with no deadline row takes "Others'"
 --                          hours instead of having no deadline at all.
+--   hotlines read by admins 0145 replaced the hotlines' "admins do anything"
+--                          rule with super-admin writes, which left only the
+--                          public "what is on" read: no administrator could
+--                          see a switched-off number, and switching one off
+--                          failed (the row it leaves must be readable).
 -- =============================================================
 
 set search_path = public, extensions;
+
+create policy hotline_groups_admin_read on public.hotline_groups for select using ((select public.is_admin()));
+create policy hotline_numbers_admin_read on public.hotline_numbers for select using ((select public.is_admin()));
 
 create or replace function public.catalogue_fill()
 returns integer

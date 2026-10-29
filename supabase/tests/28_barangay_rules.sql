@@ -20,6 +20,8 @@ begin
 
   -- 1. a category with no deadline or committee of its own gets Others' (what a category made in Settings starts with)
   begin
+    perform set_config('request.jwt.claim.sub', v_sup::text, true);
+    perform public.catalogue_fill();   -- a fresh database has a deadline for Others only
     delete from public.sla_policies where category = 'animal_welfare';
     delete from public.committee_for_category where category = 'animal_welfare';
     perform set_config('request.jwt.claim.sub', v_com::text, true);
@@ -74,8 +76,11 @@ begin
     update public.hotline_numbers set is_active = false where group_id = g;
     get diagnostics n = row_count;
     if n <> 1 then raise exception 'the super admin could not switch a number off'; end if;
+    if not exists (select 1 from public.hotline_numbers where group_id = g and not is_active) then raise exception 'the super admin cannot see the number switched off'; end if;
+    perform set_config('request.jwt.claim.sub', v_res::text, true);
+    if exists (select 1 from public.hotline_numbers where group_id = g) then raise exception 'a resident sees a number switched off'; end if;
     reset role;
-    v_log := v_log || E'\n' || 'ok  a super admin changes the rules, a deadline and the hotlines; a committee admin cannot';
+    v_log := v_log || E'\n' || 'ok  a super admin changes the rules, a deadline and the hotlines and still sees a number switched off; a committee admin cannot change them, a resident sees only what is on';
   exception when others then reset role; v_log := v_log || E'\n' || 'FAIL who: ' || sqlerrm; end;
 
   raise exception 'SWEEP-ROLLBACK%', v_log;
