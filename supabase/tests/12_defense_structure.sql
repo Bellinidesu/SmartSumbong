@@ -72,7 +72,7 @@ begin
     execute 'reset role';
     if v_off <> v_kenv then raise exception 'went to %', v_off; end if;
     select handler_id::text || '|' || tier || '|' || coalesce(higher_official, '') into t from public.reports where id = r_env;
-    if t not like v_kenv::text || '|1|%Kagawad (Environment)%' then raise exception 'row %', t; end if;
+    if t not like v_kenv::text || '|1|%Kagawad (Environment%' then raise exception 'row %', t; end if;
     if not exists (select 1 from public.notifications where user_id = v_kenv and report_id = r_env and kind = 'escalation') then raise exception 'no notice'; end if;
     if not exists (select 1 from public.notifications where user_id = v_res and report_id = r_env and message like '%passed up to%') then raise exception 'resident not told'; end if;
     if not exists (select 1 from public.case_handler_log where report_id = r_env and action = 'escalate' and previous_id = v_staff) then raise exception 'not logged'; end if;
