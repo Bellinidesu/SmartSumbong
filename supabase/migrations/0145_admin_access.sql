@@ -91,12 +91,26 @@ $$;
 alter table public.users
   add column if not exists admin_tier text check (admin_tier in ('super', 'committee', 'captain')),
   add column if not exists is_dev boolean not null default false;
-comment on column public.users.admin_tier is '0145: super (everything), committee (its ticked categories), captain (sees all, changes nothing). Null on an administrator reads as committee. Set only by set_admin_access().';
+comment on column public.users.admin_tier is '0145: super (everything), committee (its ticked categories), captain (sees all, changes nothing). An administrator made through the app starts as committee (with no committee: sees nothing until set up); null, only outside the app (older rows, migrations), reads as super, as before. Changed by set_admin_access().';
 comment on column public.users.is_dev is '0145: a member of the development team (Group 12). Marked in the portal; the same powers as a super admin.';
 
 -- the administrators that exist today (the development team) keep doing everything
 update public.users set admin_tier = 'super' where role = 'admin';
 update public.users set is_dev = true where role = 'admin';
+
+-- an administrator made through the app (create_admin_account, promote_to_admin: a super admin is signed in) starts as a
+-- committee admin with no committee, so sees nothing until a super admin sets them up
+create or replace function public._admin_tier_default()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.role = 'admin' and new.admin_tier is null and auth.uid() is not null
+     and (tg_op = 'INSERT' or old.role is distinct from 'admin') then
+    new.admin_tier := 'committee';
+  end if;
+  return new;
+end $$;
+revoke all on function public._admin_tier_default() from public, anon, authenticated;
+create trigger users_admin_tier_default before insert or update of role on public.users for each row execute function public._admin_tier_default();
 
 -- the tier, the committee and the developer mark change only through set_admin_access() or by a super admin (set_official_role
 -- sets a kagawad's committee): an administrator can update their own row, and must not be able to widen their own scope
@@ -120,7 +134,7 @@ create trigger users_guard_admin_access before update on public.users for each r
 create or replace function public.admin_tier()
 returns text
 language sql stable security definer set search_path = public as $$
-  select case when u.role = 'admin' and not coalesce(u.is_suspended, false) then coalesce(u.admin_tier, 'committee') end
+  select case when u.role = 'admin' and not coalesce(u.is_suspended, false) then coalesce(u.admin_tier, 'super') end
     from public.users u where u.id = auth.uid()
 $$;
 create or replace function public.is_super_admin() returns boolean language sql stable security definer set search_path = public as $$
@@ -136,7 +150,7 @@ returns boolean
 language sql stable security definer set search_path = public as $$
   select case
     when u.role <> 'admin' or coalesce(u.is_suspended, false) then false
-    when coalesce(u.admin_tier, 'committee') in ('super', 'captain') then true
+    when coalesce(u.admin_tier, 'super') in ('super', 'captain') then true
     else exists (select 1 from public.committees c join public.committee_categories cc on cc.committee = c.key
                   where c.key = u.committee and c.active and cc.category = p_cat)
   end
@@ -234,7 +248,7 @@ returns trigger language plpgsql security definer set search_path = public as $$
 declare v_role text; v_tier text;
 begin
   if new.report_id is null then return new; end if;
-  select role::text, coalesce(admin_tier, 'committee') into v_role, v_tier from public.users where id = new.user_id;
+  select role::text, coalesce(admin_tier, 'super') into v_role, v_tier from public.users where id = new.user_id;
   if v_role = 'admin' and v_tier = 'committee'
      and not coalesce((select public._user_sees_case(new.user_id, r.id, r.category, r.handler_id) from public.reports r where r.id = new.report_id), false) then
     return null;
@@ -444,8 +458,8 @@ begin
   if p_tier = 'committee' and (p_committee is null or not exists (select 1 from public.committees where key = p_committee)) then
     raise exception 'Choose the committee' using errcode = 'check_violation';
   end if;
-  if coalesce(u.admin_tier, 'committee') = 'super' and p_tier <> 'super'
-     and not exists (select 1 from public.users x where x.role = 'admin' and x.admin_tier = 'super' and not coalesce(x.is_suspended, false) and x.id <> p_user) then
+  if coalesce(u.admin_tier, 'super') = 'super' and p_tier <> 'super'
+     and not exists (select 1 from public.users x where x.role = 'admin' and coalesce(x.admin_tier, 'super') = 'super' and not coalesce(x.is_suspended, false) and x.id <> p_user) then
     raise exception 'There must always be one super admin' using errcode = 'check_violation';
   end if;
   perform set_config('smartsumbong.admin_access', 'on', true);

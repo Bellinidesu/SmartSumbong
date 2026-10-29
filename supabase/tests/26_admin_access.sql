@@ -134,7 +134,7 @@ begin
     begin update public.users set committee = 'environment' where id = v_po; raise exception 'a committee admin changed its own committee';
     exception when insufficient_privilege then null; end;
     perform set_config('request.jwt.claim.sub', v_sup::text, true);
-    update public.users set admin_tier = 'committee', committee = 'peace_order' where role = 'admin' and admin_tier = 'super' and id <> v_sup;
+    update public.users set admin_tier = 'committee', committee = 'peace_order' where role = 'admin' and coalesce(admin_tier, 'super') = 'super' and id <> v_sup;
     begin perform public.set_admin_access(v_sup, 'captain', null, null); raise exception 'the last super admin stepped down';
     exception when check_violation then null; end;
     v_log := v_log || E'\n' || 'ok  a super admin makes a committee, ticks it and moves an admin into it; a committee admin cannot make committees or widen its own scope; the last super admin stays';
