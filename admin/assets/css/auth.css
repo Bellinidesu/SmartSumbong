@@ -117,7 +117,7 @@ a { text-decoration: none; color: inherit; }
   gap: 46px;
   padding: 48px 32px;
 }
-.rail-logo { width: 186px; height: auto; object-fit: contain; }
+.rail-logo { width: 240px; height: auto; object-fit: contain; }   /* the Barangay 183 seal leads, alone */
 .rail-logo--missing {
   display: grid;
   place-items: center;

@@ -16,6 +16,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/widgets.php';
 
 $admin = require_admin_api();
+feature_require('workspace', true);
 session_write_close();
 
 header('Content-Type: application/json; charset=utf-8');

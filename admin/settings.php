@@ -754,6 +754,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     </div>
   </div>
 
+  <?php if (feature_on('command_center')): ?>
   <section class="p-card p-card-pad" id="cmd-settings">
     <p class="p-eyebrow"><?= e(t('Command center', 'Sentro ng Pamamahala')) ?></p>
     <p class="p-hint"><?= e(t('Spatial Distribution becomes a command center for one situation at a time: Fire Surroundings, Quake Check, Flood Watch or Typhoon Board. SMART suggests a mode with its reason, and an administrator turns it on. Only a person turns a mode off, with a note.', 'Nagiging command center ang Spatial Distribution para sa isang sitwasyon sa bawat pagkakataon: Paligid ng Sunog, Suri sa Lindol, Bantay-baha o Pisara ng Bagyo. Nagmumungkahi ang SMART ng mode kasama ang dahilan, at ini-o-on ito ng administrator. Tao lamang ang nag-o-off ng mode, na may note.')) ?></p>
@@ -796,6 +797,7 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
       <input class="p-input-plain" id="cmd-label" name="label" required minlength="2" maxlength="60" placeholder="<?= e(t('Name it, for example: Hall TV', 'Pangalanan, halimbawa: TV sa hall')) ?>">
       <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make a display link', 'Gumawa ng display link')) ?></button></form>
   </section>
+  <?php endif; ?>
 
   <section class="p-card p-card-pad" id="smart-words">
     <p class="p-eyebrow"><?= e(t('Words to learn', 'Mga salitang aaralin')) ?><em><?= count($words) ?></em></p>

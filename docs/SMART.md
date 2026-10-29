@@ -487,6 +487,14 @@ can be turned off at any time. The page reloads itself every 30 seconds.
 **On the phone**, `command_now()` tells a tanod or administrator which mode
 is on, for a banner.
 
+**Switched off (0144).** The command center ships switched off, until after the
+defense (agreed with the barangay on 26 Oct 2026). Nothing is removed: the
+tables, functions and screens are there, but while `feature_switches.command_center`
+is off the board and starting a mode refuse, there is no suggestion, banner or
+auto switch, the hall display answers "not valid", and Spatial Distribution,
+the Settings card and the tanod's strip are not drawn. An administrator turns it
+back on with `feature_set('command_center', true)`.
+
 ## Changing the rules
 
 An admin edits `smart_rules`: points, word lists, radii, cut-offs,

@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 function nav_items(): array
 {
-    return [
+    $items = [
         ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'i-dash'],
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
@@ -21,6 +21,8 @@ function nav_items(): array
         ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'i-brief'],
         ['settings.php',   t('Settings', 'Mga Setting'),                      'i-gear'],
     ];
+    // a part that is switched off (feature_switches, 0144) has no menu entry
+    return array_values(array_filter($items, static fn (array $i): bool => $i[0] !== 'workspace.php' || feature_on('workspace')));
 }
 
 /** An icon from the preview's set (includes/p_sprite.svg). */

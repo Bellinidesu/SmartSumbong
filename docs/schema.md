@@ -51,6 +51,7 @@ How the database fits the rest of the system is in
 | `engine_jobs` | Work handed to the engine (`engine/`): ID photos to read, with tries and the last error | 0137 |
 | `smart_events` | What SMART decided and what people did with it: picks, "was it fixed?" questions and answers; kept 180 days | 0140 |
 | `command_modes`, `command_tags`, `command_words`, `command_checklist`, `command_place_kinds` | The command center's four modes, what each reads (depth on MMDA's flood gauge, fire and damage words), each mode's checklist, and the places a quake check or fire surroundings names | 0143 |
+| `feature_switches` | Parts of the system that can be switched off without removing them (the Workspace and the command center ship off). Written only by `feature_set()` | 0144 |
 | `command_sessions` | One command-center mode at a time: who turned it on (or SMART, by the auto switch), why, and the closing note | 0143 |
 | `command_checks`, `command_place_checks`, `command_handovers` | Checklist ticks, places checked, and handovers (a note with the counts) of a session | 0143 |
 | `command_state`, `command_reads`, `command_display_links` | The auto switch and "not now"; each report's reading, kept; hall display links (a hash of the secret only) | 0143 |
@@ -176,6 +177,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `smart_why_order(report)` | 0140 | A plain sentence (English and Tagalog) on why a report is where it is; the owner or an admin |
 | `command_board`, `command_feed`, `command_suggest` | 0143 | The board of a mode (one envelope for all four), what happened, and SMART's suggestion with its reason |
 | `command_start`, `command_handover`, `command_end`, `command_check`, `command_place_check`, `command_dismiss`, `command_set_auto` | 0143 | Turn a mode on (a reason) or off (a note), hand over, tick, mark a place, put a suggestion off, the auto switch |
+| `feature_on`, `feature_set` | 0144 | Whether a part is on; an administrator turns one on or off. The command center's functions answer "off" when it is switched off |
 | `command_hall`, `command_display_link_create`, `command_display_link_revoke`, `command_now` | 0143 | The hall display (counts only, by a link; anon may call it with a live link), its links, and the app's banner |
 | `smart_roster_suggestion`, `smart_forecast`, `smart_fairness` | 0142 | Duty roster suggested by weekday and 3-hour block; the open cases a week ahead and the kinds expected; how the work is shared |
 | `smart_workorder_create`, `smart_workorder_set` | 0142 | Open a work order from a recurring problem; move it open, planned, done or dropped |

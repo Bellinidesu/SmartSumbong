@@ -212,3 +212,32 @@ test('SMART Iteration 4: the command center in Settings (auto switch, sessions, 
   expect(await axe(page), 'Settings > SMART > Command center').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('0144 feature switches: with the Workspace and the command center off, neither is reachable', async ({ page }) => {
+  await page.request.get('http://127.0.0.1:54399/__feat?ws=0&cc=0');
+  try {
+    let r = await open(page, 'dashboard.php');
+    await expect(page.locator('.p-sidebar a[href="workspace.php"]')).toHaveCount(0);
+    await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
+    await expect(page.locator('a.ss-tile[href="workspace.php"]')).toHaveCount(0);
+    expect(r.errors, 'console errors (dashboard)').toEqual([]);
+    await page.goto('workspace.php');                         // the board is not there: the case list is
+    await expect(page).toHaveURL(/cases\.php/);
+    r = await open(page, 'spatial.php');
+    await expect(page.locator('#cc-toggle')).toHaveCount(0);
+    await expect(page.locator('#cc-bar')).toHaveCount(0);
+    await expect(page.locator('#cc-suggest')).toHaveCount(0);
+    expect(await axe(page), 'Spatial Distribution, command center off').toEqual([]);
+    expect(r.errors, 'console errors (spatial)').toEqual([]);
+    await open(page, 'settings.php#smart');
+    await expect(page.locator('#cmd-settings')).toHaveCount(0);
+    const j = await page.request.get('command-act.php?do=board');
+    expect(j.status()).toBe(404);
+    const w = await page.request.get('widgets.php?catalogue=1');
+    expect(w.status()).toBe(404);
+    await page.goto('hall.php?k=' + 'f'.repeat(48));
+    await expect(page.locator('body')).toContainText('not valid, or it was turned off');
+  } finally {
+    await page.request.get('http://127.0.0.1:54399/__feat?ws=1&cc=1');
+  }
+});

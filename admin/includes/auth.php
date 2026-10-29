@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/supabase.php';
+require_once __DIR__ . '/features.php';
 
 function session_start_once(): void
 {

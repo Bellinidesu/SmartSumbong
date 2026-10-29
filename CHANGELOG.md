@@ -141,6 +141,20 @@ Changes on `main` not yet deployed belong here.
 - Case Reports' board has a "Not fixed" column: a resolved case the resident
   says is not fixed, until the barangay reopens it or writes back.
 
+**Changed (ready for Barangay 183, 29 Oct)**
+- The Bagong Pilipinas and Bagong Villamor logos are removed everywhere: the
+  four sign-in pages, the printed letterhead (its right-hand column is now an
+  empty balance) and the app's start screen. Only the Barangay 183 seal stays,
+  alone and larger, on the sign-in rail and the app's start screen.
+- The Workspace and the command center are switched off until after the defense.
+  A new `feature_switches` table (0144) holds the switches; both ship off. Off,
+  the Workspace has no menu entry and its address, widgets and preview answer
+  "not found" (the dashboard's tiles and the briefing link to the case list), and
+  the command center is not drawn on Spatial Distribution or in Settings, its
+  address and the hall display answer nothing, and the tanod's strip stays
+  hidden. The database's own command-center functions refuse while it is off.
+  Nothing is deleted; a super admin will turn them on from Settings later.
+
 **Added (the command center, SMART Iteration 4, 23 Oct)**
 - Spatial Distribution becomes a command center for one situation at a time:
   Fire Surroundings, Quake Check, Flood Watch or Typhoon Board. SMART suggests
