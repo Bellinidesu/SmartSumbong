@@ -32,6 +32,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models/barangay_profile.dart';
+import 'models/wording.dart';
 
 /// Matches `languageKey` in the old languages_screen.dart exactly — 'en'
 /// / 'fil' — so a value an earlier build already saved to a handset
@@ -125,7 +126,7 @@ class Strings {
   const Strings(this.locale);
   final AppLocale locale;
 
-  String _t(String en, String fil) => locale == AppLocale.fil ? fil : en;
+  String _t(String en, String fil) => Wording.pick(en, fil, filipino: locale == AppLocale.fil);
 
   // ---------- onboarding ----------
   String get onboardTitle1 =>

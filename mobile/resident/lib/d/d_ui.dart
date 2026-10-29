@@ -9,10 +9,11 @@ import 'package:flutter/services.dart';
 
 import '../i18n.dart';
 import 'd_theme.dart';
+import '../models/wording.dart';
 
 extension DTr on BuildContext {
   /// English or Filipino for strings only branch D has.
-  String tr(String en, String fil) => AppLocaleScope.of(this) == AppLocale.fil ? fil : en;
+  String tr(String en, String fil) => Wording.pick(en, fil, filipino: AppLocaleScope.of(this) == AppLocale.fil);
 }
 
 /// The preview's contour (`--tex`): a 1024 px line texture tiled at

@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 
 import '../i18n.dart';
 import '../models/barangay_profile.dart';
+import '../models/wording.dart';
 
 extension TanodStringsContext on BuildContext {
   TanodStrings get ts => TanodStrings(AppLocaleScope.of(this));
@@ -20,7 +21,7 @@ class TanodStrings {
   const TanodStrings(this.locale);
   final AppLocale locale;
 
-  String _t(String en, String fil) => locale == AppLocale.fil ? fil : en;
+  String _t(String en, String fil) => Wording.pick(en, fil, filipino: locale == AppLocale.fil);
 
   static const _monthsAbbrEn = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',

@@ -300,6 +300,18 @@ test('0148 the barangay: its name, place and seal from Settings, on the sign-in 
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('0149 wording: a super admin finds a label and rewords it; the portal shows the barangay wording', async ({ page }) => {
+  const r = await open(page, 'settings.php?wq=Case%20Reports#wording');
+  await expect(page.locator('.st-tabs [data-st="hotlines"]')).toHaveText('Emergency numbers');   // the fake's own wording, through t()
+  await expect(page.locator('#wording-card form.wd-row').first()).toBeVisible();
+  await expect(page.locator('#wording-card form.wd-own')).toHaveCount(1);
+  expect(await axe(page), 'Settings > Wording').toEqual([]);
+  await page.locator('#wording-card form.wd-row').first().locator('textarea[name="fil"]').fill('Mga Sumbong');
+  await page.locator('#wording-card form.wd-row').first().locator('button[type="submit"]').first().click();
+  await expect(page.locator('section[data-pane="wording"] .p-flash--ok')).toContainText('Saved');
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');

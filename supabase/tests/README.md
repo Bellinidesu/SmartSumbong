@@ -1,6 +1,6 @@
 # Database checks
 
-Twenty-nine scripts (363 checks) that walk the whole system through the real
+Thirty scripts (364 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -36,6 +36,7 @@ it does is saved. Add a check here for every new behaviour.
 | `27_complaint_catalogue.sql` | 3 checks (0146): the catalogue starts as the app's list (8 categories, 34 options, in order), one row for each value of the type; a super admin renames, adds and switches off options and makes a category (added to the type), duplicates and a bad colour are refused; residents are offered only what is on, a super admin sees everything, a committee admin and a resident cannot edit |
 | `28_barangay_rules.sql` | 3 checks (0147), the writing ones as the API's own role: a category without a deadline or first committee gets Others' (once), a committee admin cannot run the fill; a report in a category with no deadline row takes Others' hours; a super admin changes the limits, a deadline and the hotlines and still sees a number switched off, a committee admin cannot change them, a resident sees only what is on |
 | `29_barangay_profile.sql` | 2 checks (0148), as the API's own roles: the profile starts as Barangay 183, Zone 20, Villamor, Pasay City with the shipped seal and can be read before signing in; a super admin renames it and swaps the seal, a committee admin cannot, a seal from another host and a second row are refused |
+| `30_wording.sql` | 1 check (0149), as the API's own roles: a super admin rewords a label (read before signing in) and puts the code's own back; a committee admin cannot, an empty row is refused |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

@@ -27,6 +27,7 @@ import 'firebase_options.dart';
 import 'i18n.dart';
 import 'models/barangay_profile.dart';
 import 'models/complaint_catalogue.dart';
+import 'models/wording.dart';
 import 'models/complaint_category.dart';
 import 'outbox.dart';
 import 'screens/account_status_screen.dart';
@@ -184,6 +185,7 @@ Future<void> main() async {
         if (event == AuthChangeEvent.signedIn) {
           unawaited(ComplaintCatalogue.refresh());
           unawaited(BarangayProfile.refresh());
+          unawaited(Wording.refresh());
         }
       } else if (event == AuthChangeEvent.signedOut) {
         PushNotifications.unregisterToken();
@@ -212,6 +214,9 @@ Future<void> main() async {
     // And its name and place (0148), the same way.
     await BarangayProfile.loadCached();
     unawaited(BarangayProfile.refresh());
+    // And the barangay's own wording for any label (0149).
+    await Wording.loadCached();
+    unawaited(Wording.refresh());
     runApp(SmartSumbongApp(locale: locale, themeController: themeController));
   }, (error, stack) {
     CrashReporting.recordError(error, stack);
