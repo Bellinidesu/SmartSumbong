@@ -41,23 +41,24 @@ create table public.committees (
   key        text primary key check (key ~ '^[a-z][a-z0-9_]{1,40}$'),
   name_en    text not null check (char_length(name_en) between 3 and 120),
   name_fil   text not null check (char_length(name_fil) between 3 and 120),
+  short_en   text not null check (char_length(short_en) between 3 and 40),   -- in labels like "Kagawad (Peace and Order)"
   sort       smallint not null default 100,
   active     boolean not null default true,
   updated_by uuid references public.users (id) on delete set null,
   updated_at timestamptz not null default now()
 );
-insert into public.committees (key, name_en, name_fil, sort, active) values
-  ('peace_order',       'Peace and Order, Human Rights, Transportation and Communication', 'Kapayapaan at Kaayusan, Karapatang Pantao, Transportasyon at Komunikasyon', 1, true),
-  ('environment',       'Environmental Protection and Disaster Risk Reduction',            'Pangangalaga sa Kapaligiran at Pagbabawas sa Panganib ng Sakuna',       2, true),
-  ('health_sanitation', 'Health and Sanitation',                                           'Kalusugan at Kalinisan',                                                  3, true),
-  ('anti_drug',         'Barangay Anti-Drug Abuse Council',                                'Konseho ng Barangay Laban sa Pang-aabuso sa Droga',                       4, true),
+insert into public.committees (key, name_en, name_fil, short_en, sort, active) values
+  ('peace_order',       'Peace and Order, Human Rights, Transportation and Communication', 'Kapayapaan at Kaayusan, Karapatang Pantao, Transportasyon at Komunikasyon', 'Peace and Order', 1, true),
+  ('environment',       'Environmental Protection and Disaster Risk Reduction',            'Pangangalaga sa Kapaligiran at Pagbabawas sa Panganib ng Sakuna', 'Environment and Disaster Risk',       2, true),
+  ('health_sanitation', 'Health and Sanitation',                                           'Kalusugan at Kalinisan', 'Health and Sanitation',                                                  3, true),
+  ('anti_drug',         'Barangay Anti-Drug Abuse Council',                                'Konseho ng Barangay Laban sa Pang-aabuso sa Droga', 'Anti-Drug Abuse Council',                       4, true),
   -- in the table so earlier cases and the sensitive-case route (women_family) keep their meaning; switched off for 183
-  ('women_family',      'Women, Family and Social Services',                               'Kababaihan, Pamilya at Serbisyong Panlipunan',                            10, false),
-  ('appropriations',    'Appropriations, Senior Citizens and PWD',                         'Apropriasyon, Senior Citizen at PWD',                                     11, false),
-  ('infrastructure',    'Infrastructure',                                                  'Imprastraktura',                                                          12, false),
-  ('youth_sports',      'Youth, Sports and Education',                                     'Kabataan, Palakasan at Edukasyon',                                        13, false),
-  ('education',         'Education',                                                       'Edukasyon',                                                               14, false),
-  ('agriculture',       'Agriculture',                                                     'Agrikultura',                                                             15, false);
+  ('women_family',      'Women, Family and Social Services',                               'Kababaihan, Pamilya at Serbisyong Panlipunan', 'Women and Family',                            10, false),
+  ('appropriations',    'Appropriations, Senior Citizens and PWD',                         'Apropriasyon, Senior Citizen at PWD', 'Appropriations',                                     11, false),
+  ('infrastructure',    'Infrastructure',                                                  'Imprastraktura', 'Infrastructure',                                                          12, false),
+  ('youth_sports',      'Youth, Sports and Education',                                     'Kabataan, Palakasan at Edukasyon', 'Youth and Sports',                                        13, false),
+  ('education',         'Education',                                                       'Edukasyon', 'Education',                                                               14, false),
+  ('agriculture',       'Agriculture',                                                     'Agrikultura', 'Agriculture',                                                             15, false);
 
 alter table public.users drop constraint if exists users_committee_check;
 alter table public.users add constraint users_committee_fkey foreign key (committee) references public.committees (key) on update cascade;
@@ -83,7 +84,7 @@ comment on table public.committee_categories is '0145: the categories each commi
 create or replace function public._committee_label(p text)
 returns text
 language sql stable set search_path = public as $$
-  select coalesce((select name_en from public.committees where key = p), p, '')
+  select coalesce((select short_en from public.committees where key = p), p, '')
 $$;
 
 -- ---------- the tier of each administrator ----------------------------------
@@ -410,10 +411,11 @@ end $$;
 -- ---------- what a super admin does here ----------------------------------------------
 
 /** Make a committee (p_key null) or change one: its names, whether it is on. Returns its key. */
-create or replace function public.committee_save(p_key text, p_name_en text, p_name_fil text, p_active boolean default true)
+create or replace function public.committee_save(p_key text, p_name_en text, p_name_fil text, p_active boolean default true, p_short text default null)
 returns text
 language plpgsql security definer set search_path = public, extensions as $$
 declare v_key text := nullif(trim(coalesce(p_key, '')), ''); v_en text := nullif(trim(coalesce(p_name_en, '')), ''); v_fil text := nullif(trim(coalesce(p_name_fil, '')), '');
+  v_short text := left(coalesce(nullif(trim(coalesce(p_short, '')), ''), nullif(trim(coalesce(p_name_en, '')), '')), 40);
 begin
   if not public.is_super_admin() then raise exception 'Only a super admin sets up committees' using errcode = 'insufficient_privilege'; end if;
   if v_en is null or char_length(v_en) < 3 then raise exception 'Name the committee' using errcode = 'check_violation'; end if;
@@ -422,10 +424,10 @@ begin
     v_key := left(trim(both '_' from regexp_replace(lower(translate(v_en, 'ñÑáéíóúÁÉÍÓÚ', 'nNaeiouAEIOU')), '[^a-z0-9]+', '_', 'g')), 40);
     if v_key !~ '^[a-z]' then v_key := 'c_' || v_key; end if;
     if exists (select 1 from public.committees where key = v_key) then v_key := left(v_key, 34) || '_' || substr(md5(random()::text), 1, 5); end if;
-    insert into public.committees (key, name_en, name_fil, active, sort, updated_by)
-    values (v_key, left(v_en, 120), left(v_fil, 120), coalesce(p_active, true), coalesce((select max(sort) + 1 from public.committees where active), 1), auth.uid());
+    insert into public.committees (key, name_en, name_fil, short_en, active, sort, updated_by)
+    values (v_key, left(v_en, 120), left(v_fil, 120), v_short, coalesce(p_active, true), coalesce((select max(sort) + 1 from public.committees where active), 1), auth.uid());
   else
-    update public.committees set name_en = left(v_en, 120), name_fil = left(v_fil, 120), active = coalesce(p_active, active), updated_by = auth.uid(), updated_at = now()
+    update public.committees set name_en = left(v_en, 120), name_fil = left(v_fil, 120), short_en = v_short, active = coalesce(p_active, active), updated_by = auth.uid(), updated_at = now()
      where key = v_key;
     if not found then raise exception 'No such committee' using errcode = 'check_violation'; end if;
   end if;
@@ -471,7 +473,7 @@ begin
           case when p_tier = 'committee' then ' (' || public._committee_label(p_committee) || ')' else '' end), jsonb_build_object('user', p_user, 'tier', p_tier, 'committee', p_committee, 'dev', p_dev));
 end $$;
 
-revoke all on function public.committee_save(text, text, text, boolean), public.committee_set_categories(text, public.complaint_category[]),
+revoke all on function public.committee_save(text, text, text, boolean, text), public.committee_set_categories(text, public.complaint_category[]),
   public.set_admin_access(uuid, text, text, boolean) from public, anon;
-grant execute on function public.committee_save(text, text, text, boolean), public.committee_set_categories(text, public.complaint_category[]),
+grant execute on function public.committee_save(text, text, text, boolean, text), public.committee_set_categories(text, public.complaint_category[]),
   public.set_admin_access(uuid, text, text, boolean) to authenticated;
