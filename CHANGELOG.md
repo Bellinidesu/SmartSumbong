@@ -201,6 +201,16 @@ Changes on `main` not yet deployed belong here.
   map, share text, tanod terms), keeps the last copy, and still shows the
   seal shipped with it.
 
+**Added (the barangay's own wording, 29 Oct)**
+- Settings > Wording (0149): search any label of the portal or the app as it
+  shows now, and give it the barangay's own English, Tagalog or both; "Use
+  its own wording" puts the original back. The portal shows it at once, the
+  app the next time it opens with signal. A label built while the page runs
+  (with a number or a name in it) is not covered.
+- admin/includes/wording_catalog.json lists every label for the search;
+  `php .github/scripts/wording-catalog.php` writes it, and CI fails when it
+  is out of date.
+
 **Fixed**
 - Administrators could not see a hotline switched off, nor switch one off,
   since 0145 (0147).

@@ -60,6 +60,7 @@ TABLES = {
         {'key': 'women_family', 'name_en': 'Women, Family and Social Services', 'name_fil': 'Kababaihan, Pamilya at Serbisyong Panlipunan', 'short_en': 'Women and Family', 'active': False, 'sort': 10}],
     'committee_categories': [{'committee': 'peace_order', 'category': 'peace_order_nuisance'}, {'committee': 'peace_order', 'category': 'traffic_violation'},
                              {'committee': 'environment', 'category': 'environmental_waste_hazard'}, {'committee': 'health_sanitation', 'category': 'animal_welfare'}],
+    'wording': [{'source': 'Hotlines', 'en': 'Emergency numbers', 'fil': None, 'updated_at': ago(1)}],
     'barangay_profile': [{'id': 1, 'name': 'Barangay 183', 'place': 'Zone 20, Villamor, Pasay City', 'seal_url': None}],
     'complaint_categories': [{'key': k, 'label_en': en, 'label_fil': fil, 'colour': col, 'icon': k, 'sort': i + 1, 'active': True} for i, (k, en, fil, col) in enumerate([
         ('street_obstruction', 'Street Obstruction', 'Sagabal sa Kalsada', '#F93535'), ('public_safety_infrastructure', 'Public Safety and Infrastructure', 'Kaligtasan at Imprastraktura', '#356CF9'),

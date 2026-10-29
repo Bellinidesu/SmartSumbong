@@ -25,10 +25,57 @@ function lang(): string
     return $l ??= (($_COOKIE[LANG_COOKIE] ?? '') === 'fil' ? 'fil' : 'en');
 }
 
-/** Pick the string for the current language. */
+/** Pick the string for the current language; the barangay's own wording (0149) wins over the code's. */
 function t(string $en, string $fil): string
 {
+    $o = wording()[$en] ?? null;
+    if ($o !== null) {
+        $en = $o['en'] ?? $en;
+        $fil = $o['fil'] ?? $fil;
+    }
     return lang() === 'fil' ? $fil : $en;
+}
+
+/**
+ * The barangay's own wording (0149: the wording table, edited in Settings > Wording): English source => ['en' => ?, 'fil' => ?].
+ * Read with the publishable key and kept in a short file cache shared by everyone, as the feature switches are; a portal that
+ * cannot read it keeps the code's own wording.
+ *
+ * @return array<string, array{en:?string, fil:?string}>
+ */
+function wording(): array
+{
+    static $memo = null;
+    if ($memo !== null) return $memo;
+    if (!class_exists('Supabase') || !function_exists('env')) return [];   // too early in the request, or a page without the database
+    $memo = [];   // set first: a lookup that itself calls t() reads the code's wording instead of looping
+    $ttl = (int) env('FEATURE_CACHE_TTL', '20');
+    $file = wording_cache_file();
+    if ($ttl > 0 && is_file($file) && filemtime($file) > time() - $ttl) {
+        $hit = json_decode((string) @file_get_contents($file), true);
+        if (is_array($hit)) return $memo = $hit;
+    }
+    try {
+        $out = [];
+        foreach ((array) (new Supabase())->select('wording', ['select' => 'source,en,fil']) as $r) {
+            $out[(string) $r['source']] = ['en' => $r['en'] ?? null, 'fil' => $r['fil'] ?? null];
+        }
+        if ($ttl > 0) @file_put_contents($file, json_encode($out, JSON_UNESCAPED_UNICODE), LOCK_EX);
+        return $memo = $out;
+    } catch (Throwable) {
+        $old = is_file($file) ? json_decode((string) @file_get_contents($file), true) : null;
+        return $memo = is_array($old) ? $old : [];
+    }
+}
+
+function wording_cache_file(): string
+{
+    return sys_get_temp_dir() . '/ss-wording-' . substr(md5(env('SUPABASE_URL', '')), 0, 8) . '.json';
+}
+
+function wording_forget(): void
+{
+    @unlink(wording_cache_file());
 }
 
 /**

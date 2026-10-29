@@ -39,6 +39,7 @@ How the database fits the rest of the system is in
 | `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation, the Anti-Drug Abuse Council | 0145 |
 | `committee_categories` | The categories each committee sees (the super admin's ticks) | 0145 |
 | `committee_for_category` | The committee that usually takes each kind of complaint (editable defaults) | 0130 |
+| `wording` | The barangay's own wording for a label of the portal or the app, keyed by the English text the code carries (null keeps the code's own); read before signing in, edited by a super admin in Settings > Wording | 0149 |
 | `barangay_profile` | The barangay's name, place and seal (null: the one shipped), one row edited by a super admin in Settings > Appearance; readable before signing in | 0148 |
 | `complaint_categories` | The complaint categories, edited by a super admin: English and Tagalog names, colour, map symbol, order, on or off; each key is a value of the `complaint_category` type | 0146 |
 | `complaint_options` | The options residents pick under each category (the one picked lands in `reports.subject`); switched off, never deleted | 0146 |

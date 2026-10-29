@@ -75,6 +75,8 @@ jobs:
         run: node -e "JSON.parse(require('fs').readFileSync('admin/manifest.webmanifest','utf8'))"
       - name: Every English string has a Tagalog one
         run: php .github/scripts/i18n-check.php
+      - name: The wording catalogue lists every label (Settings > Wording, 0149)
+        run: php .github/scripts/wording-catalog.php --check
       - name: Within the performance budget
         env:
           SUPABASE_URL: https://example.supabase.co
