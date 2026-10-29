@@ -176,7 +176,8 @@ language sql stable security definer set search_path = public as $$
 /** A case by its id; for a row with no case (null), only super admins and captains. */
 create or replace function public.admin_sees_report(p_report uuid) returns boolean
 language sql stable security definer set search_path = public as $$
-  select case when p_report is null then public.is_full_viewer()
+  select case when public.is_full_viewer() then true
+              when p_report is null then false
               else coalesce((select public._user_sees_case(auth.uid(), r.id, r.category, r.handler_id) from public.reports r where r.id = p_report), false) end $$;
 create or replace function public.admin_sees_dispatch(p_dispatch uuid) returns boolean
 language sql stable security definer set search_path = public as $$
@@ -189,6 +190,7 @@ returns void
 language plpgsql stable security definer set search_path = public as $$
 begin
   if auth.uid() is null or not public.is_admin() then return; end if;
+  if public.is_super_admin() then return; end if;
   if p_write and not public.admin_can_write() then
     raise exception 'This account can look at cases but not change them.' using errcode = 'insufficient_privilege';
   end if;
@@ -211,26 +213,27 @@ grant execute on function public.admin_tier(), public.is_super_admin(), public.i
 do $$
 declare
   rec record; v_using text; v_check text; v_new text; v_tok text;
-  -- what replaces "is the user an administrator" in each read policy
+  -- what replaces "is the user an administrator" in each read policy: whether the person sees everything is worked out once
+  -- per query (a super admin or a captain pays nothing per row); only a committee admin's rows are checked one by one
   t_map jsonb := jsonb_build_object(
-    'reports',              'public.admin_sees_case(reports.id, reports.category, reports.handler_id)',
-    'case_handler_log',     'public.admin_sees_report(case_handler_log.report_id)',
-    'detail_requests',      'public.admin_sees_report(detail_requests.report_id)',
-    'dispatches',           'public.admin_sees_report(dispatches.report_id)',
-    'dispatch_media',       'public.admin_sees_dispatch(dispatch_media.dispatch_id)',
-    'dispatch_updates',     'public.admin_sees_dispatch(dispatch_updates.dispatch_id)',
-    'escalation_requests',  'public.admin_sees_report(escalation_requests.report_id)',
-    'feedback',             'public.admin_sees_report(feedback.report_id)',
-    'report_concerns',      'public.admin_sees_report(report_concerns.report_id)',
-    'report_evidence',      'public.admin_sees_report(report_evidence.report_id)',
-    'report_media',         'public.admin_sees_report(report_media.report_id)',
-    'report_messages',      'public.admin_sees_report(report_messages.report_id)',
-    'report_triage',        'public.admin_sees_report(report_triage.report_id)',
-    'resolution_checks',    'public.admin_sees_report(resolution_checks.report_id)',
-    'sla_extensions',       'public.admin_sees_report(sla_extensions.report_id)',
-    'status_logs',          'public.admin_sees_report(status_logs.report_id)',
-    'smart_events',         'public.admin_sees_report(smart_events.report_id)',
-    'smart_overrides',      'public.admin_sees_report(smart_overrides.report_id)');
+    'reports',              '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_case(reports.id, reports.category, reports.handler_id)))',
+    'case_handler_log',     '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(case_handler_log.report_id)))',
+    'detail_requests',      '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(detail_requests.report_id)))',
+    'dispatches',           '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(dispatches.report_id)))',
+    'dispatch_media',       '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_dispatch(dispatch_media.dispatch_id)))',
+    'dispatch_updates',     '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_dispatch(dispatch_updates.dispatch_id)))',
+    'escalation_requests',  '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(escalation_requests.report_id)))',
+    'feedback',             '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(feedback.report_id)))',
+    'report_concerns',      '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(report_concerns.report_id)))',
+    'report_evidence',      '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(report_evidence.report_id)))',
+    'report_media',         '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(report_media.report_id)))',
+    'report_messages',      '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(report_messages.report_id)))',
+    'report_triage',        '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(report_triage.report_id)))',
+    'resolution_checks',    '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(resolution_checks.report_id)))',
+    'sla_extensions',       '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(sla_extensions.report_id)))',
+    'status_logs',          '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(status_logs.report_id)))',
+    'smart_events',         '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(smart_events.report_id)))',
+    'smart_overrides',      '((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(smart_overrides.report_id)))');
 begin
   for rec in select c.relname::text t, p.polname::text pol, pg_get_expr(p.polqual, p.polrelid) u
              from pg_policy p join pg_class c on c.oid = p.polrelid
@@ -263,24 +266,25 @@ create trigger notifications_scope before insert on public.notifications for eac
 
 -- the case tables: a read policy stays as above; the writes need write access and the case in scope
 alter policy reports_admin_update on public.reports
-  using ((select public.admin_can_write()) and public.admin_sees_case(reports.id, reports.category, reports.handler_id))
-  with check ((select public.admin_can_write()) and public.admin_sees_case(reports.id, reports.category, reports.handler_id));
+  using ((select public.is_super_admin()) or ((select public.admin_tier()) = 'committee' and public.admin_sees_case(reports.id, reports.category, reports.handler_id)))
+  with check ((select public.is_super_admin()) or ((select public.admin_tier()) = 'committee' and public.admin_sees_case(reports.id, reports.category, reports.handler_id)));
 alter policy status_logs_insert on public.status_logs
-  with check ((select public.admin_can_write()) and public.admin_sees_report(status_logs.report_id) and changed_by = (select auth.uid()) and is_system = false);
+  with check (((select public.is_super_admin()) or ((select public.admin_tier()) = 'committee' and public.admin_sees_report(status_logs.report_id)))
+              and changed_by = (select auth.uid()) and is_system = false);
 
 do $$
 declare t text; f text; cmd text; v_cond text;
 begin
   -- "for all" policies that mixed reading and writing: split, so a captain keeps reading and loses writing
   foreach t in array array['dispatches', 'look_shares', 'sla_extensions'] loop
-    v_cond := format('(select public.admin_can_write()) and public.admin_sees_report(%I.report_id)', t);
+    v_cond := format('((select public.is_super_admin()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(%I.report_id)))', t);
     execute format('drop policy if exists %I on public.%I', case t when 'dispatches' then 'dispatches_admin_write' when 'look_shares' then 'look_shares_admin_all' else 'sla_extensions_admin' end, t);
     execute format('create policy %I on public.%I for insert with check (%s)', t || '_admin_insert', t, v_cond || case t when 'look_shares' then ' and sent_by = (select auth.uid())' else '' end);
     execute format('create policy %I on public.%I for update using (%s) with check (%s)', t || '_admin_update', t, v_cond, v_cond);
     execute format('create policy %I on public.%I for delete using (%s)', t || '_admin_delete', t, v_cond);
   end loop;
   -- look_shares lost its only admin read with "for all": read in scope
-  execute 'create policy look_shares_admin_read on public.look_shares for select using (public.admin_sees_report(look_shares.report_id))';
+  execute 'create policy look_shares_admin_read on public.look_shares for select using ((select public.is_full_viewer()) or ((select public.admin_tier()) = ''committee'' and public.admin_sees_report(look_shares.report_id)))';
 
   -- settings and accounts: written by super admins only, still read by every administrator
   foreach t in array array['committee_for_category', 'hotline_groups', 'hotline_numbers', 'sla_policies', 'retirement_requests', 'users', 'smart_lexicon'] loop
