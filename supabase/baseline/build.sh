@@ -64,7 +64,8 @@ SQL
 # 1. Every migration, in order.
 fresh
 last=""
-for f in "$root"/supabase/migrations/*.sql; do "${psql[@]}" -f "$f" >/dev/null 2>&1 || { echo "migration failed: $f"; exit 1; }; last=$(basename "$f" .sql); done
+# a failing migration says why (the last lines of psql's error), not only which file
+for f in "$root"/supabase/migrations/*.sql; do err=$("${psql[@]}" -f "$f" 2>&1 >/dev/null) || { echo "migration failed: $f"; echo "$err" | tail -15; exit 1; }; last=$(basename "$f" .sql); done
 
 fingerprint | sort > "$dir.migrated.txt"
 
