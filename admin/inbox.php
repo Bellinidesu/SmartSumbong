@@ -85,6 +85,30 @@ function inbox_from(array $m): string
 $unread = 0;
 try { $unread = $db->count('inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.null']); } catch (SupabaseError) {}
 
+// the list on the left runs for every view of the page
+    $per = 20;
+    $page = max(1, (int) ($_GET['page'] ?? 1));
+    $rows = []; $total = 0; $listError = null;
+    try {
+        if ($box === 'in') {
+            $q = ['recipient' => 'eq.' . $me];
+            $total = $db->count('inbox_messages', $q);
+            $rows = (array) $db->select('inbox_messages', $q + ['select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
+                'order' => 'created_at.desc', 'limit' => (string) $per, 'offset' => (string) (($page - 1) * $per)]);
+        } else {
+            // one row per message sent, with everyone it went to
+            $sent = (array) $db->select('inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
+                'order' => 'created_at.desc', 'limit' => '600']);
+            $byBatch = [];
+            foreach ($sent as $s) {
+                $byBatch[$s['batch']] ??= $s + ['names' => []];
+                $byBatch[$s['batch']]['names'][] = formal_name((string) ($s['to']['full_name'] ?? ''));
+            }
+            $total = count($byBatch);
+            $rows = array_slice(array_values($byBatch), ($page - 1) * $per, $per);
+        }
+    } catch (SupabaseError $ex) { $listError = safe_error($ex); }
+
 layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 ?>
 <div class="p-topbar"><h1><?= e(t('Inbox', 'Mga Liham')) ?></h1></div>
@@ -95,6 +119,32 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 </nav>
 <?php if ($flash && $flash['text']): ?><div class="p-flash p-flash--<?= $flash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($flash['text']) ?></div><?php endif; ?>
 
+<div class="ib-split">
+<section class="ib-list" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
+  <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
+  <div class="p-card p-table-card"><div class="p-tscroll">
+    <table class="p-t ib-t">
+      <thead><tr>
+        <th scope="col"><?= e($box === 'in' ? t('From', 'Mula kay') : t('To', 'Para kay')) ?></th>
+        <th scope="col"><?= e(t('Subject', 'Paksa')) ?></th>
+        <th scope="col" class="p-right"><?= e(t('When', 'Kailan')) ?></th>
+      </tr></thead>
+      <tbody>
+      <?php if (!$rows): ?><tr><td colspan="3" class="p-empty"><?= e($box === 'in' ? t('Nothing here yet.', 'Wala pang laman.') : t('You have not sent anything yet.', 'Wala ka pang naipadala.')) ?></td></tr><?php endif; ?>
+      <?php foreach ($rows as $r): $unreadRow = $box === 'in' && empty($r['read_at']); ?>
+        <tr class="p-click<?= $unreadRow ? ' ib-unread' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" data-href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
+          <td class="ib-from"><?php if ($box === 'in'): ?><?= $r['kind'] === 'system' ? '<span class="p-badge p-b-grey">' . e(t('System', 'Sistema')) . '</span>' : e(inbox_from($r)) ?><?php else: ?><?= e(implode(', ', array_slice($r['names'], 0, 3)) . (count($r['names']) > 3 ? ' +' . (count($r['names']) - 3) : '')) ?><?php endif; ?></td>
+          <td class="ib-subj"><a href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>"><?= $unreadRow ? '<b>' . e((string) $r['subject']) . '</b>' : e((string) $r['subject']) ?></a><?php if (!empty($r['question_id'])): ?> <span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?>
+            <?php if (!empty($r['report']['tracking_id'])): ?><span class="p-mono-id ib-case"><?= e($r['report']['tracking_id']) ?></span><?php endif; ?></td>
+          <td class="p-right p-num"><?= e(relative_time((string) $r['created_at'])) ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div></div>
+  <?= pager($total, $page, 'page', $per) ?>
+</section>
+<div class="ib-pane">
 <?php if ($new):
     // ---------- write ----------
     $draft = $_SESSION['inbox_draft'] ?? []; unset($_SESSION['inbox_draft']);
@@ -202,52 +252,10 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
   </article>
   <?php endif; ?>
 
-<?php else:
-    // ---------- the lists ----------
-    $per = 20;
-    $page = max(1, (int) ($_GET['page'] ?? 1));
-    $rows = []; $total = 0;
-    try {
-        if ($box === 'in') {
-            $q = ['recipient' => 'eq.' . $me];
-            $total = $db->count('inbox_messages', $q);
-            $rows = (array) $db->select('inbox_messages', $q + ['select' => 'id,kind,subject,created_at,read_at,question_id,from:users!inbox_messages_sender_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
-                'order' => 'created_at.desc', 'limit' => (string) $per, 'offset' => (string) (($page - 1) * $per)]);
-        } else {
-            // one row per message sent, with everyone it went to
-            $sent = (array) $db->select('inbox_messages', ['sender' => 'eq.' . $me, 'select' => 'id,batch,subject,created_at,to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(tracking_id)',
-                'order' => 'created_at.desc', 'limit' => '600']);
-            $byBatch = [];
-            foreach ($sent as $s) {
-                $byBatch[$s['batch']] ??= $s + ['names' => []];
-                $byBatch[$s['batch']]['names'][] = formal_name((string) ($s['to']['full_name'] ?? ''));
-            }
-            $total = count($byBatch);
-            $rows = array_slice(array_values($byBatch), ($page - 1) * $per, $per);
-        }
-    } catch (SupabaseError $ex) { $error = safe_error($ex); } ?>
-  <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
-  <div class="p-card p-table-card"><div class="p-tscroll">
-    <table class="p-t ib-t">
-      <thead><tr>
-        <th scope="col"><?= e($box === 'in' ? t('From', 'Mula kay') : t('To', 'Para kay')) ?></th>
-        <th scope="col"><?= e(t('Subject', 'Paksa')) ?></th>
-        <th scope="col"><?= e(t('Case', 'Kaso')) ?></th>
-        <th scope="col" class="p-right"><?= e(t('When', 'Kailan')) ?></th>
-      </tr></thead>
-      <tbody>
-      <?php if (!$rows): ?><tr><td colspan="4" class="p-empty"><?= e($box === 'in' ? t('Nothing here yet.', 'Wala pang laman.') : t('You have not sent anything yet.', 'Wala ka pang naipadala.')) ?></td></tr><?php endif; ?>
-      <?php foreach ($rows as $r): $unreadRow = $box === 'in' && empty($r['read_at']); ?>
-        <tr class="p-click<?= $unreadRow ? ' ib-unread' : '' ?>" data-href="inbox.php?m=<?= (int) $r['id'] ?>">
-          <td><?php if ($box === 'in'): ?><?= $r['kind'] === 'system' ? '<span class="p-badge p-b-grey">' . e(t('System', 'Sistema')) . '</span>' : e(inbox_from($r)) ?><?php else: ?><?= e(implode(', ', array_slice($r['names'], 0, 3)) . (count($r['names']) > 3 ? ' +' . (count($r['names']) - 3) : '')) ?><?php endif; ?></td>
-          <td><a href="inbox.php?m=<?= (int) $r['id'] ?>"><?= $unreadRow ? '<b>' . e((string) $r['subject']) . '</b>' : e((string) $r['subject']) ?></a><?php if (!empty($r['question_id'])): ?> <span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?></td>
-          <td><?= !empty($r['report']['tracking_id']) ? '<span class="p-mono-id">' . e($r['report']['tracking_id']) . '</span>' : '<span class="p-sub">—</span>' ?></td>
-          <td class="p-right p-num"><?= e(relative_time((string) $r['created_at'])) ?></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div></div>
-  <?= pager($total, $page, 'page', $per) ?>
+<?php else: ?>
+  <div class="p-card ib-none"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-send', 22) ?></span><b><?= e(t('Pick a message to read it here', 'Pumili ng mensahe para mabasa rito')) ?></b>
+    <span><?= e(t('Or write a new one.', 'O sumulat ng bago.')) ?></span><a class="p-btn p-btn-primary p-btn-sm" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a></div>
 <?php endif; ?>
+</div>
+</div>
 <?php layout_foot();

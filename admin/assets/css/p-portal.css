@@ -736,6 +736,25 @@ html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:
 .st-err-list b { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .st-err-list small { color: var(--p-muted); font-size: 12.5px; }
 
+/* Inbox overhaul (30 Oct): the list on the left, the open message or the write form on the right, built at 2048 px (Ace's screen).
+   Under 1100 px it is one column: the list, or the message when one is open. */
+.st-tabs .st-link { gap: 6px; }
+.ib-split { display: grid; grid-template-columns: minmax(380px, 34%) minmax(0, 1fr); gap: 20px; align-items: start; }
+.ib-list, .ib-pane { min-width: 0; }
+.ib-pane .ib-read, .ib-pane .ib-compose { max-width: none; }
+.ib-t th:nth-child(1) { width: 28%; } .ib-t th:nth-child(2) { width: 50%; } .ib-t th:nth-child(3) { width: 22%; }
+.ib-t td.ib-subj .ib-case { display: block; margin-top: 3px; }
+.ib-t tr.ib-sel td { background: color-mix(in srgb, var(--p-orange) 12%, transparent); }
+.ib-t tr.ib-sel td:first-child { box-shadow: inset 3px 0 0 var(--p-orange); }
+.ib-none { display: grid; justify-items: center; gap: 8px; padding: 64px 24px; text-align: center; color: var(--p-muted); }
+.ib-none b { color: var(--p-ink); font-size: 17px; }
+.ib-none-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--p-link) 14%, transparent); color: var(--p-link); margin-bottom: 4px; }
+@media (min-width: 1101px) { .ib-pane .p-back { display: none; } }
+@media (max-width: 1100px) { .ib-split { grid-template-columns: 1fr; } .ib-pane:has(.ib-none) { display: none; } }
+/* Personnel (30 Oct): "proposed" never breaks mid-word; the committee pill wraps its name instead */
+.cm-pill small { white-space: nowrap; }
+td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
+
 /* Notifications overhaul (30 Oct): the unread list beside a side column that holds what waits on you and what the engine sees right now.
    Built at 2048 px (Ace's 24 inch screen); under 1900 px the side column goes on top as a row of two cards, so the urgent things come first and the rows are never squeezed. */
 .nf-grid { display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 28%, 520px); gap: 20px; align-items: start; }
