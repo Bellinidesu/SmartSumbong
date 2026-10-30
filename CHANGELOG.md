@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (feed rows on Notifications, 30 Oct)**
+- Notification rows borrow from how Linear, GitHub and PagerDuty list what needs you:
+  an edge coloured by severity (red overdue or a question to answer, orange a SMART
+  warning, blue something to do, grey for information), an icon by kind instead of a
+  bell for everything, unread in bold, read rows quiet, and the buttons on hover
+  (overdue and reroute questions keep theirs showing). The toolbar is a calm surface
+  instead of an orange band. The live refresh draws the same rows.
+
 **Changed (super-admin layout overhaul, step 4: Edit Profile and Control Room, 30 Oct)**
 - Edit Profile: on a wide screen your details and account are on the left and the
   alerts on the right, instead of one 1700 px wide column. One column under 1500 px.

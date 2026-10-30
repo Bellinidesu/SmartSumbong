@@ -83,6 +83,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined
 // visit restores what you last looked at.
 // Only the register remembers its view. Notifications and Workspace load this same file, and a remembered
 // "tab" sent a bare click on Case Reports or Notifications to the wrong page (15 Oct 2026).
+/** How a notification row looks (feed rows, 30 Oct): the colour of its edge and its icon, by kind. */
+function notif_look(string $kind): array
+{
+    return match ($kind) {
+        'escalation'       => ['high', 'i-alert'],
+        'reroute_question' => ['high', 'i-route'],
+        'sla_warning'      => ['warn', 'i-clock'],
+        'status_change'    => ['act', 'i-doc'],
+        'retirement'       => ['act', 'i-user'],
+        'case_forwarded'   => ['act', 'i-send'],
+        'forward_flag'     => ['act', 'i-flag'],
+        'reroute'          => ['info', 'i-route'],
+        default            => ['info', 'i-bell'],
+    };
+}
 $registerPage = !defined('NOTICES_PAGE') && !defined('WORKSPACE_PAGE');
 if ($registerPage && !isset($_GET['q'], $_GET['status'], $_GET['sort'], $_GET['month'], $_GET['category'])
     && ($_SERVER['QUERY_STRING'] ?? '') === '' && !empty($_SESSION['cases_view'])) {
@@ -548,7 +563,7 @@ $noteBadge = $notesUnread + $escCount;
   <?php endif; ?>
     <?php if (isset($n['group'])): $gUnread = array_filter($n['group'], fn ($g) => empty($g['is_read'])); ?>
     <details class="nf-group">
-      <summary class="p-notif<?= $gUnread ? ' p-unread' : '' ?>">
+      <summary class="p-notif<?= $gUnread ? ' p-unread' : '' ?>" data-sev="warn">
         <span class="p-n-ico is-smart"><?= smart_brain(20) ?></span>
         <div class="p-n-body"><div class="p-n-line"><?= $gUnread ? '<span class="p-unread-dot"></span>' : '' ?><span class="ss-smart-tag">SMART</span><b><?= e(sprintf(t('%d cases waited without a tanod', '%d kaso ang naghintay nang walang tanod'), count($n['group']))) ?></b></div>
           <div class="p-when"><?= e(relative_time($n['created_at'])) ?> &middot; <?= e(t('open to see them', 'buksan para makita')) ?></div></div>
@@ -565,9 +580,9 @@ $noteBadge = $notesUnread + $escCount;
       </div>
     </details>
     <?php continue; endif; ?>
-    <?php $unread = empty($n['is_read']); ?>
-    <div class="p-notif<?= $unread ? ' p-unread' : '' ?>">
-      <span class="p-n-ico<?= str_starts_with((string) $n['message'], 'SMART') ? ' is-smart' : '' ?>"><?= str_starts_with((string) $n['message'], 'SMART') ? smart_brain(20) : p_icon('i-bell', 18) ?></span>
+    <?php $unread = empty($n['is_read']); $look = notif_look((string) ($n['kind'] ?? '')); ?>
+    <div class="p-notif<?= $unread ? ' p-unread' : '' ?>" data-sev="<?= e($look[0]) ?>">
+      <span class="p-n-ico<?= str_starts_with((string) $n['message'], 'SMART') ? ' is-smart' : '' ?>"><?= str_starts_with((string) $n['message'], 'SMART') ? smart_brain(20) : p_icon($look[1], 18) ?></span>
       <div class="p-n-body"><div class="p-n-line"><?= $unread ? '<span class="p-unread-dot"></span>' : '' ?><?= notification_dot($n) ?><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
       <div class="p-n-act">
       <?php if (!empty($n['report_id'])): ?>
@@ -590,7 +605,7 @@ $noteBadge = $notesUnread + $escCount;
 <!-- ---------- 0152: what waits on this person, pinned in the side column ---------- -->
 <section class="p-card p-notif-card fw-pins nf-wait"><div class="p-card-head fw-pin-band"><h2><?= e(t('Waiting on you', 'Naghihintay sa iyo')) ?></h2><span class="p-badge-n"><?= count($pins) ?></span></div><div class="p-notif-list">
   <?php foreach ($pins as $pi => $pn): if ($pi === 5): ?><details class="fw-more"><summary><?= e(sprintf(t('Show %d more', 'Ipakita ang %d pa'), count($pins) - 5)) ?></summary><?php endif; ?>
-    <div class="p-notif p-unread">
+    <div class="p-notif p-unread" data-sev="<?= $pn['kind'] === 'reroute' ? 'high' : 'act' ?>">
       <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : ($pn['kind'] === 'reroute' ? 'i-route' : 'i-send'), 18) ?></span>
       <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
       <a class="p-btn p-btn-sm p-btn-orange" href="<?= e(!empty($pn['href']) ? $pn['href'] : 'case.php?id=' . $pn['report']) ?>"><?= e($pn['kind'] === 'reroute' ? t('Pick a tanod', 'Pumili ng tanod') : t('Review', 'Suriin')) ?></a>
@@ -1006,6 +1021,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     }).join('');
   }
 
+  const NOTIF_LOOK = <?= json_encode(array_combine($k = ['escalation', 'reroute_question', 'sla_warning', 'status_change', 'retirement', 'case_forwarded', 'forward_flag', 'reroute', 'other'], array_map('notif_look', $k))) ?>;   // the same edge colour and icon the server draws
   const BRAIN_SVG = <?= json_encode(smart_brain(20)) ?>;
   const SENSITIVE_BADGE = <?= json_encode(sensitive_badge(['is_sensitive' => true])) ?>;   // the same pill the server draws
   // Today / Yesterday / "Oct 12", in Manila, to group the list like a timeline.
@@ -1038,7 +1054,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
       if (n.group) {
         const head0 = dl !== lastDay ? '<div class="ss-day">' + escapeHtml(dl) + '</div>' : ''; lastDay = dl;
         const un = n.group.filter(g => !g.is_read);
-        return head0 + '<details class="nf-group"><summary class="p-notif' + (un.length ? ' p-unread' : '') + '"><span class="p-n-ico is-smart">' + BRAIN_SVG + '</span>' +
+        return head0 + '<details class="nf-group"><summary class="p-notif' + (un.length ? ' p-unread' : '') + '" data-sev="warn"><span class="p-n-ico is-smart">' + BRAIN_SVG + '</span>' +
           '<div class="p-n-body"><div class="p-n-line">' + (un.length ? '<span class="p-unread-dot"></span>' : '') + '<span class="ss-smart-tag">SMART</span><b>' +
           n.group.length + T(' cases waited without a tanod', ' kaso ang naghintay nang walang tanod') + '</b></div><div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + ' &middot; ' + T('open to see them', 'buksan para makita') + '</div></div>' +
           '<span class="nf-chev" aria-hidden="true">&#9662;</span></summary><div class="nf-body"><ul class="nf-items">' + n.group.map(g => { const m = String(g.message).match(WAIT_RE) || []; return '<li>' + nfDot(g) + '<span class="p-mono-id">' + escapeHtml(m[1] || '') + '</span> ' + T('waited ', 'naghintay nang ') + escapeHtml(m[2] || '?') + ' min <span class="p-when">' + escapeHtml(relativeTime(g.created_at)) + '</span>' +
@@ -1054,8 +1070,9 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
           ? '<a class="p-btn p-btn-sm p-btn-orange"' + nid + ' href="' + ((n.subject && n.subject.role) === 'tanod' ? 'personnel.php' : 'residents.php') + '?id=' + encodeURIComponent(n.subject_user_id) + '">' + T('Review', 'Suriin') + '</a>'
           : '';
       const check = unread ? '<form method="post" class="p-n-x"><input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="' + escapeHtml(n.id) + '"><input type="hidden" name="back" value="' + NPAGE + '"><button class="p-n-check" type="submit" title="' + T('Mark as read', 'Markahang nabasa') + '"><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button></form>' : '<form class="p-n-x"></form>';
-      return head + '<div class="p-notif' + (unread ? ' p-unread' : '') + '">' +
-        '<span class="p-n-ico' + (String(n.message).indexOf('SMART') === 0 ? ' is-smart">' + BRAIN_SVG : '"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg>') + '</span>' +
+      const look = NOTIF_LOOK[n.kind] || NOTIF_LOOK.other;
+      return head + '<div class="p-notif' + (unread ? ' p-unread' : '') + '" data-sev="' + look[0] + '">' +
+        '<span class="p-n-ico' + (String(n.message).indexOf('SMART') === 0 ? ' is-smart">' + BRAIN_SVG : '"><svg width="18" height="18" aria-hidden="true"><use href="#' + look[1] + '"/></svg>') + '</span>' +
         '<div class="p-n-body"><div class="p-n-line">' + (unread ? '<span class="p-unread-dot"></span>' : '') + nfDot(n) + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +
         '<div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + '</div></div>' +
         '<div class="p-n-act">' + review + '</div>' + check + '</div>';
