@@ -436,7 +436,7 @@ $keep = array_filter(['tab' => $tab, 'q' => $search, 'status' => $filter, 'categ
 $tabHref = fn(string $t) => '?' . http_build_query(['tab' => $t]);
 $noteBadge = $notesUnread + $escCount;
 ?>
-<?php if ($notices) { render_briefing($db, $admin, $workspace ? 'bar' : 'strip'); } ?>
+<?php if ($notices && ($workspace || $tab !== 'notes')) { render_briefing($db, $admin, $workspace ? 'bar' : 'strip'); } ?>
 <?php if ($workspace) { render_widget_panel($db, $admin); } ?>
 <?php if (false): ?>
 <nav class="ss-tabs" aria-label="<?= e(t('Notifications views', 'Mga tanaw ng Abiso')) ?>">
@@ -460,21 +460,8 @@ $noteBadge = $notesUnread + $escCount;
 <?php endif; ?>
 
 <?php if ($tab === 'notes'): ?>
-<?php $pins = forwarding_pins($db); if ($pins): ?>
-<!-- ---------- 0152: what waits on this person, pinned on top ---------- -->
-<div class="p-band p-band--calm fw-pin-band">
-  <h2><?= e(t('Waiting on you', 'Naghihintay sa iyo')) ?><span class="p-badge-n"><?= count($pins) ?></span></h2>
-</div>
-<div class="p-card p-notif-card fw-pins" style="margin-bottom:28px"><div class="p-notif-list">
-  <?php foreach ($pins as $pi => $pn): if ($pi === 5): ?><details class="fw-more"><summary><?= e(sprintf(t('Show %d more', 'Ipakita ang %d pa'), count($pins) - 5)) ?></summary><?php endif; ?>
-    <div class="p-notif p-unread">
-      <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : ($pn['kind'] === 'reroute' ? 'i-route' : 'i-send'), 18) ?></span>
-      <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
-      <a class="p-btn p-btn-sm p-btn-orange" href="<?= e(!empty($pn['href']) ? $pn['href'] : 'case.php?id=' . $pn['report']) ?>"><?= e($pn['kind'] === 'reroute' ? t('Pick a tanod', 'Pumili ng tanod') : t('Review', 'Suriin')) ?></a>
-    </div>
-  <?php endforeach; if (count($pins) > 5): ?></details><?php endif; ?>
-</div></div>
-<?php endif; ?>
+<?php $pins = forwarding_pins($db); ?>
+<div class="nf-grid"><div class="nf-main">
 <!-- ---------- notifications ---------- -->
 <?php $nHref = fn(string $v) => '?' . http_build_query(array_filter(['nview' => $v === 'all' ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : ''])); ?>
 <div class="p-band p-band--calm">
@@ -597,6 +584,22 @@ $noteBadge = $notesUnread + $escCount;
 </div></div>
 
 <div id="notes-pager"><?= pager($notesTotal, $npage, 'npage') ?></div>
+</div>
+<aside class="nf-rail" aria-label="<?= e(t('What needs you now', 'Ang kailangan mo ngayon')) ?>">
+<?php if ($pins): ?>
+<!-- ---------- 0152: what waits on this person, pinned in the side column ---------- -->
+<section class="p-card p-notif-card fw-pins nf-wait"><div class="p-card-head fw-pin-band"><h2><?= e(t('Waiting on you', 'Naghihintay sa iyo')) ?></h2><span class="p-badge-n"><?= count($pins) ?></span></div><div class="p-notif-list">
+  <?php foreach ($pins as $pi => $pn): if ($pi === 5): ?><details class="fw-more"><summary><?= e(sprintf(t('Show %d more', 'Ipakita ang %d pa'), count($pins) - 5)) ?></summary><?php endif; ?>
+    <div class="p-notif p-unread">
+      <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : ($pn['kind'] === 'reroute' ? 'i-route' : 'i-send'), 18) ?></span>
+      <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
+      <a class="p-btn p-btn-sm p-btn-orange" href="<?= e(!empty($pn['href']) ? $pn['href'] : 'case.php?id=' . $pn['report']) ?>"><?= e($pn['kind'] === 'reroute' ? t('Pick a tanod', 'Pumili ng tanod') : t('Review', 'Suriin')) ?></a>
+    </div>
+  <?php endforeach; if (count($pins) > 5): ?></details><?php endif; ?>
+</div></section>
+<?php endif; ?>
+<?php if ($notices && !$workspace) { echo '<div class="nf-now">'; render_briefing($db, $admin, 'strip'); echo '</div>'; } ?>
+</aside></div>
 <?php endif; ?>
 
 <?php if ($tab === 'all'): ?>
@@ -698,25 +701,23 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 
 <div class="p-card p-table-card"><div class="p-tscroll">
   <?php // 0159: column widths by name, so the optional columns (select, committee) never push the rest out of place
-  $cw = ['sel' => is_super() ? 3 : 0, 'res' => 10, 'id' => 9, 'cat' => 12, 'com' => sees_everything() ? 16 : 0, 'st' => 10, 'fil' => 7, 'smart' => 9, 'hnd' => 11, 'now' => 7, 'act' => 9];
+  $cw = ['sel' => is_super() ? 3 : 0, 'id' => 14, 'cat' => 12, 'com' => sees_everything() ? 17 : 0, 'st' => 11, 'fil' => 7, 'smart' => 9, 'hnd' => 12, 'act' => 15];
   $cwSum = array_sum($cw); ?>
   <table class="p-t ss-cases-t<?= sees_everything() ? ' ss-cases-wide' : '' ?>">
     <thead><tr>
       <?php if (is_super()): ?><th scope="col" style="width:<?= round($cw['sel'] / $cwSum * 100, 2) ?>%" class="ss-c fw-selc"><input type="checkbox" id="fw-all" aria-label="<?= e(t('Select every case on this page', 'Piliin ang bawat kaso sa pahinang ito')) ?>"></th><?php endif; ?>
-      <th scope="col" style="width:<?= round($cw['res'] / $cwSum * 100, 2) ?>%"><?= e(t('Resident', 'Residente')) ?></th>
-      <th scope="col" style="width:<?= round($cw['id'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
+      <th scope="col" style="width:<?= round($cw['id'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Case', 'Kaso')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
       <th scope="col" style="width:<?= round($cw['cat'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
       <?php if (sees_everything()): ?><th scope="col" style="width:<?= round($cw['com'] / $cwSum * 100, 2) ?>%"><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
       <th scope="col" style="width:<?= round($cw['st'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
       <th scope="col" style="width:<?= round($cw['fil'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
       <th scope="col" style="width:<?= round($cw['smart'] / $cwSum * 100, 2) ?>%"><?= e(t('SMART', 'SMART')) ?></th>
       <th scope="col" style="width:<?= round($cw['hnd'] / $cwSum * 100, 2) ?>%"><?= e(t('Handler', 'Humahawak')) ?></th>
-      <th scope="col" style="width:<?= round($cw['now'] / $cwSum * 100, 2) ?>%" class="ss-c"><?= e(t('Open now', 'Bukas ngayon')) ?></th>
       <th scope="col" style="width:<?= round($cw['act'] / $cwSum * 100, 2) ?>%" class="ss-c"><?= e(t('Action', 'Aksyon')) ?></th>
     </tr></thead>
     <tbody id="reports-tbody">
       <?php if (!$reports): ?>
-        <tr><td colspan="<?= 9 + (is_super() ? 1 : 0) + (sees_everything() ? 1 : 0) ?>" class="p-empty">
+        <tr><td colspan="<?= 7 + (is_super() ? 1 : 0) + (sees_everything() ? 1 : 0) ?>" class="p-empty">
           <?= $search !== '' || $filter !== '' || $category !== '' || $month !== ''
               ? e(t('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.'))
               : e(t('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) ?>
@@ -725,14 +726,13 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
       <?php foreach ($reports as $r): ?>
         <tr class="p-click<?= !empty($r['is_sensitive']) ? ' ss-sens' : '' ?>" data-href="case.php?id=<?= e($r['id']) ?>"<?= !empty($r['is_sensitive']) ? ' title="' . e(t('Sensitive case', 'Sensitibong kaso')) . '"' : '' ?>>
           <?php if (is_super()): ?><td class="ss-c fw-selc"><input type="checkbox" class="fw-sel" value="<?= e($r['id']) ?>" data-track="<?= e($r['tracking_id']) ?>" aria-label="<?= e(sprintf(t('Select %s', 'Piliin ang %s'), $r['tracking_id'])) ?>"></td><?php endif; ?>
-          <td>
+          <td><div class="ss-case"><span class="p-mono-id"><?= e($r['tracking_id']) ?></span>
             <?php if (!empty($r['is_anonymous'])): ?>
               <span class="p-anon"><?= e(t('Anonymous', 'Hindi nagpakilala')) ?></span>
             <?php else: ?>
               <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></span></div>
-            <?php endif; ?>
+            <?php endif; ?></div>
           </td>
-          <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
           <?php if (sees_everything()): ?><td><?= committee_pill($r['case_committee'] ?? null, !empty($r['awaiting_placement'])) ?></td><?php endif; ?>
           <td><div class="p-badges">
@@ -748,8 +748,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
           </div></td>
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
           <td class="ss-smart"><?= smart_badge($r['triage'] ?? null) ?></td>
-          <td><?= handler_cell($r, $admin['id']) ?></td>
-          <td class="ss-open ss-c" data-report="<?= e($r['id']) ?>"></td>
+          <td><?= handler_cell($r, $admin['id']) ?><span class="ss-open" data-report="<?= e($r['id']) ?>"></span></td>
           <td class="ss-c"><div class="fw-acts"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
             <?php if (can_forward() || is_moderator()): ?><button type="button" class="p-btn p-btn-ghost p-btn-sm fw-btn" data-fw-open="<?= e($r['id']) ?>" data-track="<?= e($r['tracking_id']) ?>"><?= e(is_moderator() ? t('Flag', 'I-flag') : t('Forward', 'Ipasa')) ?></button><?php endif; ?></div></td>
         </tr>
@@ -959,7 +958,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 
     const tbody = document.getElementById('reports-tbody');
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="' + (9 + (IS_SUPER ? 1 : 0) + (SEES_ALL ? 1 : 0)) + '" class="p-empty">' +
+      tbody.innerHTML = '<tr><td colspan="' + (7 + (IS_SUPER ? 1 : 0) + (SEES_ALL ? 1 : 0)) + '" class="p-empty">' +
         (SEARCH || STATUS || CATEGORY || MONTH_FROM ? T('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.')
                                                     : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) +
         '</td></tr>';
@@ -991,8 +990,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
         ? '<span class="p-badge p-b-pending" title="' + T('Reinstated on appeal', 'Ibinalik dahil sa apela') + '">' + T('Appealed', 'Inapela') + '</span>' : '';
       return '<tr class="p-click' + (r.is_sensitive ? ' ss-sens' : '') + '"' + (r.is_sensitive ? ' title="' + T('Sensitive case', 'Sensitibong kaso') + '"' : '') + ' data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
         (IS_SUPER ? '<td class="ss-c fw-selc"><input type="checkbox" class="fw-sel" value="' + escapeHtml(r.id) + '" data-track="' + escapeHtml(r.tracking_id) + '" aria-label="' + escapeHtml(T('Select ', 'Piliin ang ') + r.tracking_id) + '"></td>' : '') +
-        '<td>' + who + '</td>' +
-        '<td><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span></td>' +
+        '<td><div class="ss-case"><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span>' + who + '</div></td>' +
         '<td>' + escapeHtml(CATEGORY_LABEL[r.category] || titleCase(r.category)) +
           (r.location_label ? '<div class="p-sub">' + escapeHtml(r.location_label) + '</div>' : '') + forwardedTag(r) + '</td>' +
         (SEES_ALL ? '<td>' + committeePill(r) + '</td>' : '') +
@@ -1000,8 +998,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
           escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</div></td>' +
         '<td class="p-num">' + shortDate(r.created_at) + '</td>' +
         '<td class="ss-smart">' + smartBadge(r.triage) + '</td>' +
-        '<td>' + handlerCell(r) + '</td>' +
-        '<td class="ss-open ss-c" data-report="' + escapeHtml(r.id) + '"></td>' +
+        '<td>' + handlerCell(r) + '<span class="ss-open" data-report="' + escapeHtml(r.id) + '"></span></td>' +
         '<td class="ss-c"><div class="fw-acts"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=' +
           encodeURIComponent(r.id) + '">' + T('Review', 'Suriin') + '</a>' +
           (FW_LABEL ? '<button type="button" class="p-btn p-btn-ghost p-btn-sm fw-btn" data-fw-open="' + escapeHtml(r.id) + '" data-track="' + escapeHtml(r.tracking_id) + '">' + FW_LABEL + '</button>' : '') + '</div></td>' +
