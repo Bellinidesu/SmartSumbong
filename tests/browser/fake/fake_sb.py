@@ -54,7 +54,7 @@ TABLES = {
     'smart_rules': [{'id': 1, 'storm_mode': True, 'storm_until': ahead(8), 'storm_reason': 'PAGASA orange rainfall warning', 'category_points': {'public_safety_infrastructure': 35, 'peace_order_nuisance': 30, 'environmental_waste_hazard': 25, 'traffic_violation': 20,
                      'street_obstruction': 20, 'animal_welfare': 15, 'barangay_service': 10, 'other': 10}, 'urgent_from': 70, 'high_from': 45, 'normal_from': 25,
                      'storm_mode': True, 'storm_until': ahead(20), 'storm_reason': 'PAGASA orange rainfall warning', 'digest_enabled': True}],
-    'operational_settings': [{'id': 1, 'reroute_ask_urgent_minutes': 5, 'reroute_ask_minutes': 15, 'max_deadline_extensions': 2, 'awaiting_alert_hours': 4, 'max_active_dispatches': 5, 'location_freshness_minutes': 15,
+    'operational_settings': [{'id': 1, 'keep_otp_days': 30, 'keep_attendance_days': 365, 'keep_punch_days': 365, 'keep_inbox_days': 730, 'keep_workspace_days': 365, 'reroute_ask_urgent_minutes': 5, 'reroute_ask_minutes': 15, 'max_deadline_extensions': 2, 'awaiting_alert_hours': 4, 'max_active_dispatches': 5, 'location_freshness_minutes': 15,
                               'max_report_photos': 5, 'max_reports_per_day': 20, 'filing_paused': False, 'filing_paused_message': None}],
     'hotline_numbers': [{'id': 'n0000000-0000-4000-8000-000000000001', 'group_id': 'g2', 'label': 'Duty officer', 'number': '0917 123 4567', 'carrier': 'Globe', 'sort_order': 1, 'is_active': True},
                         {'id': 'n0000000-0000-4000-8000-000000000002', 'group_id': 'g4', 'label': 'Emergency room', 'number': '(02) 8831 8001', 'carrier': None, 'sort_order': 1, 'is_active': False}],

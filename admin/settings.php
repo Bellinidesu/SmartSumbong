@@ -103,6 +103,12 @@ const RULE_LIMITS = [
     'max_report_photos'          => ['Photos per report', 'Litrato bawat ulat', 'Up to 5, the most the app attaches.', 'Hanggang 5, ang pinakamaraming kayang ilakip ng app.', 1, 5],
     'reroute_ask_urgent_minutes' => ['Minutes a Kagawad has to pick a tanod (urgent)', 'Minutong may ang Kagawad para pumili ng tanod (apurahan)', 'On a reroute with none of the committee\'s tanods free; then the nearest from any committee is sent.', 'Sa reroute na walang bakanteng tanod ang komite; saka ipapadala ang pinakamalapit mula sa kahit anong komite.', 1, 60],
     'reroute_ask_minutes'        => ['Minutes a Kagawad has to pick a tanod (other cases)', 'Minutong may ang Kagawad para pumili ng tanod (ibang kaso)', 'The same, for a case that is not urgent.', 'Ganoon din, para sa kasong hindi apurahan.', 1, 120],
+    // 0158: how long the records with no other limit are kept (docs/PRIVACY_INVENTORY.md); the audit trail is always kept
+    'keep_otp_days'              => ['Days to keep SMS reset codes', 'Araw na itatago ang SMS reset code', 'Hashed codes; the team proposed 30.', 'Naka-hash na code; 30 ang mungkahi ng team.', 1, 90],
+    'keep_attendance_days'       => ['Days to keep tanod attendance', 'Araw na itatago ang attendance ng tanod', 'Older duty logs are deleted every night.', 'Binubura gabi-gabi ang mas lumang duty log.', 30, 3650],
+    'keep_punch_days'            => ['Days to keep the punch card', 'Araw na itatago ang punch card', 'Sign-ins and sign-outs of Kagawads and staff.', 'Pag-sign in at pag-sign out ng mga Kagawad at kawani.', 30, 3650],
+    'keep_inbox_days'            => ['Days to keep Inbox messages', 'Araw na itatago ang mga mensahe sa Inbox', 'Older messages are deleted every night.', 'Binubura gabi-gabi ang mas lumang mensahe.', 30, 3650],
+    'keep_workspace_days'        => ['Days to keep Workspace check-ins', 'Araw na itatago ang check-in sa Workspace', 'Shift check-ins and removed team posts.', 'Mga shift check-in at inalis na post ng team.', 30, 3650],
     'max_reports_per_day'        => ['Reports one resident may file a day', 'Ulat ng isang residente bawat araw', 'Stops flooding; real reports rarely come close.', 'Pumipigil sa pagbaha ng ulat; bihirang maabot ng totoong ulat.', 1, 200],
 ];
 

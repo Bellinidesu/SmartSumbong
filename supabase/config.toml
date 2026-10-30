@@ -28,3 +28,7 @@ verify_jwt = false
 # with true; an sb_secret_ key only with false). Check the webhook's
 # Authorization header in the Dashboard, then pin it here. With
 # PUSH_WEBHOOK_SECRET set (see the function), false is safe.
+# Checked 30 Oct 2026: the dispatch_push webhook sends a legacy JWT key, so
+# verify_jwt stays true (as deployed, version 11).
+[functions.send-dispatch-push]
+verify_jwt = true
