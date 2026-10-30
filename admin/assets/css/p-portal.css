@@ -735,3 +735,15 @@ html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:
 .st-err-list .p-badge { justify-self: start; }
 .st-err-list b { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .st-err-list small { color: var(--p-muted); font-size: 12.5px; }
+
+/* Notifications overhaul (30 Oct): the unread list beside a side column that holds what waits on you and what the engine sees right now.
+   Built at 2048 px (Ace's 24 inch screen); under 1900 px the side column goes on top as a row of two cards, so the urgent things come first and the rows are never squeezed. */
+.nf-grid { display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 28%, 520px); gap: 20px; align-items: start; }
+.nf-main { min-width: 0; }
+.nf-rail { display: grid; gap: 20px; min-width: 0; }
+.nf-now { display: grid; gap: 10px; align-content: start; }
+.nf-rail .ss-lab { margin: 4px 2px 0; }
+.nf-rail .ss-strip { grid-template-columns: 1fr; margin: 0; }
+.nf-wait .p-card-head { padding: 18px 20px 6px; }
+.nf-wait .p-notif { grid-template-columns: auto minmax(0, 1fr) auto; }
+@media (max-width: 1900px) { .nf-grid { grid-template-columns: 1fr; } .nf-rail { order: -1; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); align-items: start; } }
