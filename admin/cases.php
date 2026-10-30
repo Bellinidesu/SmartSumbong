@@ -84,8 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined
 // Only the register remembers its view. Notifications and Workspace load this same file, and a remembered
 // "tab" sent a bare click on Case Reports or Notifications to the wrong page (15 Oct 2026).
 /** How a notification row looks (feed rows, 30 Oct): the colour of its edge and its icon, by kind. */
-function notif_look(string $kind): array
+function notif_look(string $kind, string $message = ''): array
 {
+    if (preg_match('/is overdue|target date has passed|^Escalation requested/i', $message)) { return ['high', 'i-alert']; }
+    if (preg_match('/^(System check|Typhoon Board|Storm mode)/i', $message)) { return ['info', 'i-bell']; }
     return match ($kind) {
         'escalation'       => ['high', 'i-alert'],
         'reroute_question' => ['high', 'i-route'],
@@ -580,7 +582,7 @@ $noteBadge = $notesUnread + $escCount;
       </div>
     </details>
     <?php continue; endif; ?>
-    <?php $unread = empty($n['is_read']); $look = notif_look((string) ($n['kind'] ?? '')); ?>
+    <?php $unread = empty($n['is_read']); $look = notif_look((string) ($n['kind'] ?? ''), (string) $n['message']); ?>
     <div class="p-notif<?= $unread ? ' p-unread' : '' ?>" data-sev="<?= e($look[0]) ?>">
       <span class="p-n-ico<?= str_starts_with((string) $n['message'], 'SMART') ? ' is-smart' : '' ?>"><?= str_starts_with((string) $n['message'], 'SMART') ? smart_brain(20) : p_icon($look[1], 18) ?></span>
       <div class="p-n-body"><div class="p-n-line"><?= $unread ? '<span class="p-unread-dot"></span>' : '' ?><?= notification_dot($n) ?><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
@@ -1070,7 +1072,9 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
           ? '<a class="p-btn p-btn-sm p-btn-orange"' + nid + ' href="' + ((n.subject && n.subject.role) === 'tanod' ? 'personnel.php' : 'residents.php') + '?id=' + encodeURIComponent(n.subject_user_id) + '">' + T('Review', 'Suriin') + '</a>'
           : '';
       const check = unread ? '<form method="post" class="p-n-x"><input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="' + escapeHtml(n.id) + '"><input type="hidden" name="back" value="' + NPAGE + '"><button class="p-n-check" type="submit" title="' + T('Mark as read', 'Markahang nabasa') + '"><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button></form>' : '<form class="p-n-x"></form>';
-      const look = NOTIF_LOOK[n.kind] || NOTIF_LOOK.other;
+      const msg = String(n.message || '');
+      const look = /is overdue|target date has passed|^Escalation requested/i.test(msg) ? ['high', 'i-alert']
+        : /^(System check|Typhoon Board|Storm mode)/i.test(msg) ? ['info', 'i-bell'] : (NOTIF_LOOK[n.kind] || NOTIF_LOOK.other);
       return head + '<div class="p-notif' + (unread ? ' p-unread' : '') + '" data-sev="' + look[0] + '">' +
         '<span class="p-n-ico' + (String(n.message).indexOf('SMART') === 0 ? ' is-smart">' + BRAIN_SVG : '"><svg width="18" height="18" aria-hidden="true"><use href="#' + look[1] + '"/></svg>') + '</span>' +
         '<div class="p-n-body"><div class="p-n-line">' + (unread ? '<span class="p-unread-dot"></span>' : '') + nfDot(n) + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +

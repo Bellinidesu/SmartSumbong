@@ -805,3 +805,6 @@ td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
 .ib-head { display: flex; align-items: center; gap: 12px; }
 .ib-head .ib-meta { line-height: 1.55; }
 .ib-date { font-size: 12.5px; }
+/* an empty Inbox: one empty state, with the list card gone */
+.ib-split.ib-empty { grid-template-columns: 1fr; }
+.ib-split.ib-empty .ib-list { display: none; }
