@@ -18,7 +18,8 @@ function nav_items(): array
         ['notifications.php', t('Notifications', 'Mga Abiso'),                'i-bell'],
         ['residents.php',  t('Residents', 'Mga Residente'),                   'i-users'],
         ['personnel.php',  t('Personnel', 'Mga Tanod'),                       'i-shield'],
-        ['retirement-requests.php', t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), 'i-brief'],
+        ['administrative-services.php', t('Administrative Services', 'Mga Serbisyong Pang-admin'), 'i-brief'],
+        ['control-room.php', t('Control Room', 'Silid-Kontrol'), 'i-board'],
         ['settings.php',   t('Settings', 'Mga Setting'),                      'i-gear'],
     ];
     // a part that is switched off (feature_switches, 0144) has no menu entry
@@ -410,7 +411,7 @@ function nav_counts(): array
             'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
             'notifications_smart'     => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'and' => '(message.like.SMART*,message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
             'residents.php'           => ['users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending'], true],
-            'retirement-requests.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
+            'administrative-services.php' => ['retirement_requests', ['status' => 'eq.pending'], true],
             'spatial.php'             => ['reports', ['deleted_at' => 'is.null',
                                            'status' => 'in.(pending_review,validated,assigned,in_progress,offline_investigation)'], true],
         ], true);

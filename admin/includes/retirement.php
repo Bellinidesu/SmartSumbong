@@ -202,11 +202,19 @@ function render_retirement_queue(): void
         }
     }
 
-    layout_head(t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin'), $self);
+    layout_head(t('Administrative Services', 'Mga Serbisyong Pang-admin'), 'administrative-services.php');
     ?>
 
-    <div class="p-topbar"><h1><?= e(t('Extra Administrative Services', 'Iba pang Serbisyong Pang-admin')) ?></h1>
+    <div class="p-topbar"><h1><?= e(t('Administrative Services', 'Mga Serbisyong Pang-admin')) ?></h1>
       <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
+
+    <?php // the same tab bar as administrative-services.php: this queue is one of its tabs, at its own address ?>
+    <nav class="p-seg-mini st-tabs" aria-label="<?= e(t('Administrative Services sections', 'Mga bahagi ng Mga Serbisyong Pang-admin')) ?>">
+      <a class="st-link" href="administrative-services.php#access"><?= e(t('Committees', 'Mga komite')) ?></a>
+      <a class="st-link" href="administrative-services.php#admins"><?= e(t('Administrators', 'Mga Administrator')) ?></a>
+      <a class="st-link p-on" href="retirement-requests.php" aria-current="page"><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?></a>
+      <a class="st-link" href="administrative-services.php#plan"><?= e(t('Planning', 'Pagpaplano')) ?></a>
+    </nav>
 
     <?php if ($flash): ?>
       <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>

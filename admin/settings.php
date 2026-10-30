@@ -25,6 +25,31 @@ require_once __DIR__ . '/includes/qr.php';
 $admin = require_admin();
 $db    = db();
 
+// One tab engine, three pages (30 Oct 2026, docs/ROLES_AND_PAGES.md): Settings keeps the system's own tabs, Administrative
+// Services takes the barangay's people and paperwork, the Control Room takes how the app behaves for this barangay. Each page
+// sets ST_PAGE and includes this file; a form posts to the page it is on and comes back to its tab on the page that owns it.
+const ST_PAGES = [
+    'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'look']],
+    'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'plan']],
+    'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts']],
+];
+$stPage = defined('ST_PAGE') && isset(ST_PAGES[ST_PAGE]) ? ST_PAGE : 'settings';
+
+function st_on(string $tab): bool
+{
+    return in_array($tab, ST_PAGES[$GLOBALS['stPage']]['tabs'], true);
+}
+
+/** A tab's address on the page that owns it ('places' is a card inside Appearance). */
+function st_url(string $tab, string $query = ''): string
+{
+    $own = $tab === 'places' ? 'look' : $tab;
+    foreach (ST_PAGES as $p) {
+        if (in_array($own, $p['tabs'], true)) return $p['file'] . $query . '#' . $tab;
+    }
+    return 'settings.php' . $query . '#' . $tab;
+}
+
 // 0084 (Rose): add an administrator, or issue one a new temporary
 // password. The password is shown once, here, and never stored by the portal.
 // 0130 (defense, 7 Sep): the barangay's positions. Which Kagawad chairs which committee, who is the Chairman, which tanods are the
@@ -64,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#admins');
+    header('Location: ' . st_url('admins'));
     exit;
 }
 
@@ -106,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'wordi
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php?wq=' . rawurlencode($wq) . '#wording');
+    header('Location: ' . st_url('wording', '?wq=' . rawurlencode($wq)));
     exit;
 }
 
@@ -144,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'brgy_
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#look');
+    header('Location: ' . st_url('brgy'));
     exit;
 }
 
@@ -171,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rules
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#rules');
+    header('Location: ' . st_url('rules'));
     exit;
 }
 
@@ -208,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#hotlines');
+    header('Location: ' . st_url('hotlines'));
     exit;
 }
 
@@ -239,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#types');
+    header('Location: ' . st_url('types'));
     exit;
 }
 
@@ -268,6 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 }
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $key === '' ? t('Committee made.', 'Nagawa ang komite.') : t('Committee saved.', 'Nai-save ang komite.')];
             } else {
+                $back = 'parts';
                 $db->rpc('feature_set', ['p_key' => (string) ($_POST['key'] ?? ''), 'p_on' => !empty($_POST['on'])]);
                 feature_forget();
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved. It applies to everyone now.', 'Nai-save. May bisa na sa lahat ngayon.')];
@@ -276,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#' . $back);
+    header('Location: ' . st_url($back));
     exit;
 }
 
@@ -305,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#smart');
+    header('Location: ' . st_url('smart'));
     exit;
 }
 
@@ -328,7 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#plan');
+    header('Location: ' . st_url('plan'));
     exit;
 }
 
@@ -352,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                     // 0141: what the change would do to the last 90 days of reports. Saves nothing.
                     $_SESSION['smart_replay'] = ['changes' => $changes, 'result' => $db->rpc('smart_replay', ['p_changes' => $changes, 'p_days' => 90, 'p_limit' => 1000])];
                     $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Nothing was saved. This is what the change would do.', 'Walang na-save. Ito ang magiging epekto ng pagbabago.')];
-                    header('Location: settings.php#smart');
+                    header('Location: ' . st_url('smart'));
                     exit;
                 }
                 $reason = trim((string) ($_POST['reason'] ?? ''));
@@ -386,7 +412,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#smart');
+    header('Location: ' . st_url('smart'));
     exit;
 }
 
@@ -416,7 +442,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#admins');
+    header('Location: ' . st_url('admins'));
     exit;
 }
 
@@ -528,7 +554,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: settings.php#places');
+    header('Location: ' . st_url('places'));
     exit;
 }
 $places = []; $kinds = [];
@@ -541,23 +567,25 @@ try {
     $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
 } catch (SupabaseError $ex) { /* the card says so below */ }
 
-layout_head(t('Settings', 'Mga Setting'), 'settings.php');
+$stTitle = ['settings' => t('Settings', 'Mga Setting'), 'admin' => t('Administrative Services', 'Mga Serbisyong Pang-admin'),
+            'control' => t('Control Room', 'Silid-Kontrol')][$stPage];
+layout_head($stTitle, ST_PAGES[$stPage]['file']);
 ?>
-<div class="p-topbar"><h1><?= e(t('Settings', 'Mga Setting')) ?></h1><span class="p-updated" id="st-checked"></span><span style="flex:1"></span>
-  <button class="p-btn p-btn-primary p-btn-sm" id="st-check" type="button"><?= e(t('Check again', 'Suriin muli')) ?></button></div>
+<div class="p-topbar"><h1><?= e($stTitle) ?></h1><?php if (st_on('status')): ?><span class="p-updated" id="st-checked"></span><span style="flex:1"></span>
+  <button class="p-btn p-btn-primary p-btn-sm" id="st-check" type="button"><?= e(t('Check again', 'Suriin muli')) ?></button><?php endif; ?></div>
 
-<div class="p-seg-mini st-tabs" role="tablist" aria-label="<?= e(t('Settings sections', 'Mga bahagi ng setting')) ?>">
-  <button type="button" class="p-on" role="tab" data-st="status"><?= e(t('System status', 'Kalagayan ng sistema')) ?></button>
-  <button type="button" role="tab" data-st="usage"><?= e(t('Plan and usage', 'Plano at paggamit')) ?></button>
-  <button type="button" role="tab" data-st="admins"><?= e(t('Administrators', 'Mga Administrator')) ?></button>
-  <button type="button" role="tab" data-st="access"><?= e(t('Access', 'Pahintulot')) ?></button>
-  <button type="button" role="tab" data-st="types"><?= e(t('Complaint types', 'Mga uri ng reklamo')) ?></button>
-  <button type="button" role="tab" data-st="rules"><?= e(t('Rules', 'Mga patakaran')) ?></button>
-  <button type="button" role="tab" data-st="hotlines"><?= e(t('Hotlines', 'Mga hotline')) ?></button>
-  <button type="button" role="tab" data-st="wording"><?= e(t('Wording', 'Mga salita')) ?></button>
-  <button type="button" role="tab" data-st="smart">SMART</button>
-  <button type="button" role="tab" data-st="plan"><?= e(t('Planning', 'Pagpaplano')) ?></button>
-  <button type="button" role="tab" data-st="look"><?= e(t('Appearance', 'Itsura')) ?></button>
+<?php
+$stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => t('Plan and usage', 'Plano at paggamit'), 'smart' => 'SMART',
+    'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Administrators', 'Mga Administrator'),
+    'plan' => t('Planning', 'Pagpaplano'), 'types' => t('Complaint types', 'Mga uri ng reklamo'), 'rules' => t('Rules', 'Mga patakaran'),
+    'hotlines' => t('Hotlines', 'Mga hotline'), 'wording' => t('Wording', 'Mga salita'), 'brgy' => t('The barangay', 'Ang barangay'),
+    'parts' => t('Parts of the system', 'Mga bahagi ng sistema')];
+?>
+<div class="p-seg-mini st-tabs" role="tablist" aria-label="<?= e(sprintf(t('%s sections', 'Mga bahagi ng %s'), $stTitle)) ?>">
+  <?php foreach (ST_PAGES[$stPage]['tabs'] as $k => $tb): ?>
+    <button type="button" class="<?= $k === 0 ? 'p-on' : '' ?>" role="tab" data-st="<?= e($tb) ?>"><?= e($stLabels[$tb]) ?></button>
+    <?php if ($tb === 'admins'): ?><a class="st-link" role="tab" aria-selected="false" href="retirement-requests.php"><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?></a><?php endif; ?>
+  <?php endforeach; ?>
 </div>
 
 <?php
@@ -576,6 +604,7 @@ try {
     $cmap    = $db->select('committee_for_category', ['select' => 'category,committee', 'order' => 'category.asc']);
 } catch (SupabaseError $e) { $admins = []; $tanods = []; $cmap = []; }
 ?>
+<?php if (st_on('admins')): ?>
 <section class="st-pane" data-pane="admins" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'ok'): ?>
     <div class="p-flash p-flash--ok" role="status">
@@ -775,8 +804,9 @@ try {
     </form>
   </div>
 </section>
+<?php endif; ?>
 
-<?php
+<?php if (st_on('status')):
 // 0096 (industry pass 5): the database pings the portal every 10 minutes
 // and keeps score.
 $up = null;
@@ -794,8 +824,9 @@ try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,cou
 $alerts = [];
 try { $alerts = $db->select('system_alerts', ['select' => 'key,message,raised_at', 'cleared_at' => 'is.null', 'order' => 'raised_at.desc']); } catch (SupabaseError) {}
 $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';
+endif;
 ?>
-<?php
+<?php if (st_on('access')):
 // ---------- Access (0145) ----------
 $cmCats = [];
 $switches = [];
@@ -807,7 +838,9 @@ try {
     foreach ((array) (($got['cc'] ?? null) instanceof SupabaseError ? [] : $got['cc']) as $r) { $cmCats[$r['committee']][] = $r['category']; }
     $switches = ($got['fs'] ?? null) instanceof SupabaseError ? [] : (array) $got['fs'];
 } catch (SupabaseError) {}
+endif;
 ?>
+<?php if (st_on('access')): ?>
 <section class="st-pane" data-pane="access" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
@@ -856,6 +889,17 @@ try {
     </form>
   </div>
 
+</section>
+<?php endif; ?>
+
+<?php if (st_on('parts')):
+// ---------- Parts of the system (0144) ----------
+$switches = [];
+try { $switches = (array) $db->select('feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc']); } catch (SupabaseError) {}
+?>
+<section class="st-pane" data-pane="parts" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
   <div class="p-card p-card-pad" id="acc-switches">
     <p class="p-eyebrow"><?= e(t('Parts of the system', 'Mga bahagi ng sistema')) ?></p>
     <p class="p-hint"><?= e(t('A part that is switched off stays in the system, unused, until it is switched on again.', 'Nananatili sa sistema ang bahaging naka-off, hindi ginagamit, hanggang i-on muli.')) ?></p>
@@ -866,8 +910,9 @@ try {
     <?php endforeach; ?></ul>
   </div>
 </section>
+<?php endif; ?>
 
-<?php
+<?php if (st_on('types')):
 // ---------- Complaint types (0146) ----------
 $catOpts = [];
 try {
@@ -878,7 +923,9 @@ try {
 $iconChoices = ['street_obstruction' => t('Obstruction', 'Sagabal'), 'public_safety_infrastructure' => t('Infrastructure', 'Imprastraktura'),
     'environmental_waste_hazard' => t('Waste', 'Basura'), 'animal_welfare' => t('Animal', 'Hayop'), 'traffic_violation' => t('Traffic', 'Trapiko'),
     'barangay_service' => t('Service', 'Serbisyo'), 'peace_order_nuisance' => t('Noise', 'Ingay'), 'other' => t('Other', 'Iba pa')];
+endif;
 ?>
+<?php if (st_on('types')): ?>
 <section class="st-pane" data-pane="types" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
@@ -929,8 +976,9 @@ $iconChoices = ['street_obstruction' => t('Obstruction', 'Sagabal'), 'public_saf
     </form>
   </div>
 </section>
+<?php endif; ?>
 
-<?php
+<?php if (st_on('rules') || st_on('hotlines')):
 // ---------- Rules and Hotlines (0147) ----------
 $ops = []; $slas = []; $hlGroups = []; $hlNums = [];
 try {
@@ -951,7 +999,9 @@ $hlTop = array_values(array_filter($hlGroups, fn ($g) => empty($g['parent_id']))
 $hlKids = [];
 foreach ($hlGroups as $g) { if (!empty($g['parent_id'])) $hlKids[(string) $g['parent_id']][] = $g; }
 $hlNext = static fn (array $rows): int => $rows ? max(array_map(fn ($r) => (int) $r['sort_order'], $rows)) + 1 : 1;
+endif;
 ?>
+<?php if (st_on('rules')): ?>
 <section class="st-pane" data-pane="rules" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
@@ -984,7 +1034,9 @@ $hlNext = static fn (array $rows): int => $rows ? max(array_map(fn ($r) => (int)
     <div class="ss-posform"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save rules', 'I-save ang mga patakaran')) ?></button></div>
   </form>
 </section>
+<?php endif; ?>
 
+<?php if (st_on('hotlines')): ?>
 <section class="st-pane" data-pane="hotlines" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
@@ -1036,8 +1088,9 @@ $hlNext = static fn (array $rows): int => $rows ? max(array_map(fn ($r) => (int)
     </form>
   </div>
 </section>
+<?php endif; ?>
 
-<?php
+<?php if (st_on('wording')):
 // ---------- Wording (0149) ----------
 $wq = trim((string) ($_GET['wq'] ?? ''));
 $wOwn = [];
@@ -1063,14 +1116,16 @@ $wRow = static function (string $src, array $c, ?array $ov, string $wq): void { 
     </div>
   </form>
 <?php };
+endif;
 ?>
+<?php if (st_on('wording')): ?>
 <section class="st-pane" data-pane="wording" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
   <div class="p-card p-card-pad" id="wording-card">
     <p class="p-eyebrow"><?= e(t('Wording', 'Mga salita')) ?></p>
     <p class="p-hint"><?= e(t('Change what any label of the portal or the app says, in English, in Tagalog or both. Search for the words as they show now. A label put together while the page runs (with a number or a name in it) cannot be changed here.', 'Baguhin ang sinasabi ng anumang label ng portal o ng app, sa Ingles, sa Tagalog o pareho. Hanapin ang mga salita kung paano ito lumalabas ngayon. Hindi mababago rito ang label na binubuo habang tumatakbo ang pahina (may numero o pangalan).')) ?></p>
-    <form method="get" action="settings.php#wording" class="wd-search" role="search">
+    <form method="get" action="<?= e(st_url('wording')) ?>" class="wd-search" role="search">
       <label class="p-sr" for="wd-q"><?= e(t('Search the labels', 'Hanapin ang mga label')) ?></label>
       <input class="p-input-plain" id="wd-q" type="search" name="wq" value="<?= e($wq) ?>" minlength="2" placeholder="<?= e(t('For example: Case Reports', 'Halimbawa: Case Reports')) ?>">
       <button class="p-btn p-btn-sm" type="submit"><?= e(t('Search', 'Hanapin')) ?></button>
@@ -1084,7 +1139,9 @@ $wRow = static function (string $src, array $c, ?array $ov, string $wq): void { 
     <?php foreach ($wOwn as $src => $ov) $wRow($src, wording_catalog()[$src] ?? ['en' => $src, 'fil' => $src, 'in' => []], $ov, $wq); ?>
   </div>
 </section>
+<?php endif; ?>
 
+<?php if (st_on('status')): ?>
 <section class="st-pane" data-pane="status">
   <div class="st-banner" id="st-banner"></div>
   <?php if ($alerts): ?>
@@ -1170,8 +1227,9 @@ $wRow = static function (string $src, array $c, ?array $ov, string $wq): void { 
   <div class="p-card p-card-pad st-credits"><p class="p-eyebrow"><?= e(t('Map credits', 'Mga kredito ng mapa')) ?></p>
     <p class="st-credit-line"><?= e(t('Map data © OpenStreetMap contributors (ODbL) · tiles by OpenFreeMap and OpenMapTiles · building footprints also from Overture Maps (Google Open Buildings, Microsoft ML Buildings) · tree heights from the Meta and World Resources Institute canopy height map (CC BY 4.0) · floor counts from Overture Maps and OpenStreetMap · flood hazard maps © UP NOAH Center (Project NOAH) · air quality and rain by Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · photos from Wikimedia Commons, credited where shown · icons from Lucide (ISC) and Tabler Icons (MIT).', 'Datos ng mapa © OpenStreetMap contributors (ODbL) · tiles mula sa OpenFreeMap at OpenMapTiles · mga hugis ng gusali mula rin sa Overture Maps (Google Open Buildings, Microsoft ML Buildings) · taas ng puno mula sa canopy height map ng Meta at World Resources Institute (CC BY 4.0) · mapa ng baha © UP NOAH Center (Project NOAH) · kalidad ng hangin at ulan mula sa Open-Meteo · street imagery © Mapillary contributors (CC BY-SA) · mga larawan mula sa Wikimedia Commons, may kredito kung saan ipinapakita · mga icon mula sa Lucide (ISC) at Tabler Icons (MIT).')) ?></p></div>
 </section>
+<?php endif; ?>
 
-<?php
+<?php if (st_on('smart') || st_on('plan')):
 // ---------- SMART ----------
 $sr = null; $cal = []; $fac = []; $digest = ''; $words = [];
 $try = $_SESSION['smart_try'] ?? null; unset($_SESSION['smart_try']);
@@ -1213,7 +1271,9 @@ try {
 $cmd ??= ['auto' => false, 'links' => [], 'runs' => []];
 $cmdLink = $_SESSION['cmd_link'] ?? null; unset($_SESSION['cmd_link']);
 $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'high' => t('High', 'Mataas'), 'urgent' => t('Urgent', 'Madalian')];
+endif;
 ?>
+<?php if (st_on('smart')): ?>
 <section class="st-pane" data-pane="smart" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
@@ -1448,7 +1508,9 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
   <?php endif; ?>
   <?php endif; ?>
 </section>
+<?php endif; ?>
 
+<?php if (st_on('plan')): ?>
 <section class="st-pane" data-pane="plan" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
@@ -1546,8 +1608,10 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     <?php endif; ?>
   </div>
 </section>
+<?php endif; ?>
 
-<section class="st-pane" data-pane="look" hidden>
+<?php if (st_on('brgy')): ?>
+<section class="st-pane" data-pane="brgy" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
   <form method="post" enctype="multipart/form-data" class="p-card p-card-pad" id="brgy-card">
@@ -1565,6 +1629,11 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     </div>
     <div class="ss-posform"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></div>
   </form>
+</section>
+<?php endif; ?>
+
+<?php if (st_on('look')): ?>
+<section class="st-pane" data-pane="look" hidden>
   <div class="p-card p-card-pad st-look">
     <p class="p-eyebrow"><?= e(t('Theme and language', 'Tema at wika')) ?></p>
     <div class="st-prefs">
@@ -1623,12 +1692,16 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
     <?php endif; ?>
   </div>
 </section>
+<?php endif; ?>
 
+<?php if (st_on('usage')): ?>
 <section class="st-pane" data-pane="usage" hidden>
   <p class="st-note"><?= e(t('Which plan each service is on and how close the barangay is to its limits. Amber at 75%, red at 90%.', 'Kung anong plano ang bawat serbisyo at gaano kalapit sa limitasyon. Dilaw sa 75%, pula sa 90%.')) ?></p>
   <div class="st-plans" id="st-plans"><p class="st-note"><?= e(t('Loading…', 'Naglo-load…')) ?></p></div>
 </section>
+<?php endif; ?>
 
+<?php if (st_on('status')): ?>
 <script>
 (function () {
   const PLACES = <?= json_encode(SERVICE_PLACES) ?>;
@@ -1801,6 +1874,14 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
   check(); usage();
 })();
 </script>
+<?php else: ?>
+<script>
+document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEventListener('click', function () {
+  document.querySelectorAll('.st-tabs [data-st]').forEach(function (x) { x.classList.toggle('p-on', x === b); });
+  document.querySelectorAll('.st-pane').forEach(function (p) { p.hidden = p.dataset.pane !== b.dataset.st; });
+}); });
+</script>
+<?php endif; ?>
 <script>
 // Theme: Light or Dark, kept in this browser (the sidebar switch moved here, 14 Oct).
 (function () {
@@ -1836,8 +1917,12 @@ $lvl = ['low' => t('Low', 'Mababa'), 'normal' => t('Normal', 'Katamtaman'), 'hig
 <script>
 // Back on the Administrators tab after adding or resetting.
 // #places is a card inside Appearance: open that tab, then bring the card into view
-var stTab = { '#wording': 'wording', '#look': 'look', '#admins': 'admins', '#access': 'access', '#types': 'types', '#rules': 'rules', '#hotlines': 'hotlines', '#smart': 'smart', '#plan': 'plan', '#look': 'look', '#places': 'look' }[location.hash];
-if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
+// A tab that moved to another page (30 Oct 2026) sends the old link on to it.
+var stOwner = <?= json_encode(array_merge(...array_map(fn ($p) => array_fill_keys($p['tabs'], $p['file']), array_values(ST_PAGES)))) ?>;
+var stTab = location.hash === '#places' ? 'look' : location.hash.slice(1);
+if (stTab && stOwner[stTab] && !document.querySelector('.st-tabs [data-st="' + stTab + '"]')) { location.replace(stOwner[stTab] + location.search + location.hash); }
+else if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
+if (!document.querySelector('.st-pane:not([hidden])')) { var f = document.querySelector('.st-tabs [data-st]'); if (f) f.click(); }
 </script>
 <script>
 // Map surfaces: Glass or Solid, kept in this browser.

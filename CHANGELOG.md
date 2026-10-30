@@ -211,6 +211,18 @@ Changes on `main` not yet deployed belong here.
   `php .github/scripts/wording-catalog.php` writes it, and CI fails when it
   is out of date.
 
+**Changed (roles and pages, step 1a, 30 Oct)**
+- The plan for who sees what, page by page, is written down in
+  docs/ROLES_AND_PAGES.md (decided with Ace after Sir Kiko's notes).
+- Extra Administrative Services is now **Administrative Services**: the
+  committees and who sees what, the administrators, the retirement requests
+  and Planning, as tabs of one page.
+- A new page, the **Control Room**: complaint types, rules, hotlines,
+  wording, the barangay's name and seal, and the parts of the system that can
+  be switched off.
+- Settings keeps System status, Plan and usage, SMART and Appearance. An old
+  link to a tab that moved opens it on its new page.
+
 **Fixed**
 - Administrators could not see a hotline switched off, nor switch one off,
   since 0145 (0147).
