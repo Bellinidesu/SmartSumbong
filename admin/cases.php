@@ -466,13 +466,13 @@ $noteBadge = $notesUnread + $escCount;
   <h2><?= e(t('Waiting on you', 'Naghihintay sa iyo')) ?><span class="p-badge-n"><?= count($pins) ?></span></h2>
 </div>
 <div class="p-card p-notif-card fw-pins" style="margin-bottom:28px"><div class="p-notif-list">
-  <?php foreach ($pins as $pn): ?>
+  <?php foreach ($pins as $pi => $pn): if ($pi === 5): ?><details class="fw-more"><summary><?= e(sprintf(t('Show %d more', 'Ipakita ang %d pa'), count($pins) - 5)) ?></summary><?php endif; ?>
     <div class="p-notif p-unread">
       <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : ($pn['kind'] === 'reroute' ? 'i-route' : 'i-send'), 18) ?></span>
       <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
       <a class="p-btn p-btn-sm p-btn-orange" href="<?= e(!empty($pn['href']) ? $pn['href'] : 'case.php?id=' . $pn['report']) ?>"><?= e($pn['kind'] === 'reroute' ? t('Pick a tanod', 'Pumili ng tanod') : t('Review', 'Suriin')) ?></a>
     </div>
-  <?php endforeach; ?>
+  <?php endforeach; if (count($pins) > 5): ?></details><?php endif; ?>
 </div></div>
 <?php endif; ?>
 <!-- ---------- notifications ---------- -->
@@ -697,19 +697,22 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 <?= forward_dialog($fwBack) ?>
 
 <div class="p-card p-table-card"><div class="p-tscroll">
-  <table class="p-t ss-cases-t">
+  <?php // 0159: column widths by name, so the optional columns (select, committee) never push the rest out of place
+  $cw = ['sel' => is_super() ? 3 : 0, 'res' => 10, 'id' => 9, 'cat' => 12, 'com' => sees_everything() ? 16 : 0, 'st' => 10, 'fil' => 7, 'smart' => 9, 'hnd' => 11, 'now' => 7, 'act' => 9];
+  $cwSum = array_sum($cw); ?>
+  <table class="p-t ss-cases-t<?= sees_everything() ? ' ss-cases-wide' : '' ?>">
     <thead><tr>
-      <?php if (is_super()): ?><th scope="col" class="ss-c fw-selc"><input type="checkbox" id="fw-all" aria-label="<?= e(t('Select every case on this page', 'Piliin ang bawat kaso sa pahinang ito')) ?>"></th><?php endif; ?>
-      <th scope="col"><?= e(t('Resident', 'Residente')) ?></th>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
-      <?php if (sees_everything()): ?><th scope="col"><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
-      <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
-      <th scope="col"><?= e(t('SMART', 'SMART')) ?></th>
-      <th scope="col"><?= e(t('Handler', 'Humahawak')) ?></th>
-      <th scope="col" class="ss-c"><?= e(t('Open now', 'Bukas ngayon')) ?></th>
-      <th scope="col" class="ss-c"><?= e(t('Action', 'Aksyon')) ?></th>
+      <?php if (is_super()): ?><th scope="col" style="width:<?= round($cw['sel'] / $cwSum * 100, 2) ?>%" class="ss-c fw-selc"><input type="checkbox" id="fw-all" aria-label="<?= e(t('Select every case on this page', 'Piliin ang bawat kaso sa pahinang ito')) ?>"></th><?php endif; ?>
+      <th scope="col" style="width:<?= round($cw['res'] / $cwSum * 100, 2) ?>%"><?= e(t('Resident', 'Residente')) ?></th>
+      <th scope="col" style="width:<?= round($cw['id'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
+      <th scope="col" style="width:<?= round($cw['cat'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
+      <?php if (sees_everything()): ?><th scope="col" style="width:<?= round($cw['com'] / $cwSum * 100, 2) ?>%"><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
+      <th scope="col" style="width:<?= round($cw['st'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
+      <th scope="col" style="width:<?= round($cw['fil'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
+      <th scope="col" style="width:<?= round($cw['smart'] / $cwSum * 100, 2) ?>%"><?= e(t('SMART', 'SMART')) ?></th>
+      <th scope="col" style="width:<?= round($cw['hnd'] / $cwSum * 100, 2) ?>%"><?= e(t('Handler', 'Humahawak')) ?></th>
+      <th scope="col" style="width:<?= round($cw['now'] / $cwSum * 100, 2) ?>%" class="ss-c"><?= e(t('Open now', 'Bukas ngayon')) ?></th>
+      <th scope="col" style="width:<?= round($cw['act'] / $cwSum * 100, 2) ?>%" class="ss-c"><?= e(t('Action', 'Aksyon')) ?></th>
     </tr></thead>
     <tbody id="reports-tbody">
       <?php if (!$reports): ?>

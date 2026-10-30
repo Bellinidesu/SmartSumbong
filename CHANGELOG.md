@@ -341,6 +341,20 @@ Changes on `main` not yet deployed belong here.
   only the super admins. A committee's *Right now* strip shows its own kinds
   of complaint and its own cases.
 
+**Changed (the aesthetic and symmetry pass, 30 Oct)**
+- Case Reports: the columns are sized by name, so the Committee column (and the
+  tick boxes for super admins) no longer crush Status and Handler; committee
+  names fit, statuses stay on one line.
+- Personnel: the Committees column has room, its pills wrap instead of
+  spilling into the next column, and email addresses wrap sensibly.
+- Notifications: "Waiting on you" shows the five most urgent (reroute
+  questions first, then flags) with the rest folded under "Show N more".
+- Dashboard: the brain buttons are a square icon that stays inside the card.
+- Edit Profile: the banner choices line up; the picture box is a proper
+  button instead of the browser's raw file input.
+- Administrative Services: the committee action buttons share one width.
+- Phone width: the tab bars (Administrative Services, Control Room, Personnel) scroll inside themselves and long buttons wrap, so no page scrolls sideways at 390 px.
+
 **Changed (backend hardening, 30 Oct)**
 - Retention for the records that had none (0158): SMS reset codes 30 days,
   tanod attendance and the punch card a year, Inbox messages two years,

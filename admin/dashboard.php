@@ -266,7 +266,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <div class="p-card" style="margin-bottom:20px">
   <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
     <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span>
-    <button type="button" class="dq-brain" data-chart="received" aria-expanded="false" aria-controls="notes-received" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_logo(26) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button></div>
+    <button type="button" class="dq-brain" data-chart="received" aria-expanded="false" aria-controls="notes-received" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_brain(24) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button></div>
   <div class="dq-notes" id="notes-received" hidden></div>
   <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="260" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
     <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
@@ -315,7 +315,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
           <?php endforeach; ?>
         </select></label>
     </form>
-    <button type="button" class="dq-brain" data-chart="efficiency" aria-expanded="false" aria-controls="notes-efficiency" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_logo(26) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button>
+    <button type="button" class="dq-brain" data-chart="efficiency" aria-expanded="false" aria-controls="notes-efficiency" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_brain(24) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button>
   </div>
   <div class="dq-notes" id="notes-efficiency" hidden></div>
   <p class="p-hint p-eff-note"><?= e(t('Average hours taken to finish a complaint, against the hours its category was allowed. Below the dashed line is inside the SLA.',

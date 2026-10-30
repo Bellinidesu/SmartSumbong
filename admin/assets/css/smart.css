@@ -543,9 +543,7 @@
 .ss-cases-t{table-layout:fixed;min-width:1080px}
 .ss-cases-t thead th{background:var(--p-orange);color:#2B1A00;border-color:transparent}
 .ss-cases-t thead th .p-th-sort:hover{color:#000}
-.ss-cases-t th:nth-child(1){width:14%}.ss-cases-t th:nth-child(2){width:10%}.ss-cases-t th:nth-child(3){width:14%}
-.ss-cases-t th:nth-child(4){width:16%}.ss-cases-t th:nth-child(5){width:8%}.ss-cases-t th:nth-child(6){width:11%}
-.ss-cases-t th:nth-child(7){width:14%}.ss-cases-t th:nth-child(8){width:7%}.ss-cases-t th:nth-child(9){width:6%}
+table.ss-cases-t.ss-cases-wide{min-width:1300px}
 .ss-cases-t .ss-who{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:nowrap}
 .ss-cases-t .ss-who .rank{margin-left:0}
 .ss-cases-t td:nth-child(3){min-width:0}
