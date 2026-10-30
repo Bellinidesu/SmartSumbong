@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Faster (30 Oct)**
+- The map's styles moved out of `flair.css` into `flair-map.css`, loaded only by
+  Spatial Distribution. Every other page, and the sign-in pages, download about
+  29 KB less (flair.css 36.6 KB to 7.9 KB gzipped; the sign-in page 292 KB to
+  263 KB). Nothing looks different: every page was compared element by element,
+  light and dark, before and after.
+
 **Changed (Rose's notes on the portal, 21 Oct)**
 - Sign-in: the appearance and language options are back on the sign-in page;
   signing in lands on Notifications first.
