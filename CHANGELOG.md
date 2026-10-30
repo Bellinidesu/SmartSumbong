@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Dashboard symmetry, 30 Oct)**
+- The trend hero grid lines up: the trend card and the status/tile column end on the
+  same line, the three cards below end together, every gap is 20 px, every card
+  title sits on the same line, and the committees table rows line up. Measured
+  with `tests/browser/measure.spec.mjs` at 1440 and 2048 px.
+
 **Changed (Rose's notes on the portal, 21 Oct)**
 - Sign-in: the appearance and language options are back on the sign-in page;
   signing in lands on Notifications first.
