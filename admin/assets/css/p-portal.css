@@ -432,6 +432,19 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ty-new { border-top: 1px dashed var(--p-line-2); margin-top: 8px; padding-top: 14px; }
 @media (max-width: 900px) { .ty-row, .ty-opt { grid-template-columns: 1fr 1fr; } .ty-opts { padding-left: 0; } }
 
+/* 0150: a committee admin's sidebar names the committee, in its colour */
+.p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
+.p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
+.p-side-com span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { justify-content: center; padding: 8px; }
+html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com span { display: none; }
+/* 0150: colours on the Committees tab */
+.acc-col input[type=color] { width: 40px; height: 32px; padding: 2px; border-radius: 8px; border: 1px solid var(--p-line-2); background: var(--p-surface); cursor: pointer; }
+.acc-sup { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.acc-sup code { font-size: 13px; color: var(--p-muted); }
+.acc-swatch { width: 34px; height: 34px; border-radius: 10px; background: var(--cc); box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+#acc-super { margin-bottom: 16px; }
+
 /* Tabs that are their own address (30 Oct 2026): a link that looks like the tab buttons beside it */
 .st-tabs .st-link { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 7px; font-weight: 700; font-size: 13px; color: var(--p-muted); text-decoration: none; }
 .st-tabs .st-link:hover { color: var(--p-ink); }

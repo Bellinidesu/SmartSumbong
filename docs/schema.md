@@ -37,8 +37,10 @@ How the database fits the rest of the system is in
 | `sla_extensions` | Audited deadline extensions | 0002 |
 | `case_handler_log` | Admins taking, releasing and taking over cases (Activity page) | 0087 |
 | `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation, the Anti-Drug Abuse Council | 0145 |
+| `committees.colour` | Each committee's colour, chosen by a super admin; its admins' sidebar wears it; no two active committees, and no committee and the super admins, may be close (0150) | 0150 |
 | `committee_categories` | The categories each committee sees (the super admin's ticks) | 0145 |
 | `committee_for_category` | The committee that usually takes each kind of complaint (editable defaults) | 0130 |
+| `barangay_profile.super_colour` | The one colour every super admin's sidebar wears, branding blue by default (0150) | 0150 |
 | `wording` | The barangay's own wording for a label of the portal or the app, keyed by the English text the code carries (null keeps the code's own); read before signing in, edited by a super admin in Settings > Wording | 0149 |
 | `barangay_profile` | The barangay's name, place and seal (null: the one shipped), one row edited by a super admin in Settings > Appearance; readable before signing in | 0148 |
 | `complaint_categories` | The complaint categories, edited by a super admin: English and Tagalog names, colour, map symbol, order, on or off; each key is a value of the `complaint_category` type | 0146 |
@@ -186,6 +188,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `admin_tier`, `is_super_admin`, `is_full_viewer`, `admin_can_write`, `admin_sees_category`, `admin_sees_case`, `admin_sees_report`, `admin_sees_dispatch` | 0145 | What the signed-in administrator may see and do (used by the access rules and the functions) |
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
+| `committee_save` (now with a colour), `_colour_clash`, `_committee_free_colour` | 0150 | A committee's colour, and what a colour is too close to; the triggers on `committees` and `barangay_profile` refuse a clash |
 | `catalogue_fill` | 0147 | Gives every category a deadline and a first committee (copied from Others); the portal calls it right after making a category |
 | `category_save`, `option_save` | 0146 | A super admin makes or changes a category (a new one is added to the `complaint_category` type) or an option |
 | `feature_on`, `feature_set` | 0144 | Whether a part is on; an administrator turns one on or off. The command center's functions answer "off" when it is switched off |

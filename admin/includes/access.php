@@ -89,7 +89,7 @@ function committees_all(): array
     if ($memo !== null) return $memo;
     $memo = [];
     try {
-        foreach ((array) db()->select('committees', ['select' => 'key,name_en,name_fil,short_en,active,sort', 'order' => 'sort.asc,key.asc']) as $c) {
+        foreach ((array) db()->select('committees', ['select' => 'key,name_en,name_fil,short_en,active,sort,colour', 'order' => 'sort.asc,key.asc']) as $c) {
             $memo[(string) $c['key']] = $c;
         }
     } catch (Throwable) {}

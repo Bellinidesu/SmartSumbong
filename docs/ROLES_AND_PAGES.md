@@ -165,7 +165,7 @@ for forwards, flags, reroute questions and Inbox messages.
 | Step | What | Status |
 |---|---|---|
 | 1a | Pages: Administrative Services and the Control Room take their tabs from Settings | Built (this PR) |
-| 1b | Committee colours and creator, the super admin colour, committee sidebars, vivid ladder | |
+| 1b | Committee colours and creator, the super admin colour, committee sidebars, vivid ladder | Built (0150) |
 | 2 | Roles: moderator tier, staff assigned to a committee, the Chairman as super admin, each rung's pages | |
 | 3 | Forwarding: per-case committee, forward and flag, history, pinned notifications, Case Reports chips | |
 | 4 | Personnel: tanods to committees with approval, each version's view, the punch card | |

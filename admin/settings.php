@@ -269,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 }
 
 // Access (0145): an administrator's tier, committee and developer mark; the committees and what each sees; the feature switches.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['set_access', 'committee_save', 'feature_toggle'], true)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['set_access', 'committee_save', 'feature_toggle', 'super_colour'], true)) {
     session_start_once();
     $back = 'access';
     if (!csrf_check($_POST['csrf'] ?? null)) {
@@ -286,12 +286,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 $key = (string) ($_POST['key'] ?? '');
                 $saved = $db->rpc('committee_save', ['p_key' => $key ?: null, 'p_name_en' => trim((string) ($_POST['name_en'] ?? '')),
                     'p_name_fil' => trim((string) ($_POST['name_fil'] ?? '')) ?: null, 'p_active' => $key === '' ? true : !empty($_POST['active']),
-                    'p_short' => trim((string) ($_POST['short_en'] ?? '')) ?: null]);
+                    'p_short' => trim((string) ($_POST['short_en'] ?? '')) ?: null,
+                    'p_colour' => preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($_POST['colour'] ?? '')) ? strtoupper((string) $_POST['colour']) : null]);
                 $cats = array_values(array_filter((array) ($_POST['cats'] ?? []), fn ($c) => isset(category_pairs()[$c])));
                 if (is_string($saved) && ($key !== '' || $cats)) {
                     $db->rpc('committee_set_categories', ['p_key' => $saved, 'p_categories' => '{' . implode(',', $cats) . '}']);
                 }
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $key === '' ? t('Committee made.', 'Nagawa ang komite.') : t('Committee saved.', 'Nai-save ang komite.')];
+            } elseif ($_POST['action'] === 'super_colour') {
+                // 0150: the one colour of every super admin; the database refuses one near an active committee's
+                $hex = preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($_POST['colour'] ?? '')) ? strtoupper((string) $_POST['colour']) : SUPER_BLUE;
+                $db->update('barangay_profile', ['id' => 'eq.1'], ['super_colour' => $hex, 'updated_by' => current_admin()['id'] ?? null, 'updated_at' => gmdate('c')]);
+                barangay_forget();
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Super admin colour saved. Every super admin\'s sidebar wears it from their next page.', 'Nai-save ang kulay ng super admin. Suot ito ng sidebar ng bawat super admin mula sa susunod nilang pahina.')];
             } else {
                 $back = 'parts';
                 $db->rpc('feature_set', ['p_key' => (string) ($_POST['key'] ?? ''), 'p_on' => !empty($_POST['on'])]);
@@ -844,8 +851,24 @@ endif;
 <section class="st-pane" data-pane="access" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <?php $supHex = (string) (barangay()['super_colour'] ?? SUPER_BLUE); ?>
+  <div class="p-card p-card-pad" id="acc-super">
+    <p class="p-eyebrow"><?= e(t('Super admin colour', 'Kulay ng super admin')) ?></p>
+    <p class="p-hint"><?= e(t('One colour for every super admin\'s sidebar. No committee may use it or anything close to it, so a screenshot is never ambiguous. Change it and branding blue is free for a committee.', 'Iisang kulay para sa sidebar ng bawat super admin. Walang komiteng makagagamit nito o ng malapit dito, kaya hindi kailanman nakalilito ang screenshot. Palitan ito at magagamit ng komite ang branding blue.')) ?></p>
+    <form method="post" class="acc-sup">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="super_colour">
+      <span class="acc-swatch" style="--cc:<?= e($supHex) ?>" aria-hidden="true"></span>
+      <label class="acc-col"><span class="p-sr"><?= e(t('Super admin colour', 'Kulay ng super admin')) ?></span><input type="color" name="colour" value="<?= e(strtolower($supHex)) ?>"></label>
+      <code><?= e($supHex) ?></code><?php if ($supHex === SUPER_BLUE): ?><span class="p-badge p-b-progress"><?= e(t('Branding blue', 'Asul ng branding')) ?></span><?php endif; ?>
+      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save colour', 'I-save ang kulay')) ?></button>
+      <?php if ($supHex !== SUPER_BLUE): ?><button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="colour" value="<?= e(SUPER_BLUE) ?>"><?= e(t('Back to branding blue', 'Ibalik sa branding blue')) ?></button><?php endif; ?>
+    </form>
+  </div>
+  <datalist id="cm-palette"><?php foreach (COMMITTEE_PALETTE as $ph): ?><option value="<?= e(strtolower($ph)) ?>"></option><?php endforeach; ?></datalist>
+
   <div class="p-card p-card-pad" id="acc-committees">
     <p class="p-eyebrow"><?= e(t('Committees and what each sees', 'Mga komite at ang nakikita ng bawat isa')) ?></p>
+    <p class="p-hint"><?= e(t('Each committee has its own colour: its admins\' sidebar wears it. A colour too close to the super admin colour or another committee\'s is refused.', 'May sariling kulay ang bawat komite: suot ito ng sidebar ng mga admin nito. Tinatanggihan ang kulay na masyadong malapit sa kulay ng super admin o ng ibang komite.')) ?></p>
     <p class="p-hint"><?= e(t('A committee admin sees only the kinds of complaint ticked for their committee (and any case handed to them). Super admins and captains see everything. A committee that is switched off is not used: nobody can be put in it.', 'Ang komite admin ay nakikita lamang ang mga uri ng reklamong may tsek para sa kanilang komite (at anumang kasong ipinasa sa kanila). Nakikita ng super admin at kapitan ang lahat. Hindi ginagamit ang komiteng naka-off: walang maisasama rito.')) ?></p>
     <div class="acc-head" aria-hidden="true"><span><?= e(t('Name: full, in Tagalog, short', 'Pangalan: buo, sa Tagalog, maikli')) ?></span><span><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></span><span></span></div>
     <?php foreach (committees_all() as $ck => $cc): $ticked = $cmCats[$ck] ?? []; ?>
@@ -865,6 +888,8 @@ endif;
           <?php foreach (category_pairs() as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>" <?= in_array($cv, $ticked, true) ? 'checked' : '' ?>> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>
         </fieldset>
         <div class="acc-act">
+          <?php $cHex = committee_colour($ck); $cClash = !empty($cc['active']) ? null : colour_clash($cHex, $ck); ?>
+          <label class="acc-col" title="<?= e(t('Colour', 'Kulay')) ?>"><span class="p-sr"><?= e(sprintf(t('Colour of %s', 'Kulay ng %s'), (string) $cc['short_en'])) ?></span><input type="color" name="colour" value="<?= e(strtolower($cHex)) ?>" list="cm-palette"></label>
           <label class="sd-c"><input type="checkbox" name="active" value="1" <?= !empty($cc['active']) ? 'checked' : '' ?>> <?= e(t('On', 'Naka-on')) ?></label>
           <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
         </div>
@@ -885,7 +910,10 @@ endif;
       <fieldset class="acc-cats"><legend class="p-sr"><?= e(t('What the new committee sees', 'Ang nakikita ng bagong komite')) ?></legend>
         <?php foreach (category_pairs() as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>"> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>
       </fieldset>
-      <div class="acc-act"><button class="p-btn p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button></div>
+      <div class="acc-act">
+        <?php $freeHex = '#78909C'; foreach (COMMITTEE_PALETTE as $ph) { if (colour_clash($ph) === null) { $freeHex = $ph; break; } } ?>
+        <label class="acc-col" title="<?= e(t('Colour', 'Kulay')) ?>"><span class="p-sr"><?= e(t('Colour of the new committee', 'Kulay ng bagong komite')) ?></span><input type="color" name="colour" value="<?= e(strtolower($freeHex)) ?>" list="cm-palette"></label>
+        <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button></div>
     </form>
   </div>
 
