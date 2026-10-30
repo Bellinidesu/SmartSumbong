@@ -150,7 +150,7 @@ function colour_clash(string $hex, ?string $except = null): ?string
  */
 function side_colour(): array
 {
-    if (my_tier() === 'committee') {
+    if (is_scoped()) {   // a Kagawad or a staff member wears their committee's colour
         $c = committees_all()[(string) (current_admin()['committee'] ?? '')] ?? null;
         if ($c) return ['hex' => committee_colour((string) $c['key']), 'label' => (string) $c['short_en']];
     }

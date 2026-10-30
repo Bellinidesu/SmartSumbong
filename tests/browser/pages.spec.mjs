@@ -350,6 +350,23 @@ test('Roles and pages 1b: committee colours, the super admin colour, and the sid
   expect(r.errors.concat(c.errors), 'console errors').toEqual([]);
 });
 
+test('Roles and pages 2: staff are moderators of a committee; the Administrators tab works on its new page', async ({ page, context }) => {
+  let r = await open(page, 'administrative-services.php#admins');
+  await expect(page.locator('form.ss-access select[name="tier"] option[value="moderator"]').first()).toHaveCount(1);
+  const edit = page.locator('#jp-rows .ss-edit-btn').first();
+  const id = await edit.getAttribute('data-edit');
+  await edit.click();
+  await expect(page.locator(`tr.ss-erow[data-for="${id}"]`)).toBeVisible();   // the edit row opens here, not only on Settings
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'cases.php');
+  await expect(page.locator('#side-user')).toContainText('Staff · Peace and Order');
+  await expect(page.locator('.p-side-com')).toContainText('Peace and Order');
+  for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'settings.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  await page.goto('control-room.php');
+  await expect(page).toHaveURL(/notifications\.php/);
+  expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');

@@ -236,7 +236,22 @@ Changes on `main` not yet deployed belong here.
   Chairman red with a gold ring), as pills with a glowing dot in dark mode;
   in light mode the word is a deeper shade of the colour, for contrast.
 
+**Added (roles and pages, step 2: the ladder's tiers, 30 Oct)**
+- Staff are **moderators** of a committee (0151): a super admin assigns them
+  one, and they see and work its cases like its Kagawad, but the decisions
+  that change who answers for a case (approving or denying an escalation,
+  escalating, handing a case up, referring it out) stay with the Kagawad and
+  the super admins.
+- Setting a position sets the access that goes with it: the Chairman is a
+  super admin, a Kagawad a committee admin, the secretary a moderator.
+  Someone already raised to super admin stays one.
+- A staff member's sidebar reads "Staff · Peace and Order" and wears the
+  committee's colour.
+
 **Fixed**
+- The Administrators tab's Edit buttons and search did nothing once the tab
+  moved to Administrative Services (step 1a); the script now goes with the
+  tab.
 - Administrators could not see a hotline switched off, nor switch one off,
   since 0145 (0147).
 
