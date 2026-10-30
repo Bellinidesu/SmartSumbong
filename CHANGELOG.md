@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (feed rows, the gaps sealed, 31 Oct)**
+- Notifications: notifications about the same case fold into one row ("SS-2610-1003 · 2 updates
+  on this case") that opens to list them, with Open the case and Mark all as read. The live
+  refresh does the same. The side column is gone when it has nothing to hold.
+- Inbox: a message that waits for an answer shows its clock in the list (4:40 left); the open
+  message shows its conversation (the message it answers and the replies to it).
+- One shared feed row look (`.fr` and `data-sev`, docs/FEED_ROWS.md) used by both pages, ready for Case Reports.
+
 **Changed (feed row fixes after Ace's first look, 30 Oct)**
 - Notifications: an overdue complaint is red (it was orange), and system notices (system
   check, Typhoon Board, Storm mode) are plain information with a bell instead of a document

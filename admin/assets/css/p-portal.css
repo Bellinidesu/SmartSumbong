@@ -790,7 +790,7 @@ td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
 .ib-rows { display: grid; gap: 2px; }
 .ib-row { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-areas: "av top" "av line"; column-gap: 12px; row-gap: 2px; align-items: center; padding: 12px 14px 12px 20px; border-radius: 14px; text-decoration: none; color: var(--p-ink-2); transition: background .15s; }
 .ib-row:hover, .ib-row:focus-visible { background: var(--p-surface-2); }
-.ib-row.ib-sel { background: color-mix(in srgb, var(--p-orange) 11%, transparent); box-shadow: inset 3px 0 0 var(--p-orange); }
+.ib-row.ib-sel { background: color-mix(in srgb, var(--p-orange) 11%, transparent); }
 .ib-av { grid-area: av; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; font: 800 13px Urbanist, sans-serif; background: var(--p-blue-50); color: var(--p-link); }
 .ib-av.is-sys { background: color-mix(in srgb, var(--p-violet, #8B6BFF) 16%, transparent); color: var(--p-violet, #8B6BFF); }
 .ib-top { grid-area: top; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0; }
@@ -800,11 +800,31 @@ td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
 .ib-subj { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p-muted); flex: 0 1 auto; min-width: 0; }
 .ib-line .ib-case { flex: none; margin-left: auto; }
 .ib-row.ib-unread .ib-name, .ib-row.ib-unread .ib-subj { font-weight: 800; color: var(--p-ink); }
-.ib-row.ib-unread::before { content: ""; position: absolute; left: 7px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--p-orange); }
-.ib-row.ib-needs { box-shadow: inset 3px 0 0 var(--p-orange); background: color-mix(in srgb, var(--p-orange) 7%, transparent); }
+.ib-row.ib-needs { background: color-mix(in srgb, var(--p-orange) 7%, transparent); }
+.ib-due { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--p-orange); font-variant-numeric: tabular-nums; }
+.ib-due.is-late { color: var(--p-red); }
+.ib-thread { display: grid; gap: 8px; margin-top: 6px; }
+.ib-msg { display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-areas: "av top" "av body"; column-gap: 12px; row-gap: 2px; padding: 12px 14px; border: 1px solid var(--p-line); border-radius: 14px; text-decoration: none; color: var(--p-ink-2); }
+.ib-msg:hover { background: var(--p-surface-2); }
+.ib-msg.is-mine { border-color: color-mix(in srgb, var(--p-orange) 40%, var(--p-line)); background: color-mix(in srgb, var(--p-orange) 6%, transparent); }
+.ib-msg .ib-av { grid-area: av; }
+.ib-msg-top { grid-area: top; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; color: var(--p-ink); }
+.ib-msg-body { grid-area: body; font-size: 13.5px; overflow-wrap: anywhere; }
 .ib-head { display: flex; align-items: center; gap: 12px; }
 .ib-head .ib-meta { line-height: 1.55; }
 .ib-date { font-size: 12.5px; }
 /* an empty Inbox: one empty state, with the list card gone */
 .ib-split.ib-empty { grid-template-columns: 1fr; }
 .ib-split.ib-empty .ib-list { display: none; }
+
+/* Notifications: one row per case when a case has several (30 Oct); and no side column when it has nothing to hold */
+.nf-grid--solo { grid-template-columns: 1fr; }
+.nf-case-items li { align-items: flex-start; flex-wrap: nowrap; }
+.nf-case-items .nf-sev { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--sev, var(--p-muted)); }
+.nf-case-items li[data-sev="high"] { --sev: var(--p-red); } .nf-case-items li[data-sev="warn"] { --sev: var(--p-orange); } .nf-case-items li[data-sev="act"] { --sev: var(--p-link); }
+.nf-case-items .nf-msg { flex: 1 1 auto; min-width: 0; color: var(--p-ink-2); }
+.nf-case-items .nf-msg.is-unread { color: var(--p-ink); font-weight: 700; }
+.nf-case-items .p-when { flex: none; margin: 2px 0 0; }
+.nf-case-items .p-n-x { margin: 0 0 0 4px; flex: none; }
+.nf-case-act { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nf-case-act .nf-readall { margin: 0; }

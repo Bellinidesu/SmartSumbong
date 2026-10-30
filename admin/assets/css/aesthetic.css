@@ -132,27 +132,32 @@
 :root[data-theme="dark"] .p-blue th, :root[data-theme="dark"] thead.p-blue th {
   background: linear-gradient(180deg, #1B2133, #131826); color: #9DB8FF; border-bottom: 1px solid rgba(157, 184, 255, .35); }
 
-/* Feed rows (30 Oct, from how Linear, GitHub and PagerDuty list what needs you): an edge coloured by severity, an icon by kind,
-   unread in bold, read rows quiet, the buttons on hover. Only the Notifications list carries data-sev. */
-.p-notif-card .p-notif[data-sev] { --sev: var(--p-muted); background: none; box-shadow: none; min-height: 64px; padding: 10px 18px 10px 24px; transition: background .15s; }
-.p-notif-card .p-notif[data-sev="high"] { --sev: var(--p-red); }
-.p-notif-card .p-notif[data-sev="warn"] { --sev: var(--p-orange); }
-.p-notif-card .p-notif[data-sev="act"] { --sev: var(--p-link); }
-.p-notif-card .p-notif[data-sev]::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sev); }
-.p-notif-card .p-notif[data-sev]:not(.p-unread)::before { opacity: .3; }
-.p-notif-card .p-notif[data-sev] .p-n-ico:not(.is-smart) { background: color-mix(in srgb, var(--sev) 14%, transparent); color: var(--sev); }
-.p-notif-card .p-notif[data-sev] .p-unread-dot { display: none; }
-.p-notif-card .p-notif[data-sev].p-unread .p-n-line b { font-weight: 800; }
-.p-notif-card .p-notif[data-sev]:not(.p-unread) { opacity: .8; }
-.p-notif-card .p-notif[data-sev]:not(.p-unread) .p-n-line b { font-weight: 600; }
-.p-notif-card .p-notif[data-sev]:hover, .p-notif-card .p-notif[data-sev]:focus-within { background: var(--p-surface-2); opacity: 1; }
-.p-notif-card .p-notif[data-sev] .p-n-act .p-btn { background: transparent; border: 1px solid var(--p-line-2); color: var(--p-ink); box-shadow: none; min-width: 88px; }
-.p-notif-card .p-notif[data-sev] .p-n-act .p-btn:hover { background: var(--p-orange); border-color: transparent; color: #2B1A00; }
-.p-notif-card .p-notif[data-sev="high"] .p-n-act .p-btn { background: var(--p-orange); border-color: transparent; color: #2B1A00; box-shadow: 0 4px 14px color-mix(in srgb, var(--p-orange) 35%, transparent); }
+/* The feed row (30 Oct): one look for "a line in a list of things that need you" (Notifications, the Inbox, and Case Reports next),
+   from how Linear, GitHub and PagerDuty list them. A row opts in with class "fr" and data-sev = high | warn | act | info.
+     - an edge coloured by severity (red: act now, orange: be careful, blue: something to do, grey: information)
+     - unread is bold; a row that is not unread goes quiet (it is unread when it also has .p-unread or .is-unread)
+     - a soft hover; the row's own buttons are the row's business (Notifications and the Inbox decide theirs). */
+.fr { --sev: var(--p-muted); position: relative; transition: background .15s; }
+.fr[data-sev="high"] { --sev: var(--p-red); }
+.fr[data-sev="warn"] { --sev: var(--p-orange); }
+.fr[data-sev="act"] { --sev: var(--p-link); }
+.fr[data-sev]::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sev); }
+.fr[data-sev]:not(.p-unread):not(.is-unread)::before { opacity: .3; }
+.fr[data-sev]:not(.p-unread):not(.is-unread) { opacity: .8; }
+.fr[data-sev]:hover, .fr[data-sev]:focus-within { background: var(--p-surface-2); opacity: 1; }
+/* Notifications rows: the grid, the icon tile, the quiet buttons */
+.p-notif-card .p-notif.fr { background: none; box-shadow: none; min-height: 64px; padding: 10px 18px 10px 24px; }
+.p-notif-card .p-notif.fr .p-n-ico:not(.is-smart) { background: color-mix(in srgb, var(--sev) 14%, transparent); color: var(--sev); }
+.p-notif-card .p-notif.fr .p-unread-dot { display: none; }
+.p-notif-card .p-notif.fr.p-unread .p-n-line b { font-weight: 800; }
+.p-notif-card .p-notif.fr:not(.p-unread) .p-n-line b { font-weight: 600; }
+.p-notif-card .p-notif.fr .p-n-act .p-btn { background: transparent; border: 1px solid var(--p-line-2); color: var(--p-ink); box-shadow: none; min-width: 88px; }
+.p-notif-card .p-notif.fr .p-n-act .p-btn:hover { background: var(--p-orange); border-color: transparent; color: #2B1A00; }
+.p-notif-card .p-notif.fr[data-sev="high"] .p-n-act .p-btn { background: var(--p-orange); border-color: transparent; color: #2B1A00; box-shadow: 0 4px 14px color-mix(in srgb, var(--p-orange) 35%, transparent); }
 @media (hover: hover) {
-  .p-notif-card .p-notif[data-sev]:not([data-sev="high"]) .p-n-act .p-btn, .p-notif-card .p-notif[data-sev] .p-n-x { opacity: .5; transition: opacity .15s; }
-  .p-notif-card .p-notif[data-sev]:hover .p-n-act .p-btn, .p-notif-card .p-notif[data-sev]:focus-within .p-n-act .p-btn,
-  .p-notif-card .p-notif[data-sev]:hover .p-n-x, .p-notif-card .p-notif[data-sev]:focus-within .p-n-x { opacity: 1; }
+  .p-notif-card .p-notif.fr:not([data-sev="high"]) .p-n-act .p-btn, .p-notif-card .p-notif.fr .p-n-x { opacity: .5; transition: opacity .15s; }
+  .p-notif-card .p-notif.fr:hover .p-n-act .p-btn, .p-notif-card .p-notif.fr:focus-within .p-n-act .p-btn,
+  .p-notif-card .p-notif.fr:hover .p-n-x, .p-notif-card .p-notif.fr:focus-within .p-n-x { opacity: 1; }
 }
 /* the Notifications toolbar is a calm surface, not an orange band */
 .nf-main .p-band--calm { background: var(--p-surface); color: var(--p-ink); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); }

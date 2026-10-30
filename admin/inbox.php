@@ -88,7 +88,7 @@ try { $unread = $db->count('inbox_messages', ['recipient' => 'eq.' . $me, 'read_
 // the list on the left runs for every view of the page
     $per = 20;
     $page = max(1, (int) ($_GET['page'] ?? 1));
-    $rows = []; $total = 0; $listError = null;
+    $rows = []; $total = 0; $listError = null; $dueByQ = [];
     try {
         if ($box === 'in') {
             $q = ['recipient' => 'eq.' . $me];
@@ -106,6 +106,13 @@ try { $unread = $db->count('inbox_messages', ['recipient' => 'eq.' . $me, 'read_
             }
             $total = count($byBatch);
             $rows = array_slice(array_values($byBatch), ($page - 1) * $per, $per);
+        }
+        // the questions that still wait for an answer carry their clock into the list
+        $qids = array_values(array_filter(array_map(fn ($r) => (int) ($r['question_id'] ?? 0), $rows)));
+        if ($box === 'in' && $qids) {
+            foreach ((array) $db->select('reroute_questions', ['select' => 'id,state,due_at', 'id' => 'in.(' . implode(',', $qids) . ')']) as $qq) {
+                if (($qq['state'] ?? '') === 'open') { $dueByQ[(int) $qq['id']] = (string) $qq['due_at']; }
+            }
         }
     } catch (SupabaseError $ex) { $listError = safe_error($ex); }
 
@@ -130,10 +137,10 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
         $isSys = $box === 'in' && $r['kind'] === 'system';
         $who = $box === 'in' ? inbox_from($r) : (implode(', ', array_slice($r['names'], 0, 3)) . (count($r['names']) > 3 ? ' +' . (count($r['names']) - 3) : ''));
         $needs = !empty($r['question_id']) && $unreadRow; ?>
-      <a class="ib-row<?= $unreadRow ? ' ib-unread' : '' ?><?= $needs ? ' ib-needs' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
+      <a class="fr ib-row<?= $unreadRow ? ' ib-unread is-unread' : '' ?><?= $needs ? ' ib-needs' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" data-sev="<?= $needs ? 'high' : ($isSys ? 'info' : ($unreadRow ? 'act' : 'info')) ?>" href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
         <span class="ib-av<?= $isSys ? ' is-sys' : '' ?>" aria-hidden="true"><?= $isSys ? smart_brain(18) : e(admin_initials($box === 'in' ? (string) ($r['from']['full_name'] ?? '') : (string) ($r['names'][0] ?? ''))) ?></span>
         <span class="ib-top"><b class="ib-name"><?= e($who) ?></b><span class="ib-when"><?= e(relative_time((string) $r['created_at'])) ?></span></span>
-        <span class="ib-line"><span class="ib-subj"><?= e((string) $r['subject']) ?></span><?php if (!empty($r['question_id'])): ?><span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?><?php if (!empty($r['report']['tracking_id'])): ?><span class="p-mono-id ib-case"><?= e($r['report']['tracking_id']) ?></span><?php endif; ?></span>
+        <span class="ib-line"><span class="ib-subj"><?= e((string) $r['subject']) ?></span><?php if (!empty($r['question_id'])): ?><span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?><?php if (!empty($dueByQ[(int) ($r['question_id'] ?? 0)])): ?><span class="ib-due" data-due="<?= e($dueByQ[(int) $r['question_id']]) ?>"><?= p_icon('i-clock', 13) ?><b></b></span><?php endif; ?><?php if (!empty($r['report']['tracking_id'])): ?><span class="p-mono-id ib-case"><?= e($r['report']['tracking_id']) ?></span><?php endif; ?></span>
       </a>
     <?php endforeach; ?>
     </nav>
@@ -190,7 +197,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
     // ---------- one message ----------
     $m = null;
     try {
-        $rows = (array) $db->select('inbox_messages', ['select' => 'id,batch,sender,recipient,kind,subject,body,created_at,read_at,report_id,question_id,'
+        $rows = (array) $db->select('inbox_messages', ['select' => 'id,batch,sender,recipient,kind,subject,body,created_at,read_at,report_id,question_id,reply_to,'
             . 'from:users!inbox_messages_sender_fkey(full_name),to:users!inbox_messages_recipient_fkey(full_name),report:reports!inbox_messages_report_id_fkey(id,tracking_id,subject)',
             'id' => 'eq.' . $open, 'limit' => '1']);
         $m = $rows[0] ?? null;
@@ -206,6 +213,32 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
       <p class="ib-meta"><?php if ($m['kind'] === 'system'): ?><span class="p-badge p-b-grey"><?= e(t('System', 'Sistema')) ?></span> <?php endif; ?>
         <?= e(t('From', 'Mula kay')) ?> <b><?= e(inbox_from($m)) ?></b> &middot; <?= e(t('to', 'para kay')) ?> <?= e(formal_name((string) ($m['to']['full_name'] ?? ''))) ?><br><span class="ib-date"><?= e(long_datetime((string) $m['created_at'])) ?></span></p></div>
     <div class="ib-body"><?= nl2br(e((string) $m['body'])) ?></div>
+    <?php
+    // the conversation: the message this one answers, and every reply to it (what the database lets this person read)
+    $thread = [];
+    try {
+        $tsel = 'id,batch,sender,kind,subject,body,created_at,reply_to,from:users!inbox_messages_sender_fkey(full_name)';
+        if (!empty($m['reply_to'])) {
+            foreach ((array) $db->select('inbox_messages', ['select' => $tsel, 'id' => 'eq.' . (int) $m['reply_to'], 'limit' => '1']) as $tm) { if ((int) $tm['id'] === (int) $m['reply_to']) { $tm['dir'] = 'before'; $thread[] = $tm; } }
+        }
+        $seen = [];
+        foreach ((array) $db->select('inbox_messages', ['select' => $tsel, 'reply_to' => 'eq.' . (int) $m['id'], 'order' => 'created_at.asc', 'limit' => '20']) as $tm) {
+            if ((int) ($tm['reply_to'] ?? 0) !== (int) $m['id'] || isset($seen[$tm['batch']])) { continue; }
+            $seen[$tm['batch']] = true; $tm['dir'] = 'after'; $thread[] = $tm;
+        }
+    } catch (SupabaseError) { $thread = []; }
+    if ($thread): ?>
+      <section class="ib-thread" aria-label="<?= e(t('The conversation', 'Ang usapan')) ?>">
+        <p class="p-eyebrow"><?= e(t('The conversation', 'Ang usapan')) ?></p>
+        <?php foreach ($thread as $tm): $mine = ($tm['sender'] ?? '') === $me; ?>
+          <a class="ib-msg<?= $mine ? ' is-mine' : '' ?>" href="inbox.php?m=<?= (int) $tm['id'] ?>">
+            <span class="ib-av" aria-hidden="true"><?= e(admin_initials((string) ($tm['from']['full_name'] ?? ''))) ?></span>
+            <span class="ib-msg-top"><b><?= e($mine ? t('You', 'Ikaw') : inbox_from($tm)) ?></b><span class="ib-when"><?= e(($tm['dir'] === 'before' ? t('Earlier', 'Nauna') : t('Reply', 'Sagot')) . ' · ' . relative_time((string) $tm['created_at'])) ?></span></span>
+            <span class="ib-msg-body"><?= e(mb_strimwidth((string) $tm['body'], 0, 220, '…')) ?></span>
+          </a>
+        <?php endforeach; ?>
+      </section>
+    <?php endif; ?>
     <?php if (!empty($m['report'])): ?>
       <p><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($m['report']['id']) ?>"><?= p_icon('i-doc', 15) ?><?= e(sprintf(t('Open case %s', 'Buksan ang kaso %s'), $m['report']['tracking_id'])) ?></a></p>
     <?php elseif (!empty($m['report_id'])): ?>
@@ -256,4 +289,18 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <?php endif; ?>
 </div>
 </div>
+<script>
+// the countdown on messages that wait for an answer
+(function () {
+  var els = document.querySelectorAll('.ib-due[data-due]'); if (!els.length) return;
+  function tick() {
+    els.forEach(function (el) {
+      var left = Math.floor((new Date(el.getAttribute('data-due')).getTime() - Date.now()) / 1000), b = el.querySelector('b');
+      el.classList.toggle('is-late', left <= 0);
+      b.textContent = left <= 0 ? <?= json_encode(t('time is up', 'tapos na ang oras')) ?> : Math.floor(left / 60) + ':' + ('0' + (left % 60)).slice(-2) + ' <?= e(t('left', 'natitira')) ?>';
+    });
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
 <?php layout_foot();
