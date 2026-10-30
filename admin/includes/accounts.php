@@ -354,7 +354,7 @@ function render_account_screen(string $role): void
               <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e(formal_name($a['full_name'])) ?></span></div></td>
               <td class="p-num"><?= e($a['mobile_number']) ?></td>
               <?php if ($isTanod): ?>
-                <td><?= tc_pills($tc[$a['id']] ?? null) ?></td>
+                <td class="tc-cell"><?= tc_pills($tc[$a['id']] ?? null) ?></td>
                 <td class="ss-latest"><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">' . e(t('None', 'Wala')) . '</span>' ?></td>
               <?php endif; ?>
               <td class="ss-em"><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
@@ -664,7 +664,7 @@ function render_account_screen(string $role): void
             '<td class="ss-cbc"><input type="checkbox" class="ss-cb" value="' + escapeHtml(a.id) + '" aria-label="' + T('Select', 'Piliin') + ' ' + escapeHtml(String(a.full_name || '').trim()) + '"></td>' +
             '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(String(a.full_name || '').trim()) + '</span></div></td>' +
             '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
-            (IS_TANOD ? '<td>' + (TC_HTML[a.id] || TC_NONE) + '</td><td class="ss-latest">' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
+            (IS_TANOD ? '<td class="tc-cell">' + (TC_HTML[a.id] || TC_NONE) + '</td><td class="ss-latest">' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
                                                : '<span class="p-sub">' + T('None', 'Wala') + '</span>') + '</td>' : '') +
             '<td class="ss-em">' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>' +
             '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +

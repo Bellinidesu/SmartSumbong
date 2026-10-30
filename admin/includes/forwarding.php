@@ -144,5 +144,8 @@ function forwarding_pins(Supabase $db): array
             }
         }
     } catch (SupabaseError) {}
+    // most urgent first: a reroute question has a clock on it, then a staff flag, then cases to place or forwarded to us
+    $rank = ['reroute' => 0, 'flag' => 1, 'fwd' => 2, 'place' => 3];
+    usort($pins, fn ($a, $b) => [$rank[$a['kind']] ?? 9, $a['at']] <=> [$rank[$b['kind']] ?? 9, $b['at']]);
     return $pins;
 }

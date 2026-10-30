@@ -46,3 +46,4 @@ tests/browser/test-results/
 tests/browser/lighthouse/
 
 admin/includes/vendor/
+tests/browser/shots/

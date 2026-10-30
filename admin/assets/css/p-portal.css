@@ -560,6 +560,31 @@ a.p-btn-pdf2 { text-decoration: none; }
 .pf-punch { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
 .rt-endorse { justify-content: flex-end; }
 
+/* 0159: the aesthetic and symmetry pass */
+.cm-pill { max-width: 100%; min-width: 0; }
+.cm-pill, .ss-cases-t .cm-pill { overflow: hidden; text-overflow: ellipsis; }
+.ss-cases-t td .cm-pill { display: inline-flex; max-width: 100%; }
+.ss-cases-t .p-badge { white-space: nowrap; }
+.ss-cases-t td .p-badges { flex-wrap: wrap; gap: 4px; }
+.dq-brain { overflow: hidden; }
+.dq-brain svg, .dq-brain img { max-width: 24px; max-height: 24px; width: auto; height: auto; }
+
+.fw-more > summary { cursor: pointer; padding: 12px 20px; font-weight: 700; color: var(--p-link); list-style: none; border-top: 1px solid var(--p-line); text-align: center; }
+.fw-more > summary::-webkit-details-marker { display: none; }
+.fw-pins .p-notif { padding-right: 20px; }
+.pf-banner .ss-pf-2 { align-items: start; }
+.pf-banner .p-field { display: grid; gap: 6px; align-content: start; }
+.pf-banner input[type="file"] { font: inherit; padding: 6px; border: 1px dashed var(--p-line); border-radius: 10px; background: var(--p-surface-2); width: 100%; min-height: 38px; }
+.pf-banner input[type="file"]::file-selector-button { font: inherit; font-weight: 700; margin-right: 10px; padding: 6px 12px; border: 0; border-radius: 8px; background: var(--p-orange); color: #2B1A00; cursor: pointer; }
+.acc-row .acc-act, .acc-new .acc-act { min-width: 120px; justify-items: stretch; }
+.acc-row .acc-act .p-btn, .acc-new .acc-act .p-btn { width: 100%; justify-content: center; }
+
+.ss-tanods .p-t { min-width: 1260px; }
+td.tc-cell { min-width: 260px; max-width: 300px; }
+.tc-busy { flex: 0 0 100%; white-space: nowrap; }
+.tc-pills .cm-pill { white-space: normal; border-radius: 14px; overflow: visible; text-overflow: clip; max-width: 100%; }
+.ss-tanods td.ss-em, .ss-people td.ss-em { min-width: 170px; overflow-wrap: anywhere; }
+
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
