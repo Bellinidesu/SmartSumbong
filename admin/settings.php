@@ -1192,6 +1192,7 @@ endif;
     <p class="st-note"><?= e(t('Checked every hour. An alert closes on its own once the problem is gone; see docs/INCIDENTS.md for what to do.', 'Sinusuri bawat oras. Kusang nagsasara ang alerto kapag nawala na ang problema; tingnan ang docs/INCIDENTS.md.')) ?></p>
   </div>
   <?php endif; ?>
+  <div class="st-statgrid">
   <?php if (is_array($up)): ?>
   <div class="p-card p-card-pad st-uptime">
     <p class="p-eyebrow"><?= e(t('Portal uptime', 'Uptime ng portal')) ?></p>
@@ -1240,6 +1241,7 @@ endif;
     <p class="st-note"><?= e(t('Every minute the database hands the engine the ID photos of new sign-ups to read (type, name and number), and saves what it reads. A reading only points to what to check; a person verifies.', 'Bawat minuto, ibinibigay ng database sa engine ang mga ID ng bagong nag-sign up para basahin (uri, pangalan at numero), at sine-save ang nabasa. Tinuturo lamang ng pagbasa kung ano ang susuriin; tao ang nagve-verify.')) ?></p>
   </div>
   <?php endif; ?>
+  </div>
   <?php if (is_array($errs)): ?>
   <div class="p-card p-card-pad st-errors">
     <p class="p-eyebrow"><?= e(t('Recent errors', 'Mga kamakailang error')) ?></p>

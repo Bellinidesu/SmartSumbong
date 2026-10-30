@@ -735,3 +735,8 @@ html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:
   #types-card > :not(details) { grid-column: 1 / -1; }
   #types-card > details[open] { grid-column: 1 / -1; }
 }
+
+/* Settings, System status: the four health cards in a 2 x 2 grid on a wide screen (2048 px, Ace's screen) */
+.st-statgrid { display: grid; gap: 20px; margin-bottom: 20px; }
+.st-statgrid > .p-card { margin: 0; }
+@media (min-width: 1700px) { .st-statgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; } }

@@ -14,6 +14,8 @@ Changes on `main` not yet deployed belong here.
   alerts on the right, instead of one 1700 px wide column. One column under 1500 px.
 - Control Room, Complaint types: two columns on a wide screen; a category you open
   takes the full row. "1 options" now reads "1 option".
+- Settings, System status: the four health cards (uptime, memory, SMART engine, engine)
+  sit in a 2 x 2 grid on a wide screen, so the page is a screen shorter.
 
 **Changed (Rose's notes on the portal, 21 Oct)**
 - Sign-in: the appearance and language options are back on the sign-in page;
