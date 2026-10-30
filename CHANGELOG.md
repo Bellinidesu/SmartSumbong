@@ -248,6 +248,28 @@ Changes on `main` not yet deployed belong here.
 - A staff member's sidebar reads "Staff · Peace and Order" and wears the
   committee's colour.
 
+**Added (roles and pages, step 3: forwarding, 30 Oct)**
+- A case can be **forwarded** to another committee (0152). A super admin
+  forwards to any committee; a Kagawad forwards to another committee, or to
+  the super admins to place it. The case leaves whoever was handling it, the
+  receiving Kagawad is told, and the sending committee no longer sees it.
+  Forwarding is not escalation: escalation asks the Chairman to decide.
+- Staff cannot forward; they **flag** a case with the reason, and their
+  Kagawad forwards it or keeps it (the staff member is told either way).
+- Every forward, flag and dismissal is kept in the case's history
+  (`case_forwards`), which nobody can write, change or delete by hand; a
+  forwarded case carries "Forwarded from …" under its category.
+- Case Reports: **committee chips** above the list, in each committee's
+  colour with counts (All, each committee, red *No committee yet*; a
+  Kagawad gets *My committee*, *Forwarded to us*, *Flagged to forward*); a
+  Committee column in the overall view; Forward (or Flag) beside Review;
+  super admins tick several cases and forward them at once.
+- The case page shows the committee the case is with and how it got there,
+  a staff flag as a banner with Forward and Keep it here, and the forms.
+- Notifications: what waits on you is **pinned at the top** (a Kagawad: the
+  flags from their staff and cases forwarded to them; a super admin: cases
+  handed up to place).
+
 **Fixed**
 - The Administrators tab's Edit buttons and search did nothing once the tab
   moved to Administrative Services (step 1a); the script now goes with the

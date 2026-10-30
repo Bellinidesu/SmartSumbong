@@ -113,6 +113,12 @@ super admin stays one.
   edited. A forwarded case carries a "Forwarded from …" tag.
 - This needs a per-case committee: today a case's committee comes only from
   its category.
+- *Built (0152):* `reports.committee` is set only by forwarding (null: the
+  category's committee, as before); `reports.awaiting_placement` marks a case
+  a Kagawad handed to the super admins, which no committee sees until it is
+  placed. The functions are `forward_case`, `flag_case_for_forward` and
+  `dismiss_forward_flag`; the log is `case_forwards` and the open flags are the
+  view `case_forward_flags`. The portal side is `admin/includes/forwarding.php`.
 
 ### Notifications
 
@@ -175,7 +181,7 @@ for forwards, flags, reroute questions and Inbox messages.
 | 1a | Pages: Administrative Services and the Control Room take their tabs from Settings | Built (this PR) |
 | 1b | Committee colours and creator, the super admin colour, committee sidebars, vivid ladder | Built (0150) |
 | 2 | Roles: moderator tier, staff assigned to a committee, the Chairman as super admin, each rung's pages | Built (0151) |
-| 3 | Forwarding: per-case committee, forward and flag, history, pinned notifications, Case Reports chips | |
+| 3 | Forwarding: per-case committee, forward and flag, history, pinned notifications, Case Reports chips | Built (0152) |
 | 4 | Personnel: tanods to committees with approval, each version's view, the punch card | |
 | 5 | Inbox and the reroute question | |
 | 6 | Dashboard, Report Summary and Notifications changes | |

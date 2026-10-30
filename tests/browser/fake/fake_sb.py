@@ -36,6 +36,13 @@ for r in REPORTS:
     if r['handler_id']: r['handler'] = {'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None}
 REPORTS[0].update(is_anonymous=True, status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order'}, subject='Live wire sparking near the school', is_sensitive=False)
 REPORTS[1].update(is_sensitive=True, subject='Husband hits wife, children scared', category='peace_order_nuisance', status='validated')
+# 0152: the committee each case is with; one forwarded from Peace and Order, one handed to the super admins, one with none
+for i, r in enumerate(REPORTS):
+    r.update(case_committee=['peace_order', 'environment', 'health_sanitation'][i % 3], committee=None, awaiting_placement=False, forwards=[])
+REPORTS[2].update(committee='environment', case_committee='environment',
+                  forwards=[{'kind': 'forward', 'from_committee': 'peace_order', 'to_super': False, 'created_at': ago(1)}])
+REPORTS[3].update(case_committee=None, awaiting_placement=True)
+REPORTS[4].update(case_committee=None)
 
 TABLES = {
     'users': [ADMIN, KAG, CHAIR, tanod(1, 'Bautista, Jose'), tanod(2, 'Mendoza, Liza', True), tanod(3, 'Cruz, Ben')],
@@ -51,6 +58,8 @@ TABLES = {
                               'max_report_photos': 5, 'max_reports_per_day': 20, 'filing_paused': False, 'filing_paused_message': None}],
     'hotline_numbers': [{'id': 'n0000000-0000-4000-8000-000000000001', 'group_id': 'g2', 'label': 'Duty officer', 'number': '0917 123 4567', 'carrier': 'Globe', 'sort_order': 1, 'is_active': True},
                         {'id': 'n0000000-0000-4000-8000-000000000002', 'group_id': 'g4', 'label': 'Emergency room', 'number': '(02) 8831 8001', 'carrier': None, 'sort_order': 1, 'is_active': False}],
+    'case_forwards': [{'report_id': REPORTS[2]['id'], 'kind': 'forward', 'from_committee': 'peace_order', 'to_committee': 'environment', 'to_super': False, 'note': 'Basura ang ugat nito', 'created_at': ago(1), 'by': {'full_name': 'Dela Cruz, Ramon'}}],
+    'case_forward_flags': [{'id': 5, 'report_id': REPORTS[0]['id'], 'from_committee': 'peace_order', 'to_committee': 'health_sanitation', 'note': 'Mukhang sa kalusugan ito', 'actor': 'a0000000-0000-0000-0000-000000000009', 'created_at': ago(0.5)}],
     'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id']},{'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id']}],
     'committees': [
         {'key': 'peace_order', 'name_en': 'Peace and Order, Human Rights, Transportation and Communication', 'name_fil': 'Kapayapaan at Kaayusan, Karapatang Pantao, Transportasyon at Komunikasyon', 'short_en': 'Peace and Order', 'active': True, 'sort': 1},
@@ -159,6 +168,7 @@ RPC = {
         'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,
                  'tags': [{'en': 'waist-deep (about 37 in)', 'fil': 'hanggang baywang (mga 37 pulgada)', 'reports': 1}, {'en': 'knee-deep (about 19 in)', 'fil': 'hanggang tuhod (mga 19 pulgada)', 'reports': 2}],
                  'checklist_done': 2, 'checklist_total': 5}},
+    'forward_case': 1, 'flag_case_for_forward': 6, 'dismiss_forward_flag': None,
     'set_admin_access': None, 'committee_save': 'committee_on_senior_citizens', 'committee_set_categories': None, 'category_save': 'overgrown_trees', 'option_save': 7, 'catalogue_fill': 2,
     'command_board': _cmd_board, 'command_start': _cmd_start, 'command_end': _cmd_end, 'command_handover': 1, 'command_check': None,
     'command_place_check': None, 'command_dismiss': None, 'command_suggest': None,

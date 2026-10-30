@@ -15,11 +15,46 @@ require_once __DIR__ . '/includes/briefing.php';
 require_once __DIR__ . '/includes/issues.php';
 require_once __DIR__ . '/includes/board.php';
 require_once __DIR__ . '/includes/widget_panel.php';
+require_once __DIR__ . '/includes/forwarding.php';
 
 $admin = require_admin();
 $db    = db();
 
 session_start_once();
+
+// 0152: forward cases from the list (a super admin or a Kagawad; several at once from the checkboxes), or flag one (staff).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !defined('NOTICES_PAGE') && !defined('WORKSPACE_PAGE') && in_array($_POST['action'] ?? '', ['forward_list', 'flag_list'], true)) {
+    $back = (string) ($_POST['back'] ?? '');
+    if (!preg_match('/^cases\.php(\?[^#\r\n]*)?$/', $back)) { $back = 'cases.php'; }
+    $done = 0; $err = null;
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $err = t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.');
+    } else {
+        $ids = array_values(array_filter(explode(',', (string) ($_POST['ids'] ?? '')), fn ($x) => (bool) preg_match('/^[0-9a-f-]{36}$/i', $x)));
+        $to = (string) ($_POST['to'] ?? '');
+        $to = ($to === '__super' || $to === '') ? null : $to;
+        $note = trim((string) ($_POST['note'] ?? ''));
+        foreach (array_slice($ids, 0, 100) as $rid) {
+            try {
+                if ($_POST['action'] === 'flag_list') {
+                    $db->rpc('flag_case_for_forward', ['p_report' => $rid, 'p_reason' => $note, 'p_to' => $to]);
+                } else {
+                    $db->rpc('forward_case', ['p_report' => $rid, 'p_to' => $to, 'p_note' => $note !== '' ? $note : null, 'p_flag' => null]);
+                }
+                $done++;
+            } catch (SupabaseError $ex) {
+                $err = safe_error($ex);
+            }
+        }
+    }
+    $_SESSION['cases_flash'] = $err !== null && $done === 0
+        ? ['level' => 'error', 'text' => $err]
+        : ['level' => 'ok', 'text' => ($_POST['action'] === 'flag_list'
+            ? t('Flagged. Your Kagawad decides where it goes.', 'Na-flag. Ang Kagawad mo ang magpapasya kung saan ito mapupunta.')
+            : sprintf(t('%d forwarded.', '%d ang naipasa.'), $done)) . ($err !== null ? ' ' . $err : '')];
+    header('Location: ' . $back, true, 303);
+    exit;
+}
 
 // Notifications: mark one as read (also by beacon when its action is followed), or all of them.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined('WORKSPACE_PAGE') && in_array($_POST['action'] ?? '', ['read_one', 'read_all'], true)) {
@@ -112,6 +147,15 @@ if (!in_array($stage, QUEUE_STAGES, true)) { $stage = ''; }
 // Panel (5 Sep): the case list should be able to show only what the tanod is doing: cases waiting for a tanod, and cases a tanod has.
 $tanod = (string) ($_GET['tanod'] ?? '');
 if (!in_array($tanod, ['needs', 'active'], true)) { $tanod = ''; }
+// 0152: the committee chips above the list. All, one committee, none yet; a Kagawad also gets what was forwarded to their
+// committee and what their staff flagged for forwarding.
+$com   = (string) ($_GET['com'] ?? '');
+$myCom = is_scoped() ? (string) (current_admin()['committee'] ?? '') : '';
+if (!in_array($com, array_merge(['', 'none', 'fwd', 'flagged'], array_keys(committees_all())), true)) { $com = ''; }
+$flagIds = [];
+if (my_tier() === 'committee' && $myCom !== '') {
+    try { $flagIds = array_values(array_unique(array_column((array) $db->select('case_forward_flags', ['select' => 'report_id', 'from_committee' => 'eq.' . $myCom]), 'report_id'))); } catch (SupabaseError) {}
+}
 // The Notification panel's own search and order (Rose, 27 Sep 2026: both
 // were only drawn, never read).
 $nSearch  = trim((string) ($_GET['nq'] ?? ''));
@@ -168,7 +212,9 @@ try {
                   . 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
                   . 'resident:users!reports_resident_id_fkey(full_name),'
                   . 'handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
-                  . 'triage:report_triage(score,effective_level,override_level,possible_duplicates)',
+                  . 'triage:report_triage(score,effective_level,override_level,possible_duplicates),'
+                  . 'case_committee,committee,awaiting_placement,forwards:case_forwards(kind,from_committee,to_super,created_at)',
+        'forwards.order' => 'created_at.desc',
         'deleted_at' => 'is.null',
         'order'      => $sort,
         'limit'      => (string) ($view === 'attention' ? 500 : PER_PAGE),
@@ -202,6 +248,15 @@ try {
     }
     if ($category !== '') {
         $query['category'] = 'eq.' . $category;
+    }
+    if ($com === 'none') {
+        $query['case_committee'] = 'is.null';
+    } elseif ($com === 'fwd') {
+        $query['committee'] = 'eq.' . ($myCom !== '' ? $myCom : '-');
+    } elseif ($com === 'flagged') {
+        $query['id'] = 'in.(' . ($flagIds ? implode(',', $flagIds) : '00000000-0000-0000-0000-000000000000') . ')';
+    } elseif ($com !== '') {
+        $query['case_committee'] = 'eq.' . $com;
     }
     if ($issue !== '') {
         $query['subject'] = 'eq.' . $issue;   // the app writes the issue picked into the subject
@@ -282,8 +337,18 @@ try {
     // the total behind the pages (the register by its filters, notifications by their search)
     $regTotal = 0; $notesTotal = 0;
     if ($tab === 'all') {
-        $cq = $query; unset($cq['select'], $cq['order'], $cq['limit'], $cq['offset']);
+        $cq = $query; unset($cq['select'], $cq['order'], $cq['limit'], $cq['offset'], $cq['forwards.order']);
         $regTotal = $view === 'attention' ? 0 : $db->count('reports', $cq);
+        // 0152: the chips' counts, in one round
+        $chipQ = ['all' => ['reports', ['deleted_at' => 'is.null']]];
+        if (sees_everything()) {
+            foreach (committees_active() as $ck => $cl) { $chipQ[$ck] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'eq.' . $ck]]; }
+            $chipQ['none'] = ['reports', ['deleted_at' => 'is.null', 'case_committee' => 'is.null']];
+        } elseif ($myCom !== '') {
+            $chipQ['fwd'] = ['reports', ['deleted_at' => 'is.null', 'committee' => 'eq.' . $myCom]];
+        }
+        try { $chipN = array_map(fn ($v) => is_int($v) ? $v : 0, $db->selectMany($chipQ, true)); } catch (SupabaseError) { $chipN = []; }
+        if (my_tier() === 'committee') { $chipN['flagged'] = count($flagIds); }
     } elseif ($tab === 'notes') {
         $ncq = $nq; unset($ncq['select'], $ncq['order'], $ncq['limit'], $ncq['offset']);
         $notesTotal = $db->count('notifications', $ncq);
@@ -381,6 +446,21 @@ $noteBadge = $notesUnread + $escCount;
 <?php endif; ?>
 
 <?php if ($tab === 'notes'): ?>
+<?php $pins = forwarding_pins($db); if ($pins): ?>
+<!-- ---------- 0152: what waits on this person, pinned on top ---------- -->
+<div class="p-band p-band--calm fw-pin-band">
+  <h2><?= e(t('Waiting on you', 'Naghihintay sa iyo')) ?><span class="p-badge-n"><?= count($pins) ?></span></h2>
+</div>
+<div class="p-card p-notif-card fw-pins" style="margin-bottom:28px"><div class="p-notif-list">
+  <?php foreach ($pins as $pn): ?>
+    <div class="p-notif p-unread">
+      <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : 'i-send', 18) ?></span>
+      <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
+      <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($pn['report']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+    </div>
+  <?php endforeach; ?>
+</div></div>
+<?php endif; ?>
 <!-- ---------- notifications ---------- -->
 <?php $nHref = fn(string $v) => '?' . http_build_query(array_filter(['nview' => $v === 'all' ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : ''])); ?>
 <div class="p-band p-band--calm">
@@ -540,12 +620,37 @@ $noteBadge = $notesUnread + $escCount;
   </form>
 </div>
 
+<?php
+$casesFlash = $_SESSION['cases_flash'] ?? null; unset($_SESSION['cases_flash']);
+$comHref = fn (string $c) => 'cases.php?' . http_build_query(array_filter(array_merge(array_diff_key($_GET, ['page' => 1, 'com' => 1, 'clear' => 1]), ['com' => $c]), fn ($v) => $v !== '' && $v !== null));
+$fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
+?>
+<?php if ($casesFlash): ?><div class="p-flash p-flash--<?= $casesFlash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($casesFlash['text']) ?></div><?php endif; ?>
+<nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+  <a class="cm-chip<?= $com === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $com === '' ? ' aria-current="true"' : '' ?>><?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?><b><?= (int) ($chipN['all'] ?? 0) ?></b></a>
+  <?php if (sees_everything()): ?>
+    <?php foreach (committees_active() as $ck => $cl): ?>
+      <a class="cm-chip<?= $com === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($comHref($ck)) ?>"<?= $com === $ck ? ' aria-current="true"' : '' ?>><i></i><?= e($cl) ?><b><?= (int) ($chipN[$ck] ?? 0) ?></b></a>
+    <?php endforeach; ?>
+    <a class="cm-chip cm-chip-none<?= $com === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $com === 'none' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('No committee yet', 'Wala pang komite')) ?><b><?= (int) ($chipN['none'] ?? 0) ?></b></a>
+  <?php elseif ($myCom !== ''): ?>
+    <a class="cm-chip<?= $com === 'fwd' ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($myCom)) ?>" href="<?= e($comHref('fwd')) ?>"<?= $com === 'fwd' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?><b><?= (int) ($chipN['fwd'] ?? 0) ?></b></a>
+    <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
+  <?php endif; ?>
+</nav>
+<?php if (is_super()): ?>
+<div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
+<?php endif; ?>
+<?= forward_dialog($fwBack) ?>
+
 <div class="p-card p-table-card"><div class="p-tscroll">
   <table class="p-t ss-cases-t">
     <thead><tr>
+      <?php if (is_super()): ?><th scope="col" class="ss-c fw-selc"><input type="checkbox" id="fw-all" aria-label="<?= e(t('Select every case on this page', 'Piliin ang bawat kaso sa pahinang ito')) ?>"></th><?php endif; ?>
       <th scope="col"><?= e(t('Resident', 'Residente')) ?></th>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
+      <?php if (sees_everything()): ?><th scope="col"><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('status', $sortCol, $sortDir)) ?>"><?= e(t('Status', 'Katayuan')) ?><?= sort_caret('status', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><a class="p-th-sort" href="<?= e(sort_link('date', $sortCol, $sortDir)) ?>"><?= e(t('Filed', 'Naisampa')) ?><?= sort_caret('date', $sortCol, $sortDir) ?></a></th>
       <th scope="col"><?= e(t('SMART', 'SMART')) ?></th>
@@ -555,7 +660,7 @@ $noteBadge = $notesUnread + $escCount;
     </tr></thead>
     <tbody id="reports-tbody">
       <?php if (!$reports): ?>
-        <tr><td colspan="9" class="p-empty">
+        <tr><td colspan="<?= 9 + (is_super() ? 1 : 0) + (sees_everything() ? 1 : 0) ?>" class="p-empty">
           <?= $search !== '' || $filter !== '' || $category !== '' || $month !== ''
               ? e(t('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.'))
               : e(t('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) ?>
@@ -563,6 +668,7 @@ $noteBadge = $notesUnread + $escCount;
       <?php endif; ?>
       <?php foreach ($reports as $r): ?>
         <tr class="p-click<?= !empty($r['is_sensitive']) ? ' ss-sens' : '' ?>" data-href="case.php?id=<?= e($r['id']) ?>"<?= !empty($r['is_sensitive']) ? ' title="' . e(t('Sensitive case', 'Sensitibong kaso')) . '"' : '' ?>>
+          <?php if (is_super()): ?><td class="ss-c fw-selc"><input type="checkbox" class="fw-sel" value="<?= e($r['id']) ?>" data-track="<?= e($r['tracking_id']) ?>" aria-label="<?= e(sprintf(t('Select %s', 'Piliin ang %s'), $r['tracking_id'])) ?>"></td><?php endif; ?>
           <td>
             <?php if (!empty($r['is_anonymous'])): ?>
               <span class="p-anon"><?= e(t('Anonymous', 'Hindi nagpakilala')) ?></span>
@@ -571,7 +677,8 @@ $noteBadge = $notesUnread + $escCount;
             <?php endif; ?>
           </td>
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
-          <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?></td>
+          <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
+          <?php if (sees_everything()): ?><td><?= committee_pill($r['case_committee'] ?? null, !empty($r['awaiting_placement'])) ?></td><?php endif; ?>
           <td><div class="p-badges">
             <?= sensitive_badge($r) ?>
             <span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?></span>
@@ -587,7 +694,8 @@ $noteBadge = $notesUnread + $escCount;
           <td class="ss-smart"><?= smart_badge($r['triage'] ?? null) ?></td>
           <td><?= handler_cell($r, $admin['id']) ?></td>
           <td class="ss-open ss-c" data-report="<?= e($r['id']) ?>"></td>
-          <td class="ss-c"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a></td>
+          <td class="ss-c"><div class="fw-acts"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($r['id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+            <?php if (can_forward() || is_moderator()): ?><button type="button" class="p-btn p-btn-ghost p-btn-sm fw-btn" data-fw-open="<?= e($r['id']) ?>" data-track="<?= e($r['tracking_id']) ?>"><?= e(is_moderator() ? t('Flag', 'I-flag') : t('Forward', 'Ipasa')) ?></button><?php endif; ?></div></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
@@ -597,6 +705,31 @@ $noteBadge = $notesUnread + $escCount;
 
 <?php endif; ?>
 
+<script>
+// 0152: the Forward / Flag dialog, for one case (its row's button) or for the cases ticked (super admins)
+(function () {
+  var dlg = document.getElementById('fw-dlg'); if (!dlg) return;
+  var ids = document.getElementById('fw-ids'), what = document.getElementById('fw-what'), bulk = document.getElementById('fw-bulk');
+  function picked() { return Array.prototype.slice.call(document.querySelectorAll('.fw-sel:checked')); }
+  function paintBulk() { if (!bulk) return; var n = picked().length; bulk.hidden = n === 0; document.getElementById('fw-bulk-n').textContent = n + ' ' + T('selected', 'ang napili'); }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-fw-open]');
+    if (b) {
+      var list = b.dataset.fwOpen === 'bulk' ? picked().map(function (x) { return [x.value, x.dataset.track]; }) : [[b.dataset.fwOpen, b.dataset.track]];
+      if (!list.length) return;
+      ids.value = list.map(function (x) { return x[0]; }).join(',');
+      what.textContent = list.map(function (x) { return x[1]; }).join(', ');
+      dlg.showModal();
+      return;
+    }
+    if (e.target.closest('[data-fw-close]')) dlg.close();
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'fw-all') { document.querySelectorAll('.fw-sel').forEach(function (x) { x.checked = e.target.checked; }); }
+    if (e.target.id === 'fw-all' || e.target.classList.contains('fw-sel')) paintBulk();
+  });
+})();
+</script>
 <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
 <script>
 // Realtime for the case list + notifications panel — explicit ask, 6 Sep
@@ -654,6 +787,26 @@ $noteBadge = $notesUnread + $escCount;
   const PER        = <?= (int) PER_PAGE ?>;
   const TANOD      = <?= json_encode($tanod) ?>;
   const STAGE      = <?= json_encode($stage) ?>;
+  // 0152: the committee chips and forwarding, drawn the same way the server draws them
+  const COM        = <?= json_encode($com) ?>;
+  const MY_COM     = <?= json_encode($myCom) ?>;
+  const FLAG_IDS   = <?= json_encode($flagIds) ?>;
+  const IS_SUPER   = <?= json_encode(is_super()) ?>;
+  const SEES_ALL   = <?= json_encode(sees_everything()) ?>;
+  const FW_LABEL   = <?= json_encode(can_forward() ? t('Forward', 'Ipasa') : (is_moderator() ? t('Flag', 'I-flag') : '')) ?>;
+  const COMMITTEES = <?= json_encode(array_map(fn ($c) => ['short' => (string) $c['short_en'], 'colour' => committee_colour((string) $c['key'])], committees_all()), JSON_UNESCAPED_UNICODE) ?>;
+  const PILL_NONE  = <?= json_encode(committee_pill(null)) ?>, PILL_AWAIT = <?= json_encode(committee_pill(null, true)) ?>;
+  const T_FWD_FROM = <?= json_encode(t('Forwarded from %s', 'Ipinasa mula sa %s')) ?>, T_SUPERS = <?= json_encode(t('the super admins', 'ang mga super admin')) ?>;
+  function committeePill(r) {
+    if (r.awaiting_placement) return PILL_AWAIT;
+    const c = r.case_committee && COMMITTEES[r.case_committee];
+    return c ? '<span class="cm-pill" style="--cc:' + c.colour + '"><i></i>' + escapeHtml(c.short) + '</span>' : PILL_NONE;
+  }
+  function forwardedTag(r) {
+    const f = (r.forwards || []).find(x => x.kind === 'forward'); if (!f) return '';
+    const c = f.from_committee && COMMITTEES[f.from_committee];
+    return '<div class="cm-fwd">' + escapeHtml(T_FWD_FROM.replace('%s', c ? c.short : T_SUPERS)) + '</div>';
+  }
   const LEVEL_LABEL = { urgent: T('Urgent', 'Apurahan'), high: T('High', 'Mataas'), normal: T('Normal', 'Karaniwan'), low: T('Low', 'Mababa') };
   const LEVEL_CLASS = { urgent: 'denied', high: 'pending', normal: 'progress', low: 'grey' };
   // Same markup as smart_badge() above: the level's word always beside its colour.
@@ -743,7 +896,7 @@ $noteBadge = $notesUnread + $escCount;
 
     const tbody = document.getElementById('reports-tbody');
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="p-empty">' +
+      tbody.innerHTML = '<tr><td colspan="' + (9 + (IS_SUPER ? 1 : 0) + (SEES_ALL ? 1 : 0)) + '" class="p-empty">' +
         (SEARCH || STATUS || CATEGORY || MONTH_FROM ? T('No complaint matches that search.', 'Walang sumbong na tugma sa hinanap.')
                                                     : T('No complaints have been filed yet.', 'Wala pang naisampang sumbong.')) +
         '</td></tr>';
@@ -774,18 +927,21 @@ $noteBadge = $notesUnread + $escCount;
       const appealed = r.appealed_at
         ? '<span class="p-badge p-b-pending" title="' + T('Reinstated on appeal', 'Ibinalik dahil sa apela') + '">' + T('Appealed', 'Inapela') + '</span>' : '';
       return '<tr class="p-click' + (r.is_sensitive ? ' ss-sens' : '') + '"' + (r.is_sensitive ? ' title="' + T('Sensitive case', 'Sensitibong kaso') + '"' : '') + ' data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
+        (IS_SUPER ? '<td class="ss-c fw-selc"><input type="checkbox" class="fw-sel" value="' + escapeHtml(r.id) + '" data-track="' + escapeHtml(r.tracking_id) + '" aria-label="' + escapeHtml(T('Select ', 'Piliin ang ') + r.tracking_id) + '"></td>' : '') +
         '<td>' + who + '</td>' +
         '<td><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span></td>' +
         '<td>' + escapeHtml(CATEGORY_LABEL[r.category] || titleCase(r.category)) +
-          (r.location_label ? '<div class="p-sub">' + escapeHtml(r.location_label) + '</div>' : '') + '</td>' +
+          (r.location_label ? '<div class="p-sub">' + escapeHtml(r.location_label) + '</div>' : '') + forwardedTag(r) + '</td>' +
+        (SEES_ALL ? '<td>' + committeePill(r) + '</td>' : '') +
         '<td><div class="p-badges">' + (r.is_sensitive ? SENSITIVE_BADGE : '') + '<span class="p-badge p-b-' + statusClass(r.status) + '">' +
           escapeHtml(STATUS_LABEL[r.status] || titleCase(r.status)) + '</span>' + escalated + reopened + appealed + '</div></td>' +
         '<td class="p-num">' + shortDate(r.created_at) + '</td>' +
         '<td class="ss-smart">' + smartBadge(r.triage) + '</td>' +
         '<td>' + handlerCell(r) + '</td>' +
         '<td class="ss-open ss-c" data-report="' + escapeHtml(r.id) + '"></td>' +
-        '<td class="ss-c"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=' +
-          encodeURIComponent(r.id) + '">' + T('Review', 'Suriin') + '</a></td>' +
+        '<td class="ss-c"><div class="fw-acts"><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=' +
+          encodeURIComponent(r.id) + '">' + T('Review', 'Suriin') + '</a>' +
+          (FW_LABEL ? '<button type="button" class="p-btn p-btn-ghost p-btn-sm fw-btn" data-fw-open="' + escapeHtml(r.id) + '" data-track="' + escapeHtml(r.tracking_id) + '">' + FW_LABEL + '</button>' : '') + '</div></td>' +
         '</tr>';
     }).join('');
   }
@@ -872,9 +1028,15 @@ $noteBadge = $notesUnread + $escCount;
       .select('id,tracking_id,subject,category,status,created_at,is_anonymous,is_sensitive,location_label,'
         + 'due_at,awaiting_unit_since,reopened_count,appealed_at,referred_to,higher_official,followed_up_at,resolution_submitted_at,'
         + 'resident:users!reports_resident_id_fkey(full_name),handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
-        + 'triage:report_triage(score,effective_level,override_level,possible_duplicates)', { count: 'exact' })
+        + 'triage:report_triage(score,effective_level,override_level,possible_duplicates),'
+        + 'case_committee,committee,awaiting_placement,forwards:case_forwards(kind,from_committee,to_super,created_at)', { count: 'exact' })
       .is('deleted_at', null)
-      .order(SORT_COL, { ascending: SORT_ASC });
+      .order(SORT_COL, { ascending: SORT_ASC })
+      .order('created_at', { referencedTable: 'forwards', ascending: false });
+    if (COM === 'none') q = q.is('case_committee', null);
+    else if (COM === 'fwd') q = q.eq('committee', MY_COM || '-');
+    else if (COM === 'flagged') q = q.in('id', FLAG_IDS.length ? FLAG_IDS : ['00000000-0000-0000-0000-000000000000']);
+    else if (COM) q = q.eq('case_committee', COM);
     q = VIEW === 'attention' ? q.limit(500) : q.range((PAGE - 1) * PER, PAGE * PER - 1);
     if (TANOD === 'needs') q = q.in('status', ['validated']);
     else if (TANOD === 'active') q = q.in('status', ['assigned', 'in_progress', 'offline_investigation']);
