@@ -341,6 +341,24 @@ Changes on `main` not yet deployed belong here.
   only the super admins. A committee's *Right now* strip shows its own kinds
   of complaint and its own cases.
 
+**Added (roles and pages, step 7: Edit Profile and retirement endorsements, 30 Oct)**
+- Edit Profile (0157):
+  - **Banner choices:** your sidebar colour (the default), the barangay's
+    contour pattern, a colour you pick, your committee's colour, or your own
+    picture, which you frame by dragging the banner up or down.
+  - **Header:** shows your rung, your access and your committee.
+  - **Punch card:** Kagawads and staff see today's.
+  - **New alert switches:** forwards, flags, reroute questions and Inbox
+    messages.
+- A new Inbox message now raises an alert you can switch off. The
+  Notifications list leaves those alerts out, since the Inbox shows the
+  message.
+- Retirement requests: a Kagawad sees their committee's tanods' requests
+  (Personnel > Retirement requests) and can endorse one, with a note, to the
+  super admins. The super admins are told, see "Endorsed by …" in their
+  queue, and still decide. Staff, and other committees, no longer see the
+  requests.
+
 **Fixed**
 - The Administrators tab's Edit buttons and search did nothing once the tab
   moved to Administrative Services (step 1a); the script now goes with the

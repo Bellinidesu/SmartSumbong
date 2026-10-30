@@ -59,6 +59,8 @@ How the database fits the rest of the system is in
 | `tanod_committees` | The committees a tanod belongs to: proposed by a Kagawad or approved by a super admin, with the committee's own role for them; written only by the functions. `tanod_committee_log` keeps every change (append-only) | 0153 |
 | `inbox_messages` | The portal's Inbox: one row per recipient (a batch per message sent), from a person or the system (sender null), optionally about a case; read by its sender and recipient only | 0155 |
 | `reroute_questions` | A reroute that found none of the case's committee's tanods free asks its Kagawad: open until answered, timed out or no longer needed | 0155 |
+| `users.banner_preset`, `banner_colour`, `banner_url`, `banner_y` | An administrator's profile banner: sidebar colour, contour, a colour, the committee's, or their own picture and its framing | 0157 |
+| `retirement_requests.endorsed_by`, `endorsed_at`, `endorse_note` | The tanod's Kagawad endorses a retirement request to the super admins, who decide | 0157 |
 | `admin_punches` | When a Kagawad or staff member signed in to and out of the portal, for the punch card; append-only | 0153 |
 | `device_tokens` | FCM push tokens | 0035 |
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
@@ -195,6 +197,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
 | `propose_tanod_committee`, `decide_tanod_committee`, `remove_tanod_committee`, `tanod_pick_list`, `personnel_committees`; `account_directory` (scoped) | 0153 | A tanod's committees: a Kagawad proposes, a super admin approves; names to propose from; each tanod's committees as the caller may see them and the committee of the case they are on; a committee's admins list only their tanods |
+| `set_my_banner`, `endorse_retirement`; `retirement_requests_queue` (now with the endorsement) | 0157 | An administrator sets their banner; a Kagawad endorses their committee's tanod's retirement. A new Inbox message raises an `inbox_mail` alert |
 | `dashboard_committees`, `dashboard_slice`, `smart_chart_notes`; `notification_committee(notification)` | 0156 | The Dashboard's super admin module, the box beside the donuts and the brain buttons; the committee of the case a notification is about, as a column. `_notifications_scope` keeps system alerts from a committee's admins |
 | `send_mail`, `mail_recipients`, `mark_mail_read`; `answer_reroute_question`, `sweep_reroute_questions` (every minute) | 0155 | Mail along the ladder; a Kagawad picks a tanod for a reroute, or nobody answers in time and the nearest from any committee is sent. `auto_dispatch` tries the case's committee's tanods first on a reroute |
 | `punch`, `punch_cards` | 0153 | The portal punches a Kagawad or staff member in and out; the cards the caller may see (sign-ins, sign-outs, cases touched per day) |
