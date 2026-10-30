@@ -282,6 +282,9 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
+<?php if ($active === 'spatial.php') : // the map's own styles (flair-map.css), kept off every other page ?>
+<link href="assets/css/flair-map.css?v=<?= e(asset_version('flair-map.css')) ?>" rel="stylesheet">
+<?php endif; ?>
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
 <link href="assets/css/aesthetic.css?v=<?= e(asset_version('aesthetic.css')) ?>" rel="stylesheet">
