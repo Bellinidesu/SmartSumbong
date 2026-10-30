@@ -97,6 +97,7 @@ begin
 
   -- 4. nobody answers in time: the nearest tanod from any committee is sent, and the trail says so
   begin
+    perform set_config('request.jwt.claim.sub', '', true);
     update public.dispatches set state = 'expired' where report_id = r1;
     update public.reports set dispatch_attempts = 2, status = 'validated' where id = r1;
     perform public.auto_dispatch(r1);
