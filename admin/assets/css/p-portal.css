@@ -432,6 +432,11 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ty-new { border-top: 1px dashed var(--p-line-2); margin-top: 8px; padding-top: 14px; }
 @media (max-width: 900px) { .ty-row, .ty-opt { grid-template-columns: 1fr 1fr; } .ty-opts { padding-left: 0; } }
 
+/* Tabs that are their own address (30 Oct 2026): a link that looks like the tab buttons beside it */
+.st-tabs .st-link { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 7px; font-weight: 700; font-size: 13px; color: var(--p-muted); text-decoration: none; }
+.st-tabs .st-link:hover { color: var(--p-ink); }
+.st-tabs .st-link.p-on { background: var(--p-surface); color: var(--p-ink); box-shadow: var(--p-shadow-sm); }
+
 /* Settings, Wording (0149): the label as the code has it, then its English and Tagalog */
 .wd-search { display: flex; gap: 10px; align-items: center; }
 .wd-search input { flex: 1; min-width: 0; }

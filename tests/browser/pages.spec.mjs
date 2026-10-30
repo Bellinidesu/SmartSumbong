@@ -9,7 +9,7 @@ const CASE = 'c0000000-0000-0000-0000-000000000001';
 const PAGES = [
   'dashboard.php', 'cases.php', `case.php?id=${CASE}`, 'summary.php', 'spatial.php', 'workspace.php',
   'notifications.php', 'residents.php', 'personnel.php', 'settings.php', 'profile.php', 'activity.php',
-  'retirement-requests.php', `complaint-summary.php?id=${CASE}`, `complaint-print.php?id=${CASE}`,
+  'retirement-requests.php', 'administrative-services.php', 'control-room.php', `complaint-summary.php?id=${CASE}`, `complaint-print.php?id=${CASE}`,
 ];
 
 // Noise the test site makes and the live site does not: the fake Supabase has no realtime socket, and the map
@@ -139,7 +139,7 @@ test('SMART Iteration 3: rules need a reason, can be tested first, and have a hi
 });
 
 test('SMART Iteration 3: planning (forecast, roster, work orders, sharing)', async ({ page }) => {
-  const r = await open(page, 'settings.php#plan');
+  const r = await open(page, 'administrative-services.php#plan');
   await expect(page.locator('#plan-forecast .st-uptime-tile')).toHaveCount(3);
   await expect(page.locator('#plan-forecast')).toContainText('does not guess');
   await expect(page.locator('#plan-roster li')).toHaveCount(2);
@@ -244,20 +244,19 @@ test('0144 feature switches: with the Workspace and the command center off, neit
 });
 
 test('0145 access: a super admin sets up committees, access and switches in Settings', async ({ page }) => {
-  const r = await open(page, 'settings.php#access');
+  const r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-committees form.acc-row:not(.acc-new)')).toHaveCount(5);
   await expect(page.locator('#acc-committees')).toContainText('Anti-Drug');
   await expect(page.locator('#acc-committees form.acc-off')).toHaveCount(1);
-  await expect(page.locator('#acc-switches li')).toHaveCount(2);
-  expect(await axe(page), 'Settings > Access').toEqual([]);
-  await page.goto('settings.php#admins');
+  expect(await axe(page), 'Administrative Services > Committees').toEqual([]);
+  await page.locator('.st-tabs [data-st="admins"]').click();
   await expect(page.locator('#jp-rows .ss-arow').first()).toContainText('Super admin');
   await expect(page.locator('form.ss-access select[name="tier"]').first()).toHaveCount(1);
   expect(r.errors, 'console errors').toEqual([]);
 });
 
 test('0146 catalogue: a super admin edits the complaint categories and options in Settings', async ({ page }) => {
-  const r = await open(page, 'settings.php#types');
+  const r = await open(page, 'control-room.php#types');
   await expect(page.locator('#types-card details.ty-cat')).toHaveCount(8);
   await expect(page.locator('#types-card details.ty-cat').first()).toContainText('Street Obstruction');
   await page.locator('#types-card details.ty-cat summary').nth(3).click();
@@ -266,19 +265,19 @@ test('0146 catalogue: a super admin edits the complaint categories and options i
   expect(await axe(page), 'Settings > Complaint types').toEqual([]);
   await page.locator('#types-card form.ty-new input[name="label_en"]').fill('Overgrown Trees');
   await page.locator('#types-card form.ty-new button[type="submit"]').click();
-  await expect(page).toHaveURL(/settings\.php#types/);
+  await expect(page).toHaveURL(/control-room\.php#types/);
   await expect(page.locator('section[data-pane="types"] .p-flash--ok')).toContainText('Category made');
   expect(r.errors, 'console errors').toEqual([]);
 });
 
 test('0147 rules and hotlines: a super admin edits the deadlines, limits and emergency numbers in Settings', async ({ page }) => {
-  const r = await open(page, 'settings.php#rules');
+  const r = await open(page, 'control-room.php#rules');
   await expect(page.locator('#rules-card .ru-t tbody tr')).toHaveCount(8);
   await expect(page.locator('#rules-card .ru-grid .ru-f')).toHaveCount(6);
   await expect(page.locator('#lim-max_deadline_extensions')).toHaveValue('2');
   expect(await axe(page), 'Settings > Rules').toEqual([]);
   await page.locator('#rules-card button[type="submit"]').click();
-  await expect(page).toHaveURL(/settings\.php#rules/);
+  await expect(page).toHaveURL(/control-room\.php#rules/);
   await expect(page.locator('section[data-pane="rules"] .p-flash--ok')).toContainText('Rules saved');
   await page.locator('.st-tabs [data-st="hotlines"]').click();
   await expect(page.locator('#hotlines-card details.hl-g')).toHaveCount(4);
@@ -289,19 +288,19 @@ test('0147 rules and hotlines: a super admin edits the deadlines, limits and eme
 });
 
 test('0148 the barangay: its name, place and seal from Settings, on the sign-in page and the title', async ({ page }) => {
-  const r = await open(page, 'settings.php#look');
+  const r = await open(page, 'control-room.php#brgy');
   await expect(page.locator('#brgy-card input[name="name"]')).toHaveValue('Barangay 183');
   await expect(page.locator('#brgy-card input[name="place"]')).toHaveValue('Zone 20, Villamor, Pasay City');
   await expect(page.locator('#brgy-card .bp-img')).toHaveAttribute('src', /brgy-183-seal\.webp$/);
   await expect(page).toHaveTitle(/Barangay 183/);
   expect(await axe(page), 'Settings > Appearance').toEqual([]);
   await page.locator('#brgy-card button[type="submit"]').click();
-  await expect(page.locator('section[data-pane="look"] .p-flash--ok')).toContainText('Saved');
+  await expect(page.locator('section[data-pane="brgy"] .p-flash--ok')).toContainText('Saved');
   expect(r.errors, 'console errors').toEqual([]);
 });
 
 test('0149 wording: a super admin finds a label and rewords it; the portal shows the barangay wording', async ({ page }) => {
-  const r = await open(page, 'settings.php?wq=Case%20Reports#wording');
+  const r = await open(page, 'control-room.php?wq=Case%20Reports#wording');
   await expect(page.locator('.st-tabs [data-st="hotlines"]')).toHaveText('Emergency numbers');   // the fake's own wording, through t()
   await expect(page.locator('#wording-card form.wd-row').first()).toBeVisible();
   await expect(page.locator('#wording-card form.wd-own')).toHaveCount(1);
@@ -310,6 +309,29 @@ test('0149 wording: a super admin finds a label and rewords it; the portal shows
   await page.locator('#wording-card form.wd-row').first().locator('button[type="submit"]').first().click();
   await expect(page.locator('section[data-pane="wording"] .p-flash--ok')).toContainText('Saved');
   expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Roles and pages 1a: Administrative Services and the Control Room take their tabs from Settings', async ({ page }) => {
+  let r = await open(page, 'settings.php');
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['System status', 'Plan and usage', 'SMART', 'Appearance']);
+  await expect(page.locator('.p-sidebar a[href="administrative-services.php"]')).toContainText('Administrative Services');
+  await expect(page.locator('.p-sidebar a[href="control-room.php"]')).toContainText('Control Room');
+  r = await open(page, 'administrative-services.php');
+  await expect(page.locator('h1')).toHaveText('Administrative Services');
+  await expect(page.locator('section[data-pane="access"]')).toBeVisible();
+  await expect(page.locator('.st-tabs .st-link')).toHaveText('Retirement requests');
+  r = await open(page, 'control-room.php');
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Complaint types', 'Rules', 'Emergency numbers', 'Wording', 'The barangay', 'Parts of the system'])   // the fake's own wording renames Hotlines;
+  await page.locator('.st-tabs [data-st="parts"]').click();
+  await expect(page.locator('#acc-switches li')).toHaveCount(2);
+  expect(await axe(page), 'Control Room > Parts of the system').toEqual([]);
+  await page.goto('settings.php#types');
+  await expect(page).toHaveURL(/control-room\.php#types$/);
+  await expect(page.locator('section[data-pane="types"]')).toBeVisible();
+  const q = await open(page, 'retirement-requests.php');
+  await expect(page.locator('h1')).toHaveText('Administrative Services');
+  await expect(page.locator('.st-tabs .st-link.p-on')).toHaveText('Retirement requests');
+  expect(r.errors.concat(q.errors), 'console errors').toEqual([]);
 });
 
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
