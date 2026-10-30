@@ -403,10 +403,40 @@ test('Roles and pages 3: forwarding between committees (chips, Committee column,
   expect(s.errors.concat(k.errors, n.errors, c.errors, m.errors), 'console errors').toEqual([]);
 });
 
+test('Roles and pages 4: tanods in committees, the punch cards, and a Kagawad\'s Personnel', async ({ page, context }) => {
+  const s = await open(page, 'personnel.php');
+  await expect(page.locator('.cm-chips .cm-chip')).toHaveCount(1 + 4 + 1);
+  await expect(page.locator('#ss-people thead th', { hasText: 'Committees' })).toHaveCount(1);
+  await expect(page.locator('tr[data-id="u2"] .tc-pills')).toContainText('Lead sa gabi');
+  await expect(page.locator('tr[data-id="u3"] .cm-pill.cm-prop')).toContainText('proposed');
+  await expect(page.locator('tr[data-id="u3"] .tc-busy')).toContainText('Peace and Order');
+  await expect(page.locator('#tc-waiting button', { hasText: 'Approve' })).toHaveCount(1);
+  await page.locator('.tc-tabs a', { hasText: 'Committee staff' }).click();
+  await expect(page).toHaveURL(/view=staff/);
+  await expect(page.locator('.pc-card')).toHaveCount(2);
+  await expect(page.locator('.pc-card').first()).toContainText('Still in');
+  expect(await axe(page), 'Personnel, Committee staff').toEqual([]);
+  const d = await open(page, 'personnel.php?id=u2');
+  await expect(page.locator('#tc-card .tc-add button')).toContainText('Add to the committee');
+  expect(await page.locator('.p-controls form').count()).toBeGreaterThan(0);   // a super admin's account controls are there
+
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'personnel.php');
+  await expect(page.locator('.cm-chips')).toHaveCount(0);
+  await expect(page.locator('#tc-propose summary')).toContainText('Propose a tanod for Peace and Order');
+  await expect(page.locator('.tc-tabs a', { hasText: 'My staff' })).toHaveCount(1);
+  const kd = await open(page, 'personnel.php?id=u2');
+  await expect(page.locator('.p-controls')).toContainText('Only a super admin verifies');
+  await expect(page.locator('.p-controls form')).toHaveCount(0);
+  await expect(page.locator('#tc-card button', { hasText: 'Take out of the committee' })).toHaveCount(1);
+  expect(s.errors.concat(d.errors, k.errors, kd.errors), 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');
-  for (const href of ['dashboard.php', 'settings.php', 'residents.php', 'personnel.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  for (const href of ['dashboard.php', 'settings.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="personnel.php"]').first()).toBeVisible();   // 0153: a Kagawad sees their committee's tanods and staff
   await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
   await expect(page.locator('#side-user')).toContainText('Peace and Order');
   await page.goto('dashboard.php');

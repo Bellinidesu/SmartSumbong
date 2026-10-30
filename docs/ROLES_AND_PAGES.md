@@ -153,6 +153,14 @@ Kagawads and super admins; super admins to anyone.
   (pinned notification, web push, Inbox) with a countdown; if nobody answers
   it sends the nearest tanod from any committee and says so. The wait is
   5 minutes for urgent cases and 15 for the rest, set in the Control Room.
+- *Built (0153), except the reroute (step 5):* `tanod_committees` (proposed
+  or approved, with the committee's role) and its log; `propose_tanod_committee`,
+  `decide_tanod_committee`, `remove_tanod_committee`, `tanod_pick_list` (names
+  only, so a Kagawad can propose a tanod they cannot otherwise see) and
+  `personnel_committees`. `account_directory` shows a committee's admins only
+  their tanods. The punch card is `admin_punches` (written by the portal at
+  sign-in and sign-out, Kagawads and staff only) and `punch_cards`. The portal
+  side is `admin/includes/personnel_committees.php`.
 
 ### Administrative Services and the Control Room
 
@@ -182,7 +190,7 @@ for forwards, flags, reroute questions and Inbox messages.
 | 1b | Committee colours and creator, the super admin colour, committee sidebars, vivid ladder | Built (0150) |
 | 2 | Roles: moderator tier, staff assigned to a committee, the Chairman as super admin, each rung's pages | Built (0151) |
 | 3 | Forwarding: per-case committee, forward and flag, history, pinned notifications, Case Reports chips | Built (0152) |
-| 4 | Personnel: tanods to committees with approval, each version's view, the punch card | |
+| 4 | Personnel: tanods to committees with approval, each version's view, the punch card | Built (0153) |
 | 5 | Inbox and the reroute question | |
 | 6 | Dashboard, Report Summary and Notifications changes | |
 | 7 | Edit Profile banner, retirement endorsement | |

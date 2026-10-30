@@ -63,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             attempt_login($email, $password);
             @unlink(login_tries_file($email));
+            try { db()->rpc('punch', ['p_kind' => 'in']); } catch (Throwable) {}   // 0153: the punch card
             header('Location: notifications.php');
             exit;
         } catch (SupabaseError $ex) {

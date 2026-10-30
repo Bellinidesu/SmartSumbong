@@ -27,6 +27,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $action = '';   // falls through to "Unknown action."
             }
             switch ($action) {
+                // 0153: a tanod's committees. A Kagawad proposes for their own committee; a super admin assigns, approves or declines.
+                case 'tc_propose':
+                    $st = $db->rpc('propose_tanod_committee', ['p_tanod' => $target, 'p_committee' => (string) ($_POST['committee'] ?? ''),
+                        'p_role' => trim((string) ($_POST['role'] ?? '')) ?: null, 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                    $st = is_array($st) ? (string) reset($st) : (string) $st;
+                    $flash = $st === 'proposed'
+                        ? t('Sent to the super admins. The tanod shows as proposed until one approves.', 'Naipadala sa mga super admin. Makikita ang tanod bilang iminungkahi hanggang may mag-apruba.')
+                        : t('Saved.', 'Na-save.');
+                    break;
+
+                case 'tc_decide':
+                    $approve = ($_POST['decision'] ?? '') === 'approve';
+                    $db->rpc('decide_tanod_committee', ['p_tanod' => $target, 'p_committee' => (string) ($_POST['committee'] ?? ''),
+                        'p_approve' => $approve, 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                    $flash = $approve ? t('Approved. The Kagawad is told.', 'Naaprubahan. Nasabihan ang Kagawad.') : t('Declined. The Kagawad is told.', 'Tinanggihan. Nasabihan ang Kagawad.');
+                    break;
+
+                case 'tc_remove':
+                    $db->rpc('remove_tanod_committee', ['p_tanod' => $target, 'p_committee' => (string) ($_POST['committee'] ?? ''),
+                        'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                    $flash = t('Taken out of the committee. It is in the log.', 'Inalis sa komite. Nakatala ito.');
+                    break;
+
                 // 0086 (Martin): a name change or a new ID photo.
                 case 'profile_request':
                     $approve = ($_POST['decision'] ?? '') === 'approve';
@@ -137,6 +160,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $_SESSION['flash'] = ['text' => $flash, 'level' => $level];
-    header('Location: ' . $self . ($target !== '' ? '?id=' . urlencode($target) : ''));
+    header('Location: ' . $self . ($target !== '' && empty($_POST['to_list']) ? '?id=' . urlencode($target) : ''));
     exit;
 }
