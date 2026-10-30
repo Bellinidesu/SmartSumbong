@@ -977,7 +977,6 @@
 {"en":"Mobile number","fil":"Mobile number","in":["portal"]},
 {"en":"Mobile number must be 11 digits starting 09.","fil":"Dapat 11 digit ang mobile number at nagsisimula sa 09.","in":["portal"]},
 {"en":"Mobile phone number is already in use.","fil":"Ginagamit na ang numerong ito.","in":["app"]},
-{"en":"Month","fil":"Buwan","in":["portal"]},
 {"en":"Month filed","fil":"Buwan ng pagsampa","in":["portal"]},
 {"en":"More Details Requested","fil":"Humiling ng Karagdagang Detalye","in":["portal"]},
 {"en":"More Details Sent","fil":"Nagpadala ng Karagdagang Detalye","in":["portal"]},
