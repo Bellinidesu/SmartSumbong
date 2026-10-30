@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (message rows on the Inbox, 30 Oct)**
+- The Inbox list is message rows, the way Gmail and Outlook list mail: an avatar with
+  initials (the SMART mark for system messages), the sender, the subject, the time and
+  the case ID. Unread is bold with a dot; a message that needs your answer has an orange
+  edge. The open message has a header with the sender's avatar, who it went to and when.
+
 **Changed (feed rows on Notifications, 30 Oct)**
 - Notification rows borrow from how Linear, GitHub and PagerDuty list what needs you:
   an edge coloured by severity (red overdue or a question to answer, orange a SMART

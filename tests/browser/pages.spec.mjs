@@ -442,8 +442,8 @@ test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute qu
   expect(await axe(page), 'Inbox, reroute question').toEqual([]);
   const i = await open(page, 'inbox.php');
   await expect(page.locator('.p-sidebar a[href="inbox.php"]').first()).toBeVisible();
-  await expect(page.locator('.ib-t tbody tr')).toHaveCount(2);
-  await expect(page.locator('.ib-t tr.ib-unread')).toContainText('Needs your answer');
+  await expect(page.locator('.ib-row')).toHaveCount(2);
+  await expect(page.locator('.ib-row.ib-unread')).toContainText('Needs your answer');
   const w = await open(page, 'inbox.php?new=1');
   await expect(page.locator('.ib-person')).toHaveCount(2);
   expect(await axe(page), 'Inbox, write').toEqual([]);
