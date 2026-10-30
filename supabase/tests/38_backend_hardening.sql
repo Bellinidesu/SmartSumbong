@@ -19,20 +19,20 @@ begin
 
   -- 1. what is past its retention period goes; what is not stays; the audit trail is never touched
   begin
-    insert into public.admin_punches (user_id, kind, at) values (v_kpo, 'in', now() - interval '400 days'), (v_kpo, 'in', now() - interval '10 days');
+    insert into public.admin_punches (user_id, kind, at) values (v_kpo, 'in', now() - interval '400 days'), (v_kpo, 'in', now() - interval '40 days'), (v_kpo, 'in', now() - interval '10 days');
     insert into public.inbox_messages (sender, recipient, subject, body, created_at)
     values (v_sup, v_kpo, 'Luma', 'Luma na ito', now() - interval '800 days'), (v_sup, v_kpo, 'Bago', 'Bago ito', now() - interval '5 days');
     insert into public.attendance (tanod_id, duty_status, logged_at)
     values (v_t1, 'on_duty', now() - interval '400 days'), (v_t1, 'on_duty', now() - interval '3 days');
     select count(*) into n from public.status_logs;
     j := public.purge_old_records();
-    if (select count(*) from public.admin_punches where user_id = v_kpo) <> 1 then raise exception 'punches: %', j; end if;
+    if (select count(*) from public.admin_punches where user_id = v_kpo) <> 2 then raise exception 'punches: %', j; end if;
     if (select count(*) from public.inbox_messages where recipient = v_kpo) <> 1 or not exists (select 1 from public.inbox_messages where recipient = v_kpo and subject = 'Bago') then raise exception 'inbox: %', j; end if;
     if (select count(*) from public.attendance where tanod_id = v_t1) <> 1 then raise exception 'attendance: %', j; end if;
     if (select count(*) from public.status_logs) <> n then raise exception 'the audit trail was touched'; end if;
-    update public.operational_settings set keep_punch_days = 7 where id = 1;
+    update public.operational_settings set keep_punch_days = 30 where id = 1;
     perform public.purge_old_records();
-    if exists (select 1 from public.admin_punches where user_id = v_kpo) then raise exception 'a shorter period was not followed'; end if;
+    if (select count(*) from public.admin_punches where user_id = v_kpo) <> 1 then raise exception 'a shorter period was not followed'; end if;
     v_log := v_log || E'\n' || 'ok  records past their retention period are deleted and newer ones kept, the period follows the barangay''s setting, and the audit trail is never touched';
   exception when others then v_log := v_log || E'\n' || 'FAIL retention: ' || sqlerrm; end;
 
