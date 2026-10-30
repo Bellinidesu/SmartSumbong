@@ -24,22 +24,25 @@ const PAGE_TIERS = [
     'residents.php'           => ['super', 'captain'],
     'personnel.php'           => ['super', 'captain'],
     'activity.php'            => ['super', 'captain'],
-    'summary.php'             => ['super', 'captain', 'committee'],
-    'spatial.php'             => ['super', 'captain', 'committee'],
-    'cases.php'               => ['super', 'captain', 'committee'],
-    'case.php'                => ['super', 'captain', 'committee'],
-    'notifications.php'       => ['super', 'captain', 'committee'],
+    'summary.php'             => ['super', 'captain', 'committee', 'moderator'],
+    'spatial.php'             => ['super', 'captain', 'committee', 'moderator'],
+    'cases.php'               => ['super', 'captain', 'committee', 'moderator'],
+    'case.php'                => ['super', 'captain', 'committee', 'moderator'],
+    'notifications.php'       => ['super', 'captain', 'committee', 'moderator'],
 ];
 
 function my_tier(): string
 {
     $t = current_admin()['admin_tier'] ?? null;
-    return in_array($t, ['super', 'committee', 'captain'], true) ? $t : 'super';   // an empty tier reads as super, as in the database
+    return in_array($t, ['super', 'committee', 'moderator', 'captain'], true) ? $t : 'super';   // an empty tier reads as super, as in the database
 }
 function is_super(): bool      { return my_tier() === 'super'; }
 function is_captain(): bool    { return my_tier() === 'captain'; }
 function is_committee(): bool  { return my_tier() === 'committee'; }
-function sees_everything(): bool { return my_tier() !== 'committee'; }
+function is_moderator(): bool  { return my_tier() === 'moderator'; }
+/** Sees only a committee's cases: a Kagawad (committee) or a staff member (moderator, 0151). */
+function is_scoped(): bool     { return in_array(my_tier(), ['committee', 'moderator'], true); }
+function sees_everything(): bool { return !is_scoped(); }
 function is_dev_admin(): bool  { return !empty(current_admin()['is_dev']); }
 
 function page_allowed(string $page): bool
@@ -112,6 +115,7 @@ function access_label(): string
     $base = match ($tier) {
         'captain'   => t('Captain · view only', 'Kapitan · tingin lamang'),
         'committee' => ($n = committees_all()[(string) ($a['committee'] ?? '')]['short_en'] ?? null) ? (string) $n : t('Committee', 'Komite'),
+        'moderator' => t('Staff', 'Kawani') . (($n = committees_all()[(string) ($a['committee'] ?? '')]['short_en'] ?? null) ? ' · ' . $n : ''),
         default     => t('Super admin', 'Pangunahing admin'),
     };
     return $base . (is_dev_admin() ? ' · DEV' : '');

@@ -8,7 +8,7 @@ if (!str_contains($_SERVER['REQUEST_URI'] ?? '', 'login.php')) {
         'id' => 'a0000000-0000-0000-0000-000000000001', 'full_name' => 'Reyes, Marites', 'email' => 'sec@brgy183.test',
         'must_change' => false, 'avatar_url' => null, 'seen' => time(),
         // 0145: the tests choose the tier with a cookie (super unless told otherwise)
-        'admin_tier' => in_array($_COOKIE['ss_tier'] ?? '', ['super', 'committee', 'captain'], true) ? $_COOKIE['ss_tier'] : 'super',
+        'admin_tier' => in_array($_COOKIE['ss_tier'] ?? '', ['super', 'committee', 'moderator', 'captain'], true) ? $_COOKIE['ss_tier'] : 'super',
         'committee' => preg_match('/^[a-z_]+$/', $_COOKIE['ss_committee'] ?? '') ? $_COOKIE['ss_committee'] : null,
         'is_dev' => true, 'access_at' => time()];
 }

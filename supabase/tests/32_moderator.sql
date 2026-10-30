@@ -49,10 +49,10 @@ begin
     select count(*) into n from public.reports where id in (r_po, r_env);
     if n <> 1 or not exists (select 1 from public.reports where id = r_po) then raise exception 'reads % of the two', n; end if;
     if not public.admin_can_write() or not public.admin_scoped() then raise exception 'not a writing, scoped tier'; end if;
+    reset role;   -- _scope_guard is internal (the case functions call it); as the moderator, outside the API role
     perform public._scope_guard(r_po, true);
     begin perform public._scope_guard(r_env, true); raise exception 'worked a case outside the committee';
     exception when insufficient_privilege then null; end;
-    reset role;
     v_log := v_log || E'\n' || 'ok  a moderator reads and works their committee''s cases, not another''s';
   exception when others then reset role; v_log := v_log || E'\n' || 'FAIL scope: ' || sqlerrm; end;
 
