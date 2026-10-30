@@ -290,6 +290,9 @@ Changes on `main` not yet deployed belong here.
   (status changes, taking a case, forwarding, messages), for the last 7
   days. Super admins see every card, a Kagawad their staff's and their own.
   Nothing is recorded for super admins or captains.
+- The account list checks the viewer's committee once per load, not once
+  per account, so Residents and Personnel stay within their speed budget
+  (0154).
 
 **Fixed**
 - The Administrators tab's Edit buttons and search did nothing once the tab
