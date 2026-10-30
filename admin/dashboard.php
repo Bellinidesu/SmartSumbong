@@ -138,6 +138,9 @@ if (!$error) {
         foreach ($got as $k => $v) { if (!($v instanceof SupabaseError)) { $sm[$k] = $v; } }
     } catch (SupabaseError) { /* the tiles stay empty */ }
 }
+// Layout 3, "Trend hero" (Ace, 30 Oct): the live feed beside the committees. Optional, like the SMART calls.
+$feed = [];
+try { $feed = (array) $db->select('status_logs', ['select' => 'id,new_status,remark,is_system,created_at,report:reports!status_logs_report_id_fkey(tracking_id)', 'order' => 'created_at.desc', 'limit' => '7']); } catch (SupabaseError) {}
 $smSum   = is_array($sm['summary']) ? $sm['summary'] : null;
 $smRisk  = count(array_filter((array) $sm['risk'], fn($r) => ($r['risk'] ?? '') === 'high'));
 $smStorm = (is_array($sm['storm']) && !empty($sm['storm'][0]['storm_mode'])) ? $sm['storm'][0] : null;
@@ -189,30 +192,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   </button>
   <div class="ss-panel-body" id="ss-panel-body"><div class="ss-panel-in">
 <?php endif; ?>
-<?php if ($coms !== null): $nm = $coms['needs_me']; $decide = (int) $nm['escalations'] + (int) $nm['to_place'] + (int) $nm['tanods']; ?>
-<!-- 0156: the super admin module. What waits on a super admin, then each committee's load -->
-<p class="p-eyebrow ss-sub"><?= e(t('Needs me today', 'Kailangan ako ngayon')) ?></p>
-<div class="ss-tiles dc-needs">
-  <a class="p-card ss-tile<?= $decide > 0 ? ' hot' : '' ?>" href="notifications.php"><span><?= e(t('Waiting for a super admin', 'Naghihintay ng super admin')) ?></span><b><?= $decide ?></b>
-    <span><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e(t('tanods proposed', 'tanod na iminungkahi')) ?></span></a>
-  <a class="p-card ss-tile<?= (int) $nm['overdue'] > 0 ? ' hot' : '' ?>" href="cases.php?view=attention"><span><?= e(t('Overdue', 'Lampas-oras')) ?></span><b><?= (int) $nm['overdue'] ?></b>
-    <span><?= e(t('open past the deadline', 'bukas na lampas sa deadline')) ?></span></a>
-  <a class="p-card ss-tile<?= (int) $nm['no_committee'] > 0 ? ' hot' : '' ?>" href="cases.php?com=none"><span><?= e(t('Not taken by any committee', 'Walang komiteng humahawak')) ?></span><b><?= (int) $nm['no_committee'] ?></b>
-    <span><?= e(t('open with no committee', 'bukas na walang komite')) ?></span></a>
-  <a class="p-card ss-tile" href="cases.php"><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b><?= (int) $nm['open'] ?></b>
-    <span><?= e(t('across the barangay', 'sa buong barangay')) ?></span></a>
-</div>
-<section class="p-card p-card-pad dc-coms"><p class="p-eyebrow"><?= e(t('The committees', 'Ang mga komite')) ?></p>
-  <table class="ss-table"><thead><tr><th><?= e(t('Committee', 'Komite')) ?></th><th class="n"><?= e(t('Open', 'Bukas')) ?></th><th class="n"><?= e(t('Overdue', 'Lampas-oras')) ?></th><th class="n"><?= e(t('Filed this month', 'Naisampa ngayong buwan')) ?></th></tr></thead><tbody>
-  <?php foreach ((array) $coms['committees'] as $cr): ?>
-    <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><a href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><?= committee_pill((string) $cr['key']) ?></a></td>
-      <td class="n"><?= (int) $cr['open'] ?></td><td class="n<?= (int) $cr['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $cr['overdue'] ?></td><td class="n"><?= (int) $cr['month'] ?></td></tr>
-  <?php endforeach; ?>
-    <tr class="p-click" data-href="cases.php?com=none"><td><a href="cases.php?com=none"><?= committee_pill(null) ?></a></td>
-      <td class="n"><?= (int) $coms['none']['open'] ?></td><td class="n<?= (int) $coms['none']['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $coms['none']['overdue'] ?></td><td class="n"><?= (int) $coms['none']['month'] ?></td></tr>
-  </tbody></table></section>
-<?php if ($smSum !== null): ?><p class="p-eyebrow ss-sub"><?= e(t('Across open cases', 'Sa mga bukás na kaso')) ?></p><?php endif; ?>
-<?php endif; ?>
+<?php if ($coms !== null) { $nm = $coms['needs_me']; $decide = (int) $nm['escalations'] + (int) $nm['to_place'] + (int) $nm['tanods']; } ?>
 <?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
 <div class="ss-tiles">
   <a class="p-card ss-tile<?= $uw > 0 ? ' hot' : '' ?>" href="<?= e(ws_href('?own=free')) ?>"><span><?= e(t('Urgent, waiting for a tanod', 'Madalian, naghihintay ng tanod')) ?></span><b><?= $uw ?></b>
@@ -262,36 +242,72 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php endif; ?>
 
-<!-- ---------- reports received ---------- -->
-<div class="p-card" style="margin-bottom:20px">
-  <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
-    <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span>
-    <button type="button" class="dq-brain" data-chart="received" aria-expanded="false" aria-controls="notes-received" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_brain(24) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button></div>
-  <div class="dq-notes" id="notes-received" hidden></div>
-  <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="260" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
-    <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
-</div>
-
-<div class="p-dash-mid p-grid" style="margin-bottom:20px">
-  <div class="p-stack">
-    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></span><b class="p-num" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-resolved-delta"></span></div>
-    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Escalated Reports', 'Na-escalate na Ulat')) ?></span><b class="p-num" id="tile-escalated-value"><?= (int) $tiles['escalated'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-escalated-delta"></span></div>
-    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></span><b class="p-num" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></b><small><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?></small><span class="p-delta-t" id="tile-overdue-delta"></span></div>
-  </div>
-  <div class="p-card p-donut-card">
+<!-- ---------- Trend hero (layout 3): the trend and the month's figures, the status, what needs me, then categories, committees and the feed ---------- -->
+<div class="dh-grid">
+  <section class="p-card dh-hero">
+    <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
+      <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span>
+      <button type="button" class="dq-brain" data-chart="received" aria-expanded="false" aria-controls="notes-received" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_brain(24) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button></div>
+    <div class="dq-notes" id="notes-received" hidden></div>
+    <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="430" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
+      <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
+    <div class="dh-stats">
+      <div><span class="p-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></span><b class="p-num" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-resolved-delta"></span></div>
+      <div><span class="p-label"><?= e(t('Escalated Reports', 'Na-escalate na Ulat')) ?></span><b class="p-num" id="tile-escalated-value"><?= (int) $tiles['escalated'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-escalated-delta"></span></div>
+      <div><span class="p-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></span><b class="p-num" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></b><small><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?></small><span class="p-delta-t" id="tile-overdue-delta"></span></div>
+    </div>
+  </section>
+  <div class="p-card p-donut-card dh-status">
     <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?></h2></div>
     <div class="p-donut"><svg id="donut-status" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?>"></svg><div class="p-center"><b class="p-num" id="status-donut-total">0</b><span id="status-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-status"></div>
     <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
     <div class="p-empty-state" id="status-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
   </div>
-  <div class="p-card p-donut-card">
+  <?php if ($coms !== null): ?>
+  <!-- 0156: what waits on a super admin -->
+  <div class="dh-kpi dc-needs">
+    <a class="p-card ss-tile<?= $decide > 0 ? ' hot' : '' ?>" href="notifications.php"><span><?= e(t('Waiting for you', 'Naghihintay sa iyo')) ?></span><b class="p-num"><?= $decide ?></b>
+      <small><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e(t('tanods proposed', 'tanod na iminungkahi')) ?></small></a>
+    <a class="p-card ss-tile<?= (int) $nm['overdue'] > 0 ? ' hot' : '' ?>" href="cases.php?view=attention"><span><?= e(t('Overdue', 'Lampas-oras')) ?></span><b class="p-num"><?= (int) $nm['overdue'] ?></b>
+      <small><?= e(t('open past the deadline', 'bukas na lampas sa deadline')) ?></small></a>
+    <a class="p-card ss-tile<?= (int) $nm['no_committee'] > 0 ? ' hot' : '' ?>" href="cases.php?com=none"><span><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b class="p-num"><?= (int) $nm['no_committee'] ?></b>
+      <small><?= e(t('open, nobody has them', 'bukas, walang may hawak')) ?></small></a>
+    <a class="p-card ss-tile" href="cases.php"><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b class="p-num"><?= (int) $nm['open'] ?></b>
+      <small><?= e(t('across the barangay', 'sa buong barangay')) ?></small></a>
+  </div>
+  <?php endif; ?>
+  <div class="p-card p-donut-card dh-cat">
     <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Category Distribution', 'Hati ayon sa Kategorya')) ?></h2></div>
     <div class="p-donut"><svg id="donut-category" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaints by category', 'Mga sumbong ayon sa kategorya')) ?>"></svg><div class="p-center"><b class="p-num" id="category-donut-total">0</b><span id="category-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-category"></div>
     <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
     <div class="p-empty-state" id="category-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
   </div>
+  <?php if ($coms !== null): $comMax = 1; foreach ((array) $coms['committees'] as $cr) { $comMax = max($comMax, (int) $cr['open']); } $comMax = max($comMax, (int) $coms['none']['open']); ?>
+  <section class="p-card dh-com dc-coms">
+    <div class="p-card-head"><h2><?= e(t('The committees', 'Ang mga komite')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="administrative-services.php"><?= e(t('Manage', 'Pamahalaan')) ?> &rarr;</a></div>
+    <table class="ss-table dh-ctab"><thead><tr><th><?= e(t('Committee', 'Komite')) ?></th><th class="n"><?= e(t('Open', 'Bukas')) ?></th><th class="n"><?= e(t('Overdue', 'Lampas-oras')) ?></th></tr></thead><tbody>
+    <?php foreach ((array) $coms['committees'] as $cr): ?>
+      <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><a href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><?= committee_pill((string) $cr['key']) ?></a>
+        <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $cr['open'] / $comMax * 100) ?>%;background:<?= e(committee_colour((string) $cr['key'])) ?>"></i></span></td>
+        <td class="n"><?= (int) $cr['open'] ?></td><td class="n<?= (int) $cr['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $cr['overdue'] ?></td></tr>
+    <?php endforeach; ?>
+      <tr class="p-click" data-href="cases.php?com=none"><td><a href="cases.php?com=none"><?= committee_pill(null) ?></a>
+        <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $coms['none']['open'] / $comMax * 100) ?>%;background:var(--p-red)"></i></span></td>
+        <td class="n"><?= (int) $coms['none']['open'] ?></td><td class="n<?= (int) $coms['none']['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $coms['none']['overdue'] ?></td></tr>
+    </tbody></table>
+  </section>
+  <?php endif; ?>
+  <section class="p-card dh-feed">
+    <div class="p-card-head"><h2><?= e(t('Live feed', 'Live na daloy')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="activity.php"><?= e(t('Activity', 'Aktibidad')) ?> &rarr;</a></div>
+    <?php if (!$feed): ?><p class="p-hint"><?= e(t('All quiet. Nothing has happened on a case yet.', 'Tahimik. Wala pang nangyayari sa anumang kaso.')) ?></p><?php else: ?>
+    <ul class="dh-feedl">
+      <?php foreach ($feed as $f): $tone = ($f['is_system'] ?? false) ? 'w' : (in_array($f['new_status'] ?? '', ['resolved', 'closed'], true) ? 'g' : 'i'); ?>
+        <li class="<?= $tone ?>"><i aria-hidden="true"></i><span><span class="p-mono-id"><?= e((string) ($f['report']['tracking_id'] ?? '')) ?></span> <?= e((string) (($f['remark'] ?? '') !== '' ? $f['remark'] : status_label((string) $f['new_status']))) ?></span><small><?= e(relative_time((string) $f['created_at'])) ?></small></li>
+      <?php endforeach; ?>
+    </ul><?php endif; ?>
+  </section>
   <!-- 0156: a segment or its name opens its complaints here, beside the donuts -->
   <section class="p-card dq-box" id="dq-box" hidden aria-live="polite">
     <div class="dq-head"><i id="dq-dot"></i><h2 id="dq-title"></h2><span class="p-spacer"></span>

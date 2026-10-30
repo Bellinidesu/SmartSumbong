@@ -1,4 +1,5 @@
 """A fake Supabase (PostgREST + enough GoTrue) with fixture data, to see portal screens without touching production."""
+import math
 import json, re, sys, datetime as dt
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -104,7 +105,10 @@ TABLES = {
                {'id': 2, 'name': 'Harvard Street', 'grp': 'street', 'aliases': [], 'lat': 14.5236, 'lng': 121.0129, 'source': 'barangay'}],
     'web_push_subscriptions': [{'id': 1, 'endpoint': 'https://fcm.googleapis.com/fcm/send/demo', 'label': 'Chrome on Windows', 'created_at': ago(3000), 'last_ok_at': ago(40)}],
     'place_kinds': [{'grp': g, 'label': l} for g, l in [('area', 'Area'), ('hall', 'Barangay hall'), ('shop', 'Shop'), ('street', 'Street')]],
-    'dispatches': [], 'status_logs': [], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24, 'resolution_hours': 48, 'accept_minutes': 20}, {'category': 'other', 'resolution_hours': 120, 'accept_minutes': 60}],
+    'dispatches': [], 'status_logs': [{'id': 's1', 'new_status': 'validated', 'remark': 'Reviewed and validated', 'is_system': False, 'created_at': ago(0.1), 'report': {'tracking_id': 'SS-2610-1001'}},
+                    {'id': 's2', 'new_status': 'assigned', 'remark': 'Auto-dispatched to Mendoza, Liza (180 m away)', 'is_system': True, 'created_at': ago(0.3), 'report': {'tracking_id': 'SS-2610-1004'}},
+                    {'id': 's3', 'new_status': 'resolved', 'remark': 'Resolution approved', 'is_system': False, 'created_at': ago(1.2), 'report': {'tracking_id': 'SS-2610-1012'}},
+                    {'id': 's4', 'new_status': 'validated', 'remark': 'Nobody answered in time: sending the nearest tanod from any committee', 'is_system': True, 'created_at': ago(2), 'report': {'tracking_id': 'SS-2610-1010'}}], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24, 'resolution_hours': 48, 'accept_minutes': 20}, {'category': 'other', 'resolution_hours': 120, 'accept_minutes': 60}],
 }
 
 # 0150: each committee's colour, as the migration starts them
@@ -268,7 +272,7 @@ RPC = {
     'smart_factor_stats': [{'factor': 'words', 'detail': 'fight', 'reports': 14, 'raised': 1, 'lowered': 6}, {'factor': 'neighbours', 'detail': '', 'reports': 22, 'raised': 2, 'lowered': 3}],
     'smart_digest_preview': 'Good morning. 3 urgent cases wait for a tanod. 2 may miss their deadline. Animal welfare is up 12 times the usual in Purok 3.',
     'smart_patterns': [{'pattern_key': 'p1', 'category': 'environmental_waste_hazard', 'lat': 14.5, 'lng': 121.0, 'reports': 6, 'weeks': 4, 'residents': 5, 'still_open': 2, 'hazard': 'Flood zone 2', 'tracking_ids': ['SS-2610-1003', 'SS-2610-1011', 'SS-2610-1015']}],
-    'dashboard_metrics': {'daily': [{'d': f'2026-10-{i:02d}', 'n': (i * 3) % 7 + 1} for i in range(1, 15)], 'efficiency': [], 'resolution_status': {'done': 30, 'overdue': 4, 'late': 3, 'processing': 12, 'rejected': 2},
+    'dashboard_metrics': {'daily': [{'label': str(i), 'filed': max(0, round(3 + 2.2 * math.sin(i / 3.4) + 1.2 * math.sin(i / 1.3) + (1.5 if i > 22 else 0)))} for i in range(1, 31)], 'efficiency': [], 'resolution_status': {'done': 30, 'overdue': 4, 'late': 3, 'processing': 12, 'rejected': 2},
                           'categories': [{'category': c, 'n': 5 + i} for i, c in enumerate(CATS)], 'tiles': {'resolved': 30, 'escalated': 6, 'overdue': 4}, 'total': 51},
     'account_directory': [
   {'id':'u1','full_name':'Besarra, Rose','email':'person0@example.test','mobile_number':'+639170000001','verification_status':'pending','is_suspended':False,'suspended_reason':None,'is_overdue':True,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'},
