@@ -63,5 +63,19 @@ begin
     v_log := v_log || E'\n' || 'ok  the brain buttons get the month''s facts for "Total reports received" and "Resolution efficiency"';
   exception when others then reset role; v_log := v_log || E'\n' || 'FAIL notes: ' || sqlerrm; end;
 
+  -- 4. notifications carry their case's committee; system alerts reach the super admins only
+  begin
+    perform public._notify_admins('System check: a scheduled job failed');
+    if exists (select 1 from public.notifications where user_id = v_kpo and message = 'System check: a scheduled job failed') then raise exception 'a Kagawad got a system alert'; end if;
+    if not exists (select 1 from public.notifications where user_id = v_sup and message = 'System check: a scheduled job failed') then raise exception 'the super admin did not'; end if;
+    insert into public.notifications (user_id, report_id, kind, message) values (v_sup, r1, 'status_change', 'About r1');
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claim.sub', v_sup::text, true);
+    if (select public.notification_committee(n) from public.notifications n where n.user_id = v_sup and n.message = 'About r1') is distinct from 'peace_order' then
+      raise exception 'the notification does not carry its committee'; end if;
+    reset role;
+    v_log := v_log || E'\n' || 'ok  a notification carries its case''s committee; system alerts reach the super admins and not a committee''s admins';
+  exception when others then reset role; v_log := v_log || E'\n' || 'FAIL notifications: ' || sqlerrm; end;
+
   raise exception 'SWEEP-ROLLBACK%', v_log;
 end $sweep$;

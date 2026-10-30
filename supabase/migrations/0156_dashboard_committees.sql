@@ -134,6 +134,39 @@ language sql stable set search_path = public, extensions as $$
     else '{}'::jsonb end
 $$;
 
+-- ---------- Notifications by committee ----------
+
+/** The committee of the case a notification is about (null: none yet, or not about a case): a column the list shows and filters by. */
+create or replace function public.notification_committee(n public.notifications)
+returns text
+language sql stable security definer set search_path = public as $$
+  select case when n.report_id is null then null else public._case_committee(n.report_id) end
+$$;
+revoke all on function public.notification_committee(public.notifications) from public, anon;
+grant execute on function public.notification_committee(public.notifications) to authenticated;
+
+-- System alerts (the portal down, a failed job, the engine's barangay-wide notes) are for the super admins only; a committee's
+-- admins keep what is about their cases and about them.
+create or replace function public._notifications_scope()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+declare v_role text; v_tier text;
+begin
+  select role::text, coalesce(admin_tier, 'super') into v_role, v_tier from public.users where id = new.user_id;
+  if v_role <> 'admin' or v_tier not in ('committee', 'moderator') then return new; end if;
+  if new.report_id is null then
+    if new.subject_user_id is null
+       and (new.message like 'System check:%' or new.message like 'The admin portal %' or new.message like 'SMART:%') then
+      return null;
+    end if;
+    return new;
+  end if;
+  if not coalesce((select public._user_sees_case(new.user_id, r.id, r.category, r.handler_id) from public.reports r where r.id = new.report_id), false) then
+    return null;
+  end if;
+  return new;
+end $$;
+
 revoke all on function public.dashboard_committees(timestamptz), public.dashboard_slice(timestamptz, timestamptz, text, text, integer),
                        public.smart_chart_notes(text, timestamptz, timestamptz, public.complaint_category) from public, anon;
 grant execute on function public.dashboard_committees(timestamptz), public.dashboard_slice(timestamptz, timestamptz, text, text, integer),
