@@ -130,7 +130,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <section class="ib-list" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
   <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
   <div class="p-card ib-rows-card">
-    <?php if (!$rows): ?><p class="p-empty"><?= e($box === 'in' ? t('Nothing here yet.', 'Wala pang laman.') : t('You have not sent anything yet.', 'Wala ka pang naipadala.')) ?></p><?php endif; ?>
+    <?php if (!$rows): ?><div class="ib-none-list"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-send', 20) ?></span><b><?= e($box === 'in' ? t('Nothing here yet.', 'Wala pang laman.') : t('You have not sent anything yet.', 'Wala ka pang naipadala.')) ?></b></div><?php endif; ?>
     <nav class="ib-rows" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
     <?php foreach ($rows as $r):
         $unreadRow = $box === 'in' && empty($r['read_at']);

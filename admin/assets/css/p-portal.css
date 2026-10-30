@@ -828,3 +828,17 @@ td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
 .nf-case-items .p-n-x { margin: 0 0 0 4px; flex: none; }
 .nf-case-act { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .nf-case-act .nf-readall { margin: 0; }
+
+/* Symmetry pass on Notifications and the Inbox (31 Oct, Ace's live screenshots) */
+/* the toolbar and the side column start on the same line; a folded row's chevron sits in the column of the row's tick;
+   the rows inside a folded row line up with its title and its tick */
+.nf-main > .p-band--calm:first-child { margin-top: 0; }
+.nf-group > summary.p-notif.fr { grid-template-columns: 40px minmax(0, 1fr) 36px; }
+.nf-group > summary .nf-chev { justify-self: center; }
+.nf-case .nf-body { padding: 0 18px 14px 62px; }
+.nf-case-items .p-n-x { margin: 0; }
+/* the Inbox: the write form's message box is a message box; an empty list says so the way the empty pane does */
+textarea.p-input-plain { height: auto; min-height: 180px; padding: 10px 12px; line-height: 1.55; resize: vertical; }
+.ib-none-list { display: grid; justify-items: center; gap: 8px; padding: 40px 16px; text-align: center; color: var(--p-muted); }
+.ib-none-list b { font-weight: 600; }
+.ib-none-list .ib-none-ic { margin-bottom: 0; width: 44px; height: 44px; }

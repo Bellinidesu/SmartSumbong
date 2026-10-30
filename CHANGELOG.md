@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (symmetry on Notifications and the Inbox, 31 Oct)**
+- Notifications: the toolbar and the side column start on the same line; a folded row's arrow
+  sits in the same column as the tick on the other rows, and the rows inside it line up with
+  its title and its tick (measured at 2048 px).
+- Inbox: the write form's message box is a real message box (it was one line high); an empty
+  list shows an icon and a sentence like the empty pane.
+
 **Changed (feed rows, the gaps sealed, 31 Oct)**
 - Notifications: notifications about the same case fold into one row ("SS-2610-1003 · 2 updates
   on this case") that opens to list them, with Open the case and Mark all as read. The live
