@@ -302,6 +302,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
 </section>
 
 <?php if (!$editing): ?>
+<div class="pf-grid"><div class="pf-left">
   <p class="p-eyebrow ss-pf-sec"><?= e(t('Your details', 'Iyong mga detalye')) ?></p>
   <div class="p-card ss-pf-rows">
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Full name', 'Buong pangalan')) ?></span><span class="ss-pf-v"><?= e($shown) ?></span><?= $change('first_name') ?></div>
@@ -331,6 +332,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     <?php endif; ?>
   </div>
 
+</div><div class="pf-right">
   <?php
   // Alerts (0136): each person sets up what reaches them, on this browser and in the app on their phone.
   $alMuted = (array) ($me['muted_notification_kinds'] ?? []);
@@ -391,6 +393,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     <p class="st-note ss-al-note"><span id="ss-al-saved" role="status"></span><?= e(t('These choices also apply to the SmartSumbong app on your phone. Notifications here in the portal always keeps everything; only the alert is held back.', 'Ganito rin sa SmartSumbong app sa telepono mo. Laging kumpleto ang Notifications dito sa portal; ang alerto lamang ang hindi ipinapadala.')) ?></p>
   </div>
   <script src="assets/js/alerts.js?v=<?= e(asset_version('../js/alerts.js')) ?>" defer></script>
+</div></div>
 <?php else: ?>
   <form method="post" id="profile-form" enctype="multipart/form-data" class="p-card p-card-pad ss-pf-form" data-native-confirm="<?= e(t('Save the changes to your account?', 'I-save ang mga pagbabago sa iyong account?')) ?>">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (super-admin layout overhaul, step 4: Edit Profile and Control Room, 30 Oct)**
+- Edit Profile: on a wide screen your details and account are on the left and the
+  alerts on the right, instead of one 1700 px wide column. One column under 1500 px.
+- Control Room, Complaint types: two columns on a wide screen; a category you open
+  takes the full row. "1 options" now reads "1 option".
+- Settings, System status: the four health cards (uptime, memory, SMART engine, engine)
+  sit in a 2 x 2 grid on a wide screen, so the page is a screen shorter.
+
 **Changed (super-admin layout overhaul, step 3: Inbox and Personnel, 30 Oct)**
 - Inbox: two panes. The list is on the left; the open message, the write form or the
   reroute question is on the right, so reading and answering no longer loses the list.

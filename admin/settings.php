@@ -971,7 +971,7 @@ endif;
     <?php foreach (categories_all() as $ck => $cc): $opts = $catOpts[$ck] ?? []; $on = count(array_filter($opts, fn ($o) => !empty($o['active']))); ?>
       <details class="ty-cat<?= $cc['active'] ? '' : ' ty-off' ?>">
         <summary><span class="ty-dot" style="--tc:<?= e($cc['colour']) ?>" aria-hidden="true"></span><b><?= e(t($cc['en'], $cc['fil'])) ?></b>
-          <small><?= e(sprintf(t('%d options', '%d opsyon'), $on)) ?></small><?php if (!$cc['active']): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
+          <small><?= e($on === 1 ? sprintf(t('%d option', '%d opsyon'), $on) : sprintf(t('%d options', '%d opsyon'), $on)) ?></small><?php if (!$cc['active']): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
         <form method="post" class="ty-row">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cat_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
           <label class="ty-f"><span><?= e(t('In English', 'Sa Ingles')) ?></span><input class="p-input-plain" name="label_en" value="<?= e($cc['en']) ?>" required minlength="2" maxlength="60"></label>
@@ -1192,6 +1192,7 @@ endif;
     <p class="st-note"><?= e(t('Checked every hour. An alert closes on its own once the problem is gone; see docs/INCIDENTS.md for what to do.', 'Sinusuri bawat oras. Kusang nagsasara ang alerto kapag nawala na ang problema; tingnan ang docs/INCIDENTS.md.')) ?></p>
   </div>
   <?php endif; ?>
+  <div class="st-statgrid">
   <?php if (is_array($up)): ?>
   <div class="p-card p-card-pad st-uptime">
     <p class="p-eyebrow"><?= e(t('Portal uptime', 'Uptime ng portal')) ?></p>
@@ -1240,6 +1241,7 @@ endif;
     <p class="st-note"><?= e(t('Every minute the database hands the engine the ID photos of new sign-ups to read (type, name and number), and saves what it reads. A reading only points to what to check; a person verifies.', 'Bawat minuto, ibinibigay ng database sa engine ang mga ID ng bagong nag-sign up para basahin (uri, pangalan at numero), at sine-save ang nabasa. Tinuturo lamang ng pagbasa kung ano ang susuriin; tao ang nagve-verify.')) ?></p>
   </div>
   <?php endif; ?>
+  </div>
   <?php if (is_array($errs)): ?>
   <div class="p-card p-card-pad st-errors">
     <p class="p-eyebrow"><?= e(t('Recent errors', 'Mga kamakailang error')) ?></p>
