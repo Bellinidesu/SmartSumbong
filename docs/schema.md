@@ -57,6 +57,8 @@ How the database fits the rest of the system is in
 | `account_audit` | Hash-chained log of account changes | 0014 |
 | `attendance` | Tanod duty logging | 0001 |
 | `tanod_committees` | The committees a tanod belongs to: proposed by a Kagawad or approved by a super admin, with the committee's own role for them; written only by the functions. `tanod_committee_log` keeps every change (append-only) | 0153 |
+| `inbox_messages` | The portal's Inbox: one row per recipient (a batch per message sent), from a person or the system (sender null), optionally about a case; read by its sender and recipient only | 0155 |
+| `reroute_questions` | A reroute that found none of the case's committee's tanods free asks its Kagawad: open until answered, timed out or no longer needed | 0155 |
 | `admin_punches` | When a Kagawad or staff member signed in to and out of the portal, for the punch card; append-only | 0153 |
 | `device_tokens` | FCM push tokens | 0035 |
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
@@ -193,6 +195,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
 | `propose_tanod_committee`, `decide_tanod_committee`, `remove_tanod_committee`, `tanod_pick_list`, `personnel_committees`; `account_directory` (scoped) | 0153 | A tanod's committees: a Kagawad proposes, a super admin approves; names to propose from; each tanod's committees as the caller may see them and the committee of the case they are on; a committee's admins list only their tanods |
+| `send_mail`, `mail_recipients`, `mark_mail_read`; `answer_reroute_question`, `sweep_reroute_questions` (every minute) | 0155 | Mail along the ladder; a Kagawad picks a tanod for a reroute, or nobody answers in time and the nearest from any committee is sent. `auto_dispatch` tries the case's committee's tanods first on a reroute |
 | `punch`, `punch_cards` | 0153 | The portal punches a Kagawad or staff member in and out; the cards the caller may see (sign-ins, sign-outs, cases touched per day) |
 | `forward_case`, `flag_case_for_forward`, `dismiss_forward_flag`; `case_committee(report)` | 0152 | Forward a case (a super admin to a committee; a Kagawad to another committee or to the super admins), flag one for forwarding (staff, with the reason), keep it here; the committee a case is with, as a column the list can filter on |
 | `admin_scoped`; `admin_can_write`, `set_admin_access`, `set_official_role` (positions set the tier) | 0151 | The moderator tier (staff, scoped to a committee); a position sets its tier; the decision functions refuse a moderator |
@@ -260,6 +263,7 @@ Times in UTC; Philippine time is UTC+8.
 |---|---|---|
 | `sweep-overdue-verifications` | every 10 min | Flags registrations past the 2-hour review window |
 | `sweep-unaccepted-dispatches` | every 5 min | A dispatch not accepted in time goes back to the system |
+| `sweep-reroute-questions` | every minute | A reroute question past its wait sends the nearest tanod from any committee; one no longer needed closes (0155) |
 | `sweep-awaiting-units` | every 2 min | Re-offers jobs that found no free tanod, in SMART queue order (0129) |
 | `sweep-overdue-reports` | every 15 min | One "overdue" alert per missed admin date: no automatic escalation (0072) |
 | `sweep-admin-handovers` | hourly | Expires unanswered admin handovers (0055) |

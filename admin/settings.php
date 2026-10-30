@@ -101,6 +101,8 @@ const RULE_LIMITS = [
     'max_active_dispatches'      => ['Jobs a tanod may hold at once', 'Trabahong sabay na hawak ng tanod', 'A tanod at this many is not offered another.', 'Hindi na aalukin ang tanod na umabot dito.', 1, 20],
     'location_freshness_minutes' => ['Minutes a tanod\'s position stays fresh', 'Minutong sariwa ang lokasyon ng tanod', 'An older position is not used for "nearest".', 'Hindi ginagamit sa "pinakamalapit" ang mas lumang lokasyon.', 1, 120],
     'max_report_photos'          => ['Photos per report', 'Litrato bawat ulat', 'Up to 5, the most the app attaches.', 'Hanggang 5, ang pinakamaraming kayang ilakip ng app.', 1, 5],
+    'reroute_ask_urgent_minutes' => ['Minutes a Kagawad has to pick a tanod (urgent)', 'Minutong may ang Kagawad para pumili ng tanod (apurahan)', 'On a reroute with none of the committee\'s tanods free; then the nearest from any committee is sent.', 'Sa reroute na walang bakanteng tanod ang komite; saka ipapadala ang pinakamalapit mula sa kahit anong komite.', 1, 60],
+    'reroute_ask_minutes'        => ['Minutes a Kagawad has to pick a tanod (other cases)', 'Minutong may ang Kagawad para pumili ng tanod (ibang kaso)', 'The same, for a case that is not urgent.', 'Ganoon din, para sa kasong hindi apurahan.', 1, 120],
     'max_reports_per_day'        => ['Reports one resident may file a day', 'Ulat ng isang residente bawat araw', 'Stops flooding; real reports rarely come close.', 'Pumipigil sa pagbaha ng ulat; bihirang maabot ng totoong ulat.', 1, 200],
 ];
 

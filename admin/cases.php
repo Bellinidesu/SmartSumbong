@@ -454,9 +454,9 @@ $noteBadge = $notesUnread + $escCount;
 <div class="p-card p-notif-card fw-pins" style="margin-bottom:28px"><div class="p-notif-list">
   <?php foreach ($pins as $pn): ?>
     <div class="p-notif p-unread">
-      <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : 'i-send', 18) ?></span>
+      <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : ($pn['kind'] === 'reroute' ? 'i-route' : 'i-send'), 18) ?></span>
       <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
-      <a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($pn['report']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
+      <a class="p-btn p-btn-sm p-btn-orange" href="<?= e(!empty($pn['href']) ? $pn['href'] : 'case.php?id=' . $pn['report']) ?>"><?= e($pn['kind'] === 'reroute' ? t('Pick a tanod', 'Pumili ng tanod') : t('Review', 'Suriin')) ?></a>
     </div>
   <?php endforeach; ?>
 </div></div>

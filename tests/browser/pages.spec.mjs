@@ -8,7 +8,7 @@ import AxeBuilder from '@axe-core/playwright';
 const CASE = 'c0000000-0000-0000-0000-000000000001';
 const PAGES = [
   'dashboard.php', 'cases.php', `case.php?id=${CASE}`, 'summary.php', 'spatial.php', 'workspace.php',
-  'notifications.php', 'residents.php', 'personnel.php', 'settings.php', 'profile.php', 'activity.php',
+  'notifications.php', 'inbox.php', 'residents.php', 'personnel.php', 'settings.php', 'profile.php', 'activity.php',
   'retirement-requests.php', 'administrative-services.php', 'control-room.php', `complaint-summary.php?id=${CASE}`, `complaint-print.php?id=${CASE}`,
 ];
 
@@ -273,7 +273,7 @@ test('0146 catalogue: a super admin edits the complaint categories and options i
 test('0147 rules and hotlines: a super admin edits the deadlines, limits and emergency numbers in Settings', async ({ page }) => {
   const r = await open(page, 'control-room.php#rules');
   await expect(page.locator('#rules-card .ru-t tbody tr')).toHaveCount(8);
-  await expect(page.locator('#rules-card .ru-grid .ru-f')).toHaveCount(6);
+  await expect(page.locator('#rules-card .ru-grid .ru-f')).toHaveCount(8);   // 0155 adds the two reroute waits
   await expect(page.locator('#lim-max_deadline_extensions')).toHaveValue('2');
   expect(await axe(page), 'Settings > Rules').toEqual([]);
   await page.locator('#rules-card button[type="submit"]').click();
@@ -389,7 +389,7 @@ test('Roles and pages 3: forwarding between committees (chips, Committee column,
   await expect(page.locator('.fw-sel')).toHaveCount(0);
   await expect(page.locator('table.ss-cases-t thead th', { hasText: 'Committee' })).toHaveCount(0);
   const n = await open(page, 'notifications.php');
-  await expect(page.locator('.fw-pins .p-notif').first()).toContainText('Staff flagged it for forwarding: Mukhang sa kalusugan ito');
+  await expect(page.locator('.fw-pins .p-notif', { hasText: 'Staff flagged' })).toContainText('Staff flagged it for forwarding: Mukhang sa kalusugan ito');
   const c = await open(page, `case.php?id=${CASE}`);
   await expect(page.locator('.fw-flag')).toContainText('Mukhang sa kalusugan ito');
   await expect(page.locator('.fw-flag select[name="to"] option[value="health_sanitation"]')).toHaveAttribute('selected', '');
@@ -430,6 +430,32 @@ test('Roles and pages 4: tanods in committees, the punch cards, and a Kagawad\'s
   await expect(page.locator('.p-controls form')).toHaveCount(0);
   await expect(page.locator('#tc-card button', { hasText: 'Take out of the committee' })).toHaveCount(1);
   expect(s.errors.concat(d.errors, k.errors, kd.errors), 'console errors').toEqual([]);
+});
+
+test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
+  const n = await open(page, 'notifications.php');
+  await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
+  await page.locator('.fw-pins a', { hasText: 'Pick a tanod' }).click();
+  await expect(page).toHaveURL(/inbox\.php\?m=41/);
+  await expect(page.locator('#ib-question')).toBeVisible();
+  await expect(page.locator('#ib-question button[value="any"]')).toContainText('nearest from any committee');
+  expect(await axe(page), 'Inbox, reroute question').toEqual([]);
+  const i = await open(page, 'inbox.php');
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]').first()).toBeVisible();
+  await expect(page.locator('.ib-t tbody tr')).toHaveCount(2);
+  await expect(page.locator('.ib-t tr.ib-unread')).toContainText('Needs your answer');
+  const w = await open(page, 'inbox.php?new=1');
+  await expect(page.locator('.ib-person')).toHaveCount(2);
+  expect(await axe(page), 'Inbox, write').toEqual([]);
+  const r = await open(page, 'inbox.php?m=42');
+  await page.locator('.ib-act a', { hasText: 'Reply' }).click();
+  await expect(page.locator('#ib-subject')).toHaveValue('Re: Pulong bukas');
+  const c = await open(page, 'control-room.php#rules');
+  await expect(page.locator('input[name="lim[reroute_ask_urgent_minutes]"]')).toHaveValue('5');
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'inbox.php');
+  await expect(page.locator('.p-sidebar a[href="inbox.php"]').first()).toBeVisible();
+  expect(n.errors.concat(i.errors, w.errors, r.errors, c.errors, m.errors), 'console errors').toEqual([]);
 });
 
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {

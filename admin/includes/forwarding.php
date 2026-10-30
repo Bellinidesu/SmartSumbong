@@ -92,7 +92,7 @@ function forward_dialog(string $back): string
  * admin, the cases handed to the super admins to place; for a Kagawad, the cases their staff flagged and the cases forwarded to
  * their committee that they have not opened yet.
  *
- * @return list<array{report:string, tracking:string, text:string, at:string, kind:string}>
+ * @return list<array{report:string, tracking:string, text:string, at:string, kind:string, href?:?string}>
  */
 function forwarding_pins(Supabase $db): array
 {
@@ -104,6 +104,18 @@ function forwarding_pins(Supabase $db): array
             foreach ((array) $db->select('reports', ['select' => 'id,tracking_id,updated_at', 'awaiting_placement' => 'is.true', 'deleted_at' => 'is.null', 'order' => 'updated_at.asc', 'limit' => '20']) as $r) {
                 $pins[] = ['report' => (string) $r['id'], 'tracking' => (string) $r['tracking_id'], 'kind' => 'place', 'at' => (string) $r['updated_at'],
                            'text' => t('Forwarded to the super admins: place it with a committee.', 'Ipinasa sa mga super admin: ilagay ito sa isang komite.')];
+            }
+        }
+        // 0155: a reroute waiting on this Kagawad (or, for a super admin, on any): pick a tanod before the wait runs out
+        if ($tier === 'super' || ($tier === 'committee' && !empty($me['committee']))) {
+            $rq = ['select' => 'id,report_id,due_at,report:reports!reroute_questions_report_id_fkey(tracking_id)', 'state' => 'eq.open', 'order' => 'due_at.asc', 'limit' => '20'];
+            if ($tier === 'committee') { $rq['committee'] = 'eq.' . $me['committee']; }
+            foreach ((array) $db->select('reroute_questions', $rq) as $q) {
+                $msg = (array) $db->select('inbox_messages', ['select' => 'id', 'question_id' => 'eq.' . (int) $q['id'], 'recipient' => 'eq.' . ($me['id'] ?? '0'), 'limit' => '1']);
+                $pins[] = ['report' => (string) $q['report_id'], 'tracking' => (string) ($q['report']['tracking_id'] ?? ''), 'kind' => 'reroute', 'at' => (string) $q['due_at'],
+                           'href' => $msg ? 'inbox.php?m=' . (int) $msg[0]['id'] : null,
+                           'text' => sprintf(t('No tanod of the committee is free. Pick one by %s, or the nearest from any committee is sent.', 'Walang bakanteng tanod ang komite. Pumili bago mag-%s, o ipapadala ang pinakamalapit mula sa kahit anong komite.'),
+                                             (new DateTimeImmutable((string) $q['due_at']))->setTimezone(new DateTimeZone('Asia/Manila'))->format('g:i A'))];
             }
         }
         if ($tier === 'committee' && !empty($me['committee'])) {

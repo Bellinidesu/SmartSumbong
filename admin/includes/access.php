@@ -29,6 +29,7 @@ const PAGE_TIERS = [
     'cases.php'               => ['super', 'captain', 'committee', 'moderator'],
     'case.php'                => ['super', 'captain', 'committee', 'moderator'],
     'notifications.php'       => ['super', 'captain', 'committee', 'moderator'],
+    'inbox.php'               => ['super', 'captain', 'committee', 'moderator'],
 ];
 
 function my_tier(): string

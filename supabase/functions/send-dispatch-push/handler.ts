@@ -94,6 +94,10 @@ const TITLES: Record<string, string> = {
   verification: "Account update",
   retirement: "Personnel update",
   look_around: "Shared view",
+  case_forwarded: "Case forwarded",
+  forward_flag: "Forwarding flag",
+  tanod_committee: "Personnel update",
+  reroute_question: "Pick a tanod",
   test: "SmartSumbong alerts",
 };
 
