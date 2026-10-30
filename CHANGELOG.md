@@ -341,6 +341,17 @@ Changes on `main` not yet deployed belong here.
   only the super admins. A committee's *Right now* strip shows its own kinds
   of complaint and its own cases.
 
+**Changed (the aesthetic layer, 30 Oct)**
+- One new stylesheet, `aesthetic.css`, loaded last, restyles every portal page
+  at once from Ace's references; nothing moves.
+  - **Dark:** near-black cards with a lit edge and a top sheen, a violet and
+    blue glow behind the page and the sidebar, glowing orange accents, and dark
+    table heads in place of the solid orange and blue bars.
+  - **Light:** stays solid Material (no glass), with white cards floating on a
+    cream-to-sky ground, softer tinted shadows, rounder corners and pill
+    controls.
+  - Colours stay ours: branding blue and orange.
+
 **Changed (the aesthetic and symmetry pass, 30 Oct)**
 - Case Reports: the columns are sized by name, so the Committee column (and the
   tick boxes for super admins) no longer crush Status and Handler; committee

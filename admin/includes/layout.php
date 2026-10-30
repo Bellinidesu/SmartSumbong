@@ -284,6 +284,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
+<link href="assets/css/aesthetic.css?v=<?= e(asset_version('aesthetic.css')) ?>" rel="stylesheet">
 <?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?>">
