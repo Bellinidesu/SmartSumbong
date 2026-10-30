@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (super-admin layout overhaul, step 3: Inbox and Personnel, 30 Oct)**
+- Inbox: two panes. The list is on the left; the open message, the write form or the
+  reroute question is on the right, so reading and answering no longer loses the list.
+  Under 1100 px it is one column.
+- Personnel: the attendance tiles are shorter (104 px, were 132) and "proposed" no
+  longer breaks in the middle of the word.
+
 **Changed (Rose's notes on the portal, 21 Oct)**
 - Sign-in: the appearance and language options are back on the sign-in page;
   signing in lands on Notifications first.

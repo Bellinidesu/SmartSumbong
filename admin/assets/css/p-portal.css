@@ -742,7 +742,3 @@ html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:
 /* Personnel (30 Oct): "proposed" never breaks mid-word; the committee pill wraps its name instead */
 .cm-pill small { white-space: nowrap; }
 td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
-/* Personnel and Residents lists: the Status column gets the room its pills need, the phone number gives some up */
-.ss-ohead:has(#accounts-tbody) th:nth-last-child(2) { width: 19%; }
-.ss-ohead:has(#accounts-tbody) th:nth-child(3) { width: 11%; }
-.ss-ohead:has(#accounts-tbody) th:last-child { width: 110px; }
