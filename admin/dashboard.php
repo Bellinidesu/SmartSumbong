@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/forwarding.php';
 
 $admin = require_admin();
 $db    = db();
@@ -120,7 +121,7 @@ function delta_html(?array $d): string
 }
 
 // What SMART sees today (0124, 0127, 0128). Each call is optional: a failure hides its own tile, never the page.
-$sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null, 'times' => []];
+$sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null, 'times' => [], 'coms' => null];
 if (!$error) {
     try {
         $got = $db->selectMany([
@@ -131,6 +132,8 @@ if (!$error) {
             'quiet'   => ['rpc/smart_stuck_cases', [], true],
             'times'   => ['rpc/smart_time_patterns', ['p_days' => 90], true],
             'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
+            // 0156: the super admin module: what waits on a super admin, and each committee's load
+            'coms'    => ['rpc/dashboard_committees', ['p_month_from' => $month->format(DateTimeInterface::ATOM)], true],
         ]);
         foreach ($got as $k => $v) { if (!($v instanceof SupabaseError)) { $sm[$k] = $v; } }
     } catch (SupabaseError) { /* the tiles stay empty */ }
@@ -138,6 +141,8 @@ if (!$error) {
 $smSum   = is_array($sm['summary']) ? $sm['summary'] : null;
 $smRisk  = count(array_filter((array) $sm['risk'], fn($r) => ($r['risk'] ?? '') === 'high'));
 $smStorm = (is_array($sm['storm']) && !empty($sm['storm'][0]['storm_mode'])) ? $sm['storm'][0] : null;
+$coms    = is_array($sm['coms']) && isset($sm['coms']['needs_me']) ? $sm['coms'] : null;
+$panelOn = $coms !== null || $smSum !== null || !empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times']);
 
 layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
 $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->format('Y-m');
@@ -162,8 +167,12 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 </div>
 
 <!-- ---------- what SMART sees ---------- -->
-<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times'])):
+<?php if ($panelOn):
     $peek = [];
+    if ($coms !== null) {
+        $nm = $coms['needs_me'];
+        $peek[] = ((int) $nm['escalations'] + (int) $nm['to_place'] + (int) $nm['tanods']) . ' ' . t('waiting for you', 'naghihintay sa iyo');
+    }
     if ($smSum !== null) {
         $uwp = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0);
         $peek[] = $uwp . ' ' . t('waiting for a tanod', 'naghihintay ng tanod');
@@ -179,6 +188,30 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <span class="ss-chev" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
   </button>
   <div class="ss-panel-body" id="ss-panel-body"><div class="ss-panel-in">
+<?php endif; ?>
+<?php if ($coms !== null): $nm = $coms['needs_me']; $decide = (int) $nm['escalations'] + (int) $nm['to_place'] + (int) $nm['tanods']; ?>
+<!-- 0156: the super admin module. What waits on a super admin, then each committee's load -->
+<p class="p-eyebrow ss-sub"><?= e(t('Needs me today', 'Kailangan ako ngayon')) ?></p>
+<div class="ss-tiles dc-needs">
+  <a class="p-card ss-tile<?= $decide > 0 ? ' hot' : '' ?>" href="notifications.php"><span><?= e(t('Waiting for a super admin', 'Naghihintay ng super admin')) ?></span><b><?= $decide ?></b>
+    <span><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e(t('tanods proposed', 'tanod na iminungkahi')) ?></span></a>
+  <a class="p-card ss-tile<?= (int) $nm['overdue'] > 0 ? ' hot' : '' ?>" href="cases.php?view=attention"><span><?= e(t('Overdue', 'Lampas-oras')) ?></span><b><?= (int) $nm['overdue'] ?></b>
+    <span><?= e(t('open past the deadline', 'bukas na lampas sa deadline')) ?></span></a>
+  <a class="p-card ss-tile<?= (int) $nm['no_committee'] > 0 ? ' hot' : '' ?>" href="cases.php?com=none"><span><?= e(t('Not taken by any committee', 'Walang komiteng humahawak')) ?></span><b><?= (int) $nm['no_committee'] ?></b>
+    <span><?= e(t('open with no committee', 'bukas na walang komite')) ?></span></a>
+  <a class="p-card ss-tile" href="cases.php"><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b><?= (int) $nm['open'] ?></b>
+    <span><?= e(t('across the barangay', 'sa buong barangay')) ?></span></a>
+</div>
+<section class="p-card p-card-pad dc-coms"><p class="p-eyebrow"><?= e(t('The committees', 'Ang mga komite')) ?></p>
+  <table class="ss-table"><thead><tr><th><?= e(t('Committee', 'Komite')) ?></th><th class="n"><?= e(t('Open', 'Bukas')) ?></th><th class="n"><?= e(t('Overdue', 'Lampas-oras')) ?></th><th class="n"><?= e(t('Filed this month', 'Naisampa ngayong buwan')) ?></th></tr></thead><tbody>
+  <?php foreach ((array) $coms['committees'] as $cr): ?>
+    <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><a href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><?= committee_pill((string) $cr['key']) ?></a></td>
+      <td class="n"><?= (int) $cr['open'] ?></td><td class="n<?= (int) $cr['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $cr['overdue'] ?></td><td class="n"><?= (int) $cr['month'] ?></td></tr>
+  <?php endforeach; ?>
+    <tr class="p-click" data-href="cases.php?com=none"><td><a href="cases.php?com=none"><?= committee_pill(null) ?></a></td>
+      <td class="n"><?= (int) $coms['none']['open'] ?></td><td class="n<?= (int) $coms['none']['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $coms['none']['overdue'] ?></td><td class="n"><?= (int) $coms['none']['month'] ?></td></tr>
+  </tbody></table></section>
+<?php if ($smSum !== null): ?><p class="p-eyebrow ss-sub"><?= e(t('Across open cases', 'Sa mga bukás na kaso')) ?></p><?php endif; ?>
 <?php endif; ?>
 <?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
 <div class="ss-tiles">
@@ -223,7 +256,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   <?php endif; ?>
 </div>
 <?php endif; ?>
-<?php if ($smSum !== null || !empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times'])): ?>
+<?php if ($panelOn): ?>
   </div></div>
 </section>
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
@@ -232,7 +265,9 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <!-- ---------- reports received ---------- -->
 <div class="p-card" style="margin-bottom:20px">
   <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
-    <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span></div>
+    <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span>
+    <button type="button" class="dq-brain" data-chart="received" aria-expanded="false" aria-controls="notes-received" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_logo(26) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button></div>
+  <div class="dq-notes" id="notes-received" hidden></div>
   <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="260" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
     <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
 </div>
@@ -247,16 +282,23 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
     <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?></h2></div>
     <div class="p-donut"><svg id="donut-status" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?>"></svg><div class="p-center"><b class="p-num" id="status-donut-total">0</b><span id="status-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-status"></div>
-    <p class="p-hint" style="margin:0"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
+    <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
     <div class="p-empty-state" id="status-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
   </div>
   <div class="p-card p-donut-card">
     <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Category Distribution', 'Hati ayon sa Kategorya')) ?></h2></div>
     <div class="p-donut"><svg id="donut-category" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaints by category', 'Mga sumbong ayon sa kategorya')) ?>"></svg><div class="p-center"><b class="p-num" id="category-donut-total">0</b><span id="category-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-category"></div>
-    <p class="p-hint" style="margin:0"><?= e(t('Click a segment to open those complaints.', 'I-click ang isang bahagi para buksan ang mga sumbong na iyon.')) ?></p>
+    <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
     <div class="p-empty-state" id="category-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
   </div>
+  <!-- 0156: a segment or its name opens its complaints here, beside the donuts -->
+  <section class="p-card dq-box" id="dq-box" hidden aria-live="polite">
+    <div class="dq-head"><i id="dq-dot"></i><h2 id="dq-title"></h2><span class="p-spacer"></span>
+      <a class="p-btn p-btn-primary p-btn-sm" id="dq-open" href="cases.php"><?= e(t('Open in Case Reports', 'Buksan sa Mga Sumbong')) ?></a>
+      <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="dq-close" aria-label="<?= e(t('Close', 'Isara')) ?>"><?= p_icon('i-x', 15) ?></button></div>
+    <div class="dq-list" id="dq-list"></div>
+  </section>
 </div>
 
 <!-- ---------- resolution efficiency ---------- -->
@@ -273,7 +315,9 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
           <?php endforeach; ?>
         </select></label>
     </form>
+    <button type="button" class="dq-brain" data-chart="efficiency" aria-expanded="false" aria-controls="notes-efficiency" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_logo(26) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button>
   </div>
+  <div class="dq-notes" id="notes-efficiency" hidden></div>
   <p class="p-hint p-eff-note"><?= e(t('Average hours taken to finish a complaint, against the hours its category was allowed. Below the dashed line is inside the SLA.',
                                      'Karaniwang oras bago matapos ang isang sumbong, kumpara sa oras na itinakda para sa kategorya nito. Ang nasa ilalim ng putol-putol na linya ay pasok sa SLA.')) ?>
     <?php if ($effCategory): ?><?= e(t('Showing ', 'Ipinapakita lamang ang ') . category_label($effCategory) . t(' only.', '.')) ?><?php endif; ?></p>
@@ -309,6 +353,10 @@ $_SESSION['dash_intro'] = true;
   var CATEGORY_LABEL = <?= json_encode(array_combine(category_keys(), array_map('category_label', category_keys())), JSON_UNESCAPED_UNICODE) ?>;
   // The preview's colours per category, so a category keeps its colour month to month.
   var CATEGORY_COLOUR = <?= json_encode(category_colours()) ?>;
+  var COMMITTEES = <?= json_encode(array_map(fn ($c) => ['short' => (string) $c['short_en'], 'colour' => committee_colour((string) $c['key'])], committees_all()), JSON_UNESCAPED_UNICODE) ?>;
+  var FROM = <?= json_encode($month->format(DateTimeInterface::ATOM)) ?>, TO = <?= json_encode($next->format(DateTimeInterface::ATOM)) ?>, CAT = <?= json_encode($effCategory ?: null) ?>;
+  var sb = window.supabase ? window.supabase.createClient(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>,
+                                        { accessToken: window.ssAccessToken(<?= json_encode(access_token()) ?>) }) : null;
 
   function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
   function $(id) { return document.getElementById(id); }
@@ -391,9 +439,75 @@ $_SESSION['dash_intro'] = true;
     parts.forEach(function (p, i) { if (!p.n) return; var len = p.n / total * 100; s += '<circle data-i="' + i + '" cx="21" cy="21" r="15.9" fill="none" stroke="' + p.colour + '" stroke-width="5" stroke-dasharray="' + Math.max(0, len - 1.2) + ' ' + (100 - len + 1.2) + '" stroke-dashoffset="' + off + '" style="cursor:pointer"><title>' + esc(p.label) + ': ' + p.n + '</title></circle>'; off -= len; });
     svg.innerHTML = s;
     legend.innerHTML = parts.map(function (p, i) { return '<div data-i="' + i + '" role="link" tabindex="0"><i style="background:' + p.colour + '"></i>' + esc(p.label) + '<span class="p-n">' + p.n + '</span></div>'; }).join('');
-    var go = function (e) { var t = e.target.closest('[data-i]'); if (t && parts[+t.dataset.i].href) location.href = parts[+t.dataset.i].href; };
+    var go = function (e) { var t = e.target.closest('[data-i]'); if (t && parts[+t.dataset.i]) quickView(parts[+t.dataset.i]); };
     svg.onclick = go; legend.onclick = go; legend.onkeydown = function (e) { if (e.key === 'Enter') go(e); };
   }
+
+  // 0156: the box beside the donuts: the month's complaints behind one segment, and a button to Case Reports
+  var dqFor = null;
+  function quickView(p) {
+    var box = $('dq-box');
+    if (!sb || !p.kind) { if (p.href) location.href = p.href; return; }
+    if (dqFor === p.kind + p.key && !box.hidden) { box.hidden = true; dqFor = null; return; }
+    dqFor = p.kind + p.key;
+    $('dq-title').textContent = p.label + ' · ' + p.n; $('dq-dot').style.background = p.colour; $('dq-open').href = p.href;
+    $('dq-list').innerHTML = '<p class="p-hint">' + T('Loading…', 'Naglo-load…') + '</p>'; box.hidden = false;
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    sb.rpc('dashboard_slice', { p_from: FROM, p_to: TO, p_kind: p.kind, p_key: p.key, p_limit: 40 }).then(function (res) {
+      if (dqFor !== p.kind + p.key) return;
+      if (res.error || !res.data) { $('dq-list').innerHTML = '<p class="p-hint">' + T('Could not load these complaints.', 'Hindi ma-load ang mga sumbong na ito.') + '</p>'; return; }
+      var c = res.data.cases || [];
+      $('dq-list').innerHTML = !c.length ? '<p class="p-hint">' + T('None this month.', 'Wala ngayong buwan.') + '</p>' :
+        '<ul>' + c.map(function (r) {
+          var cm = r.committee && COMMITTEES[r.committee];
+          return '<li><a href="case.php?id=' + encodeURIComponent(r.id) + '"><span class="p-mono-id">' + esc(r.tracking_id) + '</span><span class="dq-subj">' + esc(r.subject) + '</span>' +
+            (cm ? '<span class="cm-pill" style="--cc:' + cm.colour + '"><i></i>' + esc(cm.short) + '</span>' : '') +
+            '<span class="dq-when">' + esc(new Date(r.created_at).toLocaleDateString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { month: 'short', day: 'numeric' })) + '</span></a></li>';
+        }).join('') + '</ul>' + (res.data.total > c.length ? '<p class="p-hint">' + T('Showing the newest ', 'Ipinapakita ang pinakabagong ') + c.length + T(' of ', ' sa ') + res.data.total + '.</p>' : '');
+    });
+  }
+  $('dq-close').addEventListener('click', function () { $('dq-box').hidden = true; dqFor = null; });
+
+  // 0156: the brain buttons ask the engine about a chart, on demand
+  var WEEKDAY = [T('Mondays', 'Lunes'), T('Tuesdays', 'Martes'), T('Wednesdays', 'Miyerkules'), T('Thursdays', 'Huwebes'), T('Fridays', 'Biyernes'), T('Saturdays', 'Sabado'), T('Sundays', 'Linggo')];
+  function catName(k) { return CATEGORY_LABEL[k] || k; }
+  function notesFor(chart, f) {
+    var out = [];
+    if (chart === 'received') {
+      var line = f.total + T(f.total === 1 ? ' complaint this month' : ' complaints this month', ' sumbong ngayong buwan');
+      if (f.prev_total) { var pc = Math.round((f.total - f.prev_total) / f.prev_total * 100); line += pc === 0 ? T(', the same as last month', ', kapareho ng nakaraang buwan') : (pc > 0 ? T(', up ', ', tumaas nang ') : T(', down ', ', bumaba nang ')) + Math.abs(pc) + T('% from last month (', '% mula sa nakaraang buwan (') + f.prev_total + ')'; }
+      out.push(line + '.');
+      if (f.busiest_day) out.push(T('The busiest day was ', 'Pinakamaraming dumating noong ') + new Date(f.busiest_day.day + 'T00:00:00').toLocaleDateString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { month: 'long', day: 'numeric' }) + T(', with ', ', na may ') + f.busiest_day.n + '.');
+      if (f.weekday && f.total >= 5) out.push(T('Most come in on ', 'Karamihan ay dumarating tuwing ') + WEEKDAY[f.weekday.dow - 1] + ' (' + f.weekday.n + ').');
+      if (f.top_category) out.push(T('The most common kind was ', 'Pinakamadalas ang ') + catName(f.top_category.category) + ' (' + f.top_category.share + '%).');
+      if (f.top_place) out.push(esc(f.top_place.place) + T(' came up ', ' ay lumabas nang ') + f.top_place.n + T(' times.', ' beses.'));
+      if (f.quiet_days) out.push(f.quiet_days + T(f.quiet_days === 1 ? ' day had none.' : ' days had none.', ' araw ang walang sumbong.'));
+    } else {
+      if (!f.finished) out.push(T('Nothing with a deadline has finished yet this month.', 'Wala pang natapos na may deadline ngayong buwan.'));
+      else {
+        out.push(f.on_time + T(' of ', ' sa ') + f.finished + T(' finished in time (', ' ang natapos sa oras (') + Math.round(f.on_time / f.finished * 100) + '%).');
+        if (f.median_taken != null) out.push(T('Typically ', 'Karaniwang ') + f.median_taken + T(' h taken against ', ' oras ang inabot kumpara sa ') + f.median_allowed + T(' h allowed.', ' oras na itinakda.'));
+        if (f.slowest) out.push(T('Slowest: ', 'Pinakamabagal: ') + catName(f.slowest.category) + ', ' + f.slowest.taken + T(' h against ', ' oras kumpara sa ') + f.slowest.allowed + ' h.');
+        if (f.fastest && (!f.slowest || f.fastest.category !== f.slowest.category)) out.push(T('Fastest: ', 'Pinakamabilis: ') + catName(f.fastest.category) + ', ' + f.fastest.taken + T(' h against ', ' oras kumpara sa ') + f.fastest.allowed + ' h.');
+      }
+      if (f.open_overdue) out.push(f.open_overdue + T(' filed this month are still open past their deadline.', ' na naisampa ngayong buwan ang bukas pa at lampas na sa deadline.'));
+    }
+    return out;
+  }
+  document.querySelectorAll('.dq-brain').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var box = $('notes-' + b.dataset.chart), open = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!open)); box.hidden = open;
+      if (open || box.dataset.done || !sb) { if (!sb) box.textContent = T('The engine cannot be reached right now.', 'Hindi maabot ang engine ngayon.'); return; }
+      box.innerHTML = '<p class="p-hint">' + T('Reading the month…', 'Binabasa ang buwan…') + '</p>'; b.classList.add('ss-busy');
+      sb.rpc('smart_chart_notes', { p_chart: b.dataset.chart, p_from: FROM, p_to: TO, p_category: b.dataset.chart === 'efficiency' ? CAT : null }).then(function (res) {
+        b.classList.remove('ss-busy');
+        if (res.error || !res.data) { box.innerHTML = '<p class="p-hint">' + T('The engine could not read this month.', 'Hindi nabasa ng engine ang buwang ito.') + '</p>'; return; }
+        box.dataset.done = '1';
+        box.innerHTML = '<ul>' + notesFor(b.dataset.chart, res.data).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>';
+      });
+    });
+  });
 
   function delta(now, was, goodWhenDown) {
     if (was === null || was === undefined) return '';
@@ -416,19 +530,19 @@ $_SESSION['dash_intro'] = true;
     $('received-delta').innerHTML = delta(total, PREV_TOTAL);
 
     var parts = [
-      { label: T('Done', 'Tapos'), n: +st.done || 0, colour: '#34C759', href: 'cases.php?status=resolved&month=' + MONTH },
-      { label: T('Overdue work', 'Lampas-oras'), n: +st.overdue || 0, colour: '#F93535', href: 'cases.php?view=attention&month=' + MONTH },
-      { label: T('Work finished late', 'Natapos nang huli'), n: +st.late || 0, colour: '#F9AB35', href: 'cases.php?view=attention&month=' + MONTH },
-      { label: T('Processing', 'Pinoproseso'), n: +st.processing || 0, colour: '#356CF9', href: 'cases.php?status=in_progress&month=' + MONTH }
+      { label: T('Done', 'Tapos'), n: +st.done || 0, colour: '#34C759', href: 'cases.php?status=resolved&month=' + MONTH, kind: 'status', key: 'done' },
+      { label: T('Overdue work', 'Lampas-oras'), n: +st.overdue || 0, colour: '#F93535', href: 'cases.php?view=attention&month=' + MONTH, kind: 'status', key: 'overdue' },
+      { label: T('Work finished late', 'Natapos nang huli'), n: +st.late || 0, colour: '#F9AB35', href: 'cases.php?view=attention&month=' + MONTH, kind: 'status', key: 'late' },
+      { label: T('Processing', 'Pinoproseso'), n: +st.processing || 0, colour: '#356CF9', href: 'cases.php?status=in_progress&month=' + MONTH, kind: 'status', key: 'processing' }
     ];
-    if (+st.rejected) parts.push({ label: T('Denied', 'Tinanggihan'), n: +st.rejected, colour: '#8E9ABB', href: 'cases.php?status=rejected&month=' + MONTH });
+    if (+st.rejected) parts.push({ label: T('Denied', 'Tinanggihan'), n: +st.rejected, colour: '#8E9ABB', href: 'cases.php?status=rejected&month=' + MONTH, kind: 'status', key: 'rejected' });
     var stTotal = parts.reduce(function (a, p) { return a + p.n; }, 0);
     $('status-empty').hidden = stTotal !== 0;
     donut($('donut-status'), $('legend-status'), stTotal ? parts : []);
     $('status-donut-total').textContent = stTotal;
     $('status-donut-label').textContent = T(stTotal === 1 ? 'Report' : 'Reports', 'Ulat');
 
-    var cp = cats.map(function (c) { return { label: CATEGORY_LABEL[c.category] || c.category, n: +c.n || 0, colour: CATEGORY_COLOUR[c.category] || '#8E9ABB', href: 'cases.php?category=' + encodeURIComponent(c.category) + '&month=' + MONTH }; });
+    var cp = cats.map(function (c) { return { label: CATEGORY_LABEL[c.category] || c.category, n: +c.n || 0, colour: CATEGORY_COLOUR[c.category] || '#8E9ABB', href: 'cases.php?category=' + encodeURIComponent(c.category) + '&month=' + MONTH, kind: 'category', key: c.category }; });
     $('category-empty').hidden = cp.length !== 0;
     donut($('donut-category'), $('legend-category'), cp);
     $('category-donut-total').textContent = total;
@@ -460,10 +574,7 @@ $_SESSION['dash_intro'] = true;
   if (window.SS_INTRO && window.ssIntro) { window.ssIntro(); }
 
   // This month only: re-run dashboard_metrics when a report changes.
-  if (!<?= json_encode($isCurrent) ?> || !window.supabase) return;
-  var sb = window.supabase.createClient(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>,
-                                        { accessToken: window.ssAccessToken(<?= json_encode(access_token()) ?>) });
-  var FROM = <?= json_encode($month->format(DateTimeInterface::ATOM)) ?>, TO = <?= json_encode($next->format(DateTimeInterface::ATOM)) ?>, CAT = <?= json_encode($effCategory ?: null) ?>;
+  if (!<?= json_encode($isCurrent) ?> || !sb) return;
   var timer = null, wasDown = false;
   function refresh() {
     clearTimeout(timer);

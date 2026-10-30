@@ -57,13 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !defined('NOTICES_PAGE') && !define
 }
 
 // Notifications: mark one as read (also by beacon when its action is followed), or all of them.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined('WORKSPACE_PAGE') && in_array($_POST['action'] ?? '', ['read_one', 'read_all'], true)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined('WORKSPACE_PAGE') && in_array($_POST['action'] ?? '', ['read_one', 'read_all', 'read_many'], true)) {
     if (csrf_check($_POST['csrf'] ?? null)) {
         try {
             $rq = ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false'];
             if ($_POST['action'] === 'read_one') {
                 $nid = (string) ($_POST['id'] ?? '');
                 if (preg_match('/^[0-9a-f-]{36}$/i', $nid)) { $rq['id'] = 'eq.' . $nid; $db->update('notifications', $rq, ['is_read' => true]); }
+            } elseif ($_POST['action'] === 'read_many') {
+                $ids = array_values(array_filter(explode(',', (string) ($_POST['ids'] ?? '')), fn ($x) => (bool) preg_match('/^[0-9a-f-]{36}$/i', $x)));
+                if ($ids) { $rq['id'] = 'in.(' . implode(',', array_slice($ids, 0, 100)) . ')'; $db->update('notifications', $rq, ['is_read' => true]); }
             } else {
                 $db->update('notifications', $rq, ['is_read' => true]);
             }
@@ -161,6 +164,9 @@ if (my_tier() === 'committee' && $myCom !== '') {
 $nSearch  = trim((string) ($_GET['nq'] ?? ''));
 $nAll     = ($_GET['nview'] ?? '') === 'all';   // Unread (the default) or everything, read ones too
 $nSort    = ($_GET['nsort'] ?? 'newest') === 'oldest' ? 'oldest' : 'newest';
+// 0156: the super admins' committee chips on Notifications: one committee, cases with none, or the system's own alerts
+$nCom     = sees_everything() ? (string) ($_GET['ncom'] ?? '') : '';
+if (!in_array($nCom, array_merge(['', 'none', 'system'], array_keys(committees_all())), true)) { $nCom = ''; }
 
 if (!in_array($category, category_keys(), true)) { $category = ''; }
 if ($category === '' || !in_array($issue, category_issues()[$category] ?? [], true)) { $issue = ''; }
@@ -286,7 +292,7 @@ try {
     // Unread by default; a search looks through read ones too, since
     // what an admin searches for is usually something already seen.
     $nq = [
-        'select'  => 'id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role)',
+        'select'  => 'id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role),notification_committee',
         'user_id' => 'eq.' . $admin['id'],
         'order'   => 'created_at.' . ($nSort === 'oldest' ? 'asc' : 'desc'),
         'limit'   => '20',
@@ -298,6 +304,13 @@ try {
     }
     if ($nSearch === '' && !$nAll) {
         $nq['is_read'] = 'is.false';
+    }
+    if ($nCom === 'system') {
+        $nq['report_id'] = 'is.null';
+    } elseif ($nCom === 'none') {
+        $nq['report_id'] = 'not.is.null'; $nq['notification_committee'] = 'is.null';
+    } elseif ($nCom !== '') {
+        $nq['notification_committee'] = 'eq.' . $nCom;
     }
     $selects = [
         'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)']],
@@ -491,6 +504,17 @@ $noteBadge = $notesUnread + $escCount;
       </select></label>
   </form>
 </div>
+<?php if (sees_everything()):
+    $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
+<nav class="cm-chips nf-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+  <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?>><?= e(t('All', 'Lahat')) ?></a>
+  <?php foreach (committees_active() as $ck => $cl): ?>
+    <a class="cm-chip<?= $nCom === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?>><i></i><?= e($cl) ?></a>
+  <?php endforeach; ?>
+  <a class="cm-chip cm-chip-none<?= $nCom === 'none' ? ' p-on' : '' ?>" href="<?= e($ncHref('none')) ?>"<?= $nCom === 'none' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('No committee yet', 'Wala pang komite')) ?></a>
+  <a class="cm-chip<?= $nCom === 'system' ? ' p-on' : '' ?>" style="--cc:var(--p-muted)" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('System', 'Sistema')) ?></a>
+</nav>
+<?php endif; ?>
 
 <!-- ---------- escalation requests (0073) ---------- -->
 <?php if (!empty($escalations)): ?>
@@ -522,13 +546,41 @@ $noteBadge = $notesUnread + $escCount;
         <?php if (!$nAll): ?><a href="<?= e($nHref('all')) ?>"><?= e(t('See the ones you have read', 'Tingnan ang mga nabasa na')) ?></a><?php endif; ?>
       <?php endif; ?></div>
   <?php endif; ?>
-  <?php $lastDay = null; foreach ($notifications as $n): $dl = day_label($n['created_at']); if ($dl !== $lastDay): $lastDay = $dl; ?>
+  <?php
+  // 0156: the engine's "waited N min without a tanod" warnings on this page collapse into one row that opens to show the cases
+  $waitRe = '/^SMART: .* report (\S+) has waited (\d+) min without a tanod\.?$/';
+  $waits = array_values(array_filter($notifications, fn ($n) => preg_match($waitRe, (string) $n['message'])));
+  if (count($waits) >= 2) {
+      $first = array_search($waits[0], $notifications, true);
+      $notifications = array_values(array_filter($notifications, fn ($n) => !preg_match($waitRe, (string) $n['message'])));
+      array_splice($notifications, (int) $first, 0, [['group' => $waits, 'created_at' => $waits[0]['created_at']]]);
+  }
+  $lastDay = null; foreach ($notifications as $n): $dl = day_label($n['created_at']); if ($dl !== $lastDay): $lastDay = $dl; ?>
     <div class="ss-day"><?= e($dl) ?></div>
   <?php endif; ?>
+    <?php if (isset($n['group'])): $gUnread = array_filter($n['group'], fn ($g) => empty($g['is_read'])); ?>
+    <details class="nf-group">
+      <summary class="p-notif<?= $gUnread ? ' p-unread' : '' ?>">
+        <span class="p-n-ico is-smart"><?= smart_brain(20) ?></span>
+        <div class="p-n-body"><div class="p-n-line"><?= $gUnread ? '<span class="p-unread-dot"></span>' : '' ?><span class="ss-smart-tag">SMART</span><b><?= e(sprintf(t('%d cases waited without a tanod', '%d kaso ang naghintay nang walang tanod'), count($n['group']))) ?></b></div>
+          <div class="p-when"><?= e(relative_time($n['created_at'])) ?> &middot; <?= e(t('open to see them', 'buksan para makita')) ?></div></div>
+        <span class="nf-chev" aria-hidden="true">&#9662;</span>
+      </summary>
+      <div class="nf-body"><ul class="nf-items">
+        <?php foreach ($n['group'] as $g): preg_match($waitRe, (string) $g['message'], $gm); ?>
+          <li><?= notification_dot($g) ?><span class="p-mono-id"><?= e($gm[1] ?? '') ?></span> <?= e(sprintf(t('waited %s min', 'naghintay nang %s min'), $gm[2] ?? '?')) ?> <span class="p-when"><?= e(relative_time($g['created_at'])) ?></span>
+            <?php if (!empty($g['report_id'])): ?><a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= empty($g['is_read']) ? e($g['id']) : '' ?>" href="case.php?id=<?= e($g['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a><?php endif; ?></li>
+        <?php endforeach; ?>
+      </ul>
+      <?php if ($gUnread): ?><form method="post" class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_column($gUnread, 'id'))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+        <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= p_icon('i-check', 15) ?><?= e(t('Mark all of them as read', 'Markahang nabasa ang lahat ng ito')) ?></button></form><?php endif; ?>
+      </div>
+    </details>
+    <?php continue; endif; ?>
     <?php $unread = empty($n['is_read']); ?>
     <div class="p-notif<?= $unread ? ' p-unread' : '' ?>">
       <span class="p-n-ico<?= str_starts_with((string) $n['message'], 'SMART') ? ' is-smart' : '' ?>"><?= str_starts_with((string) $n['message'], 'SMART') ? smart_brain(20) : p_icon('i-bell', 18) ?></span>
-      <div class="p-n-body"><div class="p-n-line"><?= $unread ? '<span class="p-unread-dot"></span>' : '' ?><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
+      <div class="p-n-body"><div class="p-n-line"><?= $unread ? '<span class="p-unread-dot"></span>' : '' ?><?= notification_dot($n) ?><?= str_starts_with((string) $n['message'], 'SMART') ? '<span class="ss-smart-tag">SMART</span>' : '' ?><b><?= e($n['message']) ?></b></div><div class="p-when"><?= e(relative_time($n['created_at'])) ?></div></div>
       <div class="p-n-act">
       <?php if (!empty($n['report_id'])): ?>
         <a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= $unread ? e($n['id']) : '' ?>" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
@@ -779,6 +831,13 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   const N_SEARCH   = <?= json_encode($nSearch) ?>;
   const N_ALL      = <?= json_encode($nAll) ?>;
   const N_OLDEST   = <?= json_encode($nSort === 'oldest') ?>;
+  const N_COM      = <?= json_encode($nCom) ?>;
+  const NF_COMS    = <?= json_encode(array_map(fn ($c) => ['short' => (string) $c['short_en'], 'colour' => committee_colour((string) $c['key'])], committees_all()), JSON_UNESCAPED_UNICODE) ?>;
+  const WAIT_RE    = /^SMART: .* report (\S+) has waited (\d+) min without a tanod\.?$/;
+  function nfDot(n) {
+    const c = n.notification_committee && NF_COMS[n.notification_committee];
+    return c ? '<span class="nf-dot" style="--cc:' + c.colour + '" title="' + escapeHtml(c.short) + '"><span class="p-sr">' + escapeHtml(c.short) + '</span></span>' : '';
+  }
   const VIEW       = <?= json_encode($view) ?>;
   const WHO        = <?= json_encode($who) ?>;
   const TAB        = <?= json_encode($tab) ?>;
@@ -956,6 +1015,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
       : new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' }).format(new Date(iso));
   }
   function renderNotifications(rows) {
+    rows = rows.slice();
     document.getElementById('notif-count').textContent = rows.length;
     const list = document.getElementById('notif-list');
     if (!rows.length) {
@@ -965,9 +1025,25 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
             'Walang bago. Lalabas dito ang abiso kapag may ulat na na-escalate, may lumampas sa takdang oras, o may tanod na nagsumite ng resolusyon.')) + '</p>';
       return;
     }
+    const waits = rows.filter(n => WAIT_RE.test(String(n.message)));
+    if (waits.length >= 2) {
+      const at = rows.indexOf(waits[0]);
+      rows = rows.filter(n => !WAIT_RE.test(String(n.message)));
+      rows.splice(at, 0, { group: waits, created_at: waits[0].created_at });
+    }
     let lastDay = null;
     list.innerHTML = rows.map(n => {
       const dl = dayLabel(n.created_at);
+      if (n.group) {
+        const head0 = dl !== lastDay ? '<div class="ss-day">' + escapeHtml(dl) + '</div>' : ''; lastDay = dl;
+        const un = n.group.filter(g => !g.is_read);
+        return head0 + '<details class="nf-group"><summary class="p-notif' + (un.length ? ' p-unread' : '') + '"><span class="p-n-ico is-smart">' + BRAIN_SVG + '</span>' +
+          '<div class="p-n-body"><div class="p-n-line">' + (un.length ? '<span class="p-unread-dot"></span>' : '') + '<span class="ss-smart-tag">SMART</span><b>' +
+          n.group.length + T(' cases waited without a tanod', ' kaso ang naghintay nang walang tanod') + '</b></div><div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + ' &middot; ' + T('open to see them', 'buksan para makita') + '</div></div>' +
+          '<span class="nf-chev" aria-hidden="true">&#9662;</span></summary><div class="nf-body"><ul class="nf-items">' + n.group.map(g => { const m = String(g.message).match(WAIT_RE) || []; return '<li>' + nfDot(g) + '<span class="p-mono-id">' + escapeHtml(m[1] || '') + '</span> ' + T('waited ', 'naghintay nang ') + escapeHtml(m[2] || '?') + ' min <span class="p-when">' + escapeHtml(relativeTime(g.created_at)) + '</span>' +
+            (g.report_id ? '<a class="p-btn p-btn-sm p-btn-orange" data-nid="' + (!g.is_read ? escapeHtml(g.id) : '') + '" href="case.php?id=' + encodeURIComponent(g.report_id) + '">' + T('Review', 'Suriin') + '</a>' : '') + '</li>'; }).join('') + '</ul>' +
+          (un.length ? '<form method="post" class="nf-readall"><input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="' + escapeHtml(un.map(g => g.id).join(',')) + '"><input type="hidden" name="back" value="' + NPAGE + '"><button class="p-btn p-btn-ghost p-btn-sm" type="submit"><svg width="15" height="15" aria-hidden="true"><use href="#i-check"/></svg>' + T('Mark all of them as read', 'Markahang nabasa ang lahat ng ito') + '</button></form>' : '') + '</div></details>';
+      }
       const head = dl !== lastDay ? '<div class="ss-day">' + escapeHtml(dl) + '</div>' : '';
       lastDay = dl;
       const unread = !n.is_read, nid = unread ? ' data-nid="' + escapeHtml(n.id) + '"' : '';
@@ -979,7 +1055,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
       const check = unread ? '<form method="post" class="p-n-x"><input type="hidden" name="csrf" value="' + escapeHtml(CSRF) + '"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="' + escapeHtml(n.id) + '"><input type="hidden" name="back" value="' + NPAGE + '"><button class="p-n-check" type="submit" title="' + T('Mark as read', 'Markahang nabasa') + '"><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg></button></form>' : '<form class="p-n-x"></form>';
       return head + '<div class="p-notif' + (unread ? ' p-unread' : '') + '">' +
         '<span class="p-n-ico' + (String(n.message).indexOf('SMART') === 0 ? ' is-smart">' + BRAIN_SVG : '"><svg width="18" height="18" aria-hidden="true"><use href="#i-bell"/></svg>') + '</span>' +
-        '<div class="p-n-body"><div class="p-n-line">' + (unread ? '<span class="p-unread-dot"></span>' : '') + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +
+        '<div class="p-n-body"><div class="p-n-line">' + (unread ? '<span class="p-unread-dot"></span>' : '') + nfDot(n) + (String(n.message).indexOf('SMART') === 0 ? '<span class="ss-smart-tag">SMART</span>' : '') + '<b>' + escapeHtml(n.message) + '</b></div>' +
         '<div class="p-when">' + escapeHtml(relativeTime(n.created_at)) + '</div></div>' +
         '<div class="p-n-act">' + review + '</div>' + check + '</div>';
     }).join('');
@@ -1071,7 +1147,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 
   async function loadNotifications() {
     let nq = sb.from('notifications')
-      .select('id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role)', { count: 'exact' })
+      .select('id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role),notification_committee', { count: 'exact' })
       .eq('user_id', ADMIN_ID)
       .order('created_at', { ascending: N_OLDEST })
       .range((NPAGE - 1) * PER, NPAGE * PER - 1);
@@ -1080,6 +1156,9 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     nq = nq.not('message', 'like', 'SMART: recurring*').not('message', 'like', 'SMART: spike*').not('message', 'like', 'SMART:*has had no update for*');
     nq = N_SEARCH ? nq.ilike('message', '*' + N_SEARCH.replace(/[,()"\\*]/g, ' ') + '*')
                   : (N_ALL ? nq : nq.eq('is_read', false));
+    if (N_COM === 'system') nq = nq.is('report_id', null);
+    else if (N_COM === 'none') nq = nq.not('report_id', 'is', null).is('notification_committee', null);
+    else if (N_COM) nq = nq.eq('notification_committee', N_COM);
     const { data, error, count } = await nq;
     if (error) return;
     renderNotifications(data || []);

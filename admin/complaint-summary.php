@@ -38,6 +38,9 @@ $start     = new DateTimeImmutable($monthParam . '-01 00:00:00', $tz);
 $end       = $start->modify('first day of next month');
 $prevStart = $start->modify('first day of last month');
 $by        = trim((string) ($_GET['by'] ?? formal_name($admin['full_name'] ?? '')));
+// 0156: a committee's version (a committee's own admins always get theirs)
+$com = is_scoped() ? (string) (current_admin()['committee'] ?? '') : (string) ($_GET['com'] ?? '');
+if (!isset(committees_all()[$com])) { $com = ''; }
 
 // The form's own names and order; "Others" catches anything outside the seven.
 /** The form's own names and order (the catalogue, 0146), "Others" last: it catches anything not listed. */
@@ -125,7 +128,7 @@ $duty = ['now' => ['on' => 0.0, 'off' => 0.0], 'prev' => ['on' => 0.0, 'off' => 
 try {
     $got  = $db->selectMany([
         'now'  => ['reports', [
-            'select'     => 'category,status,created_at,resolved_at,closed_at,due_at,referred_to',
+            'select'     => 'id,category,status,created_at,resolved_at,closed_at,due_at,referred_to,case_committee',
             'deleted_at' => 'is.null',
             'and'        => '(created_at.gte.' . $start->format(DateTimeInterface::ATOM)
                           . ',created_at.lt.' . $end->format(DateTimeInterface::ATOM) . ')',
@@ -138,13 +141,29 @@ try {
             'limit'     => '20000',
         ]],
         'prev' => ['reports', [
-            'select'     => 'category,status,created_at,resolved_at,closed_at,due_at,referred_to',
+            'select'     => 'id,category,status,created_at,resolved_at,closed_at,due_at,referred_to,case_committee',
             'deleted_at' => 'is.null',
             'and'        => '(created_at.gte.' . $prevStart->format(DateTimeInterface::ATOM)
                           . ',created_at.lt.' . $start->format(DateTimeInterface::ATOM) . ')',
             'limit'      => '10000',
         ]],
     ]);
+    if ($com !== '') {
+        // only the committee's complaints, and attendance only for the tanods who worked them
+        $got['now']  = array_values(array_filter((array) $got['now'], fn ($r) => ($r['case_committee'] ?? null) === $com));
+        $got['prev'] = array_values(array_filter((array) $got['prev'], fn ($r) => ($r['case_committee'] ?? null) === $com));
+        $ids = array_column($got['now'], 'id');
+        $worked = [];
+        if ($ids) {
+            foreach (array_chunk($ids, 150) as $chunk) {
+                foreach ((array) $db->select('dispatches', ['select' => 'tanod_id', 'report_id' => 'in.(' . implode(',', $chunk) . ')']) as $d) { $worked[$d['tanod_id']] = true; }
+            }
+        }
+        $got['att'] = array_values(array_filter((array) $got['att'], fn ($a) => isset($worked[$a['tanod_id']])));
+        // who signs: the committee's Kagawad as its head, and the Chairperson noting it
+        $signers = (array) $db->select('users', ['select' => 'full_name,official_role,committee', 'role' => 'eq.admin', 'removed_at' => 'is.null',
+            'or' => '(and(official_role.eq.kagawad,committee.eq.' . $com . '),official_role.eq.chairman)']);
+    }
     $now  = tally($got['now']);
     $prev = tally($got['prev']);
     $duty = [
@@ -183,7 +202,7 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
 
 <div class="doc-page">
   <?php doc_letterhead(); ?>
-  <p class="doc-title">Barangay Complaint Summary</p>
+  <p class="doc-title">Barangay Complaint Summary<?php if ($com !== ''): ?><br><span class="doc-sub"><?= e((string) (committees_all()[$com]['name_en'] ?? committees_all()[$com]['short_en'] ?? '')) ?></span><?php endif; ?></p>
 
   <?php if ($error): ?>
     <p style="color:#a01818"><?= e($error) ?></p>
@@ -316,7 +335,27 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
   </div>
   <?php endif; ?>
 
+  <?php if ($com !== ''):
+      $kag = ''; $chair = '';
+      foreach ($signers ?? [] as $sg) {
+          if ($sg['official_role'] === 'kagawad' && $sg['committee'] === $com && $kag === '') { $kag = formal_name((string) $sg['full_name']); }
+          if ($sg['official_role'] === 'chairman' && $chair === '') { $chair = formal_name((string) $sg['full_name']); }
+      } ?>
+  <div class="doc-signs">
+    <div><p>Prepared by:</p><p class="fill"><?= e($kag !== '' ? $kag : 'Name of the Kagawad') ?></p><p class="role">Kagawad, Committee Head</p></div>
+    <div><p>Noted by:</p><p class="fill"><?= e($chair !== '' ? $chair : 'Name of the Chairperson') ?></p><p class="role">Punong Barangay</p></div>
+  </div>
+  <style>
+    .doc-sub { font-size: 12pt; font-weight: 600; }
+    .doc-signs { display: flex; justify-content: space-between; gap: 0.5in; margin-top: 0.6in; }
+    .doc-signs > div { width: 2.6in; }
+    .doc-signs p { margin: 0 0 6px; }
+    .doc-signs .fill { margin-top: 28px; border-bottom: 1px solid #222; font-weight: 700; text-align: center; }
+    .doc-signs .role { text-align: center; font-size: 10.5pt; }
+  </style>
+  <?php else: ?>
   <?php doc_requested_by($by); ?>
+  <?php endif; ?>
 </div>
     </div></div>
     <div class="cd-tools" role="toolbar" aria-label="Zoom">

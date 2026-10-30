@@ -458,6 +458,62 @@ test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute qu
   expect(n.errors.concat(i.errors, w.errors, r.errors, c.errors, m.errors), 'console errors').toEqual([]);
 });
 
+test('Roles and pages 6a: the Dashboard super admin module, the box beside the donuts, the brain buttons', async ({ page }) => {
+  const d = await open(page, 'dashboard.php');
+  await page.locator('#ss-panel-btn').click();
+  await expect(page.locator('.dc-needs .ss-tile').first()).toContainText('3');
+  await expect(page.locator('.dc-coms tbody tr')).toHaveCount(4 + 1);
+  await expect(page.locator('.dc-coms')).toContainText('Peace and Order');
+  await page.locator('#legend-status [data-i="0"]').click();
+  await expect(page.locator('#dq-box')).toBeVisible();
+  await expect(page.locator('#dq-title')).toContainText('Done');
+  await expect(page.locator('#dq-list li')).toHaveCount(2);
+  await expect(page.locator('#dq-open')).toHaveAttribute('href', /cases\.php\?status=resolved/);
+  await page.locator('.dq-brain[data-chart="received"]').click();
+  await expect(page.locator('#notes-received')).toContainText('51 complaints this month, up 28% from last month (40).');
+  await page.locator('.dq-brain[data-chart="efficiency"]').click();
+  await expect(page.locator('#notes-efficiency')).toContainText('24 of 30 finished in time (80%).');
+  expect(await axe(page), 'Dashboard, box and notes open').toEqual([]);
+  expect(d.errors, 'console errors').toEqual([]);
+});
+
+test('Roles and pages 6b: Report Summary by committee, and the committee form signed by its Kagawad', async ({ page, context }) => {
+  const s = await open(page, 'summary.php?range=month');
+  await expect(page.locator('.rs-scope')).toContainText('Whole barangay');
+  await expect(page.locator('#rs-ledger thead th', { hasText: 'Committee' })).toHaveCount(1);
+  await expect(page.locator('#rs-com tbody tr')).toHaveCount(4 + 1);
+  await expect(page.locator('#ss-jump a[href="#rs-com"]')).toHaveCount(1);
+  expect(await axe(page), 'Report Summary, overall').toEqual([]);
+  const c = await open(page, 'summary.php?range=month&com=peace_order');
+  await expect(page.locator('.rs-scope')).toContainText('Peace and Order');
+  await expect(page.locator('#rs-ledger thead th', { hasText: 'Committee' })).toHaveCount(0);
+  await expect(page.locator('#rs-com')).toHaveCount(0);
+  await expect(page.locator('a.p-btn-pdf2')).toHaveAttribute('href', /com=peace_order/);
+  const f = await open(page, 'complaint-summary.php?com=peace_order');
+  await expect(page.locator('.doc-signs')).toContainText('Kagawad, Committee Head');
+  await expect(page.locator('.doc-title')).toContainText('Peace and Order');
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'summary.php?range=month');
+  await expect(page.locator('select#com')).toHaveCount(0);
+  await expect(page.locator('.rs-scope')).toContainText('Peace and Order');
+  expect(s.errors.concat(c.errors, f.errors, m.errors), 'console errors').toEqual([]);
+});
+
+test('Roles and pages 6c: Notifications by committee, a dot on each case, engine warnings grouped', async ({ page, context }) => {
+  const n = await open(page, 'notifications.php');
+  await expect(page.locator('.nf-chips .cm-chip')).toHaveCount(1 + 4 + 2);
+  await expect(page.locator('details.nf-group')).toHaveCount(1);
+  await expect(page.locator('details.nf-group summary')).toContainText('2 cases waited without a tanod');
+  await page.locator('details.nf-group summary').click();
+  await expect(page.locator('.nf-items li')).toHaveCount(2);
+  await expect(page.locator('.p-notif .nf-dot[title="Environment and Disaster Risk"]')).toHaveCount(1);
+  expect(await axe(page), 'Notifications, a group open').toEqual([]);
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'notifications.php');
+  await expect(page.locator('.nf-chips')).toHaveCount(0);
+  expect(n.errors.concat(k.errors), 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');

@@ -31,6 +31,15 @@ function committee_pill(?string $key, bool $awaiting = false): string
     return '<span class="cm-pill" style="--cc:' . e(committee_colour($key)) . '"><i></i>' . e((string) committees_all()[$key]['short_en']) . '</span>';
 }
 
+/** 0156: a small dot in the committee's colour before a notification about one of its cases. */
+function notification_dot(array $n): string
+{
+    $k = (string) ($n['notification_committee'] ?? '');
+    if ($k === '' || !isset(committees_all()[$k])) return '';
+    $name = (string) committees_all()[$k]['short_en'];
+    return '<span class="nf-dot" style="--cc:' . e(committee_colour($k)) . '" title="' . e($name) . '"><span class="p-sr">' . e($name) . '</span></span>';
+}
+
 /** "Forwarded from Peace and Order" under a forwarded case's category; $forwards newest first. */
 function forwarded_tag(array $forwards): string
 {
