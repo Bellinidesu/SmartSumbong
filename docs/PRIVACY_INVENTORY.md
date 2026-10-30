@@ -44,7 +44,7 @@ barangay and the adviser to confirm.
 | Notification preferences, quiet hours | Respect the resident's choices | `users.muted_notification_kinds`, `push_*` | The resident | While the account exists |
 | Notifications | Tell the resident what happened | `notifications` | The resident | Read ones 90 days, any 365 days (0115) |
 | Failed sign-in count | Lock out password guessing | `login_attempts` | Nobody (the database) | Cleared on a successful sign-in |
-| SMS reset code (hashed, never the code itself) | Forgot-password by SMS (0085) | `password_otps` | Nobody | **No automatic purge yet (gap, section 8)** |
+| SMS reset code (hashed, never the code itself) | Forgot-password by SMS (0085) | `password_otps` | Nobody | 30 days (0158; Control Room > Rules) |
 
 **Anonymous complaints.** A resident can file anonymously. The name is hidden from the public and from published logs, but not from the barangay: the account stays bound to the complaint, so the resident still gets updates (use case Submit Complaint, alternative flow A1; panel ask 4).
 
@@ -56,7 +56,7 @@ barangay and the adviser to confirm.
 |---|---|---|---|---|
 | Name, mobile number, ID, selfie | As for residents; appointment as a tanod | `users`, Cloudinary | Administrators | As for residents |
 | Last known location (one point, not a history) | Find the nearest tanod for a dispatch | `users.last_geom`, `last_location_at` | Administrators | Overwritten each update. The location history was removed (0072) |
-| Duty status and attendance (with location at check-in) | Who is on duty | `users.duty_status`, `attendance` | Administrators | **No automatic purge yet (gap)** |
+| Duty status and attendance (with location at check-in) | Who is on duty | `users.duty_status`, `attendance` | Administrators | Attendance one year (0158; Control Room > Rules) |
 | Committees and the committee's role for them | Which committee a tanod works with (0153) | `tanod_committees`, `tanod_committee_log` | Super admins; that committee's admins; the tanod (their approved committees) | While the account exists; the log is kept as a record |
 | Dispatch work: accept, steps, field notes, photos, escalations | The job record | `dispatches`, `dispatch_updates`, `dispatch_media`, `escalation_requests` | Administrators; the tanod | Same as the complaint |
 | Retirement requests | Leaving the service | `retirement_requests` | Administrators | Kept as a record |
@@ -67,10 +67,10 @@ barangay and the adviser to confirm.
 |---|---|---|---|---|
 | Name, email, mobile number, tier, committee, official role | Sign-in; what each may see and do (0145) | `users` | Other super admins | While the account exists |
 | Actions on cases (status changes, remarks, who handled what) | Accountability | `status_logs`, `case_handler_log`, `account_audit` | Administrators | Never: the audit trail is hash-chained and cannot be edited (0114) |
-| Portal sign-in and sign-out times (Kagawads and staff only), and the cases they touched each day | The punch card: accountability for who worked which cases (0153) | `admin_punches`; the case history above | The person; their Kagawad; super admins and captains | **No automatic purge yet (gap)**; nothing is recorded for super admins or captains |
-| Inbox messages (subject, text, the case they are about) | Mail between administrators along the ladder, and system messages (0155) | `inbox_messages` | The sender and the recipient only | **No automatic purge yet (gap)** |
+| Portal sign-in and sign-out times (Kagawads and staff only), and the cases they touched each day | The punch card: accountability for who worked which cases (0153) | `admin_punches`; the case history above | The person; their Kagawad; super admins and captains | One year (0158; Control Room > Rules); nothing is recorded for super admins or captains |
+| Inbox messages (subject, text, the case they are about) | Mail between administrators along the ladder, and system messages (0155) | `inbox_messages` | The sender and the recipient only | Two years (0158; Control Room > Rules) |
 | Browser push subscription | Portal notifications | `web_push_subscriptions` | Nobody reads it | Removed when the administrator turns portal alerts off; at most 10 per person are kept |
-| Staff details (birthday, leave, credentials, shift check-ins, team posts, game scores) | The Workspace (switched off until after the defense, 0144) | `staff_*`, `shift_checkins`, `team_posts`, `game_scores` | Administrators | **No automatic purge yet (gap)** |
+| Staff details (birthday, leave, credentials, shift check-ins, team posts, game scores) | The Workspace (switched off until after the defense, 0144) | `staff_*`, `shift_checkins`, `team_posts`, `game_scores` | Administrators | Shift check-ins and removed posts one year (0158; Control Room > Rules); birthdays, leave and credentials while the account exists |
 
 ### Third parties named in complaints
 
@@ -122,14 +122,14 @@ Cross-border transfer: the database is in India and the portal in Singapore. Und
 - An immutable, hash-chained audit trail of every status change and account action (0114).
 - Sessions stored in the Android Keystore. The portal uses only the publishable key, with every request carrying the administrator's own token.
 - Strict content security policy and CSRF tokens in the portal; sign-in lockout; reset codes stored hashed.
-- Identity photos deleted when unused. Notifications purged on a schedule.
+- Identity photos deleted when unused. Notifications purged on a schedule, and every other personal record by its retention period (0158).
 - Secrets kept encrypted (age) in a private vault, never in the code.
 
 ## 9. Gaps to close before going live
 
 1. **Name a Data Protection Officer** for the barangay, and register with the NPC if required.
 2. **Adopt the Privacy Policy**. The app's text is a draft for the barangay to review and approve.
-3. **Retention for what has none**: SMS reset codes (`password_otps`), attendance, Workspace staff data, `account_audit`. The team proposes 30 days for codes and a period the barangay sets for the rest.
+3. ~~**Retention for what has none**~~ Done (0158): every period is in Control Room > Rules with a default (codes 30 days as proposed; attendance, the punch card and Workspace check-ins a year; Inbox two years). The barangay confirms or changes them. `account_audit` and the rest of the audit trail are kept as the barangay's record.
 4. **Record the processors' terms** (section 5) and check Cloudinary's storage region.
 5. **Breach procedure**: who is told, and how fast (72 hours to the NPC, Sec. 20(f); NPC Circular 16-03).
 6. **Complaint records**: decide how long complaints are kept, in line with the barangay's records schedule. Today they are kept indefinitely.

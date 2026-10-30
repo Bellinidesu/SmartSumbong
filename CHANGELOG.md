@@ -341,6 +341,19 @@ Changes on `main` not yet deployed belong here.
   only the super admins. A committee's *Right now* strip shows its own kinds
   of complaint and its own cases.
 
+**Changed (backend hardening, 30 Oct)**
+- Retention for the records that had none (0158): SMS reset codes 30 days,
+  tanod attendance and the punch card a year, Inbox messages two years,
+  Workspace check-ins and removed team posts a year, answered reroute
+  questions 180 days. Each period except the last is a setting in Control
+  Room > Rules. A nightly job (03:30) deletes what is past it. The audit
+  trail is never deleted.
+- Every foreign key has an index; internal helpers can no longer be called
+  by anonymous visitors; forwarding and flagging lock the case, so two at once
+  cannot both pass.
+- The push function's JWT check is pinned in `supabase/config.toml`, matching
+  the webhook's key.
+
 **Added (roles and pages, step 7: Edit Profile and retirement endorsements, 30 Oct)**
 - Edit Profile (0157):
   - **Banner choices:** your sidebar colour (the default), the barangay's
