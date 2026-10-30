@@ -517,7 +517,7 @@
 .ss-caught a{color:var(--p-link);font-weight:700;text-decoration:none}
 .ss-caught-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--p-green-bg);color:var(--p-green);font-size:24px}
 /* Personnel's shift tiles, version A (locked 15 Oct): the whole tile is the status colour */
-.p-attendance .p-kpi{--c:#8E9ABB;display:grid;gap:4px;align-content:space-between;min-height:132px;padding:16px 18px;border:0;border-radius:18px;color:#fff;isolation:isolate;
+.p-attendance .p-kpi{--c:#8E9ABB;display:grid;gap:4px;align-content:space-between;min-height:104px;padding:14px 18px;border:0;border-radius:18px;color:#fff;isolation:isolate;
   background:linear-gradient(145deg,color-mix(in srgb,var(--c) 78%,#fff),var(--c) 55%,color-mix(in srgb,var(--c) 70%,#000));
   box-shadow:0 10px 26px color-mix(in srgb,var(--c) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .25s cubic-bezier(.2,1.25,.3,1),box-shadow .25s}
 .p-attendance .p-att-on_duty{--c:#34C759}.p-attendance .p-att-lunch{--c:#FF9800}.p-attendance .p-att-break{--c:#F5C242}.p-attendance .p-att-offline{--c:#E5383B}
@@ -543,13 +543,21 @@
 .ss-cases-t{table-layout:fixed;min-width:1080px}
 .ss-cases-t thead th{background:var(--p-orange);color:#2B1A00;border-color:transparent}
 .ss-cases-t thead th .p-th-sort:hover{color:#000}
-table.ss-cases-t.ss-cases-wide{min-width:1300px}
-.ss-cases-t .ss-who{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:nowrap}
+table.ss-cases-t.ss-cases-wide{min-width:980px}
+.ss-cases-t .ss-who{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:normal;vertical-align:middle}
 .ss-cases-t .ss-who .rank{margin-left:0}
 .ss-cases-t td:nth-child(3){min-width:0}
 .ss-cases-t .p-person > span:last-child{min-width:0;overflow-wrap:anywhere}
 .ss-cases-t td,.ss-cases-t th{padding-left:12px;padding-right:12px}
 .ss-cases-t td:nth-child(5){white-space:nowrap}
+/* Case Reports overhaul (30 Oct): the case and its resident share a cell, the faces "open now" sit beside the handler; nine columns, no sideways scroll at laptop width */
+.ss-case{display:grid;gap:5px;min-width:0;justify-items:start}
+.ss-case .p-person{gap:8px;font-weight:600;font-size:13.5px;min-width:0}
+.ss-case .p-person .p-avatar{width:22px;height:22px;font-size:10px}
+.ss-case .p-anon{font-size:13.5px}
+.ss-cases-t td .ss-open{display:inline-flex;vertical-align:middle;margin-left:8px}
+.ss-cases-t td .ss-open:empty,.ss-cases-t td .ss-open .ss-stack:empty{display:none}
+.ss-cases-t td .cm-pill{white-space:normal;line-height:1.25;border-radius:14px;max-width:100%;text-overflow:clip}
 /* the SMART cell: level and score on one line, a duplicate flag under them inside the column */
 .ss-cases-t td.ss-smart{white-space:normal}
 .ss-cases-t td.ss-smart .ss-dup{display:flex;width:max-content;max-width:100%;margin-top:5px;white-space:normal}

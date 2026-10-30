@@ -6,7 +6,7 @@
 #
 #   sign-in page, everything it loads      336 KB (was 320: the small SMART engine mark under the card)
 #   each portal script (assets/js)          16 KB   (was 14, 8 before: widgets-core.js holds the Workspace widget engine and library)
-#   each stylesheet (assets/css)            36 KB   (was 20: flair.css carries the map's controls and panels)
+#   each stylesheet (assets/css)            36 KB   (was 20: flair-map.css carries the map controls and panels; only Spatial Distribution loads it)
 #   each .webp photo (assets/img)          160 KB
 #
 # Big third-party libraries (MapLibre, supabase-js) load only on the pages
