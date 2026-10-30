@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (super-admin layout overhaul, step 2: Notifications, 30 Oct)**
+- Notifications: the unread list sits beside a side column holding "Waiting on you"
+  and "Right now", so the urgent things are next to the list instead of stacked above
+  it. Designed at 2048 px (a 24 inch screen); under 1900 px the side column goes on
+  top as two cards side by side.
+
 **Changed (super-admin layout overhaul, step 1: Case Reports, 30 Oct)**
 - Case Reports goes from eleven columns to nine: the resident sits under the case
   ID in one Case column, and the faces "open now" sit beside the handler. The table

@@ -436,7 +436,7 @@ $keep = array_filter(['tab' => $tab, 'q' => $search, 'status' => $filter, 'categ
 $tabHref = fn(string $t) => '?' . http_build_query(['tab' => $t]);
 $noteBadge = $notesUnread + $escCount;
 ?>
-<?php if ($notices) { render_briefing($db, $admin, $workspace ? 'bar' : 'strip'); } ?>
+<?php if ($notices && ($workspace || $tab !== 'notes')) { render_briefing($db, $admin, $workspace ? 'bar' : 'strip'); } ?>
 <?php if ($workspace) { render_widget_panel($db, $admin); } ?>
 <?php if (false): ?>
 <nav class="ss-tabs" aria-label="<?= e(t('Notifications views', 'Mga tanaw ng Abiso')) ?>">
@@ -460,21 +460,8 @@ $noteBadge = $notesUnread + $escCount;
 <?php endif; ?>
 
 <?php if ($tab === 'notes'): ?>
-<?php $pins = forwarding_pins($db); if ($pins): ?>
-<!-- ---------- 0152: what waits on this person, pinned on top ---------- -->
-<div class="p-band p-band--calm fw-pin-band">
-  <h2><?= e(t('Waiting on you', 'Naghihintay sa iyo')) ?><span class="p-badge-n"><?= count($pins) ?></span></h2>
-</div>
-<div class="p-card p-notif-card fw-pins" style="margin-bottom:28px"><div class="p-notif-list">
-  <?php foreach ($pins as $pi => $pn): if ($pi === 5): ?><details class="fw-more"><summary><?= e(sprintf(t('Show %d more', 'Ipakita ang %d pa'), count($pins) - 5)) ?></summary><?php endif; ?>
-    <div class="p-notif p-unread">
-      <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : ($pn['kind'] === 'reroute' ? 'i-route' : 'i-send'), 18) ?></span>
-      <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
-      <a class="p-btn p-btn-sm p-btn-orange" href="<?= e(!empty($pn['href']) ? $pn['href'] : 'case.php?id=' . $pn['report']) ?>"><?= e($pn['kind'] === 'reroute' ? t('Pick a tanod', 'Pumili ng tanod') : t('Review', 'Suriin')) ?></a>
-    </div>
-  <?php endforeach; if (count($pins) > 5): ?></details><?php endif; ?>
-</div></div>
-<?php endif; ?>
+<?php $pins = forwarding_pins($db); ?>
+<div class="nf-grid"><div class="nf-main">
 <!-- ---------- notifications ---------- -->
 <?php $nHref = fn(string $v) => '?' . http_build_query(array_filter(['nview' => $v === 'all' ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : ''])); ?>
 <div class="p-band p-band--calm">
@@ -597,6 +584,22 @@ $noteBadge = $notesUnread + $escCount;
 </div></div>
 
 <div id="notes-pager"><?= pager($notesTotal, $npage, 'npage') ?></div>
+</div>
+<aside class="nf-rail" aria-label="<?= e(t('What needs you now', 'Ang kailangan mo ngayon')) ?>">
+<?php if ($pins): ?>
+<!-- ---------- 0152: what waits on this person, pinned in the side column ---------- -->
+<section class="p-card p-notif-card fw-pins nf-wait"><div class="p-card-head fw-pin-band"><h2><?= e(t('Waiting on you', 'Naghihintay sa iyo')) ?></h2><span class="p-badge-n"><?= count($pins) ?></span></div><div class="p-notif-list">
+  <?php foreach ($pins as $pi => $pn): if ($pi === 5): ?><details class="fw-more"><summary><?= e(sprintf(t('Show %d more', 'Ipakita ang %d pa'), count($pins) - 5)) ?></summary><?php endif; ?>
+    <div class="p-notif p-unread">
+      <span class="p-n-ico fw-ico-<?= e($pn['kind']) ?>"><?= p_icon($pn['kind'] === 'flag' ? 'i-flag' : ($pn['kind'] === 'reroute' ? 'i-route' : 'i-send'), 18) ?></span>
+      <div><div><span class="p-mono-id"><?= e($pn['tracking']) ?></span> &middot; <?= e($pn['text']) ?></div><div class="p-when"><?= e(relative_time($pn['at'])) ?></div></div>
+      <a class="p-btn p-btn-sm p-btn-orange" href="<?= e(!empty($pn['href']) ? $pn['href'] : 'case.php?id=' . $pn['report']) ?>"><?= e($pn['kind'] === 'reroute' ? t('Pick a tanod', 'Pumili ng tanod') : t('Review', 'Suriin')) ?></a>
+    </div>
+  <?php endforeach; if (count($pins) > 5): ?></details><?php endif; ?>
+</div></section>
+<?php endif; ?>
+<?php if ($notices && !$workspace) { echo '<div class="nf-now">'; render_briefing($db, $admin, 'strip'); echo '</div>'; } ?>
+</aside></div>
 <?php endif; ?>
 
 <?php if ($tab === 'all'): ?>
