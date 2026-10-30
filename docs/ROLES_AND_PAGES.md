@@ -136,6 +136,15 @@ each other, each message able to carry a case. Mail runs **along the
 ladder**: staff to their own Kagawad; a Kagawad to their staff, other
 Kagawads and super admins; super admins to anyone.
 
+*Built (0155):* `admin/inbox.php` (Inbox, Sent, Write, one message); the
+tables `inbox_messages` (one row per recipient) and `reroute_questions`;
+`send_mail` checks the ladder, `mail_recipients` lists who one may write to.
+A captain writes to the super admins. On a reroute, `auto_dispatch` tries the
+case's committee's tanods only (`_reroute_ok`); none free, `_reroute_ask`
+asks the Kagawad; `answer_reroute_question` and the every-minute
+`sweep_reroute_questions` finish it. The waits are
+`operational_settings.reroute_ask_urgent_minutes` and `reroute_ask_minutes`.
+
 ### Personnel
 
 - **Tanods are assigned to committees** by knowledge and collaboration: a
@@ -191,7 +200,7 @@ for forwards, flags, reroute questions and Inbox messages.
 | 2 | Roles: moderator tier, staff assigned to a committee, the Chairman as super admin, each rung's pages | Built (0151) |
 | 3 | Forwarding: per-case committee, forward and flag, history, pinned notifications, Case Reports chips | Built (0152) |
 | 4 | Personnel: tanods to committees with approval, each version's view, the punch card | Built (0153) |
-| 5 | Inbox and the reroute question | |
+| 5 | Inbox and the reroute question | Built (0155) |
 | 6 | Dashboard, Report Summary and Notifications changes | |
 | 7 | Edit Profile banner, retirement endorsement | |
 

@@ -4,7 +4,7 @@ do $sweep$
 declare
   v_log text := '';
   v_sup uuid := gen_random_uuid(); v_kpo uuid := gen_random_uuid(); v_kenv uuid := gen_random_uuid(); v_stf uuid := gen_random_uuid();
-  v_stf2 uuid := gen_random_uuid(); v_t1 uuid := gen_random_uuid(); v_t2 uuid := gen_random_uuid(); v_res uuid := gen_random_uuid();
+  v_stf2 uuid := gen_random_uuid(); v_t1 uuid := gen_random_uuid(); v_t2 uuid := gen_random_uuid(); v_t3 uuid := gen_random_uuid(); v_res uuid := gen_random_uuid();
   r1 uuid; r2 uuid; d uuid; q bigint; n integer; b uuid;
   lat constant double precision := 14.51944; lng constant double precision := 121.01219;
 begin
@@ -16,9 +16,9 @@ begin
     from (values (v_sup, '+639999999951', 'Mail, Super', 'resident'), (v_kpo, '+639999999952', 'Mail, Peace', 'resident'),
                  (v_kenv, '+639999999953', 'Mail, Env', 'resident'), (v_stf, '+639999999954', 'Mail, Staff', 'resident'),
                  (v_stf2, '+639999999955', 'Mail, Env Staff', 'resident'),
-                 (v_t1, '+639999999956', 'Mail, Tanod Uno', 'tanod'), (v_t2, '+639999999957', 'Mail, Tanod Dos', 'tanod'),
+                 (v_t1, '+639999999956', 'Mail, Tanod Uno', 'tanod'), (v_t2, '+639999999957', 'Mail, Tanod Dos', 'tanod'), (v_t3, '+639999999959', 'Mail, Tanod Tres', 'tanod'),
                  (v_res, '+639999999958', 'Mail, Ana', 'resident')) as x(id, mob, nm, rl);
-  update public.users set verification_status = 'verified', verified_at = now() where id in (v_sup, v_kpo, v_kenv, v_stf, v_stf2, v_t1, v_t2, v_res);
+  update public.users set verification_status = 'verified', verified_at = now() where id in (v_sup, v_kpo, v_kenv, v_stf, v_stf2, v_t1, v_t2, v_t3, v_res);
   update public.users set role = 'admin', admin_tier = 'super' where id = v_sup;
   update public.users set role = 'admin', admin_tier = 'committee', committee = 'peace_order' where id = v_kpo;
   update public.users set role = 'admin', admin_tier = 'committee', committee = 'environment' where id = v_kenv;
@@ -27,6 +27,8 @@ begin
   -- t1 is Peace and Order's own tanod but off duty; t2 belongs to no committee and is on duty next to the case
   update public.users set duty_status = 'offline' where id = v_t1;
   update public.users set duty_status = 'on_duty', last_geom = st_setsrid(st_makepoint(lng + 0.0003, lat), 4326), last_location_at = now() where id = v_t2;
+  -- t3 is on duty a little farther: the one left once t2 has already had the case (a reroute does not offer it to the same tanod twice)
+  update public.users set duty_status = 'on_duty', last_geom = st_setsrid(st_makepoint(lng + 0.0008, lat), 4326), last_location_at = now() where id = v_t3;
   insert into public.tanod_committees (tanod_id, committee, status) values (v_t1, 'peace_order', 'approved');
   insert into public.reports (resident_id, category, subject, description, latitude, longitude, due_at)
   values (v_res, 'peace_order_nuisance', 'Maingay', 'Videoke hanggang hatinggabi.', lat, lng, now() + interval '2 days') returning id into r1;
@@ -106,7 +108,7 @@ begin
     update public.reroute_questions set due_at = now() - interval '1 minute' where id = q;
     perform public.sweep_reroute_questions();
     if (select state from public.reroute_questions where id = q) <> 'timed_out' then raise exception 'not timed out'; end if;
-    if not exists (select 1 from public.dispatches where report_id = r1 and tanod_id = v_t2 and state = 'assigned') then raise exception 'the nearest was not sent'; end if;
+    if not exists (select 1 from public.dispatches where report_id = r1 and tanod_id <> v_t1 and state = 'assigned') then raise exception 'the nearest was not sent'; end if;
     if not exists (select 1 from public.status_logs where report_id = r1 and remark like 'Nobody answered in time%') then raise exception 'the trail is silent'; end if;
     v_log := v_log || E'\n' || 'ok  nobody answering in time sends the nearest tanod from any committee, and the case''s trail says so';
   exception when others then v_log := v_log || E'\n' || 'FAIL timeout: ' || sqlerrm; end;

@@ -294,6 +294,23 @@ Changes on `main` not yet deployed belong here.
   per account, so Residents and Personnel stay within their speed budget
   (0154).
 
+**Added (roles and pages, step 5: the Inbox and the reroute question, 30 Oct)**
+- **Inbox** (0155), a mail inside the portal, in the menu for every
+  administrator with its unread count. Mail runs along the ladder: staff
+  write to their own Kagawad; a Kagawad to their staff, other Kagawads and
+  the super admins; a super admin to anyone; a captain to the super admins.
+  A message can carry a case (by tracking ID, one the sender can see), and
+  can be answered. Only the sender and the recipient can read it.
+- Forwards and staff flags also arrive in the Inbox as system messages.
+- **The reroute asks the Kagawad first.** When a tanod does not accept in
+  time and the case's committee has tanods of its own, only they are offered
+  the case. If none is free, the committee's Kagawad is asked (a pinned
+  notification with web push, and an Inbox message): pick a tanod, or send
+  the nearest from any committee. If nobody answers in time (5 minutes for
+  an urgent case, 15 for the rest, both in Control Room > Rules), the nearest
+  tanod from any committee is sent and the case's trail says so. A committee
+  with no tanods of its own, or no Kagawad, reroutes as before.
+
 **Fixed**
 - The Administrators tab's Edit buttons and search did nothing once the tab
   moved to Administrative Services (step 1a); the script now goes with the
