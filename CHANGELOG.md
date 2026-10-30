@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (super-admin layout overhaul, step 1: Case Reports, 30 Oct)**
+- Case Reports goes from eleven columns to nine: the resident sits under the case
+  ID in one Case column, and the faces "open now" sit beside the handler. The table
+  no longer scrolls sideways at laptop width (1440 px and up), the Forward button is
+  always visible, and long committee names wrap inside their pill instead of being cut.
+
 **Changed (Rose's notes on the portal, 21 Oct)**
 - Sign-in: the appearance and language options are back on the sign-in page;
   signing in lands on Notifications first.

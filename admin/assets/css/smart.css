@@ -543,13 +543,21 @@
 .ss-cases-t{table-layout:fixed;min-width:1080px}
 .ss-cases-t thead th{background:var(--p-orange);color:#2B1A00;border-color:transparent}
 .ss-cases-t thead th .p-th-sort:hover{color:#000}
-table.ss-cases-t.ss-cases-wide{min-width:1300px}
-.ss-cases-t .ss-who{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:nowrap}
+table.ss-cases-t.ss-cases-wide{min-width:980px}
+.ss-cases-t .ss-who{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:normal;vertical-align:middle}
 .ss-cases-t .ss-who .rank{margin-left:0}
 .ss-cases-t td:nth-child(3){min-width:0}
 .ss-cases-t .p-person > span:last-child{min-width:0;overflow-wrap:anywhere}
 .ss-cases-t td,.ss-cases-t th{padding-left:12px;padding-right:12px}
 .ss-cases-t td:nth-child(5){white-space:nowrap}
+/* Case Reports overhaul (30 Oct): the case and its resident share a cell, the faces "open now" sit beside the handler; nine columns, no sideways scroll at laptop width */
+.ss-case{display:grid;gap:5px;min-width:0;justify-items:start}
+.ss-case .p-person{gap:8px;font-weight:600;font-size:13.5px;min-width:0}
+.ss-case .p-person .p-avatar{width:22px;height:22px;font-size:10px}
+.ss-case .p-anon{font-size:13.5px}
+.ss-cases-t td .ss-open{display:inline-flex;vertical-align:middle;margin-left:8px}
+.ss-cases-t td .ss-open:empty,.ss-cases-t td .ss-open .ss-stack:empty{display:none}
+.ss-cases-t td .cm-pill{white-space:normal;line-height:1.25;border-radius:14px;max-width:100%;text-overflow:clip}
 /* the SMART cell: level and score on one line, a duplicate flag under them inside the column */
 .ss-cases-t td.ss-smart{white-space:normal}
 .ss-cases-t td.ss-smart .ss-dup{display:flex;width:max-content;max-width:100%;margin-top:5px;white-space:normal}
