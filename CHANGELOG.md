@@ -353,6 +353,7 @@ Changes on `main` not yet deployed belong here.
 - Edit Profile: the banner choices line up; the picture box is a proper
   button instead of the browser's raw file input.
 - Administrative Services: the committee action buttons share one width.
+- Phone width: the tab bars (Administrative Services, Control Room, Personnel) scroll inside themselves and long buttons wrap, so no page scrolls sideways at 390 px.
 
 **Changed (backend hardening, 30 Oct)**
 - Retention for the records that had none (0158): SMS reset codes 30 days,

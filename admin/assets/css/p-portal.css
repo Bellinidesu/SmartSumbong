@@ -585,6 +585,15 @@ td.tc-cell { min-width: 260px; max-width: 300px; }
 .tc-pills .cm-pill { white-space: normal; border-radius: 14px; overflow: visible; text-overflow: clip; max-width: 100%; }
 .ss-tanods td.ss-em, .ss-people td.ss-em { min-width: 170px; overflow-wrap: anywhere; }
 
+/* phone width: tab bars scroll inside themselves, long buttons wrap, nothing pushes the page sideways */
+.st-tabs, .tc-tabs, .ib-tabs { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+.st-tabs::-webkit-scrollbar { display: none; }
+.st-tabs > *, .st-tabs .st-link { flex: none; white-space: nowrap; }
+@media (max-width: 640px) {
+  .p-btn { max-width: 100%; white-space: normal; text-align: center; }
+  .p-topbar { flex-wrap: wrap; gap: 8px; }
+}
+
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
