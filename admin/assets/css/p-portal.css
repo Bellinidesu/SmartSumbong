@@ -493,6 +493,24 @@ a.p-btn-pdf2 { text-decoration: none; }
 .pc-week summary { cursor: pointer; font-weight: 700; font-size: 13px; }
 .pc-t td, .pc-t th { font-size: 12.5px; }
 
+/* 0155: the Inbox */
+.ib-tabs { margin: -6px 0 16px; }
+.ib-t tr.ib-unread td { background: color-mix(in srgb, var(--p-orange) 6%, transparent); }
+.ib-compose { display: grid; gap: 14px; max-width: 820px; }
+.ib-to { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+.ib-group { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.ib-gl { flex: 0 0 100%; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--p-muted); }
+.ib-person { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--p-line); border-radius: 99px; background: var(--p-surface); cursor: pointer; font-weight: 600; font-size: 13.5px; }
+.ib-person:has(input:checked) { border-color: var(--p-orange); box-shadow: 0 0 0 1.5px var(--p-orange) inset; }
+.ib-act { display: flex; justify-content: flex-end; gap: 8px; }
+.ib-read { display: grid; gap: 12px; max-width: 820px; }
+.ib-read h2 { margin: 0; font-size: 20px; text-wrap: balance; }
+.ib-meta { margin: 0; color: var(--p-muted); font-size: 13.5px; }
+.ib-body { line-height: 1.6; max-width: 72ch; white-space: normal; overflow-wrap: anywhere; }
+.ib-q { display: grid; gap: 10px; padding: 14px; border-radius: 12px; border: 1px solid var(--p-orange); background: var(--p-orange-50, var(--p-surface-2)); }
+.ib-q-due { display: flex; gap: 8px; align-items: center; margin: 0; font-weight: 700; }
+.p-n-ico.fw-ico-reroute { background: var(--p-orange-50, #FFF1DC); color: var(--p-orange); }
+
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }

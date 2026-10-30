@@ -76,6 +76,7 @@ begin
 
   -- 3. a reroute with none of the committee's tanods free asks its Kagawad instead of sending anyone; the Kagawad picks
   begin
+    perform set_config('request.jwt.claim.sub', '', true);   -- the reroute runs as the system (the sweep), not as anyone signed in
     update public.reports set dispatch_attempts = 1, status = 'validated' where id = r1;
     d := public.auto_dispatch(r1);
     if d is not null then raise exception 'a tanod outside the committee was sent without asking'; end if;

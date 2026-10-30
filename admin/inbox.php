@@ -85,11 +85,11 @@ function inbox_from(array $m): string
 $unread = 0;
 try { $unread = $db->count('inbox_messages', ['recipient' => 'eq.' . $me, 'read_at' => 'is.null']); } catch (SupabaseError) {}
 
-layout_head(t('Inbox', 'Inbox'), 'inbox.php');
+layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 ?>
-<div class="p-topbar"><h1><?= e(t('Inbox', 'Inbox')) ?></h1></div>
-<nav class="st-tabs ib-tabs" aria-label="<?= e(t('Inbox', 'Inbox')) ?>">
-  <a class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php"><?= e(t('Inbox', 'Inbox')) ?><?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
+<div class="p-topbar"><h1><?= e(t('Inbox', 'Mga Liham')) ?></h1></div>
+<nav class="st-tabs ib-tabs" aria-label="<?= e(t('Inbox', 'Mga Liham')) ?>">
+  <a class="st-link<?= $box === 'in' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php"><?= e(t('Inbox', 'Mga Liham')) ?><?php if ($unread): ?> <span class="p-badge-n"><?= (int) $unread ?></span><?php endif; ?></a>
   <a class="st-link<?= $box === 'sent' && !$new && !$open ? ' p-on' : '' ?>" href="inbox.php?box=sent"><?= e(t('Sent', 'Naipadala')) ?></a>
   <a class="st-link<?= $new ? ' p-on' : '' ?>" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a>
 </nav>
@@ -154,7 +154,7 @@ layout_head(t('Inbox', 'Inbox'), 'inbox.php');
   <?php if (!$m): ?><div class="p-card p-empty"><?= e(t('That message is not yours to read.', 'Hindi para sa iyo ang mensaheng iyan.')) ?></div>
   <?php else: ?>
   <article class="p-card p-card-pad ib-read">
-    <a class="p-back" href="inbox.php<?= $m['sender'] === $me ? '?box=sent' : '' ?>"><?= p_icon('i-back', 18) ?><?= e($m['sender'] === $me ? t('Sent', 'Naipadala') : t('Inbox', 'Inbox')) ?></a>
+    <a class="p-back" href="inbox.php<?= $m['sender'] === $me ? '?box=sent' : '' ?>"><?= p_icon('i-back', 18) ?><?= e($m['sender'] === $me ? t('Sent', 'Naipadala') : t('Inbox', 'Mga Liham')) ?></a>
     <h2><?= e((string) $m['subject']) ?></h2>
     <p class="ib-meta"><?php if ($m['kind'] === 'system'): ?><span class="p-badge p-b-grey"><?= e(t('System', 'Sistema')) ?></span> <?php endif; ?>
       <?= e(t('From', 'Mula kay')) ?> <b><?= e(inbox_from($m)) ?></b> &middot; <?= e(t('to', 'para kay')) ?> <?= e(formal_name((string) ($m['to']['full_name'] ?? ''))) ?> &middot; <?= e(long_datetime((string) $m['created_at'])) ?></p>
