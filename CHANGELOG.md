@@ -311,6 +311,36 @@ Changes on `main` not yet deployed belong here.
   tanod from any committee is sent and the case's trail says so. A committee
   with no tanods of its own, or no Kagawad, reroutes as before.
 
+**Added (roles and pages, step 6: Dashboard, Report Summary, Notifications, 30 Oct)**
+- Dashboard (0156): the engine panel is the super admin module. *Needs me
+  today* shows what waits for a super admin (escalations to decide, cases
+  handed up to place, tanods proposed), plus overdue, no committee and open
+  now. *The committees* shows open, overdue and filed this month for each
+  committee and for "No committee yet".
+- Pressing a donut segment or its name opens a box beside the donuts with
+  those complaints and an *Open in Case Reports* button. It lists exactly
+  what the donut counts.
+- A brain button on *Total reports received* and *Resolution efficiency*
+  asks the engine about that chart on demand: the month against the last,
+  the busiest day and weekday, the most common kind and place, days with
+  none; finished in time, typical hours against allowed, the slowest and
+  fastest kinds.
+- Report Summary: super admins get a **Committee filter** beside the
+  category, a scope pill beside the title (the whole barangay or the
+  committee), a Committee column in the ledger and escalations (overall
+  only), and a fifth tab, **By committee** (logged, resolved, overdue,
+  average resolution). With a committee picked, the ledger's bar takes its
+  colour. A committee's version shows the tanod activity and attendance of
+  its own cases. The printable form names the committee; its Kagawad signs
+  as head and the Chairperson notes it.
+- Notifications: committee chips for the super admins (each committee, no
+  committee yet, system), a dot in the committee's colour on every note about
+  a case, and the engine's repeated "waited N min without a tanod" warnings
+  collapse into one row that opens to show the cases. System alerts (the
+  portal down, a failed job, the engine's barangay-wide notes) now reach
+  only the super admins. A committee's *Right now* strip shows its own kinds
+  of complaint and its own cases.
+
 **Fixed**
 - The Administrators tab's Edit buttons and search did nothing once the tab
   moved to Administrative Services (step 1a); the script now goes with the

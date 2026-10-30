@@ -85,6 +85,9 @@ super admin stays one.
   button.
 - A **brain button** in the top right of *Total reports received* and
   *Resolution efficiency* asks the engine about that chart, on demand.
+- *Built (0156):* `dashboard_committees`, `dashboard_slice` (the box, the
+  donut's own buckets) and `smart_chart_notes` (facts the page words in
+  English or Tagalog).
 
 ### Report Summary
 
@@ -93,6 +96,9 @@ super admin stays one.
   pill beside the title, a Committee column in the Ledger and Escalations
   (overall only), and a fifth tab, **By committee** (logged, resolved,
   overdue and average resolution time for each committee).
+- *Built (0156):* the filter (`?com=`), the pill, the column, the tab and the
+  committee form (`complaint-summary.php?com=`) are in the portal; the
+  committee of each case is the `case_committee` column (0152).
 - A committee's version: its ledger, escalations and timelines only; tanod
   attendance only for tanods who worked its cases. Its PDF names the
   committee, the Kagawad signs as head and the Chairperson notes it.
@@ -127,6 +133,10 @@ super admin stays one.
   one row that opens to show the cases.
 - Committee chips; a committee dot on every case notification; system alerts
   for super admins only; the *Right now* strip follows the version.
+- *Built (0152, 0155, 0156):* the pins, the chips (`?ncom=`, filtered by the
+  `notification_committee` column), the dot, the grouped warnings (one page at
+  a time), and `_notifications_scope` keeping system alerts from a
+  committee's admins.
 
 ### Inbox (new)
 
@@ -201,7 +211,7 @@ for forwards, flags, reroute questions and Inbox messages.
 | 3 | Forwarding: per-case committee, forward and flag, history, pinned notifications, Case Reports chips | Built (0152) |
 | 4 | Personnel: tanods to committees with approval, each version's view, the punch card | Built (0153) |
 | 5 | Inbox and the reroute question | Built (0155) |
-| 6 | Dashboard, Report Summary and Notifications changes | |
+| 6 | Dashboard, Report Summary and Notifications changes | Built (0156) |
 | 7 | Edit Profile banner, retirement endorsement | |
 
 Spatial Distribution is discussed later.
