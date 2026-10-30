@@ -37,6 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         : t('Saved.', 'Na-save.');
                     break;
 
+                // 0157: a Kagawad endorses their committee's tanod's retirement request to the super admins
+                case 'endorse_retire':
+                    $db->rpc('endorse_retirement', ['p_request' => (string) ($_POST['request'] ?? ''), 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                    $flash = t('Endorsed. The super admins are told; they decide.', 'Na-endorso. Nasabihan ang mga super admin; sila ang magpapasya.');
+                    break;
+
                 case 'tc_decide':
                     $approve = ($_POST['decision'] ?? '') === 'approve';
                     $db->rpc('decide_tanod_committee', ['p_tanod' => $target, 'p_committee' => (string) ($_POST['committee'] ?? ''),
@@ -160,6 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $_SESSION['flash'] = ['text' => $flash, 'level' => $level];
-    header('Location: ' . $self . ($target !== '' && empty($_POST['to_list']) ? '?id=' . urlencode($target) : ''));
+    $toView = (string) ($_POST['to_view'] ?? '');
+    header('Location: ' . $self . (preg_match('/^[a-z]+$/', $toView) ? '?view=' . $toView : ($target !== '' && empty($_POST['to_list']) ? '?id=' . urlencode($target) : '')));
     exit;
 }

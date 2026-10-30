@@ -83,7 +83,7 @@ test('the barangay\'s places: listed in Settings, added from the map', async ({ 
 
 test('alerts: each person sets up what reaches them (profile)', async ({ page }) => {
   const r = await open(page, 'profile.php#alerts');
-  await expect(page.locator('#ss-al [data-kind]')).toHaveCount(5);
+  await expect(page.locator('#ss-al [data-kind]')).toHaveCount(9);   // 0157 adds forwards, flags, reroute questions and Inbox messages
   await page.locator('#ss-al [data-kind="escalation"]').uncheck();
   await expect(page.locator('#ss-al-saved')).toContainText('Saved');
   await page.locator('#ss-al-scope [data-scope="mine"]').click();
@@ -512,6 +512,27 @@ test('Roles and pages 6c: Notifications by committee, a dot on each case, engine
   const k = await open(page, 'notifications.php');
   await expect(page.locator('.nf-chips')).toHaveCount(0);
   expect(n.errors.concat(k.errors), 'console errors').toEqual([]);
+});
+
+test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card) and a Kagawad endorsing a retirement', async ({ page, context }) => {
+  const p = await open(page, 'profile.php');
+  for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
+  await expect(page.locator('.ss-pf-who .rank')).toHaveCount(1);
+  const e = await open(page, 'profile.php?edit=1');
+  await page.locator('input[name="banner_preset"][value="solid"]').check();
+  await page.locator('#banner_colour').fill('#1e9e4a');
+  await expect(page.locator('#ss-pf-banner')).toHaveAttribute('style', /background: (rgb\(30, 158, 74\)|#1e9e4a)/);
+  expect(await axe(page), 'Edit Profile, editing the banner').toEqual([]);
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'profile.php');
+  await expect(page.locator('.pf-punch')).toContainText('Still in');
+  await expect(page.locator('.ss-pf-who')).toContainText('Peace and Order');
+  const r = await open(page, 'personnel.php?view=retire');
+  await expect(page.locator('#rt-k tbody tr')).toHaveCount(2);
+  await expect(page.locator('.rt-endorse button')).toHaveCount(1);
+  await expect(page.locator('#rt-k')).toContainText('Endorsed by Dela Cruz, Ramon');
+  expect(await axe(page), 'Personnel, retirement requests (Kagawad)').toEqual([]);
+  expect(p.errors.concat(e.errors, k.errors, r.errors), 'console errors').toEqual([]);
 });
 
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
