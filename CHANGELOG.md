@@ -341,6 +341,19 @@ Changes on `main` not yet deployed belong here.
   only the super admins. A committee's *Right now* strip shows its own kinds
   of complaint and its own cases.
 
+**Changed (the Dashboard, "Trend hero" layout, 30 Oct)**
+- The Dashboard is rearranged on a twelve-column grid. Nothing was taken away:
+  - the big trend chart takes two thirds of the top, with Resolved, Escalated
+    and Overdue as a figure strip under it;
+  - beside it, the status donut and the four "needs me" numbers (waiting for
+    you, overdue, no committee yet, open now);
+  - below: the category donut, the committees, and a new live feed of recent
+    case activity, which links to Activity;
+  - the quick-view box, the brain buttons and Resolution efficiency work as
+    before.
+- The engine panel keeps only the SMART numbers; the needs-me numbers and the
+  committees moved out into the grid.
+
 **Changed (the aesthetic layer, 30 Oct)**
 - One new stylesheet, `aesthetic.css`, loaded last, restyles every portal page
   at once from Ace's references; nothing moves.
