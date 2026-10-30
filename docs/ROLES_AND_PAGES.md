@@ -201,6 +201,12 @@ colour); the default is the person's sidebar colour. It shows the rung pill,
 the tier and the committee; a punch card summary of today; alert switches
 for forwards, flags, reroute questions and Inbox messages.
 
+*Built (0157):* `users.banner_preset`, `banner_colour`, `banner_url`,
+`banner_y`, set through `set_my_banner`; the alert kind `inbox_mail`, raised by
+a trigger on `inbox_messages`. The Kagawad's endorsement is
+`retirement_requests.endorsed_*` and `endorse_retirement`, read through
+`retirement_requests_queue` (Personnel > Retirement requests for a Kagawad).
+
 ## 4. Build order
 
 | Step | What | Status |
@@ -212,6 +218,6 @@ for forwards, flags, reroute questions and Inbox messages.
 | 4 | Personnel: tanods to committees with approval, each version's view, the punch card | Built (0153) |
 | 5 | Inbox and the reroute question | Built (0155) |
 | 6 | Dashboard, Report Summary and Notifications changes | Built (0156) |
-| 7 | Edit Profile banner, retirement endorsement | |
+| 7 | Edit Profile banner, retirement endorsement | Built (0157) |
 
 Spatial Distribution is discussed later.

@@ -98,6 +98,7 @@ const TITLES: Record<string, string> = {
   forward_flag: "Forwarding flag",
   tanod_committee: "Personnel update",
   reroute_question: "Pick a tanod",
+  inbox_mail: "New message",
   test: "SmartSumbong alerts",
 };
 
@@ -236,7 +237,7 @@ async function sendToBrowsers(plan: Plan): Promise<void> {
     title: TITLES[r.kind] ?? "SmartSumbong",
     body: r.message,
     // the service worker opens this, relative to the portal
-    url: r.report_id ? `case.php?id=${r.report_id}` : "notifications.php",
+    url: r.report_id ? `case.php?id=${r.report_id}` : r.kind === "inbox_mail" ? "inbox.php" : "notifications.php",
     tag: r.report_id ?? r.id,
   };
   await Promise.all(plan.web.map(async (b) => {

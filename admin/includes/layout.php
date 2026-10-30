@@ -482,8 +482,8 @@ function nav_counts(): array
         $memo = db()->selectMany([
             'cases.php'               => ['reports', ['deleted_at' => 'is.null', 'status' => 'eq.pending_review'], true],
             // the engine's recurring, spike and quiet-case notes are the Notifications page's "Right now" cards, not unread items
-            'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
-            'notifications_smart'     => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'and' => '(message.like.SMART*,message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
+            'notifications.php'       => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
+            'notifications_smart'     => ['notifications', ['user_id' => 'eq.' . (current_admin()['id'] ?? '0'), 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.like.SMART*,message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)'], true],
             'residents.php'           => ['users', ['role' => 'eq.resident', 'verification_status' => 'eq.pending'], true],
             'inbox.php'               => ['inbox_messages', ['recipient' => 'eq.' . (current_admin()['id'] ?? '0'), 'read_at' => 'is.null'], true],
             'administrative-services.php' => ['retirement_requests', ['status' => 'eq.pending'], true],

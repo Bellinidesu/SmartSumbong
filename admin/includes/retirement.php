@@ -457,6 +457,11 @@ function render_retirement_queue(): void
           return T('Denied by ', 'Tinanggihan ni ') + escapeHtml(r.decided_by_name || T('an administrator', 'isang administrator')) +
             T(' on ', ' noong ') + escapeHtml(longDatetime(r.decided_at)) + T('. Reason: ', '. Dahilan: ') + escapeHtml(r.denial_reason || '');
         }
+        // 0157: the tanod's Kagawad endorsed it
+        if (r.endorsed_at) {
+          return '<span class="p-badge p-b-progress" title="' + escapeHtml(r.endorse_note || '') + '">' + T('Endorsed by ', 'In-endorso ni ') + escapeHtml(r.endorsed_by_name || T('their Kagawad', 'ang kanilang Kagawad')) + '</span>' +
+            (r.endorse_note ? '<div class="p-sub">' + escapeHtml(r.endorse_note) + '</div>' : '');
+        }
         return '<span class="p-sub">&mdash;</span>';
       }
 

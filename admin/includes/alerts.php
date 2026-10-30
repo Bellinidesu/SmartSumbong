@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-const ALERT_KINDS = ['escalation', 'sla_warning', 'status_change', 'reroute', 'retirement'];
+const ALERT_KINDS = ['escalation', 'sla_warning', 'status_change', 'reroute', 'retirement', 'case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail'];
 
 /** kind => [name, what it is about], in the reader's language. */
 function alert_kinds(): array
@@ -16,5 +16,10 @@ function alert_kinds(): array
         'status_change' => [t('Things for you to do', 'Mga dapat mong gawin'), t('A resident wrote, a tanod filed a resolution, an appeal, or a request to review.', 'Sumulat ang residente, nagpasa ng resolusyon ang tanod, may apela, o may hiling na suriin.')],
         'reroute'       => [t('Dispatch changes', 'Pagbabago sa dispatch'), t('A tanod\'s dispatch was moved to someone else.', 'Inilipat sa iba ang dispatch ng isang tanod.')],
         'retirement'    => [t('Personnel', 'Tauhan'), t('A tanod asked to end their service.', 'Humiling ang isang tanod na tapusin ang serbisyo.')],
+        // 0157 (Roles and pages): the committees' own alerts
+        'case_forwarded'   => [t('Forwards', 'Mga ipinasa'), t('A case was forwarded to your committee, or to the super admins to place.', 'May kasong ipinasa sa iyong komite, o sa mga super admin para ilagay.')],
+        'forward_flag'     => [t('Flags', 'Mga flag'), t('Staff flagged a case for forwarding, or your flag was answered.', 'May in-flag ang kawani para ipasa, o sinagot ang iyong flag.')],
+        'reroute_question' => [t('Reroute questions', 'Mga tanong sa reroute'), t('None of your committee\'s tanods is free: pick one before the wait runs out.', 'Walang bakanteng tanod ang iyong komite: pumili bago maubos ang palugit.')],
+        'inbox_mail'       => [t('Inbox messages', 'Mga mensahe sa Inbox'), t('Someone wrote to you in the Inbox.', 'May sumulat sa iyo sa Inbox.')],
     ];
 }

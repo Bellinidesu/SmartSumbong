@@ -294,6 +294,7 @@ try {
     $nq = [
         'select'  => 'id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role),notification_committee',
         'user_id' => 'eq.' . $admin['id'],
+        'kind'    => 'neq.inbox_mail',
         'order'   => 'created_at.' . ($nSort === 'oldest' ? 'asc' : 'desc'),
         'limit'   => '20',
     ];
@@ -313,7 +314,7 @@ try {
         $nq['notification_committee'] = 'eq.' . $nCom;
     }
     $selects = [
-        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)']],
+        'notes_n' => ['notifications', ['user_id' => 'eq.' . $admin['id'], 'is_read' => 'is.false', 'kind' => 'neq.inbox_mail', 'and' => '(message.not.like.SMART: recurring*,message.not.like.SMART: spike*,message.not.like.SMART:*has had no update for*)']],
         'esc_n'   => ['escalation_requests', ['status' => 'eq.pending']],
     ];
     $counts = $db->selectMany($selects, true);
@@ -1149,6 +1150,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     let nq = sb.from('notifications')
       .select('id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role),notification_committee', { count: 'exact' })
       .eq('user_id', ADMIN_ID)
+      .neq('kind', 'inbox_mail')
       .order('created_at', { ascending: N_OLDEST })
       .range((NPAGE - 1) * PER, NPAGE * PER - 1);
     // Same rule as the PHP above: a search includes read notifications.

@@ -26,6 +26,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/alerts.php';
+require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/personnel_committees.php';
 
 $admin = require_admin();
 $db    = db();
@@ -148,12 +150,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Supabase::signIn($admin['email'], $current);
             }
 
+            // 0157: the banner: a preset, a colour, or their own picture moved up or down to frame it
+            if ($doDetails && isset($_POST['banner_preset'])) {
+                $bp = (string) $_POST['banner_preset'];
+                if (!in_array($bp, ['sidebar', 'contour', 'solid', 'committee', 'photo'], true)) { $bp = 'sidebar'; }
+                $bUrl = null;
+                if ($bp === 'photo' && ($bpic = cloudinary_upload_files('banner', 1, 'avatars'))) { $bUrl = $bpic[0]['media_url']; }
+                $banner = ['p_preset' => $bp, 'p_colour' => $bp === 'solid' ? (string) ($_POST['banner_colour'] ?? '') : null, 'p_url' => $bUrl, 'p_y' => (int) ($_POST['banner_y'] ?? 50)];
+            }
+
             if ($patch !== null) {
                 $db->update('users', ['id' => 'eq.' . $admin['id']], $patch);
                 $_SESSION[SESSION_KEY]['full_name'] = $patch['full_name'];
                 if (array_key_exists('avatar_url', $patch)) {
                     $_SESSION[SESSION_KEY]['avatar_url'] = $patch['avatar_url'];
                 }
+            }
+            if (isset($banner)) {
+                $db->rpc('set_my_banner', $banner);
             }
             if ($doPassword) {
                 $db->updateAuthUser(['password' => $new]);
@@ -192,7 +206,8 @@ $browsers = [];
 try {
     $rows = $db->select('users', [
         'select' => 'id,full_name,email,mobile_number,role,verification_status,created_at,avatar_url,'
-                  . 'muted_notification_kinds,push_scope,push_quiet_from,push_quiet_to,push_quiet_urgent',
+                  . 'muted_notification_kinds,push_scope,push_quiet_from,push_quiet_to,push_quiet_urgent,'
+                  . 'official_role,committee,admin_tier,banner_preset,banner_colour,banner_url,banner_y',
         'id'     => 'eq.' . $admin['id'],
         'limit'  => '1',
     ]);
@@ -214,6 +229,26 @@ try {
 $mobileLocked = signs_in_by_phone($db) !== false;
 
 $editing = isset($_GET['edit']);
+
+// 0157: today's punch card, for a Kagawad or a staff member
+$punchToday = null;
+if (is_scoped()) {
+    try { $pc = (array) $db->rpc('punch_cards', ['p_days' => 1, 'p_user' => $admin['id']]); $punchToday = $pc[0]['days'][0] ?? null; } catch (SupabaseError) {}
+}
+
+/** The profile banner's look: the sidebar colour (default), the contour pattern, a solid colour, the committee's, or a picture. */
+function profile_banner_style(array $me): string
+{
+    $preset = (string) ($me['banner_preset'] ?? 'sidebar');
+    $com = (string) ($me['committee'] ?? '');
+    return match ($preset) {
+        'contour'   => 'background:var(--p-side-a) url(assets/img/texture-contours.webp) center/cover;background-blend-mode:soft-light',
+        'solid'     => 'background:' . e((string) ($me['banner_colour'] ?? '#00308F')),
+        'committee' => 'background:' . e($com !== '' ? committee_colour($com) : (barangay()['super_colour'] ?? SUPER_BLUE)),
+        'photo'     => !empty($me['banner_url']) ? 'background:#222 url(' . e(cld_thumb((string) $me['banner_url'], 1600)) . ') center ' . (int) ($me['banner_y'] ?? 50) . '%/cover' : '',
+        default     => '',
+    };
+}
 
 layout_head(t('Edit Profile', 'I-edit ang Profile'), 'profile.php');
 ?>
@@ -240,15 +275,16 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
 ?>
 <!-- Ace (7 Oct): banner header (idea A) over settings rows (idea B). -->
 <section class="p-card ss-pf-head">
-  <div class="ss-pf-banner" aria-hidden="true"></div>
+  <div class="ss-pf-banner<?= in_array($me['banner_preset'] ?? 'sidebar', ['photo', 'contour'], true) ? ' ss-pf-banner--plain' : '' ?>" id="ss-pf-banner" aria-hidden="true" style="<?= profile_banner_style($me) ?>"></div>
   <div class="ss-pf-id">
     <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av" data-r="<?= e($pfRank) ?>" src="<?= e(cld_thumb($me['avatar_url'], 240, true)) ?>" alt="" id="ss-photo-preview">
     <?php else: ?><span class="ss-pf-av ss-pf-ini" data-r="<?= e($pfRank) ?>" id="ss-photo-preview"><?= e($initials) ?></span><?php endif; ?>
     <div class="ss-pf-who">
       <h2><?= e($shown) ?></h2>
       <div class="p-badges">
-        <span class="p-badge p-b-progress"><?= e(status_label($me['role'])) ?></span>
-        <span class="p-badge p-b-done"><?= e(status_label($me['verification_status'])) ?></span>
+        <?= rank_chip(($me['admin_tier'] ?? '') === 'committee' && empty($me['official_role']) ? 'kagawad' : ($me['official_role'] ?? null)) ?>
+        <span class="p-badge p-b-progress"><?= e(access_label()) ?></span>
+        <?php if (!empty($me['committee'])): ?><?= committee_pill((string) $me['committee']) ?><?php endif; ?>
       </div>
     </div>
     <div class="ss-pf-act">
@@ -276,6 +312,15 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
       <span class="ss-pf-v"><?= e($me['email']) ?><small><?= e(t('Your sign-in, and where password links are sent.', 'Ang iyong pang-sign in, at dito ipinapadala ang password link.')) ?></small></span><span></span></div>
     <div class="ss-pf-row"><span class="ss-pf-l"><?= e(t('Password', 'Password')) ?></span><span class="ss-pf-v ss-pf-dots">••••••••</span><?= $change('current_password') ?></div>
   </div>
+
+  <?php if ($punchToday !== null): ?>
+  <p class="p-eyebrow ss-pf-sec"><?= e(t('Your punch card today', 'Ang iyong punch card ngayon')) ?></p>
+  <div class="p-card p-card-pad pc-today pf-punch">
+    <div><small><?= e(t('In today', 'Pasok ngayon')) ?></small><b><?= e(punch_time($punchToday['first_in'] ?? null)) ?></b></div>
+    <div><small><?= e(t('Out', 'Labas')) ?></small><b><?= e(!empty($punchToday['first_in']) && empty($punchToday['last_out']) ? t('Still in', 'Nasa loob pa') : punch_time($punchToday['last_out'] ?? null)) ?></b></div>
+    <div><small><?= e(t('Cases touched', 'Mga kasong hinawakan')) ?></small><b><?= (int) ($punchToday['touched'] ?? 0) ?></b></div>
+  </div>
+  <?php endif; ?>
 
   <p class="p-eyebrow ss-pf-sec"><?= e(t('Account', 'Account')) ?></p>
   <div class="p-card ss-pf-rows">
@@ -369,6 +414,24 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
         <small class="p-hint"><?= e(t('This is your sign-in identity and cannot be changed here.', 'Ito ang iyong pagkakakilanlan sa pag-sign in at hindi mapapalitan dito.')) ?></small></label>
     </div>
 
+    <?php $bp = (string) ($me['banner_preset'] ?? 'sidebar'); ?>
+    <fieldset class="pf-banner">
+      <legend class="p-eyebrow ss-pf-sec2"><?= e(t('Banner', 'Larawan sa itaas')) ?></legend>
+      <div class="pf-presets" role="radiogroup">
+        <?php foreach (['sidebar' => t('My sidebar colour', 'Kulay ng aking sidebar'), 'contour' => t('The barangay\'s contour pattern', 'Contour pattern ng barangay'), 'solid' => t('A colour', 'Isang kulay'),
+                        'committee' => t('My committee\'s colour', 'Kulay ng aking komite'), 'photo' => t('My own picture', 'Sarili kong larawan')] as $pk => $pl):
+              if ($pk === 'committee' && empty($me['committee'])) continue; ?>
+          <label class="ib-person"><input type="radio" name="banner_preset" value="<?= e($pk) ?>"<?= $bp === $pk ? ' checked' : '' ?>> <?= e($pl) ?></label>
+        <?php endforeach; ?>
+      </div>
+      <div class="ss-pf-2">
+        <label class="p-field" for="banner_colour"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" id="banner_colour" name="banner_colour" value="<?= e((string) ($me['banner_colour'] ?? '#00308F')) ?>"></label>
+        <label class="p-field" for="banner"><span><?= e(t('Picture', 'Larawan')) ?></span><input class="ss-file-plain" type="file" id="banner" name="banner[]" accept="image/jpeg,image/png,image/webp"></label>
+      </div>
+      <label class="p-field" for="banner_y"><span><?= e(t('Frame the picture: drag the banner up or down, or use this', 'I-frame ang larawan: hilahin pataas o pababa ang banner, o gamitin ito')) ?></span>
+        <input type="range" id="banner_y" name="banner_y" min="0" max="100" value="<?= (int) ($me['banner_y'] ?? 50) ?>"></label>
+    </fieldset>
+
     <p class="p-eyebrow ss-pf-sec2"><?= e(t('Password', 'Password')) ?></p>
     <p class="p-hint" style="margin:-4px 0 12px"><?= e(t('To change your password, fill in all three boxes. Leave them empty to keep it.', 'Para palitan ang password, punan ang tatlong kahon. Iwanang blangko para panatilihin ito.')) ?></p>
     <div class="ss-pf-3">
@@ -402,6 +465,30 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     var p = document.getElementById('ss-photo-preview'), img = document.createElement('img');
     img.className = 'ss-pf-av'; img.id = 'ss-photo-preview'; img.alt = ''; img.src = URL.createObjectURL(f); p.replaceWith(img);
   });
+  // 0157: the banner previews as it is set up, and a picture is framed by dragging the banner
+  (function () {
+    var b = document.getElementById('ss-pf-banner'), y = document.getElementById('banner_y'), file = document.getElementById('banner'),
+        col = document.getElementById('banner_colour'), url = null;
+    if (!b || !y) return;
+    var SIDE = '', COM = <?= json_encode(!empty($me['committee']) ? committee_colour((string) $me['committee']) : '') ?>, PHOTO = <?= json_encode(!empty($me['banner_url']) ? cld_thumb((string) $me['banner_url'], 1600) : '') ?>;
+    function pick() { var r = document.querySelector('input[name="banner_preset"]:checked'); return r ? r.value : 'sidebar'; }
+    function paint() {
+      var p = pick(), pic = url || PHOTO;
+      b.classList.toggle('ss-pf-banner--plain', p === 'photo' || p === 'contour');
+      b.style.cssText = p === 'solid' ? 'background:' + col.value
+        : p === 'committee' ? 'background:' + COM
+        : p === 'contour' ? 'background:var(--p-side-a) url(assets/img/texture-contours.webp) center/cover;background-blend-mode:soft-light'
+        : p === 'photo' && pic ? 'background:#222 url("' + pic + '") center ' + y.value + '%/cover;cursor:ns-resize' : SIDE;
+    }
+    document.querySelectorAll('input[name="banner_preset"]').forEach(function (r) { r.addEventListener('change', paint); });
+    col.addEventListener('input', function () { document.querySelector('input[name="banner_preset"][value="solid"]').checked = true; paint(); });
+    y.addEventListener('input', paint);
+    file.addEventListener('change', function () { var f = file.files && file.files[0]; if (!f) return; url = URL.createObjectURL(f); document.querySelector('input[name="banner_preset"][value="photo"]').checked = true; paint(); });
+    var drag = null;
+    b.addEventListener('pointerdown', function (e) { if (pick() !== 'photo') return; drag = { y: e.clientY, v: +y.value }; b.setPointerCapture(e.pointerId); });
+    b.addEventListener('pointermove', function (e) { if (!drag) return; y.value = Math.max(0, Math.min(100, Math.round(drag.v - (e.clientY - drag.y) / 2))); paint(); });
+    b.addEventListener('pointerup', function () { drag = null; });
+  })();
   (function () {
     var box = location.hash && document.getElementById(location.hash.slice(1));
     if (box && box.focus) { box.focus(); box.scrollIntoView({ block: 'center' }); }

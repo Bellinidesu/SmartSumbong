@@ -57,6 +57,7 @@ function personnel_tabs(string $on): string
 {
     if (!(is_super() || is_captain() || is_committee())) return '';
     $tabs = ['' => t('Tanods', 'Mga Tanod'), 'staff' => is_committee() ? t('My staff', 'Aking mga kawani') : t('Committee staff', 'Mga kawani ng komite')];
+    if (is_committee()) { $tabs['retire'] = t('Retirement requests', 'Mga hiling magretiro'); }
     $o = '<nav class="st-tabs tc-tabs" aria-label="' . e(t('Personnel', 'Mga Tanod')) . '">';
     foreach ($tabs as $k => $label) {
         $o .= '<a class="st-link' . ($on === $k ? ' p-on' : '') . '" href="personnel.php' . ($k !== '' ? '?view=' . $k : '') . '"' . ($on === $k ? ' aria-current="page"' : '') . '>' . e($label) . '</a>';
@@ -157,6 +158,50 @@ function render_tc_card(array $p, ?array $row): void
           <?php endif; ?>
         </div>
     <?php
+}
+
+/**
+ * A Kagawad's Retirement requests tab (0157): their committee's tanods' requests (row level security keeps the rest out), to
+ * read and to endorse to the super admins, who decide.
+ */
+function render_retire_page(Supabase $db): void
+{
+    $error = null;
+    try { $rows = (array) $db->rpc('retirement_requests_queue'); } catch (SupabaseError $ex) { $rows = []; $error = safe_error($ex); }
+    $flash = $_SESSION['flash'] ?? null; unset($_SESSION['flash']);
+    layout_head(t('Personnel', 'Mga Tanod'), 'personnel.php'); ?>
+    <div class="p-topbar"><h1><?= e(t('Personnel', 'Mga Tanod')) ?></h1></div>
+    <?= personnel_tabs('retire') ?>
+    <?php if ($flash): ?><div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e((string) $flash['text']) ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
+    <p class="p-hint tc-lede"><?= e(t('Your committee\'s tanods who asked to retire. You can endorse a request to the super admins; they decide.', 'Ang mga tanod ng iyong komite na humiling magretiro. Maaari mong i-endorso ang hiling sa mga super admin; sila ang magpapasya.')) ?></p>
+    <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t" id="rt-k">
+      <thead><tr><th scope="col">Tanod</th><th scope="col"><?= e(t('Asked', 'Humiling')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th><th scope="col" class="p-right"><?= e(t('Your endorsement', 'Iyong pag-endorso')) ?></th></tr></thead>
+      <tbody>
+      <?php if (!$rows): ?><tr><td colspan="4" class="p-empty"><?= e(t('None of your committee\'s tanods has asked to retire.', 'Walang tanod ng iyong komite ang humiling magretiro.')) ?></td></tr><?php endif; ?>
+      <?php foreach ($rows as $r): ?>
+        <tr>
+          <td><b><?= e(formal_name((string) $r['full_name'])) ?></b></td>
+          <td class="p-num"><?= e(long_datetime((string) $r['requested_at'])) ?></td>
+          <td><?= retirement_status_pill((string) $r['status']) ?></td>
+          <td class="p-right">
+            <?php if (!empty($r['endorsed_at'])): ?>
+              <span class="p-badge p-b-progress" title="<?= e((string) ($r['endorse_note'] ?? '')) ?>"><?= e(sprintf(t('Endorsed by %s', 'In-endorso ni %s'), formal_name((string) ($r['endorsed_by_name'] ?? '')))) ?></span>
+            <?php elseif ($r['status'] === 'pending'): ?>
+              <form method="post" class="tc-row rt-endorse">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="endorse_retire">
+                <input type="hidden" name="request" value="<?= e($r['id']) ?>"><input type="hidden" name="to_view" value="retire">
+                <label class="p-sr" for="rt-n-<?= e($r['id']) ?>"><?= e(t('Note for the super admins (optional)', 'Paalala para sa mga super admin (opsyonal)')) ?></label>
+                <input class="p-input-plain" id="rt-n-<?= e($r['id']) ?>" name="note" maxlength="500" placeholder="<?= e(t('Note for the super admins (optional)', 'Paalala para sa mga super admin (opsyonal)')) ?>">
+                <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Endorse', 'I-endorso')) ?></button>
+              </form>
+            <?php else: ?><span class="p-sub">&mdash;</span><?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div></div>
+    <?php layout_foot();
 }
 
 /** A time of day in Manila, or a dash. */

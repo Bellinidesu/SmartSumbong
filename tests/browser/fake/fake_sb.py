@@ -194,6 +194,14 @@ RPC = {
     'smart_chart_notes': {'total': 51, 'prev_total': 40, 'busiest_day': {'day': '2026-10-14', 'n': 6}, 'weekday': {'dow': 1, 'n': 12},
                           'top_category': {'category': 'peace_order_nuisance', 'n': 20, 'share': 39}, 'top_place': {'place': 'Purok 2', 'n': 4}, 'quiet_days': 3,
                           'finished': 30, 'on_time': 24, 'median_taken': 18.5, 'median_allowed': 48, 'slowest': None, 'fastest': None, 'open_overdue': 4},
+    # 0157: a Kagawad's view of their tanods' retirement requests, and the endorsement
+    'retirement_requests_queue': [{'id': 'r0000000-0000-0000-0000-000000000001', 'tanod_id': 'u2', 'full_name': 'Lediac, Ace', 'email': None, 'mobile_number': '+639170000002',
+                                   'status': 'pending', 'requested_at': ago(20), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
+                                   'endorsed_at': None, 'endorsed_by_name': None, 'endorse_note': None},
+                                  {'id': 'r0000000-0000-0000-0000-000000000002', 'tanod_id': 'u3', 'full_name': 'Arcibal, Kim Justine', 'email': None, 'mobile_number': '+639170000003',
+                                   'status': 'pending', 'requested_at': ago(40), 'decided_at': None, 'decided_by': None, 'decided_by_name': None, 'denial_reason': None,
+                                   'endorsed_at': ago(5), 'endorsed_by_name': 'Dela Cruz, Ramon', 'endorse_note': 'Tapos na ang termino'}],
+    'endorse_retirement': None, 'set_my_banner': None,
     'forward_case': 1, 'flag_case_for_forward': 6, 'dismiss_forward_flag': None,
     # 0153: tanods in committees and the punch cards
     'personnel_committees': [{'tanod_id': 'u2', 'committees': [{'key': 'peace_order', 'status': 'approved', 'role': 'Lead sa gabi'}], 'busy_committee': None},

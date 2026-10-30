@@ -550,6 +550,16 @@ a.p-btn-pdf2 { text-decoration: none; }
 .nf-items li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .nf-items .p-btn { margin-left: auto; }
 
+/* 0157: Edit Profile's banner, today's punch card, a Kagawad's retirement endorsements */
+.ss-pf-banner--plain::after { display: none; }
+.pf-banner { border: 0; padding: 0; margin: 0 0 8px; display: grid; gap: 12px; }
+.pf-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-presets .ib-person:has(input:checked) { border-color: var(--p-orange); box-shadow: 0 0 0 1.5px var(--p-orange) inset; }
+.pf-banner input[type="color"] { width: 64px; height: 38px; padding: 2px; border: 1px solid var(--p-line); border-radius: 10px; background: var(--p-surface); }
+.pf-banner input[type="range"] { width: 100%; }
+.pf-punch { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+.rt-endorse { justify-content: flex-end; }
+
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
