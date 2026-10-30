@@ -84,6 +84,17 @@ language sql stable security definer set search_path = public as $$
     from public.reports r where r.id = p_report
 $$;
 
+/** The same, as a column the case list can show and filter by (PostgREST computed column: select=case_committee, case_committee=eq.x). */
+create or replace function public.case_committee(r public.reports)
+returns text
+language sql stable security definer set search_path = public as $$
+  select case when r.awaiting_placement then null
+              else coalesce(r.committee, (select cc.committee from public.committee_categories cc join public.committees c on c.key = cc.committee and c.active
+                                            where cc.category = r.category order by c.sort, c.key limit 1)) end
+$$;
+revoke all on function public.case_committee(public.reports) from public, anon;
+grant execute on function public.case_committee(public.reports) to authenticated;
+
 -- Who sees a case: a forwarded case belongs to its committee alone (and whoever handles it); one waiting for the super admins,
 -- to no committee; otherwise, as before, the category's committees, a concern's, and whoever handles it.
 create or replace function public._user_sees_case(p_user uuid, p_report uuid, p_cat public.complaint_category, p_handler uuid)
