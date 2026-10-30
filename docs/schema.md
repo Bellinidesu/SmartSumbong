@@ -51,7 +51,7 @@ How the database fits the rest of the system is in
 
 | Table | Purpose | Since |
 |---|---|---|
-| `users` | Accounts, role, official role and committee (0130), an administrator's tier and developer mark (0145), verification, suspension, retirement, duty status, last known location | 0001 |
+| `users` | Accounts, role, official role and committee (0130), an administrator's tier (super, committee, moderator since 0151, captain) and developer mark (0145), verification, suspension, retirement, duty status, last known location | 0001 |
 | `account_audit` | Hash-chained log of account changes | 0014 |
 | `attendance` | Tanod duty logging | 0001 |
 | `device_tokens` | FCM push tokens | 0035 |
@@ -188,6 +188,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `admin_tier`, `is_super_admin`, `is_full_viewer`, `admin_can_write`, `admin_sees_category`, `admin_sees_case`, `admin_sees_report`, `admin_sees_dispatch` | 0145 | What the signed-in administrator may see and do (used by the access rules and the functions) |
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
+| `admin_scoped`; `admin_can_write`, `set_admin_access`, `set_official_role` (positions set the tier) | 0151 | The moderator tier (staff, scoped to a committee); a position sets its tier; the decision functions refuse a moderator |
 | `committee_save` (now with a colour), `_colour_clash`, `_committee_free_colour` | 0150 | A committee's colour, and what a colour is too close to; the triggers on `committees` and `barangay_profile` refuse a clash |
 | `catalogue_fill` | 0147 | Gives every category a deadline and a first committee (copied from Others); the portal calls it right after making a category |
 | `category_save`, `option_save` | 0146 | A super admin makes or changes a category (a new one is added to the `complaint_category` type) or an option |

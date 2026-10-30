@@ -24,6 +24,14 @@ and super admin by choice. **DEV** marks the development team (the
 debugger); for now it is a title only. A view-only **captain** tier exists
 for barangays that want one; Barangay 183 does not use it.
 
+Built so far (0151): a staff member (the *moderator* tier) is assigned to a
+committee by a super admin and sees and works that committee's cases like
+its Kagawad, but cannot approve or deny an escalation, escalate up the
+ladder, hand a case to a higher official or refer it outside. Setting a
+position sets the tier that goes with it (Chairman super admin, Kagawad
+committee admin, secretary moderator); someone a super admin has raised to
+super admin stays one.
+
 *Open:* the moderator's exact powers (Sir Kiko).
 
 ## 2. Committees and colour (locked)
@@ -166,7 +174,7 @@ for forwards, flags, reroute questions and Inbox messages.
 |---|---|---|
 | 1a | Pages: Administrative Services and the Control Room take their tabs from Settings | Built (this PR) |
 | 1b | Committee colours and creator, the super admin colour, committee sidebars, vivid ladder | Built (0150) |
-| 2 | Roles: moderator tier, staff assigned to a committee, the Chairman as super admin, each rung's pages | |
+| 2 | Roles: moderator tier, staff assigned to a committee, the Chairman as super admin, each rung's pages | Built (0151) |
 | 3 | Forwarding: per-case committee, forward and flag, history, pinned notifications, Case Reports chips | |
 | 4 | Personnel: tanods to committees with approval, each version's view, the punch card | |
 | 5 | Inbox and the reroute question | |
