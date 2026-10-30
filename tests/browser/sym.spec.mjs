@@ -11,7 +11,7 @@ test('sym', async ({ page }) => {
   const r = await page.evaluate(() => {
     const b = s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top + scrollY), r: Math.round(r.right), b: Math.round(r.bottom + scrollY) }; };
     return { toolbar: b('.nf-main .p-band--calm'), rail: b('.nf-rail'), wait: b('.nf-wait'), chev: b('.nf-case summary .nf-chev'), tickRow: b('.p-notif.fr:not(summary) .p-n-x'), tickItem: b('.nf-case-items .p-n-x'),
-      titleText: b('.nf-case summary .p-n-line b'), itemText: b('.nf-case-items .nf-msg'), icon: b('.nf-case summary .p-n-ico') };
+      chip: b('.nf-chips .cm-chip:first-child'), chipText: (() => { const e = document.querySelector('.nf-chips .cm-chip:first-child'); const r = document.createRange(); r.selectNodeContents(e); const q = r.getBoundingClientRect(), c = e.getBoundingClientRect(); return [Math.round(q.left - c.left), Math.round(c.right - q.right)]; })(), timeItem: b('.nf-case-items .p-when'), dotItem: b('.nf-case-items .nf-sev'), titleText: b('.nf-case summary .p-n-line b'), itemText: b('.nf-case-items .nf-msg'), icon: b('.nf-case summary .p-n-ico') };
   });
   console.log('SYM', JSON.stringify(r));
   await page.screenshot({ path: `${OUT}sym-notifs.png`, fullPage: true });

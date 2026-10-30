@@ -842,3 +842,10 @@ textarea.p-input-plain { height: auto; min-height: 180px; padding: 10px 12px; li
 .ib-none-list { display: grid; justify-items: center; gap: 8px; padding: 40px 16px; text-align: center; color: var(--p-muted); }
 .ib-none-list b { font-weight: 600; }
 .ib-none-list .ib-none-ic { margin-bottom: 0; width: 44px; height: 44px; }
+
+/* Symmetry, second look (31 Oct): a chip with no count is centred (its right padding was kept for the count badge);
+   the rows inside a folded notification are centred on their tick, with the dot and the time on the same line */
+.cm-chip:not(:has(b)) { padding: 0 14px; }
+.nf-case-items li { align-items: center; min-height: 40px; }
+.nf-case-items .nf-sev { margin-top: 0; }
+.nf-case-items .p-when { margin: 0; }

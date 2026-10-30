@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (symmetry, second look, 31 Oct)**
+- Chips without a count (the committee chips on Notifications) are centred; they kept 12 px on the left
+  and 6 px on the right for a count badge that was not there.
+- The rows inside a folded notification are centred on their tick: the dot, the message time and the tick
+  share one line.
+
 **Changed (symmetry on Notifications and the Inbox, 31 Oct)**
 - Notifications: the toolbar and the side column start on the same line; a folded row's arrow
   sits in the same column as the tick on the other rows, and the rows inside it line up with
