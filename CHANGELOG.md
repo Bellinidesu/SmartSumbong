@@ -223,6 +223,19 @@ Changes on `main` not yet deployed belong here.
 - Settings keeps System status, Plan and usage, SMART and Appearance. An old
   link to a tab that moved opens it on its new page.
 
+**Added (roles and pages, step 1b: colours, 30 Oct)**
+- Every committee has a colour, chosen by a super admin in Administrative
+  Services > Committees (a palette is offered; any colour works). A
+  committee admin's sidebar wears it, with a banner naming the committee, so
+  a screenshot says which committee it came from (0150).
+- One colour for every super admin, branding blue unless they change it. A
+  colour too close to the super admin colour or another active committee's
+  is refused by the database, and the super admins cannot move theirs onto a
+  committee's.
+- The ladder's colours are vivid (Staff cyan, Tanod green, Kagawad violet,
+  Chairman red with a gold ring), as pills with a glowing dot in dark mode;
+  in light mode the word is a deeper shade of the colour, for contrast.
+
 **Fixed**
 - Administrators could not see a hotline switched off, nor switch one off,
   since 0145 (0147).

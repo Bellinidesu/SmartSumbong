@@ -9,10 +9,14 @@
  *   brgy_seal('png')        the seal's address: the barangay's own upload, or the one shipped with the portal
  *   brgy_seal_img('cls')    the seal as an <img>, sized when it is the shipped one
  *   barangay_forget()       drop the cache (after the profile is saved)
+ *   barangay()['super_colour']  the one colour every super admin's sidebar wears (0150)
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/supabase.php';
+
+/** Branding blue: the super admins' colour unless they choose another (0150). */
+const SUPER_BLUE = '#00308F';
 
 function barangay_cache_file(): string
 {
@@ -29,7 +33,7 @@ function barangay(): array
 {
     static $memo = null;
     if ($memo !== null) return $memo;
-    $fallback = ['name' => BRGY_NAME, 'place' => 'Zone 20, Villamor, ' . BRGY_CITY, 'seal_url' => null];
+    $fallback = ['name' => BRGY_NAME, 'place' => 'Zone 20, Villamor, ' . BRGY_CITY, 'seal_url' => null, 'super_colour' => SUPER_BLUE];
     $ttl = (int) env('FEATURE_CACHE_TTL', '20');
     $file = barangay_cache_file();
     if ($ttl > 0 && is_file($file) && filemtime($file) > time() - $ttl) {
@@ -37,9 +41,10 @@ function barangay(): array
         if (is_array($hit) && isset($hit['name'], $hit['place'])) return $memo = $hit + $fallback;
     }
     try {
-        $row = (array) ((new Supabase())->select('barangay_profile', ['select' => 'name,place,seal_url', 'id' => 'eq.1'])[0] ?? []);
+        $row = (array) ((new Supabase())->select('barangay_profile', ['select' => 'name,place,seal_url,super_colour', 'id' => 'eq.1'])[0] ?? []);
         if (!isset($row['name'], $row['place'])) throw new RuntimeException('no profile');
-        $out = ['name' => (string) $row['name'], 'place' => (string) $row['place'], 'seal_url' => $row['seal_url'] ? (string) $row['seal_url'] : null];
+        $out = ['name' => (string) $row['name'], 'place' => (string) $row['place'], 'seal_url' => $row['seal_url'] ? (string) $row['seal_url'] : null,
+                'super_colour' => strtoupper((string) ($row['super_colour'] ?? SUPER_BLUE))];
         if ($ttl > 0) @file_put_contents($file, json_encode($out), LOCK_EX);
         return $memo = $out;
     } catch (Throwable) {

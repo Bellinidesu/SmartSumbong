@@ -1,6 +1,6 @@
 # Database checks
 
-Thirty scripts (364 checks) that walk the whole system through the real
+Thirty-one scripts (367 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -37,6 +37,7 @@ it does is saved. Add a check here for every new behaviour.
 | `28_barangay_rules.sql` | 3 checks (0147), the writing ones as the API's own role: a category without a deadline or first committee gets Others' (once), a committee admin cannot run the fill; a report in a category with no deadline row takes Others' hours; a super admin changes the limits, a deadline and the hotlines and still sees a number switched off, a committee admin cannot change them, a resident sees only what is on |
 | `29_barangay_profile.sql` | 2 checks (0148), as the API's own roles: the profile starts as Barangay 183, Zone 20, Villamor, Pasay City with the shipped seal and can be read before signing in; a super admin renames it and swaps the seal, a committee admin cannot, a seal from another host and a second row are refused |
 | `30_wording.sql` | 1 check (0149), as the API's own roles: a super admin rewords a label (read before signing in) and puts the code's own back; a committee admin cannot, an empty row is refused |
+| `31_committee_colours.sql` | 3 checks (0150): every committee has a colour and the active ones keep apart from each other and from branding blue; a super admin picks a colour or gets a free one, and a colour near the super admin colour or another active committee, or not a colour at all, is refused, a committee admin cannot change one; the super admins cannot take a committee's colour, and once they change theirs, branding blue is free for a committee |
 
 `perf/query_budget.sql` fills the database with a busy barangay's few
 years (2,000 residents, 50,000 complaints, 100,000 notifications) and times

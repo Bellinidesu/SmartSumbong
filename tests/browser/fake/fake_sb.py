@@ -61,7 +61,7 @@ TABLES = {
     'committee_categories': [{'committee': 'peace_order', 'category': 'peace_order_nuisance'}, {'committee': 'peace_order', 'category': 'traffic_violation'},
                              {'committee': 'environment', 'category': 'environmental_waste_hazard'}, {'committee': 'health_sanitation', 'category': 'animal_welfare'}],
     'wording': [{'source': 'Hotlines', 'en': 'Emergency numbers', 'fil': None, 'updated_at': ago(1)}],
-    'barangay_profile': [{'id': 1, 'name': 'Barangay 183', 'place': 'Zone 20, Villamor, Pasay City', 'seal_url': None}],
+    'barangay_profile': [{'id': 1, 'name': 'Barangay 183', 'place': 'Zone 20, Villamor, Pasay City', 'seal_url': None, 'super_colour': '#00308F'}],
     'complaint_categories': [{'key': k, 'label_en': en, 'label_fil': fil, 'colour': col, 'icon': k, 'sort': i + 1, 'active': True} for i, (k, en, fil, col) in enumerate([
         ('street_obstruction', 'Street Obstruction', 'Sagabal sa Kalsada', '#F93535'), ('public_safety_infrastructure', 'Public Safety and Infrastructure', 'Kaligtasan at Imprastraktura', '#356CF9'),
         ('environmental_waste_hazard', 'Environmental and Waste Hazards', 'Kapaligiran at Basura', '#F9AB35'), ('animal_welfare', 'Animal Welfare', 'Kapakanan ng Hayop', '#34C759'),
@@ -84,6 +84,10 @@ TABLES = {
     'place_kinds': [{'grp': g, 'label': l} for g, l in [('area', 'Area'), ('hall', 'Barangay hall'), ('shop', 'Shop'), ('street', 'Street')]],
     'dispatches': [], 'status_logs': [], 'sla_policies': [{'category': 'public_safety_infrastructure', 'hours': 24, 'resolution_hours': 48, 'accept_minutes': 20}, {'category': 'other', 'resolution_hours': 120, 'accept_minutes': 60}],
 }
+
+# 0150: each committee's colour, as the migration starts them
+for _c in TABLES['committees']:
+    _c['colour'] = {'peace_order': '#D32F2F', 'environment': '#00838F', 'health_sanitation': '#1E9E4A', 'anti_drug': '#5C6BC0', 'women_family': '#D81B60'}.get(_c['key'], '#78909C')
 
 # The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
 CMD = {'active': None}

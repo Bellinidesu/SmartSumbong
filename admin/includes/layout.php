@@ -110,11 +110,80 @@ function committee_labels(): array
 /** The colour of each committee's dot (Ace, 14 Oct: shown only on a Kagawad's row in Settings and on a case's page). */
 function committee_colour(?string $c): string
 {
+    // 0150: the colour a super admin chose for the committee; the old fixed list only answers when the table cannot be read
+    $chosen = committees_all()[(string) $c]['colour'] ?? null;
+    if (is_string($chosen) && preg_match('/^#[0-9A-Fa-f]{6}$/', $chosen)) return strtoupper($chosen);
     return [
-        'peace_order' => '#E5383B', 'health_sanitation' => '#1E9E4A', 'education' => '#356CF9', 'infrastructure' => '#8D6E63',
-        'environment' => '#26A69A', 'women_family' => '#EC407A', 'youth_sports' => '#FFA726', 'agriculture' => '#9CCC65',
-        'appropriations' => '#78909C', 'anti_drug' => '#6A4FD3',
+        'peace_order' => '#D32F2F', 'health_sanitation' => '#1E9E4A', 'education' => '#039BE5', 'infrastructure' => '#6D4C41',
+        'environment' => '#00838F', 'women_family' => '#D81B60', 'youth_sports' => '#8E24AA', 'agriculture' => '#7CB342',
+        'appropriations' => '#78909C', 'anti_drug' => '#5C6BC0',
     ][(string) $c] ?? ['#5C6BC0', '#00897B', '#F4511E', '#7CB342', '#8E24AA', '#039BE5'][abs(crc32((string) $c)) % 6];   // a committee made later gets a steady colour
+}
+
+/** The colours offered when a super admin makes a committee (0150); the database refuses any that is too close to one taken. */
+const COMMITTEE_PALETTE = ['#D32F2F', '#F4511E', '#F9A825', '#7CB342', '#1E9E4A', '#00838F', '#039BE5', '#5C6BC0', '#8E24AA', '#D81B60', '#6D4C41', '#78909C'];
+
+/** The distance between two #RRGGBB colours, as the database measures it (0150): under 70 is "too close". */
+function colour_dist(string $a, string $b): float
+{
+    $c = fn (string $h, int $i) => hexdec(substr($h, 1 + 2 * $i, 2));
+    return sqrt(($c($a, 0) - $c($b, 0)) ** 2 + ($c($a, 1) - $c($b, 1)) ** 2 + ($c($a, 2) - $c($b, 2)) ** 2);
+}
+
+/** What a colour is too close to, for a committee (null: free), as the database decides it. */
+function colour_clash(string $hex, ?string $except = null): ?string
+{
+    if (colour_dist($hex, barangay()['super_colour'] ?? SUPER_BLUE) < 70) return t('the super admin colour', 'ang kulay ng super admin');
+    foreach (committees_all() as $k => $c) {
+        if ($k !== $except && !empty($c['active']) && !empty($c['colour']) && colour_dist($hex, (string) $c['colour']) < 70) {
+            return sprintf(t('the %s committee', 'ang komite ng %s'), (string) $c['short_en']);
+        }
+    }
+    return null;
+}
+
+/**
+ * The sidebar's colour for the person signed in (0150, docs/ROLES_AND_PAGES.md section 2): their committee's for a committee
+ * admin, so a screenshot says which committee it came from, and the super admin colour for everyone else.
+ *
+ * @return array{hex:string, label:?string}
+ */
+function side_colour(): array
+{
+    if (my_tier() === 'committee') {
+        $c = committees_all()[(string) (current_admin()['committee'] ?? '')] ?? null;
+        if ($c) return ['hex' => committee_colour((string) $c['key']), 'label' => (string) $c['short_en']];
+    }
+    return ['hex' => strtoupper((string) (barangay()['super_colour'] ?? SUPER_BLUE)), 'label' => null];
+}
+
+/**
+ * The sidebar's two tones from one colour, the way branding blue makes them (#00308F to #00236A): the same hue, deep, in light;
+ * the hue only as a tint over graphite in dark. Branding blue itself keeps the portal's own sidebar. Inline styles are allowed.
+ */
+function side_colour_style(): string
+{
+    $hex = side_colour()['hex'];
+    if ($hex === SUPER_BLUE) return '';
+    [$r, $g, $b] = array_map(fn ($i) => hexdec(substr($hex, 1 + 2 * $i, 2)) / 255, [0, 1, 2]);
+    $mx = max($r, $g, $b); $mn = min($r, $g, $b); $d = $mx - $mn; $l = ($mx + $mn) / 2; $h = 0.0; $s = 0.0;
+    if ($d > 0) {
+        $s = $d / (1 - abs(2 * $l - 1));
+        $h = match (true) { $mx === $r => fmod(($g - $b) / $d, 6), $mx === $g => ($b - $r) / $d + 2, default => ($r - $g) / $d + 4 } * 60;
+        if ($h < 0) $h += 360;
+    }
+    $hs = (int) round($h); $sl = (int) round(min($s * 100, 90)); $sd = (int) round(min($s * 100, 30));
+    $light = "--p-side-a:hsl($hs $sl% 28%);--p-side-b:hsl($hs $sl% 20%)";
+    $dark = "--p-side-a:hsl($hs $sd% 20%);--p-side-b:hsl($hs $sd% 11%)";
+    return "<style>:root{{$light}}@media (prefers-color-scheme: dark){:root:not([data-theme=\"light\"]){{$dark}}}:root[data-theme=\"dark\"]{{$dark}}</style>\n";
+}
+
+/** Black or white text on a colour, whichever reads. */
+function ink_on(string $hex): string
+{
+    $lin = fn ($v) => ($v /= 255) <= .03928 ? $v / 12.92 : (($v + .055) / 1.055) ** 2.4;
+    $lum = .2126 * $lin(hexdec(substr($hex, 1, 2))) + .7152 * $lin(hexdec(substr($hex, 3, 2))) + .0722 * $lin(hexdec(substr($hex, 5, 2)));
+    return 1.05 / ($lum + .05) >= 4.5 ? '#FFFFFF' : '#15181D';
 }
 
 /** Which rung of the barangay ladder an administrator's position sits on: staff, kagawad or chair. */
@@ -214,7 +283,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/flair.css?v=<?= e(asset_version('flair.css')) ?>" rel="stylesheet">
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
-<script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
+<?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
@@ -224,6 +293,10 @@ window.ssAccessToken = function (initial) {
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
             aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
     <div class="p-side-top"><a class="p-brand" href="<?= e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) ?>"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a></div>
+    <?php $sideC = side_colour(); if ($sideC['label'] !== null): ?>
+      <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
+      <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><?= e($sideC['label']) ?></span></div>
+    <?php endif; ?>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>

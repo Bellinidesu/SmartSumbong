@@ -334,6 +334,22 @@ test('Roles and pages 1a: Administrative Services and the Control Room take thei
   expect(r.errors.concat(q.errors), 'console errors').toEqual([]);
 });
 
+test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
+  let r = await open(page, 'administrative-services.php#access');
+  await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');
+  await expect(page.locator('#acc-committees form.acc-row input[type="color"]')).toHaveCount(6);
+  await expect(page.locator('#acc-committees form.acc-row').first().locator('input[type="color"]')).toHaveValue('#d32f2f');
+  expect(await axe(page), 'Administrative Services > Committees, with colours').toEqual([]);
+  await expect(page.locator('.p-side-com')).toHaveCount(0);   // a super admin's sidebar is branding blue, with no committee banner
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--p-side-a').trim().toUpperCase())).toBe('#00308F');
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const c = await open(page, 'cases.php');
+  await expect(page.locator('.p-side-com')).toContainText('Peace and Order');
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--p-side-a').trim())).toMatch(/^hsl\(0 /);
+  expect(await axe(page), 'Case Reports, committee sidebar').toEqual([]);
+  expect(r.errors.concat(c.errors), 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');
