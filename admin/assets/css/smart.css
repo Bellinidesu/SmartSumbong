@@ -517,7 +517,7 @@
 .ss-caught a{color:var(--p-link);font-weight:700;text-decoration:none}
 .ss-caught-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--p-green-bg);color:var(--p-green);font-size:24px}
 /* Personnel's shift tiles, version A (locked 15 Oct): the whole tile is the status colour */
-.p-attendance .p-kpi{--c:#8E9ABB;display:grid;gap:4px;align-content:space-between;min-height:132px;padding:16px 18px;border:0;border-radius:18px;color:#fff;isolation:isolate;
+.p-attendance .p-kpi{--c:#8E9ABB;display:grid;gap:4px;align-content:space-between;min-height:104px;padding:14px 18px;border:0;border-radius:18px;color:#fff;isolation:isolate;
   background:linear-gradient(145deg,color-mix(in srgb,var(--c) 78%,#fff),var(--c) 55%,color-mix(in srgb,var(--c) 70%,#000));
   box-shadow:0 10px 26px color-mix(in srgb,var(--c) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .25s cubic-bezier(.2,1.25,.3,1),box-shadow .25s}
 .p-attendance .p-att-on_duty{--c:#34C759}.p-attendance .p-att-lunch{--c:#FF9800}.p-attendance .p-att-break{--c:#F5C242}.p-attendance .p-att-offline{--c:#E5383B}
