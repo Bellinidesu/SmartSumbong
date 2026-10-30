@@ -268,7 +268,7 @@ RPC = {
     'smart_factor_stats': [{'factor': 'words', 'detail': 'fight', 'reports': 14, 'raised': 1, 'lowered': 6}, {'factor': 'neighbours', 'detail': '', 'reports': 22, 'raised': 2, 'lowered': 3}],
     'smart_digest_preview': 'Good morning. 3 urgent cases wait for a tanod. 2 may miss their deadline. Animal welfare is up 12 times the usual in Purok 3.',
     'smart_patterns': [{'pattern_key': 'p1', 'category': 'environmental_waste_hazard', 'lat': 14.5, 'lng': 121.0, 'reports': 6, 'weeks': 4, 'residents': 5, 'still_open': 2, 'hazard': 'Flood zone 2', 'tracking_ids': ['SS-2610-1003', 'SS-2610-1011', 'SS-2610-1015']}],
-    'dashboard_metrics': {'daily': [{'d': f'2026-10-{i:02d}', 'n': (i * 3) % 7 + 1} for i in range(1, 15)], 'efficiency': [], 'resolution_status': {'done': 30, 'overdue': 4, 'late': 3, 'processing': 12, 'rejected': 2},
+    'dashboard_metrics': {'daily': [{'label': str(i), 'filed': (i * 3) % 7 + 1} for i in range(1, 31)], 'efficiency': [], 'resolution_status': {'done': 30, 'overdue': 4, 'late': 3, 'processing': 12, 'rejected': 2},
                           'categories': [{'category': c, 'n': 5 + i} for i, c in enumerate(CATS)], 'tiles': {'resolved': 30, 'escalated': 6, 'overdue': 4}, 'total': 51},
     'account_directory': [
   {'id':'u1','full_name':'Besarra, Rose','email':'person0@example.test','mobile_number':'+639170000001','verification_status':'pending','is_suspended':False,'suspended_reason':None,'is_overdue':True,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'},
