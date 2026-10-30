@@ -606,27 +606,39 @@ td.tc-cell { min-width: 260px; max-width: 300px; }
 .dh-stats b { font-size: 32px; line-height: 1.1; letter-spacing: -.02em; }
 .dh-stats small { font-size: 12.5px; color: var(--p-ink-2); }
 .dh-status { grid-column: 9 / -1; }
-.dh-kpi { grid-column: 9 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dh-kpi { grid-column: 9 / -1; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 20px; }
 .dh-kpi .ss-tile { display: grid; gap: 2px; align-content: start; padding: 14px 16px; text-decoration: none; color: var(--p-ink); min-width: 0; }
 .dh-kpi .ss-tile > span { font-size: 13px; font-weight: 600; color: var(--p-muted); }
 .dh-kpi .ss-tile b { font-size: 30px; line-height: 1.1; }
 .dh-kpi .ss-tile small { font-size: 12px; color: var(--p-muted); }
 .dh-kpi .ss-tile.hot b { color: var(--p-red); }
 .dh-cat { grid-column: 1 / 5; } .dh-com { grid-column: 5 / 9; } .dh-feed { grid-column: 9 / -1; }
-.dh-com, .dh-feed { padding: 18px 20px; align-content: start; display: grid; gap: 4px; }
+.dh-com, .dh-feed { padding: 20px 22px; display: flex; flex-direction: column; gap: 4px; }
 .dh-com .p-card-head, .dh-feed .p-card-head { padding: 0 0 8px; }
 .dh-more { font-size: 12.5px; font-weight: 700; color: var(--p-link); text-decoration: none; white-space: nowrap; }
-.dh-ctab { width: 100%; table-layout: fixed; }
-.dh-ctab td:first-child { display: grid; gap: 5px; min-width: 0; }
+.dh-ctab { width: 100%; table-layout: fixed; flex: 1 1 auto; }
+.dh-ctab td { vertical-align: middle; }
+.dh-ctab td:first-child { min-width: 0; }
+.dh-ctab td:first-child > a { display: inline-block; max-width: 100%; vertical-align: top; }
+.dh-ctab .dh-bar { margin-top: 7px; }
 .dh-ctab th:first-child { width: 62%; }
+.dh-ctab .cm-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dh-bar { display: block; height: 5px; border-radius: 999px; background: var(--p-line); overflow: hidden; max-width: 220px; }
 .dh-bar i { display: block; height: 100%; border-radius: 999px; }
-.dh-feedl { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.dh-feedl { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; flex: 1 1 auto; grid-auto-rows: minmax(min-content, 58px); align-content: start; align-items: center; }
 .dh-feedl li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; font-size: 13.5px; }
 .dh-feedl li i { width: 8px; height: 8px; border-radius: 50%; background: var(--p-green); }
 .dh-feedl li.w i { background: var(--p-orange); } .dh-feedl li.i i { background: var(--p-sky); }
 .dh-feedl small { color: var(--p-muted); white-space: nowrap; }
 .dh-grid .dq-box { grid-column: 1 / -1; }
+/* Symmetry (30 Oct): one gap everywhere, one card padding, one heading line, so every card's title sits on the same line as its neighbour's. */
+.dh-grid > .dc-needs, .dh-grid > .dc-coms { margin: 0; }
+.dh-grid > .p-card { padding: 20px 22px; }
+.dh-grid > .dh-hero { padding-bottom: 0; }
+.dh-grid > .p-card > .p-card-head, .dh-grid > .p-card > .p-row-between:first-child { min-height: 40px; padding: 0 0 8px; margin: 0; }
+.dh-grid > .p-card h2 { font-size: 17px; line-height: 40px; font-weight: 700; margin: 0; }
+.dh-grid > .dh-kpi { padding: 0; }
+.dh-kpi .ss-tile { padding: 16px 18px; align-content: start; }
 @media (max-width: 1180px) {
   .dh-hero, .dh-status, .dh-kpi, .dh-cat, .dh-com, .dh-feed { grid-column: 1 / -1; grid-row: auto; }
   .dh-kpi { grid-template-columns: repeat(2, 1fr); }
