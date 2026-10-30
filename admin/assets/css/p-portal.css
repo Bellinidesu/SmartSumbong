@@ -783,3 +783,25 @@ td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
 .nf-wait .p-card-head { padding: 18px 20px 6px; }
 .nf-wait .p-notif { grid-template-columns: auto minmax(0, 1fr) auto; }
 @media (max-width: 1900px) { .nf-grid { grid-template-columns: 1fr; } .nf-rail { order: -1; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); align-items: start; } }
+
+/* Inbox message rows (30 Oct, the way Gmail and Outlook list mail): an avatar, the sender, the subject and the time; unread in bold with a dot,
+   a message that needs an answer carries an orange edge. Replaces the From / Subject / When table. */
+.ib-rows-card { padding: 6px; overflow: hidden; }
+.ib-rows { display: grid; gap: 2px; }
+.ib-row { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-areas: "av top" "av line"; column-gap: 12px; row-gap: 2px; align-items: center; padding: 12px 14px 12px 20px; border-radius: 14px; text-decoration: none; color: var(--p-ink-2); transition: background .15s; }
+.ib-row:hover, .ib-row:focus-visible { background: var(--p-surface-2); }
+.ib-row.ib-sel { background: color-mix(in srgb, var(--p-orange) 11%, transparent); box-shadow: inset 3px 0 0 var(--p-orange); }
+.ib-av { grid-area: av; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; font: 800 13px Urbanist, sans-serif; background: var(--p-blue-50); color: var(--p-link); }
+.ib-av.is-sys { background: color-mix(in srgb, var(--p-violet, #8B6BFF) 16%, transparent); color: var(--p-violet, #8B6BFF); }
+.ib-top { grid-area: top; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0; }
+.ib-name { font-weight: 600; color: var(--p-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ib-when { color: var(--p-muted); font-size: 12.5px; white-space: nowrap; }
+.ib-line { grid-area: line; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ib-subj { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p-muted); flex: 0 1 auto; min-width: 0; }
+.ib-line .ib-case { flex: none; margin-left: auto; }
+.ib-row.ib-unread .ib-name, .ib-row.ib-unread .ib-subj { font-weight: 800; color: var(--p-ink); }
+.ib-row.ib-unread::before { content: ""; position: absolute; left: 7px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--p-orange); }
+.ib-row.ib-needs { box-shadow: inset 3px 0 0 var(--p-orange); background: color-mix(in srgb, var(--p-orange) 7%, transparent); }
+.ib-head { display: flex; align-items: center; gap: 12px; }
+.ib-head .ib-meta { line-height: 1.55; }
+.ib-date { font-size: 12.5px; }

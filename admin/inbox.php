@@ -122,26 +122,22 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 <div class="ib-split">
 <section class="ib-list" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
   <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
-  <div class="p-card p-table-card"><div class="p-tscroll">
-    <table class="p-t ib-t">
-      <thead><tr>
-        <th scope="col"><?= e($box === 'in' ? t('From', 'Mula kay') : t('To', 'Para kay')) ?></th>
-        <th scope="col"><?= e(t('Subject', 'Paksa')) ?></th>
-        <th scope="col" class="p-right"><?= e(t('When', 'Kailan')) ?></th>
-      </tr></thead>
-      <tbody>
-      <?php if (!$rows): ?><tr><td colspan="3" class="p-empty"><?= e($box === 'in' ? t('Nothing here yet.', 'Wala pang laman.') : t('You have not sent anything yet.', 'Wala ka pang naipadala.')) ?></td></tr><?php endif; ?>
-      <?php foreach ($rows as $r): $unreadRow = $box === 'in' && empty($r['read_at']); ?>
-        <tr class="p-click<?= $unreadRow ? ' ib-unread' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" data-href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
-          <td class="ib-from"><?php if ($box === 'in'): ?><?= $r['kind'] === 'system' ? '<span class="p-badge p-b-grey">' . e(t('System', 'Sistema')) . '</span>' : e(inbox_from($r)) ?><?php else: ?><?= e(implode(', ', array_slice($r['names'], 0, 3)) . (count($r['names']) > 3 ? ' +' . (count($r['names']) - 3) : '')) ?><?php endif; ?></td>
-          <td class="ib-subj"><a href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>"><?= $unreadRow ? '<b>' . e((string) $r['subject']) . '</b>' : e((string) $r['subject']) ?></a><?php if (!empty($r['question_id'])): ?> <span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?>
-            <?php if (!empty($r['report']['tracking_id'])): ?><span class="p-mono-id ib-case"><?= e($r['report']['tracking_id']) ?></span><?php endif; ?></td>
-          <td class="p-right p-num"><?= e(relative_time((string) $r['created_at'])) ?></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div></div>
+  <div class="p-card ib-rows-card">
+    <?php if (!$rows): ?><p class="p-empty"><?= e($box === 'in' ? t('Nothing here yet.', 'Wala pang laman.') : t('You have not sent anything yet.', 'Wala ka pang naipadala.')) ?></p><?php endif; ?>
+    <nav class="ib-rows" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
+    <?php foreach ($rows as $r):
+        $unreadRow = $box === 'in' && empty($r['read_at']);
+        $isSys = $box === 'in' && $r['kind'] === 'system';
+        $who = $box === 'in' ? inbox_from($r) : (implode(', ', array_slice($r['names'], 0, 3)) . (count($r['names']) > 3 ? ' +' . (count($r['names']) - 3) : ''));
+        $needs = !empty($r['question_id']) && $unreadRow; ?>
+      <a class="ib-row<?= $unreadRow ? ' ib-unread' : '' ?><?= $needs ? ' ib-needs' : '' ?><?= $open === (int) $r['id'] ? ' ib-sel' : '' ?>" href="inbox.php?m=<?= (int) $r['id'] ?><?= $box === 'sent' ? '&box=sent' : '' ?>">
+        <span class="ib-av<?= $isSys ? ' is-sys' : '' ?>" aria-hidden="true"><?= $isSys ? smart_brain(18) : e(admin_initials($box === 'in' ? (string) ($r['from']['full_name'] ?? '') : (string) ($r['names'][0] ?? ''))) ?></span>
+        <span class="ib-top"><b class="ib-name"><?= e($who) ?></b><span class="ib-when"><?= e(relative_time((string) $r['created_at'])) ?></span></span>
+        <span class="ib-line"><span class="ib-subj"><?= e((string) $r['subject']) ?></span><?php if (!empty($r['question_id'])): ?><span class="p-badge p-b-pending"><?= e(t('Needs your answer', 'Kailangan ng sagot mo')) ?></span><?php endif; ?><?php if (!empty($r['report']['tracking_id'])): ?><span class="p-mono-id ib-case"><?= e($r['report']['tracking_id']) ?></span><?php endif; ?></span>
+      </a>
+    <?php endforeach; ?>
+    </nav>
+  </div>
   <?= pager($total, $page, 'page', $per) ?>
 </section>
 <div class="ib-pane">
@@ -206,8 +202,9 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
   <article class="p-card p-card-pad ib-read">
     <a class="p-back" href="inbox.php<?= $m['sender'] === $me ? '?box=sent' : '' ?>"><?= p_icon('i-back', 18) ?><?= e($m['sender'] === $me ? t('Sent', 'Naipadala') : t('Inbox', 'Mga Liham')) ?></a>
     <h2><?= e((string) $m['subject']) ?></h2>
-    <p class="ib-meta"><?php if ($m['kind'] === 'system'): ?><span class="p-badge p-b-grey"><?= e(t('System', 'Sistema')) ?></span> <?php endif; ?>
-      <?= e(t('From', 'Mula kay')) ?> <b><?= e(inbox_from($m)) ?></b> &middot; <?= e(t('to', 'para kay')) ?> <?= e(formal_name((string) ($m['to']['full_name'] ?? ''))) ?> &middot; <?= e(long_datetime((string) $m['created_at'])) ?></p>
+    <div class="ib-head"><span class="ib-av<?= $m['kind'] === 'system' ? ' is-sys' : '' ?>" aria-hidden="true"><?= $m['kind'] === 'system' ? smart_brain(18) : e(admin_initials((string) ($m['from']['full_name'] ?? ''))) ?></span>
+      <p class="ib-meta"><?php if ($m['kind'] === 'system'): ?><span class="p-badge p-b-grey"><?= e(t('System', 'Sistema')) ?></span> <?php endif; ?>
+        <?= e(t('From', 'Mula kay')) ?> <b><?= e(inbox_from($m)) ?></b> &middot; <?= e(t('to', 'para kay')) ?> <?= e(formal_name((string) ($m['to']['full_name'] ?? ''))) ?><br><span class="ib-date"><?= e(long_datetime((string) $m['created_at'])) ?></span></p></div>
     <div class="ib-body"><?= nl2br(e((string) $m['body'])) ?></div>
     <?php if (!empty($m['report'])): ?>
       <p><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e($m['report']['id']) ?>"><?= p_icon('i-doc', 15) ?><?= e(sprintf(t('Open case %s', 'Buksan ang kaso %s'), $m['report']['tracking_id'])) ?></a></p>

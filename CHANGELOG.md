@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (message rows on the Inbox, 30 Oct)**
+- The Inbox list is message rows, the way Gmail and Outlook list mail: an avatar with
+  initials (the SMART mark for system messages), the sender, the subject, the time and
+  the case ID. Unread is bold with a dot; a message that needs your answer has an orange
+  edge. The open message has a header with the sender's avatar, who it went to and when.
+
 **Changed (super-admin layout overhaul, step 4: Edit Profile and Control Room, 30 Oct)**
 - Edit Profile: on a wide screen your details and account are on the left and the
   alerts on the right, instead of one 1700 px wide column. One column under 1500 px.
