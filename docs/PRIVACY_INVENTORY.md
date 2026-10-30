@@ -57,6 +57,7 @@ barangay and the adviser to confirm.
 | Name, mobile number, ID, selfie | As for residents; appointment as a tanod | `users`, Cloudinary | Administrators | As for residents |
 | Last known location (one point, not a history) | Find the nearest tanod for a dispatch | `users.last_geom`, `last_location_at` | Administrators | Overwritten each update. The location history was removed (0072) |
 | Duty status and attendance (with location at check-in) | Who is on duty | `users.duty_status`, `attendance` | Administrators | **No automatic purge yet (gap)** |
+| Committees and the committee's role for them | Which committee a tanod works with (0153) | `tanod_committees`, `tanod_committee_log` | Super admins; that committee's admins; the tanod (their approved committees) | While the account exists; the log is kept as a record |
 | Dispatch work: accept, steps, field notes, photos, escalations | The job record | `dispatches`, `dispatch_updates`, `dispatch_media`, `escalation_requests` | Administrators; the tanod | Same as the complaint |
 | Retirement requests | Leaving the service | `retirement_requests` | Administrators | Kept as a record |
 
@@ -66,6 +67,7 @@ barangay and the adviser to confirm.
 |---|---|---|---|---|
 | Name, email, mobile number, tier, committee, official role | Sign-in; what each may see and do (0145) | `users` | Other super admins | While the account exists |
 | Actions on cases (status changes, remarks, who handled what) | Accountability | `status_logs`, `case_handler_log`, `account_audit` | Administrators | Never: the audit trail is hash-chained and cannot be edited (0114) |
+| Portal sign-in and sign-out times (Kagawads and staff only), and the cases they touched each day | The punch card: accountability for who worked which cases (0153) | `admin_punches`; the case history above | The person; their Kagawad; super admins and captains | **No automatic purge yet (gap)**; nothing is recorded for super admins or captains |
 | Browser push subscription | Portal notifications | `web_push_subscriptions` | Nobody reads it | Removed when the administrator turns portal alerts off; at most 10 per person are kept |
 | Staff details (birthday, leave, credentials, shift check-ins, team posts, game scores) | The Workspace (switched off until after the defense, 0144) | `staff_*`, `shift_checkins`, `team_posts`, `game_scores` | Administrators | **No automatic purge yet (gap)** |
 

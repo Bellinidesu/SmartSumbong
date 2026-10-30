@@ -270,6 +270,27 @@ Changes on `main` not yet deployed belong here.
   flags from their staff and cases forwarded to them; a super admin: cases
   handed up to place).
 
+**Added (roles and pages, step 4: Personnel, 30 Oct)**
+- **Tanods belong to committees** (0153). A Kagawad proposes a tanod for
+  their committee, with the committee's own role for them ("Lead sa gabi");
+  a super admin approves or declines (and the Kagawad is told). A super
+  admin's own assignment is approved at once. A tanod can be in several
+  committees, a pill for each; a proposal shows dashed until approved.
+  Every proposal, approval, decline and removal is logged.
+- A Kagawad now has **Personnel**: only their committee's tanods (a tanod in
+  no committee is seen by the super admins only), with a form to propose
+  one. They can look at a tanod's account but not verify, suspend or change
+  it; that stays with the super admins. Residents stay super admin only.
+- When a tanod is on a case, their other committees see "On a case" with
+  that case's committee, never the case.
+- Super admins get committee chips above the tanod list and the proposals
+  waiting for them.
+- **Punch card** for Kagawads and staff (Personnel > Committee staff): when
+  they signed in and out of the portal, and the cases they touched each day
+  (status changes, taking a case, forwarding, messages), for the last 7
+  days. Super admins see every card, a Kagawad their staff's and their own.
+  Nothing is recorded for super admins or captains.
+
 **Fixed**
 - The Administrators tab's Edit buttons and search did nothing once the tab
   moved to Administrative Services (step 1a); the script now goes with the

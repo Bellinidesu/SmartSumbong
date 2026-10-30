@@ -56,6 +56,8 @@ How the database fits the rest of the system is in
 | `users` | Accounts, role, official role and committee (0130), an administrator's tier (super, committee, moderator since 0151, captain) and developer mark (0145), verification, suspension, retirement, duty status, last known location | 0001 |
 | `account_audit` | Hash-chained log of account changes | 0014 |
 | `attendance` | Tanod duty logging | 0001 |
+| `tanod_committees` | The committees a tanod belongs to: proposed by a Kagawad or approved by a super admin, with the committee's own role for them; written only by the functions. `tanod_committee_log` keeps every change (append-only) | 0153 |
+| `admin_punches` | When a Kagawad or staff member signed in to and out of the portal, for the punch card; append-only | 0153 |
 | `device_tokens` | FCM push tokens | 0035 |
 | `web_push_subscriptions` | Browsers with alerts on: push service address and keys, one row per browser, ten per person | 0136 |
 | `engine_jobs` | Work handed to the engine (`engine/`): ID photos to read, with tries and the last error | 0137 |
@@ -190,6 +192,8 @@ policy by design. "Latest" is the migration that last redefined it.
 | `admin_tier`, `is_super_admin`, `is_full_viewer`, `admin_can_write`, `admin_sees_category`, `admin_sees_case`, `admin_sees_report`, `admin_sees_dispatch` | 0145 | What the signed-in administrator may see and do (used by the access rules and the functions) |
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
+| `propose_tanod_committee`, `decide_tanod_committee`, `remove_tanod_committee`, `tanod_pick_list`, `personnel_committees`; `account_directory` (scoped) | 0153 | A tanod's committees: a Kagawad proposes, a super admin approves; names to propose from; each tanod's committees as the caller may see them and the committee of the case they are on; a committee's admins list only their tanods |
+| `punch`, `punch_cards` | 0153 | The portal punches a Kagawad or staff member in and out; the cards the caller may see (sign-ins, sign-outs, cases touched per day) |
 | `forward_case`, `flag_case_for_forward`, `dismiss_forward_flag`; `case_committee(report)` | 0152 | Forward a case (a super admin to a committee; a Kagawad to another committee or to the super admins), flag one for forwarding (staff, with the reason), keep it here; the committee a case is with, as a column the list can filter on |
 | `admin_scoped`; `admin_can_write`, `set_admin_access`, `set_official_role` (positions set the tier) | 0151 | The moderator tier (staff, scoped to a committee); a position sets its tier; the decision functions refuse a moderator |
 | `committee_save` (now with a colour), `_colour_clash`, `_committee_free_colour` | 0150 | A committee's colour, and what a colour is too close to; the triggers on `committees` and `barangay_profile` refuse a clash |
