@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (feed row fixes after Ace's first look, 30 Oct)**
+- Notifications: an overdue complaint is red (it was orange), and system notices (system
+  check, Typhoon Board, Storm mode) are plain information with a bell instead of a document
+  icon. The row buttons show faintly instead of being hidden until you hover.
+- Inbox: an empty Inbox is one empty state that says so ("No messages yet"), not two
+  empty cards.
+
 **Changed (message rows on the Inbox, 30 Oct)**
 - The Inbox list is message rows, the way Gmail and Outlook list mail: an avatar with
   initials (the SMART mark for system messages), the sender, the subject, the time and

@@ -119,7 +119,7 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
 </nav>
 <?php if ($flash && $flash['text']): ?><div class="p-flash p-flash--<?= $flash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($flash['text']) ?></div><?php endif; ?>
 
-<div class="ib-split">
+<div class="ib-split<?= !$rows && !$new && !$open ? ' ib-empty' : '' ?>">
 <section class="ib-list" aria-label="<?= e($box === 'in' ? t('Messages to you', 'Mga mensaheng para sa iyo') : t('Messages you sent', 'Mga mensaheng naipadala mo')) ?>">
   <?php if ($listError): ?><div class="p-flash p-flash--error" role="alert"><?= e($listError) ?></div><?php endif; ?>
   <div class="p-card ib-rows-card">
@@ -250,8 +250,9 @@ layout_head(t('Inbox', 'Mga Liham'), 'inbox.php');
   <?php endif; ?>
 
 <?php else: ?>
-  <div class="p-card ib-none"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-send', 22) ?></span><b><?= e(t('Pick a message to read it here', 'Pumili ng mensahe para mabasa rito')) ?></b>
-    <span><?= e(t('Or write a new one.', 'O sumulat ng bago.')) ?></span><a class="p-btn p-btn-primary p-btn-sm" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a></div>
+  <div class="p-card ib-none"><span class="ib-none-ic" aria-hidden="true"><?= p_icon('i-send', 22) ?></span><?php if ($rows): ?><b><?= e(t('Pick a message to read it here', 'Pumili ng mensahe para mabasa rito')) ?></b>
+    <span><?= e(t('Or write a new one.', 'O sumulat ng bago.')) ?></span><?php else: ?><b><?= e(t('No messages yet', 'Wala pang mensahe')) ?></b>
+    <span><?= e(t('Replies from your team, forwards and questions from the system land here.', 'Dito lalabas ang mga sagot ng koponan, ipinasa at tanong ng sistema.')) ?></span><?php endif; ?><a class="p-btn p-btn-primary p-btn-sm" href="inbox.php?new=1"><?= e(t('Write', 'Sumulat')) ?></a></div>
 <?php endif; ?>
 </div>
 </div>

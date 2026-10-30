@@ -150,7 +150,7 @@
 .p-notif-card .p-notif[data-sev] .p-n-act .p-btn:hover { background: var(--p-orange); border-color: transparent; color: #2B1A00; }
 .p-notif-card .p-notif[data-sev="high"] .p-n-act .p-btn { background: var(--p-orange); border-color: transparent; color: #2B1A00; box-shadow: 0 4px 14px color-mix(in srgb, var(--p-orange) 35%, transparent); }
 @media (hover: hover) {
-  .p-notif-card .p-notif[data-sev]:not([data-sev="high"]) .p-n-act .p-btn, .p-notif-card .p-notif[data-sev] .p-n-x { opacity: 0; transition: opacity .15s; }
+  .p-notif-card .p-notif[data-sev]:not([data-sev="high"]) .p-n-act .p-btn, .p-notif-card .p-notif[data-sev] .p-n-x { opacity: .5; transition: opacity .15s; }
   .p-notif-card .p-notif[data-sev]:hover .p-n-act .p-btn, .p-notif-card .p-notif[data-sev]:focus-within .p-n-act .p-btn,
   .p-notif-card .p-notif[data-sev]:hover .p-n-x, .p-notif-card .p-notif[data-sev]:focus-within .p-n-x { opacity: 1; }
 }
