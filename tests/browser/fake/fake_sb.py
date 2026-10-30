@@ -182,6 +182,16 @@ RPC = {
     'mail_recipients': [{'id': KAG['id'], 'full_name': KAG['full_name'], 'tier': 'committee', 'committee': 'peace_order', 'official_role': 'kagawad'},
                         {'id': 'a0000000-0000-0000-0000-000000000009', 'full_name': 'Santos, Ben', 'tier': 'moderator', 'committee': 'peace_order', 'official_role': 'secretary'}],
     'send_mail': 'b3', 'mark_mail_read': 1, 'answer_reroute_question': 'd0000000-0000-0000-0000-000000000077',
+    # 0156: the Dashboard's super admin module
+    'dashboard_committees': {'needs_me': {'escalations': 1, 'to_place': 1, 'tanods': 1, 'overdue': 4, 'no_committee': 2, 'open': 15},
+                             'committees': [{'key': 'peace_order', 'open': 6, 'overdue': 2, 'month': 9}, {'key': 'environment', 'open': 5, 'overdue': 1, 'month': 7},
+                                            {'key': 'health_sanitation', 'open': 2, 'overdue': 1, 'month': 3}, {'key': 'anti_drug', 'open': 0, 'overdue': 0, 'month': 0}],
+                             'none': {'open': 2, 'overdue': 0, 'month': 2}},
+    'dashboard_slice': {'total': 2, 'cases': [{'id': REPORTS[0]['id'], 'tracking_id': 'SS-2610-1001', 'subject': REPORTS[0]['subject'], 'status': 'validated', 'category': REPORTS[0]['category'], 'created_at': ago(3), 'due_at': ago(1), 'committee': 'peace_order'},
+                                              {'id': REPORTS[1]['id'], 'tracking_id': 'SS-2610-1002', 'subject': REPORTS[1]['subject'], 'status': 'validated', 'category': REPORTS[1]['category'], 'created_at': ago(10), 'due_at': ago(2), 'committee': None}]},
+    'smart_chart_notes': {'total': 51, 'prev_total': 40, 'busiest_day': {'day': '2026-10-14', 'n': 6}, 'weekday': {'dow': 1, 'n': 12},
+                          'top_category': {'category': 'peace_order_nuisance', 'n': 20, 'share': 39}, 'top_place': {'place': 'Purok 2', 'n': 4}, 'quiet_days': 3,
+                          'finished': 30, 'on_time': 24, 'median_taken': 18.5, 'median_allowed': 48, 'slowest': None, 'fastest': None, 'open_overdue': 4},
     'forward_case': 1, 'flag_case_for_forward': 6, 'dismiss_forward_flag': None,
     # 0153: tanods in committees and the punch cards
     'personnel_committees': [{'tanod_id': 'u2', 'committees': [{'key': 'peace_order', 'status': 'approved', 'role': 'Lead sa gabi'}], 'busy_committee': None},

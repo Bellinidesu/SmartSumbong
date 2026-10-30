@@ -27,6 +27,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/forwarding.php';
 
 $admin = require_admin();
 $db    = db();
@@ -83,11 +84,20 @@ if (isset($_GET['print'])) {
 $category = (string) ($_GET['category'] ?? '');
 if (!in_array($category, category_keys(), true)) { $category = ''; }
 
+// 0156 (Roles and pages 6): the super admins pick a committee or see the whole barangay; a committee's own admins see their
+// committee's version (the database already shows them only its cases).
+$myCom = is_scoped() ? (string) (current_admin()['committee'] ?? '') : '';
+$com = sees_everything() ? (string) ($_GET['com'] ?? '') : '';
+if ($com !== 'none' && !isset(committees_all()[$com])) { $com = ''; }
+$scopeCom = $myCom !== '' ? $myCom : ($com !== 'none' ? $com : '');
+$overall = sees_everything() && $com === '';
+
 {
     $_SESSION['summary_period'] = [
         'from'     => $from->format('Y-m-d'),
         'to'       => $to->format('Y-m-d'),
         'category' => $category,
+        'com'      => $com,
     ];
 }
 
@@ -149,7 +159,7 @@ try {
     $reportsQuery = [
         'select'     => 'id,tracking_id,subject,category,status,is_anonymous,is_sensitive,created_at,'
                       . 'due_at,resolved_at,closed_at,referred_to,referral_note,referred_at,'
-                      . 'resident:users!reports_resident_id_fkey(full_name)',
+                      . 'resident:users!reports_resident_id_fkey(full_name),case_committee',
         'deleted_at' => 'is.null',
         'and'        => "(created_at.gte.{$fromISO},created_at.lte.{$toISO})",
         'order'      => 'created_at.asc,id.asc',
@@ -161,11 +171,16 @@ try {
     if ($category !== '') {
         $reportsQuery['category'] = 'eq.' . $category;
     }
+    if ($com === 'none') {
+        $reportsQuery['case_committee'] = 'is.null';
+    } elseif ($com !== '') {
+        $reportsQuery['case_committee'] = 'eq.' . $com;
+    }
 
     $all = select_all_many($db, [
         'reports'    => ['reports', $reportsQuery],
         'dispatches' => ['dispatches', [
-            'select'      => 'id,state,assigned_at,accepted_at,resolved_at,field_report_text,'
+            'select'      => 'id,state,assigned_at,accepted_at,resolved_at,field_report_text,tanod_id,report_id,'
                            . 'tanod:users!dispatches_tanod_id_fkey(full_name),'
                            . 'report:reports!dispatches_report_id_fkey(tracking_id)',
             'and'         => "(assigned_at.gte.{$fromISO},assigned_at.lte.{$toISO})",
@@ -187,6 +202,14 @@ try {
     $reports    = $all['reports'];
     $dispatches = $all['dispatches'];
     $attendance = $all['attendance'];
+    // A committee's version: the tanod activity of its cases, and attendance only for the tanods who worked them.
+    if ($scopeCom !== '' || $com === 'none') {
+        $inScope = array_flip(array_column($reports, 'id'));
+        $dispatches = array_values(array_filter($dispatches, fn ($d) => isset($inScope[$d['report_id'] ?? ''])));
+        $worked = array_flip(array_column($dispatches, 'tanod_id'));
+        $attendance = array_values(array_filter($attendance, fn ($a) => isset($worked[$a['tanod_id'] ?? ''])));
+        $all['logs'] = array_values(array_filter($all['logs'], fn ($l) => in_array($l['report']['tracking_id'] ?? '', array_column($reports, 'tracking_id'), true)));
+    }
 
     // The same entry repeated on one complaint (the dispatch retries that
     // 0064 stopped writing, still in older periods) is shown once with
@@ -249,7 +272,8 @@ $isOngoing = $to >= new DateTimeImmutable('today', $tz);
 layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
 ?>
 
-<div class="p-topbar"><h1><?= e(t('Report Summary', 'Buod ng mga Ulat')) ?></h1></div>
+<div class="p-topbar"><h1><?= e(t('Report Summary', 'Buod ng mga Ulat')) ?></h1>
+  <span class="rs-scope"><?= $scopeCom !== '' ? committee_pill($scopeCom) : ($com === 'none' ? committee_pill(null) : '<span class="cm-pill" style="--cc:' . e(barangay()['super_colour'] ?? SUPER_BLUE) . '"><i></i>' . e(t('Whole barangay', 'Buong barangay')) . '</span>') ?></span></div>
 
 <?php if ($error): ?>
   <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
@@ -281,18 +305,28 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
           <option value="<?= e($c) ?>" <?= $category === $c ? 'selected' : '' ?>><?= e(category_label($c)) ?></option>
         <?php endforeach; ?>
       </select></label>
+    <?php if (sees_everything()): ?>
+    <label class="p-pill-select"><span class="p-sr"><?= e(t('Committee', 'Komite')) ?></span>
+      <select id="com" name="com">
+        <option value=""><?= e(t('All committees', 'Lahat ng komite')) ?></option>
+        <?php foreach (committees_active() as $ck => $cl): ?>
+          <option value="<?= e($ck) ?>" <?= $com === $ck ? 'selected' : '' ?>><?= e($cl) ?></option>
+        <?php endforeach; ?>
+        <option value="none" <?= $com === 'none' ? 'selected' : '' ?>><?= e(t('No committee yet', 'Wala pang komite')) ?></option>
+      </select></label>
+    <?php endif; ?>
     <button class="p-btn p-btn-primary p-btn-sm" style="height:36px" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
   </form>
   <span class="p-chips-q">
     <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
-      <a class="p-chip<?= $range === $key ? ' p-on' : '' ?>" href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>"><?= e($lbl) ?></a>
+      <a class="p-chip<?= $range === $key ? ' p-on' : '' ?>" href="?range=<?= e($key) ?>&amp;category=<?= e($category) ?>&amp;com=<?= e($com) ?>"><?= e($lbl) ?></a>
     <?php endforeach; ?>
   </span>
   <span class="p-spacer"></span>
   <span class="rs-dl">
-    <a class="p-btn-xls" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'export' => 'xlsx']))) ?>"><svg class="xls-ico" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true"><path class="pg" d="M4 2h14l8 8v21a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line class="ln" x1="6" y1="15" x2="22" y2="15"/><line class="ln" x1="6" y1="21" x2="22" y2="21"/><line class="ln" x1="6" y1="27" x2="22" y2="27"/><line class="ln" x1="13" y1="12" x2="13" y2="29"/></svg><?= e(t('Download spreadsheet', 'I-download ang spreadsheet')) ?></a>
+    <a class="p-btn-xls" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'com' => $com, 'export' => 'xlsx']))) ?>"><svg class="xls-ico" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true"><path class="pg" d="M4 2h14l8 8v21a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line class="ln" x1="6" y1="15" x2="22" y2="15"/><line class="ln" x1="6" y1="21" x2="22" y2="21"/><line class="ln" x1="6" y1="27" x2="22" y2="27"/><line class="ln" x1="13" y1="12" x2="13" y2="29"/></svg><?= e(t('Download spreadsheet', 'I-download ang spreadsheet')) ?></a>
   <?php // Rose (30 Sep 2026): the PDF is the barangay's Complaint Summary form. ?>
-  <a class="p-btn-pdf2" target="_blank" rel="noopener" href="complaint-summary.php?month=<?= e($from->format('Y-m')) ?>"><svg class="pdf-ico" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true"><path class="pg" d="M4 2h14l8 8v21a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line class="ln" x1="7" y1="16" x2="21" y2="16"/><line class="ln" x1="7" y1="21" x2="21" y2="21"/><line class="ln" x1="7" y1="26" x2="17" y2="26"/></svg><?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?></a>
+  <a class="p-btn-pdf2" target="_blank" rel="noopener" href="complaint-summary.php?<?= e(http_build_query(array_filter(['month' => $from->format('Y-m'), 'com' => $scopeCom]))) ?>"><svg class="pdf-ico" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true"><path class="pg" d="M4 2h14l8 8v21a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line class="ln" x1="7" y1="16" x2="21" y2="16"/><line class="ln" x1="7" y1="21" x2="21" y2="21"/><line class="ln" x1="7" y1="26" x2="17" y2="26"/></svg><?= e(t('Download PDF Report', 'I-download ang PDF na Ulat')) ?></a>
   </span>
 </div>
 
@@ -301,7 +335,7 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
        new activity is announced, and included only on an explicit refresh. -->
   <div class="p-fresh p-upd" id="update-banner" role="status"><?= p_icon('i-bell', 16) ?>
     <span><?= e(t('New activity has been recorded for this period.', 'May bagong aktibidad na naitala sa panahong ito.')) ?></span>
-    <a class="p-btn p-btn-ghost p-btn-sm" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'range' => $range]))) ?>"><?= e(t('Refresh to include it', 'I-refresh para maisama')) ?></a>
+    <a class="p-btn p-btn-ghost p-btn-sm" href="summary.php?<?= e(http_build_query(array_filter(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'com' => $com, 'range' => $range]))) ?>"><?= e(t('Refresh to include it', 'I-refresh para maisama')) ?></a>
   </div>
 <?php endif; ?>
 
@@ -326,18 +360,20 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
   <a href="#rs-esc"><?= e(t('Escalations', 'Mga In-escalate')) ?> <b><?= $refCount ?></b></a>
   <a href="#rs-tanod"><?= e(t('Tanod activity', 'Gawain ng Tanod')) ?> <b><?= count($dispatches) ?></b></a>
   <a href="#rs-tl"><?= e(t('Case timeline', 'Takbo ng Kaso')) ?> <b><?= $tlCount ?></b></a>
+  <?php if ($overall): ?><a href="#rs-com"><?= e(t('By committee', 'Ayon sa komite')) ?> <b><?= count(committees_active()) ?></b></a><?php endif; ?>
 </nav>
 <!-- ---------- Resident Report Ledger ---------- -->
 <div class="p-card p-table-card" id="rs-ledger" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Resident Report Ledger', 'Talaan ng mga Ulat ng Residente')) ?></h2><span class="p-spacer"></span><span class="p-hint"><?= count($reports) ?> <?= e(t(count($reports) === 1 ? 'complaint' : 'complaints', 'sumbong')) ?></span></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-orange"><tr>
+    <thead class="p-orange"<?= $scopeCom !== '' ? ' style="background:' . e(committee_colour($scopeCom)) . ';color:' . e(ink_on(committee_colour($scopeCom))) . '"' : '' ?>><tr>
       <th><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th><?= e(t('Resident', 'Residente')) ?></th><th><?= e(t('Category', 'Kategorya')) ?></th>
+      <?php if ($overall): ?><th><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
       <th><?= e(t('Status', 'Katayuan')) ?></th><th><?= e(t('Filed', 'Naisampa')) ?></th><th><?= e(t('Resolved', 'Nalutas')) ?></th>
     </tr></thead>
     <tbody>
       <?php if (!$reports): ?>
-        <tr><td colspan="6" class="p-empty"><?= e(t('No complaints were filed in this period.', 'Walang naisampang sumbong sa panahong ito.')) ?></td></tr>
+        <tr><td colspan="<?= $overall ? 7 : 6 ?>" class="p-empty"><?= e(t('No complaints were filed in this period.', 'Walang naisampang sumbong sa panahong ito.')) ?></td></tr>
       <?php endif; ?>
       <?php foreach ($ledgerRows as $r): ?>
         <tr class="p-click" data-href="case.php?id=<?= e($r['id'] ?? '') ?>">
@@ -346,6 +382,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
                   ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
                   : e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></td>
           <td><?= e(category_label($r['category'])) ?></td>
+          <?php if ($overall): ?><td><?= committee_pill($r['case_committee'] ?? null) ?></td><?php endif; ?>
           <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
               <?php else: ?><?= sensitive_badge($r) ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
@@ -368,6 +405,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
   <div class="p-tscroll"><table class="p-t">
     <thead class="p-blue"><tr>
       <th scope="col"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th scope="col"><?= e(t('Category', 'Kategorya')) ?></th>
+      <?php if ($overall): ?><th scope="col"><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
       <th scope="col"><?= e(t('Escalated to', 'In-escalate sa')) ?></th><th scope="col"><?= e(t('Date', 'Petsa')) ?></th><th scope="col"><?= e(t('Note', 'Tala')) ?></th>
     </tr></thead>
     <tbody>
@@ -378,6 +416,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
         <tr>
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= e(category_label($r['category'])) ?></td>
+          <?php if ($overall): ?><td><?= committee_pill($r['case_committee'] ?? null) ?></td><?php endif; ?>
           <td><b><?= e($r['referred_to']) ?></b></td>
           <td class="p-num"><?= e(short_date($r['referred_at'] ?? null)) ?: '—' ?></td>
           <td><?= !empty($r['referral_note']) ? e($r['referral_note']) : '<span class="p-sub">—</span>' ?></td>
@@ -461,6 +500,42 @@ $byReport = array_slice($byReport, ($cp - 1) * 10, 10, true);   // ten complaint
   </div>
 </div>
 <?php endif; ?>
+<?php if ($overall):
+    // 0156: logged, resolved, overdue and average resolution time for each committee, over the period's complaints
+    $byCom = [];
+    foreach (array_merge(array_keys(committees_active()), ['']) as $ck) { $byCom[$ck] = ['logged' => 0, 'resolved' => 0, 'overdue' => 0, 'hours' => []]; }
+    foreach ($reports as $r) {
+        $ck = (string) ($r['case_committee'] ?? '');
+        if (!isset($byCom[$ck])) { $byCom[$ck] = ['logged' => 0, 'resolved' => 0, 'overdue' => 0, 'hours' => []]; }
+        $byCom[$ck]['logged']++;
+        if (in_array($r['status'], ['resolved', 'closed', 'archived'], true)) { $byCom[$ck]['resolved']++; }
+        if (report_is_overdue($r)) { $byCom[$ck]['overdue']++; }
+        $end = $r['resolved_at'] ?? $r['closed_at'] ?? null;
+        if ($end) { $byCom[$ck]['hours'][] = (strtotime($end) - strtotime($r['created_at'])) / 3600; }
+    } ?>
+<div class="p-card p-table-card" id="rs-com" style="margin-top:20px">
+  <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('By committee', 'Ayon sa komite')) ?></h2></div>
+  <div class="p-tscroll"><table class="p-t">
+    <thead class="p-blue"><tr>
+      <th scope="col"><?= e(t('Committee', 'Komite')) ?></th><th scope="col" class="p-right"><?= e(t('Logged', 'Naitala')) ?></th>
+      <th scope="col" class="p-right"><?= e(t('Resolved', 'Nalutas')) ?></th><th scope="col" class="p-right"><?= e(t('Overdue', 'Lampas-oras')) ?></th>
+      <th scope="col" class="p-right"><?= e(t('Average resolution', 'Karaniwang paglutas')) ?></th>
+    </tr></thead>
+    <tbody>
+    <?php foreach ($byCom as $ck => $b): ?>
+      <tr class="p-click" data-href="summary.php?<?= e(http_build_query(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d'), 'category' => $category, 'com' => $ck === '' ? 'none' : $ck])) ?>">
+        <td><?= committee_pill($ck === '' ? null : $ck) ?></td>
+        <td class="p-right p-num"><?= $b['logged'] ?></td>
+        <td class="p-right p-num"><?= $b['resolved'] ?><?= $b['logged'] ? ' <span class="p-sub">(' . (int) round($b['resolved'] / $b['logged'] * 100) . '%)</span>' : '' ?></td>
+        <td class="p-right p-num"><?= $b['overdue'] ?></td>
+        <td class="p-right p-num"><?= $b['hours'] ? e(round(array_sum($b['hours']) / count($b['hours']) / 24, 1) . ' ' . t('days', 'araw')) : '—' ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div>
+</div>
+<?php endif; ?>
+
 <script>
 // "On this page": the chip for the section in view lights up
 (function () {

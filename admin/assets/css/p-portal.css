@@ -511,6 +511,32 @@ a.p-btn-pdf2 { text-decoration: none; }
 .ib-q-due { display: flex; gap: 8px; align-items: center; margin: 0; font-weight: 700; }
 .p-n-ico.fw-ico-reroute { background: var(--p-orange-50, #FFF1DC); color: var(--p-orange); }
 
+/* 0156: the Dashboard's super admin module, the box beside the donuts, the brain buttons */
+.ss-sub { margin: 4px 0 8px; }
+.dc-needs { margin-bottom: 14px; }
+.dc-coms { margin-bottom: 16px; }
+.dc-coms td.dc-hot { color: var(--p-red); font-weight: 800; }
+.dq-box { grid-column: 1 / -1; padding: 16px 18px; display: grid; gap: 10px; }
+.dq-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dq-head h2 { margin: 0; font-size: 16px; }
+.dq-head > i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.dq-list ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 6px 14px; max-height: 340px; overflow: auto; }
+.dq-list a { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 10px; color: var(--p-ink); text-decoration: none; min-width: 0; }
+.dq-list a:hover { background: var(--p-surface-2); }
+.dq-subj { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dq-when { color: var(--p-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dq-brain { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 10px; border: 1px solid var(--p-line); background: var(--p-surface); cursor: pointer; }
+.dq-brain:hover, .dq-brain[aria-expanded="true"] { border-color: var(--p-orange); box-shadow: 0 0 0 1.5px var(--p-orange) inset; }
+.dq-brain.ss-busy { animation: dq-pulse 1s ease-in-out infinite; }
+@keyframes dq-pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .dq-brain.ss-busy { animation: none; } }
+.dq-notes { margin: 0 18px 12px; padding: 12px 14px; border-radius: 12px; background: var(--p-surface-2); border-left: 3px solid var(--p-orange); }
+.dq-notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; line-height: 1.5; }
+
+/* 0156: Report Summary's scope beside the title */
+.rs-scope { display: inline-flex; margin-left: 12px; vertical-align: middle; }
+.rs-scope .cm-pill { font-size: 13.5px; padding: 4px 12px 4px 10px; }
+
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
