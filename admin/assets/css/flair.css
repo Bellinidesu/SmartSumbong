@@ -10,7 +10,8 @@
  *
  * The map's own styles (switches, legend, flood watch, layers, case card, glass,
  * search, time slider) moved to flair-map.css on 30 Oct 2026; only Spatial
- * Distribution loads that file.
+ * Distribution loads that file. The few rules both need (the picker pop-up's
+ * glass, .sd-c, .p-live.p-down) sit in both files.
  *
  * The page always carries data-theme (theme_head() sets it), so dark rules
  * key off :root[data-theme="dark"] only.
@@ -132,8 +133,10 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
   .dn i, .dn::before, .dn::after, .map-sw .scene span, .map-sw .wave, .map-sw .dim, .map-sw .edge, #s-spatial .p-map-legend.lg-card { transition: none; animation: none !important; }
   .fw[data-live="1"] .fw-dot { animation: none; }
 }
+.sd-c { display: flex; align-items: center; gap: 10px; font: 600 13.5px Urbanist, sans-serif; } .sd-c input { accent-color: var(--p-orange); width: 17px; height: 17px; }
 
 .st-credit-line { margin: 6px 0 0; color: var(--p-ink-2); font-size: 13px; line-height: 1.6; max-width: 80ch; }
+.p-live.p-down { white-space: nowrap; }
 
 /* ---- Dropdowns and the month picker ---- */
 .sdp-native { position: absolute !important; opacity: 0 !important; pointer-events: none !important; width: 1px !important; height: 1px !important; margin: 0 !important; }
@@ -173,6 +176,20 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .sdp-foot { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--p-line); }
 .sdp-foot button { border: 0; background: transparent; color: var(--p-link); font: 700 13px Urbanist, sans-serif; padding: 6px 8px; border-radius: 9px; cursor: pointer; } .sdp-foot button:hover { background: var(--p-surface-2); }
 @media (prefers-reduced-motion: reduce) { .sdp-pop, .sdp-opt, .sdp-m { animation: none; transition: none; } }
+:root[data-theme="dark"] #s-spatial .p-map-search, :root[data-theme="dark"] #s-spatial .cs-sheet, :root[data-theme="dark"] #s-spatial .ss-qv,
+:root[data-theme="dark"] #s-spatial .ss-lyr, :root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend,
+:root[data-theme="dark"] #s-spatial .fw-card, :root[data-theme="dark"] #s-spatial .lyc, :root[data-theme="dark"] .sdp-pop {
+  -webkit-backdrop-filter: blur(26px) saturate(1.9) brightness(1.06); backdrop-filter: blur(26px) saturate(1.9) brightness(1.06);
+  border-color: transparent; isolation: isolate; position: relative;
+  box-shadow: 0 18px 48px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25), var(--g-edge);
+}
+:root[data-theme="dark"] .sdp-pop { position: fixed; }
+:root[data-theme="dark"] #s-spatial .p-map-search::after, :root[data-theme="dark"] #s-spatial .cs-sheet::after, :root[data-theme="dark"] #s-spatial .ss-qv::after, :root[data-theme="dark"] #s-spatial .ss-lyr::after,
+:root[data-theme="dark"] #s-spatial .p-map-stats::after, :root[data-theme="dark"] #s-spatial .p-map-legend::after, :root[data-theme="dark"] #s-spatial .fw-card::after, :root[data-theme="dark"] #s-spatial .lyc::after, :root[data-theme="dark"] .sdp-pop::after {
+  content: ""; display: block; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--g-sheen); width: auto; height: auto; transform: none; right: 0; bottom: 0; left: 0; top: 0; border: 0; opacity: 1;
+}
+@media (prefers-reduced-transparency: reduce) { :root[data-theme="dark"] #s-spatial *, :root[data-theme="dark"] .sdp-pop, :root[data-theme="dark"] .lk-bar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
+:root[data-theme="dark"] #s-spatial .p-map-search, :root[data-theme="dark"] #s-spatial .cs-sheet, :root[data-theme="dark"] #s-spatial .ss-qv, :root[data-theme="dark"] #s-spatial .ss-lyr, :root[data-theme="dark"] #s-spatial .p-map-stats, :root[data-theme="dark"] #s-spatial .p-map-legend, :root[data-theme="dark"] #s-spatial .fw-card, :root[data-theme="dark"] #s-spatial .lyc, :root[data-theme="dark"] .sdp-pop { -webkit-backdrop-filter: blur(20px) saturate(1.7); backdrop-filter: blur(20px) saturate(1.7); }
 
 /* ---- The day calendar: each day's box is filled by how busy it was; a range is one lit band ---- */
 .sdp-rng { width: 304px; }
@@ -203,6 +220,13 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 /* on the orange report bands the pills are white: their pickers read in navy */
 .p-band .p-pill-select .sdp-btn { color: #141B34; } .p-band .p-pill-select .sdp-btn svg { color: #3A4058; }
 .p-band .p-pill-select:has(.sdp-btn) { background: #fff; }
+:root[data-surface="solid"][data-theme="dark"] #s-spatial :is(.p-map-search, .cs-sheet, .ss-qv, .ss-lyr, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-pop),
+:root[data-surface="solid"][data-theme="dark"] .sdp-pop {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-color: #1C1D22; background-image: none;
+  border: 1px solid rgba(255,255,255,.09); box-shadow: 0 10px 28px rgba(0,0,0,.5);
+}
+:root[data-surface="solid"][data-theme="dark"] #s-spatial :is(.p-map-search, .cs-sheet, .ss-qv, .ss-lyr, .p-map-stats, .p-map-legend, .fw-card, .lyc, .ss-pop)::after,
+:root[data-surface="solid"][data-theme="dark"] .sdp-pop::after { display: none; }
 
 /* Settings: the Glass / Solid choice */
 .st-surfs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; max-width: 620px; }
