@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (alignment pass 3, 31 Oct)**
+- Notifications: the day label starts where the row's icon tile starts; inside a folded row the dots
+  sit under the icon's centre, the messages start where the title starts, and the buttons start at the dots
+  (measured at 2048 px: all within 1 px).
+- Personnel: the committee pill's dot stays on the first line of its text (the 31 Oct "proposed" fix had
+  pushed it above); the statuses are one left-aligned column of pills whatever their number; an email is one
+  line cut with an ellipsis (the full address on hover) instead of breaking mid-word.
+
 **Changed (symmetry, second look, 31 Oct)**
 - Chips without a count (the committee chips on Notifications) are centred; they kept 12 px on the left
   and 6 px on the right for a count badge that was not there.
