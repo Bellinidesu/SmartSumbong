@@ -499,6 +499,21 @@ test('Roles and pages 6b: Report Summary by committee, and the committee form si
   expect(s.errors.concat(c.errors, f.errors, m.errors), 'console errors').toEqual([]);
 });
 
+test('Roles and pages 6c: Notifications by committee, a dot on each case, engine warnings grouped', async ({ page, context }) => {
+  const n = await open(page, 'notifications.php');
+  await expect(page.locator('.nf-chips .cm-chip')).toHaveCount(1 + 4 + 2);
+  await expect(page.locator('details.nf-group')).toHaveCount(1);
+  await expect(page.locator('details.nf-group summary')).toContainText('2 cases waited without a tanod');
+  await page.locator('details.nf-group summary').click();
+  await expect(page.locator('.nf-items li')).toHaveCount(2);
+  await expect(page.locator('.p-notif .nf-dot[title="Environment and Disaster Risk"]')).toHaveCount(1);
+  expect(await axe(page), 'Notifications, a group open').toEqual([]);
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'notifications.php');
+  await expect(page.locator('.nf-chips')).toHaveCount(0);
+  expect(n.errors.concat(k.errors), 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');

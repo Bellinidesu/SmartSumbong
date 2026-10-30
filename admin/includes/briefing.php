@@ -79,6 +79,18 @@ function render_briefing(Supabase $db, array $admin, string $part = 'all'): void
     $stuck    = $list('stuck');
     $stormRow = $list('storm')[0] ?? null;
     $storm    = $stormRow && !empty($stormRow['storm_mode']) ? $stormRow : null;
+    // 0156: a committee's version of the engine's notes: its kinds of complaint, and the cases it can see
+    if (is_scoped()) {
+        try {
+            $myCats = array_column((array) $db->select('committee_categories', ['select' => 'category', 'committee' => 'eq.' . (current_admin()['committee'] ?? '-')]), 'category');
+            $spikes = array_values(array_filter($spikes, fn ($r) => in_array($r['category'] ?? '', $myCats, true)));
+            $recur  = array_values(array_filter($recur, fn ($r) => in_array($r['category'] ?? '', $myCats, true)));
+            $ids = array_values(array_unique(array_filter(array_merge(array_column($risk, 'report_id'), array_column($stuck, 'report_id')))));
+            $seen = $ids ? array_flip(array_column((array) $db->select('reports', ['select' => 'id', 'id' => 'in.(' . implode(',', $ids) . ')']), 'id')) : [];
+            $risk  = array_values(array_filter($risk, fn ($r) => isset($seen[$r['report_id'] ?? ''])));
+            $stuck = array_values(array_filter($stuck, fn ($r) => isset($seen[$r['report_id'] ?? ''])));
+        } catch (SupabaseError) { $spikes = $recur = $risk = $stuck = []; }
+    }
 
     // ---- the three briefings (the same numbers, read three ways)
     $m = fn(string $label, int $v, string $href = '', bool $hot = false): array => [$label, $v, $href, $hot];

@@ -537,6 +537,19 @@ a.p-btn-pdf2 { text-decoration: none; }
 .rs-scope { display: inline-flex; margin-left: 12px; vertical-align: middle; }
 .rs-scope .cm-pill { font-size: 13.5px; padding: 4px 12px 4px 10px; }
 
+/* 0156: Notifications by committee: the chips, a committee's dot, a group of engine warnings */
+.nf-chips { margin: 12px 0 14px; }
+.nf-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--cc); margin-right: 6px; flex: none; vertical-align: middle; box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc) 25%, transparent); }
+.nf-group > summary { cursor: pointer; list-style: none; }
+.nf-group > summary::-webkit-details-marker { display: none; }
+.nf-chev { justify-self: end; color: var(--p-muted); transition: transform .15s; }
+.nf-group[open] .nf-chev { transform: rotate(180deg); }
+.nf-body { padding: 0 16px 12px 64px; display: grid; gap: 8px; }
+.nf-readall { justify-self: start; }
+.nf-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.nf-items li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nf-items .p-btn { margin-left: auto; }
+
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }

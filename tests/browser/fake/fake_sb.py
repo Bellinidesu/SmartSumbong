@@ -71,7 +71,9 @@ TABLES = {
                            'report': {'tracking_id': 'SS-2610-1001'}}],
     'case_forwards': [{'report_id': REPORTS[2]['id'], 'kind': 'forward', 'from_committee': 'peace_order', 'to_committee': 'environment', 'to_super': False, 'note': 'Basura ang ugat nito', 'created_at': ago(1), 'by': {'full_name': 'Dela Cruz, Ramon'}}],
     'case_forward_flags': [{'id': 5, 'report_id': REPORTS[0]['id'], 'from_committee': 'peace_order', 'to_committee': 'health_sanitation', 'note': 'Mukhang sa kalusugan ito', 'actor': 'a0000000-0000-0000-0000-000000000009', 'created_at': ago(0.5)}],
-    'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id']},{'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id']}],
+    'notifications': [{'id':'n1','kind':'sla_warning','message':'SMART: Urgent report SS-2610-1001 has waited 42 min without a tanod.','created_at':ago(2),'is_read':False,'report_id':REPORTS[0]['id'],'notification_committee':'peace_order'},
+                      {'id':'n3','kind':'sla_warning','message':'SMART: High report SS-2610-1004 has waited 25 min without a tanod.','created_at':ago(2.5),'is_read':False,'report_id':REPORTS[3]['id'],'notification_committee':None},
+                      {'id':'n2','kind':'status_change','message':'A tanod filed a resolution','created_at':ago(30),'is_read':False,'report_id':REPORTS[1]['id'],'notification_committee':'environment'}],
     'committees': [
         {'key': 'peace_order', 'name_en': 'Peace and Order, Human Rights, Transportation and Communication', 'name_fil': 'Kapayapaan at Kaayusan, Karapatang Pantao, Transportasyon at Komunikasyon', 'short_en': 'Peace and Order', 'active': True, 'sort': 1},
         {'key': 'environment', 'name_en': 'Environmental Protection and Disaster Risk Reduction', 'name_fil': 'Pangangalaga sa Kapaligiran at Pagbabawas sa Panganib ng Sakuna', 'short_en': 'Environment and Disaster Risk', 'active': True, 'sort': 2},

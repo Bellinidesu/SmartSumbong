@@ -113,7 +113,7 @@ language sql stable set search_path = public, extensions as $$
       'total', (select count(*) from m),
       'prev_total', (select n from prev),
       'busiest_day', (select jsonb_build_object('day', day, 'n', count(*)) from m group by day order by count(*) desc, day limit 1),
-      'weekday', (select jsonb_build_object('dow', extract(isodow from day)::int, 'n', count(*)) from m group by 1 order by count(*) desc limit 1),
+      'weekday', (select jsonb_build_object('dow', extract(isodow from day)::int, 'n', count(*)) from m group by extract(isodow from day) order by count(*) desc limit 1),
       'top_category', (select jsonb_build_object('category', category, 'n', count(*), 'share', round(100.0 * count(*) / greatest((select count(*) from m), 1)))
                          from m group by category order by count(*) desc limit 1),
       'top_place', (select jsonb_build_object('place', location_label, 'n', count(*)) from m where nullif(trim(location_label), '') is not null
