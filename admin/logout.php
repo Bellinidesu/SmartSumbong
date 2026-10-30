@@ -23,6 +23,7 @@ if (!$admin) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] ?? null)) {
+    try { db()->rpc('punch', ['p_kind' => 'out']); } catch (Throwable) {}   // 0153: the punch card
     logout();
     header('Location: login.php?out=1');
     exit;

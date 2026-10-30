@@ -49,6 +49,15 @@ function render_account_screen(string $role): void
     // ---------- actions ---------- (in includes/account_actions.php)
     require __DIR__ . '/account_actions.php';
 
+    // 0153: the Committee staff tab (punch cards) of Personnel
+    if ($isTanod) {
+        require_once __DIR__ . '/personnel_committees.php';
+        if (($_GET['view'] ?? '') === 'staff' && (is_super() || is_captain() || is_committee())) {
+            render_punch_page($db);
+            return;
+        }
+    }
+
     $flash = $_SESSION['flash'] ?? null;
     unset($_SESSION['flash']);
 
@@ -77,6 +86,8 @@ function render_account_screen(string $role): void
             'order'  => 'assigned_at.desc',
             'limit'  => '1000',
         ], true];
+        // 0153: each tanod's committees, and the committee of the case they are on
+        $batch['tc'] = ['rpc/personnel_committees', [], true];
     }
     $got = [];
     try {
@@ -85,6 +96,8 @@ function render_account_screen(string $role): void
     } catch (SupabaseError $ex) {
         $error = safe_error($ex);
     }
+
+    $tc = $isTanod ? tc_by_tanod($got['tc'] ?? []) : [];
 
     $latestCase = [];
     // The column reads "None" rather than failing the list.
@@ -126,7 +139,7 @@ function render_account_screen(string $role): void
 
         $duty = $isTanod ? tanod_duty($db, $person['id']) : null;
         render_account_detail($person, $noun, $idLabel, $self, $navFile, $title, $flash,
-                              $dupes[$person['id']] ?? [], $abuseHistory, $role, $duty);
+                              $dupes[$person['id']] ?? [], $abuseHistory, $role, $duty, $isTanod ? ($tc[$person['id']] ?? []) : null);
         return;
     }
 
@@ -154,6 +167,19 @@ function render_account_screen(string $role): void
         $accounts = array_values(array_filter($accounts, fn($a) => !empty($dupes[$a['id']])));
     } elseif ($statusFilter === 'suspended') {
         $accounts = array_values(array_filter($accounts, fn($a) => !empty($a['is_suspended'])));
+    }
+    // 0153: a committee picked from the chips (super admins and captains): its tanods, or the ones in none
+    $comF = $isTanod && sees_everything() ? (string) ($_GET['com'] ?? '') : '';
+    $inCom = function (array $a, string $k) use ($tc): bool {
+        foreach ($tc[$a['id']]['committees'] ?? [] as $c) { if (($c['status'] ?? '') === 'approved' && ($k === '' || $c['key'] === $k)) return true; }
+        return false;
+    };
+    if ($comF === 'none') {
+        $accounts = array_values(array_filter($accounts, fn ($a) => !$inCom($a, '')));
+    } elseif ($comF !== '' && isset(committees_all()[$comF])) {
+        $accounts = array_values(array_filter($accounts, fn ($a) => $inCom($a, $comF)));
+    } else {
+        $comF = '';
     }
     // Chip counts (over every account of this kind, whatever the search).
     $chipN = [
@@ -187,6 +213,7 @@ function render_account_screen(string $role): void
 
     <div class="p-topbar"><h1><?= e($title) ?></h1>
       <span class="p-live" id="live-badge" title="<?= e(t('New registrations appear here on their own', 'Kusang lumalabas dito ang mga bagong rehistro')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
+    <?= $isTanod ? personnel_tabs('') : '' ?>
 
     <?php if ($flash): ?>
       <div class="p-flash p-flash--<?= e($flash['level']) ?>" role="status"><?= e($flash['text']) ?></div>
@@ -240,6 +267,8 @@ function render_account_screen(string $role): void
                                                  'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.')) ?></span>
     </div>
 
+    <?php if ($isTanod) { render_tc_strip($db, $tc, $allAccounts); } ?>
+
     <?php if ($isTanod): ?>
       <!-- Today's shift: every active tanod (verified, not suspended or retired), whatever the search. -->
       <div class="p-kpis p-attendance" id="attendance-grid" aria-label="<?= e(t("Today's shift attendance summary", 'Buod ng pagdalo sa shift ngayong araw')) ?>" style="margin-bottom:20px">
@@ -249,6 +278,18 @@ function render_account_screen(string $role): void
             <div class="p-delta"><?= e(t('Today’s shift', 'Shift ngayong araw')) ?></div></div>
         <?php endforeach; ?>
       </div>
+    <?php endif; ?>
+
+    <?php if ($isTanod && sees_everything()):
+        $comHref = fn (string $c) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'com' => $c], fn ($v) => $v !== ''));
+        $comN = fn (string $k) => count(array_filter($allAccounts, fn ($a) => $k === 'none' ? !$inCom($a, '') : $inCom($a, $k))); ?>
+    <nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+      <a class="cm-chip<?= $comF === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $comF === '' ? ' aria-current="true"' : '' ?>><?= e(t('All', 'Lahat')) ?><b><?= count($allAccounts) ?></b></a>
+      <?php foreach (committees_active() as $ck => $cl): ?>
+        <a class="cm-chip<?= $comF === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($comHref($ck)) ?>"<?= $comF === $ck ? ' aria-current="true"' : '' ?>><i></i><?= e($cl) ?><b><?= $comN($ck) ?></b></a>
+      <?php endforeach; ?>
+      <a class="cm-chip cm-chip-none<?= $comF === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $comF === 'none' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('No committee yet', 'Wala pang komite')) ?><b><?= $comN('none') ?></b></a>
+    </nav>
     <?php endif; ?>
 
     <div class="p-band ss-pband">
@@ -291,14 +332,14 @@ function render_account_screen(string $role): void
           <th scope="col" class="ss-cbh"><input type="checkbox" id="ss-all" aria-label="<?= e(t('Select everyone on this page', 'Piliin ang lahat sa pahinang ito')) ?>"></th>
           <th scope="col"><?= e(t($noun, $nounLabel)) ?></th>
           <th scope="col"><?= e(t('Phone number', 'Numero ng telepono')) ?></th>
-          <?php if ($isTanod): ?><th scope="col"><?= e(t('Latest complaint handled', 'Huling hinawakang sumbong')) ?></th><?php endif; ?>
+          <?php if ($isTanod): ?><th scope="col"><?= e(t('Committees', 'Mga komite')) ?></th><th scope="col"><?= e(t('Latest complaint handled', 'Huling hinawakang sumbong')) ?></th><?php endif; ?>
           <th scope="col"><?= e(t('Email', 'Email')) ?></th>
           <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
           <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
         </tr></thead>
         <tbody id="accounts-tbody">
           <?php if (!$accounts): ?>
-            <tr><td colspan="<?= $isTanod ? 7 : 6 ?>" class="p-empty"><?= $search !== ''
+            <tr><td colspan="<?= $isTanod ? 8 : 6 ?>" class="p-empty"><?= $search !== ''
                 ? e(t('No account matches that search.', 'Walang account na tugma sa hinanap.'))
                 : e(t('No ' . strtolower($noun) . ' accounts have registered yet.', 'Wala pang nagparehistrong ' . strtolower($nounLabel) . '.')) ?></td></tr>
           <?php endif; ?>
@@ -308,6 +349,7 @@ function render_account_screen(string $role): void
               <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e(formal_name($a['full_name'])) ?></span></div></td>
               <td class="p-num"><?= e($a['mobile_number']) ?></td>
               <?php if ($isTanod): ?>
+                <td><?= tc_pills($tc[$a['id']] ?? null) ?></td>
                 <td class="ss-latest"><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">' . e(t('None', 'Wala')) . '</span>' ?></td>
               <?php endif; ?>
               <td class="ss-em"><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
@@ -376,6 +418,10 @@ function render_account_screen(string $role): void
       // tanod id -> tracking id of their latest dispatch; refreshed with
       // the list on every poll.
       let LATEST = <?= json_encode((object) array_filter($latestCase)) ?>;
+      // 0153: each tanod's committees as drawn on the server, and the tanods of the committee picked (null: no committee picked)
+      const TC_HTML = <?= json_encode((object) ($isTanod ? array_map('tc_pills', $tc) : [])) ?>;
+      const TC_NONE = <?= json_encode($isTanod ? tc_pills(null) : '') ?>;
+      const COM_IDS = <?= json_encode($isTanod && $comF !== '' ? array_column($accounts, 'id') : null) ?>;
       const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
@@ -528,6 +574,7 @@ function render_account_screen(string $role): void
           });
         }
         var dupes = duplicateFlags(accounts);
+        if (COM_IDS) filtered = filtered.filter(function (a) { return COM_IDS.indexOf(a.id) !== -1 || !(a.id in TC_HTML); });
         if (STATUS_FILTER === 'pending' || STATUS_FILTER === 'verified') {
           filtered = filtered.filter(function (a) { return a.verification_status === STATUS_FILTER; });
         } else if (STATUS_FILTER === 'overdue') {
@@ -573,7 +620,7 @@ function render_account_screen(string $role): void
 
         var tbody = document.getElementById('accounts-tbody');
         if (!filtered.length) {
-          tbody.innerHTML = '<tr><td class="p-empty" colspan="' + (IS_TANOD ? 7 : 6) + '">' +
+          tbody.innerHTML = '<tr><td class="p-empty" colspan="' + (IS_TANOD ? 8 : 6) + '">' +
             (SEARCH ? T('No account matches that search.', 'Walang account na tugma sa hinanap.')
                     : T('No ' + <?= json_encode(strtolower($noun)) ?> + ' accounts have registered yet.', 'Wala pang nagparehistrong ' + escapeHtml(NOUN_LABEL) + '.')) +
             '</td></tr>';
@@ -612,7 +659,7 @@ function render_account_screen(string $role): void
             '<td class="ss-cbc"><input type="checkbox" class="ss-cb" value="' + escapeHtml(a.id) + '" aria-label="' + T('Select', 'Piliin') + ' ' + escapeHtml(String(a.full_name || '').trim()) + '"></td>' +
             '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(String(a.full_name || '').trim()) + '</span></div></td>' +
             '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
-            (IS_TANOD ? '<td class="ss-latest">' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
+            (IS_TANOD ? '<td>' + (TC_HTML[a.id] || TC_NONE) + '</td><td class="ss-latest">' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
                                                : '<span class="p-sub">' + T('None', 'Wala') + '</span>') + '</td>' : '') +
             '<td class="ss-em">' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>' +
             '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +
@@ -944,7 +991,7 @@ function account_status_pills(array $a): string
 function render_account_detail(
     array $p, string $noun, string $idLabel,
     string $self, string $navFile, string $title, ?array $flash, array $dupes = [],
-    array $abuseHistory = [], string $role = 'resident', ?array $duty = null
+    array $abuseHistory = [], string $role = 'resident', ?array $duty = null, ?array $tcRow = null
 ): void {
     $pending = $p['verification_status'] === 'pending';
     $nounLabel = $noun === 'Tanod' ? 'Tanod' : t('Resident', 'Residente');
@@ -1030,6 +1077,8 @@ function render_account_detail(
             <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>
           </dl>
         </div>
+
+        <?php if ($tcRow !== null) { render_tc_card($p, $tcRow); } ?>
 
         <?php if ($duty): $st = $duty['stats']; ?>
         <div class="p-card p-card-pad">
@@ -1208,6 +1257,9 @@ function render_account_detail(
 
       <aside class="p-card p-controls">
         <p class="p-eyebrow" style="margin:0"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
+        <?php if (!is_super()): ?>
+        <p class="p-ctl-note"><?= e(t('Only a super admin verifies, suspends or changes an account. You can see it, and its committees above.', 'Ang super admin lang ang nagbe-verify, nagsususpinde o nagbabago ng account. Nakikita mo ito, at ang mga komite nito sa itaas.')) ?></p>
+        <?php else: ?>
 
         <form method="post" class="p-ctl-stack">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -1341,6 +1393,7 @@ function render_account_detail(
             <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save corrections', 'I-save ang pagtatama')) ?></button>
           </form>
         </details>
+        <?php endif; ?>
       </aside>
     </div>
 

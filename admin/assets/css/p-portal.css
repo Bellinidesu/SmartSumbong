@@ -467,6 +467,32 @@ a.p-btn-pdf2 { text-decoration: none; }
 .p-n-ico.fw-ico-flag { background: var(--p-orange-50, #FFF1DC); color: var(--p-orange); }
 .p-n-ico.fw-ico-fwd, .p-n-ico.fw-ico-place { background: var(--p-violet-bg); color: var(--p-violet-fg); }
 
+/* 0153: a tanod's committees (a proposal dashed, the committee's role small), and the punch cards */
+.cm-pill small { font-weight: 600; opacity: .8; margin-left: 2px; }
+.cm-pill small::before { content: "· "; }
+.cm-pill.cm-prop { border-style: dashed; background: transparent; }
+.tc-pills { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.tc-busy { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--p-muted); }
+.tc-tabs { margin: -6px 0 16px; }
+.tc-strip { margin-bottom: 16px; display: grid; gap: 10px; }
+.tc-strip summary { cursor: pointer; font-weight: 700; }
+.tc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tc-row input.p-input-plain, .tc-row select { flex: 1 1 160px; min-width: 0; }
+.tc-line { display: grid; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--p-line); }
+.tc-line:last-of-type { border-bottom: 0; }
+.tc-add { margin-top: 8px; }
+.tc-lede { margin: 0 0 16px; max-width: 72ch; }
+.pc-group { margin-bottom: 24px; }
+.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.pc-card { padding: 16px; display: grid; gap: 12px; align-content: start; }
+.pc-card header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pc-today { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pc-today > div { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--p-surface-2); }
+.pc-today small { font-size: 11.5px; color: var(--p-muted); font-weight: 700; }
+.pc-today b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.pc-week summary { cursor: pointer; font-weight: 700; font-size: 13px; }
+.pc-t td, .pc-t th { font-size: 12.5px; }
+
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
