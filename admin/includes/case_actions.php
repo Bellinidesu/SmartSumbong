@@ -44,6 +44,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             switch ($act) {
+                // 0152: forward the case to a committee (or, for a Kagawad, to the super admins), flag it (staff), or keep it here.
+                case 'forward':
+                    $to = (string) ($_POST['to'] ?? '');
+                    $db->rpc('forward_case', ['p_report' => $id, 'p_to' => ($to === '__super' || $to === '') ? null : $to,
+                        'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null, 'p_flag' => ctype_digit((string) ($_POST['flag'] ?? '')) ? (int) $_POST['flag'] : null]);
+                    $flash = t('Forwarded. The committee is told, and it is in the case\'s history.', 'Naipasa. Nasabihan ang komite, at nakatala ito sa kasaysayan ng kaso.');
+                    break;
+
+                case 'flag_forward':
+                    $to = (string) ($_POST['to'] ?? '');
+                    $db->rpc('flag_case_for_forward', ['p_report' => $id, 'p_reason' => trim((string) ($_POST['note'] ?? '')), 'p_to' => $to !== '' ? $to : null]);
+                    $flash = t('Flagged. Your Kagawad decides where it goes.', 'Na-flag. Ang Kagawad mo ang magpapasya kung saan ito mapupunta.');
+                    break;
+
+                case 'dismiss_flag':
+                    $db->rpc('dismiss_forward_flag', ['p_flag' => (int) ($_POST['flag'] ?? 0), 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                    $flash = t('The case stays here. The staff member is told.', 'Mananatili rito ang kaso. Nasabihan ang kawani.');
+                    break;
+
                 // 0130 (defense, 7 Sep): the ladder inside the barangay, several concerns in one report, and the sensitive mark.
                 case 'escalate_barangay':
                     $flash = op_escalate($db, $id, $_POST);

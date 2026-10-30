@@ -367,6 +367,42 @@ test('Roles and pages 2: staff are moderators of a committee; the Administrators
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
+test('Roles and pages 3: forwarding between committees (chips, Committee column, Forward and Flag, pinned on Notifications)', async ({ page, context }) => {
+  const s = await open(page, 'cases.php');
+  await expect(page.locator('.cm-chips .cm-chip')).toHaveCount(1 + 4 + 1);   // All, each active committee, No committee yet
+  await expect(page.locator('.cm-chip-none')).toContainText('No committee yet');
+  await expect(page.locator('table.ss-cases-t thead th', { hasText: 'Committee' })).toHaveCount(1);
+  await expect(page.locator('.cm-pill.cm-await').first()).toContainText('With the super admins');
+  await expect(page.locator('.cm-fwd').first()).toContainText('Forwarded from Peace and Order');
+  await page.locator('.fw-sel').nth(1).check();
+  await expect(page.locator('#fw-bulk')).toBeVisible();
+  await page.locator('.fw-btn').first().click();
+  await expect(page.locator('#fw-dlg')).toBeVisible();
+  await expect(page.locator('#fw-dlg select[name="to"] option[value="__super"]')).toHaveCount(0);   // a super admin places; only a Kagawad hands up
+  expect(await axe(page), 'Case Reports, forward dialog open').toEqual([]);
+  await page.locator('#fw-dlg [data-fw-close]').click();
+  await expect(page.locator('#fw-dlg')).toBeHidden();
+
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const k = await open(page, 'cases.php');
+  await expect(page.locator('.cm-chip')).toContainText(['My committee', 'Forwarded to us', 'Flagged to forward']);
+  await expect(page.locator('.fw-sel')).toHaveCount(0);
+  await expect(page.locator('table.ss-cases-t thead th', { hasText: 'Committee' })).toHaveCount(0);
+  const n = await open(page, 'notifications.php');
+  await expect(page.locator('.fw-pins .p-notif').first()).toContainText('Staff flagged it for forwarding: Mukhang sa kalusugan ito');
+  const c = await open(page, `case.php?id=${CASE}`);
+  await expect(page.locator('.fw-flag')).toContainText('Mukhang sa kalusugan ito');
+  await expect(page.locator('.fw-flag select[name="to"] option[value="health_sanitation"]')).toHaveAttribute('selected', '');
+  await expect(page.locator('.fw-flag button', { hasText: 'Keep it here' })).toHaveCount(1);
+
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'cases.php');
+  await page.locator('.fw-btn', { hasText: 'Flag' }).first().click();
+  await expect(page.locator('#fw-dlg textarea[name="note"]')).toHaveAttribute('required', '');
+  await expect(page.locator('#fw-dlg input[name="action"]')).toHaveValue('flag_list');
+  expect(s.errors.concat(k.errors, n.errors, c.errors, m.errors), 'console errors').toEqual([]);
+});
+
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');

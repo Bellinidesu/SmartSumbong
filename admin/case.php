@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/forwarding.php';
 
 $admin = require_admin();
 
@@ -101,6 +102,7 @@ try {
                       . 'appealed_at,awaiting_unit_since,dispatch_attempts,resolved_at,closed_at,created_at,'
                       . 'higher_official,higher_official_note,handed_up_at,tier,is_sensitive,'
                       . 'handler_id,handled_since,version,handler:users!reports_handler_id_fkey(id,full_name,official_role,committee),'
+                      . 'committee,awaiting_placement,case_committee,'
                       . 'resident:users!reports_resident_id_fkey(id,full_name,mobile_number)',
             'id'         => 'eq.' . $id,
             'deleted_at' => 'is.null',
@@ -918,6 +920,68 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
   <aside class="p-card p-controls<?= $theirs ? ' ss-readonly' : '' ?><?= is_captain() ? ' ss-viewonly' : '' ?>">
     <p class="p-eyebrow"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
     <?php if (is_captain()): ?><div class="ss-locked" role="note"><?= e(t('View only: this account can read everything about the case, but not change it.', 'Tingin lamang: mababasa ng account na ito ang lahat tungkol sa kaso, pero hindi ito mababago.')) ?></div><?php endif; ?>
+
+    <?php // 0152: the committee this case is with, how it got there, and forwarding it
+    $fwLog = []; $fwFlags = [];
+    try {
+        $fwLog = (array) $db->select('case_forwards', ['select' => 'kind,from_committee,to_committee,to_super,note,created_at,by:users!case_forwards_actor_fkey(full_name)', 'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '6']);
+        $fwFlags = (array) $db->select('case_forward_flags', ['select' => 'id,from_committee,to_committee,note,actor,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc']);
+    } catch (SupabaseError) {}
+    $myC = (string) (current_admin()['committee'] ?? '');
+    $lastFwd = null; foreach ($fwLog as $fl) { if (($fl['kind'] ?? '') === 'forward') { $lastFwd = $fl; break; } }
+    ?>
+    <div class="fw-case">
+      <div class="fw-case-row"><span class="p-flabel"><?= e(t('Committee', 'Komite')) ?></span><?= committee_pill($report['case_committee'] ?? null, !empty($report['awaiting_placement'])) ?></div>
+      <?php if ($lastFwd): $fromK = $lastFwd['from_committee'] ?? null; ?>
+        <p class="p-hint fw-case-from"><?= e(sprintf(t('Forwarded from %s by %s, %s', 'Ipinasa mula sa %s ni %s, %s'),
+            $fromK && isset(committees_all()[$fromK]) ? (string) committees_all()[$fromK]['short_en'] : t('the super admins', 'ang mga super admin'),
+            name_or($lastFwd['by']['full_name'] ?? null, t('an administrator', 'isang administrator')), relative_time((string) $lastFwd['created_at']))) ?><?= !empty($lastFwd['note']) ? ': ' . e((string) $lastFwd['note']) : '' ?></p>
+      <?php endif; ?>
+      <?php foreach ($fwFlags as $ff): if (!(is_super() || (is_committee() && $ff['from_committee'] === $myC) || ((current_admin()['id'] ?? '') === $ff['actor']))) continue; ?>
+        <div class="fw-flag" role="note">
+          <b><?= e(t('Flagged for forwarding by staff', 'In-flag ng kawani para ipasa')) ?></b><?= !empty($ff['to_committee']) && isset(committees_all()[$ff['to_committee']]) ? ' · ' . e(sprintf(t('suggests %s', 'mungkahi: %s'), (string) committees_all()[$ff['to_committee']]['short_en'])) : '' ?>
+          <p><?= e((string) $ff['note']) ?></p>
+          <?php if (is_super() || (is_committee() && $ff['from_committee'] === $myC)): ?>
+          <div class="fw-flag-act">
+            <form method="post" class="fw-inline"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="forward"><input type="hidden" name="flag" value="<?= (int) $ff['id'] ?>">
+              <label class="p-sr" for="fwf-to-<?= (int) $ff['id'] ?>"><?= e(t('Forward to', 'Ipasa sa')) ?></label>
+              <select class="p-input-plain" id="fwf-to-<?= (int) $ff['id'] ?>" name="to" required><?= str_replace('value="' . e((string) ($ff['to_committee'] ?? '')) . '"', 'value="' . e((string) ($ff['to_committee'] ?? '')) . '" selected', forward_options($report['case_committee'] ?? null)) ?></select>
+              <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Forward', 'Ipasa')) ?></button></form>
+            <form method="post" class="fw-inline"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="dismiss_flag"><input type="hidden" name="flag" value="<?= (int) $ff['id'] ?>">
+              <label class="p-sr" for="fwf-why-<?= (int) $ff['id'] ?>"><?= e(t('Why it stays (optional)', 'Bakit ito mananatili (opsyonal)')) ?></label>
+              <input class="p-input-plain" id="fwf-why-<?= (int) $ff['id'] ?>" name="note" maxlength="500" placeholder="<?= e(t('Why it stays (optional)', 'Bakit ito mananatili (opsyonal)')) ?>">
+              <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Keep it here', 'Panatilihin dito')) ?></button></form>
+          </div>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+      <?php if (can_forward()): ?>
+        <details class="p-fix" data-keep-details>
+          <summary><?= e(!empty($report['awaiting_placement']) && is_super() ? t('Place with a committee', 'Ilagay sa isang komite') : t('Forward to a committee', 'Ipasa sa isang komite')) ?></summary>
+          <form method="post" class="p-ctl-stack" data-keep>
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="forward">
+            <div class="p-cfield"><label class="p-flabel" for="fw-to"><?= e(t('Forward to', 'Ipasa sa')) ?></label>
+              <select class="p-input-plain" id="fw-to" name="to" required><option value="" disabled selected><?= e(t('Choose', 'Pumili')) ?></option><?= forward_options($report['committee'] ?? null) ?></select></div>
+            <div class="p-cfield"><label class="p-flabel" for="fw-note"><?= e(t('Note for the committee (optional)', 'Paalala para sa komite (opsyonal)')) ?></label>
+              <textarea class="p-input-plain" id="fw-note" name="note" rows="2" maxlength="500"></textarea></div>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Forward', 'Ipasa')) ?></button>
+            <p class="p-hint"><?= e(t('The case leaves whoever is handling it, and the other committee\'s Kagawad is told. It is kept in the case\'s history.', 'Aalis ang kaso sa humahawak nito, at sasabihan ang Kagawad ng ibang komite. Nakatala ito sa kasaysayan ng kaso.')) ?></p>
+          </form>
+        </details>
+      <?php elseif (is_moderator()): ?>
+        <details class="p-fix" data-keep-details>
+          <summary><?= e(t('Flag for forwarding', 'I-flag para ipasa')) ?></summary>
+          <form method="post" class="p-ctl-stack" data-keep>
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="flag_forward">
+            <div class="p-cfield"><label class="p-flabel" for="ff-to"><?= e(t('Suggest a committee (your Kagawad decides)', 'Magmungkahi ng komite (ang Kagawad mo ang magpapasya)')) ?></label>
+              <select class="p-input-plain" id="ff-to" name="to"><option value=""><?= e(t('No suggestion', 'Walang mungkahi')) ?></option><?= forward_options($report['case_committee'] ?? null) ?></select></div>
+            <div class="p-cfield"><label class="p-flabel" for="ff-why"><?= e(t('Why should it be forwarded? Your Kagawad reads this.', 'Bakit ito dapat ipasa? Babasahin ito ng Kagawad mo.')) ?></label>
+              <textarea class="p-input-plain" id="ff-why" name="note" rows="2" maxlength="500" required minlength="5"></textarea></div>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Send to my Kagawad', 'Ipadala sa Kagawad ko')) ?></button>
+          </form>
+        </details>
+      <?php endif; ?>
+    </div>
 
     <?php // 0087: who handles this case. ?>
     <?php if ($hid === ''): ?>

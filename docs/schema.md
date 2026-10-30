@@ -36,6 +36,8 @@ How the database fits the rest of the system is in
 | `sla_policies` | Per-category guide hours and the tanod's accept window | 0001 |
 | `sla_extensions` | Audited deadline extensions | 0002 |
 | `case_handler_log` | Admins taking, releasing and taking over cases (Activity page) | 0087 |
+| `reports.committee`, `reports.awaiting_placement` | The committee a case was forwarded to (null: its category's committee), and whether a Kagawad handed it to the super admins to place; changed only by forwarding (0152) | 0152 |
+| `case_forwards` | Every forward, staff flag and dismissed flag of a case: from and to which committee, the note, who, when; append-only. The view `case_forward_flags` lists the flags still open | 0152 |
 | `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation, the Anti-Drug Abuse Council | 0145 |
 | `committees.colour` | Each committee's colour, chosen by a super admin; its admins' sidebar wears it; no two active committees, and no committee and the super admins, may be close (0150) | 0150 |
 | `committee_categories` | The categories each committee sees (the super admin's ticks) | 0145 |
@@ -188,6 +190,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `admin_tier`, `is_super_admin`, `is_full_viewer`, `admin_can_write`, `admin_sees_category`, `admin_sees_case`, `admin_sees_report`, `admin_sees_dispatch` | 0145 | What the signed-in administrator may see and do (used by the access rules and the functions) |
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
+| `forward_case`, `flag_case_for_forward`, `dismiss_forward_flag`; `case_committee(report)` | 0152 | Forward a case (a super admin to a committee; a Kagawad to another committee or to the super admins), flag one for forwarding (staff, with the reason), keep it here; the committee a case is with, as a column the list can filter on |
 | `admin_scoped`; `admin_can_write`, `set_admin_access`, `set_official_role` (positions set the tier) | 0151 | The moderator tier (staff, scoped to a committee); a position sets its tier; the decision functions refuse a moderator |
 | `committee_save` (now with a colour), `_colour_clash`, `_committee_free_colour` | 0150 | A committee's colour, and what a colour is too close to; the triggers on `committees` and `barangay_profile` refuse a clash |
 | `catalogue_fill` | 0147 | Gives every category a deadline and a first committee (copied from Others); the portal calls it right after making a category |
