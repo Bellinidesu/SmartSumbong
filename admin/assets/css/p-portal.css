@@ -723,3 +723,15 @@ html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:
 .st-err-list .p-badge { justify-self: start; }
 .st-err-list b { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .st-err-list small { color: var(--p-muted); font-size: 12.5px; }
+
+/* Edit Profile and Control Room, built at 2048 px (Ace's screen) */
+.pf-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: start; }
+.pf-left, .pf-right { min-width: 0; }
+.pf-left > .ss-pf-sec:first-child, .pf-right > .ss-pf-sec:first-child { margin-top: 24px; }
+@media (max-width: 1500px) { .pf-grid { grid-template-columns: 1fr; } }
+/* Complaint types: two columns on a wide screen; a category that is open takes the full row so its form has room */
+@media (min-width: 1500px) {
+  #types-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; align-items: start; }
+  #types-card > :not(details) { grid-column: 1 / -1; }
+  #types-card > details[open] { grid-column: 1 / -1; }
+}

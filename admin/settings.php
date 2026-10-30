@@ -971,7 +971,7 @@ endif;
     <?php foreach (categories_all() as $ck => $cc): $opts = $catOpts[$ck] ?? []; $on = count(array_filter($opts, fn ($o) => !empty($o['active']))); ?>
       <details class="ty-cat<?= $cc['active'] ? '' : ' ty-off' ?>">
         <summary><span class="ty-dot" style="--tc:<?= e($cc['colour']) ?>" aria-hidden="true"></span><b><?= e(t($cc['en'], $cc['fil'])) ?></b>
-          <small><?= e(sprintf(t('%d options', '%d opsyon'), $on)) ?></small><?php if (!$cc['active']): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
+          <small><?= e($on === 1 ? sprintf(t('%d option', '%d opsyon'), $on) : sprintf(t('%d options', '%d opsyon'), $on)) ?></small><?php if (!$cc['active']): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
         <form method="post" class="ty-row">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cat_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
           <label class="ty-f"><span><?= e(t('In English', 'Sa Ingles')) ?></span><input class="p-input-plain" name="label_en" value="<?= e($cc['en']) ?>" required minlength="2" maxlength="60"></label>

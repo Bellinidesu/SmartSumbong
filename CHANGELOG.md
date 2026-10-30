@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (super-admin layout overhaul, step 4: Edit Profile and Control Room, 30 Oct)**
+- Edit Profile: on a wide screen your details and account are on the left and the
+  alerts on the right, instead of one 1700 px wide column. One column under 1500 px.
+- Control Room, Complaint types: two columns on a wide screen; a category you open
+  takes the full row. "1 options" now reads "1 option".
+
 **Changed (Rose's notes on the portal, 21 Oct)**
 - Sign-in: the appearance and language options are back on the sign-in page;
   signing in lands on Notifications first.
