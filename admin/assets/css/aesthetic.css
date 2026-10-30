@@ -1,0 +1,133 @@
+/* The aesthetic layer (30 Oct 2026, Ace's references).
+   Loaded after every other stylesheet; it only changes tokens and the surfaces built from them, so no page moves.
+   DARK  - deep near-black, an ambient violet/blue glow behind everything, thin lit edges, neon on the accents (Eclipse, Vernon).
+   LIGHT - soft cream-to-sky ground, floating white cards with layered shadows, pill controls, the orange as the loud accent
+           where those references use lime, branding blue where they use blue (Realty, Invo).
+   Colours stay ours: branding blue #00308F, orange #FF9800. */
+
+:root {
+  --ae-edge: rgba(20, 27, 52, .07);
+  --ae-sheen: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .55));
+  --ae-glow-a: rgba(255, 152, 0, .16);
+  --ae-glow-b: rgba(0, 48, 143, .13);
+  --ae-ground: radial-gradient(900px 560px at 92% -6%, var(--ae-glow-a), transparent 62%),
+               radial-gradient(1100px 700px at -8% 108%, var(--ae-glow-b), transparent 60%),
+               linear-gradient(160deg, #EAF0FB 0%, #F4F1EA 55%, #FBF3E3 100%);
+  --p-bg: #EEF2FA; --p-surface: #FFFFFF; --p-surface-2: #F6F8FD; --p-line: #E3E8F3; --p-line-2: #CFD6E6;
+  --p-shadow-sm: 0 1px 1px rgba(10, 30, 90, .04), 0 2px 6px rgba(10, 30, 90, .05);
+  --p-shadow: 0 1px 1px rgba(10, 30, 90, .03), 0 6px 14px rgba(10, 30, 90, .05), 0 22px 48px rgba(10, 30, 90, .08);
+  --p-shadow-lg: 0 30px 80px rgba(10, 20, 60, .28);
+  --p-r: 14px; --p-r-lg: 20px; --p-r-xl: 28px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ae-edge: rgba(255, 255, 255, .075);
+    --ae-sheen: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, 0) 46%);
+    --ae-glow-a: rgba(118, 78, 255, .20);
+    --ae-glow-b: rgba(0, 104, 255, .13);
+    --ae-ground: radial-gradient(900px 600px at 96% -8%, var(--ae-glow-a), transparent 64%),
+                 radial-gradient(1000px 700px at -6% 106%, var(--ae-glow-b), transparent 62%),
+                 radial-gradient(700px 500px at 60% 120%, rgba(255, 152, 0, .07), transparent 60%),
+                 #06080E;
+    --p-bg: #06080E; --p-surface: #0E121B; --p-surface-2: #131824; --p-line: #1E2432; --p-line-2: #2A3246;
+    --p-blue-50: #121A2E; --p-grey-bg: #161B27; --p-sky-bg: #121C33; --p-cream: #1D1810;
+    --p-shadow-sm: 0 1px 2px rgba(0, 0, 0, .55);
+    --p-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 10px 30px rgba(0, 0, 0, .5);
+    --p-link: #C9D6FF;
+    --p-side-a: #0B0F19; --p-side-b: #05070C;
+  }
+}
+:root[data-theme="dark"] {
+  --ae-edge: rgba(255, 255, 255, .075);
+  --ae-sheen: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, 0) 46%);
+  --ae-glow-a: rgba(118, 78, 255, .20);
+  --ae-glow-b: rgba(0, 104, 255, .13);
+  --ae-ground: radial-gradient(900px 600px at 96% -8%, var(--ae-glow-a), transparent 64%),
+               radial-gradient(1000px 700px at -6% 106%, var(--ae-glow-b), transparent 62%),
+               radial-gradient(700px 500px at 60% 120%, rgba(255, 152, 0, .07), transparent 60%),
+               #06080E;
+  --p-bg: #06080E; --p-surface: #0E121B; --p-surface-2: #131824; --p-line: #1E2432; --p-line-2: #2A3246;
+  --p-blue-50: #121A2E; --p-grey-bg: #161B27; --p-sky-bg: #121C33; --p-cream: #1D1810;
+  --p-shadow-sm: 0 1px 2px rgba(0, 0, 0, .55);
+  --p-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 10px 30px rgba(0, 0, 0, .5);
+  --p-link: #C9D6FF;
+  --p-side-a: #0B0F19; --p-side-b: #05070C;
+}
+
+/* the ground */
+.p-body { background: var(--ae-ground); background-attachment: fixed; background-color: var(--p-bg); }
+
+/* cards: lit edge, a sheen on top, a deeper float */
+.p-card { border: 1px solid var(--ae-edge); border-radius: var(--p-r-lg); background-image: var(--ae-sheen); box-shadow: var(--p-shadow); }
+.p-card.p-table-card { overflow: hidden; }
+.p-card:where(.p-kpi, .p-tile-s, .ss-tile):hover { box-shadow: var(--p-shadow), 0 0 0 1px var(--ae-edge); transform: translateY(-1px); transition: transform .15s, box-shadow .15s; }
+@media (prefers-reduced-motion: reduce) { .p-card:hover { transform: none !important; } }
+
+/* controls: pills */
+.p-pill-select, .p-search, .p-chip, .cm-chip, .p-seg-mini, .p-seg-mini a, .p-seg-mini button, .ss-viewsw, .ss-viewsw button { border-radius: 999px; }
+.p-pill-select, .p-search { border: 1px solid var(--ae-edge); box-shadow: var(--p-shadow-sm); }
+.p-input-plain, .p-input input, .p-field input, textarea.p-input-plain, select.p-input-plain { border-radius: 14px; }
+.p-btn { border-radius: 999px; }
+.p-btn-primary, .p-btn-orange { box-shadow: 0 6px 18px color-mix(in srgb, var(--p-orange) 38%, transparent); }
+
+/* the orange bars (the filters, the table heads) */
+.p-band { border-radius: var(--p-r-lg); }
+
+/* badges and rank pills */
+.p-badge { border-radius: 999px; }
+
+/* sidebar: glassier, a soft edge */
+.p-sidebar { border-right: 1px solid var(--ae-edge); }
+
+/* ---------- dark only ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .p-card { box-shadow: var(--p-shadow); }
+  :root:not([data-theme="light"]) .p-btn-primary, :root:not([data-theme="light"]) .p-btn-orange { box-shadow: 0 0 0 1px rgba(255, 190, 90, .35), 0 8px 26px rgba(255, 152, 0, .32); }
+  :root:not([data-theme="light"]) .p-orange th, :root:not([data-theme="light"]) .ss-ohead thead th, :root:not([data-theme="light"]) .ss-cases-t thead th {
+    background: linear-gradient(180deg, #1B2133, #131826); color: var(--p-orange); border-bottom: 1px solid color-mix(in srgb, var(--p-orange) 45%, transparent); }
+  :root:not([data-theme="light"]) .p-band { box-shadow: 0 0 0 1px var(--ae-edge), 0 12px 34px rgba(255, 152, 0, .14); }
+}
+:root[data-theme="dark"] .p-card { box-shadow: var(--p-shadow); }
+:root[data-theme="dark"] .p-btn-primary, :root[data-theme="dark"] .p-btn-orange { box-shadow: 0 0 0 1px rgba(255, 190, 90, .35), 0 8px 26px rgba(255, 152, 0, .32); }
+:root[data-theme="dark"] .p-orange th, :root[data-theme="dark"] .ss-ohead thead th, :root[data-theme="dark"] .ss-cases-t thead th {
+  background: linear-gradient(180deg, #1B2133, #131826); color: var(--p-orange); border-bottom: 1px solid color-mix(in srgb, var(--p-orange) 45%, transparent); }
+:root[data-theme="dark"] .p-band { box-shadow: 0 0 0 1px var(--ae-edge), 0 12px 34px rgba(255, 152, 0, .14); }
+
+/* ---------- beating the older surface rules (smart.css) at their own specificity ---------- */
+
+/* LIGHT stays solid (no glass, Ace 16 Oct): white cards floating on a cream-to-sky ground, tinted shadows, softer corners */
+:root:not([data-theme="dark"]) .p-body { background-color: #EEF2FA; background-image: var(--ae-ground); background-attachment: fixed; }
+:root:not([data-theme="dark"]) .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) {
+  background: #fff; border: 1px solid var(--ae-edge); border-radius: var(--p-r-lg);
+  box-shadow: 0 1px 1px rgba(10, 30, 90, .03), 0 8px 18px rgba(10, 30, 90, .05), 0 26px 52px rgba(10, 30, 90, .07);
+}
+:root:not([data-theme="dark"]) .p-body .p-card.p-click:hover, :root:not([data-theme="dark"]) .p-body a.p-card:hover {
+  box-shadow: 0 2px 4px rgba(10, 30, 90, .05), 0 14px 28px rgba(10, 30, 90, .09), 0 34px 64px rgba(10, 30, 90, .1); transform: translateY(-1px); }
+:root:not([data-theme="dark"]) .p-body .p-modal { box-shadow: 0 30px 80px rgba(10, 20, 60, .28); border-radius: var(--p-r-xl); }
+:root:not([data-theme="dark"]) .p-body .p-btn-primary { box-shadow: 0 8px 22px rgba(255, 152, 0, .34); }
+
+/* DARK: near-black cards with a lit edge and a top sheen, no frosting, the violet/blue glow behind */
+:root[data-theme="dark"] .p-body { background-color: #06080E; background-image: var(--ae-ground); background-attachment: fixed; }
+:root[data-theme="dark"] .p-body :is(.p-card:not([class*="p-att-"]), .p-modal) {
+  background: var(--ae-sheen), var(--p-surface); -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 1px solid var(--ae-edge); border-radius: var(--p-r-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 18px 44px rgba(0, 0, 0, .55);
+}
+:root[data-theme="dark"] .p-body .p-modal { border-radius: var(--p-r-xl); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 40px 90px rgba(0, 0, 0, .7), 0 0 0 1px var(--ae-edge); }
+:root[data-theme="dark"] .p-sidebar {
+  background: radial-gradient(420px 300px at 0% 0%, rgba(118, 78, 255, .22), transparent 70%), linear-gradient(180deg, #0B0F19 0%, #05070C 100%);
+  -webkit-backdrop-filter: none; backdrop-filter: none; border-right: 1px solid var(--ae-edge);
+}
+:root[data-theme="dark"] .p-table-card tbody td { background: transparent; }
+:root[data-theme="dark"] .p-table-card tbody tr:hover td { background: rgba(255, 255, 255, .03); }
+:root[data-theme="dark"] .p-card :is(.p-kpi, .p-tile-s) { border-radius: var(--p-r-lg); }
+/* glow on the active nav item and the live dots, the way the dark references light their accents */
+:root[data-theme="dark"] .p-nav a.p-on, :root[data-theme="dark"] .p-nav a[aria-current="page"] { box-shadow: 0 0 0 1px rgba(255, 190, 90, .4), 0 8px 28px rgba(255, 152, 0, .38); }
+:root[data-theme="dark"] .p-live i, :root[data-theme="dark"] .p-watching i { box-shadow: 0 0 10px currentColor; }
+/* the sortable heads are links with their own dark ink; on the dark table head they take the head's orange */
+:root[data-theme="dark"] :is(.p-orange th, .ss-ohead thead th, .ss-cases-t thead th) :is(a, .p-th-sort, .p-th-sort:hover) { color: var(--p-orange); }
+:root[data-theme="dark"] .ss-cases-t thead th .p-th-sort:hover { color: #FFC061; }
+/* the blue table heads (By committee, Escalations, Tanod activity) get the same dark head as the orange ones */
+:root[data-theme="dark"] .p-blue th, :root[data-theme="dark"] thead.p-blue th {
+  background: linear-gradient(180deg, #1B2133, #131826); color: #9DB8FF; border-bottom: 1px solid rgba(157, 184, 255, .35); }
