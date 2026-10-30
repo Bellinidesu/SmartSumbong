@@ -273,7 +273,7 @@ test('0146 catalogue: a super admin edits the complaint categories and options i
 test('0147 rules and hotlines: a super admin edits the deadlines, limits and emergency numbers in Settings', async ({ page }) => {
   const r = await open(page, 'control-room.php#rules');
   await expect(page.locator('#rules-card .ru-t tbody tr')).toHaveCount(8);
-  await expect(page.locator('#rules-card .ru-grid .ru-f')).toHaveCount(8);   // 0155 adds the two reroute waits
+  await expect(page.locator('#rules-card .ru-grid .ru-f')).toHaveCount(13);   // 0155 adds the two reroute waits, 0158 the five retention periods
   await expect(page.locator('#lim-max_deadline_extensions')).toHaveValue('2');
   expect(await axe(page), 'Settings > Rules').toEqual([]);
   await page.locator('#rules-card button[type="submit"]').click();

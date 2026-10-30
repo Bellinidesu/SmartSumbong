@@ -197,6 +197,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
 | `propose_tanod_committee`, `decide_tanod_committee`, `remove_tanod_committee`, `tanod_pick_list`, `personnel_committees`; `account_directory` (scoped) | 0153 | A tanod's committees: a Kagawad proposes, a super admin approves; names to propose from; each tanod's committees as the caller may see them and the committee of the case they are on; a committee's admins list only their tanods |
+| `purge_old_records` | 0158 | The nightly retention purge (cron only) |
 | `set_my_banner`, `endorse_retirement`; `retirement_requests_queue` (now with the endorsement) | 0157 | An administrator sets their banner; a Kagawad endorses their committee's tanod's retirement. A new Inbox message raises an `inbox_mail` alert |
 | `dashboard_committees`, `dashboard_slice`, `smart_chart_notes`; `notification_committee(notification)` | 0156 | The Dashboard's super admin module, the box beside the donuts and the brain buttons; the committee of the case a notification is about, as a column. `_notifications_scope` keeps system alerts from a committee's admins |
 | `send_mail`, `mail_recipients`, `mark_mail_read`; `answer_reroute_question`, `sweep_reroute_questions` (every minute) | 0155 | Mail along the ladder; a Kagawad picks a tanod for a reroute, or nobody answers in time and the nearest from any committee is sent. `auto_dispatch` tries the case's committee's tanods first on a reroute |
@@ -267,6 +268,7 @@ Times in UTC; Philippine time is UTC+8.
 |---|---|---|
 | `sweep-overdue-verifications` | every 10 min | Flags registrations past the 2-hour review window |
 | `sweep-unaccepted-dispatches` | every 5 min | A dispatch not accepted in time goes back to the system |
+| `purge-old-records` | daily, 03:30 Manila | Deletes what is past its retention period (`operational_settings.keep_*`, 0158); never the audit trail |
 | `sweep-reroute-questions` | every minute | A reroute question past its wait sends the nearest tanod from any committee; one no longer needed closes (0155) |
 | `sweep-awaiting-units` | every 2 min | Re-offers jobs that found no free tanod, in SMART queue order (0129) |
 | `sweep-overdue-reports` | every 15 min | One "overdue" alert per missed admin date: no automatic escalation (0072) |

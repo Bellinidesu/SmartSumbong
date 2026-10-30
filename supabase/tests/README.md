@@ -1,6 +1,6 @@
 # Database checks
 
-Thirty-seven scripts (390 checks) that walk the whole system through the real
+Thirty-eight scripts (393 checks) that walk the whole system through the real
 database, as each role (resident, second resident, tanod, admin), and then
 **roll everything back**: each ends by raising `SWEEP-ROLLBACK`, so nothing
 it does is saved. Add a check here for every new behaviour.
@@ -38,6 +38,7 @@ it does is saved. Add a check here for every new behaviour.
 | `29_barangay_profile.sql` | 2 checks (0148), as the API's own roles: the profile starts as Barangay 183, Zone 20, Villamor, Pasay City with the shipped seal and can be read before signing in; a super admin renames it and swaps the seal, a committee admin cannot, a seal from another host and a second row are refused |
 | `30_wording.sql` | 1 check (0149), as the API's own roles: a super admin rewords a label (read before signing in) and puts the code's own back; a committee admin cannot, an empty row is refused |
 | `31_committee_colours.sql` | 3 checks (0150): every committee has a colour and the active ones keep apart from each other and from branding blue; a super admin picks a colour or gets a free one, and a colour near the super admin colour or another active committee, or not a colour at all, is refused, a committee admin cannot change one; the super admins cannot take a committee's colour, and once they change theirs, branding blue is free for a committee |
+| `38_backend_hardening.sql` | 3 checks (0158): records past their retention period are deleted and newer ones kept, the period follows the barangay's setting, and the audit trail is never touched; every foreign key has an index, anonymous callers cannot run the internal helpers and nobody signed in can run the purge; forwarding and flagging lock the case |
 | `37_profile_endorse.sql` | 3 checks (0157): an administrator sets their own banner (a preset, a colour, or a Cloudinary picture framed within bounds) and anything else is refused; a new Inbox message raises an alert that can be switched off and a system message does not; the tanod's Kagawad sees and endorses a retirement request once, another committee and staff do not see it, and the super admins are told and still decide |
 | `36_dashboard_committees.sql` | 4 checks (0156): the committees and "no committee yet" add up to the open cases, and a case handed up or overdue counts as needing a super admin; the box beside the donut lists the same cases the donut counts; the brain buttons get the month's facts; a notification carries its case's committee, and system alerts reach the super admins and not a committee's admins |
 | `35_inbox_reroute.sql` | 4 checks (0155): mail runs along the ladder, only the sender and the recipient read it, and an attached case must be one the sender sees; a forward arrives in the receiving Kagawad's Inbox as a system message; a reroute with none of the case's committee's tanods free asks its Kagawad (notification and Inbox, once) instead of sending anyone, only that Kagawad answers and the tanod they pick is sent; nobody answering in time sends the nearest tanod from any committee, and the trail says so |
