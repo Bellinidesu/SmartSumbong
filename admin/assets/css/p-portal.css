@@ -770,7 +770,8 @@ html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:
 @media (max-width: 1100px) { .ib-split { grid-template-columns: 1fr; } .ib-pane:has(.ib-none) { display: none; } }
 /* Personnel (30 Oct): "proposed" never breaks mid-word; the committee pill wraps its name instead */
 .cm-pill small { white-space: nowrap; }
-td.tc-cell .cm-pill { flex-wrap: wrap; row-gap: 0; }
+td.tc-cell .cm-pill { align-items: flex-start; }
+td.tc-cell .cm-pill::before, td.tc-cell .cm-pill > i { margin-top: .42em; flex: none; }
 
 /* Notifications overhaul (30 Oct): the unread list beside a side column that holds what waits on you and what the engine sees right now.
    Built at 2048 px (Ace's 24 inch screen); under 1900 px the side column goes on top as a row of two cards, so the urgent things come first and the rows are never squeezed. */
@@ -849,3 +850,17 @@ textarea.p-input-plain { height: auto; min-height: 180px; padding: 10px 12px; li
 .nf-case-items li { align-items: center; min-height: 40px; }
 .nf-case-items .nf-sev { margin-top: 0; }
 .nf-case-items .p-when { margin: 0; }
+
+/* Alignment pass 3 (31 Oct, Ace: "still not aligned"):
+   Notifications - the day label starts where the row's icon tile starts; inside a folded row the dots sit under the icon's centre, the
+   messages start where the title starts, the buttons start at the dots.
+   Personnel - an email is one line with its end cut (the full address on hover), not broken mid-word; on a wide screen the Status
+   column is wide enough for its pills to stay on one line, so every row has one height. */
+.p-notif-card .p-notif-list .ss-day { padding-left: 25px; }
+.nf-case .nf-body { padding-left: 40px; }
+.nf-case-items li { gap: 8px; }
+.nf-case-items .nf-sev { margin-right: 22px; }
+.nf-case-act { padding-left: 0; }
+td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the statuses are one column of pills, left-aligned, whatever their number, so no row has them half inline and half stacked */
+.ss-ohead:has(#accounts-tbody) td:nth-last-child(2) .p-badges { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 4px; }
