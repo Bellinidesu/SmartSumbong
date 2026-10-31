@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Report Summary's look, 1 Nov)**
+- The four figures (reports logged, resolved, tanod attendance, average resolution time) are one summary band with
+  dividers, like the Dashboard's, and keep their coloured top lines. The orange Report Period bar, the tabs and the
+  tables are the Figma look, unchanged.
+- Found by the audit on the way: a committee's name in the Dashboard card and a kind in the engine window each stay on
+  one line, with the whole text on hover, so every row is one height.
+
 **Changed (the engine's window and the committees, 1 Nov)**
 - The SMART engine bar is gone from the Dashboard. One brain button in the header (with a count of what needs
   attention) opens the engine's window from the right: the urgent and at-risk cases, recurring problems, quiet
