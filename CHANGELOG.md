@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Report Summary: the orange band over the blue header, and the Case Timeline, 1 Nov)**
+- The title row of every table on the page (Ledger, Escalations, Tanod activity, Case timeline, By committee) is the
+  orange band, and the column header under it is the Figma blue, the pair Ace asked for (the white title row above
+  the orange header is gone; a committee version keeps its colour on the column header).
+- The Case Timeline is redesigned: the picker on the left shows each complaint's status and how many changes it has,
+  with the chosen one marked in orange; the case's story on the right opens with its ID, category and an "Open the
+  case" button, then a rail of changes grouped by day, a dot per change (green finished a case, red ended one badly,
+  violet went outside, grey from the system, blue otherwise), the time, what was said and who did it.
+
 **Changed (Report Summary: the engine speaks, the tabs span, 1 Nov)**
 - The sentence under the figures and the by-tanod numbers are now the SMART engine's: a brain button in the page header
   opens the engine's window ("What the engine sees in this report": in short, overdue by committee, by tanod). The

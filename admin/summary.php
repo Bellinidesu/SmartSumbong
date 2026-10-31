@@ -503,7 +503,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
 <div class="p-card p-table-card" id="rs-ledger" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Resident Report Ledger', 'Talaan ng mga Ulat ng Residente')) ?></h2><span class="p-spacer"></span><span class="p-hint"><?= count($reports) ?> <?= e(t(count($reports) === 1 ? 'complaint' : 'complaints', 'sumbong')) ?></span></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-orange"<?= $scopeCom !== '' ? ' style="background:' . e(committee_colour($scopeCom)) . ';color:' . e(ink_on(committee_colour($scopeCom))) . '"' : '' ?>><tr>
+    <thead class="p-blue"<?= $scopeCom !== '' ? ' style="background:' . e(committee_colour($scopeCom)) . ';color:' . e(ink_on(committee_colour($scopeCom))) . '"' : '' ?>><tr>
       <th><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th><?= e(t('Resident', 'Residente')) ?></th><th><?= e(t('Category', 'Kategorya')) ?></th>
       <?php if ($overall): ?><th><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
       <th><?= e(t('Status', 'Katayuan')) ?></th><th><?= e(t('Filed', 'Naisampa')) ?></th><th><?= e(t('Resolved', 'Nalutas')) ?></th>
@@ -552,7 +552,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
 <div class="p-card p-table-card" id="rs-esc" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-orange"><tr>
+    <thead class="p-blue"><tr>
       <th scope="col"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th scope="col"><?= e(t('Category', 'Kategorya')) ?></th>
       <?php if ($overall): ?><th scope="col"><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
       <th scope="col"><?= e(t('Escalated to', 'In-escalate sa')) ?></th><th scope="col"><?= e(t('Date', 'Petsa')) ?></th><th scope="col"><?= e(t('Note', 'Tala')) ?></th>
@@ -585,7 +585,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
 <div class="p-card p-table-card" id="rs-tanod" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-orange"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
+    <thead class="p-blue"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
     <tbody>
       <?php if (!$dispatches): ?>
         <tr><td colspan="5" class="p-empty"><?= e(t('No dispatches were issued in this period.', 'Walang dispatch na inilabas sa panahong ito.')) ?></td></tr>
@@ -620,29 +620,54 @@ $byReport = array_slice($byReport, ($cp - 1) * 10, 10, true);   // ten complaint
 <div class="p-card ss-slim" id="rs-tl"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2>
   <span><?= e(t('None. No case activity was recorded in this period.', 'Wala. Walang naitalang aktibidad sa kaso sa panahong ito.')) ?></span></div>
 <?php else: ?>
-<div class="p-card" id="rs-tl">
-  <div class="p-card-head"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2></div>
-  <div class="p-rs-split" style="display:grid;grid-template-columns:minmax(260px,340px) 1fr;padding:14px 0 0">
-    <div style="border-right:1px solid var(--p-line)"><table class="p-t ss-ohead">
-      <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th class="p-right"><?= e(t('Changes', 'Pagbabago')) ?></th></tr></thead>
-      <tbody id="tl-pick">
-        <?php $i = 0; foreach ($byReport as $tid => $list): ?>
-          <tr class="p-click<?= $i === 0 ? ' p-sel' : '' ?>" data-tl="<?= $i ?>" tabindex="0"><td><span class="p-mono-id"><?= e($tid) ?></span></td><td class="p-right p-num"><?= count($list) ?></td></tr>
-        <?php $i++; endforeach; ?>
-      </tbody>
-    </table>
-    <?= pager($byReportAll, $cp, 'cp', 10, 'rs-tl') ?></div>
-    <div style="padding:6px 22px 22px">
-      <?php $i = 0; foreach ($byReport as $tid => $list): ?>
-        <div class="p-tl-group" data-tl="<?= $i ?>"<?= $i === 0 ? '' : ' hidden' ?>>
-          <p class="p-eyebrow"><?= e($tid) ?></p>
-          <ul class="p-tl-change">
-            <?php foreach ($list as $l): ?>
-              <li><span class="p-w"><?= e(long_datetime($l['created_at'])) ?></span><b><?= e(timeline_title($l)) ?><?php if (($l['repeat'] ?? 1) > 1): ?> <span class="p-sub">× <?= (int) $l['repeat'] ?></span><?php endif; ?></b>
-                <span class="p-by"><?= !empty($l['is_system']) ? e(t('System', 'System')) : e(name_or($l['by']['full_name'] ?? null, t('Barangay staff', 'Kawani ng barangay'))) ?></span>
-                <?php if (!empty($l['remark'])): ?><span class="p-rm"><?= e($l['remark']) ?></span><?php endif; ?></li>
+<?php
+$repBy = []; foreach ($reports as $rr) { $repBy[(string) $rr['tracking_id']] = $rr; }
+/** The dot of one change: green when it finished a case, red when it ended one badly, violet when it went outside, grey from the system. */
+$tlTone = function (array $l): string {
+    $st = (string) ($l['new_status'] ?? '');
+    if (in_array($st, ['resolved', 'closed', 'archived'], true)) return 'good';
+    if (in_array($st, ['rejected', 'cancelled'], true)) return 'bad';
+    if (str_contains($st, 'refer') || str_contains($st, 'escal')) return 'ref';
+    return !empty($l['is_system']) ? 'sys' : 'on';
+};
+?>
+<div class="p-card p-table-card rs-tlcard" id="rs-tl">
+  <div class="p-card-head"><h2><?= e(t('Report Case Timeline', 'Takbo ng mga Kaso')) ?></h2><span class="p-spacer"></span><span class="p-hint"><?= (int) $byReportAll ?> <?= e(t($byReportAll === 1 ? 'complaint' : 'complaints', 'sumbong')) ?></span></div>
+  <div class="rs-tl-split">
+    <div class="rs-tl-pick">
+      <table class="p-t">
+        <thead class="p-blue"><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th class="p-right"><?= e(t('Changes', 'Pagbabago')) ?></th></tr></thead>
+        <tbody id="tl-pick">
+          <?php $i = 0; foreach ($byReport as $tid => $list): $rp0 = $repBy[(string) $tid] ?? null; ?>
+            <tr class="p-click<?= $i === 0 ? ' p-sel' : '' ?>" data-tl="<?= $i ?>" tabindex="0"><td><span class="p-mono-id"><?= e($tid) ?></span><?php if ($rp0): ?><small class="rs-tl-st"><span class="p-badge p-b-<?= e(status_class($rp0['status'])) ?>"><?= e(status_label($rp0['status'])) ?></span></small><?php endif; ?></td><td class="p-right p-num"><span class="rs-tl-n"><?= count($list) ?></span></td></tr>
+          <?php $i++; endforeach; ?>
+        </tbody>
+      </table>
+      <?= pager($byReportAll, $cp, 'cp', 10, 'rs-tl') ?>
+    </div>
+    <div class="rs-tl-view">
+      <?php $i = 0; foreach ($byReport as $tid => $list): $rp0 = $repBy[(string) $tid] ?? null; ?>
+        <div class="p-tl-group rs-tl-group" data-tl="<?= $i ?>"<?= $i === 0 ? '' : ' hidden' ?>>
+          <header class="rs-tl-head">
+            <div><span class="p-mono-id rs-tl-id"><?= e($tid) ?></span>
+              <?php if ($rp0): ?><b><?= e(category_label((string) $rp0['category'])) ?></b><?php endif; ?></div>
+            <span class="p-spacer"></span>
+            <?php if ($rp0 && !empty($rp0['id'])): ?><a class="p-btn p-btn-ghost p-btn-sm" href="case.php?id=<?= e((string) $rp0['id']) ?>"><?= e(t('Open the case', 'Buksan ang kaso')) ?></a><?php endif; ?>
+          </header>
+          <ol class="rs-tl2">
+            <?php $day = ''; foreach ($list as $l): $dk = (new DateTimeImmutable((string) $l['created_at']))->setTimezone($tz)->format('Y-m-d'); ?>
+              <?php if ($dk !== $day): $day = $dk; ?><li class="rs-tl-day" aria-hidden="true"><?= e((new DateTimeImmutable($dk))->format('l, F j')) ?></li><?php endif; ?>
+              <li class="rs-tl-it rs-<?= e($tlTone($l)) ?>">
+                <i class="rs-tl-dot" aria-hidden="true"></i>
+                <div class="rs-tl-body">
+                  <div class="rs-tl-top"><b><?= e(timeline_title($l)) ?><?php if (($l['repeat'] ?? 1) > 1): ?> <span class="p-sub">&times; <?= (int) $l['repeat'] ?></span><?php endif; ?></b>
+                    <span class="rs-tl-when"><?= e((new DateTimeImmutable((string) $l['created_at']))->setTimezone($tz)->format('g:i A')) ?></span></div>
+                  <?php if (!empty($l['remark'])): ?><p class="rs-tl-rm"><?= e($l['remark']) ?></p><?php endif; ?>
+                  <span class="rs-tl-by"><?= !empty($l['is_system']) ? e(t('System', 'System')) : e(name_or($l['by']['full_name'] ?? null, t('Barangay staff', 'Kawani ng barangay'))) ?></span>
+                </div>
+              </li>
             <?php endforeach; ?>
-          </ul>
+          </ol>
         </div>
       <?php $i++; endforeach; ?>
     </div>
@@ -665,7 +690,7 @@ $byReport = array_slice($byReport, ($cp - 1) * 10, 10, true);   // ten complaint
 <div class="p-card p-table-card" id="rs-com" style="margin-top:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('By committee', 'Ayon sa komite')) ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-orange"><tr>
+    <thead class="p-blue"><tr>
       <th scope="col"><?= e(t('Committee', 'Komite')) ?></th><th scope="col" class="p-right"><?= e(t('Logged', 'Naitala')) ?></th>
       <th scope="col" class="p-right"><?= e(t('Resolved', 'Nalutas')) ?></th><th scope="col" class="p-right"><?= e(t('Overdue', 'Lampas-oras')) ?></th>
       <th scope="col" class="p-right"><?= e(t('Average resolution', 'Karaniwang paglutas')) ?></th>
