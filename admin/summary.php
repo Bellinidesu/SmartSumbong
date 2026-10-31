@@ -262,6 +262,79 @@ $tanodIds = array_unique(array_column($attendance, 'tanod_id'));
 $possible = max(1, count($tanodIds) * $days);
 $rate     = $tanodIds ? round(count($onDuty) / $possible * 100) : null;
 
+// ---------- the figures against the period before, a series for each, and the story in them ----------
+$doneSt   = ['resolved', 'closed', 'archived'];
+$prevTo   = $from->modify('-1 second');
+$prevFrom = $prevTo->modify('-' . ($days - 1) . ' days')->setTime(0, 0);
+$prev     = null;   // null: the period before could not be read, so no change is drawn
+try {
+    $pq = ['select' => 'id,status,created_at,resolved_at,closed_at', 'deleted_at' => 'is.null',
+           'and' => '(created_at.gte.' . $prevFrom->format(DateTimeInterface::ATOM) . ',created_at.lte.' . $prevTo->format(DateTimeInterface::ATOM) . ')',
+           'order' => 'created_at.asc,id.asc'];
+    if ($category !== '') { $pq['category'] = 'eq.' . $category; }
+    if ($com === 'none') { $pq['case_committee'] = 'is.null'; } elseif ($com !== '') { $pq['case_committee'] = 'eq.' . $com; }
+    $pt = [];
+    $pr = select_all_many($db, ['prev' => ['reports', $pq]], $pt)['prev'];
+    $ph = [];
+    foreach ($pr as $r) { $e = $r['resolved_at'] ?? $r['closed_at'] ?? null; if ($e) { $ph[] = (strtotime($e) - strtotime($r['created_at'])) / 3600; } }
+    $prev = ['total' => count($pr), 'resolved' => count(array_filter($pr, fn ($r) => in_array($r['status'], $doneSt, true))),
+             'avg' => $ph ? round(array_sum($ph) / count($ph) / 24, 1) : null];
+} catch (Throwable) { /* the figures stand without a comparison */ }
+
+/** "▲ 12%" against the period before; $goodUp: more is better (false: less is better, null: neither). */
+function rs_change(?float $now, ?float $was, ?bool $goodUp, string $unit = '%'): array
+{
+    if ($now === null || $was === null) { return ['', '']; }
+    if ($was == 0.0) { return $now == 0.0 ? ['flat', '•  ' . t('same as before', 'kapareho ng dati')] : ['flat', '▲  ' . t('new', 'bago')]; }
+    $d = $unit === '%' ? round(($now - $was) / $was * 100) : round($now - $was, 1);
+    if ($d == 0.0) { return ['flat', '•  ' . t('same as before', 'kapareho ng dati')]; }
+    $tone = $goodUp === null ? 'flat' : (($d > 0) === $goodUp ? 'good' : 'bad');
+    return [$tone, ($d > 0 ? '▲  ' : '▼  ') . abs($d) . ($unit === '%' ? '%' : ' ' . $unit) . ' ' . t('vs before', 'vs dati')];
+}
+
+// A series for each figure: filed, resolved and the days they took, per day (per few days when the period is long).
+$nb = min($days, 36); $bFiled = array_fill(0, $nb, 0); $bDone = array_fill(0, $nb, 0); $bHrs = array_fill(0, $nb, []);
+$bi = fn (string $iso): int => max(0, min($nb - 1, (int) floor(((strtotime($iso) - $from->getTimestamp()) / 86400) * $nb / $days)));
+foreach ($reports as $r) {
+    $bFiled[$bi($r['created_at'])]++;
+    $e = $r['resolved_at'] ?? $r['closed_at'] ?? null;
+    if ($e && in_array($r['status'], $doneSt, true)) { $k = $bi($e); $bDone[$k]++; $bHrs[$k][] = (strtotime($e) - strtotime($r['created_at'])) / 86400; }
+}
+$bAvg = array_map(fn ($h) => $h ? array_sum($h) / count($h) : 0, $bHrs);
+/** A line of $vals as a small inline chart. */
+function rs_spark(array $vals, string $colour): string
+{
+    $n = count($vals); if ($n < 2 || max($vals) <= 0) { return '<svg class="rs-spark" viewBox="0 0 120 34" aria-hidden="true"><line x1="0" y1="30" x2="120" y2="30" stroke="currentColor" stroke-opacity=".18" stroke-width="2" stroke-dasharray="3 5"/></svg>'; }
+    $mx = max($vals); $pts = [];
+    foreach ($vals as $i => $v) { $pts[] = round($i / ($n - 1) * 118 + 1, 1) . ',' . round(30 - ($v / $mx) * 26, 1); }
+    $line = implode(' ', $pts);
+    return '<svg class="rs-spark" viewBox="0 0 120 34" aria-hidden="true" style="--sc:' . e($colour) . '"><polygon points="1,32 ' . $line . ' 119,32" fill="' . e($colour) . '" fill-opacity=".14"/><polyline points="' . $line . '" fill="none" stroke="' . e($colour) . '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+
+// The story: what a super admin would say first.
+$openAll  = array_filter($reports, fn ($r) => !in_array($r['status'], ['resolved', 'closed', 'archived', 'rejected', 'cancelled'], true));
+$overdueN = count(array_filter($reports, 'report_is_overdue'));
+$odBy = []; foreach ($reports as $r) { if (report_is_overdue($r)) { $k = (string) ($r['case_committee'] ?? ''); $odBy[$k] = ($odBy[$k] ?? 0) + 1; } }
+arsort($odBy);
+$noCom = count(array_filter($openAll, fn ($r) => empty($r['case_committee'])));
+$story = [];
+if ($total > 0) {
+    $pct = (int) round($resolved / $total * 100);
+    $s1 = sprintf(t('%d%% of the %d reports are resolved', '%d%% ng %d ulat ang nalutas na'), $pct, $total);
+    if ($prev && $prev['total'] > 0) {
+        $pp = (int) round($prev['resolved'] / $prev['total'] * 100);
+        $s1 .= $pp === $pct ? t(', the same as the period before', ', kapareho ng nakaraang panahon') : sprintf($pct > $pp ? t(', up from %d%%', ', mula sa %d%%') : t(', down from %d%%', ', mula sa %d%%'), $pp);
+    }
+    $story[] = $s1 . '.';
+    if ($overdueN > 0) {
+        $top = $odBy ? (string) array_key_first($odBy) : '';
+        $nm = $top !== '' ? (string) (committees_all()[$top]['short_en'] ?? $top) : t('no committee yet', 'wala pang komite');
+        $story[] = sprintf($overdueN === 1 ? t('1 is overdue', '1 ang lampas na sa oras') : t('%d are overdue', '%d ang lampas na sa oras'), $overdueN)
+            . (count($odBy) > 1 || $top === '' ? sprintf(t(', most of them with %s', ', karamihan sa %s'), $nm) : sprintf(t(', all with %s', ', lahat sa %s'), $nm)) . '.';
+    }
+    if ($noCom > 0 && $com === '') { $story[] = sprintf($noCom === 1 ? t('1 open case has no committee yet.', '1 bukas na kaso ang wala pang komite.') : t('%d open cases have no committee yet.', '%d bukas na kaso ang wala pang komite.'), $noCom); }
+}
+
 // This report's period can include today (the quick ranges above all do,
 // except "Last month"), in which case the figures below can still move
 // while it's on screen. A closed, past period is a fixed report and
@@ -340,13 +413,21 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
 <?php endif; ?>
 
 <div class="p-kpis ss-sumkpis" style="margin-bottom:16px">
-  <div class="p-card p-kpi ss-k-total"><div class="p-label"><?= e(t('Total Reports Logged', 'Kabuuang Naitalang Ulat')) ?></div><div class="p-value p-num"><?= str_pad((string) $total, 2, '0', STR_PAD_LEFT) ?></div><div class="p-delta"><?= e(t('filed in this period', 'naisampa sa panahong ito')) ?></div></div>
-  <div class="p-card p-kpi ss-k-res"><div class="p-label"><?= e(t('Case Resolved', 'Nalutas na Kaso')) ?></div><div class="p-value p-num"><?= str_pad((string) $resolved, 2, '0', STR_PAD_LEFT) ?></div>
-    <div class="p-delta<?= $total > 0 ? ' p-up' : '' ?>"><?= $total > 0 ? (int) round($resolved / $total * 100) . e(t('% of logged', '% ng naitala')) : e(t('nothing logged yet', 'wala pang naitala')) ?></div></div>
-  <div class="p-card p-kpi ss-k-att"><div class="p-label"><?= e(t('Tanod Attendance Rate', 'Antas ng Pagdalo ng Tanod')) ?></div><div class="p-value p-num"><?= $rate === null ? '—' : $rate . '%' ?></div><div class="p-delta"><?= $rate === null ? e(t('no shifts in this period', 'walang shift sa panahong ito')) : e(t('of scheduled shifts attended', 'ng mga shift na dinaluhan')) ?></div></div>
-  <div class="p-card p-kpi ss-k-avg"><div class="p-label"><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></div><div class="p-value p-num"><?= $avgDays === null ? '—' : $avgDays . ' <span style="font-size:20px">' . e(t('days', 'araw')) . '</span>' ?></div>
-    <div class="p-delta"><?= $avgDays !== null ? e(t('from filing to resolved', 'mula pagsampa hanggang nalutas')) : e(t('nothing resolved yet', 'wala pang nalutas')) ?></div></div>
+  <?php [$ct, $cl] = rs_change((float) $total, $prev ? (float) $prev['total'] : null, null); ?>
+  <div class="p-card p-kpi ss-k-total"><div class="p-label"><?= e(t('Total Reports Logged', 'Kabuuang Naitalang Ulat')) ?></div><div class="p-value p-num"><?= $total ?></div>
+    <div class="rs-foot"><span class="rs-chg rs-<?= e($ct) ?>"><?= e($cl) ?></span><?= rs_spark($bFiled, '#356CF9') ?></div></div>
+  <?php [$ct, $cl] = rs_change($total ? $resolved / $total * 100 : null, $prev && $prev['total'] ? $prev['resolved'] / $prev['total'] * 100 : null, true, 'pts'); ?>
+  <div class="p-card p-kpi ss-k-res"><div class="p-label"><?= e(t('Case Resolved', 'Nalutas na Kaso')) ?></div><div class="p-value p-num"><?= $resolved ?><small class="rs-of"><?= $total > 0 ? (int) round($resolved / $total * 100) . '%' : '' ?></small></div>
+    <div class="rs-foot"><span class="rs-chg rs-<?= e($ct) ?>"><?= e($cl) ?></span><?= rs_spark($bDone, '#2BAE5B') ?></div></div>
+  <div class="p-card p-kpi ss-k-att"><div class="p-label"><?= e(t('Tanod Attendance Rate', 'Antas ng Pagdalo ng Tanod')) ?></div><div class="p-value p-num"><?= $rate === null ? '—' : $rate . '%' ?></div>
+    <div class="rs-foot"><span class="rs-chg rs-flat"><?= $rate === null ? e(t('no shifts in this period', 'walang shift sa panahong ito')) : e(t('of scheduled shifts attended', 'ng nakatakdang shift ang dinaluhan')) ?></span><?php if ($rate !== null): ?><span class="rs-meter" aria-hidden="true"><i style="width:<?= (int) min(100, $rate) ?>%"></i></span><?php endif; ?></div></div>
+  <?php [$ct, $cl] = rs_change($avgDays, $prev['avg'] ?? null, false, 'd'); ?>
+  <div class="p-card p-kpi ss-k-avg"><div class="p-label"><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></div><div class="p-value p-num"><?= $avgDays === null ? '—' : $avgDays . '<small class="rs-of">' . e(t('days', 'araw')) . '</small>' ?></div>
+    <div class="rs-foot"><span class="rs-chg rs-<?= e($ct) ?>"><?= $avgDays === null ? e(t('nothing resolved yet', 'wala pang nalutas')) : e($cl) ?></span><?= rs_spark($bAvg, '#7A5AE0') ?></div></div>
 </div>
+<?php if ($story): ?>
+<p class="rs-story"><?= p_icon('i-bell', 16) ?><span><?= e(implode(' ', $story)) ?></span></p>
+<?php endif; ?>
 
 <?php
 // Defense, 7 Sep: the ledger, the referrals and the activity timeline are paged (15 rows), not scrolled.
@@ -376,7 +457,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
         <tr><td colspan="<?= $overall ? 7 : 6 ?>" class="p-empty"><?= e(t('No complaints were filed in this period.', 'Walang naisampang sumbong sa panahong ito.')) ?></td></tr>
       <?php endif; ?>
       <?php foreach ($ledgerRows as $r): ?>
-        <tr class="p-click" data-href="case.php?id=<?= e($r['id'] ?? '') ?>">
+        <tr class="p-click<?= report_is_overdue($r) ? ' rs-od' : (!empty($r['referred_to']) ? ' rs-ref' : '') ?>" data-href="case.php?id=<?= e($r['id'] ?? '') ?>">
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
           <td><?= !empty($r['is_anonymous'])
                   ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
