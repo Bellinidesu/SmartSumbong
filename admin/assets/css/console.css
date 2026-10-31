@@ -164,3 +164,40 @@
 .ru-bar { position: sticky; bottom: 14px; z-index: 5; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 10px 14px; border: 1px solid var(--p-line); border-radius: 14px; background: color-mix(in srgb, var(--p-surface) 92%, transparent); backdrop-filter: blur(6px); box-shadow: 0 10px 30px -12px rgba(20,27,52,.3); }
 .ru-form.cmx-dirty .ru-bar { border-color: var(--p-orange, #FF9800); }
 .ru-form .cmx-dirty-note { margin-left: 0; }
+
+/* ================= The rest of Administrative Services and the Control Room ================= */
+.page-administrative-services .st-pane .p-card > p.p-eyebrow:first-of-type, .page-control-room .st-pane .p-card > p.p-eyebrow:first-of-type { margin: 0 0 6px; font: 800 20px/1.25 Urbanist, sans-serif; letter-spacing: -.01em; text-transform: none; color: var(--p-ink); }
+.page-administrative-services .st-pane .p-card > .p-hint, .page-control-room .st-pane .p-card > .p-hint { max-width: 78ch; line-height: 1.55; font-size: 14px; }
+/* Parts of the system: a card and a switch each */
+.ss-vlist { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+.ss-vlist > li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); }
+.ss-vlist > li b { font: 700 15px Urbanist, sans-serif; } .ss-vlist > li small { display: block; margin-top: 2px; color: var(--p-muted); font-size: 13px; }
+.ss-vlist .ss-vroll { margin: 0; flex: none; }
+/* Wording: a search that leads, a card per label, App and Portal told apart */
+.wd-search { display: flex; gap: 10px; margin: 14px 0 6px; }
+.wd-search .p-input-plain { flex: 1; height: 46px; border-radius: 14px; font-size: 15px; }
+.wd-search .p-btn { height: 46px; padding: 0 22px; border-radius: 14px; background: var(--p-orange, #FF9800); border-color: transparent; color: #2B1A00; font-weight: 800; }
+.wd-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px 14px; align-items: end; margin: 12px 0 0; padding: 14px 16px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); }
+.wd-row .wd-src { grid-column: 1 / -1; margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.wd-row .wd-btns { display: flex; gap: 8px; }
+.wd-row.wd-own { border-left: 4px solid var(--p-orange, #FF9800); background: color-mix(in srgb, var(--p-orange, #FF9800) 5%, var(--p-surface)); }
+.wd-o { font-weight: 800; } .wd-o-app { background: color-mix(in srgb, #FF9800 22%, transparent); color: #8A4B00; } .wd-o-portal { background: color-mix(in srgb, #356CF9 18%, transparent); color: #1B3FA0; }
+@media (max-width: 900px) { .wd-row { grid-template-columns: minmax(0, 1fr); } }
+/* The barangay: the seal is the hero of its form */
+#brgy-card .bp-row { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 28px; align-items: start; margin-top: 16px; }
+#brgy-card .bp-seal { display: grid; place-items: center; width: 170px; height: 170px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #fff, color-mix(in srgb, var(--p-orange, #FF9800) 14%, #fff)); box-shadow: 0 14px 34px -14px rgba(0,48,143,.4), inset 0 0 0 1px var(--p-line); }
+#brgy-card .bp-seal img { width: 144px; height: 144px; object-fit: contain; }
+#brgy-card .bp-fields { display: grid; gap: 12px; }
+#brgy-card .bp-file { width: 100%; padding: 14px; border: 2px dashed color-mix(in srgb, var(--p-muted) 55%, transparent); border-radius: 14px; background: var(--p-surface-2); }
+#brgy-card .bp-file:hover { border-color: var(--p-orange, #FF9800); }
+#brgy-card.cmx-dirty .ru-bar { border-color: var(--p-orange, #FF9800); }
+#brgy-card .ru-bar { margin-top: 18px; }
+@media (max-width: 760px) { #brgy-card .bp-row { grid-template-columns: minmax(0, 1fr); justify-items: center; } #brgy-card .bp-fields { width: 100%; } }
+/* the faint symbol stays inside the banner's edge, so nothing in a banner is cut */
+:root:root .p-body :is(.cmx-banner, .pc-gh, .ad-roles, .wr-banner) .cm-chip > .cm-bg { right: 0; }
+:root:root .p-body .pd-fadewrap .cm-chip > .cm-bg { right: 28px; }
+:root:root .p-body .wr-banner .cm-chip { height: auto; min-height: 54px; padding-top: 8px; padding-bottom: 8px; }
+:root:root .p-body .wr-banner .cm-n { white-space: normal; overflow: visible; }
+/* a form's column is as wide as its page, whatever a table inside it would like; the note's sentence is a line of its own */
+.ru-form, .cmx { grid-template-columns: minmax(0, 1fr); }
+.cmx-note > span:last-child { flex-basis: 100%; }

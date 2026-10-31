@@ -233,3 +233,8 @@
 .pd-grid[data-tab="reports"] > .pd-reports { order: 1; }
 .pd-fig > .pd-hot b { color: var(--p-red); }
 .pd-reports tbody tr.p-click { cursor: pointer; }
+/* the faint symbol stays inside the banner's edge, so nothing in a banner is cut */
+:root:root .p-body .cm-chips.pd-fadewrap .cm-chip.cm-sd > .cm-bg { right: 28px; }
+:root:root .p-body .cm-chips.pc-gh .cm-chip.cm-sd > .cm-bg { right: 0; }
+/* a resident's status pills stay on one line, so there is never a lone pill on the next */
+:root:root .p-body .pe-res #accounts-tbody td:nth-last-child(2) .p-badges { flex-wrap: nowrap; }

@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Control Room: Wording, The barangay, Parts of the system; Planning, 1 Nov)**
+- Parts of the system: a card and a switch each. The barangay: the seal is the hero of its form, a dashed drop area for a new seal, and a save bar that says when something is unsaved. Wording: a search that leads, a card per label, App and Portal told apart by colour, the barangay's own wording marked. The same plain headings on Planning and the other tabs.
+
 **New (0160: live preview on a phone, the database part, 1 Nov)**
 - A developer mode for showing the Control Room's unsaved edits on a real phone running the real app. Off by default (switch `live_preview` under Parts of the system). A super admin gets a one-time 8-character code that lasts 30 minutes; the phone trades it for a secret channel; five wrong codes lock a person out for 15 minutes; residents and tanods can read no session. The portal and the app parts follow.
 
