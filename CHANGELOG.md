@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Case Reports toolbar, 31 Oct)**
+- At 1900 px and wider (Ace's 2048) the search and the five filters are one line in the orange band; they were two
+  rows. Narrower screens keep the two rows. With an Issue filter open (six controls) they stay as three and three.
+
 **Changed (Settings, System status, 31 Oct)**
 - The table of the nine services (where each runs, how fast it answers, working or not) is the page; the diagram of
   the same services sits below it and opens on request. The tab was 2,204 px tall at 2048 and is 1,798.

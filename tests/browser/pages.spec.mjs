@@ -573,6 +573,17 @@ test('System status: the table is the page, the diagram of the same services ope
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Case Reports: on a wide screen the search and the filters are one toolbar line', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'cases.php');
+  const tops = await page.evaluate(() => [document.querySelector('.ss-cr-band .p-search'), ...document.querySelectorAll('.ss-cr-band .ss-band-filters .p-pill-select')].map(e => Math.round(e.getBoundingClientRect().top)));
+  expect(tops.length, 'the search and the five filters').toBe(6);
+  expect(Math.max(...tops) - Math.min(...tops), 'one line: ' + tops).toBeLessThanOrEqual(6);
+  const bandH = await page.locator('.ss-cr-band').evaluate(e => Math.round(e.getBoundingClientRect().height));
+  expect(bandH, 'the band is one row tall').toBeLessThan(110);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
