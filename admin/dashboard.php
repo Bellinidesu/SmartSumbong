@@ -155,6 +155,14 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
 <?php endif; ?>
 
+<?php
+// The page says whose it is and what it is for: a greeting by the hour in Manila, the first name, the day.
+$now = new DateTimeImmutable('now', $tz); $hr = (int) $now->format('G');
+$greet = $hr < 12 ? t('Good morning', 'Magandang umaga') : ($hr < 18 ? t('Good afternoon', 'Magandang hapon') : t('Good evening', 'Magandang gabi'));
+$first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? '')), ' '));
+?>
+<header class="dh-greet"><h1><?= e($greet) ?><?= $first !== '' ? ', ' . e($first) : '' ?></h1>
+  <p><?= e($now->format('l, F j')) ?> &middot; <?= e(t('here is what needs you today.', 'narito ang kailangan mo ngayon.')) ?></p></header>
 <div class="p-dash-top">
   <form method="get">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></span>

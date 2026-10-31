@@ -297,9 +297,12 @@ window.ssAccessToken = function (initial) {
 <?php if (in_array($active, ['personnel.php', 'residents.php'], true)) : // the people rosters (roster.css), kept off every other page ?>
 <link href="assets/css/roster.css?v=<?= e(asset_version('roster.css')) ?>" rel="stylesheet">
 <?php endif; ?>
+<?php if (!in_array($active, ['case.php', 'spatial.php'], true)) : // the identity layer (identity.css), last, on every page but the case page and Spatial Distribution ?>
+<link href="assets/css/identity.css?v=<?= e(asset_version('identity.css')) ?>" rel="stylesheet">
+<?php endif; ?>
 <?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
-<body class="p-body page-<?= e(basename($active, '.php')) ?>">
+<body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
   <aside class="p-sidebar">

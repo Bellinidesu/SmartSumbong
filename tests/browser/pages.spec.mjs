@@ -511,7 +511,7 @@ test('Case Reports and the Dashboard: equal rows, Review is the main button, wha
   expect(heights.length, 'rows shown').toBeGreaterThan(5);
   expect(Math.max(...heights) - Math.min(...heights), 'rows are as tall as the next (a "Forwarded from" tag may add a line): ' + heights).toBeLessThanOrEqual(8);
   const row = page.locator('.ss-cases-t tbody tr.p-click').first();
-  const rv = await row.locator('.fw-acts .p-btn').first().evaluate(b => getComputedStyle(b).backgroundColor);
+  const rv = await row.locator('.fw-acts .p-btn').first().evaluate(b => { const c = getComputedStyle(b); return c.backgroundImage !== 'none' ? 'gradient' : c.backgroundColor; });
   const fw = await row.locator('.fw-acts .fw-btn').evaluate(b => getComputedStyle(b).backgroundColor);
   expect(fw, 'Forward is the second choice, not a filled button').toBe('rgba(0, 0, 0, 0)');
   expect(rv, 'Review is the filled one').not.toBe('rgba(0, 0, 0, 0)');
