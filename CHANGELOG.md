@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Report Summary, the three gaps, and the peak standard, 1 Nov)**
+- `docs/PEAK.md` writes down what peak means for every page and every rung of the ladder (an answer before a list, one
+  grammar, measured symmetry, honest data, every state designed, for everyone, the ladder). Ace: "from superadmin to staff
+  the peak is always peak".
+- Report Summary: the figures' shape is bars, not a line (a month with few reports no longer reads as spikes); the Resolved
+  column says something on every row (the date and the days it took, or "open 12 d", red when overdue); the Tanod activity
+  tab opens with each tanod's own numbers (dispatched, acceptance rate, resolved, minutes to accept) above the log.
+
 **Changed (Report Summary, the orange is the identity, 1 Nov)**
 - Ace's call after seeing the peak pass on the live site: the orange stays. The period band, the table headers and
   the active tab are the Figma orange again, and the stylised PDF and spreadsheet buttons are back. What stays from the

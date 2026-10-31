@@ -302,14 +302,17 @@ foreach ($reports as $r) {
     if ($e && in_array($r['status'], $doneSt, true)) { $k = $bi($e); $bDone[$k]++; $bHrs[$k][] = (strtotime($e) - strtotime($r['created_at'])) / 86400; }
 }
 $bAvg = array_map(fn ($h) => $h ? array_sum($h) / count($h) : 0, $bHrs);
-/** A line of $vals as a small inline chart. */
+/** $vals as small bars: a month with few reports still reads true (a line through mostly zeros reads as spikes). */
 function rs_spark(array $vals, string $colour): string
 {
-    $n = count($vals); if ($n < 2 || max($vals) <= 0) { return '<svg class="rs-spark" viewBox="0 0 120 34" aria-hidden="true"><line x1="0" y1="30" x2="120" y2="30" stroke="currentColor" stroke-opacity=".18" stroke-width="2" stroke-dasharray="3 5"/></svg>'; }
-    $mx = max($vals); $pts = [];
-    foreach ($vals as $i => $v) { $pts[] = round($i / ($n - 1) * 118 + 1, 1) . ',' . round(30 - ($v / $mx) * 26, 1); }
-    $line = implode(' ', $pts);
-    return '<svg class="rs-spark" viewBox="0 0 120 34" aria-hidden="true" style="--sc:' . e($colour) . '"><polygon points="1,32 ' . $line . ' 119,32" fill="' . e($colour) . '" fill-opacity=".14"/><polyline points="' . $line . '" fill="none" stroke="' . e($colour) . '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+    $n = count($vals);
+    if ($n < 2 || max($vals) <= 0) { return '<svg class="rs-spark" viewBox="0 0 120 34" aria-hidden="true"><line x1="0" y1="31" x2="120" y2="31" stroke="currentColor" stroke-opacity=".2" stroke-width="2" stroke-dasharray="3 5"/></svg>'; }
+    $mx = max($vals); $w = 120 / $n; $o = '';
+    foreach ($vals as $k => $v) {
+        $h = $v > 0 ? max(3, round($v / $mx * 30, 1)) : 1.5;
+        $o .= '<rect x="' . round($k * $w + $w * .12, 2) . '" y="' . round(32 - $h, 1) . '" width="' . round($w * .76, 2) . '" height="' . $h . '" rx="1.2" fill="' . e($colour) . '"' . ($v > 0 ? '' : ' fill-opacity=".25"') . '/>';
+    }
+    return '<svg class="rs-spark" viewBox="0 0 120 34" aria-hidden="true">' . $o . '</svg>';
 }
 
 // The story: what a super admin would say first.
@@ -468,7 +471,19 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
           <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
               <?php else: ?><?= sensitive_badge($r) ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
           <td class="p-num"><?= e(short_date($r['created_at'])) ?></td>
-          <td class="p-num"><?= e(short_date($r['resolved_at'] ?? $r['closed_at'] ?? null)) ?: '<span class="p-sub">—</span>' ?></td>
+          <td class="p-num"><?php
+              $endIso = $r['resolved_at'] ?? $r['closed_at'] ?? null;
+              if ($endIso && in_array($r['status'], $doneSt, true)) {
+                  $took = max(0, (int) round((strtotime($endIso) - strtotime($r['created_at'])) / 86400));
+                  echo e(short_date($endIso)) . ' <span class="rs-age">' . $took . ' ' . e(t('d', 'araw')) . '</span>';
+              } elseif ($endIso) {
+                  echo e(short_date($endIso));   // escalated or otherwise closed out with a date
+              } elseif (in_array($r['status'], ['rejected', 'cancelled'], true)) {
+                  echo '<span class="p-sub">—</span>';
+              } else {
+                  $age = max(0, (int) floor((time() - strtotime($r['created_at'])) / 86400));
+                  echo '<span class="rs-age rs-open' . (report_is_overdue($r) ? ' rs-late' : '') . '">' . e(t('open ', 'bukas ')) . $age . ' ' . e(t('d', 'araw')) . '</span>';
+              } ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
@@ -517,6 +532,31 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
 <?php else: ?>
 <div class="p-card p-table-card" id="rs-tanod" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2></div>
+  <?php
+  $byT = [];
+  foreach ($dispatches as $d) {
+      $k = (string) ($d['tanod_id'] ?? '');
+      $byT[$k] ??= ['name' => formal_or($d['tanod']['full_name'] ?? null, t('Unknown', 'Hindi kilala')), 'n' => 0, 'acc' => 0, 'done' => 0, 'mins' => []];
+      $byT[$k]['n']++;
+      if (!empty($d['accepted_at'])) { $byT[$k]['acc']++; $byT[$k]['mins'][] = (strtotime($d['accepted_at']) - strtotime($d['assigned_at'])) / 60; }
+      if (($d['state'] ?? '') === 'resolved') { $byT[$k]['done']++; }
+  }
+  uasort($byT, fn ($a, $b) => $b['n'] <=> $a['n']);
+  if ($byT): $maxN = max(array_column($byT, 'n')); ?>
+  <div class="rs-tn">
+    <p class="p-eyebrow"><?= e(t('By tanod', 'Ayon sa tanod')) ?> &middot; <?= count($byT) ?></p>
+    <?php foreach (array_slice($byT, 0, 8) as $tn): $rt = $tn['n'] ? (int) round($tn['acc'] / $tn['n'] * 100) : 0; $am = $tn['mins'] ? (int) round(array_sum($tn['mins']) / count($tn['mins'])) : null; ?>
+      <div class="rs-tn-row">
+        <b><?= e($tn['name']) ?></b>
+        <span class="rs-tn-bar" aria-hidden="true"><i style="width:<?= (int) round($tn['n'] / $maxN * 100) ?>%"></i></span>
+        <span class="rs-tn-n"><?= (int) $tn['n'] ?> <small><?= e(t('dispatched', 'na-dispatch')) ?></small></span>
+        <span class="rs-tn-n<?= $rt < 70 ? ' rs-low' : '' ?>"><?= $rt ?>% <small><?= e(t('accepted', 'tinanggap')) ?></small></span>
+        <span class="rs-tn-n"><?= (int) $tn['done'] ?> <small><?= e(t('resolved', 'nalutas')) ?></small></span>
+        <span class="rs-tn-n"><?= $am === null ? '—' : $am . ' <small>' . e(t('min to accept', 'minuto bago tanggapin')) . '</small>' ?></span>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
   <div class="p-tscroll"><table class="p-t">
     <thead class="p-orange"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
     <tbody>
