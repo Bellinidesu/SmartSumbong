@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (0160: live preview on a phone, the database part, 1 Nov)**
+- A developer mode for showing the Control Room's unsaved edits on a real phone running the real app. Off by default (switch `live_preview` under Parts of the system). A super admin gets a one-time 8-character code that lasts 30 minutes; the phone trades it for a secret channel; five wrong codes lock a person out for 15 minutes; residents and tanods can read no session. The portal and the app parts follow.
+
 **New (Control Room: a live view of the app, 1 Nov)**
 - A phone beside the Control Room forms shows what residents see (Report, Emergency, Home, Splash) in the app's palette, built from the same rows the app reads, and changes as the forms are typed in; saving a form still publishes it. A tile or number in the phone opens its field. Rules has no screen, so it takes the full width. It is a preview in the app's shape, not the app itself.
 
