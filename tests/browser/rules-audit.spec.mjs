@@ -49,8 +49,8 @@ for (const [W, mode] of SIZES) {
       await page.locator('.fw-btn').first().click(); await page.waitForTimeout(500);
       push('cases.php [Forward dialog]', await auditScope(page, '#fw-dlg')); await page.keyboard.press('Escape');
       await page.goto('dashboard.php', { waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
-      await page.locator('#ss-panel summary, #ss-panel .ss-phead, #ss-panel > button').first().click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(500);
-      push('dashboard.php [engine panel open]', await auditScope(page, '#ss-panel'));
+      await page.locator('#ss-win-open').click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(700);
+      push('dashboard.php [engine window open]', await auditScope(page, '#ss-panel')); await page.keyboard.press('Escape'); await page.waitForTimeout(400);
       await page.locator('#legend-status > div').first().click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(600);
       push('dashboard.php [quick view]', await auditScope(page, '#dq-box'));
     } catch (e) { findings.push({ rule: 'error', where: 'overlays', detail: String(e.message).slice(0, 120), page: 'overlays', size: W, mode }); }

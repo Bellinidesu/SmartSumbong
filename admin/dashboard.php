@@ -121,7 +121,7 @@ function delta_html(?array $d): string
 }
 
 // What SMART sees today (0124, 0127, 0128). Each call is optional: a failure hides its own tile, never the page.
-$sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null, 'times' => [], 'coms' => null];
+$sm = ['summary' => null, 'risk' => [], 'spikes' => [], 'score' => [], 'quiet' => [], 'storm' => null, 'times' => [], 'coms' => null, 'leads' => []];
 if (!$error) {
     try {
         $got = $db->selectMany([
@@ -134,6 +134,8 @@ if (!$error) {
             'storm'   => ['smart_rules', ['select' => 'storm_mode,storm_until,storm_reason', 'id' => 'eq.1', 'limit' => '1'], true],
             // 0156: the super admin module: what waits on a super admin, and each committee's load
             'coms'    => ['rpc/dashboard_committees', ['p_month_from' => $month->format(DateTimeInterface::ATOM)], true],
+            // who leads each committee, for the committees card
+            'leads'   => ['users', ['select' => 'full_name,committee', 'role' => 'eq.admin', 'official_role' => 'eq.kagawad', 'order' => 'full_name.asc'], true],
         ]);
         foreach ($got as $k => $v) { if (!($v instanceof SupabaseError)) { $sm[$k] = $v; } }
     } catch (SupabaseError) { /* the tiles stay empty */ }
@@ -145,6 +147,8 @@ $smSum   = is_array($sm['summary']) ? $sm['summary'] : null;
 $smRisk  = count(array_filter((array) $sm['risk'], fn($r) => ($r['risk'] ?? '') === 'high'));
 $smStorm = (is_array($sm['storm']) && !empty($sm['storm'][0]['storm_mode'])) ? $sm['storm'][0] : null;
 $coms    = is_array($sm['coms']) && isset($sm['coms']['needs_me']) ? $sm['coms'] : null;
+$leadBy  = [];
+foreach (is_array($sm['leads']) ? $sm['leads'] : [] as $u) { if (!empty($u['committee'])) { $leadBy[(string) $u['committee']][] = formal_name((string) $u['full_name']); } }
 $panelOn = $coms !== null || $smSum !== null || !empty($sm['spikes']) || !empty($sm['score']) || !empty($sm['times']);
 
 layout_head(t('Dashboard', 'Dashboard'), 'dashboard.php');
@@ -165,6 +169,9 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
   <header class="dh-greet"><h1><?= e($greet) ?><?= $first !== '' ? ', ' . e($first) : '' ?></h1>
     <p><?= e($now->format('l, F j')) ?> &middot; <?= e(t('here is what needs you today.', 'narito ang kailangan mo ngayon.')) ?></p></header>
   <span class="p-spacer"></span>
+  <?php if ($panelOn): $brainN = (int) (($smSum['urgent_waiting'] ?? 0) + ($smSum['high_waiting'] ?? 0)) + (int) $smRisk; ?>
+    <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($brainN > 0): ?><b class="ss-brain-n"><?= $brainN > 99 ? '99+' : $brainN ?></b><?php endif; ?></button>
+  <?php endif; ?>
   <form method="get">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></span>
       <input type="month" id="month" name="month" value="<?= e($month->format('Y-m')) ?>" data-autosubmit></label>
@@ -190,15 +197,15 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
         $peek[] = $smRisk . ' ' . t('may miss the deadline', 'maaaring lumampas sa oras');
     }
 ?>
-<section class="ss-panel" id="ss-panel" aria-label="SMART engine">
-  <button type="button" class="ss-panel-btn" id="ss-panel-btn" aria-expanded="false" aria-controls="ss-panel-body">
+<div class="ss-win-scrim" id="ss-win-scrim"></div>
+<aside class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
+  <header class="ss-win-head">
     <?= smart_logo(40) ?>
-    <span class="ss-panel-txt"><b><?= e(t('What the engine sees across open cases', 'Ang nakikita ng engine sa mga bukás na kaso')) ?></b>
-      <small><span class="ss-peek"><?= e(implode(' · ', $peek)) ?></span><span class="ss-thinkline"><?= e(t('Reading the open cases…', 'Binabasa ang mga bukás na kaso…')) ?></span></small></span>
-    <span class="ss-think" aria-hidden="true"><i></i><i></i><i></i></span>
-    <span class="ss-chev" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
-  </button>
-  <div class="ss-panel-body" id="ss-panel-body"><div class="ss-panel-in">
+    <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees', 'Ang nakikita ng engine')) ?></b>
+      <small><?= e(implode(' · ', $peek)) ?></small></div>
+    <button type="button" class="ss-win-x" id="ss-win-close" aria-label="<?= e(t('Close', 'Isara')) ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </header>
+  <div class="ss-win-body"><div class="ss-panel-in">
 <?php endif; ?>
 <?php if ($coms !== null) { $nm = $coms['needs_me']; $decide = (int) $nm['escalations'] + (int) $nm['to_place'] + (int) $nm['tanods']; } ?>
 <?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
@@ -245,8 +252,12 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
 </div>
 <?php endif; ?>
 <?php if ($panelOn): ?>
-  </div></div>
+<section class="ss-win-about" aria-labelledby="ss-about-t"><h3 id="ss-about-t"><?= e(t('About the charts', 'Tungkol sa mga tsart')) ?></h3>
+  <p class="p-eyebrow"><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></p><div class="dq-notes" id="notes-received"><p class="p-hint"><?= e(t('Reading the month…', 'Binabasa ang buwan…')) ?></p></div>
+  <p class="p-eyebrow"><?= e(t('Resolution efficiency', 'Bilis ng paglutas')) ?></p><div class="dq-notes" id="notes-efficiency"><p class="p-hint"><?= e(t('Reading the month…', 'Binabasa ang buwan…')) ?></p></div>
 </section>
+  </div></div>
+</aside>
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php endif; ?>
 
@@ -254,9 +265,7 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
 <div class="dh-grid">
   <section class="p-card dh-hero">
     <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
-      <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span>
-      <button type="button" class="dq-brain" data-chart="received" aria-expanded="false" aria-controls="notes-received" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_brain(24) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button></div>
-    <div class="dq-notes" id="notes-received" hidden></div>
+      <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span></div>
     <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="300" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
       <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
     <div class="dh-stats">
@@ -297,11 +306,11 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
     <div class="p-card-head"><h2><?= e(t('The committees', 'Ang mga komite')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="administrative-services.php"><?= e(t('Manage', 'Pamahalaan')) ?> &rarr;</a></div>
     <table class="ss-table dh-ctab"><thead><tr><th><?= e(t('Committee', 'Komite')) ?></th><th class="n"><?= e(t('Open', 'Bukas')) ?></th><th class="n"><?= e(t('Overdue', 'Lampas-oras')) ?></th></tr></thead><tbody>
     <?php foreach ((array) $coms['committees'] as $cr): ?>
-      <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><a href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><?= committee_pill((string) $cr['key']) ?></a>
+      <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><?php $ld = $leadBy[(string) $cr['key']] ?? []; ?><a class="dc-name" style="--cc:<?= e(committee_colour((string) $cr['key'])) ?>" href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><i aria-hidden="true"></i><span><b><?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?></b><small<?= $ld ? '' : ' class="dc-warn"' ?>><?= $ld ? e(t('Led by', 'Pinangungunahan ni')) . ' ' . e(implode(', ', $ld)) : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></small></span></a>
         <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $cr['open'] / $comMax * 100) ?>%;background:<?= e(committee_colour((string) $cr['key'])) ?>"></i></span></td>
         <td class="n"><?= (int) $cr['open'] ?></td><td class="n<?= (int) $cr['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $cr['overdue'] ?></td></tr>
     <?php endforeach; ?>
-      <tr class="p-click" data-href="cases.php?com=none"><td><a href="cases.php?com=none"><?= committee_pill(null) ?></a>
+      <tr class="p-click" data-href="cases.php?com=none"><td><a class="dc-name dc-none" style="--cc:var(--p-red)" href="cases.php?com=none"><i aria-hidden="true"></i><span><b><?= e(t('No committee yet', 'Wala pang komite')) ?></b><small><?= e(t('Nobody has these cases', 'Walang may hawak ng mga kasong ito')) ?></small></span></a>
         <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $coms['none']['open'] / $comMax * 100) ?>%;background:var(--p-red)"></i></span></td>
         <td class="n"><?= (int) $coms['none']['open'] ?></td><td class="n<?= (int) $coms['none']['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $coms['none']['overdue'] ?></td></tr>
     </tbody></table>
@@ -339,9 +348,7 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
           <?php endforeach; ?>
         </select></label>
     </form>
-    <button type="button" class="dq-brain" data-chart="efficiency" aria-expanded="false" aria-controls="notes-efficiency" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_brain(24) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button>
   </div>
-  <div class="dq-notes" id="notes-efficiency" hidden></div>
   <p class="p-hint p-eff-note"><?= e(t('Average hours taken to finish a complaint, against the hours its category was allowed. Below the dashed line is inside the SLA.',
                                      'Karaniwang oras bago matapos ang isang sumbong, kumpara sa oras na itinakda para sa kategorya nito. Ang nasa ilalim ng putol-putol na linya ay pasok sa SLA.')) ?>
     <?php if ($effCategory): ?><?= e(t('Showing ', 'Ipinapakita lamang ang ') . category_label($effCategory) . t(' only.', '.')) ?><?php endif; ?></p>
@@ -518,20 +525,20 @@ $_SESSION['dash_intro'] = true;
     }
     return out;
   }
-  document.querySelectorAll('.dq-brain').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var box = $('notes-' + b.dataset.chart), open = b.getAttribute('aria-expanded') === 'true';
-      b.setAttribute('aria-expanded', String(!open)); box.hidden = open;
-      if (open || box.dataset.done || !sb) { if (!sb) box.textContent = T('The engine cannot be reached right now.', 'Hindi maabot ang engine ngayon.'); return; }
-      box.innerHTML = '<p class="p-hint">' + T('Reading the month…', 'Binabasa ang buwan…') + '</p>'; b.classList.add('ss-busy');
-      sb.rpc('smart_chart_notes', { p_chart: b.dataset.chart, p_from: FROM, p_to: TO, p_category: b.dataset.chart === 'efficiency' ? CAT : null }).then(function (res) {
-        b.classList.remove('ss-busy');
-        if (res.error || !res.data) { box.innerHTML = '<p class="p-hint">' + T('The engine could not read this month.', 'Hindi nabasa ng engine ang buwang ito.') + '</p>'; return; }
-        box.dataset.done = '1';
-        box.innerHTML = '<ul>' + notesFor(b.dataset.chart, res.data).map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>';
+  // The engine's window explains both charts: its notes are read once, the first time it opens.
+  var notesLoaded = false;
+  function loadNotes() {
+    if (notesLoaded) return; notesLoaded = true;
+    ['received', 'efficiency'].forEach(function (chart) {
+      var box = $('notes-' + chart); if (!box) return;
+      if (!sb) { box.textContent = T('The engine cannot be reached right now.', 'Hindi maabot ang engine ngayon.'); return; }
+      sb.rpc('smart_chart_notes', { p_chart: chart, p_from: FROM, p_to: TO, p_category: chart === 'efficiency' ? CAT : null }).then(function (res) {
+        if (res.error || !res.data) { box.innerHTML = '<p class="p-hint">' + T('The engine could not read this month.', 'Hindi nabasa ng engine ang buwang ito.') + '</p>'; notesLoaded = false; return; }
+        box.innerHTML = '<ul>' + notesFor(chart, res.data).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
       });
     });
-  });
+  }
+  var brainBtn = $('ss-win-open'); if (brainBtn) brainBtn.addEventListener('click', loadNotes);
 
   function delta(now, was, goodWhenDown) {
     if (was === null || was === undefined) return '';

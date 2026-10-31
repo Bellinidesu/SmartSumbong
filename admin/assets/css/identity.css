@@ -119,3 +119,43 @@
 .id-on .dh-cat, .id-on .dh-status { display: flex; flex-direction: column; }
 .id-on .dh-cat .p-donut, .id-on .dh-status .p-donut { margin: auto; }
 @media (max-width: 1180px) { .id-on .dh-kpi > .ss-tile + .ss-tile { border-left: 0; border-top: 1px solid var(--p-line); } }
+
+/* ---- the SMART engine's window: one brain button in the header opens it from the right ---- */
+.ss-brain-btn {
+  position: relative; display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; cursor: pointer; color: var(--p-ink);
+  border: 2px solid transparent;
+  background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, linear-gradient(120deg, #356CF9, #FF9800, #EDFA04, #34C759, #356CF9) border-box;
+  box-shadow: 0 10px 22px -12px rgba(53,108,249,.7); transition: transform .15s ease, box-shadow .15s ease;
+}
+.ss-brain-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 26px -12px rgba(53,108,249,.85); }
+.ss-brain-btn:focus-visible { outline: 3px solid rgba(255,152,0,.6); outline-offset: 3px; }
+.ss-brain-n { position: absolute; top: -8px; right: -8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--p-red); color: #fff; font: 800 11.5px/22px Inter, sans-serif; text-align: center; box-shadow: 0 0 0 3px var(--p-bg); }
+.ss-win-scrim { position: fixed; inset: 0; z-index: 1200; background: color-mix(in srgb, #0A1440 48%, transparent); opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s .25s; }
+.ss-win-scrim.is-open { opacity: 1; visibility: visible; transition: opacity .25s ease; }
+.ss-win { position: fixed; top: 0; right: 0; bottom: 0; z-index: 1201; width: min(540px, 94vw); display: flex; flex-direction: column; background: var(--p-surface); box-shadow: var(--p-shadow-lg);
+  transform: translateX(100%); visibility: hidden; transition: transform .3s cubic-bezier(.2,.8,.2,1), visibility 0s .3s; }
+.ss-win.is-open { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.ss-win-head { display: flex; align-items: center; gap: 14px; padding: 18px 20px; color: #fff; background: linear-gradient(135deg, #141B34 0%, #0A2A6E 100%); }
+.ss-win-ttl b { display: block; font: 800 19px Urbanist, sans-serif; letter-spacing: -.01em; }
+.ss-win-ttl small { display: block; margin-top: 3px; font-size: 12.5px; opacity: .8; }
+.ss-win-x { margin-left: auto; flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
+.ss-win-x:hover { background: rgba(255,255,255,.22); }
+.ss-win-body { flex: 1; overflow-y: auto; padding: 18px 20px 32px; }
+.ss-win .ss-panel-in { padding: 0; overflow: visible; display: grid; gap: 16px; }
+.ss-win .ss-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ss-win .ss-two { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.ss-win .ss-stack { display: grid; gap: 14px; }
+.ss-win-about h3 { margin: 4px 0 8px; font: 800 17px Urbanist, sans-serif; }
+.ss-win-about .dq-notes ul { margin: 0 0 12px; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
+@media (prefers-reduced-motion: reduce) { .ss-win, .ss-win-scrim, .ss-brain-btn { transition: none; } }
+
+/* ---- the committees: a name that titles a row is never a pill; a colour bar, the name, who leads it, the load ---- */
+.dc-name { display: flex; align-items: center; gap: 12px; color: var(--p-ink); text-decoration: none; }
+.dc-name > i { flex: none; width: 4px; align-self: stretch; min-height: 32px; border-radius: 2px; background: var(--cc, var(--id-acc)); }
+.dc-name b { display: block; font: 700 14.5px/1.25 Urbanist, sans-serif; }
+.dc-name small { display: block; margin-top: 1px; font-size: 12px; color: var(--p-muted); }
+.dc-name small.dc-warn { color: var(--p-red); font-weight: 700; }
+.dh-ctab .dh-bar { margin: 8px 0 0 16px; }
+.dh-ctab td { padding-top: 10px; padding-bottom: 10px; }
+.dh-ctab td:first-child > a.dc-name { display: flex; max-width: 100%; }
+:root[data-theme="dark"] .id-on .dh-greet h1 { background: linear-gradient(100deg, var(--p-ink) 0%, var(--p-ink) 55%, color-mix(in srgb, var(--id-acc) 35%, #fff) 100%); -webkit-background-clip: text; background-clip: text; }
