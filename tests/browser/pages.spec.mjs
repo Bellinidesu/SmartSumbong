@@ -598,6 +598,7 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   expect(await axe(page), 'Report Summary, engine window open').toEqual([]);
   await page.keyboard.press('Escape');
   await expect(page.locator('#ss-panel')).toBeHidden();
+  await page.setViewportSize({ width: 1440, height: 1000 });   // below 1500 the sections are one strip across the top
   const bar = await page.evaluate(() => { const n = document.querySelector('#ss-jump').getBoundingClientRect(), c = document.querySelector('#rs-ledger').getBoundingClientRect(); return [Math.round(n.left), Math.round(n.right), Math.round(c.left), Math.round(c.right)]; });
   expect(Math.abs(bar[0] - bar[2]) <= 1 && Math.abs(bar[1] - bar[3]) <= 1, 'the tab bar spans the card below it, with no gap: ' + bar).toBe(true);
   expect(await page.locator('#rs-ledger tr.rs-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
@@ -631,6 +632,21 @@ test('Case Reports, peak: figures that link to their lists, the blue column head
   expect(names, 'no committee name is cut').toBe(0);
   await expect(page.locator('.cm-chips .cm-od').first(), 'a committee says how many of its cases are overdue').toContainText('overdue');
   expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('One rule on every list page: the answer across the top, the slices as a rail on the left, a square join of band and header', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'summary.php?range=month');
+  const g = await page.evaluate(() => { const n = document.querySelector('#ss-jump').getBoundingClientRect(), f = document.querySelector('.ss-sumkpis').getBoundingClientRect(), c = document.querySelector('#rs-ledger').getBoundingClientRect(); return { rail: [n.right, c.left, n.top, c.top], fig: f.bottom <= n.top }; });
+  expect(g.rail[0] <= g.rail[1] && Math.abs(g.rail[2] - g.rail[3]) <= 2, 'the sections are a rail beside the table, level with it: ' + g.rail).toBe(true);
+  expect(g.fig, 'the figures stay across the top, above the rail').toBe(true);
+  await page.locator('#ss-jump a[href="#rs-com"]').click();
+  await expect(page.locator('#rs-com')).toBeVisible();
+  const sq = async sel => page.evaluate(s => { const e = document.querySelector(s); return [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]; }, sel);
+  expect(await sq('#rs-com thead th:first-child'), 'the blue header has square top corners').toEqual(['0px', '0px']);
+  const c = await open(page, 'cases.php');
+  expect(await sq('.ss-cases-t thead th:first-child'), 'and on Case Reports').toEqual(['0px', '0px']);
+  expect(r.errors.concat(c.errors), 'console errors').toEqual([]);
 });
 
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {

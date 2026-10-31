@@ -492,6 +492,7 @@ $ledgerRows = array_slice($reports, ($lp - 1) * 15, 15);
 $refCount = count(array_filter($reports, fn($r) => !empty($r['referred_to'])));
 $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ?? '—', $logs)));
 ?>
+<div class="rs-layout">
 <nav class="ss-jump" id="ss-jump" aria-label="<?= e(t('On this page', 'Sa pahinang ito')) ?>">
   <a href="#rs-ledger" class="on"><?= e(t('Ledger', 'Talaan')) ?> <b><?= count($reports) ?></b></a>
   <a href="#rs-esc"><?= e(t('Escalations', 'Mga In-escalate')) ?> <b><?= $refCount ?></b></a>
@@ -499,6 +500,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
   <a href="#rs-tl"><?= e(t('Case timeline', 'Takbo ng Kaso')) ?> <b><?= $tlCount ?></b></a>
   <?php if ($overall): ?><a href="#rs-com"><?= e(t('By committee', 'Ayon sa komite')) ?> <b><?= count(committees_active()) ?></b></a><?php endif; ?>
 </nav>
+<div class="rs-main">
 <!-- ---------- Resident Report Ledger ---------- -->
 <div class="p-card p-table-card" id="rs-ledger" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Resident Report Ledger', 'Talaan ng mga Ulat ng Residente')) ?></h2><span class="p-spacer"></span><span class="p-hint"><?= count($reports) ?> <?= e(t(count($reports) === 1 ? 'complaint' : 'complaints', 'sumbong')) ?></span></div>
@@ -709,6 +711,8 @@ $tlTone = function (array $l): string {
   </table></div>
 </div>
 <?php endif; ?>
+</div>
+</div>
 
 <script>
 // The chips are tabs: one section at a time (without this script every section shows, as it always did). A pager link reloads the
