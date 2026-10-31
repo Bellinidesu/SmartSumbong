@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the committee strip, slim and seamless, 1 Nov)**
+- Ace: the strip should be as slim as Report Summary's tab strip, and seamless. On Case Reports and Notifications each
+  banner is now 54 px tall (it was about 75): the name, the overdue note on the same line, the count and the faint symbol.
+  The selected one is ringed inside its own cell (it used to lift and glow past the strip, onto the list), the list under the
+  strip on Notifications is square-topped and attached to it, and six banners fit one row at 1440.
+
 **Changed (Notifications, 1 Nov)**
 - Ace kept the live layout (the feed on the left, the work waiting on you and the engine's "Right now" reading in the column
   on the right), so there is no extra engine button here: the column is the engine's reading, and the engine's own

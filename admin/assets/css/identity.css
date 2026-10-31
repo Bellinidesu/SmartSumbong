@@ -511,3 +511,20 @@
 .page-notifications .nf-chips .cm-chip > .cm-bg { width: 84px; height: 84px; right: -8px; bottom: -20px; }
 /* the count on a Notifications banner, smaller than Case Reports' (the cells are narrower) */
 :root:root .p-body.page-notifications .nf-chips .cm-chip > b { font-size: 24px; }
+
+/* ================= the committee strip, slim and seamless: as tall as Report Summary's tab strip, nothing outside its cells ================= */
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip { min-height: 54px; padding: 6px 16px; gap: 10px; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym { display: none; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: 800 14px/1.2 Urbanist, sans-serif; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em:not(.cm-od) { display: none; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em.cm-od { padding: 1px 8px 1px 7px; font-size: 11px; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > b { font-size: 22px; }
+:is(.page-cases, .page-notifications) .cm-chip > .cm-bg { width: 72px; height: 72px; right: -2px; bottom: -22px; }
+:root:root .p-body.page-notifications .nf-chips .cm-chip { min-height: 54px; padding: 6px 14px; }
+:root:root .p-body.page-notifications .nf-chips .cm-chip > b { font-size: 20px; }
+/* the chosen banner is ringed inside its own cell: no lift, no glow, no overhang, so the strip stays one flat object */
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4px rgba(0,0,0,.16); transform: none; z-index: 1; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:hover, :root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:active { transform: none; }
+/* the list under the strip is square-topped and attached to it */
+:root:root .p-body.page-notifications .nf-chips ~ .p-notif-card { border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 0; }
+:root:root .p-body.page-cases .cm-chip { flex: 1 1 150px; }
