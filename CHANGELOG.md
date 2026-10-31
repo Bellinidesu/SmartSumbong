@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Residents and Personnel: banners, blue header, one seamless block, 1 Nov)**
+- Personnel's committee chips are the vibrant committee banners (Spatial Distribution colours and symbols, a count each),
+  under the orange band instead of above it. Residents' Status dropdown became a strip of banners with the same counts
+  (All, Pending, Verified, Overdue, Possible duplicate, Suspended); the counts follow the live refresh.
+- The orange band, the strip and the blue column header are one square, seamless block (no gap, no rounded notch).
+- Squares: cards are at least 300 wide, so six residents are two even rows, not five and a straggler.
+
 **Changed (the committee strip, slim and seamless, 1 Nov)**
 - Ace: the strip should be as slim as Report Summary's tab strip, and seamless. On Case Reports and Notifications each
   banner is now 54 px tall (it was about 75): the name, the overdue note on the same line, the count and the faint symbol.
