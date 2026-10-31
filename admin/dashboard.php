@@ -477,7 +477,7 @@ $_SESSION['dash_intro'] = true;
         '<ul>' + c.map(function (r) {
           var cm = r.committee && COMMITTEES[r.committee];
           return '<li><a href="case.php?id=' + encodeURIComponent(r.id) + '"><span class="p-mono-id">' + esc(r.tracking_id) + '</span><span class="dq-subj">' + esc(r.subject) + '</span>' +
-            (cm ? '<span class="cm-pill" style="--cc:' + cm.colour + '"><i></i>' + esc(cm.short) + '</span>' : '') +
+            (cm ? '<span class="cm-pill" title="' + esc(cm.short) + '" style="--cc:' + cm.colour + '"><i></i>' + esc(cm.short) + '</span>' : '') +
             '<span class="dq-when">' + esc(new Date(r.created_at).toLocaleDateString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { month: 'short', day: 'numeric' })) + '</span></a></li>';
         }).join('') + '</ul>' + (res.data.total > c.length ? '<p class="p-hint">' + T('Showing the newest ', 'Ipinapakita ang pinakabagong ') + c.length + T(' of ', ' sa ') + res.data.total + '.</p>' : '');
     });

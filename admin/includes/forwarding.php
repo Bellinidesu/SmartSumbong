@@ -23,12 +23,12 @@ function can_forward(): bool
 function committee_pill(?string $key, bool $awaiting = false): string
 {
     if ($awaiting) {
-        return '<span class="cm-pill cm-await" style="--cc:' . e(barangay()['super_colour'] ?? SUPER_BLUE) . '"><i></i>' . e(t('With the super admins', 'Nasa mga super admin')) . '</span>';
+        return '<span class="cm-pill cm-await" title="' . e(t('With the super admins', 'Nasa mga super admin')) . '" style="--cc:' . e(barangay()['super_colour'] ?? SUPER_BLUE) . '"><i></i>' . e(t('With the super admins', 'Nasa mga super admin')) . '</span>';
     }
     if ($key === null || $key === '' || !isset(committees_all()[$key])) {
-        return '<span class="cm-pill cm-none"><i></i>' . e(t('No committee', 'Walang komite')) . '</span>';
+        return '<span class="cm-pill cm-none" title="' . e(t('No committee', 'Walang komite')) . '"><i></i>' . e(t('No committee', 'Walang komite')) . '</span>';
     }
-    return '<span class="cm-pill" style="--cc:' . e(committee_colour($key)) . '"><i></i>' . e((string) committees_all()[$key]['short_en']) . '</span>';
+    return '<span class="cm-pill" title="' . e((string) committees_all()[$key]['short_en']) . '" style="--cc:' . e(committee_colour($key)) . '"><i></i>' . e((string) committees_all()[$key]['short_en']) . '</span>';
 }
 
 /** 0156: a small dot in the committee's colour before a notification about one of its cases. */

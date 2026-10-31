@@ -5,7 +5,8 @@
 /* ---- Case Reports ---- */
 .page-cases .ss-cases-t tbody td { height: 84px; padding-top: 8px; padding-bottom: 8px; vertical-align: middle; }
 .page-cases .ss-cases-t tbody td .p-badges { display: flex; flex-flow: column nowrap; align-items: flex-start; gap: 4px; }
-.page-cases .ss-cases-t tbody td .p-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.page-cases .ss-cases-t thead th { padding-left: 12px; padding-right: 12px; }
+.page-cases .ss-cases-t tbody td .cm-pill { justify-content: center; text-align: center; }
 .page-cases .fw-acts { display: inline-flex; gap: 8px; align-items: center; justify-content: flex-end; }
 .page-cases .fw-acts .p-btn { min-width: 78px; justify-content: center; }
 @media (max-width: 1700px) {   /* a narrower screen stacks the two buttons, still one width */
@@ -29,4 +30,4 @@
 /* the status card is as tall as the chart beside it: the donut sits in the middle, the legend and the hint at the foot */
 .page-dashboard .dh-status { display: flex; flex-direction: column; }
 .page-dashboard .dh-status .p-donut { margin: auto; }
-.page-cases .ss-cases-t td.ss-smart { padding-right: 20px; }
+.page-cases .ss-cases-t td.ss-smart { padding-left: 8px; padding-right: 8px; }

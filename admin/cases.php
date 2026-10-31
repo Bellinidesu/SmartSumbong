@@ -760,7 +760,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 
 <div class="p-card p-table-card"><div class="p-tscroll">
   <?php // 0159: column widths by name, so the optional columns (select, committee) never push the rest out of place
-  $cw = ['sel' => is_super() ? 3 : 0, 'id' => 12, 'cat' => 14, 'com' => sees_everything() ? 15 : 0, 'st' => 13, 'fil' => 7, 'smart' => 8, 'hnd' => 12, 'act' => 16];
+  $cw = ['sel' => is_super() ? 3 : 0, 'id' => 12, 'cat' => 14, 'com' => sees_everything() ? 14 : 0, 'st' => 13, 'fil' => 7, 'smart' => 9, 'hnd' => 12, 'act' => 16];
   $cwSum = array_sum($cw); ?>
   <table class="p-t ss-cases-t<?= sees_everything() ? ' ss-cases-wide' : '' ?>">
     <thead><tr>
@@ -921,7 +921,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   function committeePill(r) {
     if (r.awaiting_placement) return PILL_AWAIT;
     const c = r.case_committee && COMMITTEES[r.case_committee];
-    return c ? '<span class="cm-pill" style="--cc:' + c.colour + '"><i></i>' + escapeHtml(c.short) + '</span>' : PILL_NONE;
+    return c ? '<span class="cm-pill" title="' + escapeHtml(c.short) + '" style="--cc:' + c.colour + '"><i></i>' + escapeHtml(c.short) + '</span>' : PILL_NONE;
   }
   function forwardedTag(r) {
     const f = (r.forwards || []).find(x => x.kind === 'forward'); if (!f) return '';
