@@ -374,6 +374,24 @@ test('Administrators and Escalation, peak: position banners filter the table, on
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
+test('Control Room, peak: kinds of complaint are chips with who sees them, rules are sectioned with a save bar, hotlines are cards', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  const r = await open(page, 'control-room.php');
+  await expect(page.locator('#types-card details.ty-cat .ty-chip')).toHaveCount(8);
+  await expect(page.locator('#types-card .ty-own-none').first(), 'a kind of complaint nobody sees is called out').toBeVisible();
+  expect(await page.locator('#types-card .ty-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundColor === 'rgba(0, 0, 0, 0)').length), 'each chip is in its colour').toBe(0);
+  await page.locator('.st-tabs [data-st="rules"]').click();
+  await expect(page.locator('#rules-card .ru-group'), 'a card per group of limits').toHaveCount(4);
+  expect(await page.locator('#rules-card .ru-t thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'blue under the heading').toBe('rgb(0, 48, 143)');
+  await expect(page.locator('#rules-card .ru-bar .cmx-dirty-note'), 'nothing changed yet').toBeHidden();
+  await page.locator('#rules-card .ru-f input').first().fill('7');
+  await expect(page.locator('#rules-card .ru-bar .cmx-dirty-note')).toBeVisible();
+  expect(await page.locator('#rules-card .ru-bar').evaluate(e => getComputedStyle(e).position), 'the save bar stays in view').toBe('sticky');
+  await page.locator('.st-tabs [data-st="hotlines"]').click();
+  expect(await page.locator('#hotlines-card details.hl-g').first().evaluate(e => getComputedStyle(e).borderTopLeftRadius), 'a card each').not.toBe('0px');
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');
