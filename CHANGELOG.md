@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Fixed (Personnel duty tiles, 1 Nov)**
+- The On Duty, Lunch, Break and Offline tiles lost their colour fields under the identity layer, leaving white lettering on a white card.
+  They are green, orange, yellow and red again, in light and dark; a test now checks the field and the ink.
+
 **Changed (Residents and Personnel: banners, blue header, one seamless block, 1 Nov)**
 - Personnel's committee chips are the vibrant committee banners (Spatial Distribution colours and symbols, a count each),
   under the orange band instead of above it. Residents' Status dropdown became a strip of banners with the same counts
