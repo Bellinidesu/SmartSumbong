@@ -584,6 +584,21 @@ test('Case Reports: on a wide screen the search and the filters are one toolbar 
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Report Summary, peak: each figure says how it moved and shows its shape, one sentence says what it means, overdue rows are marked', async ({ page }) => {
+  const r = await open(page, 'summary.php?range=month');
+  await expect(page.locator('.ss-sumkpis .p-kpi')).toHaveCount(4);
+  await expect(page.locator('.ss-sumkpis .rs-chg').first()).toContainText(/before|new/);
+  expect(await page.locator('.ss-sumkpis svg.rs-spark').count(), 'a shape for the figures that have one').toBeGreaterThanOrEqual(3);
+  await expect(page.locator('.rs-story')).toContainText('of the');
+  await expect(page.locator('.rs-story')).toContainText('overdue');
+  expect(await page.locator('#rs-ledger tr.rs-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
+  const head = await page.locator('#rs-ledger thead th').first().evaluate(e => getComputedStyle(e).backgroundColor);
+  expect(head, 'the table header is quiet, not orange').not.toBe('rgb(255, 152, 0)');
+  const orange = await page.evaluate(() => [...document.querySelectorAll('.p-body.page-summary main *')].filter(e => { const c = getComputedStyle(e); return (c.backgroundColor === 'rgb(255, 152, 0)') && e.getBoundingClientRect().width > 150 && e.getBoundingClientRect().height > 30; }).length);
+  expect(orange, 'no large orange surface on the page').toBe(0);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);

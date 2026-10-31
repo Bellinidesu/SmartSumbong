@@ -9,6 +9,18 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Report Summary, peak, 1 Nov)**
+- Each figure says how it moved against the period before of the same length (▲ / ▼ with the percentage, or points
+  for the resolved share, or days for the resolution time; green when the move is good, red when it is not) and shows
+  its shape: filed, resolved and days taken per day (per few days for a long period); attendance shows a meter.
+- One sentence under the figures says what they mean ("21% of the 19 reports are resolved, down from 33%. 10 are
+  overdue, most of them with Peace and Order. 1 open case has no committee yet."), computed from the same rows.
+- Overdue rows in the ledger carry a red bar and tint, escalated ones a violet bar.
+- Orange is no longer everywhere on this page: the period bar is a quiet toolbar, the table headers are neutral
+  (small capitals on a ruled line), the active tab is ink; orange is the Apply button's neighbour, the PDF (the
+  report) and the pager. The spreadsheet button is the quiet one, with a green icon. The committee version keeps
+  its committee colour on the table header.
+
 **Changed (the pill system, 1 Nov)**
 - A pill now means something. In tables and lists a status is a dot and a word, with no fill (Validated, In
   progress, Resolved, Pending, the SMART level, a tanod's duty). Only what needs the eye keeps a fill: Overdue,
