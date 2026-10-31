@@ -684,6 +684,22 @@ test('Notifications keeps its live layout and wears the committee banners, joine
   }
 });
 
+test('Personnel duty tiles keep their colour fields, so their white lettering reads', async ({ page }) => {
+  for (const scheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.setViewportSize({ width: 2048, height: 1000 });
+    await open(page, 'personnel.php');
+    const tiles = await page.locator('.p-attendance .p-kpi').evaluateAll(ts => ts.map(t => ({ bg: getComputedStyle(t).backgroundImage, fg: getComputedStyle(t.querySelector('.p-label')).color, v: getComputedStyle(t.querySelector('.p-value')).color, d: getComputedStyle(t.querySelector('.p-delta')).color, brk: t.classList.contains('p-att-break') })));
+    expect(tiles.length).toBe(4);
+    for (const x of tiles) {
+      expect(x.bg, 'a colour field, not a white card (' + scheme + ')').toMatch(/^linear-gradient\(145deg/);
+      expect(x.fg, 'the label is the same ink as the number (' + scheme + ')').toBe(x.v);
+      expect(x.d, 'and the line under it (' + scheme + ')').toBe(x.v);
+      expect(x.v, 'white, or dark on the yellow Break tile').toBe(x.brk ? 'rgb(59, 42, 0)' : 'rgb(255, 255, 255)');
+    }
+  }
+});
+
 test('Residents and Personnel: the orange band, the banner strip and the blue header are one seamless, square block', async ({ page }) => {
   for (const [pg, banners] of [['residents.php', 6], ['personnel.php', 6]]) {
     for (const w of [2048, 1440]) {

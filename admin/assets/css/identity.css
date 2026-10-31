@@ -36,7 +36,15 @@
 .id-on .dh-kpi .ss-tile.hot { --tile-acc: var(--p-red); }
 .id-on .ss-k-total { --tile-acc: #356CF9; } .id-on .ss-k-res { --tile-acc: #34C759; } .id-on .ss-k-att { --tile-acc: #FF9800; } .id-on .ss-k-avg { --tile-acc: #7A5AE0; }
 /* the duty tiles on Personnel keep their own colour fields */
-.id-on .p-attendance .p-kpi { background: revert-layer; border-color: transparent; }
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--c) 78%, #fff), var(--c) 55%, color-mix(in srgb, var(--c) 70%, #000));
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--c) 40%, transparent), inset 0 1px 0 rgba(255,255,255,.35);
+}
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card:hover { box-shadow: 0 16px 34px color-mix(in srgb, var(--c) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card .p-label { color: #fff; text-transform: none; letter-spacing: 0; font-size: 13.5px; }
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card .p-delta { color: #fff; }
+:root:root .p-body.id-on nav.p-attendance a.p-att-break.p-card :is(.p-label, .p-value, .p-delta), :root:root .p-body.id-on nav.p-attendance a.p-att-break.p-card.p-kpi .p-label { color: #3B2A00; }
 
 /* ---- the orange band: the Figma band, with depth, a highlight edge and the contour lines ---- */
 .id-on .p-band {
