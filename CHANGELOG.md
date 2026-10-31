@@ -17,6 +17,8 @@ Changes on `main` not yet deployed belong here.
   the large faint symbol with its hover and press), joined to the orange band with no gap, seven in one equal row where they
   fit and in equal cells where they wrap. One shared source (`committee_sd_types`, `cm_banner_style`, `cm_sym_tag`,
   `committee_banner_script` in `includes/forwarding.php`) draws them on both pages.
+- Each Notifications banner shows how many notifications it holds, by the list's own rules (Unread or All, the search), so
+  the number is what the list shows when the banner is pressed; the counts refresh with the list when something arrives.
 
 **Changed (the committees follow the barangay's document, 1 Nov)**
 - 0159: the Barangay Anti-Drug Abuse Council is switched off. Only the three committees on the chairmanship document are

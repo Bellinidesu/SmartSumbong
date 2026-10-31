@@ -509,3 +509,5 @@
 :root:root .p-body.page-notifications .nf-chips .cm-chip { flex: none; min-height: 74px; padding: 10px 14px; }
 .page-notifications .nf-chips .cm-n { font-size: 14px; }
 .page-notifications .nf-chips .cm-chip > .cm-bg { width: 84px; height: 84px; right: -8px; bottom: -20px; }
+/* the count on a Notifications banner, smaller than Case Reports' (the cells are narrower) */
+:root:root .p-body.page-notifications .nf-chips .cm-chip > b { font-size: 24px; }

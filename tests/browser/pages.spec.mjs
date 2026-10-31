@@ -670,6 +670,15 @@ test('Notifications keeps its live layout and wears the committee banners, joine
     expect(await page.locator('.nf-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
     expect(r.errors, 'console errors').toEqual([]);
   }
+  // each banner's number is what its list shows when it is pressed
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  await open(page, 'notifications.php');
+  const keys = await page.locator('.nf-chips .cm-chip').evaluateAll(cs => cs.map(c => [c.dataset.nc, c.querySelector('b').textContent.trim()]));
+  expect(keys.length).toBe(7);
+  for (const [k, shown] of keys) {
+    await open(page, 'notifications.php' + (k ? '?ncom=' + k : ''));
+    expect(await page.locator('#notif-count').textContent(), 'the banner "' + (k || 'All') + '" says what its list holds').toBe(shown);
+  }
 });
 
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {

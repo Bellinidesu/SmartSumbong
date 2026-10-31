@@ -383,6 +383,14 @@ try {
     } elseif ($tab === 'notes') {
         $ncq = $nq; unset($ncq['select'], $ncq['order'], $ncq['limit'], $ncq['offset']);
         $notesTotal = $db->count('notifications', $ncq);
+        // each banner's count: the same rules as the list (Unread or All, the search), under the banner's own committee
+        $ncN = [];
+        if (sees_everything()) {
+            $nb = $nq; unset($nb['select'], $nb['order'], $nb['limit'], $nb['offset'], $nb['report_id'], $nb['notification_committee']);
+            $cq = ['all' => ['notifications', $nb], 'none' => ['notifications', $nb + ['report_id' => 'not.is.null', 'notification_committee' => 'is.null']], 'system' => ['notifications', $nb + ['report_id' => 'is.null']]];
+            foreach (committees_active() as $ck => $cl) { $cq[$ck] = ['notifications', $nb + ['notification_committee' => 'eq.' . $ck]]; }
+            try { $ncN = array_map(fn ($v) => is_int($v) ? $v : 0, $db->selectMany($cq, true)); } catch (SupabaseError) { $ncN = []; }
+        }
     }
 
     // The SMART queue (0129): every open case by priority with its next action. Failure here must not break the page.
@@ -516,12 +524,12 @@ $noteBadge = $notesUnread + $escCount;
     $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
 <?php $sdTypes = committee_sd_types($db); ?>
 <nav class="cm-chips nf-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
-  <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span></a>
+  <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>" data-nc=""><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= (int) ($ncN['all'] ?? 0) ?></b></a>
   <?php foreach (committees_active() as $ck => $cl): ?>
-    <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span></a>
+    <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>" data-nc="<?= e($ck) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= (int) ($ncN[$ck] ?? 0) ?></b></a>
   <?php endforeach; ?>
-  <a class="cm-chip cm-chip-none<?= $nCom === 'none' ? ' p-on' : '' ?>" href="<?= e($ncHref('none')) ?>"<?= $nCom === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span></a>
-  <a class="cm-chip cm-chip-sys<?= $nCom === 'system' ? ' p-on' : '' ?>" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?> title="<?= e(t('System', 'Sistema')) ?>"><i class="cm-sym cm-sym-sys">S</i><span class="cm-n"><?= e(t('System', 'Sistema')) ?></span></a>
+  <a class="cm-chip cm-chip-none<?= $nCom === 'none' ? ' p-on' : '' ?>" href="<?= e($ncHref('none')) ?>"<?= $nCom === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>" data-nc="none"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b><?= (int) ($ncN['none'] ?? 0) ?></b></a>
+  <a class="cm-chip cm-chip-sys<?= $nCom === 'system' ? ' p-on' : '' ?>" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?> title="<?= e(t('System', 'Sistema')) ?>" data-nc="system"><i class="cm-sym cm-sym-sys">S</i><span class="cm-n"><?= e(t('System', 'Sistema')) ?></span><b><?= (int) ($ncN['system'] ?? 0) ?></b></a>
 </nav>
 <?= committee_banner_script() ?>
 <?php endif; ?>
@@ -1263,6 +1271,21 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     if (window.ssPaintOpen) window.ssPaintOpen();
   }
 
+  // the banners' counts, by the same rules as the list (Unread or All, the search), so a count is what its banner shows when pressed
+  function refreshBannerCounts() {
+    document.querySelectorAll('.nf-chips .cm-chip[data-nc]').forEach(async chip => {
+      const k = chip.dataset.nc;
+      let q = sb.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', ADMIN_ID).neq('kind', 'inbox_mail')
+        .not('message', 'like', 'SMART: recurring*').not('message', 'like', 'SMART: spike*').not('message', 'like', 'SMART:*has had no update for*');
+      q = N_SEARCH ? q.ilike('message', '*' + N_SEARCH.replace(/[,()"\\*]/g, ' ') + '*') : (N_ALL ? q : q.eq('is_read', false));
+      if (k === 'system') q = q.is('report_id', null);
+      else if (k === 'none') q = q.not('report_id', 'is', null).is('notification_committee', null);
+      else if (k) q = q.eq('notification_committee', k);
+      const { count, error } = await q;
+      const b = chip.querySelector('b'); if (!error && count != null && b) b.textContent = String(count);
+    });
+  }
+
   async function loadNotifications() {
     let nq = sb.from('notifications')
       .select('id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role),notification_committee', { count: 'exact' })
@@ -1281,6 +1304,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     const { data, error, count } = await nq;
     if (error) return;
     renderNotifications(data || []);
+    refreshBannerCounts();
     const np = document.getElementById('notes-pager');
     if (np) np.innerHTML = pagerHtml(count == null ? (data || []).length : count, NPAGE, 'npage');
   }
