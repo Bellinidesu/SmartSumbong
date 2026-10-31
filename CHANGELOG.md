@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Control Room: Complaint types, Rules, Emergency numbers, 1 Nov)**
+- Complaint types: each kind is a chip in its colour and symbol, with which committees see it (red when none does); categories are cards. Rules: a card per group of limits under plain headings, blue-header deadlines, a pause switch that turns red while on, and a save bar that stays in view and says when something is unsaved. Emergency numbers: the same cards.
+
 **Changed (Administrative Services > Administrators and Escalation, 1 Nov)**
 - Administrators: the position menu is a strip of banners with counts (Chairman, Councilor, Secretary, Staff) that filters the table; the band, the strip and the blue-header table are one seamless block.
 - Escalation: each kind of complaint is a chip in its colour and symbol; the tables sit under blue headers; Women responders has a pink banner of its own, marking it as a specialised group.

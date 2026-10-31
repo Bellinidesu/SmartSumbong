@@ -136,3 +136,31 @@
 .wr-banner .pc-gn { white-space: normal; font: 600 12.5px Inter, sans-serif; }
 :root:root .p-body.page-administrative-services .wr-banner + .ss-adm { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
 :root:root .p-body.page-administrative-services .wr-banner + .ss-adm thead th { border-radius: 0; }
+
+/* ================= Control Room: complaint types, rules and hotlines read as cards with plain headings ================= */
+.cmx-h { margin: 0 0 6px; font: 800 20px/1.25 Urbanist, sans-serif; letter-spacing: -.01em; color: var(--p-ink); }
+.ru-lh { margin: 6px 0 0; }
+.cmx-page .p-hint { max-width: 78ch; line-height: 1.55; font-size: 14px; }
+.ty-cat { border: 1px solid var(--p-line); border-radius: 14px; margin: 0 0 10px; background: var(--p-surface); overflow: hidden; }
+.ty-cat > summary { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 16px; cursor: pointer; list-style: none; }
+.ty-cat > summary::-webkit-details-marker { display: none; }
+.ty-cat > summary:hover { background: color-mix(in srgb, var(--p-orange, #FF9800) 6%, transparent); }
+.ty-cat[open] > summary { border-bottom: 1px solid var(--p-line); background: var(--p-surface-2); }
+.ty-cat > summary::after { content: ""; margin-left: 4px; width: 8px; height: 8px; border-right: 2px solid var(--p-muted); border-bottom: 2px solid var(--p-muted); transform: rotate(45deg); transition: transform .15s; flex: none; }
+.ty-cat[open] > summary::after { transform: rotate(-135deg); }
+.ty-cat > summary small { margin-left: auto; color: var(--p-muted); font-weight: 600; }
+.ty-cat > .ty-row, .ty-cat > .ty-opts, .ty-cat > .hl-row, .ty-cat > .ty-cat { margin-left: 16px; margin-right: 16px; }
+.ty-cat > .ty-row { margin-top: 14px; } .ty-cat > .ty-opts:last-child { margin-bottom: 14px; }
+.ty-chip { height: 30px; cursor: inherit; } .ty-chip b { font-weight: 700; }
+.ty-own { font-style: normal; font: 600 12.5px Inter, sans-serif; color: var(--p-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ty-own-none { color: var(--p-red, #C62828); }
+.ru-form { display: grid; gap: 16px; }
+.ru-form .ru-group { margin: 0; }
+.ru-form .ru-gh { margin: 0 0 12px; font: 800 16px Urbanist, sans-serif; }
+:root:root .p-body .ru-t thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; }
+.ru-pause-on { border-color: var(--p-red, #C62828); background: color-mix(in srgb, var(--p-red, #C62828) 6%, var(--p-surface)); }
+.ru-sw { align-items: flex-start; font-weight: 600; line-height: 1.45; }
+.ru-sw i { flex: none; margin-top: 2px; }
+.ru-bar { position: sticky; bottom: 14px; z-index: 5; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 10px 14px; border: 1px solid var(--p-line); border-radius: 14px; background: color-mix(in srgb, var(--p-surface) 92%, transparent); backdrop-filter: blur(6px); box-shadow: 0 10px 30px -12px rgba(20,27,52,.3); }
+.ru-form.cmx-dirty .ru-bar { border-color: var(--p-orange, #FF9800); }
+.ru-form .cmx-dirty-note { margin-left: 0; }

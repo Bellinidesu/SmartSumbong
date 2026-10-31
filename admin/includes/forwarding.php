@@ -238,3 +238,19 @@ function committee_fade(string $ck, array $sdTypes, string $label): string
 {
     return '<div class="cm-chips pd-fadewrap" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="' . e(cm_banner_style($ck, $sdTypes)) . '">' . cm_sym_tag($ck, $sdTypes, $label) . '</a></div>';
 }
+
+/** Draws the Spatial Distribution symbols inside complaint-type chips (`svg.cmx-ti[data-ic]`). */
+function sd_chip_script(): string
+{
+    return '<script src="assets/js/sd-icons.js?v=' . e(asset_version('../js/sd-icons.js')) . '"></script>' . <<<'JS'
+<script>
+(function () {
+  var I = window.SD_ICONS || {};
+  document.querySelectorAll('.cmx-ti').forEach(function (s) {
+    s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
+    s.innerHTML = I[s.dataset.ic] || I.other || '';
+  });
+})();
+</script>
+JS;
+}
