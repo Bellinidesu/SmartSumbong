@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Case Reports: a rail beside one object, 1 Nov)**
+- Ace: the committee strip looked disjointed. The register is restructured: a left rail holds the views (Needs attention,
+  Nobody has it, No committee yet, Open now, each with its count) and the committees (a colour bar, the whole name, how many
+  of its cases are overdue, the count); the orange band over the blue-headed table is one object beside it. The four-figure
+  band above and the strip between the band and the table are gone.
+- Under 1500 px the rail lies above as one compact wrapping strip, so no name is ever cut and the table starts sooner.
+- The one-line toolbar now waits for 2500 px (the rail takes width); below that the filters are two rows, as in Figma.
+- A case's "Forwarded from" tag and its place stay on one line with the whole text on hover, so every row is one height.
+
 **Changed (Case Reports, peak, 1 Nov)**
 - The page opens with an answer: one band of four figures, each a link to the list it counts: Needs attention (late, asked
   again, waiting for approval), Nobody has it (open with no handler), No committee yet (a committee's admin sees Forwarded

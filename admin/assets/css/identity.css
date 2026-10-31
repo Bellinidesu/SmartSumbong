@@ -317,19 +317,6 @@
 @media (max-width: 1000px) { .rs-tl-split { grid-template-columns: 1fr; } .rs-tl-pick { border-right: 0; border-bottom: 1px solid var(--p-line); } }
 
 /* ================= Case Reports, peak: an answer before the list; the Figma pair; the rows that matter marked ================= */
-.cr-fig {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 0 16px; overflow: hidden; border: 1px solid transparent; border-radius: 18px;
-  background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
-  box-shadow: 0 1px 2px rgba(20,27,52,.05), 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 50%, transparent);
-}
-:root:root .p-body .cr-fig > a.p-card { display: grid; gap: 4px; align-content: start; padding: 18px 24px; min-width: 0; text-decoration: none; color: var(--p-ink); background: transparent; border: 0; border-radius: 0; box-shadow: none; transform: none; }
-:root:root .p-body .cr-fig > a.p-card + a.p-card { border-left: 1px solid var(--p-line); }
-:root:root .p-body .cr-fig > a.p-card:hover { background: color-mix(in srgb, var(--id-acc) 5%, transparent); transform: none; }
-.cr-fig .ss-tile > span { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
-.cr-fig .ss-tile b { font: 800 40px/1 Urbanist, sans-serif; letter-spacing: -.025em; }
-.cr-fig .ss-tile.hot b { color: var(--p-red); }
-.cr-fig .ss-tile small { font-size: 12.5px; line-height: 1.35; color: var(--p-muted); }
-@media (max-width: 1100px) { .cr-fig { grid-template-columns: repeat(2, minmax(0, 1fr)); } :root:root .p-body .cr-fig > a.p-card:nth-child(3) { border-left: 0; } :root:root .p-body .cr-fig > a.p-card:nth-child(n+3) { border-top: 1px solid var(--p-line); } }
 /* the column header under the orange band is the Figma blue */
 :root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
 :root:root .p-body.page-cases .ss-cases-t thead th :is(a, .p-th-sort, .p-th-sort:hover) { color: #fff; }
@@ -338,3 +325,61 @@
 .page-cases tr.cr-ref > td:first-child { box-shadow: inset 4px 0 0 var(--p-violet-fg); }
 .page-cases tr.cr-od > td { background: color-mix(in srgb, var(--p-red) 5%, transparent); }
 .page-cases tr.cr-ref > td { background: color-mix(in srgb, var(--p-violet-fg) 5%, transparent); }
+
+/* ================= Case Reports: a rail of views and committees beside one object (the orange band over the blue-headed table) ================= */
+.cr-layout { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 20px; align-items: start; }
+.cr-main { min-width: 0; }
+.cr-rail {
+  position: sticky; top: 16px; display: grid; gap: 0; overflow: hidden; padding-bottom: 6px;
+  background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box; border: 1px solid transparent; border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(20,27,52,.05), 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 50%, transparent);
+}
+.cr-rail-h { margin: 0; padding: 16px 20px 8px; }
+.cr-rail-h ~ .cr-rail-h { border-top: 1px solid var(--p-line); margin-top: 6px; padding-top: 18px; }
+/* the views: what needs you, as rows with a count */
+.cr-fig { display: grid; }
+:root:root .p-body .cr-fig > a.p-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; grid-template-areas: "l n" "s n"; column-gap: 12px; row-gap: 1px; align-content: center; align-items: center;
+  padding: 11px 20px; min-width: 0; text-decoration: none; color: var(--p-ink); background: transparent; border: 0; border-radius: 0; box-shadow: none; transform: none;
+}
+:root:root .p-body .cr-fig > a.p-card:hover { background: color-mix(in srgb, var(--id-acc) 6%, transparent); transform: none; }
+.cr-fig .ss-tile > span:first-child { grid-area: l; min-height: 0; font: 700 13.5px/1.25 Urbanist, sans-serif; letter-spacing: 0; text-transform: none; color: var(--p-ink); }
+.cr-fig .ss-tile > small { grid-area: s; font-size: 12px; line-height: 1.35; color: var(--p-muted); }
+.cr-fig .ss-tile > b { grid-area: n; font: 800 26px/1 Urbanist, sans-serif; letter-spacing: -.02em; }
+.cr-fig .ss-tile.hot > b { color: var(--p-red); }
+/* the committees: a colour bar, the whole name, how many are overdue, the count */
+:root:root .p-body.page-cases .cm-chips { display: grid; gap: 0; margin: 0; overflow: visible; background: none; border: 0; border-radius: 0; }
+:root:root .p-body.page-cases .cm-chip {
+  display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 52px; padding: 8px 20px; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; text-decoration: none; color: var(--p-ink);
+}
+:root:root .p-body.page-cases .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 7%, transparent); }
+:root:root .p-body.page-cases .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 11%, transparent); box-shadow: inset 4px 0 0 var(--cc, var(--p-ink)); }
+:root:root .p-body.page-cases .cm-chip > i { width: 4px; height: 30px; border-radius: 2px; background: var(--cc, var(--p-ink)); }
+.page-cases .cm-chip:first-child { --cc: var(--p-ink); }
+.page-cases .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Urbanist, sans-serif; white-space: normal; overflow-wrap: anywhere; }
+.page-cases .cm-chip .cm-n em { font: 600 11.5px Inter, sans-serif; font-style: normal; color: var(--p-muted); }
+.page-cases .cm-chip .cm-n em.cm-od { color: var(--p-red); font-weight: 700; }
+:root:root .p-body.page-cases .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 20px Urbanist, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
+/* the band and the table are one object, with no strip between them */
+.page-cases .ss-cr-band { border-radius: 16px 16px 0 0; margin-bottom: 0; }
+.page-cases .cr-main > .p-table-card { border-radius: 0 0 16px 16px; margin-top: 0; }
+.page-cases .cr-main > .fw-bulk { margin: 10px 0; }
+/* a narrower screen: the rail lies above as one compact strip that wraps, so no name is ever cut and the table is not pushed far down */
+@media (max-width: 1500px) {
+  .cr-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .cr-rail { position: static; display: grid; padding: 8px; gap: 6px; border-radius: 16px; }
+  .cr-rail-h { display: none; }
+  .cr-rail .cr-fig, :root:root .p-body.page-cases .cr-rail .cm-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 6px; }
+  :root:root .p-body .cr-fig > a.p-card, :root:root .p-body.page-cases .cm-chip { min-height: 48px; padding: 7px 14px; border-radius: 12px; border: 1px solid var(--p-line); }
+  :root:root .p-body .cr-fig > a.p-card { grid-template-areas: "l n"; grid-template-rows: auto; }
+  .cr-fig .ss-tile > small { display: none; }
+  .cr-fig .ss-tile > b { font-size: 20px; }
+  :root:root .p-body.page-cases .cm-chip > i { height: 26px; }
+  :root:root .p-body.page-cases .cm-chip.p-on { box-shadow: inset 0 0 0 2px var(--cc, var(--p-ink)); }
+  .page-cases .cm-chip .cm-n em { display: none; }
+  .page-cases .cm-chip .cm-n em.cm-od { display: block; }
+}
+
+/* a case's tag and place stay on one line (the whole text on hover) so every row is one height */
+.page-cases .ss-cases-t td .cm-fwd, .page-cases .ss-cases-t td .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
