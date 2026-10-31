@@ -1114,12 +1114,21 @@ function account_status_pills(array $a, bool $withDuty = true): string
     return implode(' ', $out);
 }
 
+/** A one-click copy button for a value an admin reads out or pastes (a number, an address, a tracking ID). Wired by the script on the account pages. */
+function copy_btn(string $value, string $label): string
+{
+    if ($value === '' || $value === '—') return '';
+    return '<button type="button" class="cp-btn" data-copy="' . e($value) . '" aria-label="' . e(sprintf(t('Copy %s', 'Kopyahin ang %s'), $label)) . '" title="' . e(sprintf(t('Copy %s', 'Kopyahin ang %s'), $label)) . '">'
+        . '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>';
+}
+
 function render_account_detail(
     array $p, string $noun, string $idLabel,
     string $self, string $navFile, string $title, ?array $flash, array $dupes = [],
     array $abuseHistory = [], string $role = 'resident', ?array $duty = null, ?array $tcRow = null
 ): void {
     $pending = $p['verification_status'] === 'pending';
+    $tab0 = $pending ? 'documents' : 'overview';   // a registration waiting for review opens on the ID it is judged by
     $nounLabel = $noun === 'Tanod' ? 'Tanod' : t('Resident', 'Residente');
 
     layout_head($title, $navFile);
@@ -1168,7 +1177,7 @@ function render_account_detail(
     </div>
 
     <div class="p-profile-grid">
-      <div class="p-grid pd-grid">
+      <div class="p-grid pd-grid" id="pd-grid" data-tab="<?= e($tab0) ?>">
         <div class="p-card p-card-pad pd-head">
         <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e(formal_name($p['full_name'])) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
 
@@ -1198,12 +1207,17 @@ function render_account_detail(
           <p class="p-eyebrow"><?= e(t('Account Details', 'Detalye ng Account')) ?></p>
           <dl class="p-dl">
             <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(formal_name($p['full_name'])) ?></dd>
-            <dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?></dd>
-            <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?></dd>
+            <dt><?= e(t('Email address', 'Email address')) ?></dt><dd><?= e($p['email']) ?><?= copy_btn((string) ($p['email'] ?? ''), t('the email', 'ang email')) ?></dd>
+            <dt><?= e(t('Mobile number', 'Mobile number')) ?></dt><dd class="p-mono"><?= e($p['mobile_number']) ?><?= copy_btn((string) ($p['mobile_number'] ?? ''), t('the number', 'ang numero')) ?></dd>
             <dt><?= e(t('Registered', 'Nagparehistro')) ?></dt><dd><?= e(long_datetime($p['created_at'])) ?></dd>
           </dl>
         </div>
 
+        <nav class="st-tabs pd-tabs" role="tablist" aria-label="<?= e(t('Sections of this account', 'Mga seksyon ng account na ito')) ?>">
+          <button type="button" class="st-link<?= $tab0 === 'overview' ? ' p-on' : '' ?>" role="tab" data-tab="overview" aria-selected="<?= $tab0 === 'overview' ? 'true' : 'false' ?>"><?= e(t('Overview', 'Buod')) ?></button>
+          <?php if ($duty): ?><button type="button" class="st-link" role="tab" data-tab="dispatches" aria-selected="false"><?= e(t('Dispatches', 'Mga dispatch')) ?><b class="pd-tn"><?= count($duty['recent']) ?></b></button><?php endif; ?>
+          <button type="button" class="st-link<?= $tab0 === 'documents' ? ' p-on' : '' ?>" role="tab" data-tab="documents" aria-selected="<?= $tab0 === 'documents' ? 'true' : 'false' ?>"><?= e(t('Documents', 'Mga dokumento')) ?></button>
+        </nav>
         <?php if ($tcRow !== null) { render_tc_card($p, $tcRow); } ?>
 
         <?php if ($duty): $st = $duty['stats']; ?>
@@ -1243,7 +1257,7 @@ function render_account_detail(
               <?php foreach ($duty['recent'] as $d): ?>
                 <?php $state = (string) ($d['state'] ?? ''); ?>
                 <tr<?= !empty($d['report']['id']) ? ' class="p-click" data-href="case.php?id=' . e($d['report']['id']) . '"' : '' ?>>
-                  <td><span class="p-mono-id"><?= e($d['report']['tracking_id'] ?? '—') ?></span></td>
+                  <td><span class="p-mono-id"><?= e($d['report']['tracking_id'] ?? '—') ?></span><?= copy_btn((string) ($d['report']['tracking_id'] ?? ''), t('the tracking ID', 'ang tracking ID')) ?></td>
                   <td class="p-num"><?= e(long_datetime($d['assigned_at'])) ?></td>
                   <td class="p-num"><?= !empty($d['accepted_at']) ? e(long_datetime($d['accepted_at'])) : '<span class="p-over">' . e(t('Not accepted', 'Hindi tinanggap')) . '</span>' ?></td>
                   <td><span class="p-badge <?= match ($state) { 'resolved' => 'p-b-done', 'accepted' => 'p-b-progress', 'assigned' => 'p-b-pending', default => 'p-b-grey' } ?>"><?= e(status_label($state)) ?></span></td>
@@ -1520,6 +1534,28 @@ function render_account_detail(
       </aside>
     </div>
 
+    <script>
+    (function () {
+      var grid = document.getElementById('pd-grid'); if (!grid) return;
+      var tabs = [].slice.call(document.querySelectorAll('.pd-tabs [data-tab]'));
+      function show(k) {
+        if (!tabs.some(function (b) { return b.dataset.tab === k; })) return;
+        grid.dataset.tab = k;
+        tabs.forEach(function (b) { var on = b.dataset.tab === k; b.classList.toggle('p-on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      }
+      tabs.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.tab); try { history.replaceState(null, '', '#' + b.dataset.tab); } catch (e) {} }); });
+      if (location.hash) show(location.hash.slice(1));
+    })();
+    // a copy button copies its value and says so for a moment; on a clickable row it does not open the row
+    document.addEventListener('click', function (ev) {
+      var b = ev.target.closest && ev.target.closest('.cp-btn'); if (!b) return;
+      ev.stopPropagation(); ev.preventDefault();
+      var v = b.getAttribute('data-copy') || '';
+      function done() { b.classList.add('cp-done'); setTimeout(function () { b.classList.remove('cp-done'); }, 1200); }
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(v).then(done, function () {}); }
+      else { var t = document.createElement('textarea'); t.value = v; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) {} t.remove(); }
+    }, true);
+    </script>
     <script>
     // The two-hour window is the point of this screen, so it ticks rather
     // than reporting what was true when the page happened to load.

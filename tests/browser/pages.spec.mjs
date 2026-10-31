@@ -548,7 +548,10 @@ test('An account\'s page: two columns of cards, one height per row, the controls
   expect(Math.abs(c[3] - b[3]), 'details and the shift stack down the left as tall as the committees card').toBeLessThanOrEqual(2);
   expect(Math.abs(a[3] + 20 - c[0]), 'with the grid gap between them').toBeLessThanOrEqual(2);
   expect(b[1], 'two columns').toBeGreaterThan(a[1] + 100);
-  expect(d[0], 'the ID starts under both').toBeGreaterThan(b[3]);
+  await expect(page.locator('.pd-id'), 'the ID waits on its own tab').toBeHidden();
+  await page.locator('.pd-tabs [data-tab="documents"]').click();
+  await expect(page.locator('.pd-id')).toBeVisible();
+  await expect(page.locator('.pd-details'), 'and the overview steps aside').toBeHidden();
   expect(await page.locator('.p-profile-grid > .p-controls').evaluate(e => getComputedStyle(e).position), 'the controls stay in view').toBe('sticky');
   const h = await page.evaluate(() => document.documentElement.scrollHeight);
   expect(h, 'a tanod page is no longer a tower of cards (was 1412+ px at 2048 with no dispatches)').toBeLessThan(1500);
@@ -752,8 +755,19 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   const r = await open(page, 'personnel.php?id=u2');
   await expect(page.locator('.pd-fig > div')).toHaveCount(4);
   await expect(page.locator('.pd-duty .p-duty-grid'), 'the figures left the Duty card').toHaveCount(0);
+  await expect(page.locator('.pd-tabs [data-tab]'), 'Overview, Dispatches, Documents').toHaveCount(3);
+  await expect(page.locator('#pd-grid')).toHaveAttribute('data-tab', 'overview');
+  await expect(page.locator('.pd-recent'), 'the dispatches wait on their tab').toBeHidden();
   const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.pd-tcb'), f = R('#tc-card'); return { w: Math.round(b.width), cardW: Math.round(f.width), bg: getComputedStyle(document.querySelector('.pd-tcb .cm-chip')).backgroundImage, th: getComputedStyle(document.querySelector('.pd-recent thead th')).backgroundColor, bandBottom: Math.round(R('.pd-recent .pd-band').bottom), headTop: Math.round(R('.pd-recent thead').top) }; });
   expect(g.w, 'the committee banner spans its card').toBeGreaterThan(g.cardW - 60);
+  await expect(page.locator('.pd-details .cp-btn'), 'copy buttons on the email and the number').toHaveCount(1);   // this account has no email on file
+  await page.locator('.pd-tabs [data-tab="dispatches"]').click();
+  await expect(page.locator('.pd-recent')).toBeVisible();
+  const gg = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { th: getComputedStyle(document.querySelector('.pd-recent thead th')).backgroundColor, bandBottom: Math.round(R('.pd-recent .pd-band').bottom), headTop: Math.round(R('.pd-recent thead').top) }; });
+  g.th = gg.th; g.bandBottom = gg.bandBottom; g.headTop = gg.headTop;
+  const here = page.url();
+  await page.locator('.pd-recent .cp-btn').first().click();
+  expect(page.url(), 'copying a tracking ID does not open the row').toBe(here);
   expect(g.bg, 'in the committee colours').toContain('gradient');
   expect(g.th, 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
   expect(Math.abs(g.bandBottom - g.headTop), 'joined').toBeLessThanOrEqual(1);
@@ -765,7 +779,8 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   await expect(page.locator('.pd-head h2')).toContainText('Santos');
   await expect(page.locator('.pd-fig > div')).toHaveCount(4);
   await expect(page.locator('.pd-staffcom .cm-chip')).toHaveCount(1);
-  await expect(page.locator('.pd-recent tbody tr')).toHaveCount(7);
+  await expect(page.locator('.tl-day')).toHaveCount(7);
+  await expect(page.locator('.tl-day').first()).toContainText('Signed in');
   expect(await axe(page), 'Staff account').toEqual([]);
 });
 

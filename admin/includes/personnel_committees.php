@@ -361,17 +361,23 @@ function render_staff_profile(Supabase $db, string $id): void
           <?= committee_banner_script() ?>
         </div>
         <?php endif; ?>
-        <div class="p-card p-table-card pd-recent">
-          <div class="p-band ss-pband pd-band"><h2><?= e(t('Punch card', 'Punch card')) ?><span class="p-badge-n p-badge-n--quiet"><?= count($days) ?></span></h2></div>
-          <div class="p-tscroll"><table class="p-t">
-            <thead><tr><th scope="col"><?= e(t('Day', 'Araw')) ?></th><th scope="col"><?= e(t('In', 'Pasok')) ?></th><th scope="col"><?= e(t('Out', 'Labas')) ?></th><th scope="col"><?= e(t('Cases touched', 'Mga kasong hinawakan')) ?></th></tr></thead>
-            <tbody>
-            <?php foreach ($days as $d): $no = empty($d['first_in']); ?>
-              <tr<?= $no ? ' class="pc-offday"' : '' ?>><td><?= e((new DateTimeImmutable((string) $d['day']))->format('D, M j')) ?></td><td class="p-num"><?= e(punch_time($d['first_in'] ?? null)) ?></td><td class="p-num"><?= e(punch_time($d['last_out'] ?? null)) ?></td>
-                <td><?= (int) ($d['touched'] ?? 0) ?><?php if (!empty($d['cases'])): ?> <span class="p-sub"><?= e(implode(', ', array_slice((array) $d['cases'], 0, 6))) ?><?= count((array) $d['cases']) > 6 ? '…' : '' ?></span><?php endif; ?></td></tr>
-            <?php endforeach; ?>
-            </tbody>
-          </table></div>
+        <div class="p-card p-table-card pd-recent pd-tl">
+          <div class="p-band ss-pband pd-band"><h2><?= e(t('Activity', 'Aktibidad')) ?><span class="p-badge-n p-badge-n--quiet"><?= count($days) ?></span></h2></div>
+          <ol class="tl">
+          <?php foreach ($days as $n => $d): $in = !empty($d['first_in']); $out = !empty($d['last_out']); $tc = (int) ($d['touched'] ?? 0);
+                $dt = new DateTimeImmutable((string) $d['day']); ?>
+            <li class="tl-day<?= $in ? '' : ' tl-off' ?>">
+              <time datetime="<?= e($dt->format('Y-m-d')) ?>"><b><?= e($dt->format('D')) ?></b><span><?= e($dt->format('M j')) ?></span><?= $n === 0 ? '<em>' . e(t('Today', 'Ngayon')) . '</em>' : '' ?></time>
+              <ul>
+                <?php if (!$in): ?><li class="tl-none"><?= e(t('Not in', 'Hindi pumasok')) ?></li><?php endif; ?>
+                <?php if ($in): ?><li class="tl-ev tl-in"><i aria-hidden="true"></i><span><?= e(t('Signed in', 'Nag-sign in')) ?></span><b class="p-num"><?= e(punch_time($d['first_in'] ?? null)) ?></b></li><?php endif; ?>
+                <?php if ($tc > 0): ?><li class="tl-ev tl-case"><i aria-hidden="true"></i><span><?= e(sprintf($tc === 1 ? t('Touched %d case', 'Humawak ng %d kaso') : t('Touched %d cases', 'Humawak ng %d kaso'), $tc)) ?></span><b class="p-mono-id"><?= e(implode(' · ', array_slice((array) ($d['cases'] ?? []), 0, 6))) ?><?= count((array) ($d['cases'] ?? [])) > 6 ? ' …' : '' ?></b></li><?php endif; ?>
+                <?php if ($in && $out): ?><li class="tl-ev tl-out"><i aria-hidden="true"></i><span><?= e(t('Signed out', 'Nag-sign out')) ?></span><b class="p-num"><?= e(punch_time($d['last_out'] ?? null)) ?></b></li><?php endif; ?>
+                <?php if ($in && !$out && $n === 0): ?><li class="tl-ev tl-live"><i aria-hidden="true"></i><span><?= e(t('Still in', 'Nasa loob pa')) ?></span></li><?php endif; ?>
+              </ul>
+            </li>
+          <?php endforeach; ?>
+          </ol>
         </div>
       </div>
       <?php if (is_super()): ?>
