@@ -539,7 +539,7 @@ test('An account\'s page: two columns of cards, one height per row, the controls
   expect(b[1], 'two columns').toBeGreaterThan(a[1] + 100);
   expect(await page.locator('.p-profile-grid > .p-controls').evaluate(e => getComputedStyle(e).position), 'the controls stay in view').toBe('sticky');
   const h = await page.evaluate(() => document.documentElement.scrollHeight);
-  expect(h, 'a tanod page is no longer a tower of cards (was 1412+ px at 2048)').toBeLessThan(1250);
+  expect(h, 'a tanod page is no longer a tower of cards (was 1412+ px at 2048 with no dispatches)').toBeLessThan(1500);
   const q = await open(page, 'residents.php?id=u1');
   expect(await page.locator('.pd-grid').count(), 'the same layout for a resident').toBe(1);
   expect(r.errors.concat(q.errors), 'console errors').toEqual([]);

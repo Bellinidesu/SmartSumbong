@@ -244,3 +244,19 @@
    the stylised downloads are the page's own. What is added is the figures, the sentence and the marked rows. */
 .page-summary .ss-jump a.on { background: var(--p-orange); color: #2B1A00; }
 .page-summary .ss-jump a.on b { background: rgba(255,255,255,.55); color: #2B1A00; }
+
+/* ---- Report Summary: bars that stay honest, an age on every unresolved row, the tanods' own numbers ---- */
+.rs-spark rect { vector-effect: non-scaling-stroke; }
+.rs-age { margin-left: 6px; font: 700 11.5px Inter, sans-serif; color: var(--p-muted); }
+.rs-age.rs-open { margin-left: 0; color: var(--p-ink-2); }
+.rs-age.rs-late { color: var(--p-red); }
+.rs-tn { padding: 0 22px 14px; display: grid; gap: 2px; }
+.rs-tn .p-eyebrow { margin: 0 0 6px; }
+.rs-tn-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(80px, 1fr) repeat(4, minmax(96px, auto)); gap: 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--p-line); font-size: 13.5px; }
+.rs-tn-row b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-tn-bar { height: 8px; border-radius: 99px; background: var(--p-line); overflow: hidden; }
+.rs-tn-bar i { display: block; height: 100%; border-radius: 99px; background: #FF9800; }
+.rs-tn-n { font: 800 14px Urbanist, sans-serif; white-space: nowrap; }
+.rs-tn-n small { font: 600 11.5px Inter, sans-serif; color: var(--p-muted); }
+.rs-tn-n.rs-low { color: var(--p-red); }
+@media (max-width: 1100px) { .rs-tn-row { grid-template-columns: 1fr auto auto; } .rs-tn-bar, .rs-tn-n:nth-of-type(n+4) { display: none; } }
