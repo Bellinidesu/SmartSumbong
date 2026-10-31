@@ -562,6 +562,17 @@ test('Report Summary: the chips are tabs, one section at a time, and a link or a
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('System status: the table is the page, the diagram of the same services opens on request', async ({ page }) => {
+  const r = await open(page, 'settings.php');
+  await expect(page.locator('#st-rows tr')).toHaveCount(9);
+  await expect(page.locator('details.st-mapd')).not.toHaveAttribute('open', '');
+  const closed = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.locator('details.st-mapd summary').click();
+  await expect(page.locator('#st-map svg')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollHeight), 'opening it adds the diagram').toBeGreaterThan(closed + 250);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);

@@ -1949,6 +1949,7 @@
 {"en":"The rounds' checkpoints, ticked as each is reached.","fil":"Mga checkpoint ng ronda, tinatandaan kapag narating.","in":["portal"]},
 {"en":"The rules were saved. Press \"Re-score open reports\" to apply them to cases already open.","fil":"Nai-save ang mga patakaran. Pindutin ang \"Muling markahan ang mga bukas na ulat\" para ilapat sa mga kasong bukas na.","in":["portal"]},
 {"en":"The same rows as the Report Summary page. Complaint text is not included; anonymous residents are not named.","fil":"Kapareho ng mga hanay sa pahina ng Buod ng mga Ulat. Walang teksto ng sumbong; hindi pinangangalanan ang mga hindi nagpakilala.","in":["portal"]},
+{"en":"The same services as a diagram","fil":"Ang parehong serbisyo bilang diagram","in":["portal"]},
 {"en":"The search did not answer. Try again.","fil":"Hindi sumagot ang paghahanap. Subukan muli.","in":["portal"]},
 {"en":"The share of cases answered within their deadline.","fil":"Bahagdan ng mga kasong natugunan sa takdang oras.","in":["portal"]},
 {"en":"The streets with the most open cases.","fil":"Ang mga kalyeng may pinakamaraming bukás na kaso.","in":["portal"]},
