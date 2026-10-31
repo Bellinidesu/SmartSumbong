@@ -244,7 +244,7 @@ $resolved = count(array_filter($reports, fn($r) => in_array($r['status'], ['reso
 $hours = [];
 foreach ($reports as $r) {
     $end = $r['resolved_at'] ?? $r['closed_at'] ?? null;
-    if ($end) {
+    if ($end && in_array($r['status'], ['resolved', 'closed', 'archived'], true)) {
         $hours[] = (strtotime($end) - strtotime($r['created_at'])) / 3600;
     }
 }
@@ -276,7 +276,7 @@ try {
     $pt = [];
     $pr = select_all_many($db, ['prev' => ['reports', $pq]], $pt)['prev'];
     $ph = [];
-    foreach ($pr as $r) { $e = $r['resolved_at'] ?? $r['closed_at'] ?? null; if ($e) { $ph[] = (strtotime($e) - strtotime($r['created_at'])) / 3600; } }
+    foreach ($pr as $r) { $e = $r['resolved_at'] ?? $r['closed_at'] ?? null; if ($e && in_array($r['status'], ['resolved', 'closed', 'archived'], true)) { $ph[] = (strtotime($e) - strtotime($r['created_at'])) / 3600; } }
     $prev = ['total' => count($pr), 'resolved' => count(array_filter($pr, fn ($r) => in_array($r['status'], $doneSt, true))),
              'avg' => $ph ? round(array_sum($ph) / count($ph) / 24, 1) : null];
 } catch (Throwable) { /* the figures stand without a comparison */ }
@@ -285,6 +285,7 @@ try {
 function rs_change(?float $now, ?float $was, ?bool $goodUp, string $unit = '%'): array
 {
     if ($now === null || $was === null) { return ['', '']; }
+    if ($unit === '%' && $was > 0 && $was < 10) { return $now == $was ? ['flat', '•  ' . t('same as before', 'kapareho ng dati')] : [$goodUp === null ? 'flat' : (($now > $was) === $goodUp ? 'good' : 'bad'), ($now > $was ? '▲  ' : '▼  ') . t('from ', 'mula sa ') . (int) $was . ' ' . t('before', 'dati')]; }
     if ($was == 0.0) { return $now == 0.0 ? ['flat', '•  ' . t('same as before', 'kapareho ng dati')] : ['flat', '▲  ' . t('new', 'bago')]; }
     $d = $unit === '%' ? round(($now - $was) / $was * 100) : round($now - $was, 1);
     if ($d == 0.0) { return ['flat', '•  ' . t('same as before', 'kapareho ng dati')]; }
@@ -321,7 +322,7 @@ $story = [];
 if ($total > 0) {
     $pct = (int) round($resolved / $total * 100);
     $s1 = sprintf(t('%d%% of the %d reports are resolved', '%d%% ng %d ulat ang nalutas na'), $pct, $total);
-    if ($prev && $prev['total'] > 0) {
+    if ($prev && $prev['total'] >= 10) {
         $pp = (int) round($prev['resolved'] / $prev['total'] * 100);
         $s1 .= $pp === $pct ? t(', the same as the period before', ', kapareho ng nakaraang panahon') : sprintf($pct > $pp ? t(', up from %d%%', ', mula sa %d%%') : t(', down from %d%%', ', mula sa %d%%'), $pp);
     }
@@ -484,7 +485,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
 <div class="p-card p-table-card" id="rs-esc" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Escalations to Outside Offices', 'Mga In-escalate sa Ibang Tanggapan')) ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-blue"><tr>
+    <thead class="p-orange"><tr>
       <th scope="col"><?= e(t('Complaint ID', 'ID ng Sumbong')) ?></th><th scope="col"><?= e(t('Category', 'Kategorya')) ?></th>
       <?php if ($overall): ?><th scope="col"><?= e(t('Committee', 'Komite')) ?></th><?php endif; ?>
       <th scope="col"><?= e(t('Escalated to', 'In-escalate sa')) ?></th><th scope="col"><?= e(t('Date', 'Petsa')) ?></th><th scope="col"><?= e(t('Note', 'Tala')) ?></th>
@@ -517,7 +518,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
 <div class="p-card p-table-card" id="rs-tanod" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-blue"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
+    <thead class="p-orange"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
     <tbody>
       <?php if (!$dispatches): ?>
         <tr><td colspan="5" class="p-empty"><?= e(t('No dispatches were issued in this period.', 'Walang dispatch na inilabas sa panahong ito.')) ?></td></tr>
@@ -592,12 +593,12 @@ $byReport = array_slice($byReport, ($cp - 1) * 10, 10, true);   // ten complaint
         if (in_array($r['status'], ['resolved', 'closed', 'archived'], true)) { $byCom[$ck]['resolved']++; }
         if (report_is_overdue($r)) { $byCom[$ck]['overdue']++; }
         $end = $r['resolved_at'] ?? $r['closed_at'] ?? null;
-        if ($end) { $byCom[$ck]['hours'][] = (strtotime($end) - strtotime($r['created_at'])) / 3600; }
+        if ($end && in_array($r['status'], ['resolved', 'closed', 'archived'], true)) { $byCom[$ck]['hours'][] = (strtotime($end) - strtotime($r['created_at'])) / 3600; }
     } ?>
 <div class="p-card p-table-card" id="rs-com" style="margin-top:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('By committee', 'Ayon sa komite')) ?></h2></div>
   <div class="p-tscroll"><table class="p-t">
-    <thead class="p-blue"><tr>
+    <thead class="p-orange"><tr>
       <th scope="col"><?= e(t('Committee', 'Komite')) ?></th><th scope="col" class="p-right"><?= e(t('Logged', 'Naitala')) ?></th>
       <th scope="col" class="p-right"><?= e(t('Resolved', 'Nalutas')) ?></th><th scope="col" class="p-right"><?= e(t('Overdue', 'Lampas-oras')) ?></th>
       <th scope="col" class="p-right"><?= e(t('Average resolution', 'Karaniwang paglutas')) ?></th>

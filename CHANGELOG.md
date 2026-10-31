@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Report Summary, the orange is the identity, 1 Nov)**
+- Ace's call after seeing the peak pass on the live site: the orange stays. The period band, the table headers and
+  the active tab are the Figma orange again, and the stylised PDF and spreadsheet buttons are back. What stays from the
+  peak pass is what says more: the figures with their change and shape, the sentence, the marked rows.
+- Every tab's table header is the one orange (Escalations, Tanod activity and By committee had a blue one).
+- A small period is not a trend: when the period before had fewer than 10 reports the change reads "from 8 before",
+  not "350%", and the sentence does not compare resolved shares.
+- The average resolution time counts only cases that are resolved, closed or archived, as the Resolved figure does (an
+  escalated case with a date no longer counts as resolved, and a committee with none resolved shows a dash, not 0 days).
+
 **Changed (Report Summary, peak, 1 Nov)**
 - Each figure says how it moved against the period before of the same length (▲ / ▼ with the percentage, or points
   for the resolved share, or days for the resolution time; green when the move is good, red when it is not) and shows
