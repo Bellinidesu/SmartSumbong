@@ -294,7 +294,7 @@ window.ssAccessToken = function (initial) {
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php'], true)) : // the two super admin consoles (console.css) ?>
 <link href="assets/css/console.css?v=<?= e(asset_version('console.css')) ?>" rel="stylesheet">
 <?php endif; ?>
-<?php if ($active === 'personnel.php') : // the Tanod roster (roster.css), kept off every other page ?>
+<?php if (in_array($active, ['personnel.php', 'residents.php'], true)) : // the people rosters (roster.css), kept off every other page ?>
 <link href="assets/css/roster.css?v=<?= e(asset_version('roster.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>

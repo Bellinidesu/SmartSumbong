@@ -13,9 +13,12 @@
 
 /* ---- the table ---- */
 .pe-roster .p-t { table-layout: fixed; width: 100%; min-width: 1100px; }
-.pe-roster col.pe-c-cb { width: 3%; }      .pe-roster col.pe-c-who { width: 18%; }   .pe-roster col.pe-c-duty { width: 14%; }
-.pe-roster col.pe-c-com { width: 18%; }    .pe-roster col.pe-c-last { width: 10%; }  .pe-roster col.pe-c-contact { width: 17%; }
-.pe-roster col.pe-c-acct { width: 11%; }   .pe-roster col.pe-c-act { width: 9%; }
+.pe-roster col.pe-c-cb { width: 4%; }      .pe-roster col.pe-c-who { width: 16%; }   .pe-roster col.pe-c-duty { width: 16%; }
+.pe-roster col.pe-c-com { width: 19%; }    .pe-roster col.pe-c-last { width: 8%; }   .pe-roster col.pe-c-contact { width: 16%; }
+.pe-roster col.pe-c-acct { width: 11%; }   .pe-roster col.pe-c-act { width: 10%; }
+/* Residents: five columns */
+.pe-res .p-t { min-width: 900px; }
+.pe-res col.pe-c-cb { width: 4%; } .pe-res col.pe-c-who { width: 30%; } .pe-res col.pe-c-contact { width: 28%; } .pe-res col.pe-c-acct { width: 26%; } .pe-res col.pe-c-act { width: 12%; }
 .pe-roster .p-t th, .pe-roster .p-t td { padding: 0 14px; vertical-align: middle; min-width: 0; max-width: none; text-align: left; overflow: hidden; }
 .pe-roster .p-t td { height: 76px; padding-top: 8px; padding-bottom: 8px; }
 .pe-roster .p-t th { height: 54px; }
@@ -25,9 +28,9 @@
 /* Under 1700 px the latest case steps aside (it is on the person's own page) and the others share its room */
 @media (max-width: 1700px) {
   .pe-roster .p-t { min-width: 1060px; }
-  .pe-roster col.pe-c-last, .pe-roster th:nth-child(5), .pe-roster td:nth-child(5) { display: none; }
-  .pe-roster col.pe-c-who { width: 17%; }   .pe-roster col.pe-c-duty { width: 19%; }   .pe-roster col.pe-c-com { width: 18%; }
-  .pe-roster col.pe-c-contact { width: 18%; }   .pe-roster col.pe-c-acct { width: 13%; }   .pe-roster col.pe-c-act { width: 12%; }
+  .ss-tanods.pe-roster col.pe-c-last, .ss-tanods.pe-roster th:nth-child(5), .ss-tanods.pe-roster td:nth-child(5) { display: none; }
+  .ss-tanods.pe-roster col.pe-c-cb { width: 4%; }   .ss-tanods.pe-roster col.pe-c-who { width: 16%; }   .ss-tanods.pe-roster col.pe-c-duty { width: 19%; }   .ss-tanods.pe-roster col.pe-c-com { width: 19%; }
+  .ss-tanods.pe-roster col.pe-c-contact { width: 17%; }   .ss-tanods.pe-roster col.pe-c-acct { width: 13%; }   .ss-tanods.pe-roster col.pe-c-act { width: 12%; }
 }
 
 /* who */
@@ -87,3 +90,13 @@
 .ss-people.pe-roster.ss-sq td.p-right { padding: 0; }
 
 @media (prefers-reduced-motion: reduce) { .page-personnel .p-attendance .p-kpi { transition: none; } }
+
+/* ---- the punch cards: the day never breaks, the cases are one line (the whole list on hover) ---- */
+.pc-t td:first-child { white-space: nowrap; }
+.pc-t td:last-child { max-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-t td { vertical-align: middle; }
+
+/* ---- an account pill that does not fit wraps, centred, instead of being cut ---- */
+.pe-roster .p-badges .p-badge { white-space: normal; overflow: visible; max-width: 100%; line-height: 1.25; text-align: center; }
+
+.pe-res #accounts-tbody td:nth-last-child(2) .p-badges { flex-flow: row wrap; }
