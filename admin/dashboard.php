@@ -268,7 +268,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   <!-- 0156: what waits on a super admin -->
   <div class="dh-kpi dc-needs">
     <a class="p-card ss-tile<?= $decide > 0 ? ' hot' : '' ?>" href="notifications.php"><span><?= e(t('Waiting for you', 'Naghihintay sa iyo')) ?></span><b class="p-num"><?= $decide ?></b>
-      <small><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e(t('tanods proposed', 'tanod na iminungkahi')) ?></small></a>
+      <small><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e((int) $nm['tanods'] === 1 ? t('tanod proposed', 'tanod na iminungkahi') : t('tanods proposed', 'tanod na iminungkahi')) ?></small></a>
     <a class="p-card ss-tile<?= (int) $nm['overdue'] > 0 ? ' hot' : '' ?>" href="cases.php?view=attention"><span><?= e(t('Overdue', 'Lampas-oras')) ?></span><b class="p-num"><?= (int) $nm['overdue'] ?></b>
       <small><?= e(t('open past the deadline', 'bukas na lampas sa deadline')) ?></small></a>
     <a class="p-card ss-tile<?= (int) $nm['no_committee'] > 0 ? ' hot' : '' ?>" href="cases.php?com=none"><span><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b class="p-num"><?= (int) $nm['no_committee'] ?></b>
@@ -477,7 +477,7 @@ $_SESSION['dash_intro'] = true;
         '<ul>' + c.map(function (r) {
           var cm = r.committee && COMMITTEES[r.committee];
           return '<li><a href="case.php?id=' + encodeURIComponent(r.id) + '"><span class="p-mono-id">' + esc(r.tracking_id) + '</span><span class="dq-subj">' + esc(r.subject) + '</span>' +
-            (cm ? '<span class="cm-pill" style="--cc:' + cm.colour + '"><i></i>' + esc(cm.short) + '</span>' : '') +
+            (cm ? '<span class="cm-pill" title="' + esc(cm.short) + '" style="--cc:' + cm.colour + '"><i></i>' + esc(cm.short) + '</span>' : '') +
             '<span class="dq-when">' + esc(new Date(r.created_at).toLocaleDateString(window.LANG === 'fil' ? 'fil-PH' : 'en-US', { month: 'short', day: 'numeric' })) + '</span></a></li>';
         }).join('') + '</ul>' + (res.data.total > c.length ? '<p class="p-hint">' + T('Showing the newest ', 'Ipinapakita ang pinakabagong ') + c.length + T(' of ', ' sa ') + res.data.total + '.</p>' : '');
     });

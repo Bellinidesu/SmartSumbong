@@ -288,6 +288,9 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
 <link href="assets/css/aesthetic.css?v=<?= e(asset_version('aesthetic.css')) ?>" rel="stylesheet">
+<?php if (in_array($active, ['cases.php', 'dashboard.php'], true)) : // Case Reports and the Dashboard (overview.css) ?>
+<link href="assets/css/overview.css?v=<?= e(asset_version('overview.css')) ?>" rel="stylesheet">
+<?php endif; ?>
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php'], true)) : // the two super admin consoles (console.css) ?>
 <link href="assets/css/console.css?v=<?= e(asset_version('console.css')) ?>" rel="stylesheet">
 <?php endif; ?>

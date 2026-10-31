@@ -9,6 +9,17 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Case Reports and the Dashboard, 31 Oct)**
+- Case Reports: every row is the same height (it ranged from 70 to 86 px, a row with a "Forwarded from" line may add
+  one line), statuses stack one pill under the next instead of wrapping, and the main action is the main button:
+  Review is filled, Forward and Flag are outlined (they were two equal red buttons). Under 1700 px the two buttons
+  stack at one width, so Forward is no longer cut off at the table's edge; the columns were rebalanced (Status
+  wider, so "Pending Review" is whole) and the SMART score has room before the handler.
+- Dashboard: what needs a super admin today (Waiting for you, Overdue, No committee yet, Open now) is one even
+  strip of four tiles above the charts, instead of four small tiles tucked under the status donut. The status
+  donut sits in the middle of its card. "1 tanod proposed" reads right.
+- A new sheet, `overview.css`, for Case Reports and the Dashboard.
+
 **Changed (Administrative Services, 31 Oct)**
 - Administrators: the Access and Status headers were swapped against their cells; they now run Status, Access, as the
   cells do.

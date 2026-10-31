@@ -569,8 +569,8 @@ function render_account_screen(string $role): void
       function isActive(a) { return a.verification_status === 'verified' && !a.is_suspended && !a.is_retired; }
       function dutyOf(a) { return ['on_duty', 'lunch', 'break', 'offline'].indexOf(a.duty_status) > -1 ? a.duty_status : 'offline'; }
       function comPill(k) {
-        return COM[k] ? '<span class="cm-pill" style="--cc:' + escapeHtml(COM[k][1]) + '"><i></i>' + escapeHtml(COM[k][0]) + '</span>'
-                      : '<span class="cm-pill cm-none"><i></i>' + T('No committee', 'Walang komite') + '</span>';
+        return COM[k] ? '<span class="cm-pill" title="' + escapeHtml(COM[k][0]) + '" style="--cc:' + escapeHtml(COM[k][1]) + '"><i></i>' + escapeHtml(COM[k][0]) + '</span>'
+                      : '<span class="cm-pill cm-none" title="' + T('No committee', 'Walang komite') + '"><i></i>' + T('No committee', 'Walang komite') + '</span>';
       }
       function tcPill(c) {
         var cm = COM[c.key] || [c.key, '#888'], role = String(c.role || '').trim(), prop = c.status === 'proposed';
