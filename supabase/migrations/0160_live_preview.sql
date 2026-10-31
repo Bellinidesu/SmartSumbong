@@ -34,6 +34,8 @@ create table public.preview_sessions (
   paired_device text check (char_length(paired_device) <= 60),
   ended_at      timestamptz
 );
+create index preview_sessions_created_by_idx on public.preview_sessions (created_by);
+create index preview_sessions_paired_by_idx on public.preview_sessions (paired_by) where paired_by is not null;
 create index preview_sessions_code_idx on public.preview_sessions (code_hash) where ended_at is null and paired_at is null;
 alter table public.preview_sessions enable row level security;
 create policy preview_sessions_own on public.preview_sessions for select using (created_by = (select auth.uid()) and (select public.is_super_admin()));
