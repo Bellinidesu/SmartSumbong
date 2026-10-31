@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/forwarding.php';   // the committee banners (committee_sd_types, cm_banner_style, cm_sym_tag, committee_banner_script)
 
 /**
  * @param 'resident'|'tanod' $role
@@ -291,17 +292,6 @@ function render_account_screen(string $role): void
       </nav>
     <?php endif; ?>
 
-    <?php if ($isTanod && sees_everything()):
-        $comHref = fn (string $c) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'duty' => $dutyF, 'com' => $c], fn ($v) => $v !== ''));
-        $comN = fn (string $k) => count(array_filter($allAccounts, fn ($a) => $k === 'none' ? !$inCom($a, '') : $inCom($a, $k))); ?>
-    <nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
-      <a class="cm-chip<?= $comF === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $comF === '' ? ' aria-current="true"' : '' ?>><?= e(t('All', 'Lahat')) ?><b><?= count($allAccounts) ?></b></a>
-      <?php foreach (committees_active() as $ck => $cl): ?>
-        <a class="cm-chip<?= $comF === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($comHref($ck)) ?>"<?= $comF === $ck ? ' aria-current="true"' : '' ?>><i></i><?= e($cl) ?><b><?= $comN($ck) ?></b></a>
-      <?php endforeach; ?>
-      <a class="cm-chip cm-chip-none<?= $comF === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $comF === 'none' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('No committee yet', 'Wala pang komite')) ?><b><?= $comN('none') ?></b></a>
-    </nav>
-    <?php endif; ?>
 
     <div class="p-band ss-pband">
       <h2><?= e(t($noun . ' accounts', 'Mga account ng ' . $nounLabel)) ?><span class="p-badge-n p-badge-n--quiet" id="accounts-count"><?= $accTotal ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('to review', 'susuriin')) ?></span></h2>
@@ -311,6 +301,7 @@ function render_account_screen(string $role): void
         <?php if ($statusFilter !== ''): ?><input type="hidden" name="sort" value="<?= e($statusFilter) ?>"><?php endif; ?>
       </form>
       <span class="p-spacer"></span>
+      <?php if ($isTanod): ?>
       <form method="get">
         <input type="hidden" name="q" value="<?= e($search) ?>">
         <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
@@ -320,11 +311,37 @@ function render_account_screen(string $role): void
             <?php endforeach; ?>
           </select></label>
       </form>
+      <?php endif; ?>
       <div class="ss-viewsw" role="group" aria-label="<?= e(t('Layout', 'Ayos')) ?>">
         <button type="button" data-view="list" aria-pressed="true" title="<?= e(t('List', 'Listahan')) ?>"><?= p_icon('i-doc', 15) ?><span><?= e(t('List', 'Listahan')) ?></span></button>
         <button type="button" data-view="sq" aria-pressed="false" title="<?= e(t('Squares', 'Mga parisukat')) ?>"><?= p_icon('i-users', 15) ?><span><?= e(t('Squares', 'Mga parisukat')) ?></span></button>
       </div>
     </div>
+
+    <?php if ($isTanod && sees_everything()):
+        $comHref = fn (string $c) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'duty' => $dutyF, 'com' => $c], fn ($v) => $v !== ''));
+        $comN = fn (string $k) => count(array_filter($allAccounts, fn ($a) => $k === 'none' ? !$inCom($a, '') : $inCom($a, $k)));
+        $sdTypes = committee_sd_types($db); ?>
+    <nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+      <a class="cm-chip<?= $comF === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $comF === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= count($allAccounts) ?></b></a>
+      <?php foreach (committees_active() as $ck => $cl): ?>
+        <a class="cm-chip cm-sd<?= $comF === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($comHref($ck)) ?>"<?= $comF === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= $comN($ck) ?></b></a>
+      <?php endforeach; ?>
+      <a class="cm-chip cm-chip-none<?= $comF === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $comF === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b><?= $comN('none') ?></b></a>
+    </nav>
+    <?= committee_banner_script() ?>
+    <?php elseif (!$isTanod):
+        // Residents: the slices of the list are banners with their counts (the dropdown they replace did the same in words)
+        $rsHref = fn (string $k) => 'residents.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $k], fn ($v) => $v !== ''));
+        $rsDef = ['' => ['all', '#2D5BFF', '#00A3FF', '#FFFFFF', 'layers'], 'pending' => ['pending', '#FFC21A', '#FF9100', '#2B1A00', 'calendar'], 'verified' => ['verified', '#12B24F', '#0FA968', '#FFFFFF', 'handler'],
+                  'overdue' => ['overdue', '#FF2D4B', '#FF6A3D', '#FFFFFF', 'focus'], 'duplicate' => ['duplicate', '#6A4CE0', '#B15CFF', '#FFFFFF', 'copy'], 'suspended' => ['suspended', '#4A5578', '#7C86A6', '#FFFFFF', 'obstruction']]; ?>
+    <nav class="cm-chips rs-st" aria-label="<?= e(t('Status', 'Katayuan')) ?>">
+      <?php foreach ($chipLabel as $k => $cl): [$dk, $c1, $c2, $ink, $ic] = $rsDef[$k]; ?>
+        <a class="cm-chip cm-sd<?= $statusFilter === $k ? ' p-on' : '' ?>" data-chip="<?= e($dk) ?>" style="--cc:<?= e($c1) ?>;--ct:<?= e($ink) ?>;--g1:<?= e($c1) ?>;--g2:<?= e($c2) ?>;--g3:<?= e($c2) ?>" href="<?= e($rsHref($k)) ?>"<?= $statusFilter === $k ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="<?= e($ic) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e($cl) ?></span><b><?= (int) $chipN[$k] ?></b></a>
+      <?php endforeach; ?>
+    </nav>
+    <?= committee_banner_script() ?>
+    <?php endif; ?>
 
     <div class="ss-bulk" id="ss-bulk" hidden>
       <b><span id="ss-bulk-n">0</span> <?= e(t('selected', 'napili')) ?></b>
@@ -656,6 +673,7 @@ function render_account_screen(string $role): void
           duplicate: accounts.filter(function (a) { return dupes[a.id] && dupes[a.id].length; }).length,
           suspended: accounts.filter(function (a) { return a.is_suspended; }).length };
         Object.keys(chipCounts).forEach(function (k) { var o = document.querySelector('#acc-st option[data-chip="' + k + '"]'); if (o) o.textContent = o.dataset.l + ' (' + chipCounts[k] + ')'; });
+        document.querySelectorAll('.rs-st .cm-chip[data-chip]').forEach(function (c) { var k = c.dataset.chip, b = c.querySelector('b'); if (b && k in chipCounts) b.textContent = chipCounts[k]; });
         var total = filtered.length;
 
         // Counted over the filtered list, the same as the PHP render above

@@ -684,6 +684,41 @@ test('Notifications keeps its live layout and wears the committee banners, joine
   }
 });
 
+test('Residents and Personnel: the orange band, the banner strip and the blue header are one seamless, square block', async ({ page }) => {
+  for (const [pg, banners] of [['residents.php', 6], ['personnel.php', 6]]) {
+    for (const w of [2048, 1440]) {
+      await page.setViewportSize({ width: w, height: 1000 });
+      const r = await open(page, pg);
+      await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'list'); } catch (e) {} });
+      await page.reload();
+      const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.ss-pband'), c = R('.cm-chips'), t = R('.ss-people'); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(v => Math.round(v * 10) / 10) }; });
+      expect([g.x[0], g.x[1]], pg + ': the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+      expect([g.x[0], g.x[1]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
+      expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap between band, strip and table at ' + w).toBe(true);
+      await expect(page.locator('.cm-chips .cm-chip'), pg + ' banners').toHaveCount(banners);
+      expect(await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => c.classList.contains('cm-sd') && getComputedStyle(c).backgroundImage === 'none').length), 'every banner is a gradient at ' + w).toBe(0);
+      expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip stays slim at ' + w).toBeLessThanOrEqual(80);
+      expect(await page.locator('.ss-people thead th').evaluateAll(ths => ths.map(t => getComputedStyle(t).borderTopLeftRadius + getComputedStyle(t).borderTopRightRadius).filter(v => v !== '0px0px').length), 'the header cells are square at ' + w).toBe(0);
+      expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
+      expect(await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
+      expect(r.errors, 'console errors').toEqual([]);
+    }
+  }
+  // Squares: wide cards, no lone straggler beside a gap, the strip closes off under the band
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  await open(page, 'residents.php');
+  await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'sq'); } catch (e) {} });
+  await page.reload();
+  const cols = await page.locator('.ss-people.ss-sq tbody tr').evaluateAll(rs => new Set(rs.map(r => Math.round(r.getBoundingClientRect().top))).size);
+  expect(cols, 'six residents fall in two rows at most').toBeLessThanOrEqual(2);
+  expect(await page.locator('.ss-people.ss-sq tbody tr').first().evaluate(r => r.getBoundingClientRect().width), 'each card is at least 300 wide').toBeGreaterThanOrEqual(300);
+  // a banner filters the list like the dropdown it replaces did
+  await open(page, 'residents.php');
+  await page.locator('.rs-st .cm-chip[data-chip="verified"]').click();
+  await expect(page).toHaveURL(/sort=verified/);
+  await expect(page.locator('.rs-st .cm-chip.p-on')).toHaveCount(1);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
