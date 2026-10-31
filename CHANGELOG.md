@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Settings, System status, 31 Oct)**
+- The table of the nine services (where each runs, how fast it answers, working or not) is the page; the diagram of
+  the same services sits below it and opens on request. The tab was 2,204 px tall at 2048 and is 1,798.
+
 **Changed (Report Summary, 31 Oct)**
 - The five chips (Ledger, Escalations, Tanod activity, Case timeline, By committee) are tabs: one section at a time,
   the ledger first. The page was five sections stacked, 2,289 px tall at 2048; it is 1,459. A pager link lands on the

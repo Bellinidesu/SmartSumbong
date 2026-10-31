@@ -291,7 +291,7 @@ window.ssAccessToken = function (initial) {
 <?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php'], true)) : // Case Reports, the Dashboard and Report Summary (overview.css) ?>
 <link href="assets/css/overview.css?v=<?= e(asset_version('overview.css')) ?>" rel="stylesheet">
 <?php endif; ?>
-<?php if (in_array($active, ['administrative-services.php', 'control-room.php'], true)) : // the two super admin consoles (console.css) ?>
+<?php if (in_array($active, ['administrative-services.php', 'control-room.php', 'settings.php'], true)) : // the super admin consoles (console.css) ?>
 <link href="assets/css/console.css?v=<?= e(asset_version('console.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?php if (in_array($active, ['personnel.php', 'residents.php'], true)) : // the people rosters (roster.css), kept off every other page ?>

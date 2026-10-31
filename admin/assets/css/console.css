@@ -58,3 +58,10 @@
 
 /* a pane is a grid: its cards may shrink below their content, the table inside scrolls */
 .page-control-room .st-pane > *, .page-administrative-services .st-pane > * { min-width: 0; }
+
+/* ---- Settings, System status: the table is the page; the diagram of the same services opens on request ---- */
+.st-mapd > summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }
+.st-mapd > summary::-webkit-details-marker { display: none; }
+.st-mapd > summary .p-eyebrow { margin: 0; }
+.st-mapd > summary small { color: var(--p-muted, #66708f); font-size: 12.5px; }
+.st-mapd[open] > summary { margin-bottom: 12px; }
