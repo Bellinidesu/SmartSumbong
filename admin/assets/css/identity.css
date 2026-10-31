@@ -178,3 +178,33 @@
 .dc-name b, .dc-name small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ss-win .ss-table td { white-space: nowrap; }
 .ss-win .ss-table td:first-child { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+/* ================= the pill system: a pill means something =================
+   A status is a dot and a word (no fill): Validated, In progress, Resolved, Pending, the SMART level, a tanod's duty.
+   A name that titles something is a colour marker and the name: a committee is never a pill.
+   Only what needs the eye keeps a fill: Overdue, Urgent, Suspended, Rejected (rare, so they stand out).
+   Tags (Sensitive, Possible duplicate, Escalated) are outlined. The ladder chips (Staff, Councilor, Chairman) stay as locked.
+   In tables and lists; a status shown alone in a page header keeps its pill. */
+
+/* statuses: a dot and a word */
+.id-on :is(td, li, .ss-table) .p-badge:not(.p-b-denied):not(.p-b-violet):not(.p-b-sensitive) {
+  background: none; box-shadow: none; height: auto; padding: 0; border-radius: 0; font-size: 12.5px; font-weight: 700; gap: 7px;
+}
+.id-on :is(td, li, .ss-table) .p-badge:not(.p-b-denied):not(.p-b-violet):not(.p-b-sensitive)::before { width: 8px; height: 8px; }
+/* what needs the eye keeps its fill, and its ring */
+.id-on :is(td, li, .ss-table) .p-b-denied { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p-red) 30%, transparent); font-weight: 800; }
+/* tags: outlined, not filled */
+.id-on :is(td, li, .ss-table) .p-b-violet { background: none; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p-violet-fg) 45%, transparent); }
+.id-on :is(td, li, .ss-table) .p-b-sensitive { background: none; box-shadow: inset 0 0 0 1px color-mix(in srgb, #8A1F6B 55%, transparent); }
+:root[data-theme="dark"] .id-on :is(td, li, .ss-table) .p-b-sensitive { box-shadow: inset 0 0 0 1px color-mix(in srgb, #FFB8E6 55%, transparent); }
+
+/* a tanod's duty: the same dot and word */
+.id-on td .pe-duty { background: none; padding: 0; height: auto; }
+
+/* committees: a colour marker and the name */
+.id-on :not(.rs-scope) > .cm-pill, .id-on td .cm-pill, .id-on li .cm-pill {
+  background: none; border: 0; box-shadow: none; border-radius: 0; padding: 0; gap: 9px; font-size: 13px; font-weight: 600; color: var(--p-ink);
+}
+.id-on :not(.rs-scope) > .cm-pill > i, .id-on td .cm-pill > i, .id-on li .cm-pill > i { width: 4px; height: 16px; border-radius: 2px; background: var(--cc, var(--p-muted)); flex: none; }
+.id-on td .cm-pill.cm-prop > i { background: repeating-linear-gradient(180deg, var(--cc) 0 3px, transparent 3px 5px); }
+.id-on td .cm-pill small, .id-on li .cm-pill small { font-weight: 600; color: var(--p-muted); }
+.id-on td .cm-pill.cm-none, .id-on li .cm-pill.cm-none { color: var(--p-red); }

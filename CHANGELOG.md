@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the pill system, 1 Nov)**
+- A pill now means something. In tables and lists a status is a dot and a word, with no fill (Validated, In
+  progress, Resolved, Pending, the SMART level, a tanod's duty). Only what needs the eye keeps a fill: Overdue,
+  Urgent, Suspended, Deleted, Rejected. Tags (Sensitive, Possible duplicate, Escalated) are outlined. A committee
+  is a colour bar and its name, never a pill (a proposed one has a dashed bar). The ladder chips (Staff, Councilor,
+  Chairman), the chips that filter, and a status standing alone in a page header keep their look.
+
 **Changed (Report Summary's look, 1 Nov)**
 - The four figures (reports logged, resolved, tanod attendance, average resolution time) are one summary band with
   dividers, like the Dashboard's, and keep their coloured top lines. The orange Report Period bar, the tabs and the
