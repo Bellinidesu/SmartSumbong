@@ -1178,7 +1178,9 @@ function render_account_detail(
 
     <div class="p-profile-grid">
       <div class="p-grid pd-grid" id="pd-grid" data-tab="<?= e($tab0) ?>">
-        <div class="p-card p-card-pad pd-head">
+        <?php $fadeCom = $tcRow !== null && !empty($tcRow['committees']) ? (string) ($tcRow['committees'][0]['key'] ?? '') : ''; ?>
+        <div class="p-card p-card-pad pd-head<?= $fadeCom !== '' ? ' pd-fade' : '' ?>">
+        <?= $fadeCom !== '' ? committee_fade($fadeCom, committee_sd_types(db()), (string) (committees_all()[$fadeCom]['short_en'] ?? $fadeCom)) : '' ?>
         <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e(formal_name($p['full_name'])) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
 
         <?php if ($pending && !empty($p['due_at'])): ?>

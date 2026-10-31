@@ -778,7 +778,9 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   await expect(page).toHaveURL(/staff=s1/);
   await expect(page.locator('.pd-head h2')).toContainText('Santos');
   await expect(page.locator('.pd-fig > div')).toHaveCount(4);
-  await expect(page.locator('.pd-staffcom .cm-chip')).toHaveCount(1);
+  await expect(page.locator('.pd-head .pd-fadewrap'), 'the committee is the cover of the name card, not a card of its own').toHaveCount(1);
+  await expect(page.locator('.pd-head .cm-pill')).toContainText('Peace and Order');
+  await expect(page.locator('.pd-staffcom')).toHaveCount(0);
   await expect(page.locator('.tl-day')).toHaveCount(7);
   await expect(page.locator('.tl-day').first()).toContainText('Signed in');
   expect(await axe(page), 'Staff account').toEqual([]);

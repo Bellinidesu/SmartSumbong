@@ -223,3 +223,12 @@ function committee_banner_script(): string
 </script>
 JS;
 }
+
+/**
+ * A committee's banner as a fade that comes in from the right end of a card (a profile's cover): its colours and its symbol, fading out
+ * to the left. Decorative; the committee is named in the card itself. Needs committee_banner_script() on the page, and the card's `pd-fade` class.
+ */
+function committee_fade(string $ck, array $sdTypes, string $label): string
+{
+    return '<div class="cm-chips pd-fadewrap" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="' . e(cm_banner_style($ck, $sdTypes)) . '">' . cm_sym_tag($ck, $sdTypes, $label) . '</a></div>';
+}

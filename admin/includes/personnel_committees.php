@@ -343,9 +343,10 @@ function render_staff_profile(Supabase $db, string $id): void
     <?= $back ?>
     <div class="p-profile-grid">
       <div class="p-grid pd-grid">
-        <div class="p-card p-card-pad pd-head">
+        <div class="p-card p-card-pad pd-head<?= $ck !== '' ? ' pd-fade' : '' ?>">
+          <?= $ck !== '' ? committee_fade($ck, $sdTypes, $label) . committee_banner_script() : '' ?>
           <div class="p-acc-head"><?= account_avatar_html(null, (string) $c['name'], 'lg') ?><div><h2><?= e(formal_name((string) $c['name'])) ?></h2>
-            <div class="p-acc-flags"><?= rank_chip(($c['tier'] ?? '') === 'committee' ? 'kagawad' : ($c['position'] ?? null)) ?>
+            <div class="p-acc-flags"><?= rank_chip(($c['tier'] ?? '') === 'committee' ? 'kagawad' : ($c['position'] ?? null)) ?><?= $ck !== '' ? committee_pill($ck) : '' ?>
               <span class="pc-st pc-st-<?= e($state) ?>"><i aria-hidden="true"></i><?= e($state === 'in' ? t('In now', 'Pasok ngayon') : ($state === 'out' ? t('Signed out', 'Nag-sign out') : t('Not in today', 'Hindi pumasok'))) ?></span></div></div></div>
         </div>
         <div class="pd-fig" aria-label="<?= e(t('Today and this week', 'Ngayon at ngayong linggo')) ?>">
@@ -354,13 +355,6 @@ function render_staff_profile(Supabase $db, string $id): void
           <div><span><?= e(t('Cases touched today', 'Mga kasong hinawakan ngayon')) ?></span><b class="p-num"><?= (int) ($today['touched'] ?? 0) ?></b><small><?= e(t('status, taking, forwarding, messages', 'katayuan, pagkuha, pagpasa, mensahe')) ?></small></div>
           <div><span><?= e(t('Days in, last 7', 'Mga araw na pasok, 7')) ?></span><b class="p-num"><?= $daysIn ?></b><small><?= e(sprintf(t('%d cases touched', '%d kasong hinawakan'), $weekTouched)) ?></small></div>
         </div>
-        <?php if ($ck !== ''): ?>
-        <div class="p-card p-card-pad pd-tc pd-staffcom">
-          <p class="p-eyebrow"><?= e(t('Committee', 'Komite')) ?></p>
-          <div class="cm-chips pd-tcb"><a class="cm-chip cm-sd" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" title="<?= e($label) ?>"><?= cm_sym_tag($ck, $sdTypes, $label) ?><span class="cm-n"><?= e($label) ?><?php if (!empty($c['position'])): ?><small class="pc-gn">· <?= e(ucfirst(str_replace('_', ' ', (string) $c['position']))) ?></small><?php endif; ?></span></a></div>
-          <?= committee_banner_script() ?>
-        </div>
-        <?php endif; ?>
         <div class="p-card p-table-card pd-recent pd-tl">
           <div class="p-band ss-pband pd-band"><h2><?= e(t('Activity', 'Aktibidad')) ?><span class="p-badge-n p-badge-n--quiet"><?= count($days) ?></span></h2></div>
           <ol class="tl">
