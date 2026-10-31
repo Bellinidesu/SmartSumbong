@@ -227,14 +227,14 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
   <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('Spikes this week', 'Pagtaas ngayong linggo')) ?></p>
     <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('This week', 'Linggong ito')) ?></th><th class="n"><?= e(t('Usually', 'Karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
     <?php foreach (array_slice((array) $sm['spikes'], 0, 5) as $sp): ?>
-      <tr><td><?= e(category_label((string) $sp['category'])) ?></td><td class="n"><?= (int) $sp['this_week'] ?></td><td class="n"><?= e(rtrim(rtrim(number_format((float) $sp['usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($sp['place'] ?? '')) ?></td></tr>
+      <tr><td title="<?= e(category_label((string) $sp['category'])) ?>"><?= e(category_label((string) $sp['category'])) ?></td><td class="n"><?= (int) $sp['this_week'] ?></td><td class="n"><?= e(rtrim(rtrim(number_format((float) $sp['usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($sp['place'] ?? '')) ?></td></tr>
     <?php endforeach; ?></tbody></table></section>
   <?php endif; ?>
   <?php if (!empty($sm['times'])): ?>
   <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('When complaints come in', 'Kailan dumarating ang mga sumbong')) ?></p>
     <table class="ss-table ss-nowrap"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th><?= e(t('When', 'Kailan')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Times usual', 'Beses ng karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
     <?php foreach (array_slice((array) $sm['times'], 0, 5) as $tp): ?>
-      <tr><td><?= e(category_label((string) $tp['category'])) ?></td><td><?= e((string) $tp['weekday'] . ' ' . (string) $tp['hours']) ?></td><td class="n"><?= (int) $tp['reports'] ?></td><td class="n">&times;<?= e(rtrim(rtrim(number_format((float) $tp['times_usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($tp['place'] ?? '')) ?></td></tr>
+      <tr><td title="<?= e(category_label((string) $tp['category'])) ?>"><?= e(category_label((string) $tp['category'])) ?></td><td><?= e((string) $tp['weekday'] . ' ' . (string) $tp['hours']) ?></td><td class="n"><?= (int) $tp['reports'] ?></td><td class="n">&times;<?= e(rtrim(rtrim(number_format((float) $tp['times_usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($tp['place'] ?? '')) ?></td></tr>
     <?php endforeach; ?></tbody></table>
     <p class="p-hint"><?= e(t('Blocks of three hours well above the usual for that kind, for planning patrols and duty (90 days).', 'Mga tatlong-oras na bahagi na higit sa karaniwan para sa uring iyon, para sa pagpaplano ng patrol at duty (90 araw).')) ?></p></section>
   <?php endif; ?>
@@ -243,7 +243,7 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
   <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('On time, by kind of complaint', 'Sa takdang oras, ayon sa uri')) ?></p>
     <table class="ss-table"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th class="n"><?= e(t('On time', 'Sa oras')) ?></th><th class="n"><?= e(t('Change', 'Pagbabago')) ?></th><th class="n"><?= e(t('Overdue now', 'Lampas ngayon')) ?></th></tr></thead><tbody>
     <?php foreach ((array) $sm['score'] as $sc): $ch = $sc['change_pct']; ?>
-      <tr><td><?= e(category_label((string) $sc['category'])) ?></td>
+      <tr><td title="<?= e(category_label((string) $sc['category'])) ?>"><?= e(category_label((string) $sc['category'])) ?></td>
         <td class="n"><?= $sc['on_time_pct'] === null ? '—' : e(round((float) $sc['on_time_pct']) . '%') ?></td>
         <td class="n"><?= $ch === null ? '—' : ((float) $ch > 0 ? '▲ ' : ((float) $ch < 0 ? '▼ ' : '')) . e(abs(round((float) $ch)) . '%') ?></td>
         <td class="n"><?= (int) $sc['overdue_now'] ?></td></tr>
@@ -306,7 +306,7 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
     <div class="p-card-head"><h2><?= e(t('The committees', 'Ang mga komite')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="administrative-services.php"><?= e(t('Manage', 'Pamahalaan')) ?> &rarr;</a></div>
     <table class="ss-table dh-ctab"><thead><tr><th><?= e(t('Committee', 'Komite')) ?></th><th class="n"><?= e(t('Open', 'Bukas')) ?></th><th class="n"><?= e(t('Overdue', 'Lampas-oras')) ?></th></tr></thead><tbody>
     <?php foreach ((array) $coms['committees'] as $cr): ?>
-      <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><?php $ld = $leadBy[(string) $cr['key']] ?? []; ?><a class="dc-name" style="--cc:<?= e(committee_colour((string) $cr['key'])) ?>" href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><i aria-hidden="true"></i><span><b><?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?></b><small<?= $ld ? '' : ' class="dc-warn"' ?>><?= $ld ? e(t('Led by', 'Pinangungunahan ni')) . ' ' . e(implode(', ', $ld)) : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></small></span></a>
+      <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><?php $ld = $leadBy[(string) $cr['key']] ?? []; ?><a class="dc-name" title="<?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?>" style="--cc:<?= e(committee_colour((string) $cr['key'])) ?>" href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><i aria-hidden="true"></i><span><b><?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?></b><small<?= $ld ? '' : ' class="dc-warn"' ?>><?= $ld ? e(t('Led by', 'Pinangungunahan ni')) . ' ' . e(implode(', ', $ld)) : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></small></span></a>
         <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $cr['open'] / $comMax * 100) ?>%;background:<?= e(committee_colour((string) $cr['key'])) ?>"></i></span></td>
         <td class="n"><?= (int) $cr['open'] ?></td><td class="n<?= (int) $cr['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $cr['overdue'] ?></td></tr>
     <?php endforeach; ?>
