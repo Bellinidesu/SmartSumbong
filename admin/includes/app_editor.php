@@ -20,7 +20,7 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
     $b = barangay();
     $cats = categories_all();
     $firstKey = (string) (array_key_first(array_filter($cats, fn ($c) => !empty($c['active']))) ?? '');
-    $screenName = ['report' => t('Report', 'Ulat'), 'emergency' => t('Emergency', 'Emergency'), 'home' => t('Home', 'Home'), 'splash' => t('Splash', 'Simula')];
+    $screenName = ['report' => t('Report', 'Ulat'), 'emergency' => t('Emergency', 'Emerhensiya'), 'home' => t('Home', 'Tahanan'), 'splash' => t('Splash', 'Simula')];
     $grp = function (array $g, int $depth) use (&$grp, $hlKids, $hlNums): void {
         $gid = (string) $g['id']; $nums = $hlNums[$gid] ?? []; ?>
       <div class="ed-hg<?= empty($g['is_active']) ? ' ed-off' : '' ?><?= $depth ? ' ed-sub' : '' ?>" data-gid="<?= e($gid) ?>" data-display="<?= e((string) ($g['display'] ?? 'inline')) ?>">
@@ -61,7 +61,7 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
       </section>
 
       <section class="ed-sc ed-hide" data-sc="emergency">
-        <header class="ed-head ed-head-red"><small><?= e(t('Emergency', 'Emergency')) ?></small><h3><?= e(t('Who to call', 'Sino ang tatawagan')) ?></h3></header>
+        <header class="ed-head ed-head-red"><small><?= e(t('Emergency', 'Emerhensiya')) ?></small><h3><?= e(t('Who to call', 'Sino ang tatawagan')) ?></h3></header>
         <div class="ed-hgs"><?php foreach ($hlTop as $g) $grp($g, 0); ?></div>
       </section>
 
