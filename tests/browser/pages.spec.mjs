@@ -542,13 +542,13 @@ test('Case Reports and the Dashboard: equal rows, Review is the main button, wha
 
 test('An account\'s page: two columns of cards, one height per row, the controls in view', async ({ page }) => {
   const r = await open(page, 'personnel.php?id=u2');
-  const box = sel => page.locator(sel).first().evaluate(e => { const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.left), Math.round(b.height)]; });
+  const box = sel => page.locator(sel).first().evaluate(e => { const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.left), Math.round(b.height), Math.round(b.bottom)]; });
   const a = await box('.pd-details'), b = await box('.pd-tc'), c = await box('.pd-duty'), d = await box('.pd-id');
   expect(a[0], 'details and committees start on one line').toBe(b[0]);
-  expect(Math.abs(a[2] - b[2]), 'and are one height').toBeLessThanOrEqual(2);
-  expect(c[0], 'duty and the ID start on one line').toBe(d[0]);
-  expect(Math.abs(c[2] - d[2]), 'and are one height').toBeLessThanOrEqual(2);
+  expect(Math.abs(c[3] - b[3]), 'details and the shift stack down the left as tall as the committees card').toBeLessThanOrEqual(2);
+  expect(Math.abs(a[3] + 20 - c[0]), 'with the grid gap between them').toBeLessThanOrEqual(2);
   expect(b[1], 'two columns').toBeGreaterThan(a[1] + 100);
+  expect(d[0], 'the ID starts under both').toBeGreaterThan(b[3]);
   expect(await page.locator('.p-profile-grid > .p-controls').evaluate(e => getComputedStyle(e).position), 'the controls stay in view').toBe('sticky');
   const h = await page.evaluate(() => document.documentElement.scrollHeight);
   expect(h, 'a tanod page is no longer a tower of cards (was 1412+ px at 2048 with no dispatches)').toBeLessThan(1500);
@@ -745,6 +745,28 @@ test('Residents and Personnel: the orange band, the banner strip and the blue he
   await page.locator('.rs-st .cm-chip[data-chip="verified"]').click();
   await expect(page).toHaveURL(/sort=verified/);
   await expect(page.locator('.rs-st .cm-chip.p-on')).toHaveCount(1);
+});
+
+test('Account pages, peak: the tanod page leads with figures and banners, and a staff card opens a staff page', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  const r = await open(page, 'personnel.php?id=u2');
+  await expect(page.locator('.pd-fig > div')).toHaveCount(4);
+  await expect(page.locator('.pd-duty .p-duty-grid'), 'the figures left the Duty card').toHaveCount(0);
+  const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.pd-tcb'), f = R('#tc-card'); return { w: Math.round(b.width), cardW: Math.round(f.width), bg: getComputedStyle(document.querySelector('.pd-tcb .cm-chip')).backgroundImage, th: getComputedStyle(document.querySelector('.pd-recent thead th')).backgroundColor, bandBottom: Math.round(R('.pd-recent .pd-band').bottom), headTop: Math.round(R('.pd-recent thead').top) }; });
+  expect(g.w, 'the committee banner spans its card').toBeGreaterThan(g.cardW - 60);
+  expect(g.bg, 'in the committee colours').toContain('gradient');
+  expect(g.th, 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
+  expect(Math.abs(g.bandBottom - g.headTop), 'joined').toBeLessThanOrEqual(1);
+  expect(r.errors, 'console errors').toEqual([]);
+  expect(await axe(page), 'Tanod account').toEqual([]);
+  await open(page, 'personnel.php?view=staff');
+  await page.locator('.pc-name').first().click();
+  await expect(page).toHaveURL(/staff=s1/);
+  await expect(page.locator('.pd-head h2')).toContainText('Santos');
+  await expect(page.locator('.pd-fig > div')).toHaveCount(4);
+  await expect(page.locator('.pd-staffcom .cm-chip')).toHaveCount(1);
+  await expect(page.locator('.pd-recent tbody tr')).toHaveCount(7);
+  expect(await axe(page), 'Staff account').toEqual([]);
 });
 
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {

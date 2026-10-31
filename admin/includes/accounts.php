@@ -57,6 +57,10 @@ function render_account_screen(string $role): void
             render_punch_page($db);
             return;
         }
+        if (isset($_GET['staff']) && (is_super() || is_captain() || is_committee())) {
+            render_staff_profile($db, (string) $_GET['staff']);
+            return;
+        }
         if (($_GET['view'] ?? '') === 'retire' && is_committee()) {
             require_once __DIR__ . '/retirement.php';
             render_retire_page($db);
@@ -1203,36 +1207,33 @@ function render_account_detail(
         <?php if ($tcRow !== null) { render_tc_card($p, $tcRow); } ?>
 
         <?php if ($duty): $st = $duty['stats']; ?>
+        <div class="pd-fig" aria-label="<?= e(t('Duty', 'Tungkulin')) ?> &middot; <?= e($st['month']) ?>">
+          <div><span><?= e(t('Dispatched', 'Na-dispatch')) ?></span><b class="p-num"><?= (int) $st['dispatched'] ?></b><small><?= e($st['month']) ?></small></div>
+          <div><span><?= e(t('Accepted', 'Tinanggap')) ?></span><b class="p-num"><?= (int) $st['accepted'] ?></b><small><?= e(t('took the dispatch', 'tinanggap ang dispatch')) ?></small></div>
+          <div><span><?= e(t('Resolved', 'Nalutas')) ?></span><b class="p-num"><?= (int) $st['resolved'] ?></b><small><?= e(t('closed by this tanod', 'naisara ng tanod na ito')) ?></small></div>
+          <div><span><?= e(t('Avg. response', 'Karaniwang tugon')) ?></span><b class="p-num"><?= $st['avg_min'] === null ? '—' : ($st['avg_min'] < 60 ? (int) round($st['avg_min']) . ' min' : round($st['avg_min'] / 60, 1) . ' h') ?></b><small><?= e(t('assigned to accepted', 'mula na-assign hanggang tinanggap')) ?></small></div>
+        </div>
         <div class="p-card p-card-pad pd-duty">
-          <p class="p-eyebrow"><?= e(t('Duty', 'Tungkulin')) ?> &middot; <?= e($st['month']) ?></p>
-          <div class="p-duty-grid">
-            <div><small><?= e(t('Dispatched', 'Na-dispatch')) ?></small><b><?= (int) $st['dispatched'] ?></b></div>
-            <div><small><?= e(t('Accepted', 'Tinanggap')) ?></small><b><?= (int) $st['accepted'] ?></b></div>
-            <div><small><?= e(t('Resolved', 'Nalutas')) ?></small><b><?= (int) $st['resolved'] ?></b></div>
-            <div><small><?= e(t('Avg. response', 'Karaniwang tugon')) ?></small><b><?= $st['avg_min'] === null ? '—' : ($st['avg_min'] < 60 ? (int) round($st['avg_min']) . ' min' : round($st['avg_min'] / 60, 1) . ' h') ?></b></div>
-          </div>
+          <p class="p-eyebrow"><?= e(t("Today's shift", 'Shift ngayong araw')) ?></p>
           <?php $sh = $duty['shift']; $tot = array_sum($sh); ?>
-          <small class="p-hint"><?= e(t("Today's shift", 'Shift ngayong araw')) ?></small>
           <?php if ($tot > 0): ?>
             <div class="p-shift">
-              <?php foreach (['on_duty' => '#A6C442', 'lunch' => '#C49742', 'break' => '#FF9800', 'offline' => '#BDBDBD'] as $k => $c): ?>
+              <?php foreach (['on_duty' => '#34C759', 'lunch' => '#FF9800', 'break' => '#F5C242', 'offline' => '#E5383B'] as $k => $c): ?>
                 <?php if ($sh[$k] > 0): ?><i style="flex:<?= round($sh[$k] / $tot * 100, 2) ?>;background:<?= $c ?>"></i><?php endif; ?>
               <?php endforeach; ?>
             </div>
             <div class="p-shift-legend">
-              <?php foreach (['on_duty' => '#A6C442', 'lunch' => '#C49742', 'break' => '#FF9800', 'offline' => '#BDBDBD'] as $k => $c): ?>
+              <?php foreach (['on_duty' => '#34C759', 'lunch' => '#FF9800', 'break' => '#F5C242', 'offline' => '#E5383B'] as $k => $c): ?>
                 <span style="--c:<?= $c ?>"><?= e(status_label($k)) ?> <?= $sh[$k] >= 1 ? round($sh[$k], 1) . ' h' : (int) round($sh[$k] * 60) . ' min' ?></span>
               <?php endforeach; ?>
             </div>
           <?php else: ?>
-            <p class="p-none-line" style="margin-top:6px"><?= !empty($p['duty_status'])
-                ? e(t('Now: ', 'Ngayon: ') . status_label((string) $p['duty_status']) . t('. No shift history is recorded yet.', '. Wala pang naitatalang kasaysayan ng shift.'))
-                : e(t('No shift history is recorded yet.', 'Wala pang naitatalang kasaysayan ng shift.')) ?></p>
+            <p class="p-none-line pd-now"><?php if (!empty($p['duty_status'])): ?><span class="pe-duty pe-d-<?= e((string) $p['duty_status']) ?>"><i></i><?= e(status_label((string) $p['duty_status'])) ?></span> <?php endif; ?><?= e(t('No shift history is recorded yet.', 'Wala pang naitatalang kasaysayan ng shift.')) ?></p>
           <?php endif; ?>
         </div>
 
         <div class="p-card p-table-card pd-recent">
-          <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Recent dispatches', 'Mga huling dispatch')) ?></h2></div>
+          <div class="p-band ss-pband pd-band"><h2><?= e(t('Recent dispatches', 'Mga huling dispatch')) ?><span class="p-badge-n p-badge-n--quiet"><?= count($duty['recent']) ?></span></h2></div>
           <div class="p-tscroll"><table class="p-t">
             <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
             <tbody>

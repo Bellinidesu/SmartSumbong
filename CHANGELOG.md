@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the Tanod, Resident and Staff account pages, peak, 1 Nov)**
+- The Tanod page: the duty figures lead as a strip under the name; Today's shift is its own slim card in the duty tile colours; the committees are vibrant banners
+  joined to their forms; Recent dispatches sit under the orange band and the blue header; cards no longer stretch around empty space. Residents share the page.
+- New: a staff page, opened from a name on Committee staff: today's sign-in, sign-out and cases, the committee banner, and 14 days of punch card.
+
 **Changed (Personnel, Committee staff: peak, 1 Nov)**
 - A strip of figures leads (staff, in now, not in today, cases touched today; the middle two filter). Each committee's group is headed by its vibrant banner
   (the colours and symbols the super admin gave it, how many are in now, how many people), joined to the cards under it. Cards: avatar, rank,

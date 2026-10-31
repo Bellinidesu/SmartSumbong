@@ -137,13 +137,15 @@ function render_tc_card(array $p, ?array $row): void
     $rows = (array) ($row['committees'] ?? []);
     $myCom = is_committee() ? (string) (current_admin()['committee'] ?? '') : '';
     $have = array_column($rows, 'key');
-    $csrf = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><input type="hidden" name="id" value="' . e($p['id']) . '">'; ?>
+    $csrf = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><input type="hidden" name="id" value="' . e($p['id']) . '">';
+    $sdTypes0 = $rows ? committee_sd_types(db()) : []; ?>
         <div class="p-card p-card-pad pd-tc" id="tc-card">
           <p class="p-eyebrow"><?= e(t('Committees', 'Mga komite')) ?></p>
           <?php if (!$rows): ?><p class="p-none-line"><?= e(t('Not in a committee yet. Only the super admins see this tanod.', 'Wala pa sa komite. Ang mga super admin lang ang nakakakita sa tanod na ito.')) ?></p><?php endif; ?>
           <?php foreach ($rows as $c): $mine = is_super() || $c['key'] === $myCom; ?>
             <div class="tc-line">
-              <?= tc_pill($c) ?>
+              <?php $ck0 = (string) $c['key']; $lab0 = (string) (committees_all()[$ck0]['short_en'] ?? $ck0); ?>
+              <div class="cm-chips pd-tcb"><a class="cm-chip cm-sd" style="<?= e(cm_banner_style($ck0, $sdTypes0)) ?>" title="<?= e($lab0) ?>"><?= cm_sym_tag($ck0, $sdTypes0, $lab0) ?><span class="cm-n"><?= e($lab0) ?><small class="pc-gn">· <?= e(($c['status'] ?? '') === 'proposed' ? t('proposed', 'iminungkahi') : (trim((string) ($c['role'] ?? '')) !== '' ? (string) $c['role'] : t('member', 'kasapi'))) ?></small></span></a></div>
               <?php if ($mine && !is_captain()): ?>
                 <form method="post" class="tc-row"><?= $csrf ?><input type="hidden" name="action" value="tc_propose"><input type="hidden" name="committee" value="<?= e($c['key']) ?>">
                   <label class="p-sr" for="tcr-<?= e($c['key']) ?>"><?= e(t('Role in the committee', 'Papel sa komite')) ?></label>
@@ -171,6 +173,7 @@ function render_tc_card(array $p, ?array $row): void
               <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(is_super() ? t('Add to the committee', 'Idagdag sa komite') : t('Propose', 'Imungkahi')) ?></button>
             </form>
           <?php endif; ?>
+          <?= $rows ? committee_banner_script() : '' ?>
         </div>
     <?php
 }
@@ -281,7 +284,7 @@ function render_punch_page(Supabase $db): void
         <?php foreach ($people as $c): $days = (array) ($c['days'] ?? []); $today = $days[0] ?? []; $state = $stateOf($c); ?>
           <article class="p-card pc-card pc-<?= e($state) ?>" id="pc-<?= e($c['id']) ?>">
             <header>
-              <div class="p-person"><?= account_avatar_html(null, (string) $c['name'], 'sm') ?><b title="<?= e(formal_name((string) $c['name'])) ?>"><?= e(formal_name((string) $c['name'])) ?></b></div>
+              <div class="p-person"><?= account_avatar_html(null, (string) $c['name'], 'sm') ?><a class="pc-name" href="personnel.php?staff=<?= e($c['id']) ?>" title="<?= e(formal_name((string) $c['name'])) ?>"><b><?= e(formal_name((string) $c['name'])) ?></b></a></div>
               <?= rank_chip(($c['tier'] ?? '') === 'committee' ? 'kagawad' : ($c['position'] ?? null)) ?>
             </header>
             <span class="pc-st pc-st-<?= e($state) ?>"><i aria-hidden="true"></i><?= e($state === 'in' ? t('In now', 'Pasok ngayon') : ($state === 'out' ? t('Signed out', 'Nag-sign out') : t('Not in today', 'Hindi pumasok'))) ?></span>
@@ -310,4 +313,74 @@ function render_punch_page(Supabase $db): void
     <?= committee_banner_script() ?>
     <?php endif;
     layout_foot();
+}
+
+/**
+ * A Kagawad's or staff member's page, opened from their card on Committee staff: who they are, where they stand today, and the last 14
+ * days of their punch card. Read-only; what a super admin changes about a staff account is in Settings, under Admin accounts.
+ */
+function render_staff_profile(Supabase $db, string $id): void
+{
+    $error = null; $c = null;
+    try { foreach ((array) $db->rpc('punch_cards', ['p_days' => 14, 'p_user' => $id]) as $x) { if ((string) ($x['id'] ?? '') === $id) { $c = $x; break; } } }
+    catch (SupabaseError $ex) { $error = safe_error($ex); }
+    layout_head(t('Personnel', 'Mga Tanod'), 'personnel.php');
+    $back = '<div class="p-acc-top"><a class="p-back" href="personnel.php?view=staff" aria-label="' . e(t('Back to the list', 'Bumalik sa listahan')) . '">' . p_icon('i-back', 18) . e(t('Committee staff', 'Mga kawani ng komite')) . '</a>'
+          . '<span class="p-acc-chip">' . e(t('Staff Account', 'Account ng Kawani')) . '</span></div>';
+    if (!$c) { ?>
+      <?= $back ?>
+      <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
+      <div class="p-card pc-none"><b><?= e(t('This person is not on your list.', 'Wala ang taong ito sa listahan mo.')) ?></b></div>
+      <?php layout_foot(); return;
+    }
+    $days = (array) ($c['days'] ?? []); $today = $days[0] ?? [];
+    $state = empty($today['first_in']) ? 'away' : (empty($today['last_out']) ? 'in' : 'out');
+    $ck = (string) ($c['committee'] ?? ''); $label = $ck !== '' ? (string) (committees_all()[$ck]['short_en'] ?? $ck) : '';
+    $sdTypes = $ck !== '' ? committee_sd_types($db) : [];
+    $week = array_slice($days, 0, 7);
+    $weekTouched = array_sum(array_map(fn ($d) => (int) ($d['touched'] ?? 0), $week));
+    $daysIn = count(array_filter($week, fn ($d) => !empty($d['first_in']))); ?>
+    <?= $back ?>
+    <div class="p-profile-grid">
+      <div class="p-grid pd-grid">
+        <div class="p-card p-card-pad pd-head">
+          <div class="p-acc-head"><?= account_avatar_html(null, (string) $c['name'], 'lg') ?><div><h2><?= e(formal_name((string) $c['name'])) ?></h2>
+            <div class="p-acc-flags"><?= rank_chip(($c['tier'] ?? '') === 'committee' ? 'kagawad' : ($c['position'] ?? null)) ?>
+              <span class="pc-st pc-st-<?= e($state) ?>"><i aria-hidden="true"></i><?= e($state === 'in' ? t('In now', 'Pasok ngayon') : ($state === 'out' ? t('Signed out', 'Nag-sign out') : t('Not in today', 'Hindi pumasok'))) ?></span></div></div></div>
+        </div>
+        <div class="pd-fig" aria-label="<?= e(t('Today and this week', 'Ngayon at ngayong linggo')) ?>">
+          <div><span><?= e(t('In today', 'Pasok ngayon')) ?></span><b class="p-num"><?= e(punch_time($today['first_in'] ?? null)) ?></b><small><?= e(t('first sign-in', 'unang sign-in')) ?></small></div>
+          <div><span><?= e(t('Out', 'Labas')) ?></span><b class="p-num"><?= e($state === 'in' ? t('Still in', 'Nasa loob pa') : punch_time($today['last_out'] ?? null)) ?></b><small><?= e(t('last sign-out', 'huling sign-out')) ?></small></div>
+          <div><span><?= e(t('Cases touched today', 'Mga kasong hinawakan ngayon')) ?></span><b class="p-num"><?= (int) ($today['touched'] ?? 0) ?></b><small><?= e(t('status, taking, forwarding, messages', 'katayuan, pagkuha, pagpasa, mensahe')) ?></small></div>
+          <div><span><?= e(t('Days in, last 7', 'Mga araw na pasok, 7')) ?></span><b class="p-num"><?= $daysIn ?></b><small><?= e(sprintf(t('%d cases touched', '%d kasong hinawakan'), $weekTouched)) ?></small></div>
+        </div>
+        <?php if ($ck !== ''): ?>
+        <div class="p-card p-card-pad pd-tc pd-staffcom">
+          <p class="p-eyebrow"><?= e(t('Committee', 'Komite')) ?></p>
+          <div class="cm-chips pd-tcb"><a class="cm-chip cm-sd" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" title="<?= e($label) ?>"><?= cm_sym_tag($ck, $sdTypes, $label) ?><span class="cm-n"><?= e($label) ?><?php if (!empty($c['position'])): ?><small class="pc-gn">· <?= e(ucfirst(str_replace('_', ' ', (string) $c['position']))) ?></small><?php endif; ?></span></a></div>
+          <?= committee_banner_script() ?>
+        </div>
+        <?php endif; ?>
+        <div class="p-card p-table-card pd-recent">
+          <div class="p-band ss-pband pd-band"><h2><?= e(t('Punch card', 'Punch card')) ?><span class="p-badge-n p-badge-n--quiet"><?= count($days) ?></span></h2></div>
+          <div class="p-tscroll"><table class="p-t">
+            <thead><tr><th scope="col"><?= e(t('Day', 'Araw')) ?></th><th scope="col"><?= e(t('In', 'Pasok')) ?></th><th scope="col"><?= e(t('Out', 'Labas')) ?></th><th scope="col"><?= e(t('Cases touched', 'Mga kasong hinawakan')) ?></th></tr></thead>
+            <tbody>
+            <?php foreach ($days as $d): $no = empty($d['first_in']); ?>
+              <tr<?= $no ? ' class="pc-offday"' : '' ?>><td><?= e((new DateTimeImmutable((string) $d['day']))->format('D, M j')) ?></td><td class="p-num"><?= e(punch_time($d['first_in'] ?? null)) ?></td><td class="p-num"><?= e(punch_time($d['last_out'] ?? null)) ?></td>
+                <td><?= (int) ($d['touched'] ?? 0) ?><?php if (!empty($d['cases'])): ?> <span class="p-sub"><?= e(implode(', ', array_slice((array) $d['cases'], 0, 6))) ?><?= count((array) $d['cases']) > 6 ? '…' : '' ?></span><?php endif; ?></td></tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+      <?php if (is_super()): ?>
+      <aside class="p-card p-controls">
+        <p class="p-eyebrow" style="margin:0"><?= e(t('Admin Controls', 'Kontrol ng Admin')) ?></p>
+        <p class="p-ctl-note"><?= e(t('A staff account\'s access, committee and password are changed in Settings, under Admin accounts.', 'Ang access, komite at password ng account ng kawani ay binabago sa Settings, sa ilalim ng Admin accounts.')) ?></p>
+        <a class="p-btn p-btn-ghost p-btn-block" href="settings.php"><?= e(t('Open Settings', 'Buksan ang Settings')) ?></a>
+      </aside>
+      <?php endif; ?>
+    </div>
+    <?php layout_foot();
 }
