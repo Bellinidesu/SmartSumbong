@@ -9,14 +9,6 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
-**Changed (one rule for every list page, 1 Nov)**
-- Ace asked what the portal follows when Case Reports had a vertical rail and everything else was horizontal. The rule: the
-  answer (the figures) is a band across the top; the slices of a list (Report Summary's sections, Case Reports' views and
-  committees) are a rail on the left, as in Jira Service Management's queues; under 1500 px the rail is one compact strip
-  across the top. Report Summary now follows it (its five sections are the rail, with their counts).
-- The join of the orange band and the blue column header is square on both pages (the header's top corners were rounded
-  and showed the band behind them).
-
 **Changed (Case Reports: a rail beside one object, 1 Nov)**
 - Ace: the committee strip looked disjointed. The register is restructured: a left rail holds the views (Needs attention,
   Nobody has it, No committee yet, Open now, each with its count) and the committees (a colour bar, the whole name, how many

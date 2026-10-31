@@ -273,6 +273,9 @@
 .ss-win .rs-tn-row b, .ss-win .rs-tn-bar { grid-column: 1 / -1; }
 .ss-win .rs-tn-n { font-size: 13.5px; white-space: normal; }
 .ss-win .rs-tn-n small { display: block; }
+:root:root .p-body.page-summary .ss-jump { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; gap: 4px; padding: 6px; }
+.page-summary .ss-jump a { justify-content: center; white-space: nowrap; }
+@media (max-width: 760px) { :root:root .p-body.page-summary .ss-jump { display: flex; flex-wrap: wrap; } .page-summary .ss-jump a { flex: 1 1 auto; } }
 
 /* ---- Report Summary: the title row is the orange band, the column header under it is the blue (the Figma pair) ---- */
 .page-summary .p-table-card > .p-card-head {
@@ -380,30 +383,3 @@
 
 /* a case's tag and place stay on one line (the whole text on hover) so every row is one height */
 .page-cases .ss-cases-t td .cm-fwd, .page-cases .ss-cases-t td .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-
-/* ================= One rule for every list page: the answer is a band across the top; the slices of the list are a rail on the left ================= */
-/* the join of the orange band and the blue header is square: nothing of the band shows behind a corner */
-.page-cases .p-table-card, .page-summary .p-table-card { border-top-left-radius: 0; border-top-right-radius: 0; }
-.page-cases .p-table-card thead th, .page-summary .p-table-card thead th, .page-cases .p-t thead th:first-child, .page-cases .p-t thead th:last-child { border-radius: 0; }
-.page-cases .p-table-card .p-tscroll, .page-cases .p-table-card table, .page-summary .p-table-card .p-tscroll, .page-summary .p-table-card table { border-radius: 0; }
-
-/* Report Summary: the sections are the rail (on a narrow screen, one strip of equal tabs across the top, as before) */
-.rs-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
-.rs-main { min-width: 0; }
-:root:root .p-body.page-summary .ss-jump { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; max-width: none; gap: 4px; padding: 6px; margin: 0; position: static; }
-.page-summary .ss-jump a { justify-content: center; white-space: nowrap; }
-@media (max-width: 760px) { :root:root .p-body.page-summary .ss-jump { display: flex; flex-wrap: wrap; } .page-summary .ss-jump a { flex: 1 1 auto; } }
-@media (min-width: 1501px) {
-  .rs-layout { grid-template-columns: 252px minmax(0, 1fr); gap: 20px; }
-  :root:root .p-body.page-summary .ss-jump {
-    position: sticky; top: 16px; display: grid; grid-auto-flow: row; grid-auto-columns: auto; gap: 0; padding: 8px 0; overflow: hidden;
-    background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box; border: 1px solid transparent; border-radius: 18px;
-    box-shadow: 0 1px 2px rgba(20,27,52,.05), 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 50%, transparent);
-  }
-  :root:root .p-body.page-summary .ss-jump::before { content: attr(aria-label); padding: 8px 20px 10px; font: 700 11.5px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--p-blue); }
-  .page-summary .ss-jump a { justify-content: space-between; height: auto; min-height: 50px; padding: 8px 20px; border-radius: 0; font: 700 13.5px Urbanist, sans-serif; color: var(--p-ink); background: transparent; box-shadow: none; }
-  .page-summary .ss-jump a b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 20px Urbanist, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
-  .page-summary .ss-jump a:hover { background: color-mix(in srgb, var(--id-acc) 6%, transparent); }
-  :root:root .p-body.page-summary .ss-jump a.on { background: color-mix(in srgb, #FF9800 14%, transparent); box-shadow: inset 4px 0 0 #FF9800; color: var(--p-ink); }
-  :root:root .p-body.page-summary .ss-jump a.on b { background: none; color: var(--p-ink); }
-}
