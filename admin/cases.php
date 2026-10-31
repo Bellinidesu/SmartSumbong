@@ -383,6 +383,14 @@ try {
     } elseif ($tab === 'notes') {
         $ncq = $nq; unset($ncq['select'], $ncq['order'], $ncq['limit'], $ncq['offset']);
         $notesTotal = $db->count('notifications', $ncq);
+        // each banner's count: the same rules as the list (Unread or All, the search), under the banner's own committee
+        $ncN = [];
+        if (sees_everything()) {
+            $nb = $nq; unset($nb['select'], $nb['order'], $nb['limit'], $nb['offset'], $nb['report_id'], $nb['notification_committee']);
+            $cq = ['all' => ['notifications', $nb], 'none' => ['notifications', $nb + ['report_id' => 'not.is.null', 'notification_committee' => 'is.null']], 'system' => ['notifications', $nb + ['report_id' => 'is.null']]];
+            foreach (committees_active() as $ck => $cl) { $cq[$ck] = ['notifications', $nb + ['notification_committee' => 'eq.' . $ck]]; }
+            try { $ncN = array_map(fn ($v) => is_int($v) ? $v : 0, $db->selectMany($cq, true)); } catch (SupabaseError) { $ncN = []; }
+        }
     }
 
     // The SMART queue (0129): every open case by priority with its next action. Failure here must not break the page.
@@ -514,14 +522,16 @@ $noteBadge = $notesUnread + $escCount;
 </div>
 <?php if (sees_everything()):
     $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
+<?php $sdTypes = committee_sd_types($db); ?>
 <nav class="cm-chips nf-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
-  <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?>><?= e(t('All', 'Lahat')) ?></a>
+  <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>" data-nc=""><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= (int) ($ncN['all'] ?? 0) ?></b></a>
   <?php foreach (committees_active() as $ck => $cl): ?>
-    <a class="cm-chip<?= $nCom === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?>><i></i><?= e($cl) ?></a>
+    <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>" data-nc="<?= e($ck) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= (int) ($ncN[$ck] ?? 0) ?></b></a>
   <?php endforeach; ?>
-  <a class="cm-chip cm-chip-none<?= $nCom === 'none' ? ' p-on' : '' ?>" href="<?= e($ncHref('none')) ?>"<?= $nCom === 'none' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('No committee yet', 'Wala pang komite')) ?></a>
-  <a class="cm-chip<?= $nCom === 'system' ? ' p-on' : '' ?>" style="--cc:var(--p-muted)" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('System', 'Sistema')) ?></a>
+  <a class="cm-chip cm-chip-none<?= $nCom === 'none' ? ' p-on' : '' ?>" href="<?= e($ncHref('none')) ?>"<?= $nCom === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>" data-nc="none"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b><?= (int) ($ncN['none'] ?? 0) ?></b></a>
+  <a class="cm-chip cm-chip-sys<?= $nCom === 'system' ? ' p-on' : '' ?>" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?> title="<?= e(t('System', 'Sistema')) ?>" data-nc="system"><i class="cm-sym cm-sym-sys">S</i><span class="cm-n"><?= e(t('System', 'Sistema')) ?></span><b><?= (int) ($ncN['system'] ?? 0) ?></b></a>
 </nav>
+<?= committee_banner_script() ?>
 <?php endif; ?>
 
 <!-- ---------- escalation requests (0073) ---------- -->
@@ -672,19 +682,7 @@ $crWho    = sees_everything() ? ['none', (int) ($chipN['none'] ?? 0), t('No comm
                               : ['fwd', (int) ($chipN['fwd'] ?? 0), t('Forwarded to me', 'Ipinasa sa akin'), t('from another committee', 'mula sa ibang komite')];
 $crHref   = fn (array $q) => 'cases.php?' . http_build_query($q);
 // Spatial Distribution leads: a committee wears the colours and symbols of the complaint types it is connected to (the ticks of the committee creator)
-$sdIconOf = ['street_obstruction' => 'obstruction', 'public_safety_infrastructure' => 'infra', 'environmental_waste_hazard' => 'waste', 'animal_welfare' => 'animal',
-             'traffic_violation' => 'traffic', 'barangay_service' => 'service', 'peace_order_nuisance' => 'noise', 'other' => 'other'];
-$sdTypes = [];   // committee key => up to three [colour, SD icon name], in the complaint types' own order
-try {
-    $tick = [];
-    foreach ((array) $db->select('committee_categories', ['select' => 'committee,category']) as $x) { $tick[(string) $x['committee']][(string) $x['category']] = true; }
-    foreach ($tick as $ckey => $cats) {
-        foreach (categories_all() as $catKey => $cat) {
-            if (!isset($cats[$catKey]) || empty($cat['active'])) continue;
-            $sdTypes[$ckey][] = [(string) $cat['colour'], $sdIconOf[(string) ($cat['icon'] ?? $catKey)] ?? ($sdIconOf[$catKey] ?? 'other')];
-        }
-    }
-} catch (Throwable) { /* the buttons fall back to the committee's own colour and its initials */ }
+$sdTypes = committee_sd_types($db);
 $crOd = [];   // overdue open cases, by committee ('' = none)
 foreach ($openRows ?? [] as $r) { if (!empty($r['due_at']) && strtotime((string) $r['due_at']) < time()) { $k = (string) ($r['case_committee'] ?? ''); $crOd[$k] = ($crOd[$k] ?? 0) + 1; } }
 $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '%d ang lampas') : t('%d overdue', '%d ang lampas'), $n) : t('none overdue', 'walang lampas');
@@ -788,25 +786,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&#9873;</i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
   <?php endif; ?>
 </nav>
-<script src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>"></script>
-<script>
-(function () {   // each committee symbol is drawn from the Spatial Distribution icon family
-  var I = window.SD_ICONS || {};
-  document.querySelectorAll('.cm-chips .cm-ic').forEach(function (s) {
-    s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
-    s.innerHTML = I[s.dataset.ic] || I.other || '';
-  });
-  document.querySelectorAll('.cm-chips .cm-chip').forEach(function () {});
-  var all = document.querySelector('.cm-chips .cm-sym-all'); if (all && I.layers) { all.innerHTML = '<svg class="cm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I.layers + '</svg>'; }
-  // the symbol again, large and faint at the right of each banner (the app's DHero)
-  document.querySelectorAll('.cm-chips .cm-chip').forEach(function (chip) {
-    var f = chip.querySelector('.cm-sym svg'), g;
-    if (f) { g = f.cloneNode(true); }
-    else { var d = chip.classList.contains('cm-chip-none') ? I.focus : I.other; if (!d) return; g = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); g.setAttribute('viewBox', '0 0 24 24'); g.setAttribute('fill', 'none'); g.setAttribute('stroke', 'currentColor'); g.setAttribute('stroke-linecap', 'round'); g.setAttribute('stroke-linejoin', 'round'); g.innerHTML = d; }
-    g.setAttribute('stroke-width', '2'); g.setAttribute('class', 'cm-bg'); g.removeAttribute('width'); g.removeAttribute('height'); g.setAttribute('aria-hidden', 'true'); chip.appendChild(g);
-  });
-})();
-</script>
+<?= committee_banner_script() ?>
 <?php if (is_super()): ?>
 <div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
 <?php endif; ?>
@@ -1291,6 +1271,21 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     if (window.ssPaintOpen) window.ssPaintOpen();
   }
 
+  // the banners' counts, by the same rules as the list (Unread or All, the search), so a count is what its banner shows when pressed
+  function refreshBannerCounts() {
+    document.querySelectorAll('.nf-chips .cm-chip[data-nc]').forEach(async chip => {
+      const k = chip.dataset.nc;
+      let q = sb.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', ADMIN_ID).neq('kind', 'inbox_mail')
+        .not('message', 'like', 'SMART: recurring*').not('message', 'like', 'SMART: spike*').not('message', 'like', 'SMART:*has had no update for*');
+      q = N_SEARCH ? q.ilike('message', '*' + N_SEARCH.replace(/[,()"\\*]/g, ' ') + '*') : (N_ALL ? q : q.eq('is_read', false));
+      if (k === 'system') q = q.is('report_id', null);
+      else if (k === 'none') q = q.not('report_id', 'is', null).is('notification_committee', null);
+      else if (k) q = q.eq('notification_committee', k);
+      const { count, error } = await q;
+      const b = chip.querySelector('b'); if (!error && count != null && b) b.textContent = String(count);
+    });
+  }
+
   async function loadNotifications() {
     let nq = sb.from('notifications')
       .select('id,kind,message,created_at,is_read,report_id,subject_user_id,subject:users!notifications_subject_user_id_fkey(role),notification_committee', { count: 'exact' })
@@ -1309,6 +1304,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     const { data, error, count } = await nq;
     if (error) return;
     renderNotifications(data || []);
+    refreshBannerCounts();
     const np = document.getElementById('notes-pager');
     if (np) np.innerHTML = pagerHtml(count == null ? (data || []).length : count, NPAGE, 'npage');
   }

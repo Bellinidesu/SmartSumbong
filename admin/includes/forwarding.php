@@ -158,3 +158,68 @@ function forwarding_pins(Supabase $db): array
     usort($pins, fn ($a, $b) => [$rank[$a['kind']] ?? 9, $a['at']] <=> [$rank[$b['kind']] ?? 9, $b['at']]);
     return $pins;
 }
+
+/**
+ * Spatial Distribution leads: a committee is connected to the complaint types its creator ticked, so it wears their colours and
+ * their symbols (the map's own icon family, assets/js/sd-icons.js). committee key => list of [colour, SD icon name], in the complaint types' order.
+ */
+function committee_sd_types(Supabase $db): array
+{
+    $iconOf = ['street_obstruction' => 'obstruction', 'public_safety_infrastructure' => 'infra', 'environmental_waste_hazard' => 'waste', 'animal_welfare' => 'animal',
+               'traffic_violation' => 'traffic', 'barangay_service' => 'service', 'peace_order_nuisance' => 'noise', 'other' => 'other'];
+    $out = [];
+    try {
+        $tick = [];
+        foreach ((array) $db->select('committee_categories', ['select' => 'committee,category']) as $x) { $tick[(string) $x['committee']][(string) $x['category']] = true; }
+        foreach ($tick as $ckey => $cats) {
+            foreach (categories_all() as $catKey => $cat) {
+                if (!isset($cats[$catKey]) || empty($cat['active'])) continue;
+                $out[$ckey][] = [(string) $cat['colour'], $iconOf[(string) ($cat['icon'] ?? $catKey)] ?? ($iconOf[$catKey] ?? 'other')];
+            }
+        }
+    } catch (Throwable) { /* the banners fall back to the committee's own colour */ }
+    return $out;
+}
+
+/** The custom properties of a committee's banner: its own colour, the washes of its (up to three) complaint types and a lettering colour that reads on them. */
+function cm_banner_style(string $ck, array $sdTypes): string
+{
+    $sd = array_slice($sdTypes[$ck] ?? [], 0, 3);
+    $cols = $sd ? array_column($sd, 0) : [committee_colour($ck)];
+    return '--cc:' . committee_colour($ck) . ';--ct:' . ink_on_bold($cols) . ';--g1:' . $cols[0] . ';--g2:' . ($cols[1] ?? $cols[0]) . ';--g3:' . ($cols[2] ?? ($cols[1] ?? $cols[0]));
+}
+
+/** The symbol element of a committee's banner: its types' SD icons (filled in by committee_banner_script), "+N" for more than three, or its initials. */
+function cm_sym_tag(string $ck, array $sdTypes, string $label): string
+{
+    $all = $sdTypes[$ck] ?? [];
+    if (!$all) { return '<i class="cm-sym">' . e(cm_mono($label)) . '</i>'; }
+    $o = '<i class="cm-sym cm-sym-sd">';
+    foreach (array_slice($all, 0, 3) as [, $icn]) { $o .= '<svg class="cm-ic" data-ic="' . e($icn) . '" viewBox="0 0 24 24" aria-hidden="true"></svg>'; }
+    if (count($all) > 3) { $o .= '<b class="cm-more">+' . (count($all) - 3) . '</b>'; }
+    return $o . '</i>';
+}
+
+/** Draws the banners' symbols from the Spatial Distribution icon family, and the large faint symbol at the right of each banner (the app's DHero). */
+function committee_banner_script(): string
+{
+    return '<script src="assets/js/sd-icons.js?v=' . e(asset_version('../js/sd-icons.js')) . '"></script>' . <<<'JS'
+<script>
+(function () {   // each committee symbol is drawn from the Spatial Distribution icon family
+  var I = window.SD_ICONS || {};
+  document.querySelectorAll('.cm-chips .cm-ic').forEach(function (s) {
+    s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
+    s.innerHTML = I[s.dataset.ic] || I.other || '';
+  });
+  var all = document.querySelector('.cm-chips .cm-sym-all'); if (all && I.layers) { all.innerHTML = '<svg class="cm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I.layers + '</svg>'; }
+  // the symbol again, large and faint at the right of each banner (the app's DHero)
+  document.querySelectorAll('.cm-chips .cm-chip').forEach(function (chip) {
+    var f = chip.querySelector('.cm-sym svg'), g;
+    if (f) { g = f.cloneNode(true); }
+    else { var d = chip.classList.contains('cm-chip-none') ? I.focus : (chip.classList.contains('cm-chip-sys') ? I.radar : I.other); if (!d) return; g = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); g.setAttribute('viewBox', '0 0 24 24'); g.setAttribute('fill', 'none'); g.setAttribute('stroke', 'currentColor'); g.setAttribute('stroke-linecap', 'round'); g.setAttribute('stroke-linejoin', 'round'); g.innerHTML = d; }
+    g.setAttribute('stroke-width', '2'); g.setAttribute('class', 'cm-bg'); g.removeAttribute('width'); g.removeAttribute('height'); g.setAttribute('aria-hidden', 'true'); chip.appendChild(g);
+  });
+})();
+</script>
+JS;
+}

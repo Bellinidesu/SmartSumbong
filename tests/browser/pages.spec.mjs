@@ -656,6 +656,31 @@ test('The stacked layout: the strip is one object with the band and the table, n
   await expect(page.locator('.rs-layout, .cr-rail'), 'no rail anywhere').toHaveCount(0);
 });
 
+test('Notifications keeps its live layout and wears the committee banners, joined to its band', async ({ page }) => {
+  for (const w of [2048, 1440]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    const r = await open(page, 'notifications.php');
+    const g = await page.evaluate(() => { const b = document.querySelector('.nf-main .p-band--calm').getBoundingClientRect(), c = document.querySelector('.nf-chips').getBoundingClientRect(), m = document.querySelector('.nf-main').getBoundingClientRect(), rail = document.querySelector('.nf-rail'); return { x: [b.left, b.right, c.left, c.right].map(Math.round), y: [b.bottom, c.top].map(Math.round), railBeside: !!rail && rail.getBoundingClientRect().left >= m.right - 1 }; });
+    expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+    expect(Math.abs(g.y[0] - g.y[1]) <= 1, 'with no gap at ' + w).toBe(true);
+    if (w === 2048) expect(g.railBeside, 'the live layout: the work and the engine reading beside the feed').toBe(true);
+    await expect(page.locator('.nf-chips .cm-chip')).toHaveCount(1 + 4 + 1 + 1);   // All, each active committee, No committee, System
+    expect(await page.locator('.nf-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundImage === 'none').length), 'every banner is a gradient at ' + w).toBe(0);
+    expect(await page.locator('.nf-chips .cm-bg').count(), 'each carries its faint symbol at ' + w).toBeGreaterThanOrEqual(6);
+    expect(await page.locator('.nf-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
+    expect(r.errors, 'console errors').toEqual([]);
+  }
+  // each banner's number is what its list shows when it is pressed
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  await open(page, 'notifications.php');
+  const keys = await page.locator('.nf-chips .cm-chip').evaluateAll(cs => cs.map(c => [c.dataset.nc, c.querySelector('b').textContent.trim()]));
+  expect(keys.length).toBe(7);
+  for (const [k, shown] of keys) {
+    await open(page, 'notifications.php' + (k ? '?ncom=' + k : ''));
+    expect(await page.locator('#notif-count').textContent(), 'the banner "' + (k || 'All') + '" says what its list holds').toBe(shown);
+  }
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);

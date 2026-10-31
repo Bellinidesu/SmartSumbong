@@ -342,24 +342,24 @@
 /* ================= Case Reports, stacked: the figures, then the orange band, the committee strip and the blue-headed table as ONE object ================= */
 .page-cases .ss-cr-band { border-radius: 16px 16px 0 0; margin-bottom: 0; }
 /* the committee strip wraps (never scrolls, never cuts a name); hairlines are the gaps between cells */
-:root:root .p-body.page-cases .cm-chips {
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips {
   display: flex; flex-wrap: wrap; gap: 1px; margin: 0; padding: 0; overflow: visible;
   background: var(--p-line); border: 1px solid var(--p-line); border-top: 0; border-bottom: 0; border-radius: 0;
 }
-:root:root .p-body.page-cases .cm-chip {
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip {
   flex: 1 1 210px; display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 9px 18px;
   border: 0; border-radius: 0; background: var(--p-surface); box-shadow: none; text-decoration: none; color: var(--p-ink);
 }
-:root:root .p-body.page-cases .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 6%, var(--p-surface)); }
-:root:root .p-body.page-cases .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 11%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
-:root:root .p-body.page-cases .cm-chip > i { width: 4px; height: 32px; border-radius: 2px; background: var(--cc, var(--p-ink)); }
-.page-cases .cm-chip:first-child { --cc: var(--p-ink); }
-.page-cases .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Urbanist, sans-serif; white-space: normal; overflow-wrap: anywhere; }
-.page-cases .cm-chip .cm-n em { font: 600 11.5px Inter, sans-serif; font-style: normal; color: var(--p-muted); }
-.page-cases .cm-chip .cm-n em.cm-od { color: var(--p-red); font-weight: 700; }
-:root:root .p-body.page-cases .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 22px Urbanist, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
-.page-cases .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; margin-top: 0; }
-.page-cases .cm-chips ~ .fw-bulk { margin: 10px 0; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 6%, var(--p-surface)); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 11%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i { width: 4px; height: 32px; border-radius: 2px; background: var(--cc, var(--p-ink)); }
+:is(.page-cases, .page-notifications) .cm-chip:first-child { --cc: var(--p-ink); }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Urbanist, sans-serif; white-space: normal; overflow-wrap: anywhere; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em { font: 600 11.5px Inter, sans-serif; font-style: normal; color: var(--p-muted); }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em.cm-od { color: var(--p-red); font-weight: 700; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 22px Urbanist, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
+:is(.page-cases, .page-notifications) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; margin-top: 0; }
+:is(.page-cases, .page-notifications) .cm-chips ~ .fw-bulk { margin: 10px 0; }
 /* a case's tag and place stay on one line (the whole text on hover) so every row is one height */
 .page-cases .ss-cases-t td .cm-fwd, .page-cases .ss-cases-t td .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 /* the join of the orange band and the blue header is square on both pages: nothing of the band shows behind a corner */
@@ -368,28 +368,28 @@
 
 /* ================= Case Reports: band, strip and table are one seamless object, and the strip wears the committees' colours ================= */
 :root:root .p-body.page-cases .ss-cr-band { box-shadow: inset 0 1px 0 rgba(255,255,255,.4); border-radius: 16px 16px 0 0; }
-:root:root .p-body.page-cases .cm-chips { border: 0; background: var(--p-line); }
-:root:root .p-body.page-cases .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; border-top: 0; box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 45%, transparent); }
-:root:root .p-body.page-cases .cm-chip { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; min-height: 66px; padding: 10px 18px 10px 14px; position: relative; }
-:root:root .p-body.page-cases .cm-chip > i.cm-sym {
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips { border: 0; background: var(--p-line); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; border-top: 0; box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 45%, transparent); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; min-height: 66px; padding: 10px 18px 10px 14px; position: relative; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym {
   display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font: 800 13px/1 Urbanist, sans-serif; letter-spacing: .02em; font-style: normal;
   color: color-mix(in srgb, var(--cc, var(--p-ink)) 70%, var(--p-ink)); background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, var(--p-surface));
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc, var(--p-ink)) 45%, transparent);
 }
-:root:root .p-body.page-cases .cm-chip > i.cm-sym-all { --cc: var(--p-ink); font-size: 11px; }
-:root:root .p-body.page-cases .cm-chip > i.cm-sym-none { box-shadow: none; border: 1.5px dashed var(--p-red); background: color-mix(in srgb, var(--p-red) 8%, var(--p-surface)); color: var(--p-red); }
-:root:root .p-body.page-cases .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 7%, var(--p-surface)); }
-:root:root .p-body.page-cases .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 13%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
-:root:root .p-body.page-cases .cm-chip.p-on > i.cm-sym { background: var(--cc, var(--p-ink)); color: #fff; box-shadow: none; }
-:root:root .p-body.page-cases .cm-chip.p-on > i.cm-sym-all { color: var(--p-surface); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym-all { --cc: var(--p-ink); font-size: 11px; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym-none { box-shadow: none; border: 1.5px dashed var(--p-red); background: color-mix(in srgb, var(--p-red) 8%, var(--p-surface)); color: var(--p-red); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 7%, var(--p-surface)); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 13%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on > i.cm-sym { background: var(--cc, var(--p-ink)); color: #fff; box-shadow: none; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on > i.cm-sym-all { color: var(--p-surface); }
 :root[data-theme="dark"] .p-body.page-cases .cm-chip > i.cm-sym { color: color-mix(in srgb, var(--cc, #fff) 55%, #fff); }
 
 /* ================= the committee strip: each cell is a banner, built the way the app's and Spatial Distribution's banners are =================
    a radial wash of the complaint type's colour (light at the top left, the colour, a darker corner), the Damascus contour lines over it,
    a glass tile with the SD symbol, and the symbol again, large and faint, at the right (the app's DHero). */
-:root:root .p-body.page-cases .cm-chips { gap: 0; background: none; }
-.page-cases .cm-chip { --g1: var(--cc, #356CF9); --g2: var(--g1); --g3: var(--g1); }
-:root:root .p-body.page-cases .cm-chip {
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips { gap: 0; background: none; }
+:is(.page-cases, .page-notifications) .cm-chip { --g1: var(--cc, #356CF9); --g2: var(--g1); --g3: var(--g1); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip {
   --ct: #fff; position: relative; overflow: hidden; isolation: isolate; color: var(--ct); min-height: 76px; padding: 10px 18px 10px 14px; border: 0; border-radius: 0;
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.52) 0%, rgba(255,255,255,0) 56%),
@@ -398,99 +398,116 @@
   box-shadow: inset 1px 0 0 rgba(255,255,255,.28), inset 0 1px 0 rgba(255,255,255,.28);
   filter: saturate(1.12); transition: filter .18s ease, transform .18s ease;
 }
-.page-cases .cm-chip::before {   /* the Damascus contour lines, as on the SD banner */
+:is(.page-cases, .page-notifications) .cm-chip::before {   /* the Damascus contour lines, as on the SD banner */
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: #fff; opacity: .24; transform: none; animation: none;
   -webkit-mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat;
 }
-.page-cases .cm-chip > * { position: relative; z-index: 1; }
-.page-cases .cm-chip > .cm-bg { position: absolute; z-index: 0; right: -10px; bottom: -22px; width: 92px; height: 92px; color: #fff; opacity: .17; pointer-events: none; stroke-width: 1.6; }
-:root:root .p-body.page-cases .cm-chip:hover { filter: saturate(1.3) brightness(1.06); transform: translateY(-1px); }
-:root:root .p-body.page-cases .cm-chip.p-on { background:
+:is(.page-cases, .page-notifications) .cm-chip > * { position: relative; z-index: 1; }
+:is(.page-cases, .page-notifications) .cm-chip > .cm-bg { position: absolute; z-index: 0; right: -10px; bottom: -22px; width: 92px; height: 92px; color: #fff; opacity: .17; pointer-events: none; stroke-width: 1.6; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:hover { filter: saturate(1.3) brightness(1.06); transform: translateY(-1px); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on { background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.52) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.36) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg, var(--g1) 0%, var(--g1) 18%, var(--g2) 50%, var(--g3) 82%, var(--g3) 100%);
   box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px rgba(0,0,0,.22), 0 12px 24px -12px var(--g1); filter: saturate(1.25); transform: translateY(-1px); z-index: 2; }
-:root:root .p-body.page-cases .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(.95) brightness(.98); }
-:root:root .p-body.page-cases .cm-chips:has(.p-on) .cm-chip:not(.p-on):hover { filter: saturate(1.3) brightness(1.06); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(.95) brightness(.98); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips:has(.p-on) .cm-chip:not(.p-on):hover { filter: saturate(1.3) brightness(1.06); }
 /* the glass tile with the symbol, as on the quick-view header */
-:root:root .p-body.page-cases .cm-chip > i.cm-sym {
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; min-width: 42px; height: 42px; padding: 0 9px; border-radius: 12px; font: 800 13px/1 Urbanist, sans-serif; font-style: normal;
   color: var(--ct); background: color-mix(in srgb, var(--ct) 20%, transparent); box-shadow: none; border: 0;
 }
-.page-cases .cm-chip .cm-ic { width: 24px; height: 24px; flex: none; }
-.page-cases .cm-chip .cm-sym-sd .cm-ic:nth-of-type(n+2) { width: 19px; height: 19px; opacity: .92; }
-.page-cases .cm-chip .cm-more { font: 800 11px Inter, sans-serif; opacity: .9; }
-:root:root .p-body.page-cases .cm-chip > i.cm-sym-all { font-size: 0; }
-:root:root .p-body.page-cases .cm-chip > i.cm-sym-none { background: color-mix(in srgb, var(--ct) 20%, transparent); border: 0; color: var(--ct); }
+:is(.page-cases, .page-notifications) .cm-chip .cm-ic { width: 24px; height: 24px; flex: none; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-sym-sd .cm-ic:nth-of-type(n+2) { width: 19px; height: 19px; opacity: .92; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-more { font: 800 11px Inter, sans-serif; opacity: .9; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym-all { font-size: 0; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym-none { background: color-mix(in srgb, var(--ct) 20%, transparent); border: 0; color: var(--ct); }
 /* the name, the overdue as a dark glass pill (the app's chip), the count */
-.page-cases .cm-chip .cm-n { color: var(--ct); font: 800 15px/1.2 Urbanist, sans-serif; }
-.page-cases .cm-chip .cm-n em { color: var(--ct); opacity: .86; font: 600 12px Inter, sans-serif; }
-.page-cases .cm-chip .cm-n em.cm-od { opacity: 1; display: inline-block; justify-self: start; padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.38); color: #fff; font: 700 11px Inter, sans-serif; letter-spacing: .02em; }
-:root:root .p-body.page-cases .cm-chip > b { color: var(--ct); font: 800 28px Urbanist, sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,.22); }
-.page-cases .cm-chip:first-child { --cc: #2D5BFF; }
-.page-cases .cm-chip.cm-chip-none { --cc: #FF2D4B; }
-.page-cases .cm-chip.cm-chip-flag { --cc: #FF9800; --ct: #2B1A00; }
-@media (prefers-reduced-motion: reduce) { .page-cases .cm-chip { transition: none; } }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n { color: var(--ct); font: 800 15px/1.2 Urbanist, sans-serif; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em { color: var(--ct); opacity: .86; font: 600 12px Inter, sans-serif; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em.cm-od { opacity: 1; display: inline-block; justify-self: start; padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.38); color: #fff; font: 700 11px Inter, sans-serif; letter-spacing: .02em; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > b { color: var(--ct); font: 800 28px Urbanist, sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,.22); }
+:is(.page-cases, .page-notifications) .cm-chip:first-child { --cc: #2D5BFF; }
+:is(.page-cases, .page-notifications) .cm-chip.cm-chip-none { --cc: #FF2D4B; }
+:is(.page-cases, .page-notifications) .cm-chip.cm-chip-flag { --cc: #FF9800; --ct: #2B1A00; }
+@media (prefers-reduced-motion: reduce) { :is(.page-cases, .page-notifications) .cm-chip { transition: none; } }
 
 /* ---- tuned from the first preview ---- */
 /* the symbols are white on the glass tile, whatever the colour behind (the lettering colour only picks the name's) */
-.page-cases .cm-chip .cm-sym .cm-ic { color: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.35)); }
-.page-cases .cm-chip.cm-chip-flag .cm-sym .cm-ic { color: var(--ct); filter: none; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-sym .cm-ic { color: #fff; filter: drop-shadow(0 1px 3px rgba(0,0,0,.35)); }
+:is(.page-cases, .page-notifications) .cm-chip.cm-chip-flag .cm-sym .cm-ic { color: var(--ct); filter: none; }
 /* the contour lines are felt, not read: the SD banner's strength on a tall banner, lighter on a short button */
-.page-cases .cm-chip::before { opacity: .15; }
+:is(.page-cases, .page-notifications) .cm-chip::before { opacity: .15; }
 /* a blend is a wash of one colour into the next, never a grey midpoint: it is mixed in a vivid space and darkened a touch for the lettering */
-:root:root .p-body.page-cases .cm-chip {
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip {
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.42) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%);
 }
-:root:root .p-body.page-cases .cm-chip.p-on { background:
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on { background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.42) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%); }
 /* the lettering sits on a soft dark halo so it reads on any colour, the way the SD pill does */
-.page-cases .cm-chip .cm-n { text-shadow: 0 1px 8px rgba(0,0,0,.45), 0 0 2px rgba(0,0,0,.25); }
-.page-cases .cm-chip.cm-chip-flag .cm-n { text-shadow: none; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n { text-shadow: 0 1px 8px rgba(0,0,0,.45), 0 0 2px rgba(0,0,0,.25); }
+:is(.page-cases, .page-notifications) .cm-chip.cm-chip-flag .cm-n { text-shadow: none; }
 
 /* ---- Ace: vibrant again; no small icon tile (the banner is the symbol); no contour lines; the large faint symbol stays ---- */
-.page-cases .cm-chip::before { content: none; }
-:root:root .p-body.page-cases .cm-chip > i.cm-sym { display: none; }
-:root:root .p-body.page-cases .cm-chip { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px 18px; filter: saturate(1.5) brightness(1.04);
+:is(.page-cases, .page-notifications) .cm-chip::before { content: none; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip > i.cm-sym { display: none; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 10px 18px; filter: saturate(1.5) brightness(1.04);
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%); }
-:root:root .p-body.page-cases .cm-chip.p-on { filter: saturate(1.7) brightness(1.08);
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip.p-on { filter: saturate(1.7) brightness(1.08);
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%); }
-:root:root .p-body.page-cases .cm-chip:hover { filter: saturate(1.8) brightness(1.1); }
-:root:root .p-body.page-cases .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(1.35) brightness(1); }
-.page-cases .cm-chip > .cm-bg { right: -4px; bottom: -26px; width: 104px; height: 104px; opacity: .22; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:hover { filter: saturate(1.8) brightness(1.1); }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(1.35) brightness(1); }
+:is(.page-cases, .page-notifications) .cm-chip > .cm-bg { right: -4px; bottom: -26px; width: 104px; height: 104px; opacity: .22; }
 
 /* ---- the overdue note belongs to its banner: the banner's own lettering colour as a soft ring and a dot, never a black patch ---- */
-.page-cases .cm-chip .cm-n em.cm-od {
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em.cm-od {
   display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 3px 11px 3px 9px; border-radius: 99px; opacity: 1;
   background: color-mix(in srgb, var(--ct) 16%, transparent); color: var(--ct); text-shadow: none;
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ct) 55%, transparent); font: 800 11.5px Inter, sans-serif; letter-spacing: .02em;
 }
-.page-cases .cm-chip .cm-n em.cm-od::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ct); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 60%, transparent); animation: cmPulse 2.2s ease-out infinite; }
+:is(.page-cases, .page-notifications) .cm-chip .cm-n em.cm-od::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ct); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 60%, transparent); animation: cmPulse 2.2s ease-out infinite; }
 @keyframes cmPulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
 
 /* ---- the faint symbol is alive: it leans in and brightens on hover, and squeezes on press ---- */
-.page-cases .cm-chip > .cm-bg { transform-origin: 62% 62%; transition: transform .45s cubic-bezier(.2,1.4,.35,1), opacity .3s ease; will-change: transform; }
-.page-cases .cm-chip:hover > .cm-bg, .page-cases .cm-chip:focus-visible > .cm-bg { transform: translate(-6px, -5px) scale(1.14) rotate(-7deg); opacity: .36; }
-.page-cases .cm-chip:active > .cm-bg { transform: translate(2px, 3px) scale(.9) rotate(5deg); opacity: .5; transition-duration: .12s; }
-.page-cases .cm-chip:active { transform: translateY(0) scale(.992); transition-duration: .1s; }
-@media (prefers-reduced-motion: reduce) { .page-cases .cm-chip > .cm-bg, .page-cases .cm-chip .cm-n em.cm-od::before { transition: none; animation: none; } .page-cases .cm-chip:hover > .cm-bg, .page-cases .cm-chip:active > .cm-bg { transform: none; } }
+:is(.page-cases, .page-notifications) .cm-chip > .cm-bg { transform-origin: 62% 62%; transition: transform .45s cubic-bezier(.2,1.4,.35,1), opacity .3s ease; will-change: transform; }
+:is(.page-cases, .page-notifications) .cm-chip:hover > .cm-bg, :is(.page-cases, .page-notifications) .cm-chip:focus-visible > .cm-bg { transform: translate(-6px, -5px) scale(1.14) rotate(-7deg); opacity: .36; }
+:is(.page-cases, .page-notifications) .cm-chip:active > .cm-bg { transform: translate(2px, 3px) scale(.9) rotate(5deg); opacity: .5; transition-duration: .12s; }
+:is(.page-cases, .page-notifications) .cm-chip:active { transform: translateY(0) scale(.992); transition-duration: .1s; }
+@media (prefers-reduced-motion: reduce) { :is(.page-cases, .page-notifications) .cm-chip > .cm-bg, :is(.page-cases, .page-notifications) .cm-chip .cm-n em.cm-od::before { transition: none; animation: none; } :is(.page-cases, .page-notifications) .cm-chip:hover > .cm-bg, :is(.page-cases, .page-notifications) .cm-chip:active > .cm-bg { transform: none; } }
 
 /* hover and press keep the banner's own wash (an older tint rule had turned the whole banner white) */
-:root:root .p-body.page-cases .cm-chip:hover, :root:root .p-body.page-cases .cm-chip:active, :root:root .p-body.page-cases .cm-chip:focus-visible {
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:hover, :root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:active, :root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:focus-visible {
   background:
     radial-gradient(120% 150% at 6% -12%, rgba(255,255,255,.58) 0%, rgba(255,255,255,0) 56%),
     radial-gradient(110% 140% at 104% 122%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
     linear-gradient(105deg in oklch, var(--g1) 0%, var(--g1) 14%, var(--g2) 54%, var(--g3) 86%, var(--g3) 100%);
 }
-:root:root .p-body.page-cases .cm-chip:focus-visible { outline: 3px solid #fff; outline-offset: -6px; }
+:root:root .p-body:is(.page-cases, .page-notifications) .cm-chip:focus-visible { outline: 3px solid #fff; outline-offset: -6px; }
+
+/* ================= Notifications: the committee banners, joined to the band and the list; the work waiting on you across the top; the engine's reading in its window ================= */
+.page-notifications .p-band { border-radius: 16px 16px 0 0; margin-bottom: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
+:root:root .p-body.page-notifications .nf-chips { margin: 0; }
+.page-notifications .nf-chips + .p-notif-card, .page-notifications .nf-chips ~ .nf-list { border-radius: 0 0 16px 16px; margin-top: 0; }
+:root:root .p-body.page-notifications .cm-chip { min-height: 70px; padding: 10px 18px; }
+:root:root .p-body.page-notifications .cm-chip > i.cm-sym { display: none; }
+.page-notifications .cm-chip:first-child { --cc: #2D5BFF; }
+.page-notifications .cm-chip.cm-chip-sys { --cc: #5B6784; }
+.page-notifications .cm-chip.cm-chip-none { --cc: #FF2D4B; }
+/* Notifications' strip is a grid of equal banners: all of them on one line where they fit, equal cells where they wrap */
+:root:root .p-body.page-notifications .cm-chips.nf-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 0; }
+:root:root .p-body.page-notifications .nf-chips .cm-chip { flex: none; min-height: 74px; padding: 10px 14px; }
+.page-notifications .nf-chips .cm-n { font-size: 14px; }
+.page-notifications .nf-chips .cm-chip > .cm-bg { width: 84px; height: 84px; right: -8px; bottom: -20px; }
+/* the count on a Notifications banner, smaller than Case Reports' (the cells are narrower) */
+:root:root .p-body.page-notifications .nf-chips .cm-chip > b { font-size: 24px; }
