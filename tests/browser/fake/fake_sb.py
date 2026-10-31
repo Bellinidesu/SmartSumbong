@@ -358,7 +358,7 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith('/rest/v1/'):
             t = u.path.split('/')[-1]
             rows = TABLES.get(t)
-            if t == 'feature_switches': rows = [{'key': k, 'enabled': v} for k, v in FEAT.items()]
+            if t == 'feature_switches': rows = [{'key': k, 'enabled': v, 'label_en': {'workspace': 'Workspace', 'command_center': 'Command center'}.get(k, k), 'label_fil': {'workspace': 'Workspace', 'command_center': 'Command center'}.get(k, k), 'note': 'Off until after the defense' if k == 'command_center' else None} for k, v in FEAT.items()]
             if rows is None:
                 print('TABLE missing', t, file=sys.stderr, flush=True); rows = []
             if m != 'GET': return self.send(200, rows[:1])
