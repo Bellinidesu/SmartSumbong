@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Administrative Services, 31 Oct)**
+- Administrators: the Access and Status headers were swapped against their cells; they now run Status, Access, as the
+  cells do.
+- Escalation and Women responders have their own tab ("Escalation and responders"); the Administrators tab is the
+  table and the add form, no longer a page that runs on.
+- Committees: each committee says who leads it and how many tanods it has ("No Kagawad yet" in red), its three
+  names are labelled fields at full width (a long Tagalog name was cut off), the complaint kinds run in one column
+  so both columns end on the same line, the colour is one swatch, and the right-hand column has a header.
+
 **Changed (Control Room, 31 Oct)**
 - The barangay: the page no longer scrolls sideways (the hidden seal input had been stretched to 1792 px by a form
   rule), and the seal picker is a visible "Choose File" control instead of an invisible one.

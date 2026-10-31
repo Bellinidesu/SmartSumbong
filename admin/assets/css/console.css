@@ -31,3 +31,15 @@
 .bp-file:hover { border-color: var(--p-orange, #FF9800); }
 #brgy-card .ss-posform { margin-left: 114px; }
 @media (max-width: 600px) { #brgy-card .ss-posform { margin-left: 0; } }
+
+/* ---- Administrative Services: Committees ---- */
+.page-administrative-services .acc-head, .page-administrative-services .acc-row { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 160px; }
+.page-administrative-services .acc-names { gap: 8px; align-content: start; }
+.page-administrative-services .acc-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-bottom: 2px; font-size: 12.5px; color: var(--p-muted, #66708f); }
+.page-administrative-services .acc-meta b { color: var(--p-ink, #141B34); }
+.page-administrative-services .acc-warn { color: var(--p-red, #C62828); font-weight: 700; }
+.page-administrative-services .acc-act { justify-items: stretch; align-content: start; }
+.page-administrative-services .acc-act .acc-col input[type="color"] { width: 100%; height: 36px; }
+.page-administrative-services .acc-cats { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 6px; padding-top: 22px; }
+.page-administrative-services .ss-subband .p-spacer { display: none; }
+.page-administrative-services .ss-subband .ss-subnote { margin-left: 18px; text-align: left; }

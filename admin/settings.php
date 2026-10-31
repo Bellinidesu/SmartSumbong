@@ -30,7 +30,7 @@ $db    = db();
 // sets ST_PAGE and includes this file; a form posts to the page it is on and comes back to its tab on the page that owns it.
 const ST_PAGES = [
     'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'look']],
-    'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'plan']],
+    'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'ladder', 'plan']],
     'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts']],
 ];
 $stPage = defined('ST_PAGE') && isset(ST_PAGES[ST_PAGE]) ? ST_PAGE : 'settings';
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
         }
     }
-    header('Location: ' . st_url('admins'));
+    header('Location: ' . st_url(($_POST['action'] ?? '') === 'set_role' ? 'admins' : 'ladder'));
     exit;
 }
 
@@ -599,7 +599,7 @@ layout_head($stTitle, ST_PAGES[$stPage]['file']);
 
 <?php
 $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => t('Plan and usage', 'Plano at paggamit'), 'smart' => 'SMART',
-    'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Administrators', 'Mga Administrator'),
+    'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Administrators', 'Mga Administrator'), 'ladder' => t('Escalation and responders', 'Eskalasyon at mga responder'),
     'plan' => t('Planning', 'Pagpaplano'), 'types' => t('Complaint types', 'Mga uri ng reklamo'), 'rules' => t('Rules', 'Mga patakaran'),
     'hotlines' => t('Hotlines', 'Mga hotline'), 'wording' => t('Wording', 'Mga salita'), 'brgy' => t('The barangay', 'Ang barangay'),
     'parts' => t('Parts of the system', 'Mga bahagi ng sistema')];
@@ -659,8 +659,8 @@ try {
       <th scope="col"><?= e(t('Administrator', 'Tagapangasiwa')) ?></th>
       <th scope="col"><?= e(t('Position', 'Posisyon')) ?></th>
       <th scope="col"><?= e(t('Committee', 'Komite')) ?></th>
-      <th scope="col"><?= e(t('Access', 'Pahintulot')) ?></th>
       <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
+      <th scope="col"><?= e(t('Access', 'Pahintulot')) ?></th>
       <th scope="col"><?= e(t('Online now', 'Online ngayon')) ?></th>
       <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Actions', 'Mga aksyon')) ?></span></th>
     </tr></thead>
@@ -723,6 +723,26 @@ try {
     <tr id="jp-none" hidden><td colspan="7" class="p-empty"><?= e(t('No administrator matches that.', 'Walang administrator na tugma.')) ?></td></tr>
     </tbody>
   </table></div></div>
+  <div class="p-card p-card-pad ss-addadmin" id="jp-addcard" hidden>
+    <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
+    <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
+    <form method="post" class="ss-form" data-captcha data-native-confirm="<?= e(t('Add this administrator? They get an email to set their password.', 'Idagdag ang administrator na ito? Makakatanggap sila ng email para sa password.')) ?>">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <input type="hidden" name="action" value="add_admin">
+      <input class="p-input-plain" name="first_name" required maxlength="60" placeholder="<?= e(t('First name', 'Pangalan')) ?>" aria-label="<?= e(t('First name', 'Pangalan')) ?>">
+      <input class="p-input-plain" name="last_name" required maxlength="60" placeholder="<?= e(t('Last name', 'Apelyido')) ?>" aria-label="<?= e(t('Last name', 'Apelyido')) ?>">
+      <input class="p-input-plain" name="email" type="email" required maxlength="160" placeholder="<?= e(t('Email address', 'Email address')) ?>">
+      <input class="p-input-plain" name="mobile" required pattern="09[0-9]{9}" placeholder="09XXXXXXXXX">
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Create account', 'Gumawa ng account')) ?></button>
+    </form>
+  </div>
+</section>
+<?php endif; ?>
+
+<?php if (st_on('ladder')): ?>
+<section class="st-pane" data-pane="ladder" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
   <?php
   $chairs  = array_values(array_filter($admins, fn($x) => ($x['official_role'] ?? '') === 'chairman'));
   $nTanods = count($tanods);
@@ -812,20 +832,6 @@ try {
       <?php endforeach; ?>
       </tbody>
     </table></div></div>
-
-  <div class="p-card p-card-pad ss-addadmin" id="jp-addcard" hidden>
-    <p class="p-eyebrow"><?= e(t('Add an administrator', 'Magdagdag ng administrator')) ?></p>
-    <p class="p-hint"><?= e(t('The new administrator gets an email with a link to choose their own password. Nobody else ever sees it. Use their real email address.', 'Makakatanggap ang bagong administrator ng email na may link para pumili ng sariling password. Walang ibang makakakita nito. Gamitin ang tunay nilang email.')) ?></p>
-    <form method="post" class="ss-form" data-captcha data-native-confirm="<?= e(t('Add this administrator? They get an email to set their password.', 'Idagdag ang administrator na ito? Makakatanggap sila ng email para sa password.')) ?>">
-      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-      <input type="hidden" name="action" value="add_admin">
-      <input class="p-input-plain" name="first_name" required maxlength="60" placeholder="<?= e(t('First name', 'Pangalan')) ?>" aria-label="<?= e(t('First name', 'Pangalan')) ?>">
-      <input class="p-input-plain" name="last_name" required maxlength="60" placeholder="<?= e(t('Last name', 'Apelyido')) ?>" aria-label="<?= e(t('Last name', 'Apelyido')) ?>">
-      <input class="p-input-plain" name="email" type="email" required maxlength="160" placeholder="<?= e(t('Email address', 'Email address')) ?>">
-      <input class="p-input-plain" name="mobile" required pattern="09[0-9]{9}" placeholder="09XXXXXXXXX">
-      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Create account', 'Gumawa ng account')) ?></button>
-    </form>
-  </div>
 </section>
 <?php endif; ?>
 
@@ -873,7 +879,6 @@ endif;
     <p class="p-hint"><?= e(t('One colour for every super admin\'s sidebar. No committee may use it or anything close to it, so a screenshot is never ambiguous. Change it and branding blue is free for a committee.', 'Iisang kulay para sa sidebar ng bawat super admin. Walang komiteng makagagamit nito o ng malapit dito, kaya hindi kailanman nakalilito ang screenshot. Palitan ito at magagamit ng komite ang branding blue.')) ?></p>
     <form method="post" class="acc-sup">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="super_colour">
-      <span class="acc-swatch" style="--cc:<?= e($supHex) ?>" aria-hidden="true"></span>
       <label class="acc-col"><span class="p-sr"><?= e(t('Super admin colour', 'Kulay ng super admin')) ?></span><input type="color" name="colour" value="<?= e(strtolower($supHex)) ?>"></label>
       <code><?= e($supHex) ?></code><?php if ($supHex === SUPER_BLUE): ?><span class="p-badge p-b-progress"><?= e(t('Branding blue', 'Asul ng branding')) ?></span><?php endif; ?>
       <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save colour', 'I-save ang kulay')) ?></button>
@@ -882,23 +887,32 @@ endif;
   </div>
   <datalist id="cm-palette"><?php foreach (COMMITTEE_PALETTE as $ph): ?><option value="<?= e(strtolower($ph)) ?>"></option><?php endforeach; ?></datalist>
 
+  <?php
+  $cmLead = []; $cmTanods = [];
+  foreach ($admins as $x) { if (($x['official_role'] ?? '') === 'kagawad' && !empty($x['committee'])) $cmLead[(string) $x['committee']][] = formal_name((string) $x['full_name']); }
+  try {
+      foreach ((array) $db->rpc('personnel_committees') as $r) {
+          foreach ((array) ($r['committees'] ?? []) as $c) { if (($c['status'] ?? '') === 'approved') $cmTanods[(string) $c['key']] = ($cmTanods[(string) $c['key']] ?? 0) + 1; }
+      }
+  } catch (SupabaseError) {}
+  ?>
   <div class="p-card p-card-pad" id="acc-committees">
     <p class="p-eyebrow"><?= e(t('Committees and what each sees', 'Mga komite at ang nakikita ng bawat isa')) ?></p>
     <p class="p-hint"><?= e(t('Each committee has its own colour: its admins\' sidebar wears it. A colour too close to the super admin colour or another committee\'s is refused.', 'May sariling kulay ang bawat komite: suot ito ng sidebar ng mga admin nito. Tinatanggihan ang kulay na masyadong malapit sa kulay ng super admin o ng ibang komite.')) ?></p>
     <p class="p-hint"><?= e(t('A committee admin sees only the kinds of complaint ticked for their committee (and any case handed to them). Super admins and captains see everything. A committee that is switched off is not used: nobody can be put in it.', 'Ang komite admin ay nakikita lamang ang mga uri ng reklamong may tsek para sa kanilang komite (at anumang kasong ipinasa sa kanila). Nakikita ng super admin at kapitan ang lahat. Hindi ginagamit ang komiteng naka-off: walang maisasama rito.')) ?></p>
-    <div class="acc-head" aria-hidden="true"><span><?= e(t('Name: full, in Tagalog, short', 'Pangalan: buo, sa Tagalog, maikli')) ?></span><span><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></span><span></span></div>
+    <div class="acc-head" aria-hidden="true"><span><?= e(t('The committee', 'Ang komite')) ?></span><span><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></span><span><?= e(t('Colour and status', 'Kulay at katayuan')) ?></span></div>
     <?php foreach (committees_all() as $ck => $cc): $ticked = $cmCats[$ck] ?? []; ?>
       <form method="post" class="acc-row<?= empty($cc['active']) ? ' acc-off' : '' ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
         <div class="acc-names">
-          <label class="p-sr" for="cn-<?= e($ck) ?>"><?= e(t('Name', 'Pangalan')) ?></label>
-          <input class="p-input-plain" id="cn-<?= e($ck) ?>" name="name_en" value="<?= e((string) $cc['name_en']) ?>" required minlength="3" maxlength="120">
-          <div class="acc-sub">
-            <label class="p-sr" for="cf-<?= e($ck) ?>"><?= e(t('Name in Tagalog', 'Pangalan sa Tagalog')) ?></label>
-            <input class="p-input-plain" id="cf-<?= e($ck) ?>" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>" maxlength="120" placeholder="<?= e(t('Name in Tagalog', 'Pangalan sa Tagalog')) ?>">
-            <label class="p-sr" for="cs-<?= e($ck) ?>"><?= e(t('Short name', 'Maikling pangalan')) ?></label>
-            <input class="p-input-plain" id="cs-<?= e($ck) ?>" name="short_en" value="<?= e((string) $cc['short_en']) ?>" maxlength="40" placeholder="<?= e(t('Short name', 'Maikling pangalan')) ?>">
-          </div>
+          <?php $lead = $cmLead[$ck] ?? []; $nT = (int) ($cmTanods[$ck] ?? 0); ?>
+          <div class="acc-meta"><span class="<?= $lead ? '' : 'acc-warn' ?>"><?= $lead ? e(t('Led by', 'Pinangungunahan ni')) . ' <b>' . e(implode(', ', $lead)) . '</b>' : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></span><span><?= e($nT === 0 ? t('No tanods', 'Walang tanod') : ($nT === 1 ? t('1 tanod', 'Isang tanod') : sprintf(t('%d tanods', '%d tanod'), $nT))) ?></span></div>
+          <label class="ty-f" for="cn-<?= e($ck) ?>"><span><?= e(t('Full name', 'Buong pangalan')) ?></span>
+            <input class="p-input-plain" id="cn-<?= e($ck) ?>" name="name_en" value="<?= e((string) $cc['name_en']) ?>" required minlength="3" maxlength="120"></label>
+          <label class="ty-f" for="cf-<?= e($ck) ?>"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span>
+            <input class="p-input-plain" id="cf-<?= e($ck) ?>" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>" maxlength="120"></label>
+          <label class="ty-f" for="cs-<?= e($ck) ?>"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
+            <input class="p-input-plain" id="cs-<?= e($ck) ?>" name="short_en" value="<?= e((string) $cc['short_en']) ?>" maxlength="40"></label>
         </div>
         <fieldset class="acc-cats"><legend class="p-sr"><?= e(sprintf(t('What %s sees', 'Ang nakikita ng %s'), (string) $cc['short_en'])) ?></legend>
           <?php foreach (category_pairs() as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>" <?= in_array($cv, $ticked, true) ? 'checked' : '' ?>> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>
@@ -914,14 +928,13 @@ endif;
     <form method="post" class="acc-row acc-new">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="">
       <div class="acc-names">
-        <label class="p-sr" for="cn-new"><?= e(t('New committee', 'Bagong komite')) ?></label>
-        <input class="p-input-plain" id="cn-new" name="name_en" required minlength="3" maxlength="120" placeholder="<?= e(t('New committee, for example: Committee on Senior Citizens', 'Bagong komite, halimbawa: Komite sa mga Nakatatanda')) ?>">
-        <div class="acc-sub">
-          <label class="p-sr" for="cf-new"><?= e(t('Name in Tagalog', 'Pangalan sa Tagalog')) ?></label>
-          <input class="p-input-plain" id="cf-new" name="name_fil" maxlength="120" placeholder="<?= e(t('Name in Tagalog', 'Pangalan sa Tagalog')) ?>">
-          <label class="p-sr" for="cs-new"><?= e(t('Short name', 'Maikling pangalan')) ?></label>
-          <input class="p-input-plain" id="cs-new" name="short_en" maxlength="40" placeholder="<?= e(t('Short name', 'Maikling pangalan')) ?>">
-        </div>
+        <div class="acc-meta"><span><b><?= e(t('A new committee', 'Bagong komite')) ?></b></span></div>
+        <label class="ty-f" for="cn-new"><span><?= e(t('Full name', 'Buong pangalan')) ?></span>
+          <input class="p-input-plain" id="cn-new" name="name_en" required minlength="3" maxlength="120" placeholder="<?= e(t('For example: Committee on Senior Citizens', 'Halimbawa: Komite sa mga Nakatatanda')) ?>"></label>
+        <label class="ty-f" for="cf-new"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span>
+          <input class="p-input-plain" id="cf-new" name="name_fil" maxlength="120"></label>
+        <label class="ty-f" for="cs-new"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
+          <input class="p-input-plain" id="cs-new" name="short_en" maxlength="40"></label>
       </div>
       <fieldset class="acc-cats"><legend class="p-sr"><?= e(t('What the new committee sees', 'Ang nakikita ng bagong komite')) ?></legend>
         <?php foreach (category_pairs() as $cv => $cl): ?><label class="sd-c"><input type="checkbox" name="cats[]" value="<?= e($cv) ?>"> <?= e(t($cl[0], $cl[1])) ?></label><?php endforeach; ?>

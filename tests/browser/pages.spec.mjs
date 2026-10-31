@@ -481,6 +481,30 @@ test('Control Room: no tab overflows sideways, the limits share a line, the seal
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Administrative Services: headers sit over their cells, the committees say who leads them, escalation has its own tab', async ({ page }) => {
+  const r = await open(page, 'administrative-services.php');
+  for (const tab of ['access', 'admins', 'ladder', 'plan']) {
+    await page.locator(`.st-tabs [data-st="${tab}"]`).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${tab} overflows sideways`).toBe(false);
+  }
+  await page.locator('.st-tabs [data-st="admins"]').click();   // Status then Access, as the cells run
+  const heads = await page.locator('#ss-people thead th').allTextContents();
+  const first = page.locator('#jp-rows tr.ss-arow').first().locator('td');
+  expect(heads.map(h => h.trim()).slice(3, 5), 'headers').toEqual(['Status', 'Access']);
+  await expect(first.nth(3)).toContainText('Active');
+  await expect(first.nth(4)).toContainText('Super admin');
+  await expect(page.locator('.ss-levels')).toBeHidden();           // escalation is not on this tab any more
+  await page.locator('.st-tabs [data-st="ladder"]').click();
+  await expect(page.locator('.ss-levels')).toBeVisible();
+  await expect(page.locator('#wr-count')).toBeVisible();
+  await page.locator('.st-tabs [data-st="access"]').click();
+  await expect(page.locator('.acc-row .acc-meta').first()).toContainText('Led by');
+  await expect(page.locator('#acc-super .acc-swatch')).toHaveCount(0);   // one swatch, the colour input itself
+  const cut = await page.locator('.acc-row input[name="name_fil"]').evaluateAll(is => is.filter(i => i.scrollWidth > i.clientWidth + 1).length);
+  expect(cut, 'Tagalog names cut off').toBe(0);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
