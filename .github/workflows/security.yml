@@ -82,11 +82,11 @@ jobs:
         run: |
           ./trivy image --scanners vuln --format sarif -o image.sarif smartsumbong-portal:ci
           ./trivy config --format sarif -o config.sarif Dockerfile
-      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: image.sarif
           category: trivy-image
-      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: config.sarif
           category: trivy-config
@@ -129,11 +129,11 @@ jobs:
         run: |
           ./trivy image --scanners vuln --format sarif -o engine-image.sarif smartsumbong-engine:ci
           ./trivy config --format sarif -o engine-config.sarif engine/Dockerfile
-      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: engine-image.sarif
           category: trivy-engine-image
-      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: engine-config.sarif
           category: trivy-engine-config
