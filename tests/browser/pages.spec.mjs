@@ -633,6 +633,7 @@ test('The stacked layout: the strip is one object with the band and the table, n
     expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
     expect([g.x[2], g.x[3]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
     expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap at ' + w + ': ' + g.y).toBe(true);
+    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip is as slim as the tab strip of Report Summary at ' + w).toBeLessThanOrEqual(w === 720 ? 400 : 80);
     const cut = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
     expect(cut, 'no committee name is cut at ' + w).toBe(0);
     expect(await page.locator('.ss-cases-t thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'square header corners at ' + w).toEqual(['0px', '0px']);
@@ -667,6 +668,8 @@ test('Notifications keeps its live layout and wears the committee banners, joine
     await expect(page.locator('.nf-chips .cm-chip')).toHaveCount(1 + 4 + 1 + 1);   // All, each active committee, No committee, System
     expect(await page.locator('.nf-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundImage === 'none').length), 'every banner is a gradient at ' + w).toBe(0);
     expect(await page.locator('.nf-chips .cm-bg').count(), 'each carries its faint symbol at ' + w).toBeGreaterThanOrEqual(6);
+    expect(await page.locator('.nf-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip is as slim as the tab strip of Report Summary at ' + w).toBeLessThanOrEqual(80);
+    expect(await page.locator('.nf-chips ~ .p-notif-card').first().evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'and the list is attached to it, square at the top, at ' + w).toEqual(['0px', '0px']);
     expect(await page.locator('.nf-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
     expect(r.errors, 'console errors').toEqual([]);
   }
