@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Administrative Services > Committees, 1 Nov)**
+- A card per committee: a live banner that follows the kinds of complaint you connect (their colours and symbols), tap-to-toggle chips for the kinds of complaint, a real On/Off switch, and Save that lights up only when something changed. A note names the kinds of complaint that no committee sees yet. Add a committee opens from a dashed button; the super admin colour moves to the bottom.
+
 **Changed (the Tanod, Resident and Staff account pages, peak, 1 Nov)**
 - The Tanod page: the duty figures lead as a strip under the name; Today's shift is its own slim card in the duty tile colours; the committees are vibrant banners
   joined to their forms; Recent dispatches sit under the orange band and the blue header; cards no longer stretch around empty space. Residents share the page.

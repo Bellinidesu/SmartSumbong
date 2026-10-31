@@ -159,14 +159,20 @@ function forwarding_pins(Supabase $db): array
     return $pins;
 }
 
+/** The Spatial Distribution symbol a complaint type wears (the map's own icon family, assets/js/sd-icons.js). */
+function sd_icon_for(string $catKey, array $cat = []): string
+{
+    $iconOf = ['street_obstruction' => 'obstruction', 'public_safety_infrastructure' => 'infra', 'environmental_waste_hazard' => 'waste', 'animal_welfare' => 'animal',
+               'traffic_violation' => 'traffic', 'barangay_service' => 'service', 'peace_order_nuisance' => 'noise', 'other' => 'other'];
+    return $iconOf[(string) ($cat['icon'] ?? $catKey)] ?? ($iconOf[$catKey] ?? 'other');
+}
+
 /**
  * Spatial Distribution leads: a committee is connected to the complaint types its creator ticked, so it wears their colours and
  * their symbols (the map's own icon family, assets/js/sd-icons.js). committee key => list of [colour, SD icon name], in the complaint types' order.
  */
 function committee_sd_types(Supabase $db): array
 {
-    $iconOf = ['street_obstruction' => 'obstruction', 'public_safety_infrastructure' => 'infra', 'environmental_waste_hazard' => 'waste', 'animal_welfare' => 'animal',
-               'traffic_violation' => 'traffic', 'barangay_service' => 'service', 'peace_order_nuisance' => 'noise', 'other' => 'other'];
     $out = [];
     try {
         $tick = [];
@@ -174,7 +180,7 @@ function committee_sd_types(Supabase $db): array
         foreach ($tick as $ckey => $cats) {
             foreach (categories_all() as $catKey => $cat) {
                 if (!isset($cats[$catKey]) || empty($cat['active'])) continue;
-                $out[$ckey][] = [(string) $cat['colour'], $iconOf[(string) ($cat['icon'] ?? $catKey)] ?? ($iconOf[$catKey] ?? 'other')];
+                $out[$ckey][] = [(string) $cat['colour'], sd_icon_for((string) $catKey, (array) $cat)];
             }
         }
     } catch (Throwable) { /* the banners fall back to the committee's own colour */ }

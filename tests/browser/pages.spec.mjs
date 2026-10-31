@@ -334,6 +334,27 @@ test('Roles and pages 1a: Administrative Services and the Control Room take thei
   expect(r.errors.concat(q.errors), 'console errors').toEqual([]);
 });
 
+test('Committees tab: a card each, a live banner, chips for the kinds of complaint, and Save only when something changed', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  const r = await open(page, 'administrative-services.php');
+  await page.locator('.st-tabs [data-st="access"]').click();
+  await expect(page.locator('#acc-committees .cmx-card:not(.cmx-card-new)')).toHaveCount(5);
+  await expect(page.locator('.cmx-note'), 'a note says which kinds of complaint nobody sees').toBeVisible();
+  const card = page.locator('#acc-committees .cmx-card').first();
+  await expect(card.locator('.cmx-save'), 'nothing changed, nothing to save').toBeDisabled();
+  const before = await card.locator('.cmx-banner .cm-chip').evaluate(e => e.style.getPropertyValue('--g1') + '|' + e.querySelectorAll('.cm-sym svg').length);
+  await card.locator('.cmx-t:not(:has(input:checked))').first().click();
+  await expect(card.locator('.cmx-save'), 'a change lights Save up').toBeEnabled();
+  await expect(card.locator('.cmx-dirty-note')).toBeVisible();
+  const after = await card.locator('.cmx-banner .cm-chip').evaluate(e => e.style.getPropertyValue('--g1') + '|' + e.querySelectorAll('.cm-sym svg').length);
+  expect(after, 'and the banner follows the kinds of complaint it has').not.toBe(before);
+  await card.locator('.cmx-t:has(input:checked)').last().click();   // undo what was just added or a second change: still a change
+  expect(await card.locator('.cmx-banner').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the banner is slim').toBeLessThanOrEqual(80);
+  expect(await card.locator('.cmx-t').evaluateAll(ts => ts.filter(t => getComputedStyle(t).borderTopWidth === '0px').length), 'every kind is a bordered chip').toBe(0);
+  await expect(page.locator('#acc-super'), 'the super admin colour is the last thing on the tab').toBeVisible();
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');
