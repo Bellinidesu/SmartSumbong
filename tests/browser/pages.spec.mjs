@@ -545,6 +545,23 @@ test('An account\'s page: two columns of cards, one height per row, the controls
   expect(r.errors.concat(q.errors), 'console errors').toEqual([]);
 });
 
+test('Report Summary: the chips are tabs, one section at a time, and a link or a pager lands on its section', async ({ page }) => {
+  const r = await open(page, 'summary.php');
+  const on = () => page.evaluate(() => ['rs-ledger', 'rs-esc', 'rs-tanod', 'rs-tl', 'rs-com'].filter(id => { const e = document.getElementById(id); return e && getComputedStyle(e).display !== 'none'; }));
+  expect(await on(), 'the ledger first, alone').toEqual(['rs-ledger']);
+  await page.locator('#ss-jump a[href="#rs-esc"]').click();
+  expect(await on()).toEqual(['rs-esc']);
+  await expect(page.locator('#ss-jump a.on')).toHaveCount(1);
+  await page.locator('#ss-jump a[href="#rs-com"]').click();
+  expect(await on()).toEqual(['rs-com']);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight), 'a tab is not a tower of sections').toBeLessThan(1600);
+  await open(page, 'summary.php#rs-tl');
+  expect(await on(), 'a deep link opens its section').toEqual(['rs-tl']);
+  await open(page, 'summary.php?lp=2');
+  expect(await on(), 'a ledger pager lands on the ledger').toEqual(['rs-ledger']);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);

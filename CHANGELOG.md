@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Report Summary, 31 Oct)**
+- The five chips (Ledger, Escalations, Tanod activity, Case timeline, By committee) are tabs: one section at a time,
+  the ledger first. The page was five sections stacked, 2,289 px tall at 2048; it is 1,459. A pager link lands on the
+  section it pages (`lp`, `rp`, `tp`), `summary.php#rs-com` opens that section (also from a link on the page), and
+  without the script every section still shows. The spreadsheet and the PDF are the whole report as before.
+
 **Changed (an account's page, 31 Oct)**
 - A tanod's or a resident's page is two columns of cards instead of one tall column: the identity on top, then
   Account details beside Committees, Duty beside the ID, Recent dispatches across, the selfie beside OCR (or the

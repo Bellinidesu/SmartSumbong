@@ -537,13 +537,25 @@ $byReport = array_slice($byReport, ($cp - 1) * 10, 10, true);   // ten complaint
 <?php endif; ?>
 
 <script>
-// "On this page": the chip for the section in view lights up
+// The chips are tabs: one section at a time (without this script every section shows, as it always did). A pager link reloads the
+// page with its own parameter (lp, rp, tp) and lands on the section it pages; summary.php#rs-com opens that section.
 (function () {
-  var nav = document.getElementById('ss-jump'); if (!nav || !window.IntersectionObserver) return;
-  var links = [].slice.call(nav.querySelectorAll('a')), map = {};
-  links.forEach(function (a) { var el = document.getElementById(a.getAttribute('href').slice(1)); if (el) map[el.id] = a; });
-  var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { links.forEach(function (a) { a.classList.toggle('on', a === map[e.target.id]); }); } }); }, { rootMargin: '-30% 0px -60% 0px' });
-  Object.keys(map).forEach(function (id) { io.observe(document.getElementById(id)); });
+  var nav = document.getElementById('ss-jump'); if (!nav) return;
+  var links = [].slice.call(nav.querySelectorAll('a')), panes = {};
+  links.forEach(function (a) { var el = document.getElementById(a.getAttribute('href').slice(1)); if (el) panes[el.id] = el; });
+  var ids = Object.keys(panes); if (ids.length < 2) return;
+  function show(id, keepHash) {
+    if (!panes[id]) id = ids[0];
+    ids.forEach(function (k) { panes[k].classList.toggle('rs-off', k !== id); });
+    links.forEach(function (a) { var on = a.getAttribute('href') === '#' + id; a.classList.toggle('on', on); a.setAttribute('aria-selected', String(on)); });
+    if (!keepHash && location.hash !== '#' + id && history.replaceState) history.replaceState(null, '', '#' + id);
+  }
+  nav.setAttribute('role', 'tablist'); links.forEach(function (a) { a.setAttribute('role', 'tab'); });
+  nav.addEventListener('click', function (e) { var a = e.target.closest('a'); if (!a) return; e.preventDefault(); show(a.getAttribute('href').slice(1)); });
+  var q = location.search, want = location.hash.slice(1);
+  if (!panes[want]) want = /[?&]lp=/.test(q) ? 'rs-ledger' : /[?&]rp=/.test(q) ? 'rs-esc' : /[?&]tp=/.test(q) ? 'rs-tanod' : ids[0];
+  show(want, true);
+  window.addEventListener('hashchange', function () { var h = location.hash.slice(1); if (panes[h]) show(h, true); });
 })();
 </script>
 <script>
