@@ -19,6 +19,14 @@ function can_forward(): bool
     return in_array(my_tier(), ['super', 'committee'], true);
 }
 
+/** A committee's symbol: the first letters of its first two main words ("Peace and Order" is PO), in a tile in its colour. */
+function cm_mono(string $name): string
+{
+    $stop = ['and', 'of', 'the', 'at', '&', 'ng', 'sa', 'ang'];
+    $w = array_values(array_filter(preg_split('/[\s\-]+/u', trim($name)) ?: [], fn ($x) => $x !== '' && !in_array(mb_strtolower($x), $stop, true)));
+    return mb_strtoupper(mb_substr($w[0] ?? '?', 0, 1) . (isset($w[1]) ? mb_substr($w[1], 0, 1) : ''));
+}
+
 /** The committee a case is with, as a pill; $awaiting: forwarded to the super admins to place. */
 function committee_pill(?string $key, bool $awaiting = false): string
 {

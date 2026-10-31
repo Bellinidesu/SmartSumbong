@@ -363,6 +363,71 @@
 /* a case's tag and place stay on one line (the whole text on hover) so every row is one height */
 .page-cases .ss-cases-t td .cm-fwd, .page-cases .ss-cases-t td .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 /* the join of the orange band and the blue header is square on both pages: nothing of the band shows behind a corner */
-.page-cases .p-table-card, .page-summary .p-table-card { border-top-left-radius: 0; border-top-right-radius: 0; }
 .page-cases .p-table-card thead th, .page-summary .p-table-card thead th { border-radius: 0; }
 .page-cases .p-table-card .p-tscroll, .page-cases .p-table-card table, .page-summary .p-table-card .p-tscroll, .page-summary .p-table-card table { border-radius: 0; }
+
+/* ================= Case Reports: band, strip and table are one seamless object, and the strip wears the committees' colours ================= */
+:root:root .p-body.page-cases .ss-cr-band { box-shadow: inset 0 1px 0 rgba(255,255,255,.4); border-radius: 16px 16px 0 0; }
+:root:root .p-body.page-cases .cm-chips { border: 0; background: var(--p-line); }
+:root:root .p-body.page-cases .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; border-top: 0; box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 45%, transparent); }
+:root:root .p-body.page-cases .cm-chip { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; min-height: 66px; padding: 10px 18px 10px 14px; position: relative; }
+:root:root .p-body.page-cases .cm-chip > i.cm-sym {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font: 800 13px/1 Urbanist, sans-serif; letter-spacing: .02em; font-style: normal;
+  color: color-mix(in srgb, var(--cc, var(--p-ink)) 70%, var(--p-ink)); background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, var(--p-surface));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc, var(--p-ink)) 45%, transparent);
+}
+:root:root .p-body.page-cases .cm-chip > i.cm-sym-all { --cc: var(--p-ink); font-size: 11px; }
+:root:root .p-body.page-cases .cm-chip > i.cm-sym-none { box-shadow: none; border: 1.5px dashed var(--p-red); background: color-mix(in srgb, var(--p-red) 8%, var(--p-surface)); color: var(--p-red); }
+:root:root .p-body.page-cases .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 7%, var(--p-surface)); }
+:root:root .p-body.page-cases .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 13%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
+:root:root .p-body.page-cases .cm-chip.p-on > i.cm-sym { background: var(--cc, var(--p-ink)); color: #fff; box-shadow: none; }
+:root:root .p-body.page-cases .cm-chip.p-on > i.cm-sym-all { color: var(--p-surface); }
+:root[data-theme="dark"] .p-body.page-cases .cm-chip > i.cm-sym { color: color-mix(in srgb, var(--cc, #fff) 55%, #fff); }
+
+/* ================= the committee strip: each cell is a stylised button in the committee's own colour, like the PDF and spreadsheet buttons ================= */
+:root:root .p-body.page-cases .cm-chips { gap: 0; background: none; }
+:root:root .p-body.page-cases .cm-chip {
+  --ct: #fff; position: relative; overflow: hidden; isolation: isolate; color: var(--ct); min-height: 70px;
+  background: linear-gradient(165deg, color-mix(in srgb, var(--cc, #141B34) 78%, #fff) 0%, var(--cc, #141B34) 50%, color-mix(in srgb, var(--cc, #141B34) 74%, #000) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.38), inset 1px 0 0 rgba(255,255,255,.22), inset 0 -2px 0 rgba(0,0,0,.14);
+  transition: filter .18s ease, transform .18s ease;
+}
+.page-cases .cm-chip::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(115deg, transparent 28%, rgba(255,255,255,.26) 48%, transparent 66%); transform: translateX(-60%); transition: transform .6s ease; }
+.page-cases .cm-chip:hover::before { transform: translateX(60%); }
+:root:root .p-body.page-cases .cm-chip:hover { background: linear-gradient(165deg, color-mix(in srgb, var(--cc, #141B34) 70%, #fff) 0%, color-mix(in srgb, var(--cc, #141B34) 92%, #fff) 50%, var(--cc, #141B34) 100%); filter: saturate(1.1); }
+:root:root .p-body.page-cases .cm-chip > i.cm-sym { color: var(--ct); background: rgba(255,255,255,.2); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.55), 0 4px 10px -4px rgba(0,0,0,.35); }
+:root:root .p-body.page-cases .cm-chip > i.cm-sym-all { color: var(--ct); }
+:root:root .p-body.page-cases .cm-chip > i.cm-sym-none { border: 0; background: rgba(255,255,255,.2); color: var(--ct); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.55); }
+:root:root .p-body.page-cases .cm-chip > b { color: var(--ct); text-shadow: 0 1px 6px rgba(0,0,0,.18); }
+.page-cases .cm-chip .cm-n { color: var(--ct); }
+.page-cases .cm-chip .cm-n em { color: var(--ct); opacity: .82; }
+.page-cases .cm-chip .cm-n em.cm-od { opacity: 1; display: inline-block; justify-self: start; padding: 1px 8px; border-radius: 99px; background: #fff; color: #C21F2D; font-weight: 800; }
+/* the one in use is bright and ringed; while one is picked the others rest */
+:root:root .p-body.page-cases .cm-chip.p-on { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px color-mix(in srgb, var(--cc, #141B34) 70%, #000), 0 10px 22px -10px var(--cc, #141B34); z-index: 1; background: linear-gradient(165deg, color-mix(in srgb, var(--cc, #141B34) 70%, #fff) 0%, var(--cc, #141B34) 55%, color-mix(in srgb, var(--cc, #141B34) 80%, #000) 100%); }
+:root:root .p-body.page-cases .cm-chip.p-on > i.cm-sym { background: #fff; color: color-mix(in srgb, var(--cc, #141B34) 80%, #000); box-shadow: none; }
+:root:root .p-body.page-cases .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(.6) brightness(1.04); }
+:root:root .p-body.page-cases .cm-chips:has(.p-on) .cm-chip:not(.p-on):hover { filter: saturate(1) brightness(1); }
+.page-cases .cm-chip:first-child { --cc: #141B34; }
+.page-cases .cm-chip.cm-chip-none { --cc: #D32F2F; }
+.page-cases .cm-chip.cm-chip-flag { --cc: #FF9800; --ct: #2B1A00; }
+@media (prefers-reduced-motion: reduce) { .page-cases .cm-chip, .page-cases .cm-chip::before { transition: none; } }
+
+/* ---- vibrant: saturated, glossy, alive ---- */
+:root:root .p-body.page-cases .cm-chip {
+  filter: saturate(1.45) brightness(1.04);
+  background:
+    radial-gradient(120% 140% at 12% -20%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 52%),
+    linear-gradient(160deg, color-mix(in srgb, var(--cc, #356CF9) 62%, #fff) 0%, var(--cc, #356CF9) 46%, color-mix(in srgb, var(--cc, #356CF9) 86%, #000) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -3px 8px -2px color-mix(in srgb, var(--cc, #356CF9) 60%, #000), inset 1px 0 0 rgba(255,255,255,.25);
+}
+.page-cases .cm-chip::before { background: linear-gradient(115deg, transparent 24%, rgba(255,255,255,.4) 48%, transparent 70%); animation: cmSweep 5.5s ease-in-out infinite; }
+.page-cases .cm-chip:nth-child(2)::before { animation-delay: .5s; } .page-cases .cm-chip:nth-child(3)::before { animation-delay: 1s; }
+.page-cases .cm-chip:nth-child(4)::before { animation-delay: 1.5s; } .page-cases .cm-chip:nth-child(5)::before { animation-delay: 2s; } .page-cases .cm-chip:nth-child(6)::before { animation-delay: 2.5s; }
+@keyframes cmSweep { 0%, 55% { transform: translateX(-70%); } 100% { transform: translateX(70%); } }
+:root:root .p-body.page-cases .cm-chip:hover { filter: saturate(1.7) brightness(1.1); transform: translateY(-1px); }
+:root:root .p-body.page-cases .cm-chips:has(.p-on) .cm-chip:not(.p-on) { filter: saturate(1.3) brightness(1); }
+:root:root .p-body.page-cases .cm-chip.p-on { filter: saturate(1.7) brightness(1.12); transform: translateY(-1px); }
+.page-cases .cm-chip:first-child { --cc: #2D5BFF; }
+.page-cases .cm-chip.cm-chip-none { --cc: #FF2D4B; }
+:root:root .p-body.page-cases .cm-chip > b { font-size: 26px; text-shadow: 0 2px 10px rgba(0,0,0,.25); }
+@media (prefers-reduced-motion: reduce) { .page-cases .cm-chip::before { animation: none; } }

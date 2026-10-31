@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the committee strip as stylised buttons, 1 Nov)**
+- Case Reports' band, committee strip and table are seamless: the table card's square top (it had a 20 px radius that
+  clipped the blue header's corners, which my test had missed), no glow from the band onto the strip, no seam.
+- Each committee is a vibrant, glossy gradient button in its own colour (the way the PDF and spreadsheet buttons are):
+  a symbol tile (its first two main words' initials: PO, ED, HS, AD; "ALL", "?" for no committee), the whole name, an
+  "N overdue" pill, the count, and a light sweep. The chosen one has a white ring and lifts. The text colour is chosen for
+  contrast (a light committee colour gets dark lettering).
+
 **Changed (back to the stacked layout, 1 Nov)**
 - Ace: "vertical" means the page running top to bottom, not a left rail. The two rail pull requests (#274, #275) are reverted:
   Report Summary is again the figures, the full-width strip of five tabs and the table; Case Reports is the figures, the orange

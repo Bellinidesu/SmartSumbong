@@ -636,6 +636,15 @@ test('The stacked layout: the strip is one object with the band and the table, n
     const cut = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
     expect(cut, 'no committee name is cut at ' + w).toBe(0);
     expect(await page.locator('.ss-cases-t thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'square header corners at ' + w).toEqual(['0px', '0px']);
+    const joint = await page.evaluate(() => { const card = getComputedStyle(document.querySelector('.ss-cases-t').closest('.p-table-card')), band = getComputedStyle(document.querySelector('.ss-cr-band')); return { cardTop: [card.borderTopLeftRadius, card.borderTopRightRadius], bandBottom: [band.borderBottomLeftRadius, band.borderBottomRightRadius], glow: band.boxShadow.includes('240') && !/^rgba\(255, 255, 255, 0.4\) 0px 1px 0px 0px inset$/.test(band.boxShadow) }; });
+    expect(joint.cardTop, 'the table card (it clips the header) has square top corners at ' + w).toEqual(['0px', '0px']);
+    expect(joint.bandBottom, 'and so does the band at its bottom, at ' + w).toEqual(['0px', '0px']);
+    expect(joint.glow, 'the band casts no glow onto the strip at ' + w).toBe(false);
+    expect(await page.locator('.cm-chips .cm-sym').count(), 'every committee wears a symbol at ' + w).toBeGreaterThanOrEqual(5);
+    const mismatch = await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c.querySelector('.cm-n')).color !== getComputedStyle(c.querySelector('b')).color).length);
+    expect(mismatch, 'each button name and count share one colour at ' + w).toBe(0);
+    const flat = await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundImage === 'none').length);
+    expect(flat, 'every committee cell is a stylised gradient button at ' + w).toBe(0);
     expect(r.errors, 'console errors').toEqual([]);
   }
   await page.setViewportSize({ width: 2048, height: 1000 });
