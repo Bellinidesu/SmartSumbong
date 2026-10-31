@@ -664,6 +664,24 @@ $noteBadge = $notesUnread + $escCount;
 <?php if ($tab === 'all'): ?>
 <!-- ---------- complaint register ---------- -->
 <?php $atc = count($attention ?? []); ?>
+<?php
+// What the person came to know, before the list: each figure is a link to the list it counts.
+$crOpen   = count($openRows ?? []);
+$crFree   = count(array_filter($openRows ?? [], fn ($r) => empty($r['handler_id'])));
+$crWho    = sees_everything() ? ['none', (int) ($chipN['none'] ?? 0), t('No committee yet', 'Wala pang komite'), t('nobody owns these cases', 'walang may-ari ang mga kasong ito')]
+                              : ['fwd', (int) ($chipN['fwd'] ?? 0), t('Forwarded to me', 'Ipinasa sa akin'), t('from another committee', 'mula sa ibang komite')];
+$crHref   = fn (array $q) => 'cases.php?' . http_build_query($q);
+?>
+<div class="cr-fig" aria-label="<?= e(t('What needs attention', 'Ang kailangan ng pansin')) ?>">
+  <a class="p-card ss-tile<?= $atc > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['view' => 'attention'])) ?>"><span><?= e(t('Needs attention', 'Kailangan ng pansin')) ?></span><b class="p-num"><?= (int) $atc ?></b>
+    <small><?= e(t('late, asked again, or waiting for approval', 'huli, muling nagtanong, o naghihintay ng pag-apruba')) ?></small></a>
+  <a class="p-card ss-tile<?= $crFree > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['who' => 'unclaimed'])) ?>"><span><?= e(t('Nobody has it', 'Walang may hawak')) ?></span><b class="p-num"><?= (int) $crFree ?></b>
+    <small><?= e(t('open, with no one handling', 'bukas, walang humahawak')) ?></small></a>
+  <a class="p-card ss-tile<?= $crWho[1] > 0 && $crWho[0] === 'none' ? ' hot' : '' ?>" href="<?= e($crHref(['com' => $crWho[0]])) ?>"><span><?= e($crWho[2]) ?></span><b class="p-num"><?= (int) $crWho[1] ?></b>
+    <small><?= e($crWho[3]) ?></small></a>
+  <a class="p-card ss-tile" href="<?= e($crHref(['clear' => 1])) ?>"><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b class="p-num"><?= (int) $crOpen ?></b>
+    <small><?= e(t('not yet resolved or closed', 'hindi pa nalulutas o naisasara')) ?></small></a>
+</div>
 <?php $vAnyBand = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $issue !== '' || $month !== '' || $tanod !== '' || $search !== ''; ?>
 <div class="p-band ss-cr-band">
   <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= (int) $regTotal ?></span></h2>
@@ -783,7 +801,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
         </td></tr>
       <?php endif; ?>
       <?php foreach ($reports as $r): ?>
-        <tr class="p-click<?= !empty($r['is_sensitive']) ? ' ss-sens' : '' ?>" data-href="case.php?id=<?= e($r['id']) ?>"<?= !empty($r['is_sensitive']) ? ' title="' . e(t('Sensitive case', 'Sensitibong kaso')) . '"' : '' ?>>
+        <tr class="p-click<?= !empty($r['is_sensitive']) ? ' ss-sens' : '' ?><?= report_is_overdue($r) ? ' cr-od' : (!empty($r['referred_to']) ? ' cr-ref' : '') ?>" data-href="case.php?id=<?= e($r['id']) ?>"<?= !empty($r['is_sensitive']) ? ' title="' . e(t('Sensitive case', 'Sensitibong kaso')) . '"' : '' ?>>
           <?php if (is_super()): ?><td class="ss-c fw-selc"><input type="checkbox" class="fw-sel" value="<?= e($r['id']) ?>" data-track="<?= e($r['tracking_id']) ?>" aria-label="<?= e(sprintf(t('Select %s', 'Piliin ang %s'), $r['tracking_id'])) ?>"></td><?php endif; ?>
           <td><div class="ss-case"><span class="p-mono-id"><?= e($r['tracking_id']) ?></span>
             <?php if (!empty($r['is_anonymous'])): ?>
@@ -1047,7 +1065,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
         ? '<span class="p-badge p-b-pending">' + T('Reopened ', 'Binuksang muli ') + r.reopened_count + '&times;</span>' : '';
       const appealed = r.appealed_at
         ? '<span class="p-badge p-b-pending" title="' + T('Reinstated on appeal', 'Ibinalik dahil sa apela') + '">' + T('Appealed', 'Inapela') + '</span>' : '';
-      return '<tr class="p-click' + (r.is_sensitive ? ' ss-sens' : '') + '"' + (r.is_sensitive ? ' title="' + T('Sensitive case', 'Sensitibong kaso') + '"' : '') + ' data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
+      return '<tr class="p-click' + (r.is_sensitive ? ' ss-sens' : '') + (open && r.due_at && new Date(r.due_at) < new Date() ? ' cr-od' : (r.referred_to ? ' cr-ref' : '')) + '"' + (r.is_sensitive ? ' title="' + T('Sensitive case', 'Sensitibong kaso') + '"' : '') + ' data-href="case.php?id=' + encodeURIComponent(r.id) + '">' +
         (IS_SUPER ? '<td class="ss-c fw-selc"><input type="checkbox" class="fw-sel" value="' + escapeHtml(r.id) + '" data-track="' + escapeHtml(r.tracking_id) + '" aria-label="' + escapeHtml(T('Select ', 'Piliin ang ') + r.tracking_id) + '"></td>' : '') +
         '<td><div class="ss-case"><span class="p-mono-id">' + escapeHtml(r.tracking_id) + '</span>' + who + '</div></td>' +
         '<td>' + escapeHtml(CATEGORY_LABEL[r.category] || titleCase(r.category)) +

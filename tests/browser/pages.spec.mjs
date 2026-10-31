@@ -611,6 +611,20 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Case Reports, peak: figures that link to their lists, the blue column header, overdue rows marked', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  await expect(page.locator('.cr-fig > a')).toHaveCount(4);
+  const tops = await page.locator('.cr-fig > a').evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().top)));
+  expect(new Set(tops).size, 'the four figures are one band').toBe(1);
+  await expect(page.locator('.cr-fig > a').first()).toHaveAttribute('href', /view=attention/);
+  expect(Number(await page.locator('.cr-fig > a').first().locator('b').textContent())).toBeGreaterThan(0);
+  expect(await page.locator('.ss-cases-t thead th').first().evaluate(e => getComputedStyle(e).backgroundColor), 'the column header is the Figma blue').toBe('rgb(0, 48, 143)');
+  expect(await page.locator('.ss-cases-t tr.cr-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
+  await page.locator('.cr-fig > a').first().click();
+  await expect(page).toHaveURL(/view=attention/);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
