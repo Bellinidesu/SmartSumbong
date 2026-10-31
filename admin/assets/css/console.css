@@ -198,3 +198,6 @@
 :root:root .p-body .pd-fadewrap .cm-chip > .cm-bg { right: 28px; }
 :root:root .p-body .wr-banner .cm-chip { height: auto; min-height: 54px; padding-top: 8px; padding-bottom: 8px; }
 :root:root .p-body .wr-banner .cm-n { white-space: normal; overflow: visible; }
+/* a form's column is as wide as its page, whatever a table inside it would like; the note's sentence is a line of its own */
+.ru-form, .cmx { grid-template-columns: minmax(0, 1fr); }
+.cmx-note > span:last-child { flex-basis: 100%; }
