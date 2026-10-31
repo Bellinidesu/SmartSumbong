@@ -514,14 +514,16 @@ $noteBadge = $notesUnread + $escCount;
 </div>
 <?php if (sees_everything()):
     $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
+<?php $sdTypes = committee_sd_types($db); ?>
 <nav class="cm-chips nf-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
-  <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?>><?= e(t('All', 'Lahat')) ?></a>
+  <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span></a>
   <?php foreach (committees_active() as $ck => $cl): ?>
-    <a class="cm-chip<?= $nCom === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?>><i></i><?= e($cl) ?></a>
+    <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span></a>
   <?php endforeach; ?>
-  <a class="cm-chip cm-chip-none<?= $nCom === 'none' ? ' p-on' : '' ?>" href="<?= e($ncHref('none')) ?>"<?= $nCom === 'none' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('No committee yet', 'Wala pang komite')) ?></a>
-  <a class="cm-chip<?= $nCom === 'system' ? ' p-on' : '' ?>" style="--cc:var(--p-muted)" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?>><i></i><?= e(t('System', 'Sistema')) ?></a>
+  <a class="cm-chip cm-chip-none<?= $nCom === 'none' ? ' p-on' : '' ?>" href="<?= e($ncHref('none')) ?>"<?= $nCom === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span></a>
+  <a class="cm-chip cm-chip-sys<?= $nCom === 'system' ? ' p-on' : '' ?>" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?> title="<?= e(t('System', 'Sistema')) ?>"><i class="cm-sym cm-sym-sys">S</i><span class="cm-n"><?= e(t('System', 'Sistema')) ?></span></a>
 </nav>
+<?= committee_banner_script() ?>
 <?php endif; ?>
 
 <!-- ---------- escalation requests (0073) ---------- -->
@@ -672,19 +674,7 @@ $crWho    = sees_everything() ? ['none', (int) ($chipN['none'] ?? 0), t('No comm
                               : ['fwd', (int) ($chipN['fwd'] ?? 0), t('Forwarded to me', 'Ipinasa sa akin'), t('from another committee', 'mula sa ibang komite')];
 $crHref   = fn (array $q) => 'cases.php?' . http_build_query($q);
 // Spatial Distribution leads: a committee wears the colours and symbols of the complaint types it is connected to (the ticks of the committee creator)
-$sdIconOf = ['street_obstruction' => 'obstruction', 'public_safety_infrastructure' => 'infra', 'environmental_waste_hazard' => 'waste', 'animal_welfare' => 'animal',
-             'traffic_violation' => 'traffic', 'barangay_service' => 'service', 'peace_order_nuisance' => 'noise', 'other' => 'other'];
-$sdTypes = [];   // committee key => up to three [colour, SD icon name], in the complaint types' own order
-try {
-    $tick = [];
-    foreach ((array) $db->select('committee_categories', ['select' => 'committee,category']) as $x) { $tick[(string) $x['committee']][(string) $x['category']] = true; }
-    foreach ($tick as $ckey => $cats) {
-        foreach (categories_all() as $catKey => $cat) {
-            if (!isset($cats[$catKey]) || empty($cat['active'])) continue;
-            $sdTypes[$ckey][] = [(string) $cat['colour'], $sdIconOf[(string) ($cat['icon'] ?? $catKey)] ?? ($sdIconOf[$catKey] ?? 'other')];
-        }
-    }
-} catch (Throwable) { /* the buttons fall back to the committee's own colour and its initials */ }
+$sdTypes = committee_sd_types($db);
 $crOd = [];   // overdue open cases, by committee ('' = none)
 foreach ($openRows ?? [] as $r) { if (!empty($r['due_at']) && strtotime((string) $r['due_at']) < time()) { $k = (string) ($r['case_committee'] ?? ''); $crOd[$k] = ($crOd[$k] ?? 0) + 1; } }
 $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '%d ang lampas') : t('%d overdue', '%d ang lampas'), $n) : t('none overdue', 'walang lampas');
@@ -788,25 +778,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&#9873;</i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
   <?php endif; ?>
 </nav>
-<script src="assets/js/sd-icons.js?v=<?= e(asset_version('../js/sd-icons.js')) ?>"></script>
-<script>
-(function () {   // each committee symbol is drawn from the Spatial Distribution icon family
-  var I = window.SD_ICONS || {};
-  document.querySelectorAll('.cm-chips .cm-ic').forEach(function (s) {
-    s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
-    s.innerHTML = I[s.dataset.ic] || I.other || '';
-  });
-  document.querySelectorAll('.cm-chips .cm-chip').forEach(function () {});
-  var all = document.querySelector('.cm-chips .cm-sym-all'); if (all && I.layers) { all.innerHTML = '<svg class="cm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I.layers + '</svg>'; }
-  // the symbol again, large and faint at the right of each banner (the app's DHero)
-  document.querySelectorAll('.cm-chips .cm-chip').forEach(function (chip) {
-    var f = chip.querySelector('.cm-sym svg'), g;
-    if (f) { g = f.cloneNode(true); }
-    else { var d = chip.classList.contains('cm-chip-none') ? I.focus : I.other; if (!d) return; g = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); g.setAttribute('viewBox', '0 0 24 24'); g.setAttribute('fill', 'none'); g.setAttribute('stroke', 'currentColor'); g.setAttribute('stroke-linecap', 'round'); g.setAttribute('stroke-linejoin', 'round'); g.innerHTML = d; }
-    g.setAttribute('stroke-width', '2'); g.setAttribute('class', 'cm-bg'); g.removeAttribute('width'); g.removeAttribute('height'); g.setAttribute('aria-hidden', 'true'); chip.appendChild(g);
-  });
-})();
-</script>
+<?= committee_banner_script() ?>
 <?php if (is_super()): ?>
 <div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
 <?php endif; ?>

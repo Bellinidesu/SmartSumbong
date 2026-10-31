@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Notifications, 1 Nov)**
+- Ace kept the live layout (the feed on the left, the work waiting on you and the engine's "Right now" reading in the column
+  on the right), so there is no extra engine button here: the column is the engine's reading, and the engine's own
+  notifications (the SMART rows with the brain) stay in the feed, counted by the sidebar's brain pill.
+- The committee chips are the same banners as Case Reports (the complaint types' colours and Spatial Distribution symbols,
+  the large faint symbol with its hover and press), joined to the orange band with no gap, seven in one equal row where they
+  fit and in equal cells where they wrap. One shared source (`committee_sd_types`, `cm_banner_style`, `cm_sym_tag`,
+  `committee_banner_script` in `includes/forwarding.php`) draws them on both pages.
+
 **Changed (the committees follow the barangay's document, 1 Nov)**
 - 0159: the Barangay Anti-Drug Abuse Council is switched off. Only the three committees on the chairmanship document are
   active for Barangay 183 (Peace and Order, Human Rights, Transportation and Communication; Environmental Protection and
