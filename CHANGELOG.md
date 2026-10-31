@@ -9,6 +9,14 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (back to the stacked layout, 1 Nov)**
+- Ace: "vertical" means the page running top to bottom, not a left rail. The two rail pull requests (#274, #275) are reverted:
+  Report Summary is again the figures, the full-width strip of five tabs and the table; Case Reports is the figures, the orange
+  band, the committee strip and the blue-headed table. No page has a rail.
+- Kept from the rail work: the committee strip is one object with the band and the table (it wraps to as many rows as it
+  needs, never cuts a name, and shows how many of each committee's cases are overdue); the join of the orange band and the
+  blue header is square on both pages; a case's "Forwarded from" tag and its place stay on one line, so rows are one height.
+
 **Changed (Case Reports, peak, 1 Nov)**
 - The page opens with an answer: one band of four figures, each a link to the list it counts: Needs attention (late, asked
   again, waiting for approval), Nobody has it (open with no handler), No committee yet (a committee's admin sees Forwarded

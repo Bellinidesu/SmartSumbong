@@ -625,6 +625,26 @@ test('Case Reports, peak: figures that link to their lists, the blue column head
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('The stacked layout: the strip is one object with the band and the table, no name is cut, the header join is square', async ({ page }) => {
+  for (const w of [2048, 1440, 720]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    const r = await open(page, 'cases.php');
+    const g = await page.evaluate(() => { const b = document.querySelector('.ss-cr-band').getBoundingClientRect(), c = document.querySelector('.cm-chips').getBoundingClientRect(), t = document.querySelector('.ss-cases-t').closest('.p-table-card').getBoundingClientRect(); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(Math.round) }; });
+    expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+    expect([g.x[2], g.x[3]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
+    expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap at ' + w + ': ' + g.y).toBe(true);
+    const cut = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
+    expect(cut, 'no committee name is cut at ' + w).toBe(0);
+    expect(await page.locator('.ss-cases-t thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'square header corners at ' + w).toEqual(['0px', '0px']);
+    expect(r.errors, 'console errors').toEqual([]);
+  }
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  await open(page, 'summary.php?range=month');
+  await page.locator('#ss-jump a[href="#rs-com"]').click();
+  expect(await page.locator('#rs-com thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'and on Report Summary').toEqual(['0px', '0px']);
+  await expect(page.locator('.rs-layout, .cr-rail'), 'no rail anywhere').toHaveCount(0);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);

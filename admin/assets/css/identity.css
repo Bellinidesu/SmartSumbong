@@ -338,3 +338,31 @@
 .page-cases tr.cr-ref > td:first-child { box-shadow: inset 4px 0 0 var(--p-violet-fg); }
 .page-cases tr.cr-od > td { background: color-mix(in srgb, var(--p-red) 5%, transparent); }
 .page-cases tr.cr-ref > td { background: color-mix(in srgb, var(--p-violet-fg) 5%, transparent); }
+
+/* ================= Case Reports, stacked: the figures, then the orange band, the committee strip and the blue-headed table as ONE object ================= */
+.page-cases .ss-cr-band { border-radius: 16px 16px 0 0; margin-bottom: 0; }
+/* the committee strip wraps (never scrolls, never cuts a name); hairlines are the gaps between cells */
+:root:root .p-body.page-cases .cm-chips {
+  display: flex; flex-wrap: wrap; gap: 1px; margin: 0; padding: 0; overflow: visible;
+  background: var(--p-line); border: 1px solid var(--p-line); border-top: 0; border-bottom: 0; border-radius: 0;
+}
+:root:root .p-body.page-cases .cm-chip {
+  flex: 1 1 210px; display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 60px; padding: 9px 18px;
+  border: 0; border-radius: 0; background: var(--p-surface); box-shadow: none; text-decoration: none; color: var(--p-ink);
+}
+:root:root .p-body.page-cases .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 6%, var(--p-surface)); }
+:root:root .p-body.page-cases .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 11%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
+:root:root .p-body.page-cases .cm-chip > i { width: 4px; height: 32px; border-radius: 2px; background: var(--cc, var(--p-ink)); }
+.page-cases .cm-chip:first-child { --cc: var(--p-ink); }
+.page-cases .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Urbanist, sans-serif; white-space: normal; overflow-wrap: anywhere; }
+.page-cases .cm-chip .cm-n em { font: 600 11.5px Inter, sans-serif; font-style: normal; color: var(--p-muted); }
+.page-cases .cm-chip .cm-n em.cm-od { color: var(--p-red); font-weight: 700; }
+:root:root .p-body.page-cases .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 22px Urbanist, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
+.page-cases .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; margin-top: 0; }
+.page-cases .cm-chips ~ .fw-bulk { margin: 10px 0; }
+/* a case's tag and place stay on one line (the whole text on hover) so every row is one height */
+.page-cases .ss-cases-t td .cm-fwd, .page-cases .ss-cases-t td .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* the join of the orange band and the blue header is square on both pages: nothing of the band shows behind a corner */
+.page-cases .p-table-card, .page-summary .p-table-card { border-top-left-radius: 0; border-top-right-radius: 0; }
+.page-cases .p-table-card thead th, .page-summary .p-table-card thead th { border-radius: 0; }
+.page-cases .p-table-card .p-tscroll, .page-cases .p-table-card table, .page-summary .p-table-card .p-tscroll, .page-summary .p-table-card table { border-radius: 0; }
