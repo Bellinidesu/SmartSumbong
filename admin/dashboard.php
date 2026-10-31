@@ -268,7 +268,7 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
   <!-- 0156: what waits on a super admin -->
   <div class="dh-kpi dc-needs">
     <a class="p-card ss-tile<?= $decide > 0 ? ' hot' : '' ?>" href="notifications.php"><span><?= e(t('Waiting for you', 'Naghihintay sa iyo')) ?></span><b class="p-num"><?= $decide ?></b>
-      <small><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e(t('tanods proposed', 'tanod na iminungkahi')) ?></small></a>
+      <small><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e((int) $nm['tanods'] === 1 ? t('tanod proposed', 'tanod na iminungkahi') : t('tanods proposed', 'tanod na iminungkahi')) ?></small></a>
     <a class="p-card ss-tile<?= (int) $nm['overdue'] > 0 ? ' hot' : '' ?>" href="cases.php?view=attention"><span><?= e(t('Overdue', 'Lampas-oras')) ?></span><b class="p-num"><?= (int) $nm['overdue'] ?></b>
       <small><?= e(t('open past the deadline', 'bukas na lampas sa deadline')) ?></small></a>
     <a class="p-card ss-tile<?= (int) $nm['no_committee'] > 0 ? ' hot' : '' ?>" href="cases.php?com=none"><span><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b class="p-num"><?= (int) $nm['no_committee'] ?></b>

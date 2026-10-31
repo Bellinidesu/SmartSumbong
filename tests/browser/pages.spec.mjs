@@ -505,6 +505,29 @@ test('Administrative Services: headers sit over their cells, the committees say 
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Case Reports and the Dashboard: equal rows, Review is the main button, what needs a super admin leads the Dashboard', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const heights = await page.locator('.ss-cases-t tbody tr.p-click').evaluateAll(rs => rs.map(x => Math.round(x.getBoundingClientRect().height)));
+  expect(heights.length, 'rows shown').toBeGreaterThan(5);
+  expect(Math.max(...heights) - Math.min(...heights), 'rows are as tall as the next (a "Forwarded from" tag may add a line): ' + heights).toBeLessThanOrEqual(8);
+  const row = page.locator('.ss-cases-t tbody tr.p-click').first();
+  const rv = await row.locator('.fw-acts .p-btn').first().evaluate(b => getComputedStyle(b).backgroundColor);
+  const fw = await row.locator('.fw-acts .fw-btn').evaluate(b => getComputedStyle(b).backgroundColor);
+  expect(fw, 'Forward is the second choice, not a filled button').toBe('rgba(0, 0, 0, 0)');
+  expect(rv, 'Review is the filled one').not.toBe('rgba(0, 0, 0, 0)');
+  const cut = await page.evaluate(() => { const b = document.querySelector('.ss-cases-t .fw-acts .fw-btn').getBoundingClientRect(); return b.right > document.querySelector('.ss-cases-t').getBoundingClientRect().right; });
+  expect(cut, 'the Forward button is inside the table').toBe(false);
+  const d = await open(page, 'dashboard.php');
+  await page.waitForTimeout(1500);   // the tiles ease in
+  const strip = await page.locator('.dh-kpi .ss-tile').evaluateAll(ts => ts.map(t => { const b = t.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.height)]; }));
+  const hero = await page.locator('.dh-hero').evaluate(h => Math.round(h.getBoundingClientRect().top));
+  expect(strip.length, 'four tiles').toBe(4);
+  expect(new Set(strip.map(t => t[0])).size, 'tiles on one line').toBe(1);
+  expect(new Set(strip.map(t => t[1])).size, 'tiles one height').toBe(1);
+  expect(strip[0][0], 'the strip is above the charts').toBeLessThan(hero);
+  expect(r.errors.concat(d.errors), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
