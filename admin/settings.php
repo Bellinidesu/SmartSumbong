@@ -22,6 +22,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/qr.php';
 require_once __DIR__ . '/includes/forwarding.php';   // the committee banners (committee_sd_types, cm_banner_style, sd_icon_for)
+require_once __DIR__ . '/includes/app_editor.php';   // the Control Room's live view of the app
 
 $admin = require_admin();
 $db    = db();
@@ -611,6 +612,8 @@ $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => 
     <?php if ($tb === 'admins'): ?><a class="st-link" role="tab" aria-selected="false" href="retirement-requests.php"><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?></a><?php endif; ?>
   <?php endforeach; ?>
 </div>
+
+<?php if ($stPage === 'control'): ?><div class="ed-wrap" id="ed-wrap" data-screen="report" data-map="<?= e(json_encode(APP_EDITOR_SCREENS)) ?>"><div class="ed-main"><?php endif; ?>
 
 <?php
 // Rose (5 Oct 2026): every administrator, and whether they still hold a
@@ -2103,4 +2106,4 @@ if (!document.querySelector('.st-pane:not([hidden])')) { var f = document.queryS
   paint();
 })();
 </script>
-<?php echo sd_chip_script(); layout_foot(); ?>
+<?php if ($stPage === 'control') { app_editor_end($catOpts ?? [], $hlTop ?? [], $hlKids ?? [], $hlNums ?? [], $switches ?? []); } echo sd_chip_script(); layout_foot(); ?>

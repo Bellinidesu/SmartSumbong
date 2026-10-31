@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (Control Room: a live view of the app, 1 Nov)**
+- A phone beside the Control Room forms shows what residents see (Report, Emergency, Home, Splash) in the app's palette, built from the same rows the app reads, and changes as the forms are typed in; saving a form still publishes it. A tile or number in the phone opens its field. Rules has no screen, so it takes the full width. It is a preview in the app's shape, not the app itself.
+
 **Changed (Control Room: Complaint types, Rules, Emergency numbers, 1 Nov)**
 - Complaint types: each kind is a chip in its colour and symbol, with which committees see it (red when none does); categories are cards. Rules: a card per group of limits under plain headings, blue-header deadlines, a pause switch that turns red while on, and a save bar that stays in view and says when something is unsaved. Emergency numbers: the same cards.
 
