@@ -355,6 +355,25 @@ test('Committees tab: a card each, a live banner, chips for the kinds of complai
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
+test('Administrators and Escalation, peak: position banners filter the table, one seamless block, kinds of complaint wear their colour', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  const r = await open(page, 'administrative-services.php');
+  await page.locator('.st-tabs [data-st="admins"]').click();
+  await expect(page.locator('.ad-roles .cm-chip')).toHaveCount(5);   // All, Chairman, Councilor, Secretary, Staff
+  const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { a: Math.round(R('.page-administrative-services .ss-pband').bottom), b: Math.round(R('.ad-roles').top), c: Math.round(R('.ad-roles').bottom), d: Math.round(R('#ss-people').top), th: getComputedStyle(document.querySelector('#ss-people thead th')).backgroundColor }; });
+  expect(Math.abs(g.a - g.b) + Math.abs(g.c - g.d), 'the band, the banners and the table touch').toBeLessThanOrEqual(2);
+  expect(g.th, 'blue under the orange band').toBe('rgb(0, 48, 143)');
+  const all = await page.locator('#jp-rows tr.ss-arow:visible').count();
+  await page.locator('.ad-roles .cm-chip[data-role="kagawad"]').click();
+  expect(await page.locator('#jp-rows tr.ss-arow:visible').count(), 'a banner filters the table').toBeLessThan(all);
+  await page.locator('.ad-roles .cm-chip[data-role=""]').click();
+  expect(await page.locator('#jp-rows tr.ss-arow:visible').count()).toBe(all);
+  await page.locator('.st-tabs [data-st="ladder"]').click();
+  await expect(page.locator('.ss-lst .cmx-t-ro').first()).toBeVisible();
+  expect(await page.locator('.ss-lst .cmx-t-ro').evaluateAll(ts => ts.filter(t => getComputedStyle(t).backgroundColor === 'rgba(0, 0, 0, 0)').length), 'each kind of complaint is a chip in its colour').toBe(0);
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');

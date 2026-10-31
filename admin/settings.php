@@ -648,12 +648,28 @@ try {
       <input type="search" id="jp-q" placeholder="<?= e(t('Search for names', 'Hanapin ang pangalan')) ?>" autocomplete="off">
     </form>
     <span class="p-spacer"></span>
-    <label class="p-pill-select"><span class="p-lbl"><?= e(t('Position', 'Posisyon')) ?></span>
+    <label class="p-pill-select" hidden><span class="p-lbl"><?= e(t('Position', 'Posisyon')) ?></span>
       <select id="jp-role" aria-label="<?= e(t('Position', 'Posisyon')) ?>"><option value=""><?= e(t('All', 'Lahat')) ?></option>
         <?php foreach ($roleOpts as $rv => $rl): ?><option value="<?= $rv === '' ? 'staff' : e($rv) ?>"><?= e($rl) ?></option><?php endforeach; ?>
       </select></label>
     <button type="button" class="jp-add" id="jp-add" aria-controls="jp-addcard" aria-expanded="false"><?= e(t('Add administrator', 'Magdagdag ng administrator')) ?></button>
   </div>
+  <?php
+  $rkN = ['' => count($admins)]; foreach ($admins as $x0) { $k0 = ($x0['official_role'] ?? '') === '' ? 'staff' : (string) $x0['official_role']; $rkN[$k0] = ($rkN[$k0] ?? 0) + 1; }
+  $rkDef = ['' => [t('All', 'Lahat'), '#2D5BFF', '#00A3FF', '#FFFFFF', 'layers'], 'chairman' => [t('Chairman', 'Punong Barangay'), '#E5383B', '#FF6A3D', '#FFFFFF', 'focus'],
+            'kagawad' => [t('Councilor', 'Kagawad'), '#7A5AE0', '#B15CFF', '#FFFFFF', 'handler'], 'secretary' => [t('Secretary', 'Kalihim'), '#0097B8', '#35D0E8', '#FFFFFF', 'calendar'],
+            'staff' => [t('Staff', 'Kawani'), '#6C7A9C', '#9AA6C4', '#FFFFFF', 'copy']]; ?>
+  <nav class="cm-chips ad-roles" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
+    <?php foreach ($rkDef as $rk => [$rl, $c1, $c2, $ink, $ic]): ?>
+      <a class="cm-chip cm-sd<?= $rk === '' ? ' p-on' : '' ?>" href="#" data-role="<?= e($rk) ?>" style="--cc:<?= e($c1) ?>;--ct:<?= e($ink) ?>;--g1:<?= e($c1) ?>;--g2:<?= e($c2) ?>;--g3:<?= e($c2) ?>" title="<?= e($rl) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="<?= e($ic) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e($rl) ?></span><b><?= (int) ($rkN[$rk] ?? 0) ?></b></a>
+    <?php endforeach; ?>
+  </nav>
+  <script>
+  (function () {   // a position banner filters the table the way the position menu did
+    var sel = document.getElementById('jp-role'), chips = [].slice.call(document.querySelectorAll('.ad-roles .cm-chip')); if (!sel) return;
+    chips.forEach(function (c) { c.addEventListener('click', function (e) { e.preventDefault(); sel.value = c.dataset.role; sel.dispatchEvent(new Event('change', { bubbles: true })); chips.forEach(function (x) { x.classList.toggle('p-on', x === c); x.toggleAttribute('aria-current', x === c); }); }); });
+  })();
+  </script>
   <div class="p-card p-table-card jp-scope ss-people ss-adm" id="ss-people"><div class="p-tscroll">
     <table class="p-t ss-ohead">
     <thead><tr>
@@ -773,7 +789,7 @@ try {
           <?php foreach ($cmap as $m):
             $holders = array_values(array_filter($admins, fn($x) => ($x['official_role'] ?? '') === 'kagawad' && ($x['committee'] ?? '') === $m['committee'])); ?>
             <tr>
-              <td><b class="ss-lname"><?= e(category_label((string) $m['category'])) ?></b></td>
+              <td><?php $lc = (string) (categories_all()[(string) $m['category']]['colour'] ?? '#78909C'); ?><span class="cmx-t cmx-t-ro ss-lname" style="--tc:<?= e($lc) ?>;--tk:<?= e(ink_on_bold([$lc])) ?>"><svg class="cm-ic cmx-ti" data-ic="<?= e(sd_icon_for((string) $m['category'], (array) (categories_all()[(string) $m['category']] ?? []))) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg><span><?= e(category_label((string) $m['category'])) ?></span></span></td>
               <td>
                 <form method="post" class="ss-inline">
                   <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -803,11 +819,9 @@ try {
     </div>
   </div>
 
-  <div class="p-band ss-pband ss-subband">
-    <h2><?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?><span class="p-badge-n p-badge-n--quiet" id="wr-count"><?= count(array_filter($tanods, fn($x) => !empty($x['women_responder']))) ?></span></h2>
-    <span class="p-spacer"></span>
-    <span class="ss-subnote"><?= e(t('Tanods designated for women and children cases (the VAWC desk). Sensitive cases show them first when a tanod is chosen.', 'Mga tanod na itinalaga sa mga kaso ng kababaihan at bata (VAWC desk). Una silang ipinapakita sa mga sensitibong kaso kapag pumipili ng tanod.')) ?></span>
-  </div>
+  <nav class="cm-chips wr-banner" aria-label="<?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?>">
+    <a class="cm-chip cm-sd" tabindex="-1" style="--cc:#E5408A;--ct:#FFFFFF;--g1:#D81B72;--g2:#FF5FA8;--g3:#FF9CC8"><i class="cm-sym"><svg class="cm-ic" data-ic="handler" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?><small class="pc-gn">· <?= e(t('specialized: women and children cases (the VAWC desk). Sensitive cases show them first when a tanod is chosen.', 'espesyalisado: mga kaso ng kababaihan at bata (VAWC desk). Una silang ipinapakita sa mga sensitibong kaso kapag pumipili ng tanod.')) ?></small></span><b id="wr-count"><?= count(array_filter($tanods, fn($x) => !empty($x['women_responder']))) ?></b></a>
+  </nav>
   <div class="p-card p-table-card jp-scope ss-people ss-adm ss-lst"><div class="p-tscroll">
     <table class="p-t ss-ohead">
       <thead><tr><th scope="col"><?= e(t('Tanod', 'Tanod')) ?></th><th scope="col"><?= e(t('Role', 'Tungkulin')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>
@@ -967,7 +981,7 @@ endif;
     (function () {
       var I = window.SD_ICONS || {};
       function draw(svg, name) { svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.innerHTML = I[name] || I.other || ''; }
-      document.querySelectorAll('#acc-committees .cmx-ti, .cmx-note .cmx-ti').forEach(function (s) { draw(s, s.dataset.ic); });
+      document.querySelectorAll('.cmx-ti').forEach(function (s) { draw(s, s.dataset.ic); });
       function lum(h) { var n = parseInt(h.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
       document.querySelectorAll('#acc-committees form.cmx-card').forEach(function (f) {
         var chip = f.querySelector('.cmx-banner .cm-chip'), sym = chip.querySelector('.cm-sym'), initial = new URLSearchParams(new FormData(f)).toString();
