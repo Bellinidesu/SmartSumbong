@@ -34,7 +34,7 @@ function tc_pill(array $c): string
     $name = (string) (committees_all()[$k]['short_en'] ?? $k);
     $role = trim((string) ($c['role'] ?? ''));
     $prop = ($c['status'] ?? '') === 'proposed';
-    return '<span class="cm-pill' . ($prop ? ' cm-prop' : '') . '" style="--cc:' . e(committee_colour($k)) . '"' . ($role !== '' ? ' title="' . e($role) . '"' : '') . '><i></i>'
+    return '<span class="cm-pill' . ($prop ? ' cm-prop' : '') . '" style="--cc:' . e(committee_colour($k)) . '" title="' . e($name . ($role !== '' ? ' · ' . $role : '')) . '"><i></i>'
         . e($name) . ($role !== '' ? '<small>' . e($role) . '</small>' : '') . ($prop ? '<small>' . e(t('proposed', 'iminungkahi')) . '</small>' : '') . '</span>';
 }
 
@@ -48,6 +48,21 @@ function tc_pills(?array $row): string
     }
     if (!empty($row['busy'])) {
         $o .= '<span class="tc-busy">' . e(t('On a case:', 'May kaso:')) . ' ' . committee_pill((string) $row['busy']) . '</span>';
+    }
+    return '<div class="tc-pills">' . $o . '</div>';
+}
+
+/** Personnel's Committees column: at most two lines, so every row is as tall as the next; the rest is "+N more" (names in its tooltip). tcPills() in the list's script mirrors this. */
+function tc_list_pills(?array $row): string
+{
+    $cs = array_values((array) ($row['committees'] ?? []));
+    if (!$cs) return '<div class="tc-pills"><span class="p-sub">' . e(is_scoped() ? '—' : t('No committee', 'Walang komite')) . '</span></div>';
+    $show = count($cs) > 2 ? 1 : count($cs);
+    $o = '';
+    foreach (array_slice($cs, 0, $show) as $c) { $o .= tc_pill($c); }
+    if (count($cs) > $show) {
+        $rest = array_map(fn ($c) => (string) (committees_all()[(string) $c['key']]['short_en'] ?? $c['key']), array_slice($cs, $show));
+        $o .= '<span class="cm-more" title="' . e(implode(', ', $rest)) . '">+' . count($rest) . ' ' . e(t('more', 'pa')) . '</span>';
     }
     return '<div class="tc-pills">' . $o . '</div>';
 }

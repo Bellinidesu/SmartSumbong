@@ -27,6 +27,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $action = '';   // falls through to "Unknown action."
             }
             switch ($action) {
+                // Personnel's bulk bar: a super admin puts the ticked tanods in a committee at once. Each goes through the same function as
+                // one at a time (approved on the spot, logged, the committee told); one that is refused does not stop the others.
+                case 'tc_bulk':
+                    if (!is_super()) { $flash = t('Only a super admin can do that.', 'Super admin lamang ang may kakayahan nito.'); $level = 'error'; break; }
+                    $com = (string) ($_POST['committee'] ?? '');
+                    $done = 0; $refused = 0;
+                    foreach (array_unique(array_filter((array) ($_POST['ids'] ?? []), 'is_string')) as $tid) {
+                        try {
+                            $db->rpc('propose_tanod_committee', ['p_tanod' => $tid, 'p_committee' => $com, 'p_role' => null, 'p_note' => null]);
+                            $done++;
+                        } catch (SupabaseError) { $refused++; }
+                    }
+                    $cn = (string) (committees_all()[$com]['short_en'] ?? $com);
+                    $flash = sprintf(t('%d added to %s.', 'Naidagdag ang %d sa %s.'), $done, $cn)
+                           . ($refused ? ' ' . sprintf(t('%d could not be added.', '%d ang hindi naidagdag.'), $refused) : '');
+                    if ($done === 0) { $level = 'error'; }
+                    break;
+
                 // 0153: a tanod's committees. A Kagawad proposes for their own committee; a super admin assigns, approves or declines.
                 case 'tc_propose':
                     $st = $db->rpc('propose_tanod_committee', ['p_tanod' => $target, 'p_committee' => (string) ($_POST['committee'] ?? ''),

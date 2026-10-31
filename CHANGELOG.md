@@ -9,6 +9,20 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Personnel roster, 31 Oct)**
+- The Tanod list is rebuilt as one roster: Tanod, Duty, Committees, Latest complaint, Contact (phone over email),
+  Account, action. Every row is the same height (it was 79 to 135 px), every cell sits on its row's middle line
+  and each header starts where its cells start (measured at 2048, 1440 and 1024, light and dark). Under
+  1700 px the Latest complaint column steps aside for room.
+- Duty is its own column: one pill (On Duty, Lunch, Break, Offline) and under it the committee of the case they
+  are on, or "On an incident"; someone not active shows a dash. Committees show at most two lines, then "+N more"
+  with the names on hover. The email is whole and one line, and an empty cell is always a dash.
+- The four duty tiles are smaller and filter the list (`?duty=`); the lit one again clears it.
+- A super admin ticks tanods and adds them to a committee in one go (`tc_bulk`; each goes through the same
+  function as one at a time, so the log and notices are the same).
+- The 20-second refresh now also refreshes the committees and the case a tanod is on, and draws exactly what a
+  reload draws (a browser test compares them).
+
 **Changed (alignment pass 3, 31 Oct)**
 - Notifications: the day label starts where the row's icon tile starts; inside a folded row the dots
   sit under the icon's centre, the messages start where the title starts, and the buttons start at the dots

@@ -1,0 +1,89 @@
+/* Personnel: the Tanod roster (loaded on personnel.php only, after every other sheet).
+   One rule for the list: every row is as tall as the next, every cell is centred on its row, and a column's header starts where its cells start.
+   Duty, case, committees, contact and account each have their own column; nothing wraps mid-word and nothing is cut without a tooltip.
+   The same markup is drawn by accounts.php (PHP) and by its live refresh (JS): change both together. */
+
+/* ---- the duty tiles: smaller, and they filter the list ---- */
+.page-personnel .p-attendance { margin: 0 0 20px; }
+.page-personnel .p-attendance .p-kpi { min-height: 88px; padding: 12px 20px; text-decoration: none; cursor: pointer; transition: transform .15s, box-shadow .15s, opacity .15s; }
+.page-personnel .p-attendance .p-kpi .p-value { font-size: 34px; }
+.page-personnel .p-attendance .p-kpi.p-on { outline: 3px solid color-mix(in srgb, var(--c) 45%, #fff); outline-offset: 3px; }
+.page-personnel .p-attendance:has(.p-on) .p-kpi:not(.p-on) { opacity: .6; }
+.page-personnel .p-attendance .p-kpi:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 3px; }
+
+/* ---- the table ---- */
+.pe-roster .p-t { table-layout: fixed; width: 100%; min-width: 1100px; }
+.pe-roster col.pe-c-cb { width: 3%; }      .pe-roster col.pe-c-who { width: 18%; }   .pe-roster col.pe-c-duty { width: 14%; }
+.pe-roster col.pe-c-com { width: 18%; }    .pe-roster col.pe-c-last { width: 10%; }  .pe-roster col.pe-c-contact { width: 17%; }
+.pe-roster col.pe-c-acct { width: 11%; }   .pe-roster col.pe-c-act { width: 9%; }
+.pe-roster .p-t th, .pe-roster .p-t td { padding: 0 14px; vertical-align: middle; min-width: 0; max-width: none; text-align: left; overflow: hidden; }
+.pe-roster .p-t td { height: 76px; padding-top: 8px; padding-bottom: 8px; }
+.pe-roster .p-t th { height: 54px; }
+.pe-roster .p-t th.ss-cbh, .pe-roster .p-t td.ss-cbc { padding-left: 16px; padding-right: 0; }
+.pe-roster .p-t th.p-right, .pe-roster .p-t td.p-right { text-align: right; padding-right: 16px; }
+
+/* Under 1700 px the latest case steps aside (it is on the person's own page) and the others share its room */
+@media (max-width: 1700px) {
+  .pe-roster .p-t { min-width: 1060px; }
+  .pe-roster col.pe-c-last, .pe-roster th:nth-child(5), .pe-roster td:nth-child(5) { display: none; }
+  .pe-roster col.pe-c-who { width: 17%; }   .pe-roster col.pe-c-duty { width: 19%; }   .pe-roster col.pe-c-com { width: 18%; }
+  .pe-roster col.pe-c-contact { width: 18%; }   .pe-roster col.pe-c-acct { width: 13%; }   .pe-roster col.pe-c-act { width: 12%; }
+}
+
+/* who */
+.pe-roster td .p-person { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pe-roster td .p-person .p-avatar { width: 40px; height: 40px; font-size: 14px; }
+.pe-roster td .p-person > span:last-child { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.3; overflow-wrap: break-word; }
+
+/* duty: one pill, and under it the case they are on */
+.pe-dutybox { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.pe-duty { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 12px 0 10px; border-radius: 99px; font: 700 12.5px Inter, sans-serif; white-space: nowrap;
+  color: color-mix(in srgb, var(--d) 62%, var(--jp-text, #141B34)); background: color-mix(in srgb, var(--d) 15%, transparent); }
+.pe-duty i { width: 8px; height: 8px; border-radius: 50%; background: var(--d); flex: none; }
+.pe-d-on_duty { --d: #1FA24A; } .pe-d-lunch { --d: #E8860C; } .pe-d-break { --d: #D9A100; } .pe-d-offline { --d: #E5383B; }
+.pe-roster .tc-busy { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; font-size: 12px; font-weight: 600; color: var(--jp-subtle, #66708f); }
+.pe-roster .tc-busy small { flex: none; font-size: 12px; font-weight: 600; }
+.pe-roster .tc-busy .cm-pill { flex: 0 1 auto; min-width: 0; }
+
+/* committees: at most two lines */
+.pe-roster td.tc-cell { min-width: 0; max-width: none; }
+.pe-roster .tc-pills { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.pe-roster .tc-pills .cm-pill, .pe-roster td .cm-pill { display: inline-flex; align-items: center; max-width: 100%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 99px; line-height: 1.5; }
+.pe-roster td.tc-cell .cm-pill { align-items: center; }
+.pe-roster td.tc-cell .cm-pill::before { content: none; }
+.pe-roster td.tc-cell .cm-pill > i { margin-top: 0; }
+.pe-roster .cm-more { padding-left: 6px; font: 700 12px Inter, sans-serif; color: var(--jp-subtle, #66708f); cursor: help; }
+
+/* latest case, contact */
+.pe-roster td.ss-latest { white-space: nowrap; }
+.pe-roster td.pe-contact { white-space: nowrap; }
+.pe-roster td.pe-contact > span { display: block; overflow: hidden; text-overflow: ellipsis; }
+.pe-roster td.pe-contact .p-num { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pe-roster td.pe-contact .pe-mail { margin-top: 2px; font-size: 12.5px; color: var(--jp-subtle, #66708f); }
+
+/* account: the primary pill first, the flags after it */
+.pe-roster .p-badges { display: flex; flex-flow: row wrap; align-items: center; gap: 5px; min-width: 0; }
+.pe-roster .p-badges .p-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pe-roster .cm-pill small { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* action: both buttons the same width */
+.pe-roster td.p-right .p-btn { min-width: 84px; justify-content: center; }
+.pe-roster td.p-right .quick-verify-form { display: block !important; margin-top: 6px; }
+
+/* ---- the bulk bar: how many, which committee, go ---- */
+.ss-bulk .ss-bulk-tc { display: flex; align-items: center; gap: 8px; margin: 0; }
+.ss-bulk .ss-bulk-tc select { height: 32px; min-width: 190px; padding: 0 10px; }
+.ss-bulk .ss-bulk-go { flex: none; white-space: nowrap; }
+
+/* ---- Squares: the same cells as a card ---- */
+.ss-people.pe-roster.ss-sq .p-t { min-width: 0; table-layout: auto; }
+.ss-people.pe-roster.ss-sq tbody tr { min-height: 0; gap: 10px; }
+.ss-people.pe-roster.ss-sq tbody td { height: auto; padding: 0; text-align: center; overflow: visible; }
+.ss-people.pe-roster.ss-sq td.pe-contact > span { text-align: center; }
+.ss-people.pe-roster.ss-sq .pe-dutybox, .ss-people.pe-roster.ss-sq .tc-pills { align-items: center; }
+.ss-people.pe-roster.ss-sq .tc-busy { justify-content: center; }
+.ss-people.pe-roster.ss-sq .p-person > span:last-child { text-align: center; -webkit-line-clamp: 2; }
+.ss-people.pe-roster.ss-sq .p-badges { justify-content: center; }
+.ss-people.pe-roster.ss-sq td.p-right { padding: 0; }
+
+@media (prefers-reduced-motion: reduce) { .page-personnel .p-attendance .p-kpi { transition: none; } }

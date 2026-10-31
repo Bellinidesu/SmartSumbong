@@ -186,6 +186,11 @@ function render_account_screen(string $role): void
     } else {
         $comF = '';
     }
+    // The duty tiles above the list filter too: the active tanods in that state (no state yet counts as offline).
+    $dutyF = $isTanod && isset(TANOD_DUTY_STATES[(string) ($_GET['duty'] ?? '')]) ? (string) $_GET['duty'] : '';
+    if ($dutyF !== '') {
+        $accounts = array_values(array_filter($accounts, fn ($a) => account_is_active($a) && account_duty($a) === $dutyF));
+    }
     // Chip counts (over every account of this kind, whatever the search).
     $chipN = [
         ''          => count($allAccounts),
@@ -274,19 +279,20 @@ function render_account_screen(string $role): void
 
     <?php if ($isTanod) { render_tc_strip($db, $tc, $allAccounts); } ?>
 
-    <?php if ($isTanod): ?>
-      <!-- Today's shift: every active tanod (verified, not suspended or retired), whatever the search. -->
-      <div class="p-kpis p-attendance" id="attendance-grid" aria-label="<?= e(t("Today's shift attendance summary", 'Buod ng pagdalo sa shift ngayong araw')) ?>" style="margin-bottom:20px">
-        <?php foreach (TANOD_DUTY_STATES as $state => $label): ?>
-          <div class="p-card p-kpi p-att-<?= e($state) ?>"><div class="p-label"><span class="p-att-dot" aria-hidden="true"></span><?= e(status_label($state)) ?></div>
+    <?php if ($isTanod):
+        $dutyHref = fn (string $d) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'com' => $comF, 'duty' => $d], fn ($v) => $v !== '')); ?>
+      <!-- Today's shift: every active tanod (verified, not suspended or retired), whatever the search. A tile filters the list; the lit one again clears it. -->
+      <nav class="p-kpis p-attendance" id="attendance-grid" aria-label="<?= e(t("Today's shift attendance summary", 'Buod ng pagdalo sa shift ngayong araw')) ?>">
+        <?php foreach (TANOD_DUTY_STATES as $state => $label): $on = $dutyF === $state; ?>
+          <a class="p-card p-kpi p-att-<?= e($state) ?><?= $on ? ' p-on' : '' ?>" href="<?= e($dutyHref($on ? '' : $state)) ?>"<?= $on ? ' aria-current="true"' : '' ?> title="<?= e($on ? t('Show everyone again', 'Ipakita muli ang lahat') : sprintf(t('Show only %s', 'Ipakita lamang ang %s'), status_label($state))) ?>"><div class="p-label"><span class="p-att-dot" aria-hidden="true"></span><?= e(status_label($state)) ?></div>
             <div class="p-value p-num" data-state="<?= e($state) ?>"><?= (int) ($attendance[$state] ?? 0) ?></div>
-            <div class="p-delta"><?= e(t('Today’s shift', 'Shift ngayong araw')) ?></div></div>
+            <div class="p-delta"><?= e(t('Today’s shift', 'Shift ngayong araw')) ?></div></a>
         <?php endforeach; ?>
-      </div>
+      </nav>
     <?php endif; ?>
 
     <?php if ($isTanod && sees_everything()):
-        $comHref = fn (string $c) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'com' => $c], fn ($v) => $v !== ''));
+        $comHref = fn (string $c) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'duty' => $dutyF, 'com' => $c], fn ($v) => $v !== ''));
         $comN = fn (string $k) => count(array_filter($allAccounts, fn ($a) => $k === 'none' ? !$inCom($a, '') : $inCom($a, $k))); ?>
     <nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
       <a class="cm-chip<?= $comF === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $comF === '' ? ' aria-current="true"' : '' ?>><?= e(t('All', 'Lahat')) ?><b><?= count($allAccounts) ?></b></a>
@@ -322,6 +328,15 @@ function render_account_screen(string $role): void
 
     <div class="ss-bulk" id="ss-bulk" hidden>
       <b><span id="ss-bulk-n">0</span> <?= e(t('selected', 'napili')) ?></b>
+      <?php if ($isTanod && is_super()): ?>
+        <form method="post" class="ss-bulk-tc" id="ss-bulk-tc">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="tc_bulk"><input type="hidden" name="to_list" value="1">
+          <label class="p-sr" for="ss-bulk-com"><?= e(t('Committee', 'Komite')) ?></label>
+          <select class="p-input-plain" id="ss-bulk-com" name="committee" required><option value="" disabled selected><?= e(t('Add to a committee…', 'Idagdag sa komite…')) ?></option>
+            <?php foreach (committees_active() as $ck => $cl): ?><option value="<?= e($ck) ?>"><?= e($cl) ?></option><?php endforeach; ?></select>
+          <button type="submit" class="ss-bulk-go"><?= e(t('Add to committee', 'Idagdag sa komite')) ?></button>
+        </form>
+      <?php endif; ?>
       <button type="button" class="ss-bulk-go" id="ss-bulk-go"><?= e(t('Review one after another', 'Suriin nang sunud-sunod')) ?></button>
       <button type="button" class="ss-bulk-clear" id="ss-bulk-clear"><?= e(t('Clear', 'I-clear')) ?></button>
     </div>
@@ -331,15 +346,18 @@ function render_account_screen(string $role): void
       <button type="button" class="ss-bulk-clear" id="ss-rq-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
     </div>
 
-    <div class="p-card p-table-card jp-scope ss-people<?= $isTanod ? ' ss-tanods' : '' ?>" id="ss-people"><div class="p-tscroll">
+    <div class="p-card p-table-card jp-scope ss-people<?= $isTanod ? ' ss-tanods pe-roster' : '' ?>" id="ss-people"><div class="p-tscroll">
       <table class="p-t ss-ohead">
+        <?php if ($isTanod): ?><colgroup><col class="pe-c-cb"><col class="pe-c-who"><col class="pe-c-duty"><col class="pe-c-com"><col class="pe-c-last"><col class="pe-c-contact"><col class="pe-c-acct"><col class="pe-c-act"></colgroup><?php endif; ?>
         <thead><tr>
           <th scope="col" class="ss-cbh"><input type="checkbox" id="ss-all" aria-label="<?= e(t('Select everyone on this page', 'Piliin ang lahat sa pahinang ito')) ?>"></th>
           <th scope="col"><?= e(t($noun, $nounLabel)) ?></th>
-          <th scope="col"><?= e(t('Phone number', 'Numero ng telepono')) ?></th>
-          <?php if ($isTanod): ?><th scope="col"><?= e(t('Committees', 'Mga komite')) ?></th><th scope="col"><?= e(t('Latest complaint handled', 'Huling hinawakang sumbong')) ?></th><?php endif; ?>
-          <th scope="col"><?= e(t('Email', 'Email')) ?></th>
-          <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
+          <?php if ($isTanod): ?>
+            <th scope="col"><?= e(t('Duty', 'Tungkulin')) ?></th><th scope="col"><?= e(t('Committees', 'Mga komite')) ?></th><th scope="col"><?= e(t('Latest complaint handled', 'Huling hinawakang sumbong')) ?></th>
+            <th scope="col"><?= e(t('Contact', 'Kontak')) ?></th><th scope="col"><?= e(t('Account', 'Account')) ?></th>
+          <?php else: ?>
+            <th scope="col"><?= e(t('Phone number', 'Numero ng telepono')) ?></th><th scope="col"><?= e(t('Email', 'Email')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
+          <?php endif; ?>
           <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
         </tr></thead>
         <tbody id="accounts-tbody">
@@ -352,13 +370,16 @@ function render_account_screen(string $role): void
             <tr data-id="<?= e($a['id']) ?>" data-pending="<?= $a['verification_status'] === 'pending' ? '1' : '0' ?>">
               <td class="ss-cbc"><input type="checkbox" class="ss-cb" value="<?= e($a['id']) ?>" aria-label="<?= e(t('Select', 'Piliin')) ?> <?= e(formal_name($a['full_name'])) ?>"></td>
               <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e(formal_name($a['full_name'])) ?></span></div></td>
-              <td class="p-num"><?= e($a['mobile_number']) ?></td>
               <?php if ($isTanod): ?>
-                <td class="tc-cell"><?= tc_pills($tc[$a['id']] ?? null) ?></td>
-                <td class="ss-latest"><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">' . e(t('None', 'Wala')) . '</span>' ?></td>
+                <td class="pe-duty-c"><?= tanod_duty_cell($a, $tc[$a['id']] ?? null) ?></td>
+                <td class="tc-cell"><?= tc_list_pills($tc[$a['id']] ?? null) ?></td>
+                <td class="ss-latest"><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">—</span>' ?></td>
+                <td class="pe-contact"><span class="p-num"><?= e($a['mobile_number']) ?></span><span class="pe-mail"<?= $a['email'] ? ' title="' . e($a['email']) . '"' : '' ?>><?= $a['email'] ? e($a['email']) : '—' ?></span></td>
+              <?php else: ?>
+                <td class="p-num"><?= e($a['mobile_number']) ?></td>
+                <td class="ss-em"<?= $a['email'] ? ' title="' . e($a['email']) . '"' : '' ?>><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
               <?php endif; ?>
-              <td class="ss-em"<?= $a['email'] ? ' title="' . e($a['email']) . '"' : '' ?>><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
-              <td><div class="p-badges"><?= account_status_pills($a) ?><?php
+              <td><div class="p-badges"><?= account_status_pills($a, !$isTanod) ?><?php
                   if (!empty($dupes[$a['id']])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', $dupes[$a['id']])) ?>"><?= e(t('Possible duplicate', 'Posibleng doble')) ?></span><?php endif; ?><?php
                   if (ID_OCR_ENABLED && !empty($a['ocr_flags'])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', array_map('ocr_flag_label', $a['ocr_flags']))) ?>"><?= e(t('OCR flag', 'OCR flag')) ?></span><?php endif; ?><?php
                   if (ID_OCR_ENABLED && !empty($a['ocr_rescan_requested_at'])
@@ -386,7 +407,7 @@ function render_account_screen(string $role): void
       </table>
     </div></div>
     <div id="accounts-pager"><?= pager($accTotal, $accPage, 'page', $perPage) ?></div>
-    <script src="assets/js/people-list.js?v=1"></script>
+    <script src="assets/js/people-list.js?v=2"></script>
 
     <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
     <script>
@@ -423,10 +444,12 @@ function render_account_screen(string $role): void
       // tanod id -> tracking id of their latest dispatch; refreshed with
       // the list on every poll.
       let LATEST = <?= json_encode((object) array_filter($latestCase)) ?>;
-      // 0153: each tanod's committees as drawn on the server, and the tanods of the committee picked (null: no committee picked)
-      const TC_HTML = <?= json_encode((object) ($isTanod ? array_map('tc_pills', $tc) : [])) ?>;
-      const TC_NONE = <?= json_encode($isTanod ? tc_pills(null) : '') ?>;
-      const COM_IDS = <?= json_encode($isTanod && $comF !== '' ? array_column($accounts, 'id') : null) ?>;
+      // 0153: each tanod's committees (id -> {committees, busy}), refreshed with the list; the committees' names and colours; the filters picked
+      let TC = <?= json_encode((object) ($isTanod ? $tc : [])) ?>;
+      const COM = <?= json_encode((object) array_combine(array_keys(committees_all()), array_map(fn ($k) => [(string) committees_all()[$k]['short_en'], committee_colour($k)], array_keys(committees_all())))) ?>;
+      const COM_F = <?= json_encode($isTanod ? $comF : '') ?>;
+      const DUTY_F = <?= json_encode($dutyF ?? '') ?>;
+      const NO_COM = <?= json_encode(is_scoped() ? '—' : t('No committee', 'Walang komite')) ?>;
       const sb = createClient(
         <?= json_encode(supabase_url()) ?>,
         <?= json_encode(supabase_key()) ?>,
@@ -504,8 +527,8 @@ function render_account_screen(string $role): void
             out.push('<span class="p-badge p-b-progress">' + Math.trunc(a.minutes_left) + T(' min left', ' minuto pa') + '</span>');
           }
         }
-        if (a.holding_incident) out.push('<span class="p-badge p-b-progress">' + T('On an incident', 'May hawak na insidente') + '</span>');
-        if (a.duty_status) out.push('<span class="p-badge p-b-grey">' + escapeHtml(STATUS_LABEL[a.duty_status] || titleCase(a.duty_status)) + '</span>');
+        if (!IS_TANOD && a.holding_incident) out.push('<span class="p-badge p-b-progress">' + T('On an incident', 'May hawak na insidente') + '</span>');
+        if (!IS_TANOD && a.duty_status) out.push('<span class="p-badge p-b-grey">' + escapeHtml(STATUS_LABEL[a.duty_status] || titleCase(a.duty_status)) + '</span>');
         return out.join(' ');
       }
 
@@ -540,6 +563,40 @@ function render_account_screen(string $role): void
           });
         });
         return out;
+      }
+
+      // Mirrors account_is_active(), account_duty(), tanod_duty_cell(), tc_pill() and tc_list_pills() in PHP exactly.
+      function isActive(a) { return a.verification_status === 'verified' && !a.is_suspended && !a.is_retired; }
+      function dutyOf(a) { return ['on_duty', 'lunch', 'break', 'offline'].indexOf(a.duty_status) > -1 ? a.duty_status : 'offline'; }
+      function comPill(k) {
+        return COM[k] ? '<span class="cm-pill" style="--cc:' + escapeHtml(COM[k][1]) + '"><i></i>' + escapeHtml(COM[k][0]) + '</span>'
+                      : '<span class="cm-pill cm-none"><i></i>' + T('No committee', 'Walang komite') + '</span>';
+      }
+      function tcPill(c) {
+        var cm = COM[c.key] || [c.key, '#888'], role = String(c.role || '').trim(), prop = c.status === 'proposed';
+        return '<span class="cm-pill' + (prop ? ' cm-prop' : '') + '" style="--cc:' + escapeHtml(cm[1]) + '" title="' + escapeHtml(cm[0] + (role ? ' · ' + role : '')) + '"><i></i>' +
+          escapeHtml(cm[0]) + (role ? '<small>' + escapeHtml(role) + '</small>' : '') + (prop ? '<small>' + T('proposed', 'iminungkahi') + '</small>' : '') + '</span>';
+      }
+      function tcListPills(row) {
+        var cs = (row && row.committees) || [];
+        if (!cs.length) return '<div class="tc-pills"><span class="p-sub">' + escapeHtml(NO_COM) + '</span></div>';
+        var show = cs.length > 2 ? 1 : cs.length, o = cs.slice(0, show).map(tcPill).join('');
+        if (cs.length > show) {
+          var rest = cs.slice(show).map(function (c) { return COM[c.key] ? COM[c.key][0] : c.key; });
+          o += '<span class="cm-more" title="' + escapeHtml(rest.join(', ')) + '">+' + rest.length + ' ' + T('more', 'pa') + '</span>';
+        }
+        return '<div class="tc-pills">' + o + '</div>';
+      }
+      function dutyCellHtml(a) {
+        if (!isActive(a)) return '<span class="p-sub">—</span>';
+        var d = dutyOf(a), row = TC[a.id], o = '<span class="pe-duty pe-d-' + d + '"><i></i>' + escapeHtml(STATUS_LABEL[d] || titleCase(d)) + '</span>';
+        if (row && row.busy) o += '<span class="tc-busy"><small>' + T('On a case', 'May kaso') + '</small>' + comPill(row.busy) + '</span>';
+        else if (a.holding_incident) o += '<span class="tc-busy"><small>' + T('On an incident', 'May hawak na insidente') + '</small></span>';
+        return '<div class="pe-dutybox">' + o + '</div>';
+      }
+      function inCom(a, k) {
+        var cs = (TC[a.id] && TC[a.id].committees) || [];
+        return cs.some(function (c) { return c.status === 'approved' && (k === '' || c.key === k); });
       }
 
       // Mirrors tanod_attendance_counts() in this same file exactly.
@@ -579,7 +636,9 @@ function render_account_screen(string $role): void
           });
         }
         var dupes = duplicateFlags(accounts);
-        if (COM_IDS) filtered = filtered.filter(function (a) { return COM_IDS.indexOf(a.id) !== -1 || !(a.id in TC_HTML); });
+        if (COM_F === 'none') filtered = filtered.filter(function (a) { return !inCom(a, ''); });
+        else if (COM_F) filtered = filtered.filter(function (a) { return inCom(a, COM_F); });
+        if (DUTY_F) filtered = filtered.filter(function (a) { return isActive(a) && dutyOf(a) === DUTY_F; });
         if (STATUS_FILTER === 'pending' || STATUS_FILTER === 'verified') {
           filtered = filtered.filter(function (a) { return a.verification_status === STATUS_FILTER; });
         } else if (STATUS_FILTER === 'overdue') {
@@ -663,10 +722,12 @@ function render_account_screen(string $role): void
           return '<tr data-id="' + escapeHtml(a.id) + '" data-pending="' + (a.verification_status === 'pending' ? '1' : '0') + '">' +
             '<td class="ss-cbc"><input type="checkbox" class="ss-cb" value="' + escapeHtml(a.id) + '" aria-label="' + T('Select', 'Piliin') + ' ' + escapeHtml(String(a.full_name || '').trim()) + '"></td>' +
             '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(String(a.full_name || '').trim()) + '</span></div></td>' +
-            '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
-            (IS_TANOD ? '<td class="tc-cell">' + (TC_HTML[a.id] || TC_NONE) + '</td><td class="ss-latest">' + (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>'
-                                               : '<span class="p-sub">' + T('None', 'Wala') + '</span>') + '</td>' : '') +
-            '<td class="ss-em"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>' +
+            (IS_TANOD
+              ? '<td class="pe-duty-c">' + dutyCellHtml(a) + '</td><td class="tc-cell">' + tcListPills(TC[a.id]) + '</td><td class="ss-latest">' +
+                (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>' : '<span class="p-sub">—</span>') + '</td>' +
+                '<td class="pe-contact"><span class="p-num">' + escapeHtml(a.mobile_number) + '</span><span class="pe-mail"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '—') + '</span></td>'
+              : '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
+                '<td class="ss-em"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>') +
             '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +
             '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
               (a.verification_status === 'pending' ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +
@@ -704,7 +765,15 @@ function render_account_screen(string $role): void
                   LATEST = m;
                 })
             : Promise.resolve();
-          Promise.all([sb.rpc('account_directory', { p_role: ROLE }), latest]).then(function (out) {
+          var coms = IS_TANOD
+            ? sb.rpc('personnel_committees').then(function (r) {
+                if (r.error || !Array.isArray(r.data)) return;
+                var m = {};
+                r.data.forEach(function (x) { m[x.tanod_id] = { committees: x.committees || [], busy: x.busy_committee || null }; });
+                TC = m;
+              })
+            : Promise.resolve();
+          Promise.all([sb.rpc('account_directory', { p_role: ROLE }), latest, coms]).then(function (out) {
             var res = out[0];
             if (res.error || !res.data) return;
             renderAccounts(res.data);
@@ -957,7 +1026,38 @@ function tanod_attendance_counts(array $accounts): array
     return $out;
 }
 
-function account_status_pills(array $a): string
+/** Verified, not suspended, not retired: the tanods the duty tiles count. */
+function account_is_active(array $a): bool
+{
+    return ($a['verification_status'] ?? '') === 'verified' && empty($a['is_suspended']) && empty($a['is_retired']);
+}
+
+/** A tanod's duty state; none yet counts as offline. */
+function account_duty(array $a): string
+{
+    $s = (string) ($a['duty_status'] ?? '');
+    return isset(TANOD_DUTY_STATES[$s]) ? $s : 'offline';
+}
+
+/**
+ * Personnel's Duty column: the state as one pill, and under it the committee of the case they are on (other committees see
+ * the pill, never the case) or "On an incident". Someone who is not active has no duty. The list's script mirrors this.
+ */
+function tanod_duty_cell(array $a, ?array $tcRow): string
+{
+    if (!account_is_active($a)) return '<span class="p-sub">—</span>';
+    $d = account_duty($a);
+    $o = '<span class="pe-duty pe-d-' . e($d) . '"><i></i>' . e(status_label($d)) . '</span>';
+    if (!empty($tcRow['busy'])) {
+        $o .= '<span class="tc-busy"><small>' . e(t('On a case', 'May kaso')) . '</small>' . committee_pill((string) $tcRow['busy']) . '</span>';
+    } elseif (!empty($a['holding_incident'])) {
+        $o .= '<span class="tc-busy"><small>' . e(t('On an incident', 'May hawak na insidente')) . '</small></span>';
+    }
+    return '<div class="pe-dutybox">' . $o . '</div>';
+}
+
+/** Status, suspension and the two-hour clock as pills; $withDuty: the duty state and incident too (Residents never have one; Personnel has its own column). */
+function account_status_pills(array $a, bool $withDuty = true): string
 {
     $out = [];
 
@@ -982,11 +1082,11 @@ function account_status_pills(array $a): string
         }
     }
 
-    if (!empty($a['holding_incident'])) {
+    if ($withDuty && !empty($a['holding_incident'])) {
         $out[] = '<span class="p-badge p-b-progress">' . e(t('On an incident', 'May hawak na insidente')) . '</span>';
     }
 
-    if (!empty($a['duty_status'])) {
+    if ($withDuty && !empty($a['duty_status'])) {
         $out[] = '<span class="p-badge p-b-grey">' . e(status_label((string) $a['duty_status'])) . '</span>';
     }
 
@@ -1038,7 +1138,7 @@ function render_account_detail(
       <a class="ss-bulk-go" id="ss-rqbar-next" href="#"><?= e(t('Next in the queue', 'Susunod sa pila')) ?> &rarr;</a>
       <button type="button" class="ss-bulk-clear" id="ss-rqbar-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
     </div>
-    <script src="assets/js/people-list.js?v=1"></script>
+    <script src="assets/js/people-list.js?v=2"></script>
 
     <div class="p-acc-top">
       <a class="p-back" href="<?= e($self) ?>" aria-label="<?= e(t('Back to the list', 'Bumalik sa listahan')) ?>"><?= p_icon('i-back', 18) ?><?= e($navFile === 'personnel.php' ? t('Personnel', 'Mga Tanod') : t('Residents', 'Mga Residente')) ?></a>

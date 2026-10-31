@@ -288,6 +288,9 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
 <link href="assets/css/aesthetic.css?v=<?= e(asset_version('aesthetic.css')) ?>" rel="stylesheet">
+<?php if ($active === 'personnel.php') : // the Tanod roster (roster.css), kept off every other page ?>
+<link href="assets/css/roster.css?v=<?= e(asset_version('roster.css')) ?>" rel="stylesheet">
+<?php endif; ?>
 <?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?>">

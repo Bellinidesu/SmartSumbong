@@ -432,6 +432,35 @@ test('Roles and pages 4: tanods in committees, the punch cards, and a Kagawad\'s
   expect(s.errors.concat(d.errors, k.errors, kd.errors), 'console errors').toEqual([]);
 });
 
+test('Personnel roster: equal rows, duty tiles filter, bulk add to a committee, and the live refresh draws what a reload does', async ({ page }) => {
+  test.setTimeout(90000);
+  const norm = h => h.replace(/\s+/g, ' ').replace(/>\s+/g, '>').replace(/\s+</g, '<').trim();
+  const r = await open(page, 'personnel.php');
+  await expect(page.locator('.p-attendance .p-kpi')).toHaveCount(4);
+  await expect(page.locator('tr[data-id="u2"] .pe-duty')).toContainText('On Duty');
+  await expect(page.locator('tr[data-id="u7"] .pe-mail')).toContainText('barretto.martin2023@gmail.com');   // whole, not broken mid-word
+  const heights = await page.locator('#accounts-tbody tr').evaluateAll(rs => rs.map(x => Math.round(x.getBoundingClientRect().height)));
+  expect(new Set(heights).size, 'every row is as tall as the next: ' + heights).toBe(1);
+  const before = await page.$$eval('#accounts-tbody tr', rs => rs.map(x => x.outerHTML));
+  // the duty tile filters, and the lit one clears it
+  await page.locator('.p-attendance .p-att-on_duty').click();
+  await expect(page).toHaveURL(/duty=on_duty/);
+  await expect(page.locator('#accounts-tbody tr')).toHaveCount(2);
+  await page.locator('.p-attendance .p-att-on_duty').click();
+  await expect(page).not.toHaveURL(/duty=/);
+  // the bulk bar: tick two, pick a committee, add
+  await page.locator('tr[data-id="u7"] .ss-cb').check(); await page.locator('tr[data-id="u10"] .ss-cb').check();
+  await expect(page.locator('#ss-bulk')).toBeVisible();
+  await page.locator('#ss-bulk-com').selectOption('peace_order');
+  await Promise.all([page.waitForURL(/personnel\.php/), page.locator('#ss-bulk-tc button').click()]);
+  await expect(page.locator('.p-flash--ok')).toContainText('2 added to Peace and Order');
+  // the list's 20-second refresh redraws the rows the way the server drew them
+  await page.waitForTimeout(21500);
+  const after = await page.$$eval('#accounts-tbody tr', rs => rs.map(x => x.outerHTML));
+  expect(after.map(norm)).toEqual(before.map(norm));
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
