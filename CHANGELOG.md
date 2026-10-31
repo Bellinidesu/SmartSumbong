@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Case Reports, peak, 1 Nov)**
+- The page opens with an answer: one band of four figures, each a link to the list it counts: Needs attention (late, asked
+  again, waiting for approval), Nobody has it (open with no handler), No committee yet (a committee's admin sees Forwarded
+  to me instead), Open now. Red when there is something to do.
+- The column header under the orange band is the Figma blue (the pair from Report Summary).
+- Overdue rows carry a red bar and tint, escalated rows a violet one, in the server's rows and in the live refresh's alike.
+
 **Changed (Report Summary: the orange band over the blue header, and the Case Timeline, 1 Nov)**
 - The title row of every table on the page (Ledger, Escalations, Tanod activity, Case timeline, By committee) is the
   orange band, and the column header under it is the Figma blue, the pair Ace asked for (the white title row above
