@@ -180,6 +180,15 @@ function side_colour_style(): string
 }
 
 /** Black or white text on a colour, whichever reads. */
+/** Lettering for large bold text on a vivid colour (3:1 is enough at that size); the average of several colours for a blend. */
+function ink_on_bold(array $hexes): string
+{
+    $lin = fn ($v) => ($v /= 255) <= .03928 ? $v / 12.92 : (($v + .055) / 1.055) ** 2.4;
+    $ch = fn (int $o) => array_sum(array_map(fn ($h) => hexdec(substr($h, $o, 2)), $hexes)) / max(1, count($hexes));
+    $lum = .2126 * $lin($ch(1)) + .7152 * $lin($ch(3)) + .0722 * $lin($ch(5));
+    return 1.05 / ($lum + .05) >= 2.0 ? '#FFFFFF' : '#15181D';   // the lettering also carries a dark halo, so white holds on all but the lightest washes
+}
+
 function ink_on(string $hex): string
 {
     $lin = fn ($v) => ($v /= 255) <= .03928 ? $v / 12.92 : (($v + .055) / 1.055) ** 2.4;

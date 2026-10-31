@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the committee banners, from Spatial Distribution and the app, 1 Nov)**
+- Each committee button is a banner built the way the app's `DHero` and Spatial Distribution's banner are: a radial wash of
+  the colour of the complaint types the committee is connected to (the ticks of the committee creator: Peace and Order is pink
+  into grey-blue, Environment amber, Health green), and its type's Spatial Distribution symbol large and faint at the right.
+  Several types blend (mixed in a perceptual colour space so a blend is never a grey midpoint), at most three, and "+N" for more.
+- No small icon tile and no contour lines on the buttons (Ace's call); the faint symbol leans in, tilts and brightens on hover
+  and squeezes on press (not when motion is reduced).
+- The overdue note is the banner's own lettering colour as a soft ring with a pulsing dot, not a black patch.
+- Lettering is white on vivid washes and dark on the lightest, with a soft dark halo so it reads on any colour.
+
 **Changed (the committee strip as stylised buttons, 1 Nov)**
 - Case Reports' band, committee strip and table are seamless: the table card's square top (it had a 20 px radius that
   clipped the blue header's corners, which my test had missed), no glow from the band onto the strip, no seam.
