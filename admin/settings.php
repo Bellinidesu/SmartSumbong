@@ -112,6 +112,14 @@ const RULE_LIMITS = [
     'max_reports_per_day'        => ['Reports one resident may file a day', 'Ulat ng isang residente bawat araw', 'Stops flooding; real reports rarely come close.', 'Pumipigil sa pagbaha ng ulat; bihirang maabot ng totoong ulat.', 1, 200],
 ];
 
+// The limits, in the groups a super admin thinks in (every column of RULE_LIMITS shows; one not listed here goes in a last group).
+const RULE_GROUPS = [
+    ['Dispatch', 'Pagpapadala', ['max_active_dispatches', 'location_freshness_minutes', 'awaiting_alert_hours', 'max_deadline_extensions']],
+    ['When a Kagawad has to pick a tanod', 'Kapag pipili ang Kagawad ng tanod', ['reroute_ask_urgent_minutes', 'reroute_ask_minutes']],
+    ['Reports', 'Mga ulat', ['max_report_photos', 'max_reports_per_day']],
+    ['How long records are kept', 'Gaano katagal itinatago ang mga talaan', ['keep_otp_days', 'keep_attendance_days', 'keep_punch_days', 'keep_inbox_days', 'keep_workspace_days']],
+];
+
 // Wording (0149): the barangay's own words for a label, or the code's own back.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'wording_save') {
     session_start_once();
@@ -971,7 +979,7 @@ endif;
     <?php foreach (categories_all() as $ck => $cc): $opts = $catOpts[$ck] ?? []; $on = count(array_filter($opts, fn ($o) => !empty($o['active']))); ?>
       <details class="ty-cat<?= $cc['active'] ? '' : ' ty-off' ?>">
         <summary><span class="ty-dot" style="--tc:<?= e($cc['colour']) ?>" aria-hidden="true"></span><b><?= e(t($cc['en'], $cc['fil'])) ?></b>
-          <small><?= e($on === 1 ? sprintf(t('%d option', '%d opsyon'), $on) : sprintf(t('%d options', '%d opsyon'), $on)) ?></small><?php if (!$cc['active']): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
+          <small><?= e($on === 0 ? t('No options', 'Walang opsyon') : ($on === 1 ? sprintf(t('%d option', '%d opsyon'), $on) : sprintf(t('%d options', '%d opsyon'), $on))) ?></small><?php if (!$cc['active']): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
         <form method="post" class="ty-row">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cat_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
           <label class="ty-f"><span><?= e(t('In English', 'Sa Ingles')) ?></span><input class="p-input-plain" name="label_en" value="<?= e($cc['en']) ?>" required minlength="2" maxlength="60"></label>
@@ -1056,13 +1064,20 @@ endif;
       </tbody>
     </table></div>
     <p class="p-eyebrow" style="margin-top:18px"><?= e(t('Limits', 'Mga hangganan')) ?></p>
+    <?php
+    $ruGroups = RULE_GROUPS;
+    $ruLeft = array_values(array_diff(array_keys(RULE_LIMITS), array_merge(...array_column($ruGroups, 2))));
+    if ($ruLeft) { $ruGroups[] = ['More', 'Iba pa', $ruLeft]; }
+    foreach ($ruGroups as [$gen, $gfil, $gcols]): ?>
+    <div class="ru-group"><h3 class="ru-gh"><?= e(t($gen, $gfil)) ?></h3>
     <div class="ru-grid">
-      <?php foreach (RULE_LIMITS as $col => [$en, $fil, $hen, $hfil, $lo, $hi]): ?>
+      <?php foreach ($gcols as $col): [$en, $fil, $hen, $hfil, $lo, $hi] = RULE_LIMITS[$col]; ?>
         <div class="ru-f"><label for="lim-<?= e($col) ?>"><?= e(t($en, $fil)) ?></label>
           <input class="p-input-plain" id="lim-<?= e($col) ?>" type="number" name="lim[<?= e($col) ?>]" min="<?= $lo ?>" max="<?= $hi ?>" value="<?= (int) ($ops[$col] ?? $lo) ?>">
           <small><?= e(t($hen, $hfil)) ?></small></div>
       <?php endforeach; ?>
-    </div>
+    </div></div>
+    <?php endforeach; ?>
     <p class="p-eyebrow" style="margin-top:18px"><?= e(t('New reports', 'Mga bagong ulat')) ?></p>
     <label class="sd-c"><input type="checkbox" name="filing_paused" value="1" <?= !empty($ops['filing_paused']) ? 'checked' : '' ?>> <?= e(t('Pause new reports (a resident who sends one gets the message below, and nothing is filed)', 'Ihinto muna ang mga bagong ulat (makukuha ng residenteng magpapadala ang mensahe sa ibaba, at walang maisasampa)')) ?></label>
     <div class="p-cfield" style="margin-top:8px"><label class="p-flabel" for="ru-msg"><?= e(t('Message while paused', 'Mensahe habang nakahinto')) ?></label>
@@ -1083,7 +1098,7 @@ endif;
     $hlGroup = function (array $g, int $depth) use (&$hlGroup, $hlKids, $hlNums, $hlNext): void {
         $gid = (string) $g['id']; $nums = $hlNums[$gid] ?? []; ?>
       <details class="ty-cat hl-g<?= $depth ? ' hl-sub' : '' ?><?= !empty($g['is_active']) ? '' : ' ty-off' ?>">
-        <summary><b><?= e((string) $g['name']) ?></b><small><?= e(sprintf(t('%d numbers', '%d numero'), count($nums))) ?></small><?php if (empty($g['is_active'])): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
+        <summary><b><?= e((string) $g['name']) ?></b><small><?= e(count($nums) === 0 ? t('No numbers yet', 'Wala pang numero') : (count($nums) === 1 ? t('1 number', '1 numero') : sprintf(t('%d numbers', '%d numero'), count($nums)))) ?></small><?php if (empty($g['is_active'])): ?><span class="p-badge p-b-grey"><?= e(t('Off', 'Naka-off')) ?></span><?php endif; ?></summary>
         <form method="post" class="hl-row">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="hl_group"><input type="hidden" name="id" value="<?= e($gid) ?>">
           <label class="ty-f"><span><?= e(t('Group name', 'Pangalan ng grupo')) ?></span><input class="p-input-plain" name="name" value="<?= e((string) $g['name']) ?>" required maxlength="120"></label>
@@ -1170,7 +1185,7 @@ endif;
       <p class="p-eyebrow" style="margin-top:14px"><?= e(sprintf(t('%d labels found', '%d label ang nakita'), count($wHits))) ?><?= count($wHits) >= 40 ? e(t(' (the first 40; search for more words)', ' (ang unang 40; maghanap ng mas maraming salita)')) : '' ?></p>
       <?php foreach ($wHits as $src => $c) $wRow($src, $c, $wOwn[$src] ?? null, $wq); ?>
     <?php endif; ?>
-    <p class="p-eyebrow" style="margin-top:18px"><?= e(t('Changed by the barangay', 'Binago ng barangay')) ?><em><?= count($wOwn) ?></em></p>
+    <p class="p-eyebrow" style="margin-top:18px"><?= e(t('Changed by the barangay', 'Binago ng barangay')) ?> <span class="p-badge-n p-badge-n--quiet"><?= count($wOwn) ?></span></p>
     <?php if (!$wOwn): ?><p class="p-hint"><?= e(t('Nothing yet: every label says what it came with.', 'Wala pa: sinasabi ng bawat label ang orihinal nito.')) ?></p><?php endif; ?>
     <?php foreach ($wOwn as $src => $ov) $wRow($src, wording_catalog()[$src] ?? ['en' => $src, 'fil' => $src, 'in' => []], $ov, $wq); ?>
   </div>
@@ -1661,7 +1676,7 @@ endif;
       <div class="bp-fields">
         <label class="ty-f"><span><?= e(t('Name', 'Pangalan')) ?></span><input class="p-input-plain" name="name" value="<?= e(barangay()['name']) ?>" required minlength="3" maxlength="80"></label>
         <label class="ty-f"><span><?= e(t('Place, from the smallest to the city', 'Lugar, mula sa pinakamaliit hanggang sa lungsod')) ?></span><input class="p-input-plain" name="place" value="<?= e(barangay()['place']) ?>" required minlength="3" maxlength="120"></label>
-        <label class="ty-f"><span><?= e(t('A new seal (PNG, JPEG or WebP, square)', 'Bagong selyo (PNG, JPEG o WebP, parisukat)')) ?></span><input class="ss-file" type="file" name="seal[]" accept="image/png,image/jpeg,image/webp"></label>
+        <label class="ty-f"><span><?= e(t('A new seal (PNG, JPEG or WebP, square)', 'Bagong selyo (PNG, JPEG o WebP, parisukat)')) ?></span><input class="bp-file" type="file" name="seal[]" accept="image/png,image/jpeg,image/webp"></label>
         <?php if (barangay()['seal_url'] !== null): ?><label class="sd-c"><input type="checkbox" name="seal_shipped" value="1"> <?= e(t('Go back to the seal the portal came with', 'Ibalik ang selyong kasama ng portal')) ?></label><?php endif; ?>
       </div>
     </div>

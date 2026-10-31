@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Control Room, 31 Oct)**
+- The barangay: the page no longer scrolls sideways (the hidden seal input had been stretched to 1792 px by a form
+  rule), and the seal picker is a visible "Choose File" control instead of an invisible one.
+- Rules: the limits are in four groups (Dispatch, When a Kagawad has to pick a tanod, Reports, How long records are
+  kept) and the inputs of a group sit on one line whatever their labels do; the deadlines table stays together
+  instead of spreading across the card.
+- Wording: a label's box is a line or two and grows with its text, not 175 px tall.
+- Counts read as a person says them: "1 number", "No numbers yet", "No options".
+- A new sheet, `console.css`, for the Control Room and Administrative Services.
+
 **Changed (Personnel roster, 31 Oct)**
 - The Tanod list is rebuilt as one roster: Tanod, Duty, Committees, Latest complaint, Contact (phone over email),
   Account, action. Every row is the same height (it was 79 to 135 px), every cell sits on its row's middle line

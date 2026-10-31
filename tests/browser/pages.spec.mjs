@@ -461,6 +461,26 @@ test('Personnel roster: equal rows, duty tiles filter, bulk add to a committee, 
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Control Room: no tab overflows sideways, the limits share a line, the seal picker is a visible control, counts read right', async ({ page }) => {
+  const r = await open(page, 'control-room.php');
+  for (const tab of ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts']) {
+    await page.locator(`.st-tabs [data-st="${tab}"]`).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${tab} overflows sideways`).toBe(false);
+  }
+  await page.locator('.st-tabs [data-st="rules"]').click();
+  for (const g of await page.locator('.ru-group').all()) {   // inputs of one group on one line, whatever their labels do
+    const tops = await g.locator('.ru-f input').evaluateAll(is => is.map(i => Math.round(i.getBoundingClientRect().top)));
+    expect(new Set(tops).size, 'limit inputs on one line: ' + tops).toBe(1);
+  }
+  expect(await page.locator('.ru-f input').count(), 'every limit is shown').toBe(13);
+  await page.locator('.st-tabs [data-st="brgy"]').click();
+  const box = await page.locator('#brgy-card input[type="file"]').boundingBox();
+  expect(box && box.width > 100 && box.width < 1200, 'the seal picker is visible: ' + JSON.stringify(box)).toBeTruthy();
+  await page.locator('.st-tabs [data-st="hotlines"]').click();
+  await expect(page.locator('#hotlines-card')).not.toContainText('1 numbers');
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);
