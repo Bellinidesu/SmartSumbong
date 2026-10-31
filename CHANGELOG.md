@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Control Room: Wording, The barangay, Parts of the system; Planning, 1 Nov)**
+- Parts of the system: a card and a switch each. The barangay: the seal is the hero of its form, a dashed drop area for a new seal, and a save bar that says when something is unsaved. Wording: a search that leads, a card per label, App and Portal told apart by colour, the barangay's own wording marked. The same plain headings on Planning and the other tabs.
+
 **New (Control Room: a live view of the app, 1 Nov)**
 - A phone beside the Control Room forms shows what residents see (Report, Emergency, Home, Splash) in the app's palette, built from the same rows the app reads, and changes as the forms are typed in; saving a form still publishes it. A tile or number in the phone opens its field. Rules has no screen, so it takes the full width. It is a preview in the app's shape, not the app itself.
 

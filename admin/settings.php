@@ -1040,7 +1040,7 @@ try { $switches = (array) $db->select('feature_switches', ['select' => 'key,labe
     <ul class="ss-vlist"><?php foreach ($switches as $sw): ?>
       <li><div><b><?= e(t((string) $sw['label_en'], (string) $sw['label_fil'])) ?></b><?php if (!empty($sw['note'])): ?><small><?= e((string) $sw['note']) ?></small><?php endif; ?></div>
         <form method="post" class="ss-vroll"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="feature_toggle"><input type="hidden" name="key" value="<?= e((string) $sw['key']) ?>">
-          <label class="sd-c"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($sw['enabled']) ? 'checked' : '' ?>> <?= e(t('On', 'Naka-on')) ?></label></form></li>
+          <label class="cmx-sw"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($sw['enabled']) ? 'checked' : '' ?>><i aria-hidden="true"></i><span><?= e(t('On', 'Naka-on')) ?></span></label></form></li>
     <?php endforeach; ?></ul>
   </div>
 </section>
@@ -1265,7 +1265,7 @@ $wRow = static function (string $src, array $c, ?array $ov, string $wq): void { 
   <form method="post" class="wd-row<?= $ov ? ' wd-own' : '' ?>">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="wording_save">
     <input type="hidden" name="source" value="<?= e($src) ?>"><input type="hidden" name="wq" value="<?= e($wq) ?>">
-    <p class="wd-src"><span class="p-badge p-b-grey"><?= e(implode(' + ', array_map(fn ($w) => $w === 'app' ? t('App', 'Sa app') : t('Portal', 'Sa portal'), (array) ($c['in'] ?? [])))) ?></span> <?= e($src) ?></p>
+    <p class="wd-src"><?php foreach ((array) ($c['in'] ?? []) as $w): ?><span class="p-badge p-b-grey wd-o wd-o-<?= $w === 'app' ? 'app' : 'portal' ?>"><?= e($w === 'app' ? t('App', 'Sa app') : t('Portal', 'Sa portal')) ?></span> <?php endforeach; ?><b><?= e($src) ?></b></p>
     <label class="ty-f"><span><?= e(t('In English', 'Sa Ingles')) ?></span><textarea class="p-input-plain" id="wd-en-<?= $id ?>" name="en" rows="1" maxlength="600"><?= e((string) ($ov['en'] ?? $c['en'])) ?></textarea></label>
     <label class="ty-f"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span><textarea class="p-input-plain" id="wd-fil-<?= $id ?>" name="fil" rows="1" maxlength="600"><?= e((string) ($ov['fil'] ?? $c['fil'])) ?></textarea></label>
     <div class="wd-btns">
@@ -1774,7 +1774,7 @@ endif;
 <section class="st-pane" data-pane="brgy" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
-  <form method="post" enctype="multipart/form-data" class="p-card p-card-pad" id="brgy-card">
+  <form method="post" enctype="multipart/form-data" class="p-card p-card-pad cmx-page" id="brgy-card">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="brgy_save">
     <p class="p-eyebrow"><?= e(t('The barangay', 'Ang barangay')) ?></p>
     <p class="p-hint"><?= e(t('Shown on the sign-in pages, in the portal\'s title, on every printed document and in the app.', 'Makikita sa sign-in, sa pamagat ng portal, sa bawat dokumentong ipi-print at sa app.')) ?></p>
@@ -1787,7 +1787,14 @@ endif;
         <?php if (barangay()['seal_url'] !== null): ?><label class="sd-c"><input type="checkbox" name="seal_shipped" value="1"> <?= e(t('Go back to the seal the portal came with', 'Ibalik ang selyong kasama ng portal')) ?></label><?php endif; ?>
       </div>
     </div>
-    <div class="ss-posform"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></div>
+    <div class="ss-posform ru-bar"><span class="cmx-dirty-note" aria-live="polite"><?= e(t('Unsaved changes', 'May hindi pang-save na pagbabago')) ?></span><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button></div>
+    <script>
+    (function () {
+      var f = document.getElementById('brgy-card'), snap = new URLSearchParams(new FormData(f)).toString();
+      function chk() { f.classList.toggle('cmx-dirty', new URLSearchParams(new FormData(f)).toString() !== snap); }
+      f.addEventListener('input', chk); f.addEventListener('change', chk);
+    })();
+    </script>
   </form>
 </section>
 <?php endif; ?>
