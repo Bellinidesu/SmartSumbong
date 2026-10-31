@@ -346,9 +346,10 @@ function render_account_screen(string $role): void
       <button type="button" class="ss-bulk-clear" id="ss-rq-drop"><?= e(t('Drop the queue', 'Alisin ang pila')) ?></button>
     </div>
 
-    <div class="p-card p-table-card jp-scope ss-people<?= $isTanod ? ' ss-tanods pe-roster' : '' ?>" id="ss-people"><div class="p-tscroll">
+    <div class="p-card p-table-card jp-scope ss-people<?= $isTanod ? ' ss-tanods pe-roster' : ' pe-roster pe-res' ?>" id="ss-people"><div class="p-tscroll">
       <table class="p-t ss-ohead">
-        <?php if ($isTanod): ?><colgroup><col class="pe-c-cb"><col class="pe-c-who"><col class="pe-c-duty"><col class="pe-c-com"><col class="pe-c-last"><col class="pe-c-contact"><col class="pe-c-acct"><col class="pe-c-act"></colgroup><?php endif; ?>
+        <?php if ($isTanod): ?><colgroup><col class="pe-c-cb"><col class="pe-c-who"><col class="pe-c-duty"><col class="pe-c-com"><col class="pe-c-last"><col class="pe-c-contact"><col class="pe-c-acct"><col class="pe-c-act"></colgroup>
+        <?php else: ?><colgroup><col class="pe-c-cb"><col class="pe-c-who"><col class="pe-c-contact"><col class="pe-c-acct"><col class="pe-c-act"></colgroup><?php endif; ?>
         <thead><tr>
           <th scope="col" class="ss-cbh"><input type="checkbox" id="ss-all" aria-label="<?= e(t('Select everyone on this page', 'Piliin ang lahat sa pahinang ito')) ?>"></th>
           <th scope="col"><?= e(t($noun, $nounLabel)) ?></th>
@@ -356,28 +357,27 @@ function render_account_screen(string $role): void
             <th scope="col"><?= e(t('Duty', 'Tungkulin')) ?></th><th scope="col"><?= e(t('Committees', 'Mga komite')) ?></th><th scope="col"><?= e(t('Latest complaint handled', 'Huling hinawakang sumbong')) ?></th>
             <th scope="col"><?= e(t('Contact', 'Kontak')) ?></th><th scope="col"><?= e(t('Account', 'Account')) ?></th>
           <?php else: ?>
-            <th scope="col"><?= e(t('Phone number', 'Numero ng telepono')) ?></th><th scope="col"><?= e(t('Email', 'Email')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
+            <th scope="col"><?= e(t('Contact', 'Kontak')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
           <?php endif; ?>
           <th scope="col" class="p-right"><span class="p-sr"><?= e(t('Action', 'Aksyon')) ?></span></th>
         </tr></thead>
         <tbody id="accounts-tbody">
           <?php if (!$accounts): ?>
-            <tr><td colspan="<?= $isTanod ? 8 : 6 ?>" class="p-empty"><?= $search !== ''
+            <tr><td colspan="<?= $isTanod ? 8 : 5 ?>" class="p-empty"><?= $search !== ''
                 ? e(t('No account matches that search.', 'Walang account na tugma sa hinanap.'))
                 : e(t('No ' . strtolower($noun) . ' accounts have registered yet.', 'Wala pang nagparehistrong ' . strtolower($nounLabel) . '.')) ?></td></tr>
           <?php endif; ?>
           <?php foreach ($accounts as $a): ?>
             <tr data-id="<?= e($a['id']) ?>" data-pending="<?= $a['verification_status'] === 'pending' ? '1' : '0' ?>">
               <td class="ss-cbc"><input type="checkbox" class="ss-cb" value="<?= e($a['id']) ?>" aria-label="<?= e(t('Select', 'Piliin')) ?> <?= e(formal_name($a['full_name'])) ?>"></td>
-              <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span><?= e(formal_name($a['full_name'])) ?></span></div></td>
+              <td><div class="p-person"><?= account_avatar_html($a['avatar_url'] ?? null, $a['full_name'], 'sm') ?><span title="<?= e(formal_name($a['full_name'])) ?>"><?= e(formal_name($a['full_name'])) ?></span></div></td>
               <?php if ($isTanod): ?>
                 <td class="pe-duty-c"><?= tanod_duty_cell($a, $tc[$a['id']] ?? null) ?></td>
                 <td class="tc-cell"><?= tc_list_pills($tc[$a['id']] ?? null) ?></td>
                 <td class="ss-latest"><?= !empty($latestCase[$a['id']]) ? '<span class="p-mono-id">' . e($latestCase[$a['id']]) . '</span>' : '<span class="p-sub">—</span>' ?></td>
                 <td class="pe-contact"><span class="p-num"><?= e($a['mobile_number']) ?></span><span class="pe-mail"<?= $a['email'] ? ' title="' . e($a['email']) . '"' : '' ?>><?= $a['email'] ? e($a['email']) : '—' ?></span></td>
               <?php else: ?>
-                <td class="p-num"><?= e($a['mobile_number']) ?></td>
-                <td class="ss-em"<?= $a['email'] ? ' title="' . e($a['email']) . '"' : '' ?>><?= $a['email'] ? e($a['email']) : '<span class="p-sub">—</span>' ?></td>
+                <td class="pe-contact"><span class="p-num"><?= e($a['mobile_number']) ?></span><span class="pe-mail"<?= $a['email'] ? ' title="' . e($a['email']) . '"' : '' ?>><?= $a['email'] ? e($a['email']) : '—' ?></span></td>
               <?php endif; ?>
               <td><div class="p-badges"><?= account_status_pills($a, !$isTanod) ?><?php
                   if (!empty($dupes[$a['id']])): ?><span class="p-badge p-b-violet" title="<?= e(implode('; ', $dupes[$a['id']])) ?>"><?= e(t('Possible duplicate', 'Posibleng doble')) ?></span><?php endif; ?><?php
@@ -684,7 +684,7 @@ function render_account_screen(string $role): void
 
         var tbody = document.getElementById('accounts-tbody');
         if (!filtered.length) {
-          tbody.innerHTML = '<tr><td class="p-empty" colspan="' + (IS_TANOD ? 8 : 6) + '">' +
+          tbody.innerHTML = '<tr><td class="p-empty" colspan="' + (IS_TANOD ? 8 : 5) + '">' +
             (SEARCH ? T('No account matches that search.', 'Walang account na tugma sa hinanap.')
                     : T('No ' + <?= json_encode(strtolower($noun)) ?> + ' accounts have registered yet.', 'Wala pang nagparehistrong ' + escapeHtml(NOUN_LABEL) + '.')) +
             '</td></tr>';
@@ -721,13 +721,12 @@ function render_account_screen(string $role): void
           }
           return '<tr data-id="' + escapeHtml(a.id) + '" data-pending="' + (a.verification_status === 'pending' ? '1' : '0') + '">' +
             '<td class="ss-cbc"><input type="checkbox" class="ss-cb" value="' + escapeHtml(a.id) + '" aria-label="' + T('Select', 'Piliin') + ' ' + escapeHtml(String(a.full_name || '').trim()) + '"></td>' +
-            '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span>' + escapeHtml(String(a.full_name || '').trim()) + '</span></div></td>' +
+            '<td><div class="p-person">' + avatarHtml(a.avatar_url, a.full_name, 'sm') + '<span title="' + escapeHtml(String(a.full_name || '').trim()) + '">' + escapeHtml(String(a.full_name || '').trim()) + '</span></div></td>' +
             (IS_TANOD
               ? '<td class="pe-duty-c">' + dutyCellHtml(a) + '</td><td class="tc-cell">' + tcListPills(TC[a.id]) + '</td><td class="ss-latest">' +
                 (LATEST[a.id] ? '<span class="p-mono-id">' + escapeHtml(LATEST[a.id]) + '</span>' : '<span class="p-sub">—</span>') + '</td>' +
                 '<td class="pe-contact"><span class="p-num">' + escapeHtml(a.mobile_number) + '</span><span class="pe-mail"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '—') + '</span></td>'
-              : '<td class="p-num">' + escapeHtml(a.mobile_number) + '</td>' +
-                '<td class="ss-em"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '<span class="p-sub">—</span>') + '</td>') +
+              : '<td class="pe-contact"><span class="p-num">' + escapeHtml(a.mobile_number) + '</span><span class="pe-mail"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '—') + '</span></td>') +
             '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +
             '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
               (a.verification_status === 'pending' ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +

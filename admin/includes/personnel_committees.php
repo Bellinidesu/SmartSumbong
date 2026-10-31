@@ -259,7 +259,7 @@ function render_punch_page(Supabase $db): void
                 <tbody>
                 <?php foreach ($days as $d): ?>
                   <tr><td><?= e((new DateTimeImmutable((string) $d['day']))->format('D M j')) ?></td><td class="p-num"><?= e(punch_time($d['first_in'] ?? null)) ?></td><td class="p-num"><?= e(punch_time($d['last_out'] ?? null)) ?></td>
-                    <td><?= (int) ($d['touched'] ?? 0) ?><?php if (!empty($d['cases'])): ?> <span class="p-sub"><?= e(implode(', ', array_slice((array) $d['cases'], 0, 6))) ?><?= count((array) $d['cases']) > 6 ? '…' : '' ?></span><?php endif; ?></td></tr>
+                    <td<?= !empty($d['cases']) ? ' title="' . e(implode(', ', (array) $d['cases'])) . '"' : '' ?>><?= (int) ($d['touched'] ?? 0) ?><?php if (!empty($d['cases'])): ?> <span class="p-sub"><?= e(implode(', ', array_slice((array) $d['cases'], 0, 6))) ?><?= count((array) $d['cases']) > 6 ? '…' : '' ?></span><?php endif; ?></td></tr>
                 <?php endforeach; ?>
                 </tbody>
               </table></div>

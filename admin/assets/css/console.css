@@ -43,3 +43,18 @@
 .page-administrative-services .acc-cats { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 6px; padding-top: 22px; }
 .page-administrative-services .ss-subband .p-spacer { display: none; }
 .page-administrative-services .ss-subband .ss-subnote { margin-left: 18px; text-align: left; }
+
+/* ---- narrower screens: the Administrators band keeps its search on a line of its own ---- */
+@media (max-width: 1100px) {
+  .page-administrative-services .ss-pband { flex-wrap: wrap; }
+  .page-administrative-services .ss-pband .p-search { order: 9; flex: 1 1 100%; }
+  .page-control-room #rules-card .sd-c { display: flex; max-width: 100%; white-space: normal; }
+}
+
+/* ---- the tab bars: a row that does not fit scrolls inside itself, it never widens the page ---- */
+.page-control-room .st-tabs, .page-administrative-services .st-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.page-control-room .st-tabs::-webkit-scrollbar, .page-administrative-services .st-tabs::-webkit-scrollbar { display: none; }
+.page-control-room .st-tabs > *, .page-administrative-services .st-tabs > * { flex: none; white-space: nowrap; }
+
+/* a pane is a grid: its cards may shrink below their content, the table inside scrolls */
+.page-control-room .st-pane > *, .page-administrative-services .st-pane > * { min-width: 0; }

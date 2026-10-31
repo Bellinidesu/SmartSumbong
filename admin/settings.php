@@ -908,9 +908,9 @@ endif;
           <?php $lead = $cmLead[$ck] ?? []; $nT = (int) ($cmTanods[$ck] ?? 0); ?>
           <div class="acc-meta"><span class="<?= $lead ? '' : 'acc-warn' ?>"><?= $lead ? e(t('Led by', 'Pinangungunahan ni')) . ' <b>' . e(implode(', ', $lead)) . '</b>' : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></span><span><?= e($nT === 0 ? t('No tanods', 'Walang tanod') : ($nT === 1 ? t('1 tanod', 'Isang tanod') : sprintf(t('%d tanods', '%d tanod'), $nT))) ?></span></div>
           <label class="ty-f" for="cn-<?= e($ck) ?>"><span><?= e(t('Full name', 'Buong pangalan')) ?></span>
-            <input class="p-input-plain" id="cn-<?= e($ck) ?>" name="name_en" value="<?= e((string) $cc['name_en']) ?>" required minlength="3" maxlength="120"></label>
+            <input class="p-input-plain" id="cn-<?= e($ck) ?>" name="name_en" value="<?= e((string) $cc['name_en']) ?>" title="<?= e((string) $cc['name_en']) ?>" required minlength="3" maxlength="120"></label>
           <label class="ty-f" for="cf-<?= e($ck) ?>"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span>
-            <input class="p-input-plain" id="cf-<?= e($ck) ?>" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>" maxlength="120"></label>
+            <input class="p-input-plain" id="cf-<?= e($ck) ?>" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>" title="<?= e((string) $cc['name_fil']) ?>" maxlength="120"></label>
           <label class="ty-f" for="cs-<?= e($ck) ?>"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
             <input class="p-input-plain" id="cs-<?= e($ck) ?>" name="short_en" value="<?= e((string) $cc['short_en']) ?>" maxlength="40"></label>
         </div>

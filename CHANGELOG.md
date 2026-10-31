@@ -9,6 +9,29 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the rules pass, 31 Oct)**
+- A new audit, `tests/browser/rules-audit.spec.mjs` (with `rules-lib.mjs`), applies the standing symmetry rule as
+  measurements to 73 screens of the super admin (every page, every tab, every modal, the Forward dialog and the
+  engine panel) at 2048 light and dark, 1440 and 1024: sideways scroll, text that is cut without a tooltip, a
+  line with every word on its own line, a pill or button that is not centred, cards of one row with unequal
+  heights, a lone item on a wrapped row, table rows of unequal height, headers that do not start where their
+  cells start, controls with no label, "1 numbers". It found 172 real faults; 8 are left, all at 1024 or inside
+  one list (below).
+- Residents is the same roster as Personnel: Resident, Contact (phone over email), Status, action; every row one
+  height, and a few flags sit side by side instead of stacking into a tall row.
+- Committee pills everywhere say their whole name on hover, and are symmetric (10 px each side; the dot used to
+  take 2 px off the left). Wrapped pills are centred. Names and committee fields carry their whole text on hover.
+- Personnel: the committees and duty columns are wide enough for "Environment and Disaster Risk, proposed" and
+  "On a case, Peace and Order"; a pill that does not fit wraps, centred, instead of being cut; the checkbox
+  column is no longer 3 px narrower than its box.
+- Committee staff: the day ("Fri Oct 30") no longer breaks onto three lines; the cases of a day are one line with
+  the whole list on hover, so every day is one height.
+- Case Reports: the SMART and status pills are never clipped, and the Case, SMART headers start where their cells
+  start (it was 4 px).
+- Control Room and Administrative Services: the tab bars scroll inside themselves at narrow widths (six tabs were
+  wider than the screen at 1024), and a pane's cards may shrink (the Rules form had pushed the page 10 px past
+  the edge); the Administrators search sits on a row of its own at 1024.
+
 **Changed (Case Reports and the Dashboard, 31 Oct)**
 - Case Reports: every row is the same height (it ranged from 70 to 86 px, a row with a "Forwarded from" line may add
   one line), statuses stack one pill under the next instead of wrapping, and the main action is the main button:
