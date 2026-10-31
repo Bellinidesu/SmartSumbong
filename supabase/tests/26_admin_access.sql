@@ -36,11 +36,12 @@ begin
 
   -- 1. the committees for 183, and the ticks they start with
   begin
-    if (select count(*) from public.committees where active) <> 4 then raise exception 'active committees %', (select string_agg(key, ',') from public.committees where active); end if;
+    if (select count(*) from public.committees where active) <> 3 then raise exception 'active committees %', (select string_agg(key, ',') from public.committees where active); end if;
     if exists (select 1 from public.committees where key = 'women_family' and active) then raise exception 'a struck committee is on'; end if;
+    if exists (select 1 from public.committees where key = 'anti_drug' and active) then raise exception 'the Anti-Drug Abuse Council is on, 0159 switches it off'; end if;
     if not exists (select 1 from public.committee_categories where committee = 'peace_order' and category = 'peace_order_nuisance') then raise exception 'peace ticks'; end if;
     if exists (select 1 from public.committee_categories where committee = 'infrastructure') then raise exception 'a struck committee has ticks'; end if;
-    v_log := v_log || E'\n' || 'ok  four committees on for 183 (the struck ones off, without ticks); the ticks start from the routing table';
+    v_log := v_log || E'\n' || 'ok  three committees on for 183 (the struck ones, the Anti-Drug Abuse Council among them, off, without ticks); the ticks start from the routing table';
   exception when others then v_log := v_log || E'\n' || 'FAIL committees: ' || sqlerrm; end;
 
   -- 2. reading, through row level security

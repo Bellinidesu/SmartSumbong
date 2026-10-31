@@ -9,6 +9,12 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the committees follow the barangay's document, 1 Nov)**
+- 0159: the Barangay Anti-Drug Abuse Council is switched off. Only the three committees on the chairmanship document are
+  active for Barangay 183 (Peace and Order, Human Rights, Transportation and Communication; Environmental Protection and
+  Barangay Disaster Risk Reduction Management; Health and Sanitation); BADAC is crossed out with the others. Off is "not
+  created": it leaves every list and chip, nobody can be put in it, and what was filed with it keeps its name.
+
 **Changed (the committee banners, from Spatial Distribution and the app, 1 Nov)**
 - Each committee button is a banner built the way the app's `DHero` and Spatial Distribution's banner are: a radial wash of
   the colour of the complaint types the committee is connected to (the ticks of the committee creator: Peace and Order is pink
