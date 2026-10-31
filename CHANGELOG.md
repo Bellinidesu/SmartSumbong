@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the Dashboard as a product, 1 Nov)**
+- The Damascus contour lines stay in the page background, as in the Figma file; they are no longer drawn inside the
+  tiles, the orange band, popups or empty states (Ace's call after seeing them on the live site).
+- The four "needs you" tiles are one summary band with dividers, not four boxes; the greeting, the month, the time
+  of the data and the live badge are one header row; the main chart is 300 px tall (it was 430), so the row beside
+  it is no longer 620 px of mostly empty card; the status and category donuts sit in the middle of their cards.
+
 **Changed (the identity layer, 1 Nov)**
 - A new sheet, `identity.css`, loaded last on every page and popup except Spatial Distribution and the case page
   (they do not carry the `id-on` class): the Figma look evolved, same skeleton (orange band, rows, pills, red row

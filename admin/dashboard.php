@@ -161,15 +161,15 @@ $now = new DateTimeImmutable('now', $tz); $hr = (int) $now->format('G');
 $greet = $hr < 12 ? t('Good morning', 'Magandang umaga') : ($hr < 18 ? t('Good afternoon', 'Magandang hapon') : t('Good evening', 'Magandang gabi'));
 $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? '')), ' '));
 ?>
-<header class="dh-greet"><h1><?= e($greet) ?><?= $first !== '' ? ', ' . e($first) : '' ?></h1>
-  <p><?= e($now->format('l, F j')) ?> &middot; <?= e(t('here is what needs you today.', 'narito ang kailangan mo ngayon.')) ?></p></header>
 <div class="p-dash-top">
+  <header class="dh-greet"><h1><?= e($greet) ?><?= $first !== '' ? ', ' . e($first) : '' ?></h1>
+    <p><?= e($now->format('l, F j')) ?> &middot; <?= e(t('here is what needs you today.', 'narito ang kailangan mo ngayon.')) ?></p></header>
+  <span class="p-spacer"></span>
   <form method="get">
     <label class="p-pill-select"><?= p_icon('i-cal', 16) ?><span class="p-sr"><?= e(t('Reporting month', 'Buwan ng ulat')) ?></span>
       <input type="month" id="month" name="month" value="<?= e($month->format('Y-m')) ?>" data-autosubmit></label>
     <input type="hidden" name="eff_category" value="<?= e($effCategory) ?>">
   </form>
-  <span class="p-spacer"></span>
   <!-- The kapitan reads these figures over someone's shoulder and asks how current they are. -->
   <span class="p-asof"><?= e(t('Data as of', 'Datos hanggang')) ?> <span id="as-of-time" class="p-num"><?= e((new DateTimeImmutable('now', $tz))->format('g:i A, j M Y')) ?></span></span>
   <?php if ($isCurrent): ?>
@@ -257,7 +257,7 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
       <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span>
       <button type="button" class="dq-brain" data-chart="received" aria-expanded="false" aria-controls="notes-received" title="<?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?>"><?= smart_brain(24) ?><span class="p-sr"><?= e(t('Ask the engine about this chart', 'Tanungin ang engine tungkol sa tsart na ito')) ?></span></button></div>
     <div class="dq-notes" id="notes-received" hidden></div>
-    <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="430" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
+    <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="300" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
       <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
     <div class="dh-stats">
       <div><span class="p-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></span><b class="p-num" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-resolved-delta"></span></div>
