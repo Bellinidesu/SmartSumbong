@@ -9,6 +9,18 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the identity layer, 1 Nov)**
+- A new sheet, `identity.css`, loaded last on every page and popup except Spatial Distribution and the case page
+  (they do not carry the `id-on` class): the Figma look evolved, same skeleton (orange band, rows, pills, red row
+  action, the Damascus contour lines), with depth and hierarchy.
+- One accent per person: it is the sidebar colour of whoever is signed in (a super admin's blue, a Kagawad's
+  committee colour), so the contour lines, edges and row hover bars say whose portal it is.
+- Hero surfaces (the tiles, the orange band, popups) have a gradient edge and the contour lines; ordinary cards stay
+  flat. Tile numbers are 46 px, labels small capitals. Rows light up under the pointer with a bar in the accent.
+  The main button is a gradient; the locked red row action keeps its red and gets the same finish; fields focus
+  warm. Popups have a bigger radius, a gradient edge and contours in the corner. Light stays Material, dark glows.
+- The Dashboard opens with a greeting by the hour (Manila time), the first name and the day.
+
 **Changed (Case Reports toolbar, 31 Oct)**
 - At 1900 px and wider (Ace's 2048) the search and the five filters are one line in the orange band; they were two
   rows. Narrower screens keep the two rows. With an Issue filter open (six controls) they stay as three and three.

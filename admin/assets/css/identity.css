@@ -1,0 +1,126 @@
+/* The portal's identity layer: the Figma look, evolved (every page and popup except Spatial Distribution and the case page, which do not carry .id-on).
+   Loaded last. Same skeleton as Figma: the orange band, the rows, the pills, the red row action, the Damascus contour lines. What changes is depth,
+   hierarchy and finish:
+     - one accent per person: --id-acc is the sidebar colour of whoever is signed in (a super admin's blue, a Kagawad's committee colour), so the
+       contour lines, the hairlines and the hover bars say whose portal this is without a label;
+     - surfaces have rank: hero surfaces (tiles, engine bar, band) carry a gradient hairline and the contour lines; ordinary cards stay flat;
+     - the numbers that matter are big; a row you point at lights up; the main action is the one loud thing.
+   Light is Material (solid, elevation, no blur); dark keeps the glow. The prefix :root:root beats the older sheets without !important. */
+
+.p-body.id-on {
+  --id-acc: var(--p-side-a, #00308F);
+  --id-contour: url("../img/texture-contours.webp");
+  --id-hair: linear-gradient(135deg, color-mix(in srgb, #FF9800 75%, transparent), color-mix(in srgb, var(--id-acc) 55%, transparent));
+  --id-orange: linear-gradient(105deg, #FFB43A 0%, #FF9800 40%, #F58200 100%);
+  --id-orange-btn: linear-gradient(180deg, #FFB43A 0%, #FF9800 58%, #F28700 100%);
+}
+
+/* ---- the contour lines, as a reusable veil: any hero surface that is position:relative and has .id-veil ---- */
+.id-on .id-veil, .id-on :is(.p-band, .p-kpi, .dh-kpi .ss-tile, .ss-panel, .p-modal) { position: relative; }
+.id-on :is(.p-kpi, .dh-kpi .ss-tile)::after,
+.id-on .p-band::before,
+.id-on .p-modal::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: var(--tile-acc, var(--id-acc)); opacity: .11;
+  -webkit-mask-image: var(--id-contour), linear-gradient(to left, #000 0%, rgba(0,0,0,.55) 38%, transparent 78%);
+  mask-image: var(--id-contour), linear-gradient(to left, #000 0%, rgba(0,0,0,.55) 38%, transparent 78%);
+  -webkit-mask-size: 340px 340px, 100% 100%; mask-size: 340px 340px, 100% 100%;
+  -webkit-mask-repeat: repeat, no-repeat; mask-repeat: repeat, no-repeat;
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+}
+.id-on .p-band::before { background: #fff; opacity: .22; z-index: 0; }
+.id-on .p-band > * { position: relative; z-index: 1; }
+
+/* ---- the page title: larger, tighter ---- */
+.id-on .p-topbar h1, .id-on .p-dash-top h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+
+/* ---- hero surfaces: the tiles. A gradient hairline, the contour lines in the tile's accent, a big number ---- */
+.id-on :is(.p-kpi, .dh-kpi .ss-tile) {
+  overflow: hidden; border: 1px solid transparent; border-radius: 16px;
+  background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
+  box-shadow: 0 1px 2px rgba(20,27,52,.05), 0 10px 26px -14px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 45%, transparent);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.id-on :is(.p-kpi, .dh-kpi .ss-tile):hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20,27,52,.06), 0 16px 32px -14px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 60%, transparent); }
+.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-family: Urbanist, system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
+.id-on :is(.p-kpi .p-label, .dh-kpi .ss-tile > span) { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
+.id-on .dh-kpi .ss-tile { --tile-acc: #FF9800; }
+.id-on .dh-kpi .ss-tile.hot { --tile-acc: var(--p-red); }
+.id-on .ss-k-total { --tile-acc: #356CF9; } .id-on .ss-k-res { --tile-acc: #34C759; } .id-on .ss-k-att { --tile-acc: #FF9800; } .id-on .ss-k-avg { --tile-acc: #7A5AE0; }
+/* the duty tiles on Personnel keep their own colour fields */
+.id-on .p-attendance .p-kpi { background: revert-layer; border-color: transparent; }
+
+/* ---- the orange band: the Figma band, with depth, a highlight edge and the contour lines ---- */
+.id-on .p-band {
+  background: var(--id-orange); overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 14px 26px -16px rgba(240,122,0,.7);
+}
+.id-on .ss-ohead thead th, .id-on .ss-cases-t thead th, .id-on .p-orange th { background: linear-gradient(180deg, #FFA82E 0%, #FF9800 100%); }
+
+/* ---- rows: the one you point at lights up, with a bar in the person's accent ---- */
+.id-on .p-t tbody tr:not(.ss-erow):hover > td { background: color-mix(in srgb, var(--id-acc) 6%, transparent); }
+.id-on .p-t tbody tr:not(.ss-erow):hover > td:first-child { box-shadow: inset 3px 0 0 var(--id-acc); }
+.id-on .p-t tbody tr.p-click { cursor: pointer; }
+
+/* ---- buttons: the main one is the loud one; the red row action stays red (locked) and gets the same finish ---- */
+:root:root .p-body.id-on .p-btn-primary {
+  background: var(--id-orange-btn); color: #2B1A00; border-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 8px 18px -8px rgba(240,122,0,.75);
+}
+:root:root .p-body.id-on .p-btn-primary:hover { filter: brightness(1.04) saturate(1.05); }
+:root:root .p-body.id-on .p-band .p-btn-primary { background: #141B34; color: #fff; box-shadow: 0 6px 14px -8px rgba(10,20,60,.7); }
+:root:root .p-body.id-on :is(.ss-people td, .ss-cases-t td, .ss-ohead td, .p-notif-card .p-n-act) .p-btn:not([data-reveal]):not(.fw-btn) {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ss-act, #DF5757) 86%, #fff), var(--ss-act, #DF5757));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 6px 14px -8px var(--ss-act, #DF5757);
+}
+
+/* ---- pills: a hair of ring so they hold their colour on any surface ---- */
+.id-on .p-badge { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent); }
+
+/* ---- fields: a warm focus, the same everywhere ---- */
+.id-on .p-input-plain:focus, .id-on .p-search:focus-within, .id-on .p-pill-select:focus-within, .id-on textarea:focus {
+  outline: none; border-color: #FF9800; box-shadow: 0 0 0 3px color-mix(in srgb, #FF9800 32%, transparent);
+}
+
+/* ---- notices: a bar of the notice's colour on the left ---- */
+.id-on .p-flash { border-left: 4px solid currentColor; border-radius: 12px; }
+
+/* ---- popups: a rank above the page: the gradient edge, a bigger radius, the contour lines in the corner ---- */
+.id-on .p-modal {
+  border-radius: 22px; overflow: hidden;
+  border: 1px solid transparent;
+  background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
+  box-shadow: var(--p-shadow-lg);
+}
+.id-on .p-modal::after { opacity: .13; -webkit-mask-image: var(--id-contour), linear-gradient(to bottom left, #000 0%, transparent 60%); mask-image: var(--id-contour), linear-gradient(to bottom left, #000 0%, transparent 60%); }
+.id-on .p-modal > * { position: relative; z-index: 1; }
+.id-on .p-scrim { background: color-mix(in srgb, #0A1440 55%, transparent); }
+
+/* ---- empty states: the contour lines fading up from the bottom, never a bare grey sentence ---- */
+.id-on :is(.p-empty-state, .ss-caught, .p-none-line.pd-empty) { position: relative; overflow: hidden; border-radius: 14px; }
+.id-on :is(.p-empty-state, .ss-caught)::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--id-acc); opacity: .09;
+  -webkit-mask-image: var(--id-contour), linear-gradient(to top, #000 0%, transparent 70%); mask-image: var(--id-contour), linear-gradient(to top, #000 0%, transparent 70%);
+  -webkit-mask-size: 340px 340px, 100% 100%; mask-size: 340px 340px, 100% 100%; -webkit-mask-composite: source-in; mask-composite: intersect;
+}
+
+/* ---- dark: the same hierarchy, with glow instead of shadow ---- */
+:root[data-theme="dark"] .p-body.id-on :is(.p-kpi, .dh-kpi .ss-tile) {
+  background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 14px 34px -16px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 70%, transparent);
+}
+:root[data-theme="dark"] .p-body.id-on :is(.p-kpi, .dh-kpi .ss-tile)::after { opacity: .2; }
+:root[data-theme="dark"] .p-body.id-on .p-t tbody tr:not(.ss-erow):hover > td { background: color-mix(in srgb, var(--id-acc) 14%, transparent); }
+
+@media (prefers-reduced-motion: reduce) { .id-on :is(.p-kpi, .dh-kpi .ss-tile) { transition: none; } .id-on :is(.p-kpi, .dh-kpi .ss-tile):hover { transform: none; } }
+
+/* ---- the Dashboard says whose it is: a greeting, and the tiles lead with their colour ---- */
+.id-on .dh-greet { margin: 0 0 14px; }
+.id-on .dh-greet h1 { margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -.025em; line-height: 1.1;
+  background: linear-gradient(100deg, var(--p-ink) 0%, var(--p-ink) 55%, var(--id-acc) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.id-on .dh-greet p { margin: 6px 0 0; font-size: 14.5px; color: var(--p-muted); }
+:root:not([data-theme="dark"]) .p-body.id-on :is(.p-kpi, .dh-kpi .ss-tile) {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tile-acc, var(--id-acc)) 11%, #fff) 0%, #fff 58%) padding-box, var(--id-hair) border-box;
+}
+.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-size: 46px; }
+.id-on .dh-kpi .ss-tile small { font-size: 12.5px; }
