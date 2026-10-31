@@ -226,27 +226,65 @@ function punch_time(?string $iso): string
     try { return (new DateTimeImmutable($iso))->setTimezone(new DateTimeZone('Asia/Manila'))->format('g:i A'); } catch (Exception) { return '—'; }
 }
 
-/** The Committee staff tab: every Kagawad's and staff member's punch card the viewer may see, by committee. */
+/**
+ * The Committee staff tab: every Kagawad's and staff member's punch card the viewer may see, one group per committee. Each group's
+ * header is the committee's vibrant banner (the colours and symbols the super admin gave it), joined to the cards under it.
+ */
 function render_punch_page(Supabase $db): void
 {
     $error = null;
     try { $cards = (array) $db->rpc('punch_cards', ['p_days' => 7, 'p_user' => null]); } catch (SupabaseError $ex) { $cards = []; $error = safe_error($ex); }
+    $st = (string) ($_GET['st'] ?? '');
+    if (!in_array($st, ['in', 'away'], true)) { $st = ''; }
+    // where each person stands today: in now, signed out, or not in at all
+    $stateOf = function (array $c): string { $t = ((array) ($c['days'] ?? []))[0] ?? []; return empty($t['first_in']) ? 'away' : (empty($t['last_out']) ? 'in' : 'out'); };
+    $nIn = count(array_filter($cards, fn ($c) => $stateOf($c) === 'in'));
+    $nAway = count(array_filter($cards, fn ($c) => $stateOf($c) === 'away'));
+    $touched = array_sum(array_map(fn ($c) => (int) ((((array) ($c['days'] ?? []))[0] ?? [])['touched'] ?? 0), $cards));
+    $href = fn (string $v): string => 'personnel.php?view=staff' . ($v !== '' ? '&st=' . $v : '');
     $groups = [];
-    foreach ($cards as $c) { $groups[(string) ($c['committee'] ?? '')][] = $c; }
+    foreach ($cards as $c) { if ($st === '' || $stateOf($c) === $st) { $groups[(string) ($c['committee'] ?? '')][] = $c; } }
+    $sdTypes = committee_sd_types($db);
     layout_head(t('Personnel', 'Mga Tanod'), 'personnel.php'); ?>
     <div class="p-topbar"><h1><?= e(t('Personnel', 'Mga Tanod')) ?></h1></div>
     <?= personnel_tabs('staff') ?>
     <?php if ($error): ?><div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div><?php endif; ?>
     <p class="p-hint tc-lede"><?= e(t('The punch card fills itself: when each person signed in and out of the portal, and the cases they touched that day (status changes, taking a case, forwarding, messages).',
         'Kusang napupuno ang punch card: kung kailan nag-sign in at nag-sign out sa portal ang bawat isa, at ang mga kasong hinawakan nila sa araw na iyon (pagbabago ng katayuan, pagkuha ng kaso, pagpasa, mga mensahe).')) ?></p>
-    <?php if (!$cards && !$error): ?><div class="p-card p-empty"><?= e(t('No Kagawad or staff yet.', 'Wala pang Kagawad o kawani.')) ?></div><?php endif; ?>
-    <?php foreach ($groups as $ck => $people): ?>
-      <section class="pc-group" aria-label="<?= e($ck !== '' ? (string) (committees_all()[$ck]['short_en'] ?? $ck) : t('No committee', 'Walang komite')) ?>">
-        <div class="p-band"><h2><?= $ck !== '' ? committee_pill($ck) : e(t('No committee', 'Walang komite')) ?></h2></div>
+    <?php if (!$cards && !$error): ?>
+      <div class="p-card pc-none"><?= p_icon('i-users', 28) ?><b><?= e(t('No Kagawad or staff yet.', 'Wala pang Kagawad o kawani.')) ?></b>
+        <span><?= e(t('Once a Kagawad or staff account is made, their punch card fills here by itself.', 'Kapag may nagawang account ng Kagawad o kawani, kusang mapupuno rito ang kanilang punch card.')) ?></span></div>
+    <?php else: ?>
+    <div class="cr-fig pc-fig" aria-label="<?= e(t('Who is in today', 'Sino ang pasok ngayon')) ?>">
+      <a class="p-card ss-tile<?= $st === '' ? ' p-on' : '' ?>" href="<?= e($href('')) ?>"><span><?= e(t('Committee staff', 'Mga kawani ng komite')) ?></span><b class="p-num"><?= count($cards) ?></b>
+        <small><?= e(t('Kagawad and staff you can see', 'Mga Kagawad at kawani na makikita mo')) ?></small></a>
+      <a class="p-card ss-tile<?= $st === 'in' ? ' p-on' : '' ?>" href="<?= e($href($st === 'in' ? '' : 'in')) ?>"><span><?= e(t('In now', 'Pasok ngayon')) ?></span><b class="p-num"><?= $nIn ?></b>
+        <small><?= e(t('signed in and not out yet', 'naka-sign in at hindi pa lumalabas')) ?></small></a>
+      <a class="p-card ss-tile<?= $st === 'away' ? ' p-on' : '' ?>" href="<?= e($href($st === 'away' ? '' : 'away')) ?>"><span><?= e(t('Not in today', 'Hindi pumasok ngayon')) ?></span><b class="p-num"><?= $nAway ?></b>
+        <small><?= e(t('no sign-in yet today', 'wala pang sign-in ngayon')) ?></small></a>
+      <a class="p-card ss-tile" href="<?= e($href('')) ?>"><span><?= e(t('Cases touched today', 'Mga kasong hinawakan ngayon')) ?></span><b class="p-num"><?= (int) $touched ?></b>
+        <small><?= e(t('by all of them together', 'ng lahat nang magkakasama')) ?></small></a>
+    </div>
+    <?php if (!$groups): ?><div class="p-card pc-none"><b><?= e(t('No one here right now.', 'Walang tao rito ngayon.')) ?></b></div><?php endif; ?>
+    <?php foreach ($groups as $ck => $people):
+        $label = $ck !== '' ? (string) (committees_all()[$ck]['short_en'] ?? $ck) : t('No committee yet', 'Wala pang komite');
+        $inNow = count(array_filter($people, fn ($c) => $stateOf($c) === 'in')); ?>
+      <section class="pc-group" aria-label="<?= e($label) ?>">
+        <div class="cm-chips pc-gh">
+          <?php if ($ck !== ''): ?>
+            <a class="cm-chip cm-sd" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" title="<?= e($label) ?>"><?= cm_sym_tag($ck, $sdTypes, $label) ?><span class="cm-n"><?= e($label) ?><small class="pc-gn">· <?= e(sprintf(t('%d in now', '%d pasok ngayon'), $inNow)) ?></small></span><b><?= count($people) ?></b></a>
+          <?php else: ?>
+            <a class="cm-chip cm-chip-none" title="<?= e($label) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e($label) ?><small class="pc-gn">· <?= e(sprintf(t('%d in now', '%d pasok ngayon'), $inNow)) ?></small></span><b><?= count($people) ?></b></a>
+          <?php endif; ?>
+        </div>
         <div class="pc-grid">
-        <?php foreach ($people as $c): $days = (array) ($c['days'] ?? []); $today = $days[0] ?? []; ?>
-          <article class="p-card pc-card" id="pc-<?= e($c['id']) ?>">
-            <header><b><?= e(formal_name((string) $c['name'])) ?></b><?= rank_chip(($c['tier'] ?? '') === 'committee' ? 'kagawad' : ($c['position'] ?? null)) ?></header>
+        <?php foreach ($people as $c): $days = (array) ($c['days'] ?? []); $today = $days[0] ?? []; $state = $stateOf($c); ?>
+          <article class="p-card pc-card pc-<?= e($state) ?>" id="pc-<?= e($c['id']) ?>">
+            <header>
+              <div class="p-person"><?= account_avatar_html(null, (string) $c['name'], 'sm') ?><b title="<?= e(formal_name((string) $c['name'])) ?>"><?= e(formal_name((string) $c['name'])) ?></b></div>
+              <?= rank_chip(($c['tier'] ?? '') === 'committee' ? 'kagawad' : ($c['position'] ?? null)) ?>
+            </header>
+            <span class="pc-st pc-st-<?= e($state) ?>"><i aria-hidden="true"></i><?= e($state === 'in' ? t('In now', 'Pasok ngayon') : ($state === 'out' ? t('Signed out', 'Nag-sign out') : t('Not in today', 'Hindi pumasok'))) ?></span>
             <div class="pc-today">
               <div><small><?= e(t('In today', 'Pasok ngayon')) ?></small><b><?= e(punch_time($today['first_in'] ?? null)) ?></b></div>
               <div><small><?= e(t('Out', 'Labas')) ?></small><b><?= e(!empty($today['first_in']) && empty($today['last_out']) ? t('Still in', 'Nasa loob pa') : punch_time($today['last_out'] ?? null)) ?></b></div>
@@ -269,5 +307,7 @@ function render_punch_page(Supabase $db): void
         </div>
       </section>
     <?php endforeach; ?>
-    <?php layout_foot();
+    <?= committee_banner_script() ?>
+    <?php endif;
+    layout_foot();
 }
