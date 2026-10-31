@@ -72,6 +72,7 @@ export async function auditScope(page, root) {
     for (const p of new Set(all('.p-card').map(c => c.parentElement))) {
       const kids = [...p.children].filter(c => c.classList.contains('p-card') && shown(c));
       const rows = []; for (const k of kids) { const t = Math.round(k.getBoundingClientRect().top); const g = rows.find(r => Math.abs(r.t - t) <= 2); g ? g.items.push(k) : rows.push({ t, items: [k] }); }
+      for (const g of rows) { g.items = g.items.filter(i => !/span/.test(getComputedStyle(i).gridRowStart + getComputedStyle(i).gridRowEnd)); } /* a card that spans two rows is meant to be taller */
       for (const g of rows) if (g.items.length > 1) { const hs = g.items.map(i => Math.round(i.getBoundingClientRect().height)); if (Math.max(...hs) - Math.min(...hs) > 2) add('cardheight', p, hs.join(' vs ')); }
     }
 

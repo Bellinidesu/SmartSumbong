@@ -193,3 +193,8 @@
 #brgy-card.cmx-dirty .ru-bar { border-color: var(--p-orange, #FF9800); }
 #brgy-card .ru-bar { margin-top: 18px; }
 @media (max-width: 760px) { #brgy-card .bp-row { grid-template-columns: minmax(0, 1fr); justify-items: center; } #brgy-card .bp-fields { width: 100%; } }
+/* the faint symbol stays inside the banner's edge, so nothing in a banner is cut */
+:root:root .p-body :is(.cmx-banner, .pc-gh, .ad-roles, .wr-banner) .cm-chip > .cm-bg { right: 0; }
+:root:root .p-body .pd-fadewrap .cm-chip > .cm-bg { right: 28px; }
+:root:root .p-body .wr-banner .cm-chip { height: auto; min-height: 54px; padding-top: 8px; padding-bottom: 8px; }
+:root:root .p-body .wr-banner .cm-n { white-space: normal; overflow: visible; }
