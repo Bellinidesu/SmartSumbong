@@ -15,20 +15,8 @@
   --id-orange-btn: linear-gradient(180deg, #FFB43A 0%, #FF9800 58%, #F28700 100%);
 }
 
-/* ---- the contour lines, as a reusable veil: any hero surface that is position:relative and has .id-veil ---- */
-.id-on .id-veil, .id-on :is(.p-band, .p-kpi, .dh-kpi .ss-tile, .ss-panel, .p-modal) { position: relative; }
-.id-on :is(.p-kpi, .dh-kpi .ss-tile)::after,
-.id-on .p-band::before,
-.id-on .p-modal::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
-  background: var(--tile-acc, var(--id-acc)); opacity: .11;
-  -webkit-mask-image: var(--id-contour), linear-gradient(to left, #000 0%, rgba(0,0,0,.55) 38%, transparent 78%);
-  mask-image: var(--id-contour), linear-gradient(to left, #000 0%, rgba(0,0,0,.55) 38%, transparent 78%);
-  -webkit-mask-size: 340px 340px, 100% 100%; mask-size: 340px 340px, 100% 100%;
-  -webkit-mask-repeat: repeat, no-repeat; mask-repeat: repeat, no-repeat;
-  -webkit-mask-composite: source-in; mask-composite: intersect;
-}
-.id-on .p-band::before { background: #fff; opacity: .22; z-index: 0; }
+/* The Damascus contour lines stay where Figma put them: in the background of the page, not inside the surfaces. */
+.id-on :is(.p-band, .p-kpi, .dh-kpi, .ss-panel, .p-modal) { position: relative; }
 .id-on .p-band > * { position: relative; z-index: 1; }
 
 /* ---- the page title: larger, tighter ---- */
@@ -85,31 +73,20 @@
 /* ---- notices: a bar of the notice's colour on the left ---- */
 .id-on .p-flash { border-left: 4px solid currentColor; border-radius: 12px; }
 
-/* ---- popups: a rank above the page: the gradient edge, a bigger radius, the contour lines in the corner ---- */
+/* ---- popups: a rank above the page: the gradient edge and a bigger radius ---- */
 .id-on .p-modal {
   border-radius: 22px; overflow: hidden;
   border: 1px solid transparent;
   background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
   box-shadow: var(--p-shadow-lg);
 }
-.id-on .p-modal::after { opacity: .13; -webkit-mask-image: var(--id-contour), linear-gradient(to bottom left, #000 0%, transparent 60%); mask-image: var(--id-contour), linear-gradient(to bottom left, #000 0%, transparent 60%); }
-.id-on .p-modal > * { position: relative; z-index: 1; }
 .id-on .p-scrim { background: color-mix(in srgb, #0A1440 55%, transparent); }
-
-/* ---- empty states: the contour lines fading up from the bottom, never a bare grey sentence ---- */
-.id-on :is(.p-empty-state, .ss-caught, .p-none-line.pd-empty) { position: relative; overflow: hidden; border-radius: 14px; }
-.id-on :is(.p-empty-state, .ss-caught)::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--id-acc); opacity: .09;
-  -webkit-mask-image: var(--id-contour), linear-gradient(to top, #000 0%, transparent 70%); mask-image: var(--id-contour), linear-gradient(to top, #000 0%, transparent 70%);
-  -webkit-mask-size: 340px 340px, 100% 100%; mask-size: 340px 340px, 100% 100%; -webkit-mask-composite: source-in; mask-composite: intersect;
-}
 
 /* ---- dark: the same hierarchy, with glow instead of shadow ---- */
 :root[data-theme="dark"] .p-body.id-on :is(.p-kpi, .dh-kpi .ss-tile) {
   background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
   box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 14px 34px -16px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 70%, transparent);
 }
-:root[data-theme="dark"] .p-body.id-on :is(.p-kpi, .dh-kpi .ss-tile)::after { opacity: .2; }
 :root[data-theme="dark"] .p-body.id-on .p-t tbody tr:not(.ss-erow):hover > td { background: color-mix(in srgb, var(--id-acc) 14%, transparent); }
 
 @media (prefers-reduced-motion: reduce) { .id-on :is(.p-kpi, .dh-kpi .ss-tile) { transition: none; } .id-on :is(.p-kpi, .dh-kpi .ss-tile):hover { transform: none; } }
@@ -124,3 +101,21 @@
 }
 .id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-size: 46px; }
 .id-on .dh-kpi .ss-tile small { font-size: 12.5px; }
+
+/* ---- the Dashboard, like a product: one summary band (not four tiles), one header row, rows of one height ---- */
+.id-on .p-dash-top { align-items: center; gap: 16px; margin-bottom: 18px; }
+.id-on .dh-greet { margin: 0; }
+.id-on .dh-kpi {
+  gap: 0; overflow: hidden; border: 1px solid transparent; border-radius: 18px; padding: 0;
+  background: linear-gradient(var(--p-surface), var(--p-surface)) padding-box, var(--id-hair) border-box;
+  box-shadow: 0 1px 2px rgba(20,27,52,.05), 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 50%, transparent);
+}
+:root:root .p-body.id-on .dh-kpi > .ss-tile, :root:root .p-body.id-on .dh-kpi > .ss-tile:hover {
+  background: transparent; border: 0; border-radius: 0; box-shadow: none; transform: none; padding: 18px 24px;
+}
+:root:root .p-body.id-on .dh-kpi > .ss-tile + .ss-tile { border-left: 1px solid var(--p-line); }
+:root:root .p-body.id-on .dh-kpi > .ss-tile:hover { background: color-mix(in srgb, var(--id-acc) 5%, transparent); }
+.id-on .dh-kpi .ss-tile::after { content: none; }
+.id-on .dh-cat, .id-on .dh-status { display: flex; flex-direction: column; }
+.id-on .dh-cat .p-donut, .id-on .dh-status .p-donut { margin: auto; }
+@media (max-width: 1180px) { .id-on .dh-kpi > .ss-tile + .ss-tile { border-left: 0; border-top: 1px solid var(--p-line); } }
