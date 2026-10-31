@@ -38,7 +38,7 @@ How the database fits the rest of the system is in
 | `case_handler_log` | Admins taking, releasing and taking over cases (Activity page) | 0087 |
 | `reports.committee`, `reports.awaiting_placement` | The committee a case was forwarded to (null: its category's committee), and whether a Kagawad handed it to the super admins to place; changed only by forwarding (0152) | 0152 |
 | `case_forwards` | Every forward, staff flag and dismissed flag of a case: from and to which committee, the note, who, when; append-only. The view `case_forward_flags` lists the flags still open | 0152 |
-| `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation, the Anti-Drug Abuse Council | 0145 |
+| `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation (the Anti-Drug Abuse Council is off, 0159) | 0145 |
 | `committees.colour` | Each committee's colour, chosen by a super admin; its admins' sidebar wears it; no two active committees, and no committee and the super admins, may be close (0150) | 0150 |
 | `committee_categories` | The categories each committee sees (the super admin's ticks) | 0145 |
 | `committee_for_category` | The committee that usually takes each kind of complaint (editable defaults) | 0130 |
