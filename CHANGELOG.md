@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Report Summary: the engine speaks, the tabs span, 1 Nov)**
+- The sentence under the figures and the by-tanod numbers are now the SMART engine's: a brain button in the page header
+  opens the engine's window ("What the engine sees in this report": in short, overdue by committee, by tanod). The
+  button has a dot when something needs the person (overdue cases, open cases with no committee, a tanod accepting under
+  70%); the sidebar gets no dot, since this page is a summary and the engine is optional. The Tanod activity tab keeps
+  its log.
+- The tab bar spans the card below it, five equal tabs, with no gap on the right (a test measures it).
+- A resolved case with no resolved date on record reads as a dash in the Resolved column, never "open N d".
+
 **Changed (Report Summary, the three gaps, and the peak standard, 1 Nov)**
 - `docs/PEAK.md` writes down what peak means for every page and every rung of the ladder (an answer before a list, one
   grammar, measured symmetry, honest data, every state designed, for everyone, the ladder). Ace: "from superadmin to staff

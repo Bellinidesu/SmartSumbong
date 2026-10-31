@@ -349,9 +349,64 @@ $isOngoing = $to >= new DateTimeImmutable('today', $tz);
 layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
 ?>
 
+<?php
+// What the SMART engine says about this report: the sentence, where the overdue cases sit, and each tanod's numbers.
+$byT = [];
+foreach ($dispatches as $d) {
+    $k = (string) ($d['tanod_id'] ?? '');
+    $byT[$k] ??= ['name' => formal_or($d['tanod']['full_name'] ?? null, t('Unknown', 'Hindi kilala')), 'n' => 0, 'acc' => 0, 'done' => 0, 'mins' => []];
+    $byT[$k]['n']++;
+    if (!empty($d['accepted_at'])) { $byT[$k]['acc']++; $byT[$k]['mins'][] = (strtotime($d['accepted_at']) - strtotime($d['assigned_at'])) / 60; }
+    if (($d['state'] ?? '') === 'resolved') { $byT[$k]['done']++; }
+}
+uasort($byT, fn ($a, $b) => $b['n'] <=> $a['n']);
+$lowAcc = count(array_filter($byT, fn ($t) => $t['n'] >= 2 && $t['acc'] / $t['n'] < 0.7));
+// a dot on the brain when something here needs the person; the sidebar has none (this page is a summary, the engine is optional)
+$engineDot = $overdueN > 0 || ($noCom > 0 && $com === '') || $lowAcc > 0;
+$engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short_date($from->format('c')), short_date($to->format('c')));
+?>
+<div class="ss-win-scrim" id="ss-win-scrim"></div>
+<aside class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
+  <header class="ss-win-head">
+    <?= smart_logo(40) ?>
+    <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees in this report', 'Ang nakikita ng engine sa ulat na ito')) ?></b>
+      <small><?= e(short_date($from->format('c'))) ?> &ndash; <?= e(short_date($to->format('c'))) ?></small></div>
+    <button type="button" class="ss-win-x" id="ss-win-close" aria-label="<?= e(t('Close', 'Isara')) ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </header>
+  <div class="ss-win-body"><div class="ss-panel-in">
+    <section class="p-card p-card-pad rs-w-card"><p class="p-eyebrow"><?= e(t('In short', 'Sa madaling salita')) ?></p>
+      <?php if ($story): ?><ul class="rs-w-list"><?php foreach ($story as $line): ?><li><?= e($line) ?></li><?php endforeach; ?></ul>
+      <?php else: ?><p class="p-hint"><?= e(t('Nothing was filed in this period.', 'Walang naisampa sa panahong ito.')) ?></p><?php endif; ?>
+    </section>
+    <?php if ($odBy): ?>
+    <section class="p-card p-card-pad rs-w-card"><p class="p-eyebrow"><?= e(t('Overdue, by committee', 'Lampas na sa oras, ayon sa komite')) ?></p>
+      <?php foreach ($odBy as $ck => $cn): ?>
+        <div class="rs-w-row"><?= committee_pill($ck !== '' ? (string) $ck : null) ?><b><?= (int) $cn ?></b></div>
+      <?php endforeach; ?>
+    </section>
+    <?php endif; ?>
+    <?php if ($byT): $maxN = max(array_column($byT, 'n')); ?>
+    <section class="p-card p-card-pad rs-w-card rs-tn"><p class="p-eyebrow"><?= e(t('By tanod', 'Ayon sa tanod')) ?> &middot; <?= count($byT) ?></p>
+      <?php foreach (array_slice($byT, 0, 8) as $tn): $rt = $tn['n'] ? (int) round($tn['acc'] / $tn['n'] * 100) : 0; $am = $tn['mins'] ? (int) round(array_sum($tn['mins']) / count($tn['mins'])) : null; ?>
+        <div class="rs-tn-row">
+          <b><?= e($tn['name']) ?></b>
+          <span class="rs-tn-bar" aria-hidden="true"><i style="width:<?= (int) round($tn['n'] / $maxN * 100) ?>%"></i></span>
+          <span class="rs-tn-n"><?= (int) $tn['n'] ?> <small><?= e(t('dispatched', 'na-dispatch')) ?></small></span>
+          <span class="rs-tn-n<?= $rt < 70 ? ' rs-low' : '' ?>"><?= $rt ?>% <small><?= e(t('accepted', 'tinanggap')) ?></small></span>
+          <span class="rs-tn-n"><?= (int) $tn['done'] ?> <small><?= e(t('resolved', 'nalutas')) ?></small></span>
+          <span class="rs-tn-n"><?= $am === null ? '—' : $am . ' <small>' . e(t('min to accept', 'minuto bago tanggapin')) . '</small>' ?></span>
+        </div>
+      <?php endforeach; ?>
+    </section>
+    <?php endif; ?>
+  </div></div>
+</aside>
 <div class="p-topbar"><h1><?= e(t('Report Summary', 'Buod ng mga Ulat')) ?></h1>
-  <span class="rs-scope"><?= $scopeCom !== '' ? committee_pill($scopeCom) : ($com === 'none' ? committee_pill(null) : '<span class="cm-pill" style="--cc:' . e(barangay()['super_colour'] ?? SUPER_BLUE) . '"><i></i>' . e(t('Whole barangay', 'Buong barangay')) . '</span>') ?></span></div>
+  <span class="rs-scope"><?= $scopeCom !== '' ? committee_pill($scopeCom) : ($com === 'none' ? committee_pill(null) : '<span class="cm-pill" style="--cc:' . e(barangay()['super_colour'] ?? SUPER_BLUE) . '"><i></i>' . e(t('Whole barangay', 'Buong barangay')) . '</span>') ?></span>
+  <span class="p-spacer" style="flex:1"></span>
+  <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($engineDot): ?><i class="ss-brain-dot" aria-hidden="true"></i><?php endif; ?></button></div>
 
+<script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php if ($error): ?>
   <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>
 <?php endif; ?>
@@ -429,9 +484,6 @@ layout_head(t('Report Summary', 'Buod ng mga Ulat'), 'summary.php');
   <div class="p-card p-kpi ss-k-avg"><div class="p-label"><?= e(t('Average Resolution Time', 'Karaniwang Tagal ng Paglutas')) ?></div><div class="p-value p-num"><?= $avgDays === null ? '—' : $avgDays . '<small class="rs-of">' . e(t('days', 'araw')) . '</small>' ?></div>
     <div class="rs-foot"><span class="rs-chg rs-<?= e($ct) ?>"><?= $avgDays === null ? e(t('nothing resolved yet', 'wala pang nalutas')) : e($cl) ?></span><?= rs_spark($bAvg, '#7A5AE0') ?></div></div>
 </div>
-<?php if ($story): ?>
-<p class="rs-story"><?= p_icon('i-bell', 16) ?><span><?= e(implode(' ', $story)) ?></span></p>
-<?php endif; ?>
 
 <?php
 // Defense, 7 Sep: the ledger, the referrals and the activity timeline are paged (15 rows), not scrolled.
@@ -478,7 +530,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
                   echo e(short_date($endIso)) . ' <span class="rs-age">' . $took . ' ' . e(t('d', 'araw')) . '</span>';
               } elseif ($endIso) {
                   echo e(short_date($endIso));   // escalated or otherwise closed out with a date
-              } elseif (in_array($r['status'], ['rejected', 'cancelled'], true)) {
+              } elseif (in_array($r['status'], ['rejected', 'cancelled', 'resolved', 'closed', 'archived'], true)) {   // finished, with no date on record
                   echo '<span class="p-sub">—</span>';
               } else {
                   $age = max(0, (int) floor((time() - strtotime($r['created_at'])) / 86400));
@@ -532,31 +584,6 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
 <?php else: ?>
 <div class="p-card p-table-card" id="rs-tanod" style="margin-bottom:20px">
   <div class="p-card-head" style="padding-bottom:14px"><h2><?= t('Tanod&rsquo;s Activity Timeline', 'Takbo ng Gawain ng mga Tanod') ?></h2></div>
-  <?php
-  $byT = [];
-  foreach ($dispatches as $d) {
-      $k = (string) ($d['tanod_id'] ?? '');
-      $byT[$k] ??= ['name' => formal_or($d['tanod']['full_name'] ?? null, t('Unknown', 'Hindi kilala')), 'n' => 0, 'acc' => 0, 'done' => 0, 'mins' => []];
-      $byT[$k]['n']++;
-      if (!empty($d['accepted_at'])) { $byT[$k]['acc']++; $byT[$k]['mins'][] = (strtotime($d['accepted_at']) - strtotime($d['assigned_at'])) / 60; }
-      if (($d['state'] ?? '') === 'resolved') { $byT[$k]['done']++; }
-  }
-  uasort($byT, fn ($a, $b) => $b['n'] <=> $a['n']);
-  if ($byT): $maxN = max(array_column($byT, 'n')); ?>
-  <div class="rs-tn">
-    <p class="p-eyebrow"><?= e(t('By tanod', 'Ayon sa tanod')) ?> &middot; <?= count($byT) ?></p>
-    <?php foreach (array_slice($byT, 0, 8) as $tn): $rt = $tn['n'] ? (int) round($tn['acc'] / $tn['n'] * 100) : 0; $am = $tn['mins'] ? (int) round(array_sum($tn['mins']) / count($tn['mins'])) : null; ?>
-      <div class="rs-tn-row">
-        <b><?= e($tn['name']) ?></b>
-        <span class="rs-tn-bar" aria-hidden="true"><i style="width:<?= (int) round($tn['n'] / $maxN * 100) ?>%"></i></span>
-        <span class="rs-tn-n"><?= (int) $tn['n'] ?> <small><?= e(t('dispatched', 'na-dispatch')) ?></small></span>
-        <span class="rs-tn-n<?= $rt < 70 ? ' rs-low' : '' ?>"><?= $rt ?>% <small><?= e(t('accepted', 'tinanggap')) ?></small></span>
-        <span class="rs-tn-n"><?= (int) $tn['done'] ?> <small><?= e(t('resolved', 'nalutas')) ?></small></span>
-        <span class="rs-tn-n"><?= $am === null ? '—' : $am . ' <small>' . e(t('min to accept', 'minuto bago tanggapin')) . '</small>' ?></span>
-      </div>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
   <div class="p-tscroll"><table class="p-t">
     <thead class="p-orange"><tr><th>Tanod</th><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
     <tbody>

@@ -589,9 +589,20 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   await expect(page.locator('.ss-sumkpis .p-kpi')).toHaveCount(4);
   await expect(page.locator('.ss-sumkpis .rs-chg').first()).toContainText(/before|new/);
   expect(await page.locator('.ss-sumkpis svg.rs-spark').count(), 'a shape for the figures that have one').toBeGreaterThanOrEqual(3);
-  await expect(page.locator('.rs-story')).toContainText('of the');
-  await expect(page.locator('.rs-story')).toContainText('overdue');
+  await expect(page.locator('.rs-story'), 'the sentence belongs to the engine window, not the page').toHaveCount(0);
+  await expect(page.locator('#ss-panel')).toBeHidden();
+  await page.locator('#ss-win-open').click();
+  await expect(page.locator('#ss-panel')).toBeVisible();
+  await expect(page.locator('#ss-panel .rs-w-list')).toContainText('overdue');
+  await expect(page.locator('#ss-panel .rs-tn-row')).toHaveCount(2);   // by tanod lives in the engine's window now
+  expect(await axe(page), 'Report Summary, engine window open').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#ss-panel')).toBeHidden();
+  const bar = await page.evaluate(() => { const n = document.querySelector('#ss-jump').getBoundingClientRect(), c = document.querySelector('#rs-ledger').getBoundingClientRect(); return [Math.round(n.left), Math.round(n.right), Math.round(c.left), Math.round(c.right)]; });
+  expect(Math.abs(bar[0] - bar[2]) <= 1 && Math.abs(bar[1] - bar[3]) <= 1, 'the tab bar spans the card below it, with no gap: ' + bar).toBe(true);
   expect(await page.locator('#rs-ledger tr.rs-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
+  const wrong = await page.locator('#rs-ledger tbody tr').evaluateAll(rs => rs.filter(r => /Resolved|Closed/.test(r.children[4].textContent) && /open \d/.test(r.children[r.children.length - 1].textContent)).length);
+  expect(wrong, 'a resolved case never reads as open').toBe(0);
   const heads = await page.evaluate(() => ['rs-ledger'].map(id => getComputedStyle(document.querySelector('#' + id + ' thead th')).backgroundColor));
   expect(heads[0], 'the orange table header is back').toMatch(/^rgb\(25[0-9], 1[5-8][0-9], /);
   await expect(page.locator('thead.p-blue'), 'one header colour on every tab').toHaveCount(0);
