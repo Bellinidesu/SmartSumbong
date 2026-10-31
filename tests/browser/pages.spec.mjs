@@ -584,7 +584,7 @@ test('Case Reports: on a wide screen the search and the filters are one toolbar 
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('Report Summary, peak: each figure says how it moved and shows its shape, one sentence says what it means, overdue rows are marked', async ({ page }) => {
+test('Report Summary, peak: each figure says how it moved and shows its shape, one sentence says what it means, overdue rows are marked, the orange is the identity', async ({ page }) => {
   const r = await open(page, 'summary.php?range=month');
   await expect(page.locator('.ss-sumkpis .p-kpi')).toHaveCount(4);
   await expect(page.locator('.ss-sumkpis .rs-chg').first()).toContainText(/before|new/);
@@ -592,10 +592,10 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   await expect(page.locator('.rs-story')).toContainText('of the');
   await expect(page.locator('.rs-story')).toContainText('overdue');
   expect(await page.locator('#rs-ledger tr.rs-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
-  const head = await page.locator('#rs-ledger thead th').first().evaluate(e => getComputedStyle(e).backgroundColor);
-  expect(head, 'the table header is quiet, not orange').not.toBe('rgb(255, 152, 0)');
-  const orange = await page.evaluate(() => [...document.querySelectorAll('.p-body.page-summary main *')].filter(e => { const c = getComputedStyle(e); return (c.backgroundColor === 'rgb(255, 152, 0)') && e.getBoundingClientRect().width > 150 && e.getBoundingClientRect().height > 30; }).length);
-  expect(orange, 'no large orange surface on the page').toBe(0);
+  const heads = await page.evaluate(() => ['rs-ledger'].map(id => getComputedStyle(document.querySelector('#' + id + ' thead th')).backgroundColor));
+  expect(heads[0], 'the orange table header is back').toMatch(/^rgb\(25[0-9], 1[5-8][0-9], /);
+  await expect(page.locator('thead.p-blue'), 'one header colour on every tab').toHaveCount(0);
+  await expect(page.locator('.p-period-band .p-btn-pdf2')).toBeVisible();
   expect(r.errors, 'console errors').toEqual([]);
 });
 
