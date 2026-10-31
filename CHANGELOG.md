@@ -13,6 +13,7 @@ Changes on `main` not yet deployed belong here.
 - The Tanod page: the duty figures lead as a strip under the name; Today's shift is its own slim card in the duty tile colours; the committees are vibrant banners
   joined to their forms; Recent dispatches sit under the orange band and the blue header; cards no longer stretch around empty space. Residents share the page.
 - A profile's name card wears the committee's banner as a cover: its colours and symbol fade in from the right end (a tanod's first committee; a staff member's own). The staff page's separate Committee card is gone.
+- The Resident page: a strip of figures (reports filed, open, resolved, flagged), a Reports tab listing the reports filed in their own name (anonymous and sensitive ones are never listed), and a cover in the colour of where their registration stands.
 - Tabs on the account page (Overview, Dispatches, Documents); a registration waiting for review opens on Documents. One-click copy on the email, number and tracking IDs.
 - New: a staff page, opened from a name on Committee staff: today's sign-in, sign-out and cases, the committee banner, and 14 days as a day-by-day timeline.
 

@@ -786,6 +786,25 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   expect(await axe(page), 'Staff account').toEqual([]);
 });
 
+test('Resident account page, peak: figures, a Reports tab of their own named reports, and a cover by registration status', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  const r = await open(page, 'residents.php?id=u1');
+  await expect(page.locator('#pd-grid'), 'a registration waiting for review opens on the ID').toHaveAttribute('data-tab', 'documents');
+  await expect(page.locator('.pd-fig > div')).toHaveCount(4);
+  await expect(page.locator('.pd-fig > div').first()).toContainText('3');
+  await expect(page.locator('.pd-head .pd-fadewrap'), 'a cover in the colour of the registration').toHaveCount(1);
+  await expect(page.locator('.pd-tabs [data-tab]')).toHaveCount(3);   // Overview, Reports, Documents
+  await page.locator('.pd-tabs [data-tab="reports"]').click();
+  await expect(page.locator('.pd-reports tbody tr')).toHaveCount(3);
+  await expect(page.locator('.pd-reports'), 'the anonymous and sensitive reports are never listed').not.toContainText('Husband hits wife');
+  expect(await page.locator('.pd-reports thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
+  await page.locator('.pd-reports tbody tr').first().locator('.p-mono-id').click();
+  await expect(page).toHaveURL(/case\.php\?id=/);
+  expect(r.errors, 'console errors').toEqual([]);
+  await open(page, 'residents.php?id=u1');
+  expect(await axe(page), 'Resident account').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);

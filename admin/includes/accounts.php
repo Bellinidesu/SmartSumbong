@@ -148,8 +148,17 @@ function render_account_screen(string $role): void
         }
 
         $duty = $isTanod ? tanod_duty($db, $person['id']) : null;
+        // The reports this resident filed in their own name. An anonymous report and a sensitive one are never tied to a name on this page.
+        $filed = null;
+        if (!$isTanod) {
+            $filed = [];
+            try {
+                $filed = (array) $db->select('reports', ['select' => 'id,tracking_id,subject,category,status,created_at', 'resident_id' => 'eq.' . $person['id'], 'is_anonymous' => 'eq.false',
+                                                          'is_sensitive' => 'eq.false', 'deleted_at' => 'is.null', 'order' => 'created_at.desc', 'limit' => '100']);
+            } catch (SupabaseError) { /* the page renders without the list */ }
+        }
         render_account_detail($person, $noun, $idLabel, $self, $navFile, $title, $flash,
-                              $dupes[$person['id']] ?? [], $abuseHistory, $role, $duty, $isTanod ? ($tc[$person['id']] ?? []) : null);
+                              $dupes[$person['id']] ?? [], $abuseHistory, $role, $duty, $isTanod ? ($tc[$person['id']] ?? []) : null, $filed);
         return;
     }
 
@@ -1125,7 +1134,7 @@ function copy_btn(string $value, string $label): string
 function render_account_detail(
     array $p, string $noun, string $idLabel,
     string $self, string $navFile, string $title, ?array $flash, array $dupes = [],
-    array $abuseHistory = [], string $role = 'resident', ?array $duty = null, ?array $tcRow = null
+    array $abuseHistory = [], string $role = 'resident', ?array $duty = null, ?array $tcRow = null, ?array $filed = null
 ): void {
     $pending = $p['verification_status'] === 'pending';
     $tab0 = $pending ? 'documents' : 'overview';   // a registration waiting for review opens on the ID it is judged by
@@ -1178,9 +1187,13 @@ function render_account_detail(
 
     <div class="p-profile-grid">
       <div class="p-grid pd-grid" id="pd-grid" data-tab="<?= e($tab0) ?>">
-        <?php $fadeCom = $tcRow !== null && !empty($tcRow['committees']) ? (string) ($tcRow['committees'][0]['key'] ?? '') : ''; ?>
-        <div class="p-card p-card-pad pd-head<?= $fadeCom !== '' ? ' pd-fade' : '' ?>">
+        <?php $fadeCom = $tcRow !== null && !empty($tcRow['committees']) ? (string) ($tcRow['committees'][0]['key'] ?? '') : '';
+              // a resident has no committee: the cover is the colour of the Residents banner for where their registration stands
+              $vs = (string) ($p['verification_status'] ?? '');
+              $rsCover = $filed === null ? null : ($pending ? (!empty($p['is_overdue']) ? ['#FF2D4B', '#FF6A3D', '#FFFFFF'] : ['#FFC21A', '#FF9100', '#2B1A00']) : ($vs === 'verified' ? ['#12B24F', '#0FA968', '#FFFFFF'] : ['#4A5578', '#7C86A6', '#FFFFFF'])); ?>
+        <div class="p-card p-card-pad pd-head<?= ($fadeCom !== '' || $rsCover) ? ' pd-fade' : '' ?>">
         <?= $fadeCom !== '' ? committee_fade($fadeCom, committee_sd_types(db()), (string) (committees_all()[$fadeCom]['short_en'] ?? $fadeCom)) : '' ?>
+        <?php if ($rsCover): ?><div class="cm-chips pd-fadewrap" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="--cc:<?= e($rsCover[0]) ?>;--ct:<?= e($rsCover[2]) ?>;--g1:<?= e($rsCover[0]) ?>;--g2:<?= e($rsCover[1]) ?>;--g3:<?= e($rsCover[1]) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="handler" viewBox="0 0 24 24" aria-hidden="true"></svg></i></a></div><?= committee_banner_script() ?><?php endif; ?>
         <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e(formal_name($p['full_name'])) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
 
         <?php if ($pending && !empty($p['due_at'])): ?>
@@ -1215,8 +1228,20 @@ function render_account_detail(
           </dl>
         </div>
 
+        <?php if ($filed !== null):
+              $isOpenSt = fn ($st) => !in_array((string) $st, ['resolved', 'closed', 'archived', 'rejected'], true);
+              $nFiled = count($filed); $nOpen = count(array_filter($filed, fn ($r) => $isOpenSt($r['status'] ?? '')));
+              $nDone = count(array_filter($filed, fn ($r) => in_array((string) ($r['status'] ?? ''), ['resolved', 'closed', 'archived'], true))); $nFlag = count($abuseHistory); ?>
+        <div class="pd-fig" aria-label="<?= e(t('Reports filed', 'Mga ulat na isinumite')) ?>">
+          <div><span><?= e(t('Reports filed', 'Mga ulat na isinumite')) ?></span><b class="p-num"><?= $nFiled ?></b><small><?= e(t('in their own name', 'sa sarili nilang pangalan')) ?></small></div>
+          <div><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b class="p-num"><?= $nOpen ?></b><small><?= e(t('not yet resolved or closed', 'hindi pa nalulutas o naisasara')) ?></small></div>
+          <div><span><?= e(t('Resolved', 'Nalutas')) ?></span><b class="p-num"><?= $nDone ?></b><small><?= e(t('closed with an answer', 'naisara na may kasagutan')) ?></small></div>
+          <div class="<?= $nFlag > 0 ? 'pd-hot' : '' ?>"><span><?= e(t('Flagged', 'Namarkahan')) ?></span><b class="p-num"><?= $nFlag ?></b><small><?= e(t('as abusive or fabricated', 'bilang mapang-abuso o gawa-gawa')) ?></small></div>
+        </div>
+        <?php endif; ?>
         <nav class="st-tabs pd-tabs" role="tablist" aria-label="<?= e(t('Sections of this account', 'Mga seksyon ng account na ito')) ?>">
           <button type="button" class="st-link<?= $tab0 === 'overview' ? ' p-on' : '' ?>" role="tab" data-tab="overview" aria-selected="<?= $tab0 === 'overview' ? 'true' : 'false' ?>"><?= e(t('Overview', 'Buod')) ?></button>
+          <?php if ($filed !== null): ?><button type="button" class="st-link" role="tab" data-tab="reports" aria-selected="false"><?= e(t('Reports', 'Mga ulat')) ?><b class="pd-tn"><?= count($filed) ?></b></button><?php endif; ?>
           <?php if ($duty): ?><button type="button" class="st-link" role="tab" data-tab="dispatches" aria-selected="false"><?= e(t('Dispatches', 'Mga dispatch')) ?><b class="pd-tn"><?= count($duty['recent']) ?></b></button><?php endif; ?>
           <button type="button" class="st-link<?= $tab0 === 'documents' ? ' p-on' : '' ?>" role="tab" data-tab="documents" aria-selected="<?= $tab0 === 'documents' ? 'true' : 'false' ?>"><?= e(t('Documents', 'Mga dokumento')) ?></button>
         </nav>
@@ -1263,6 +1288,27 @@ function render_account_detail(
                   <td class="p-num"><?= e(long_datetime($d['assigned_at'])) ?></td>
                   <td class="p-num"><?= !empty($d['accepted_at']) ? e(long_datetime($d['accepted_at'])) : '<span class="p-over">' . e(t('Not accepted', 'Hindi tinanggap')) . '</span>' ?></td>
                   <td><span class="p-badge <?= match ($state) { 'resolved' => 'p-b-done', 'accepted' => 'p-b-progress', 'assigned' => 'p-b-pending', default => 'p-b-grey' } ?>"><?= e(status_label($state)) ?></span></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($filed !== null): ?>
+        <div class="p-card p-table-card pd-recent pd-reports">
+          <div class="p-band ss-pband pd-band"><h2><?= e(t('Reports filed', 'Mga ulat na isinumite')) ?><span class="p-badge-n p-badge-n--quiet"><?= count($filed) ?></span></h2></div>
+          <div class="p-tscroll"><table class="p-t">
+            <thead><tr><th scope="col"><?= e(t('Case', 'Kaso')) ?></th><th scope="col"><?= e(t('Subject', 'Paksa')) ?></th><th scope="col"><?= e(t('Category', 'Kategorya')) ?></th><th scope="col"><?= e(t('Status', 'Katayuan')) ?></th><th scope="col"><?= e(t('Filed', 'Isinumite')) ?></th></tr></thead>
+            <tbody>
+              <?php if (!$filed): ?><tr><td colspan="5" class="p-empty"><?= e(t('No reports in their own name yet. Anonymous and sensitive reports are never listed here.', 'Wala pang ulat sa sarili nilang pangalan. Hindi inililista rito ang mga anonymous at sensitibong ulat.')) ?></td></tr><?php endif; ?>
+              <?php foreach ($filed as $r): ?>
+                <tr class="p-click" data-href="case.php?id=<?= e($r['id']) ?>">
+                  <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span><?= copy_btn((string) $r['tracking_id'], t('the tracking ID', 'ang tracking ID')) ?></td>
+                  <td><?= e($r['subject']) ?></td>
+                  <td><?= e(category_label((string) $r['category'])) ?></td>
+                  <td><span class="p-badge <?= match ((string) $r['status']) { 'resolved', 'closed', 'archived' => 'p-b-done', 'rejected' => 'p-b-grey', 'pending_review' => 'p-b-pending', default => 'p-b-progress' } ?>"><?= e(status_label((string) $r['status'])) ?></span></td>
+                  <td class="p-num"><?= e(long_datetime((string) $r['created_at'])) ?></td>
                 </tr>
               <?php endforeach; ?>
             </tbody>
