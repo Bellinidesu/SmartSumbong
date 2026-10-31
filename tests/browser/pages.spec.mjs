@@ -392,6 +392,37 @@ test('Control Room, peak: kinds of complaint are chips with who sees them, rules
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
+test('Control Room: a live phone follows the forms (Report, Emergency, Home, Splash) and hides on Rules', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'control-room.php');
+  await expect(page.locator('#ed-phone')).toBeVisible();
+  await expect(page.locator('#ed-phone .ed-sc:not(.ed-hide)')).toHaveAttribute('data-sc', 'report');
+  await expect(page.locator('#ed-phone .ed-cat')).toHaveCount(8);
+  expect(await page.locator('#ed-phone .ed-cat svg').evaluateAll(s => s.filter(x => x.innerHTML.trim() === '').length), 'every tile has its symbol').toBe(0);
+  // typing in a form changes the phone before anything is saved
+  await page.locator('#types-card details.ty-cat summary').nth(1).click();
+  await page.locator('#types-card details.ty-cat[open] input[name="label_en"]').first().fill('Roads and Drainage');
+  await expect(page.locator('#ed-phone .ed-cat[data-key]').nth(1).locator('.ed-cn')).toHaveText('Roads and Drainage');
+  await page.locator('#types-card details.ty-cat[open] input[name="active"]').first().uncheck();
+  await expect(page.locator('#ed-phone .ed-cat').nth(1)).toHaveClass(/ed-off/);
+  // a tile in the phone opens its category in the form
+  await page.locator('#ed-phone .ed-cat').nth(2).click();
+  await expect(page.locator('#types-card details.ty-cat').nth(2)).toHaveJSProperty('open', true);
+  await page.locator('.st-tabs [data-st="hotlines"]').click();
+  await expect(page.locator('#ed-phone .ed-sc:not(.ed-hide)')).toHaveAttribute('data-sc', 'emergency');
+  await page.locator('#hotlines-card details.hl-g summary').nth(1).click();
+  await page.locator('#hotlines-card details.hl-g[open] input[name="number"]').first().fill('0917 000 0000');
+  await expect(page.locator('#ed-phone .ed-hn .ed-nn', { hasText: '0917 000 0000' })).toHaveCount(1);
+  await page.locator('.st-tabs [data-st="parts"]').click();
+  await expect(page.locator('#ed-phone .ed-sc:not(.ed-hide)')).toHaveAttribute('data-sc', 'home');
+  await page.locator('.st-tabs [data-st="brgy"]').click();
+  await page.locator('#brgy-card input[name="name"]').fill('Barangay 183, Villamor');
+  await expect(page.locator('#ed-phone .ed-splash .ed-bn')).toHaveText('Barangay 183, Villamor');
+  await page.locator('.st-tabs [data-st="rules"]').click();
+  await expect(page.locator('#ed-phone'), 'Rules has no screen').toBeHidden();
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');

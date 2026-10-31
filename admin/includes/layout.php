@@ -303,6 +303,9 @@ window.ssAccessToken = function (initial) {
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php', 'settings.php'], true)) : // the super admin consoles (console.css) ?>
 <link href="assets/css/console.css?v=<?= e(asset_version('console.css')) ?>" rel="stylesheet">
 <?php endif; ?>
+<?php if ($active === 'control-room.php') : // the Control Room's live view of the app (app-editor.css) ?>
+<link href="assets/css/app-editor.css?v=<?= e(asset_version('app-editor.css')) ?>" rel="stylesheet">
+<?php endif; ?>
 <?php if (in_array($active, ['personnel.php', 'residents.php'], true)) : // the people rosters (roster.css), kept off every other page ?>
 <link href="assets/css/roster.css?v=<?= e(asset_version('roster.css')) ?>" rel="stylesheet">
 <?php endif; ?>

@@ -1,0 +1,78 @@
+/* The Control Room's live view of the resident app (includes/app_editor.php, assets/js/app-editor.js). The app's palette: a light grey page, white cards, navy chrome, orange. */
+.ed-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 28px; align-items: start; }
+.ed-main { min-width: 0; }
+.ed-wrap[data-screen="none"] { grid-template-columns: minmax(0, 1fr); }
+.ed-wrap[data-screen="none"] .ed-phone { display: none; }
+@media (max-width: 1400px) { .ed-wrap { grid-template-columns: minmax(0, 1fr); } .ed-phone { position: static !important; justify-self: center; } }
+
+.ed-phone { position: sticky; top: 18px; display: grid; gap: 12px; justify-items: center; }
+.ed-bar { display: grid; gap: 2px; justify-items: center; text-align: center; max-width: 340px; }
+.ed-bar b { font: 800 14px Urbanist, sans-serif; letter-spacing: .01em; }
+.ed-bar small { color: var(--p-muted); font-size: 12.5px; line-height: 1.4; }
+.ed-dev { position: relative; width: 340px; height: 640px; padding: 12px; border-radius: 44px; background: #0E1430; box-shadow: 0 30px 60px -24px rgba(8,16,60,.55), inset 0 0 0 2px #26305C; }
+.ed-notch { position: absolute; top: 18px; left: 50%; width: 92px; height: 22px; border-radius: 99px; background: #0E1430; transform: translateX(-50%); z-index: 3; }
+.ed-screen { position: relative; height: 100%; overflow: hidden; border-radius: 34px; background: #F3F3F3; color: #141B34; font-family: Urbanist, system-ui, sans-serif; }
+.ed-sc { position: absolute; inset: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: 18px; }
+.ed-sc::-webkit-scrollbar { display: none; }
+.ed-hide { display: none !important; }
+
+.ed-head { padding: 46px 18px 16px; background: #00308F; color: #fff; display: grid; gap: 2px; }
+.ed-head small { opacity: .8; font: 600 12px Inter, sans-serif; letter-spacing: .02em; }
+.ed-head h3 { margin: 0; font: 800 21px/1.2 Urbanist, sans-serif; }
+.ed-head-red { background: #C62828; }
+.ed-head-brand { grid-auto-flow: column; justify-content: start; align-items: center; gap: 12px; }
+.ed-head-brand > span:last-child { display: grid; gap: 1px; }
+.ed-seal { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #fff; overflow: hidden; flex: none; }
+.ed-seal img, .ed-seal svg { width: 100%; height: 100%; object-fit: cover; }
+.ed-seal-lg { width: 112px; height: 112px; box-shadow: 0 10px 30px -10px rgba(0,0,0,.5); }
+
+.ed-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px 14px 6px; }
+.ed-cat { display: grid; gap: 4px; justify-items: start; padding: 12px; border: 2px solid transparent; border-radius: 16px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; box-shadow: 0 1px 3px rgba(20,27,52,.08); transition: transform .12s, border-color .12s; }
+.ed-cat:hover { transform: translateY(-1px); }
+.ed-cat.ed-sel { border-color: var(--c); }
+.ed-cat.ed-off { opacity: .35; }
+.ed-cat.ed-pend { border: 2px dashed var(--c, #78909C); }
+.ed-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--c); color: #fff; font-style: normal; }
+.ed-ic svg { width: 18px; height: 18px; }
+.ed-ic-n { background: #00308F; font: 800 14px Urbanist, sans-serif; }
+.ed-cn { font: 700 13.5px/1.25 Urbanist, sans-serif; }
+.ed-cc { color: #6B6B6B; font: 600 11.5px Inter, sans-serif; }
+.ed-opts { margin: 8px 14px 0; padding: 12px 14px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20,27,52,.08); }
+.ed-opts h5 { margin: 0 0 6px; font: 800 12px Inter, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #6B6B6B; }
+.ed-opts ul, .ed-hg ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.ed-opt, .ed-hn { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; border-top: 1px solid #E3E6EE; font: 600 14px Urbanist, sans-serif; cursor: pointer; }
+.ed-opt:first-child, .ed-hn:first-child { border-top: 0; }
+.ed-opt.ed-off, .ed-hn.ed-off { display: none; }
+.ed-chev { width: 8px; height: 8px; border-right: 2px solid #9AA3B8; border-top: 2px solid #9AA3B8; transform: rotate(45deg); flex: none; }
+.ed-opt.ed-new .ed-ol::after { content: "  new"; color: #FF9800; font: 700 11px Inter, sans-serif; text-transform: uppercase; }
+
+.ed-hgs { display: grid; gap: 10px; padding: 14px; }
+.ed-hg { padding: 12px 14px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20,27,52,.08); }
+.ed-hg.ed-off { display: none; }
+.ed-hg.ed-sub { margin-top: 8px; background: #F7F8FB; box-shadow: none; }
+.ed-hg h4 { margin: 0 0 4px; display: flex; justify-content: space-between; gap: 8px; font: 800 14px Urbanist, sans-serif; }
+.ed-hg h4 small { color: #6B6B6B; font: 600 11.5px Inter, sans-serif; }
+.ed-hg[data-display="list"] > ul { display: none; }
+.ed-hg[data-display="list"] > h4::after { content: ""; width: 8px; height: 8px; margin: 5px 4px 0 0; border-right: 2px solid #9AA3B8; border-top: 2px solid #9AA3B8; transform: rotate(45deg); }
+.ed-hn small { display: block; color: #6B6B6B; font: 600 12.5px Inter, sans-serif; letter-spacing: .02em; }
+.ed-hn.ed-pend .ed-nl { color: #E07400; }
+.ed-call { width: 30px; height: 30px; border-radius: 50%; background: #16C25B; flex: none; position: relative; }
+.ed-call::after { content: ""; position: absolute; inset: 7px; background: #fff; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.ed-parts-h { margin: 14px 14px 0; font: 800 12px Inter, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #6B6B6B; }
+
+.ed-sws { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+.ed-sw { display: grid; gap: 8px; justify-items: start; padding: 12px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20,27,52,.08); font: 700 13px/1.25 Urbanist, sans-serif; }
+.ed-sw.ed-off { display: none; }
+.ed-hidden { margin: 0 14px; padding: 10px 12px; border-radius: 12px; border: 1.5px dashed #9AA3B8; color: #6B6B6B; font: 600 12px/1.4 Inter, sans-serif; }
+
+.ed-splash { display: grid; align-content: center; justify-items: center; gap: 8px; text-align: center; padding: 30px; background: linear-gradient(160deg, #00308F, #00236A); color: #fff; }
+.ed-splash .ed-bn { margin: 0; font: 800 24px/1.2 Urbanist, sans-serif; }
+.ed-splash .ed-pl { opacity: .8; font: 600 13px Inter, sans-serif; }
+.ed-splash em { margin-top: 26px; font: 800 15px Urbanist, sans-serif; font-style: normal; color: #FF9800; letter-spacing: .04em; }
+.ed-head-brand .ed-pl { opacity: .8; font: 600 11.5px Inter, sans-serif; }
+.ed-head-brand .ed-bn { margin: 0; font: 800 17px/1.2 Urbanist, sans-serif; }
+
+.ed-switch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--p-muted) 14%, transparent); }
+.ed-switch button { height: 30px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--p-muted); font: 700 12.5px Inter, sans-serif; cursor: pointer; }
+.ed-switch button.p-on { background: var(--p-surface); color: var(--p-ink); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+@media (prefers-reduced-motion: reduce) { .ed-cat { transition: none; } }
