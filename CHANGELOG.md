@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (the engine's window and the committees, 1 Nov)**
+- The SMART engine bar is gone from the Dashboard. One brain button in the header (with a count of what needs
+  attention) opens the engine's window from the right: the urgent and at-risk cases, recurring problems, quiet
+  cases, spikes, when complaints come in, on time by kind of complaint, and "About the charts" (what *Total reports
+  received* and *Resolution efficiency* say). Escape, the scrim or the cross close it, focus stays inside while it is
+  open and returns to the button. The two charts no longer have a brain button of their own.
+- The committees card: a name that titles a row is not a pill. A colour bar, the name, who leads it ("No Kagawad
+  yet" in red when nobody does), and the load bar; each row still opens Case Reports for that committee.
+- Storm mode is unchanged for now (its banner moves into the sidebar when the sidebar becomes a widget).
+
 **Changed (the Dashboard as a product, 1 Nov)**
 - The Damascus contour lines stay in the page background, as in the Figma file; they are no longer drawn inside the
   tiles, the orange band, popups or empty states (Ace's call after seeing them on the live site).

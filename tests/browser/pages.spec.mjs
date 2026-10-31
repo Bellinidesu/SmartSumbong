@@ -630,9 +630,8 @@ test('Feed rows: notifications about one case fold into a row, and the Inbox sho
   expect(n.errors.concat(i.errors, t.errors), 'console errors').toEqual([]);
 });
 
-test('Roles and pages 6a: the Dashboard super admin module, the box beside the donuts, the brain buttons', async ({ page }) => {
+test('Roles and pages 6a: the Dashboard super admin module, the box beside the donuts, the engine window', async ({ page }) => {
   const d = await open(page, 'dashboard.php');
-  await page.locator('#ss-panel-btn').click();
   await expect(page.locator('.dc-needs .ss-tile').first()).toContainText('3');
   await expect(page.locator('.dc-coms tbody tr')).toHaveCount(4 + 1);
   await expect(page.locator('.dc-coms')).toContainText('Peace and Order');
@@ -641,11 +640,19 @@ test('Roles and pages 6a: the Dashboard super admin module, the box beside the d
   await expect(page.locator('#dq-title')).toContainText('Done');
   await expect(page.locator('#dq-list li')).toHaveCount(2);
   await expect(page.locator('#dq-open')).toHaveAttribute('href', /cases\.php\?status=resolved/);
-  await page.locator('.dq-brain[data-chart="received"]').click();
+  await expect(page.locator('.dq-brain'), 'the charts have no brain button of their own').toHaveCount(0);
+  await expect(page.locator('.ss-panel-btn'), 'nor is there an engine bar on the page').toHaveCount(0);
+  await expect(page.locator('#ss-panel')).toBeHidden();
+  await page.locator('#ss-win-open').click();   // the one brain button opens the engine's window
+  await expect(page.locator('#ss-panel')).toBeVisible();
+  await expect(page.locator('#ss-win-close')).toBeFocused();
   await expect(page.locator('#notes-received')).toContainText('51 complaints this month, up 28% from last month (40).');
-  await page.locator('.dq-brain[data-chart="efficiency"]').click();
   await expect(page.locator('#notes-efficiency')).toContainText('24 of 30 finished in time (80%).');
-  expect(await axe(page), 'Dashboard, box and notes open').toEqual([]);
+  expect(await axe(page), 'Dashboard, engine window open').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#ss-panel')).toBeHidden();
+  await expect(page.locator('#ss-win-open')).toBeFocused();
+  expect(await axe(page), 'Dashboard, box open').toEqual([]);
   expect(d.errors, 'console errors').toEqual([]);
 });
 

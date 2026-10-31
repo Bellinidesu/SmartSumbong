@@ -75,16 +75,21 @@ super admin stays one.
 
 ### Dashboard (super admins)
 
-- The engine panel ("What the engine sees across open cases") is the
-  **Super admin module**: it gains *Needs me today* (waiting for a super
-  admin decision, overdue, not taken by any committee, open now) and *The
-  committees* (open, overdue and this month for each, plus "No committee
-  yet").
+- *Needs me today* (waiting for a super admin decision, overdue, not taken
+  by any committee, open now) is one summary band across the top, and *The
+  committees* (open, overdue for each, who leads it, plus "No committee yet")
+  is a card of rows: a committee's name is a name, not a pill. (1 Nov: the
+  band replaced the four tiles under the donut.)
+- The engine is **one brain button** in the Dashboard's header, with a count
+  of what needs attention; it opens the engine's **window** from the right
+  ("What the engine sees": the urgent and at-risk cases, recurring problems,
+  quiet cases, spikes, when complaints come in, on time by kind) and, under
+  "About the charts", explains *Total reports received* and *Resolution
+  efficiency*. (1 Nov: this replaced the engine bar and the brain buttons on
+  those two charts.)
 - Pressing a donut segment or its name opens a **big box beside the donut**
   with that status's or category's cases and an *Open in Case Reports*
   button.
-- A **brain button** in the top right of *Total reports received* and
-  *Resolution efficiency* asks the engine about that chart, on demand.
 - *Built (0156):* `dashboard_committees`, `dashboard_slice` (the box, the
   donut's own buckets) and `smart_chart_notes` (facts the page words in
   English or Tagalog).
