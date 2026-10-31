@@ -30,4 +30,7 @@
 /* the status card is as tall as the chart beside it: the donut sits in the middle, the legend and the hint at the foot */
 .page-dashboard .dh-status { display: flex; flex-direction: column; }
 .page-dashboard .dh-status .p-donut { margin: auto; }
-.page-cases .ss-cases-t td.ss-smart { padding-left: 8px; padding-right: 8px; }
+.page-cases .ss-cases-t td.ss-smart { padding-left: 12px; padding-right: 8px; }
+
+/* ---- Report Summary: the chips are tabs, one section at a time ---- */
+.rs-off { display: none !important; }
