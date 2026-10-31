@@ -25,7 +25,7 @@ SUBJ = ['Live wire sparking near the school', 'Neighbours fighting every night',
 def report(i, **kw):
     r = {'id': f'c0000000-0000-0000-0000-0000000000{i:02d}', 'tracking_id': f'SS-2610-{1000+i}', 'category': CATS[i % 8], 'subject': SUBJ[i % 8],
          'description': 'Please help. This has been going on for days and the whole street is affected.', 'status': ['pending_review', 'validated', 'assigned', 'in_progress', 'resolved'][i % 5],
-         'created_at': ago(3 + i * 7), 'due_at': ahead(20 - i * 3), 'reporter_id': 'd0000000-0000-0000-0000-000000000001', 'is_anonymous': False,
+         'created_at': ago(3 + i * 7), 'due_at': ahead(20 - i * 3), 'reporter_id': 'd0000000-0000-0000-0000-000000000001', 'resident_id': 'u1' if i in (2, 5, 7, 12) else 'd0000000-0000-0000-0000-000000000001', 'is_anonymous': False,
          'latitude': 14.5, 'longitude': 121.0, 'handler_id': ADMIN['id'] if i % 3 == 0 else None, 'handler_name': 'Reyes, Marites' if i % 3 == 0 else None,
          'tier': 0, 'is_sensitive': False, 'deleted_at': None, 'referred_to': None, 'higher_official': None, 'higher_official_note': None, 'handed_up_at': None,
          'location_text': 'Purok 2, Barangay 183', 'version': 1, 'reporter': {'full_name': 'Garcia, Juan', 'mobile_number': '09171234567'}, 'resident': {'id': 'd0000000-0000-0000-0000-000000000001', 'full_name': 'Garcia, Juan'},
@@ -317,7 +317,7 @@ def apply_filters(rows, qs):
         v = vs[0]
         if v.startswith('eq.'):
             want = v[3:]
-            if any(k in r for r in out): out = [r for r in out if str(r.get(k)) == want]
+            if any(k in r for r in out): out = [r for r in out if (str(r.get(k)).lower() if isinstance(r.get(k), bool) else str(r.get(k))) == want]
     return out
 
 
