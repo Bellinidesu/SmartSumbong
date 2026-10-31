@@ -528,6 +528,23 @@ test('Case Reports and the Dashboard: equal rows, Review is the main button, wha
   expect(r.errors.concat(d.errors), 'console errors').toEqual([]);
 });
 
+test('An account\'s page: two columns of cards, one height per row, the controls in view', async ({ page }) => {
+  const r = await open(page, 'personnel.php?id=u2');
+  const box = sel => page.locator(sel).first().evaluate(e => { const b = e.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.left), Math.round(b.height)]; });
+  const a = await box('.pd-details'), b = await box('.pd-tc'), c = await box('.pd-duty'), d = await box('.pd-id');
+  expect(a[0], 'details and committees start on one line').toBe(b[0]);
+  expect(Math.abs(a[2] - b[2]), 'and are one height').toBeLessThanOrEqual(2);
+  expect(c[0], 'duty and the ID start on one line').toBe(d[0]);
+  expect(Math.abs(c[2] - d[2]), 'and are one height').toBeLessThanOrEqual(2);
+  expect(b[1], 'two columns').toBeGreaterThan(a[1] + 100);
+  expect(await page.locator('.p-profile-grid > .p-controls').evaluate(e => getComputedStyle(e).position), 'the controls stay in view').toBe('sticky');
+  const h = await page.evaluate(() => document.documentElement.scrollHeight);
+  expect(h, 'a tanod page is no longer a tower of cards (was 1412+ px at 2048)').toBeLessThan(1250);
+  const q = await open(page, 'residents.php?id=u1');
+  expect(await page.locator('.pd-grid').count(), 'the same layout for a resident').toBe(1);
+  expect(r.errors.concat(q.errors), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {
   const n = await open(page, 'notifications.php');
   await expect(page.locator('.fw-pins .p-notif', { hasText: 'No tanod of the committee is free' })).toHaveCount(1);

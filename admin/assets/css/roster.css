@@ -100,3 +100,23 @@
 .pe-roster .p-badges .p-badge { white-space: normal; overflow: visible; max-width: 100%; line-height: 1.25; text-align: center; }
 
 .pe-res #accounts-tbody td:nth-last-child(2) .p-badges { flex-flow: row wrap; }
+
+/* ---- an account's page: two columns of cards of one height per row, the controls beside them and in view as you scroll ---- */
+.page-personnel .p-profile-grid, .page-residents .p-profile-grid { grid-template-columns: minmax(0, 1fr) 380px; align-items: start; }
+.pd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+.pd-head, .pd-recent { grid-column: 1 / -1; }
+.pd-details { order: 1; } .pd-tc { order: 2; } .pd-duty { order: 3; } .pd-id { order: 4; } .pd-recent { order: 5; } .pd-ocr { order: 6; } .pd-selfie { order: 7; } .pd-abuse { order: 8; }
+.pd-head { order: 0; }
+.pd-id .p-id-shot img { width: 100%; height: auto; max-height: 360px; object-fit: contain; }
+.p-profile-grid > .p-controls { position: sticky; top: 16px; }
+#tc-card .tc-line > .cm-pill { flex: 0 0 auto; }
+@media (max-width: 1280px) {
+  .page-personnel .p-profile-grid, .page-residents .p-profile-grid { grid-template-columns: minmax(0, 1fr); }
+  .p-profile-grid > .p-controls { position: static; }
+}
+@media (max-width: 760px) { .pd-grid { grid-template-columns: minmax(0, 1fr); } }
+.pd-grid:not(:has(.pd-ocr)):not(:has(.pd-abuse)) .pd-selfie, .pd-grid:has(.pd-ocr) .pd-abuse { grid-column: 1 / -1; }
+#tc-card .tc-line { display: grid; gap: 8px; justify-items: start; padding-bottom: 6px; }
+#tc-card .tc-line > .tc-row { width: 100%; }
+#tc-card .tc-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; align-items: center; }
+#tc-card .tc-add > select { grid-column: 1 / -1; }

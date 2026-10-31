@@ -138,7 +138,7 @@ function render_tc_card(array $p, ?array $row): void
     $myCom = is_committee() ? (string) (current_admin()['committee'] ?? '') : '';
     $have = array_column($rows, 'key');
     $csrf = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><input type="hidden" name="id" value="' . e($p['id']) . '">'; ?>
-        <div class="p-card p-card-pad" id="tc-card">
+        <div class="p-card p-card-pad pd-tc" id="tc-card">
           <p class="p-eyebrow"><?= e(t('Committees', 'Mga komite')) ?></p>
           <?php if (!$rows): ?><p class="p-none-line"><?= e(t('Not in a committee yet. Only the super admins see this tanod.', 'Wala pa sa komite. Ang mga super admin lang ang nakakakita sa tanod na ito.')) ?></p><?php endif; ?>
           <?php foreach ($rows as $c): $mine = is_super() || $c['key'] === $myCom; ?>
