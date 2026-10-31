@@ -9,6 +9,15 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (an account's page, 31 Oct)**
+- A tanod's or a resident's page is two columns of cards instead of one tall column: the identity on top, then
+  Account details beside Committees, Duty beside the ID, Recent dispatches across, the selfie beside OCR (or the
+  abuse history). Cards that share a row share a height. A tanod's page is about 1,100 px at 2048, it was
+  1,412 and more.
+- The Admin controls are narrower (380 px, not 665) and stay in view while you scroll.
+- The committee pill is a pill, not a full-width bar, and the "add to a committee" form never cuts its select or
+  its role field.
+
 **Changed (the rules pass, 31 Oct)**
 - A new audit, `tests/browser/rules-audit.spec.mjs` (with `rules-lib.mjs`), applies the standing symmetry rule as
   measurements to 73 screens of the super admin (every page, every tab, every modal, the Forward dialog and the

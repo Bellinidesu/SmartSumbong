@@ -1146,8 +1146,8 @@ function render_account_detail(
     </div>
 
     <div class="p-profile-grid">
-      <div class="p-grid">
-        <div class="p-card p-card-pad">
+      <div class="p-grid pd-grid">
+        <div class="p-card p-card-pad pd-head">
         <div class="p-acc-head"><?= account_avatar_html($p['avatar_url'] ?? null, $p['full_name'], 'lg') ?><div><h2><?= e(formal_name($p['full_name'])) ?></h2><div class="p-acc-flags"><?= account_status_pills($p) ?></div></div></div>
 
         <?php if ($pending && !empty($p['due_at'])): ?>
@@ -1172,7 +1172,7 @@ function render_account_detail(
         <?php endif; ?>
 
         </div>
-        <div class="p-card p-card-pad">
+        <div class="p-card p-card-pad pd-details">
           <p class="p-eyebrow"><?= e(t('Account Details', 'Detalye ng Account')) ?></p>
           <dl class="p-dl">
             <dt><?= e(t('Full name', 'Buong pangalan')) ?></dt><dd><?= e(formal_name($p['full_name'])) ?></dd>
@@ -1185,7 +1185,7 @@ function render_account_detail(
         <?php if ($tcRow !== null) { render_tc_card($p, $tcRow); } ?>
 
         <?php if ($duty): $st = $duty['stats']; ?>
-        <div class="p-card p-card-pad">
+        <div class="p-card p-card-pad pd-duty">
           <p class="p-eyebrow"><?= e(t('Duty', 'Tungkulin')) ?> &middot; <?= e($st['month']) ?></p>
           <div class="p-duty-grid">
             <div><small><?= e(t('Dispatched', 'Na-dispatch')) ?></small><b><?= (int) $st['dispatched'] ?></b></div>
@@ -1213,7 +1213,7 @@ function render_account_detail(
           <?php endif; ?>
         </div>
 
-        <div class="p-card p-table-card">
+        <div class="p-card p-table-card pd-recent">
           <div class="p-card-head" style="padding-bottom:14px"><h2><?= e(t('Recent dispatches', 'Mga huling dispatch')) ?></h2></div>
           <div class="p-tscroll"><table class="p-t">
             <thead><tr><th><?= e(t('Complaint', 'Sumbong')) ?></th><th><?= e(t('Assigned', 'Na-assign')) ?></th><th><?= e(t('Accepted', 'Tinanggap')) ?></th><th><?= e(t('Outcome', 'Kinalabasan')) ?></th></tr></thead>
@@ -1235,7 +1235,7 @@ function render_account_detail(
         </div>
         <?php endif; ?>
 
-        <div class="p-card p-card-pad">
+        <div class="p-card p-card-pad pd-id">
           <p class="p-eyebrow"><?= e($idLabel) ?></p>
           <?php if (empty($p['id_image_url'])): ?>
             <p class="p-none-line"><?= e(t('No identification was uploaded. This account cannot be verified until one is.', 'Walang na-upload na ID. Hindi maveberipika ang account na ito hangga\'t walang ID.')) ?></p>
@@ -1263,7 +1263,7 @@ function render_account_detail(
              orders the queue and points at what to check first. The data
              has been flowing through account_directory() since 0039; this
              box is the first place any of it actually reaches a screen. -->
-        <div class="p-card p-card-pad">
+        <div class="p-card p-card-pad pd-ocr">
           <p class="p-eyebrow"><?= e(t('OCR Triage', 'Pagsusuri ng OCR')) ?></p>
           <?php if (!empty($p['id_type'])): ?>
             <p class="p-meta-line">
@@ -1314,7 +1314,7 @@ function render_account_detail(
         </div>
         <?php endif; ?>
 
-        <div class="p-card p-card-pad">
+        <div class="p-card p-card-pad pd-selfie">
           <p class="p-eyebrow"><?= e(t('Uploaded Selfie', 'Na-upload na Selfie')) ?></p>
           <?php if (empty($p['selfie_url'])): ?>
             <p class="p-none-line">
@@ -1328,7 +1328,7 @@ function render_account_detail(
         </div>
 
         <?php if ($noun === 'Resident'): ?>
-          <div class="p-card p-card-pad">
+          <div class="p-card p-card-pad pd-abuse">
             <p class="p-eyebrow"><?= e(t('Abuse History', 'Kasaysayan ng Pang-aabuso')) ?></p>
             <?php if (!$abuseHistory): ?>
               <p class="p-none-line"><?= e(t('No complaints from this resident have been flagged as abusive or fabricated.', 'Walang sumbong ng residenteng ito na namarkahang mapang-abuso o gawa-gawa.')) ?></p>
