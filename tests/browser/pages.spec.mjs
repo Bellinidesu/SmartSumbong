@@ -573,8 +573,8 @@ test('System status: the table is the page, the diagram of the same services ope
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('Case Reports: on a very wide screen the search and the filters are one toolbar line', async ({ page }) => {
-  await page.setViewportSize({ width: 2560, height: 1100 });
+test('Case Reports: on a wide screen the search and the filters are one toolbar line', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'cases.php');
   const tops = await page.evaluate(() => [document.querySelector('.ss-cr-band .p-search'), ...document.querySelectorAll('.ss-cr-band .ss-band-filters .p-pill-select')].map(e => Math.round(e.getBoundingClientRect().top)));
   expect(tops.length, 'the search and the five filters').toBe(6);
@@ -598,7 +598,6 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   expect(await axe(page), 'Report Summary, engine window open').toEqual([]);
   await page.keyboard.press('Escape');
   await expect(page.locator('#ss-panel')).toBeHidden();
-  await page.setViewportSize({ width: 1440, height: 1000 });   // below 1500 the sections are one strip across the top
   const bar = await page.evaluate(() => { const n = document.querySelector('#ss-jump').getBoundingClientRect(), c = document.querySelector('#rs-ledger').getBoundingClientRect(); return [Math.round(n.left), Math.round(n.right), Math.round(c.left), Math.round(c.right)]; });
   expect(Math.abs(bar[0] - bar[2]) <= 1 && Math.abs(bar[1] - bar[3]) <= 1, 'the tab bar spans the card below it, with no gap: ' + bar).toBe(true);
   expect(await page.locator('#rs-ledger tr.rs-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
@@ -613,40 +612,37 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
 });
 
 test('Case Reports, peak: figures that link to their lists, the blue column header, overdue rows marked', async ({ page }) => {
-  await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'cases.php');
   await expect(page.locator('.cr-fig > a')).toHaveCount(4);
-  const lefts = await page.locator('.cr-fig > a').evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().left)));
-  expect(new Set(lefts).size, 'the views are one column in the rail').toBe(1);
+  const tops = await page.locator('.cr-fig > a').evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().top)));
+  expect(new Set(tops).size, 'the four figures are one band').toBe(1);
   await expect(page.locator('.cr-fig > a').first()).toHaveAttribute('href', /view=attention/);
   expect(Number(await page.locator('.cr-fig > a').first().locator('b').textContent())).toBeGreaterThan(0);
   expect(await page.locator('.ss-cases-t thead th').first().evaluate(e => getComputedStyle(e).backgroundColor), 'the column header is the Figma blue').toBe('rgb(0, 48, 143)');
   expect(await page.locator('.ss-cases-t tr.cr-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
   await page.locator('.cr-fig > a').first().click();
   await expect(page).toHaveURL(/view=attention/);
-  const edges = await page.evaluate(() => { const b = document.querySelector('.ss-cr-band').getBoundingClientRect(), t = document.querySelector('.ss-cases-t').closest('.p-table-card').getBoundingClientRect(), r = document.querySelector('.cr-rail').getBoundingClientRect(); return [b.left, b.right, t.left, t.right, b.bottom, t.top, r.right, b.left].map(Math.round); });
-  expect([edges[0], edges[1]], 'the band and the table are one object').toEqual([edges[2], edges[3]]);
-  expect(Math.abs(edges[4] - edges[5]) <= 1, 'with no strip between them: ' + edges).toBe(true);
-  expect(edges[6] < edges[7], 'the rail sits beside them at 2048').toBe(true);
-  const names = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
-  expect(names, 'no committee name is cut').toBe(0);
-  await expect(page.locator('.cm-chips .cm-od').first(), 'a committee says how many of its cases are overdue').toContainText('overdue');
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('One rule on every list page: the answer across the top, the slices as a rail on the left, a square join of band and header', async ({ page }) => {
-  await page.setViewportSize({ width: 2048, height: 1100 });
-  const r = await open(page, 'summary.php?range=month');
-  const g = await page.evaluate(() => { const n = document.querySelector('#ss-jump').getBoundingClientRect(), f = document.querySelector('.ss-sumkpis').getBoundingClientRect(), c = document.querySelector('#rs-ledger').getBoundingClientRect(); return { rail: [n.right, c.left, n.top, c.top], fig: f.bottom <= n.top }; });
-  expect(g.rail[0] <= g.rail[1] && Math.abs(g.rail[2] - g.rail[3]) <= 2, 'the sections are a rail beside the table, level with it: ' + g.rail).toBe(true);
-  expect(g.fig, 'the figures stay across the top, above the rail').toBe(true);
+test('The stacked layout: the strip is one object with the band and the table, no name is cut, the header join is square', async ({ page }) => {
+  for (const w of [2048, 1440, 720]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    const r = await open(page, 'cases.php');
+    const g = await page.evaluate(() => { const b = document.querySelector('.ss-cr-band').getBoundingClientRect(), c = document.querySelector('.cm-chips').getBoundingClientRect(), t = document.querySelector('.ss-cases-t').closest('.p-table-card').getBoundingClientRect(); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(Math.round) }; });
+    expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+    expect([g.x[2], g.x[3]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
+    expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap at ' + w + ': ' + g.y).toBe(true);
+    const cut = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
+    expect(cut, 'no committee name is cut at ' + w).toBe(0);
+    expect(await page.locator('.ss-cases-t thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'square header corners at ' + w).toEqual(['0px', '0px']);
+    expect(r.errors, 'console errors').toEqual([]);
+  }
+  await page.setViewportSize({ width: 2048, height: 1000 });
+  await open(page, 'summary.php?range=month');
   await page.locator('#ss-jump a[href="#rs-com"]').click();
-  await expect(page.locator('#rs-com')).toBeVisible();
-  const sq = async sel => page.evaluate(s => { const e = document.querySelector(s); return [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]; }, sel);
-  expect(await sq('#rs-com thead th:first-child'), 'the blue header has square top corners').toEqual(['0px', '0px']);
-  const c = await open(page, 'cases.php');
-  expect(await sq('.ss-cases-t thead th:first-child'), 'and on Case Reports').toEqual(['0px', '0px']);
-  expect(r.errors.concat(c.errors), 'console errors').toEqual([]);
+  expect(await page.locator('#rs-com thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'and on Report Summary').toEqual(['0px', '0px']);
+  await expect(page.locator('.rs-layout, .cr-rail'), 'no rail anywhere').toHaveCount(0);
 });
 
 test('Roles and pages 5: the Inbox, writing along the ladder, and the reroute question', async ({ page, context }) => {

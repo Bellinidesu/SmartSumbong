@@ -675,15 +675,6 @@ $crOd = [];   // overdue open cases, by committee ('' = none)
 foreach ($openRows ?? [] as $r) { if (!empty($r['due_at']) && strtotime((string) $r['due_at']) < time()) { $k = (string) ($r['case_committee'] ?? ''); $crOd[$k] = ($crOd[$k] ?? 0) + 1; } }
 $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '%d ang lampas') : t('%d overdue', '%d ang lampas'), $n) : t('none overdue', 'walang lampas');
 ?>
-<?php
-$casesFlash = $_SESSION['cases_flash'] ?? null; unset($_SESSION['cases_flash']);
-$comHref = fn (string $c) => 'cases.php?' . http_build_query(array_filter(array_merge(array_diff_key($_GET, ['page' => 1, 'com' => 1, 'clear' => 1]), ['com' => $c]), fn ($v) => $v !== '' && $v !== null));
-$fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
-?>
-<?php if ($casesFlash): ?><div class="p-flash p-flash--<?= $casesFlash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($casesFlash['text']) ?></div><?php endif; ?>
-<div class="cr-layout">
-<aside class="cr-rail" aria-label="<?= e(t('Views and committees', 'Mga tanaw at komite')) ?>">
-<p class="p-eyebrow cr-rail-h"><?= e(t('Views', 'Mga tanaw')) ?></p>
 <div class="cr-fig" aria-label="<?= e(t('What needs attention', 'Ang kailangan ng pansin')) ?>">
   <a class="p-card ss-tile<?= $atc > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['view' => 'attention'])) ?>"><span><?= e(t('Needs attention', 'Kailangan ng pansin')) ?></span><b class="p-num"><?= (int) $atc ?></b>
     <small><?= e(t('late, asked again, or waiting for approval', 'huli, muling nagtanong, o naghihintay ng pag-apruba')) ?></small></a>
@@ -694,21 +685,6 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   <a class="p-card ss-tile" href="<?= e($crHref(['clear' => 1])) ?>"><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b class="p-num"><?= (int) $crOpen ?></b>
     <small><?= e(t('not yet resolved or closed', 'hindi pa nalulutas o naisasara')) ?></small></a>
 </div>
-<p class="p-eyebrow cr-rail-h"><?= e(t('Committees', 'Mga komite')) ?></p>
-<nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
-  <a class="cm-chip<?= $com === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $com === '' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?><em class="<?= array_sum($crOd) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) array_sum($crOd))) ?></em></span><b><?= (int) ($chipN['all'] ?? 0) ?></b></a>
-  <?php if (sees_everything()): ?>
-    <?php foreach (committees_active() as $ck => $cl): ?>
-      <a class="cm-chip<?= $com === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($comHref($ck)) ?>"<?= $com === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><i></i><span class="cm-n"><?= e($cl) ?><em class="<?= ($crOd[$ck] ?? 0) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) ($crOd[$ck] ?? 0))) ?></em></span><b><?= (int) ($chipN[$ck] ?? 0) ?></b></a>
-    <?php endforeach; ?>
-    <a class="cm-chip cm-chip-none<?= $com === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $com === 'none' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?><em class="<?= ($crOd[''] ?? 0) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) ($crOd[''] ?? 0))) ?></em></span><b><?= (int) ($chipN['none'] ?? 0) ?></b></a>
-  <?php elseif ($myCom !== ''): ?>
-    <a class="cm-chip<?= $com === 'fwd' ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($myCom)) ?>" href="<?= e($comHref('fwd')) ?>"<?= $com === 'fwd' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?></span><b><?= (int) ($chipN['fwd'] ?? 0) ?></b></a>
-    <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
-  <?php endif; ?>
-</nav>
-</aside>
-<div class="cr-main">
 <?php $vAnyBand = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $issue !== '' || $month !== '' || $tanod !== '' || $search !== ''; ?>
 <div class="p-band ss-cr-band">
   <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= (int) $regTotal ?></span></h2>
@@ -780,6 +756,24 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   </form>
 </div>
 
+<?php
+$casesFlash = $_SESSION['cases_flash'] ?? null; unset($_SESSION['cases_flash']);
+$comHref = fn (string $c) => 'cases.php?' . http_build_query(array_filter(array_merge(array_diff_key($_GET, ['page' => 1, 'com' => 1, 'clear' => 1]), ['com' => $c]), fn ($v) => $v !== '' && $v !== null));
+$fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
+?>
+<?php if ($casesFlash): ?><div class="p-flash p-flash--<?= $casesFlash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($casesFlash['text']) ?></div><?php endif; ?>
+<nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+  <a class="cm-chip<?= $com === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $com === '' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?><em class="<?= array_sum($crOd) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) array_sum($crOd))) ?></em></span><b><?= (int) ($chipN['all'] ?? 0) ?></b></a>
+  <?php if (sees_everything()): ?>
+    <?php foreach (committees_active() as $ck => $cl): ?>
+      <a class="cm-chip<?= $com === $ck ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($ck)) ?>" href="<?= e($comHref($ck)) ?>"<?= $com === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><i></i><span class="cm-n"><?= e($cl) ?><em class="<?= ($crOd[$ck] ?? 0) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) ($crOd[$ck] ?? 0))) ?></em></span><b><?= (int) ($chipN[$ck] ?? 0) ?></b></a>
+    <?php endforeach; ?>
+    <a class="cm-chip cm-chip-none<?= $com === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $com === 'none' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?><em class="<?= ($crOd[''] ?? 0) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) ($crOd[''] ?? 0))) ?></em></span><b><?= (int) ($chipN['none'] ?? 0) ?></b></a>
+  <?php elseif ($myCom !== ''): ?>
+    <a class="cm-chip<?= $com === 'fwd' ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($myCom)) ?>" href="<?= e($comHref('fwd')) ?>"<?= $com === 'fwd' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?></span><b><?= (int) ($chipN['fwd'] ?? 0) ?></b></a>
+    <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i></i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
+  <?php endif; ?>
+</nav>
 <?php if (is_super()): ?>
 <div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
 <?php endif; ?>
@@ -843,8 +837,6 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   </table>
 </div></div>
 <div id="reports-pager"><?= pager((int) $regTotal, $page) ?></div>
-</div>
-</div>
 
 <?php endif; ?>
 

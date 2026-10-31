@@ -9,22 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
-**Changed (one rule for every list page, 1 Nov)**
-- Ace asked what the portal follows when Case Reports had a vertical rail and everything else was horizontal. The rule: the
-  answer (the figures) is a band across the top; the slices of a list (Report Summary's sections, Case Reports' views and
-  committees) are a rail on the left, as in Jira Service Management's queues; under 1500 px the rail is one compact strip
-  across the top. Report Summary now follows it (its five sections are the rail, with their counts).
-- The join of the orange band and the blue column header is square on both pages (the header's top corners were rounded
-  and showed the band behind them).
-
-**Changed (Case Reports: a rail beside one object, 1 Nov)**
-- Ace: the committee strip looked disjointed. The register is restructured: a left rail holds the views (Needs attention,
-  Nobody has it, No committee yet, Open now, each with its count) and the committees (a colour bar, the whole name, how many
-  of its cases are overdue, the count); the orange band over the blue-headed table is one object beside it. The four-figure
-  band above and the strip between the band and the table are gone.
-- Under 1500 px the rail lies above as one compact wrapping strip, so no name is ever cut and the table starts sooner.
-- The one-line toolbar now waits for 2500 px (the rail takes width); below that the filters are two rows, as in Figma.
-- A case's "Forwarded from" tag and its place stay on one line with the whole text on hover, so every row is one height.
+**Changed (back to the stacked layout, 1 Nov)**
+- Ace: "vertical" means the page running top to bottom, not a left rail. The two rail pull requests (#274, #275) are reverted:
+  Report Summary is again the figures, the full-width strip of five tabs and the table; Case Reports is the figures, the orange
+  band, the committee strip and the blue-headed table. No page has a rail.
+- Kept from the rail work: the committee strip is one object with the band and the table (it wraps to as many rows as it
+  needs, never cuts a name, and shows how many of each committee's cases are overdue); the join of the orange band and the
+  blue header is square on both pages; a case's "Forwarded from" tag and its place stay on one line, so rows are one height.
 
 **Changed (Case Reports, peak, 1 Nov)**
 - The page opens with an answer: one band of four figures, each a link to the list it counts: Needs attention (late, asked
