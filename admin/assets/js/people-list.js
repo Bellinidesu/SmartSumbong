@@ -64,6 +64,15 @@
     save(ids); location.href = self2 + '?id=' + encodeURIComponent(ids[0]);
   });
 
+  // Personnel (super admin): the ticked tanods go to the committee picked; the form is posted with their ids
+  var tcf = $('ss-bulk-tc');
+  if (tcf) tcf.addEventListener('submit', function (e) {
+    var ids = Object.keys(picked).filter(function (k) { return picked[k]; });
+    if (!ids.length) { e.preventDefault(); return; }
+    [].forEach.call(tcf.querySelectorAll('input[name="ids[]"]'), function (n) { n.remove(); });
+    ids.forEach(function (id) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'ids[]'; i.value = id; tcf.appendChild(i); });
+  });
+
   // a queue left over from before: offer to continue it
   var q2 = load();
   if (strip && q2.length) {

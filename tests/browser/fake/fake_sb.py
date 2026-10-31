@@ -184,6 +184,25 @@ def _cmd_end(p):
     CMD['active'] = None; return None
 
 
+ACCOUNTS = [
+  {'id':'u1','full_name':'Besarra, Rose','email':'person0@example.test','mobile_number':'+639170000001','verification_status':'pending','is_suspended':False,'suspended_reason':None,'is_overdue':True,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'},
+  {'id':'u2','full_name':'Lediac, Ace','email':None,'mobile_number':'+639170000002','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':'on_duty','holding_incident':False,'is_retired':False,'role':'resident'},
+  {'id':'u3','full_name':'Arcibal, Kim Justine','email':None,'mobile_number':'+639170000003','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':'offline','holding_incident':False,'is_retired':False,'role':'resident'},
+  {'id':'u4','full_name':'Deleted Resident','email':'deleted+f3f2193fe8ba406ca910b5635eba2b5e@smartsumbong.invalid','mobile_number':'deleted-f3f2193fe8','verification_status':'verified','is_suspended':True,'suspended_reason':'Account deleted by the resident','is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'},
+  {'id':'u5','full_name':'Martin, Jericho Troy','email':'person4@example.test','mobile_number':'+639170000004','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':'lunch','holding_incident':True,'is_retired':False,'role':'resident'},
+  {'id':'u6','full_name':'Martin, Jericho Troy','email':'person6@example.test','mobile_number':'+639170000000','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'}
+]
+# more tanods for the Personnel roster: long names and emails, several committees, a suspended one
+def _acc(i, name, email, mobile, ver='verified', duty=None, inc=False, **k):
+    return dict({'id': i, 'full_name': name, 'email': email, 'mobile_number': mobile, 'verification_status': ver, 'is_suspended': False, 'suspended_reason': None,
+                 'is_overdue': False, 'minutes_left': None, 'avatar_url': None, 'duty_status': duty, 'holding_incident': inc, 'is_retired': False, 'role': 'tanod'}, **k)
+TANOD_EXTRA = [
+    _acc('u7', 'Barretto, Martin Alexander', 'barretto.martin2023@gmail.com', '+639199372222', duty='offline'),
+    _acc('u8', 'Bellini, Bell', 'project.shininglight.28@gmail.com', '+639694206767', duty='on_duty', inc=True),
+    _acc('u9', 'Dela Cruz, Maria Cristina Santos-Villanueva', 'maria.cristina.delacruz.villanueva@example.test', '+639177771234', ver='pending', duty='break', minutes_left=45),
+    _acc('u10', 'Reyes, Paolo', None, '+639188880001', duty='on_duty', is_suspended=True, suspended_reason='Absent without notice'),
+]
+
 RPC = {
     'command_hall': lambda p: None if (p.get('p_token') != 'f' * 48 or not FEAT['command_center']) else {
         'as_of': ago(0), 'barangay': 'Barangay 183, Zone 20', 'today': {'filed': 7, 'resolved': 3, 'open': 19}, 'tanods_on_duty': 4,
@@ -214,7 +233,9 @@ RPC = {
     'forward_case': 1, 'flag_case_for_forward': 6, 'dismiss_forward_flag': None,
     # 0153: tanods in committees and the punch cards
     'personnel_committees': [{'tanod_id': 'u2', 'committees': [{'key': 'peace_order', 'status': 'approved', 'role': 'Lead sa gabi'}], 'busy_committee': None},
-                             {'tanod_id': 'u3', 'committees': [{'key': 'environment', 'status': 'proposed', 'role': None}], 'busy_committee': 'peace_order'}],
+                             {'tanod_id': 'u3', 'committees': [{'key': 'environment', 'status': 'proposed', 'role': None}], 'busy_committee': 'peace_order'},
+                             {'tanod_id': 'u8', 'committees': [{'key': 'peace_order', 'status': 'approved', 'role': None}, {'key': 'environment', 'status': 'approved', 'role': None}], 'busy_committee': 'peace_order'},
+                             {'tanod_id': 'u9', 'committees': [{'key': 'peace_order', 'status': 'approved', 'role': None}, {'key': 'environment', 'status': 'approved', 'role': None}, {'key': 'health_sanitation', 'status': 'approved', 'role': None}], 'busy_committee': None}],
     'tanod_pick_list': [{'id': 'u5', 'full_name': 'Martin, Jericho Troy'}],
     'propose_tanod_committee': 'proposed', 'decide_tanod_committee': None, 'remove_tanod_committee': None, 'punch': None,
     'punch_cards': [{'id': 's1', 'name': 'Santos, Ben', 'tier': 'moderator', 'committee': 'peace_order', 'position': 'secretary',
@@ -279,14 +300,8 @@ RPC = {
     'smart_patterns': [{'pattern_key': 'p1', 'category': 'environmental_waste_hazard', 'lat': 14.5, 'lng': 121.0, 'reports': 6, 'weeks': 4, 'residents': 5, 'still_open': 2, 'hazard': 'Flood zone 2', 'tracking_ids': ['SS-2610-1003', 'SS-2610-1011', 'SS-2610-1015']}],
     'dashboard_metrics': {'daily': [{'label': str(i), 'filed': max(0, round(3 + 2.2 * math.sin(i / 3.4) + 1.2 * math.sin(i / 1.3) + (1.5 if i > 22 else 0)))} for i in range(1, 31)], 'efficiency': [], 'resolution_status': {'done': 30, 'overdue': 4, 'late': 3, 'processing': 12, 'rejected': 2},
                           'categories': [{'category': c, 'n': 5 + i} for i, c in enumerate(CATS)], 'tiles': {'resolved': 30, 'escalated': 6, 'overdue': 4}, 'total': 51},
-    'account_directory': [
-  {'id':'u1','full_name':'Besarra, Rose','email':'person0@example.test','mobile_number':'+639170000001','verification_status':'pending','is_suspended':False,'suspended_reason':None,'is_overdue':True,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'},
-  {'id':'u2','full_name':'Lediac, Ace','email':None,'mobile_number':'+639170000002','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':'on_duty','holding_incident':False,'is_retired':False,'role':'resident'},
-  {'id':'u3','full_name':'Arcibal, Kim Justine','email':None,'mobile_number':'+639170000003','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':'offline','holding_incident':False,'is_retired':False,'role':'resident'},
-  {'id':'u4','full_name':'Deleted Resident','email':'deleted+f3f2193fe8ba406ca910b5635eba2b5e@smartsumbong.invalid','mobile_number':'deleted-f3f2193fe8','verification_status':'verified','is_suspended':True,'suspended_reason':'Account deleted by the resident','is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'},
-  {'id':'u5','full_name':'Martin, Jericho Troy','email':'person4@example.test','mobile_number':'+639170000004','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':'lunch','holding_incident':True,'is_retired':False,'role':'resident'},
-  {'id':'u6','full_name':'Martin, Jericho Troy','email':'person6@example.test','mobile_number':'+639170000000','verification_status':'verified','is_suspended':False,'suspended_reason':None,'is_overdue':False,'minutes_left':None,'avatar_url':None,'duty_status':None,'holding_incident':False,'is_retired':False,'role':'resident'}
-], 'portal_uptime_summary': {'day_checks': 144, 'day_ok': 144, 'week_checks': 1008, 'week_ok': 1006, 'last_at': ago(0.1), 'last_ok': True, 'mem_now': 138, 'mem_limit': 512, 'mem_week_avg': 131, 'mem_week_max': 204, 'mem_samples': 1008}, 'engine_status': {'configured': True, 'waiting': 1, 'failed_week': 0, 'read_week': 6, 'last_read_at': ago(2)},
+    'account_directory': lambda b: ACCOUNTS + (TANOD_EXTRA if b.get('p_role') == 'tanod' else []),
+    'portal_uptime_summary': {'day_checks': 144, 'day_ok': 144, 'week_checks': 1008, 'week_ok': 1006, 'last_at': ago(0.1), 'last_ok': True, 'mem_now': 138, 'mem_limit': 512, 'mem_week_avg': 131, 'mem_week_max': 204, 'mem_samples': 1008}, 'engine_status': {'configured': True, 'waiting': 1, 'failed_week': 0, 'read_week': 6, 'last_read_at': ago(2)},
 }
 
 
