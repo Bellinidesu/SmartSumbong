@@ -415,6 +415,18 @@ test('Roles and pages 4: tanods in committees, the punch cards, and a Kagawad\'s
   await expect(page).toHaveURL(/view=staff/);
   await expect(page.locator('.pc-card')).toHaveCount(2);
   await expect(page.locator('.pc-card').first()).toContainText('Still in');
+  // peak: the figures lead, each committee's banner heads its group and is joined to the cards under it
+  await expect(page.locator('.pc-fig .ss-tile')).toHaveCount(4);
+  await expect(page.locator('.pc-fig .ss-tile').nth(1)).toContainText('1');
+  await expect(page.locator('.pc-gh .cm-chip')).toHaveCount(1);
+  const pg = await page.evaluate(() => { const b = document.querySelector('.pc-gh').getBoundingClientRect(), g = document.querySelector('.pc-grid').getBoundingClientRect(); return { h: Math.round(b.height), gap: Math.abs(b.bottom - g.top), x: [Math.round(b.left), Math.round(b.right), Math.round(g.left), Math.round(g.right)], bg: getComputedStyle(document.querySelector('.pc-gh .cm-chip')).backgroundImage }; });
+  expect(pg.h, 'the banner is slim').toBeLessThanOrEqual(80);
+  expect(pg.gap, 'and joined to its cards').toBeLessThanOrEqual(1);
+  expect([pg.x[0], pg.x[1]], 'sharing their edges').toEqual([pg.x[2], pg.x[3]]);
+  expect(pg.bg, 'a gradient in the committee colours').toContain('gradient');
+  await page.locator('.pc-fig .ss-tile').nth(2).click();
+  await expect(page.locator('.pc-card')).toHaveCount(1);   // the one not in today
+  await expect(page.locator('.pc-card').first()).toContainText('Not in today');
   expect(await axe(page), 'Personnel, Committee staff').toEqual([]);
   const d = await open(page, 'personnel.php?id=u2');
   await expect(page.locator('#tc-card .tc-add button')).toContainText('Add to the committee');

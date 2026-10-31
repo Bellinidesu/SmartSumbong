@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Personnel, Committee staff: peak, 1 Nov)**
+- A strip of figures leads (staff, in now, not in today, cases touched today; the middle two filter). Each committee's group is headed by its vibrant banner
+  (the colours and symbols the super admin gave it, how many are in now, how many people), joined to the cards under it. Cards: avatar, rank,
+  in now / signed out / not in today, today's times, and the last 7 days.
+
 **Fixed (Personnel duty tiles, 1 Nov)**
 - The On Duty, Lunch, Break and Offline tiles lost their colour fields under the identity layer, leaving white lettering on a white card.
   They are green, orange, yellow and red again, in light and dark; a test now checks the field and the ink.
