@@ -603,9 +603,10 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   expect(await page.locator('#rs-ledger tr.rs-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
   const wrong = await page.locator('#rs-ledger tbody tr').evaluateAll(rs => rs.filter(r => /Resolved|Closed/.test(r.children[4].textContent) && /open \d/.test(r.children[r.children.length - 1].textContent)).length);
   expect(wrong, 'a resolved case never reads as open').toBe(0);
-  const heads = await page.evaluate(() => ['rs-ledger'].map(id => getComputedStyle(document.querySelector('#' + id + ' thead th')).backgroundColor));
-  expect(heads[0], 'the orange table header is back').toMatch(/^rgb\(25[0-9], 1[5-8][0-9], /);
-  await expect(page.locator('thead.p-blue'), 'one header colour on every tab').toHaveCount(0);
+  const bands = await page.evaluate(() => { const c = id => getComputedStyle(document.querySelector(id)).backgroundImage + '|' + getComputedStyle(document.querySelector(id)).backgroundColor; return [c('#rs-ledger > .p-card-head'), getComputedStyle(document.querySelector('#rs-ledger thead th')).backgroundColor]; });
+  expect(bands[0], 'the title row is the orange band').toMatch(/255, 1[5-8]\d, \d+/);
+  expect(bands[1], 'the column header under it is the blue').toBe('rgb(0, 48, 143)');
+  await expect(page.locator('thead.p-orange'), 'one pair of colours on every tab').toHaveCount(0);
   await expect(page.locator('.p-period-band .p-btn-pdf2')).toBeVisible();
   expect(r.errors, 'console errors').toEqual([]);
 });

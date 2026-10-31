@@ -276,3 +276,42 @@
 :root:root .p-body.page-summary .ss-jump { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; gap: 4px; padding: 6px; }
 .page-summary .ss-jump a { justify-content: center; white-space: nowrap; }
 @media (max-width: 760px) { :root:root .p-body.page-summary .ss-jump { display: flex; flex-wrap: wrap; } .page-summary .ss-jump a { flex: 1 1 auto; } }
+
+/* ---- Report Summary: the title row is the orange band, the column header under it is the blue (the Figma pair) ---- */
+.page-summary .p-table-card > .p-card-head {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 22px !important; margin: 0;
+  background: linear-gradient(105deg, #FFB43A 0%, #FF9800 45%, #F58200 100%); color: #2B1A00; border-radius: 16px 16px 0 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+}
+.page-summary .p-table-card > .p-card-head h2 { color: #2B1A00; font-size: 16px; font-weight: 800; margin: 0; }
+.page-summary .p-table-card > .p-card-head .p-hint { color: rgba(43,26,0,.75); font-weight: 700; }
+.page-summary .p-table-card thead.p-blue th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
+.page-summary .p-table-card thead.p-blue th a { color: #fff; }
+
+/* ---- the Case Timeline: a picker on the left, one case's story on the right, on a rail ---- */
+.rs-tl-split { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); }
+.rs-tl-pick { border-right: 1px solid var(--p-line); min-width: 0; }
+.rs-tl-pick tbody tr.p-sel > td { background: color-mix(in srgb, #FF9800 12%, transparent); }
+.rs-tl-pick tbody tr.p-sel > td:first-child { box-shadow: inset 4px 0 0 #FF9800; }
+.rs-tl-pick td { padding-top: 10px; padding-bottom: 10px; }
+.rs-tl-st { display: block; margin-top: 4px; }
+.rs-tl-n { display: inline-grid; place-items: center; min-width: 26px; height: 24px; padding: 0 8px; border-radius: 99px; background: var(--p-grey-bg); font: 800 12.5px Inter, sans-serif; }
+.rs-tl-view { padding: 18px 26px 26px; min-width: 0; }
+.rs-tl-head { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--p-line); }
+.rs-tl-head > div { display: grid; gap: 2px; }
+.rs-tl-head b { font: 800 17px Urbanist, sans-serif; }
+.rs-tl-id { font-size: 13px; }
+.rs-tl2 { list-style: none; margin: 0; padding: 0 0 0 8px; position: relative; display: grid; }
+.rs-tl2::before { content: ""; position: absolute; left: 14px; top: 8px; bottom: 8px; width: 2px; background: var(--p-line); }
+.rs-tl-day { padding: 14px 0 6px 38px; font: 800 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--p-muted); }
+.rs-tl-day:first-child { padding-top: 0; }
+.rs-tl-it { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; padding: 8px 0; }
+.rs-tl-dot { position: relative; z-index: 1; width: 14px; height: 14px; margin: 6px 0 0 7px; border-radius: 50%; background: var(--rc, #356CF9); box-shadow: 0 0 0 4px var(--p-surface); }
+.rs-tl-it.rs-on { --rc: #356CF9; } .rs-tl-it.rs-good { --rc: #2BAE5B; } .rs-tl-it.rs-bad { --rc: #E5383B; } .rs-tl-it.rs-ref { --rc: #7A5AE0; } .rs-tl-it.rs-sys { --rc: #9AA3B8; }
+.rs-tl-body { padding: 10px 14px; border: 1px solid var(--p-line); border-radius: 12px; background: var(--p-surface); display: grid; gap: 4px; min-width: 0; }
+.rs-tl-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rs-tl-top b { font-size: 14.5px; }
+.rs-tl-when { font: 600 12px Inter, sans-serif; color: var(--p-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rs-tl-rm { margin: 0; font-size: 13.5px; color: var(--p-ink-2); overflow-wrap: anywhere; }
+.rs-tl-by { font-size: 12px; color: var(--p-muted); }
+@media (max-width: 1000px) { .rs-tl-split { grid-template-columns: 1fr; } .rs-tl-pick { border-right: 0; border-bottom: 1px solid var(--p-line); } }
