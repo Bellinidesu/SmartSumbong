@@ -47,8 +47,7 @@ function forwarded_tag(array $forwards): string
         if (($f['kind'] ?? '') !== 'forward') continue;
         $from = $f['from_committee'] ?? null;
         $name = $from && isset(committees_all()[$from]) ? (string) committees_all()[$from]['short_en'] : t('the super admins', 'ang mga super admin');
-        $txt = e(sprintf(t('Forwarded from %s', 'Ipinasa mula sa %s'), $name));
-        return '<div class="cm-fwd" title="' . $txt . '">' . $txt . '</div>';
+        return '<div class="cm-fwd">' . e(sprintf(t('Forwarded from %s', 'Ipinasa mula sa %s'), $name)) . '</div>';
     }
     return '';
 }

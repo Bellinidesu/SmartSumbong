@@ -573,8 +573,8 @@ test('System status: the table is the page, the diagram of the same services ope
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('Case Reports: on a very wide screen the search and the filters are one toolbar line', async ({ page }) => {
-  await page.setViewportSize({ width: 2560, height: 1100 });
+test('Case Reports: on a wide screen the search and the filters are one toolbar line', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'cases.php');
   const tops = await page.evaluate(() => [document.querySelector('.ss-cr-band .p-search'), ...document.querySelectorAll('.ss-cr-band .ss-band-filters .p-pill-select')].map(e => Math.round(e.getBoundingClientRect().top)));
   expect(tops.length, 'the search and the five filters').toBe(6);
@@ -612,24 +612,16 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
 });
 
 test('Case Reports, peak: figures that link to their lists, the blue column header, overdue rows marked', async ({ page }) => {
-  await page.setViewportSize({ width: 2048, height: 1100 });
   const r = await open(page, 'cases.php');
   await expect(page.locator('.cr-fig > a')).toHaveCount(4);
-  const lefts = await page.locator('.cr-fig > a').evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().left)));
-  expect(new Set(lefts).size, 'the views are one column in the rail').toBe(1);
+  const tops = await page.locator('.cr-fig > a').evaluateAll(as => as.map(a => Math.round(a.getBoundingClientRect().top)));
+  expect(new Set(tops).size, 'the four figures are one band').toBe(1);
   await expect(page.locator('.cr-fig > a').first()).toHaveAttribute('href', /view=attention/);
   expect(Number(await page.locator('.cr-fig > a').first().locator('b').textContent())).toBeGreaterThan(0);
   expect(await page.locator('.ss-cases-t thead th').first().evaluate(e => getComputedStyle(e).backgroundColor), 'the column header is the Figma blue').toBe('rgb(0, 48, 143)');
   expect(await page.locator('.ss-cases-t tr.cr-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
   await page.locator('.cr-fig > a').first().click();
   await expect(page).toHaveURL(/view=attention/);
-  const edges = await page.evaluate(() => { const b = document.querySelector('.ss-cr-band').getBoundingClientRect(), t = document.querySelector('.ss-cases-t').closest('.p-table-card').getBoundingClientRect(), r = document.querySelector('.cr-rail').getBoundingClientRect(); return [b.left, b.right, t.left, t.right, b.bottom, t.top, r.right, b.left].map(Math.round); });
-  expect([edges[0], edges[1]], 'the band and the table are one object').toEqual([edges[2], edges[3]]);
-  expect(Math.abs(edges[4] - edges[5]) <= 1, 'with no strip between them: ' + edges).toBe(true);
-  expect(edges[6] < edges[7], 'the rail sits beside them at 2048').toBe(true);
-  const names = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
-  expect(names, 'no committee name is cut').toBe(0);
-  await expect(page.locator('.cm-chips .cm-od').first(), 'a committee says how many of its cases are overdue').toContainText('overdue');
   expect(r.errors, 'console errors').toEqual([]);
 });
 

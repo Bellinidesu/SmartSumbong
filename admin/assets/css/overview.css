@@ -36,7 +36,7 @@
 .rs-off { display: none !important; }
 
 /* ---- Case Reports: where there is room (Ace's 2048), the search and the filters are one toolbar line, not two ---- */
-@media (min-width: 2500px) {   /* with the rail beside the table, the one-line toolbar needs a wider screen */
+@media (min-width: 1900px) {
   .page-cases .ss-cr-band:has(form.ss-band-filters:not(.ss-six)) { flex-wrap: nowrap; }
   .page-cases .ss-cr-band > form.ss-band-filters:not(.ss-six) { flex: 3 1 0; min-width: 0; }
   .page-cases .ss-cr-band .p-search { flex: 1 1 240px; min-width: 200px; }
