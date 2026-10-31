@@ -114,3 +114,25 @@
 .cmx-newd .cmx-card { max-width: 760px; }
 .cmx-dirty .cmx-save:not(:disabled) { background: var(--p-orange, #FF9800); border-color: transparent; color: #2B1A00; font-weight: 800; box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--p-orange, #FF9800) 70%, transparent); }
 :root:root .p-body .cmx-banner .cm-chip { cursor: default; }
+
+/* ================= Administrative Services > Administrators and Escalation: the peak finish ================= */
+:root:root .p-body.page-administrative-services .ss-ohead thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
+:root:root .p-body.page-administrative-services .ss-ohead thead th .p-th-sort { color: inherit; }
+.page-administrative-services .st-pane[data-pane="admins"] { gap: 0; }
+.page-administrative-services .st-pane[data-pane="admins"] > .p-flash { margin-bottom: 16px; }
+/* Administrators: the band, the position banners and the table are one seamless block */
+:root:root .p-body.page-administrative-services .ss-pband:not(.ss-subband) { border-radius: 16px 16px 0 0; margin-bottom: 0; }
+:root:root .p-body.page-administrative-services .ad-roles { margin: 0; border-radius: 0; }
+:root:root .p-body.page-administrative-services .ad-roles .cm-chip { flex: 1 1 150px; }
+:root:root .p-body.page-administrative-services .ss-pband:not(.ss-subband) ~ .ss-adm { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+:root:root .p-body.page-administrative-services .ss-pband:not(.ss-subband) ~ .ss-adm thead th { border-radius: 0; }
+/* Escalation: the complaint kinds wear their colour and symbol; the sub-bands sit tight on their tables */
+.ss-lst .cmx-t-ro { cursor: default; }
+:root:root .p-body.page-administrative-services .ss-subband + .ss-adm { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+:root:root .p-body.page-administrative-services .ss-subband + .ss-adm thead th { border-radius: 0; }
+/* Women responders: a pink banner of its own, so a specialised group is unmistakable; joined to its table */
+:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin: 0 0 -16px; border-radius: 16px 16px 0 0; }
+:root:root .p-body.page-administrative-services .wr-banner .cm-chip { cursor: default; }
+.wr-banner .pc-gn { white-space: normal; font: 600 12.5px Inter, sans-serif; }
+:root:root .p-body.page-administrative-services .wr-banner + .ss-adm { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+:root:root .p-body.page-administrative-services .wr-banner + .ss-adm thead th { border-radius: 0; }

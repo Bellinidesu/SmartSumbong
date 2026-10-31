@@ -9,6 +9,10 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Administrative Services > Administrators and Escalation, 1 Nov)**
+- Administrators: the position menu is a strip of banners with counts (Chairman, Councilor, Secretary, Staff) that filters the table; the band, the strip and the blue-header table are one seamless block.
+- Escalation: each kind of complaint is a chip in its colour and symbol; the tables sit under blue headers; Women responders has a pink banner of its own, marking it as a specialised group.
+
 **Changed (Administrative Services > Committees, 1 Nov)**
 - A card per committee: a live banner that follows the kinds of complaint you connect (their colours and symbols), tap-to-toggle chips for the kinds of complaint, a real On/Off switch, and Save that lights up only when something changed. A note names the kinds of complaint that no committee sees yet. Add a committee opens from a dashed button; the super admin colour moves to the bottom.
 
