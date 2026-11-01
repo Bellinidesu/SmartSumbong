@@ -33,6 +33,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../i18n.dart';
 import '../d/d_theme.dart';
 import '../d/d_ui.dart';
+import '../dev/live_preview.dart';
 import '../widgets/resident_nav_bar.dart';
 
 const _cacheKey = 'hotlines_v1';
@@ -149,6 +150,26 @@ Future<List<HotlineGroup>> _fetchHotlines() async {
   return build(null);
 }
 
+/// The Control Room's draft of the numbers (live preview, 0160), as the forms say them right now. Switched-off groups and numbers do not show.
+List<HotlineGroup> hotlineGroupsFromDraft(Object? list) {
+  List<HotlineGroup> build(Object? gs) => [
+        for (final g in (gs as List? ?? const []))
+          if (g is Map && g['active'] != false && (g['name'] as String? ?? '').isNotEmpty)
+            HotlineGroup(
+              id: '${g['id']}',
+              name: g['name'] as String,
+              display: g['display'] as String? ?? 'inline',
+              numbers: [
+                for (final n in (g['numbers'] as List? ?? const []))
+                  if (n is Map && n['active'] != false && (n['number'] as String? ?? '').trim().isNotEmpty)
+                    HotlineNumber(number: n['number'] as String, label: (n['label'] as String?)?.isEmpty == true ? null : n['label'] as String?, carrier: (n['carrier'] as String?)?.isEmpty == true ? null : n['carrier'] as String?),
+              ],
+              children: build(g['groups']),
+            ),
+      ];
+  return build(list);
+}
+
 // ---------- screen -------------------------------------------
 
 class EmergencyScreen extends StatefulWidget {
@@ -225,7 +246,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       child: RefreshIndicator(
         onRefresh: _load,
         color: context.d.accent,
-        child: _HotlineList(groups: _groups, error: _error, stale: _stale),
+        child: ValueListenableBuilder<Map<String, dynamic>?>(
+          valueListenable: LivePreview.draft,
+          builder: (context, d, _) => _HotlineList(groups: d == null ? _groups : hotlineGroupsFromDraft(d['hotlines']), error: _error, stale: _stale),
+        ),
       ),
     );
   }

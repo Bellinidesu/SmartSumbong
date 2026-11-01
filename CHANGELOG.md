@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (the app: live preview, the app part, 1 Nov)**
+- Tap the version line in Settings seven times, type the code a super admin shows in the Control Room, and the real screens show that super admin's unsaved edits (the categories and their options on the Report screen, the emergency numbers on Emergency) until it is ended or the code runs out. A banner says all the time that it is not published. The phone only listens: it writes nothing, and the code works once, for 30 minutes, only for a super admin's session. Needs a new APK.
+
 **Changed (Control Room: Wording, The barangay, Parts of the system; Planning, 1 Nov)**
 - Parts of the system: a card and a switch each. The barangay: the seal is the hero of its form, a dashed drop area for a new seal, and a save bar that says when something is unsaved. Wording: a search that leads, a card per label, App and Portal told apart by colour, the barangay's own wording marked. The same plain headings on Planning and the other tabs.
 

@@ -48,6 +48,30 @@ class ComplaintCatalogue {
     } catch (_) {}
   }
 
+  /// Takes the Control Room's draft (live preview, 0160): its categories as the forms say them right now, in the portal's own field names.
+  /// A category not made yet has no key and is given a stand-in one. false (and nothing changed) when no category would show.
+  static bool applyDraft(List cats) {
+    final rows = <Map<String, dynamic>>[];
+    for (var i = 0; i < cats.length; i++) {
+      final c = cats[i];
+      if (c is! Map) continue;
+      final key = c['key'];
+      rows.add({
+        'key': key is String && key.isNotEmpty ? key : 'draft_$i',
+        'en': c['label_en'],
+        'fil': c['label_fil'],
+        'colour': c['colour'],
+        'icon': c['icon'],
+        'active': c['active'],
+        'options': [
+          for (final o in (c['options'] as List? ?? const []))
+            if (o is Map) {'en': o['label_en'], 'fil': o['label_fil'], 'active': o['active']},
+        ],
+      });
+    }
+    return apply(rows);
+  }
+
   /// Takes an answer of complaint_catalogue(); false (and nothing changed) when it holds no category.
   @visibleForTesting
   static bool apply(List rows) {

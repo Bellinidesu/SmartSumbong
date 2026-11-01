@@ -53,6 +53,7 @@ import 'screens/settings_screen.dart';
 import 'screens/terms_privacy_screen.dart';
 import 'screens/theme_screen.dart';
 import 'screens/verification_pending_screen.dart';
+import 'dev/live_preview.dart';
 import 'turnstile.dart';
 import 'tanod/duty.dart';
 import 'tanod/tanod_outbox.dart';
@@ -283,10 +284,10 @@ class SmartSumbongApp extends StatelessWidget {
             // content the lock was covering.
             onFallback: () => navigatorKey.currentState
                 ?.pushNamedAndRemoveUntil('/login', (_) => false),
-            child: ConnectivityBanner(
+            child: LivePreviewBanner(child: ConnectivityBanner(
               message: context.s.offlineBanner,
               child: child ?? const SizedBox.shrink(),
-            ),
+            )),
           )),
       // Every launch goes through the gate, which decides where the
       // person actually belongs: no session, pending, verified,
