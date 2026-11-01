@@ -1080,7 +1080,7 @@ $relNow = null; foreach ($releases as $r0) { if (!empty($r0['active'])) { $relNo
       <?php foreach ($releases as $r): $isNow = !empty($r['active']) && (int) $r['build'] === $relNow; $host = (string) (parse_url((string) $r['apk_url'], PHP_URL_HOST) ?: ''); ?>
         <li class="up-rel<?= empty($r['active']) ? ' up-off' : '' ?>">
           <div class="up-main">
-            <b>v<?= e((string) $r['version']) ?></b><small><?= e(t('build', 'build')) ?> <?= (int) $r['build'] ?> · <?= e(long_datetime((string) $r['created_at'])) ?> · <?= e($host) ?></small>
+            <b>v<?= e((string) $r['version']) ?></b><small><?= e(t('build', 'bilang ng build')) ?> <?= (int) $r['build'] ?> · <?= e(long_datetime((string) $r['created_at'])) ?> · <?= e($host) ?></small>
             <span class="up-tags"><?php if ($isNow): ?><span class="p-badge p-b-done"><?= e(t('Offered now', 'Inaalok ngayon')) ?></span><?php endif; ?><?php if (!empty($r['mandatory'])): ?><span class="p-badge p-b-denied"><?= e(t('Must update', 'Kailangang i-update')) ?></span><?php endif; ?><?php if (empty($r['active'])): ?><span class="p-badge p-b-grey"><?= e(t('Withdrawn', 'Binawi')) ?></span><?php endif; ?></span>
             <?php if (!empty($r['notes_en']) || !empty($r['notes_fil'])): ?><p class="up-notes"><?= e(t((string) ($r['notes_en'] ?? ''), (string) ($r['notes_fil'] ?? $r['notes_en'] ?? ''))) ?></p><?php endif; ?>
           </div>
