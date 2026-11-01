@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Settings, 2 Nov)**
+- SMART: the long tab shows one group at a time (Overview, Rules, Words, Try and measure), with counts on the tabs, and comes back to the group you were in after a save. System status: the services are an orange band over a blue-header table. The same plain headings as the Control Room, count badges beside them, and the SMART level table's header no longer breaks into one word a line.
+
 **New (0161: the app updates itself, 1 Nov)**
 - Control Room > App updates: a super admin publishes a version (APK https link, its SHA-256, notes in English and Tagalog, must update) or withdraws one. The app asks for the newest published version a few seconds after it opens (and from Settings > Check for updates), compares the build number with its own, offers it, downloads it, checks the SHA-256 and hands it to Android's installer; a file that does not match is deleted and never opened, and Android still refuses an APK signed with another key. A version marked must update cannot be skipped. A skippable one is offered at most every 12 hours. Android only; switch `app_updates` turns the offers off. Needs a new APK once, to carry the updater.
 

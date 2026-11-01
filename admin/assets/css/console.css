@@ -215,3 +215,17 @@
 .up-tags { display: flex; gap: 6px; flex-wrap: wrap; } .up-notes { margin: 2px 0 0; color: var(--p-ink-2, var(--p-ink)); font-size: 14px; line-height: 1.5; }
 .up-sw2 { margin: 0; flex: none; }
 @media (max-width: 900px) { .up-form { grid-template-columns: minmax(0, 1fr); } }
+
+/* ================= Settings: the SMART tab one group at a time; the services as a band over a blue header; plain headings ================= */
+.page-settings .st-pane .p-card > p.p-eyebrow:first-of-type { margin: 0 0 6px; font: 800 20px/1.25 Urbanist, sans-serif; letter-spacing: -.01em; text-transform: none; color: var(--p-ink); }
+.page-settings .st-pane .p-card > .p-hint { max-width: 78ch; line-height: 1.55; font-size: 14px; }
+.sm-tabs { margin: 14px 0 16px; }
+.sm-tabs .st-link { border: 0; background: transparent; font-family: inherit; cursor: pointer; gap: 8px; }
+.st-pane[data-pane="smart"] [data-sm][hidden] { display: none !important; }
+:root:root .p-body.page-settings .st-svcband { margin: 0 0 -16px; border-radius: 16px 16px 0 0; }
+:root:root .p-body.page-settings .st-svc { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+:root:root .p-body.page-settings .st-svc .st-table thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; border-radius: 0; }
+
+.page-settings .st-pane .p-card > p.p-eyebrow em { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 10px; padding: 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-muted) 18%, transparent); color: var(--p-ink); font: 700 12px Inter, sans-serif; font-style: normal; vertical-align: middle; letter-spacing: 0; }
+.page-settings .ss-table thead th { white-space: nowrap; }
+@media (max-width: 1100px) { .page-settings .ss-two { grid-template-columns: minmax(0, 1fr); } }
