@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (the app: live preview, the app part, 1 Nov)**
+- Tap the version line in Settings seven times, type the code a super admin shows in the Control Room, and the real screens show that super admin's unsaved edits (the categories and their options on the Report screen, the emergency numbers on Emergency) until it is ended or the code runs out. A banner says all the time that it is not published. The phone only listens: it writes nothing, and the code works once, for 30 minutes, only for a super admin's session. Needs a new APK.
+
 **New (Control Room: Show on a phone, the portal part of live preview, 1 Nov)**
 - With the `live_preview` switch on (Parts of the system), the live view has a Show on a phone button: a one-time code with a countdown and an End button. While it is up, the Control Room sends what the forms say right now (complaint types and options, emergency numbers, parts, the barangay's name and place) to the phone's secret channel as you type. Off, the live view says so and nothing can start. The app's side (pairing and the overlay) follows.
 

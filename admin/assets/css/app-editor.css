@@ -52,8 +52,8 @@
 .ed-hg.ed-sub { margin-top: 8px; background: #F7F8FB; box-shadow: none; }
 .ed-hg h4 { margin: 0 0 4px; display: flex; justify-content: space-between; gap: 8px; font: 800 14px Urbanist, sans-serif; }
 .ed-hg h4 small { color: #6B6B6B; font: 600 11.5px Inter, sans-serif; }
-.ed-hg[data-display="list"] > ul { display: none; }
-.ed-hg[data-display="list"] > h4::after { content: ""; width: 8px; height: 8px; margin: 5px 4px 0 0; border-right: 2px solid #9AA3B8; border-top: 2px solid #9AA3B8; transform: rotate(45deg); }
+.ed-hg[data-display="link"] > ul { display: none; }
+.ed-hg[data-display="link"] > h4::after { content: ""; width: 8px; height: 8px; margin: 5px 4px 0 0; border-right: 2px solid #9AA3B8; border-top: 2px solid #9AA3B8; transform: rotate(45deg); }
 .ed-hn small { display: block; color: #6B6B6B; font: 600 12.5px Inter, sans-serif; letter-spacing: .02em; }
 .ed-hn.ed-pend .ed-nl { color: #E07400; }
 .ed-call { width: 30px; height: 30px; border-radius: 50%; background: #16C25B; flex: none; position: relative; }
