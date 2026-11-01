@@ -8,7 +8,7 @@
 declare(strict_types=1);
 
 /** Which screen of the phone each Control Room tab belongs to ('' = the tab has no screen). */
-const APP_EDITOR_SCREENS = ['types' => 'report', 'wording' => 'report', 'hotlines' => 'emergency', 'parts' => 'home', 'brgy' => 'splash', 'rules' => ''];
+const APP_EDITOR_SCREENS = ['types' => 'report', 'wording' => 'report', 'hotlines' => 'emergency', 'parts' => 'home', 'brgy' => 'splash', 'rules' => '', 'updates' => ''];
 
 /**
  * @param array $catOpts  category key => its options rows (label_en, label_fil, active)

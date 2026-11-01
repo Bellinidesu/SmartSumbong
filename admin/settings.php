@@ -33,7 +33,7 @@ $db    = db();
 const ST_PAGES = [
     'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'look']],
     'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'ladder', 'plan']],
-    'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts']],
+    'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts', 'updates']],
 ];
 $stPage = defined('ST_PAGE') && isset(ST_PAGES[ST_PAGE]) ? ST_PAGE : 'settings';
 
@@ -331,6 +331,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     exit;
 }
 
+// App updates (0161): a super admin publishes a version for the self-updater, or withdraws one.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['release_publish', 'release_active'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            if ($_POST['action'] === 'release_publish') {
+                $db->rpc('app_release_publish', ['p_version' => trim((string) ($_POST['version'] ?? '')), 'p_build' => (int) ($_POST['build'] ?? 0), 'p_url' => trim((string) ($_POST['apk_url'] ?? '')),
+                    'p_sha256' => trim((string) ($_POST['sha256'] ?? '')), 'p_notes_en' => trim((string) ($_POST['notes_en'] ?? '')) ?: null, 'p_notes_fil' => trim((string) ($_POST['notes_fil'] ?? '')) ?: null,
+                    'p_mandatory' => !empty($_POST['mandatory'])]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Published. Phones are offered it the next time the app opens.', 'Nailathala. Iaalok ito sa mga telepono sa susunod na pagbukas ng app.')];
+            } else {
+                $db->rpc('app_release_set_active', ['p_id' => (string) ($_POST['id'] ?? ''), 'p_on' => !empty($_POST['on'])]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved.', 'Nai-save.')];
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: ' . st_url('updates'));
+    exit;
+}
+
 // The command center (0143): SMART may switch a mode on by itself, and the hall display's links.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['cmd_auto', 'cmd_link', 'cmd_unlink'], true)) {
     session_start_once();
@@ -604,7 +628,7 @@ $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => 
     'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Administrators', 'Mga Administrator'), 'ladder' => t('Escalation and responders', 'Eskalasyon at mga responder'),
     'plan' => t('Planning', 'Pagpaplano'), 'types' => t('Complaint types', 'Mga uri ng reklamo'), 'rules' => t('Rules', 'Mga patakaran'),
     'hotlines' => t('Hotlines', 'Mga hotline'), 'wording' => t('Wording', 'Mga salita'), 'brgy' => t('The barangay', 'Ang barangay'),
-    'parts' => t('Parts of the system', 'Mga bahagi ng sistema')];
+    'parts' => t('Parts of the system', 'Mga bahagi ng sistema'), 'updates' => t('App updates', 'Mga update ng app')];
 ?>
 <div class="p-seg-mini st-tabs" role="tablist" aria-label="<?= e(sprintf(t('%s sections', 'Mga bahagi ng %s'), $stTitle)) ?>">
   <?php foreach (ST_PAGES[$stPage]['tabs'] as $k => $tb): ?>
@@ -1023,6 +1047,49 @@ endif;
     </form>
   </div>
 
+</section>
+<?php endif; ?>
+
+<?php if (st_on('updates')):
+// ---------- App updates (0161) ----------
+$releases = [];
+try { $releases = (array) $db->select('app_releases', ['select' => 'id,version,build,apk_url,sha256,notes_en,notes_fil,mandatory,active,created_at', 'order' => 'build.desc']); } catch (SupabaseError) {}
+$relMax = $releases ? max(array_map(fn ($r) => (int) $r['build'], $releases)) : 0;
+$relNow = null; foreach ($releases as $r0) { if (!empty($r0['active'])) { $relNow = (int) $r0['build']; break; } }
+?>
+<section class="st-pane" data-pane="updates" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <div class="p-card p-card-pad cmx-page" id="updates-card">
+    <h2 class="cmx-h"><?= e(t('App updates', 'Mga update ng app')) ?></h2>
+    <p class="p-hint"><?= e(t('Publish a new version and phones with an older build are offered it the next time the app opens. A version marked must update cannot be skipped. The app checks the SHA-256 before it installs, and Android refuses an APK signed with a different key. Build the APK, host it at any https link, and paste the link here.', 'Mag-publish ng bagong bersyon at iaalok ito sa mga telepono na may mas lumang build sa susunod na pagbukas ng app. Hindi malalampasan ang bersyong minarkahang kailangang i-update. Sinusuri ng app ang SHA-256 bago mag-install, at tinatanggihan ng Android ang APK na may ibang susi. I-build ang APK, i-host sa anumang https link, at i-paste ang link dito.')) ?></p>
+    <form method="post" class="up-form" id="up-form">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="release_publish">
+      <label class="ty-f"><span><?= e(t('Version', 'Bersyon')) ?></span><input class="p-input-plain" name="version" required pattern="[0-9]+(\.[0-9]+){1,3}" placeholder="1.0.1" maxlength="20"></label>
+      <label class="ty-f"><span><?= e(t('Build number (higher than the last, which is', 'Build number (mas mataas sa huli, na')) ?> <?= (int) $relMax ?>)</span><input class="p-input-plain" type="number" name="build" required min="<?= $relMax + 1 ?>" value="<?= $relMax + 1 ?>"></label>
+      <label class="ty-f up-wide"><span><?= e(t('Link to the APK (https)', 'Link ng APK (https)')) ?></span><input class="p-input-plain" type="url" name="apk_url" required pattern="https://.+" maxlength="500" placeholder="https://"></label>
+      <label class="ty-f up-wide"><span><?= e(t('SHA-256 of the APK (in PowerShell: Get-FileHash app.apk -Algorithm SHA256)', 'SHA-256 ng APK (sa PowerShell: Get-FileHash app.apk -Algorithm SHA256)')) ?></span><input class="p-input-plain up-mono" name="sha256" required pattern="[0-9a-fA-F]{64}" maxlength="64" minlength="64" placeholder="64 characters"></label>
+      <label class="ty-f"><span><?= e(t('What is new (English)', 'Ano ang bago (English)')) ?></span><textarea class="p-input-plain" name="notes_en" rows="2" maxlength="600"></textarea></label>
+      <label class="ty-f"><span><?= e(t('What is new (Tagalog)', 'Ano ang bago (Tagalog)')) ?></span><textarea class="p-input-plain" name="notes_fil" rows="2" maxlength="600"></textarea></label>
+      <label class="cmx-sw up-sw"><input type="checkbox" name="mandatory" value="1"><i aria-hidden="true"></i><span><?= e(t('Must update: the app cannot be used until it is installed', 'Kailangang i-update: hindi magagamit ang app hangga\'t hindi na-install')) ?></span></label>
+      <div class="up-act"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Publish this version', 'I-publish ang bersyong ito')) ?></button></div>
+    </form>
+    <p class="p-eyebrow" style="margin-top:22px"><?= e(t('Published versions', 'Mga nailathalang bersyon')) ?> <span class="p-badge-n p-badge-n--quiet"><?= count($releases) ?></span></p>
+    <?php if (!$releases): ?><p class="p-hint"><?= e(t('Nothing published yet: no phone is offered an update.', 'Wala pang nailathala: walang teleponong inaalukan ng update.')) ?></p><?php endif; ?>
+    <ul class="up-list">
+      <?php foreach ($releases as $r): $isNow = !empty($r['active']) && (int) $r['build'] === $relNow; $host = (string) (parse_url((string) $r['apk_url'], PHP_URL_HOST) ?: ''); ?>
+        <li class="up-rel<?= empty($r['active']) ? ' up-off' : '' ?>">
+          <div class="up-main">
+            <b>v<?= e((string) $r['version']) ?></b><small><?= e(t('build', 'build')) ?> <?= (int) $r['build'] ?> · <?= e(long_datetime((string) $r['created_at'])) ?> · <?= e($host) ?></small>
+            <span class="up-tags"><?php if ($isNow): ?><span class="p-badge p-b-done"><?= e(t('Offered now', 'Inaalok ngayon')) ?></span><?php endif; ?><?php if (!empty($r['mandatory'])): ?><span class="p-badge p-b-denied"><?= e(t('Must update', 'Kailangang i-update')) ?></span><?php endif; ?><?php if (empty($r['active'])): ?><span class="p-badge p-b-grey"><?= e(t('Withdrawn', 'Binawi')) ?></span><?php endif; ?></span>
+            <?php if (!empty($r['notes_en']) || !empty($r['notes_fil'])): ?><p class="up-notes"><?= e(t((string) ($r['notes_en'] ?? ''), (string) ($r['notes_fil'] ?? $r['notes_en'] ?? ''))) ?></p><?php endif; ?>
+          </div>
+          <form method="post" class="up-sw2"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="release_active"><input type="hidden" name="id" value="<?= e((string) $r['id']) ?>">
+            <label class="cmx-sw"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($r['active']) ? 'checked' : '' ?>><i aria-hidden="true"></i><span><?= e(t('Offered', 'Inaalok')) ?></span></label></form>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
 </section>
 <?php endif; ?>
 

@@ -201,3 +201,17 @@
 /* a form's column is as wide as its page, whatever a table inside it would like; the note's sentence is a line of its own */
 .ru-form, .cmx { grid-template-columns: minmax(0, 1fr); }
 .cmx-note > span:last-child { flex-basis: 100%; }
+
+/* ================= Control Room > App updates ================= */
+.up-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin-top: 14px; }
+.up-form .up-wide, .up-form .up-sw, .up-form .up-act { grid-column: 1 / -1; }
+.up-form textarea { min-height: 64px; resize: vertical; }
+.up-mono { font-family: 'Courier New', ui-monospace, monospace; letter-spacing: .02em; }
+.up-sw { align-items: flex-start; font-weight: 600; line-height: 1.45; } .up-sw i { flex: none; margin-top: 2px; }
+.up-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.up-rel { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 14px 18px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); }
+.up-rel.up-off { opacity: .6; }
+.up-main { display: grid; gap: 4px; min-width: 0; } .up-main b { font: 800 17px Urbanist, sans-serif; } .up-main small { color: var(--p-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+.up-tags { display: flex; gap: 6px; flex-wrap: wrap; } .up-notes { margin: 2px 0 0; color: var(--p-ink-2, var(--p-ink)); font-size: 14px; line-height: 1.5; }
+.up-sw2 { margin: 0; flex: none; }
+@media (max-width: 900px) { .up-form { grid-template-columns: minmax(0, 1fr); } }

@@ -24,6 +24,8 @@
          androidx.biometric's own required permission for reading the
          device's enrolled biometrics through BiometricPrompt. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- The self-updater (0161) hands a downloaded, checksum-verified APK to Android's installer. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- The ID reader (paddle_ocr_native, 22 Oct 2026) declares minSdk 26; the app still installs on Android 7 (24).
          There the reader is skipped: id_ocr.dart checks the Android version before it ever starts the engine. -->
     <uses-sdk tools:overrideLibrary="com.flespark.paddle_ocr_native"/>

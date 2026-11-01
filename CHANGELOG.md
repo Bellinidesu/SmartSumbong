@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (0161: the app updates itself, 1 Nov)**
+- Control Room > App updates: a super admin publishes a version (APK https link, its SHA-256, notes in English and Tagalog, must update) or withdraws one. The app asks for the newest published version a few seconds after it opens (and from Settings > Check for updates), compares the build number with its own, offers it, downloads it, checks the SHA-256 and hands it to Android's installer; a file that does not match is deleted and never opened, and Android still refuses an APK signed with another key. A version marked must update cannot be skipped. A skippable one is offered at most every 12 hours. Android only; switch `app_updates` turns the offers off. Needs a new APK once, to carry the updater.
+
 **Changed (Control Room: Wording, The barangay, Parts of the system; Planning, 1 Nov)**
 - Parts of the system: a card and a switch each. The barangay: the seal is the hero of its form, a dashed drop area for a new seal, and a save bar that says when something is unsaved. Wording: a search that leads, a card per label, App and Portal told apart by colour, the barangay's own wording marked. The same plain headings on Planning and the other tabs.
 

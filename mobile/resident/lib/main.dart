@@ -53,6 +53,7 @@ import 'screens/settings_screen.dart';
 import 'screens/terms_privacy_screen.dart';
 import 'screens/theme_screen.dart';
 import 'screens/verification_pending_screen.dart';
+import 'dev/app_updater.dart';
 import 'turnstile.dart';
 import 'tanod/duty.dart';
 import 'tanod/tanod_outbox.dart';
@@ -218,6 +219,8 @@ Future<void> main() async {
     await Wording.loadCached();
     unawaited(Wording.refresh());
     runApp(SmartSumbongApp(locale: locale, themeController: themeController));
+    // A little after it is up, a newer published version is offered (0161); nothing to offer or no signal means nothing happens.
+    unawaited(Future.delayed(const Duration(seconds: 5), () => AppUpdater.checkOnStart(navigatorKey)));
   }, (error, stack) {
     CrashReporting.recordError(error, stack);
   });
