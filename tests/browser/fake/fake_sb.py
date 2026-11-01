@@ -105,6 +105,8 @@ TABLES = {
                               {'id': 'd0000000-0000-0000-0000-000000000002', 'label': 'Old tablet', 'created_at': ago(9000), 'revoked_at': ago(4000), 'last_seen_at': ago(4100)}],
     'command_sessions': [{'id': 'c0000000-0000-0000-0000-000000000009', 'mode': 'flood', 'how': 'suggested', 'reason': '3 reports in the last 3 hours mention flood water, from 3 residents.',
                           'started_at': ago(1500), 'ended_at': ago(1320), 'end_note': 'Humupa na ang baha; sarado na ang evacuation center', 'starter': {'full_name': 'Reyes, Marites'}}],
+    'app_releases': [{'id': 'e1000000-0000-0000-0000-000000000002', 'version': '1.1.0', 'build': 5, 'apk_url': 'https://example.org/releases/smartsumbong-1.1.0.apk', 'sha256': 'b2' * 32, 'notes_en': 'Faster map and a fix for the Emergency screen', 'notes_fil': 'Mas mabilis na mapa', 'mandatory': True, 'active': True, 'created_at': ago(30)},
+                     {'id': 'e1000000-0000-0000-0000-000000000001', 'version': '1.0.1', 'build': 2, 'apk_url': 'https://example.org/releases/smartsumbong-1.0.1.apk', 'sha256': 'a1' * 32, 'notes_en': None, 'notes_fil': None, 'mandatory': False, 'active': False, 'created_at': ago(300)}],
     'smart_work_orders': [{'id': 'f0000000-0000-0000-0000-000000000001', 'pattern_key': 'zzz', 'title': 'Replace the drain on 13th Street', 'category': 'environmental_waste_hazard', 'status': 'planned', 'note': None, 'evidence': {'reports': 5, 'tracking_ids': ['SS-2610-1003', 'SS-2610-1011']}, 'created_at': ago(30)}],
     'places': [{'id': 1, 'name': 'Barangay 183 Hall', 'grp': 'hall', 'aliases': ['brgy hall'], 'lat': 14.525104, 'lng': 121.012596, 'source': 'barangay'},
                {'id': 2, 'name': 'Harvard Street', 'grp': 'street', 'aliases': [], 'lat': 14.5236, 'lng': 121.0129, 'source': 'barangay'}],
@@ -243,6 +245,8 @@ RPC = {
                              {'tanod_id': 'u9', 'committees': [{'key': 'peace_order', 'status': 'approved', 'role': None}, {'key': 'environment', 'status': 'approved', 'role': None}, {'key': 'health_sanitation', 'status': 'approved', 'role': None}], 'busy_committee': None}],
     'tanod_pick_list': [{'id': 'u5', 'full_name': 'Martin, Jericho Troy'}],
     'propose_tanod_committee': 'proposed', 'decide_tanod_committee': None, 'remove_tanod_committee': None, 'punch': None,
+    'app_release_publish': 'e1000000-0000-0000-0000-000000000009', 'app_release_set_active': None,
+
     'preview_start': lambda p: {'id': 'e0000000-0000-0000-0000-000000000001', 'code': 'ABCD2345', 'channel': 'c' * 36, 'expires_at': ahead(0.5)}, 'preview_end': None,
     'punch_cards': [{'id': 's1', 'name': 'Santos, Ben', 'tier': 'moderator', 'committee': 'peace_order', 'position': 'secretary',
                      'days': [{'day': (NOW - dt.timedelta(days=d)).date().isoformat(), 'first_in': ago(5 + d * 24), 'last_out': None if d == 0 else ago(d * 24 - 3),

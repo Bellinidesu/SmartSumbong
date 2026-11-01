@@ -321,7 +321,7 @@ test('Roles and pages 1a: Administrative Services and the Control Room take thei
   await expect(page.locator('section[data-pane="access"]')).toBeVisible();
   await expect(page.locator('.st-tabs .st-link')).toHaveText('Retirement requests');
   r = await open(page, 'control-room.php');
-  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Complaint types', 'Rules', 'Emergency numbers', 'Wording', 'The barangay', 'Parts of the system'])   // the fake's own wording renames Hotlines;
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Complaint types', 'Rules', 'Emergency numbers', 'Wording', 'The barangay', 'Parts of the system', 'App updates'])   // the fake's own wording renames Hotlines;
   await page.locator('.st-tabs [data-st="parts"]').click();
   await expect(page.locator('#acc-switches li')).toHaveCount(3);   // Workspace, Command center, Live preview on a phone
   expect(await axe(page), 'Control Room > Parts of the system').toEqual([]);
@@ -420,6 +420,27 @@ test('Control Room: a live phone follows the forms (Report, Emergency, Home, Spl
   await expect(page.locator('#ed-phone .ed-splash .ed-bn')).toHaveText('Barangay 183, Villamor');
   await page.locator('.st-tabs [data-st="rules"]').click();
   await expect(page.locator('#ed-phone'), 'Rules has no screen').toBeHidden();
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
+test('Control Room, App updates: a super admin publishes a version; the list shows what is offered; no screen beside it', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'control-room.php');
+  await page.locator('.st-tabs [data-st="updates"]').click();
+  await expect(page.locator('#ed-phone'), 'a release has no screen').toBeHidden();
+  await expect(page.locator('.up-rel')).toHaveCount(2);
+  await expect(page.locator('.up-rel').first()).toContainText('v1.1.0');
+  await expect(page.locator('.up-rel').first()).toContainText('Offered now');
+  await expect(page.locator('.up-rel').first()).toContainText('Must update');
+  await expect(page.locator('.up-rel').nth(1)).toContainText('Withdrawn');
+  expect(await page.locator('#up-form input[name="build"]').evaluate(e => +e.min), 'the next build must be higher than the last').toBe(6);
+  await page.locator('#up-form input[name="version"]').fill('1.1.1');
+  await page.locator('#up-form input[name="apk_url"]').fill('https://example.org/releases/smartsumbong-1.1.1.apk');
+  await page.locator('#up-form input[name="sha256"]').fill('c3'.repeat(32));
+  await page.locator('#up-form button[type="submit"]').click();
+  await expect(page).toHaveURL(/control-room\.php#updates$/);
+  await expect(page.locator('section[data-pane="updates"] .p-flash--ok')).toContainText('Published');
+  expect(await axe(page), 'Control Room > App updates').toEqual([]);
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 

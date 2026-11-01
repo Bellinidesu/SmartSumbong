@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (0161: the app updates itself, 1 Nov)**
+- Control Room > App updates: a super admin publishes a version (APK https link, its SHA-256, notes in English and Tagalog, must update) or withdraws one. The app asks for the newest published version a few seconds after it opens (and from Settings > Check for updates), compares the build number with its own, offers it, downloads it, checks the SHA-256 and hands it to Android's installer; a file that does not match is deleted and never opened, and Android still refuses an APK signed with another key. A version marked must update cannot be skipped. A skippable one is offered at most every 12 hours. Android only; switch `app_updates` turns the offers off. Needs a new APK once, to carry the updater.
+
 **New (the app: live preview, the app part, 1 Nov)**
 - Tap the version line in Settings seven times, type the code a super admin shows in the Control Room, and the real screens show that super admin's unsaved edits (the categories and their options on the Report screen, the emergency numbers on Emergency) until it is ended or the code runs out. A banner says all the time that it is not published. The phone only listens: it writes nothing, and the code works once, for 30 minutes, only for a super admin's session. Needs a new APK.
 

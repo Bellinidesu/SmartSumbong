@@ -22,6 +22,8 @@ import '../i18n.dart';
 import '../d/d_theme.dart';
 import '../d/d_switches.dart';
 import '../d/d_ui.dart';
+import '../dev/app_updater.dart';
+
 import '../dev/live_preview.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
@@ -362,6 +364,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Center(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _tapVersion, child: Padding(padding: const EdgeInsets.all(6), child: Text('SmartSumbong • D · v$_version', style: DType.body(d.muted, size: 11.5))))),
             const SizedBox(height: 2),
             Center(child: Text(context.tr('Powered by SMART', 'Pinatatakbo ng SMART'), style: DType.body(d.muted, size: 11))),
+            if (AppUpdater.supported) Center(child: TextButton(onPressed: () => AppUpdater.checkNow(context), child: Text(context.tr('Check for updates', 'Tingnan kung may update')))),
           ],
         ],
       ),

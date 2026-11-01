@@ -60,6 +60,8 @@ dependencies:
   # Bot check for Supabase Auth's CAPTCHA protection (lib/turnstile.dart);
   # only used when the app is built with TURNSTILE_SITE_KEY (see main.dart).
   webview_flutter: ^4.14.1
+  crypto: ^3.0.8
+  open_filex: ^5.0.0
   # local_auth (Face ID / fingerprint unlock) is not listed here: it
   # arrives through smartsumbong_core, same as flutter_secure_storage
   # and supabase_flutter already do, because nothing in this app imports
