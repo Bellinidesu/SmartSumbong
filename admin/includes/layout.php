@@ -230,7 +230,7 @@ function dev_switcher(): string
     $levels = [];
     try { $levels = (array) (new Supabase((string) (is_array($origin) ? $origin['access_token'] : access_token())))->rpc('dev_levels'); } catch (Throwable) {}
     $now = (string) ($_SESSION['dev_view'] ?? '');
-    $name = ['super' => t('Super admin', 'Super admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Kagawad', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')];
+    $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')];
     $from = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
     $hidden = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><input type="hidden" name="from" value="' . e($from) . '">';
     $o = '<details class="dv-sw"' . ($now !== '' ? ' open' : '') . '><summary><b>DEV</b><span>' . e(t('See as', 'Tingnan bilang')) . '</span><em>' . e($now !== '' ? ($name[$now] ?? $now) : t('Myself', 'Ako')) . '</em></summary><div class="dv-body">';
@@ -261,7 +261,7 @@ function dev_view_banner(): string
 {
     $now = (string) ($_SESSION['dev_view'] ?? '');
     if ($now === '' || !isset($_SESSION['dev_origin'])) return '';
-    $name = ['super' => t('Super admin', 'Super admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Kagawad', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')][$now] ?? $now;
+    $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')][$now] ?? $now;
     return '<div class="dv-band" role="status"><b>' . e(sprintf(t('Seeing the portal as %s', 'Tinitingnan ang portal bilang %s'), $name)) . '</b><span>'
         . e(t('A test account: what you change here is real.', 'Isang test account: totoo ang anumang babaguhin mo rito.')) . '</span>'
         . '<form method="post" action="view-as.php"><input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><button type="submit" name="action" value="back">' . e(t('Back to my own account', 'Bumalik sa sarili kong account')) . '</button></form></div>';

@@ -514,7 +514,7 @@ test('Development team: the DEV switcher makes test accounts, switches into a ru
   await expect(page.locator('.dv-msg')).toContainText('test accounts are ready');
   await page.locator('.dv-sw summary').click();
   await page.locator('.dv-sw .dv-l').nth(2).click();
-  await expect(page.locator('.dv-band'), 'a band says whose eyes these are').toContainText('Seeing the portal as Kagawad');
+  await expect(page.locator('.dv-band'), 'a band says whose eyes these are').toContainText('Seeing the portal as Councilor (Kagawad)');
   await expect(page.locator('.dv-sw .dv-l.p-on')).toContainText('Kagawad');
   await page.locator('.dv-band button').click();
   await expect(page.locator('.dv-band')).toHaveCount(0);
