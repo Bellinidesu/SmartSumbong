@@ -34,6 +34,8 @@ super admin stays one.
 
 *Open:* the moderator's exact powers (Sir Kiko).
 
+**Seeing every rung (0162).** A member of the development team (DEV) has a real test account for each rung: super admin, captain, Kagawad and staff (the Kagawad and staff in a committee they pick). The DEV switcher in the sidebar signs into one with no password and back; a striped band says whose eyes these are. Because it is a real account of that rung, the database shows exactly what that rung may see and do. Test accounts are marked TEST and are never the Kagawad the system asks to pick a tanod; every switch is recorded.
+
 ## 2. Committees and colour (locked)
 
 - Barangay 183 keeps three committees: Peace and Order (with Human Rights,

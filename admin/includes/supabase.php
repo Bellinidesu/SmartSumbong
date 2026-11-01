@@ -405,6 +405,12 @@ final class Supabase
      * today. Callers that only care about success/failure can keep
      * ignoring the return value exactly as before.
      */
+    /** Calls an Edge Function as this session (0162: level-switch). */
+    public function invoke(string $fn, array $body = []): array|string|int|float|bool|null
+    {
+        return $this->request('POST', '/functions/v1/' . rawurlencode($fn), $body);
+    }
+
     public function rpc(string $fn, array $args = []): array|string|int|float|bool|null
     {
         return $this->request('POST', "/rest/v1/rpc/{$fn}", $args);

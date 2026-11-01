@@ -218,6 +218,55 @@ function rank_chip(?string $role, ?string $committee = null, bool $dot = false):
     return $o . '</span>';
 }
 
+/**
+ * The development team's switcher (0162): see the portal as each rung sees it, through their own test accounts. Shown only to a
+ * developer, or while one is switched into a test account (with the way back).
+ */
+function dev_switcher(): string
+{
+    $origin = $_SESSION['dev_origin'] ?? null;
+    $me = current_admin();
+    if (!is_array($origin) && empty($me['is_dev'])) return '';
+    $levels = [];
+    try { $levels = (array) (new Supabase((string) (is_array($origin) ? $origin['access_token'] : access_token())))->rpc('dev_levels'); } catch (Throwable) {}
+    $now = (string) ($_SESSION['dev_view'] ?? '');
+    $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')];
+    $from = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
+    $hidden = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><input type="hidden" name="from" value="' . e($from) . '">';
+    $o = '<details class="dv-sw"' . ($now !== '' ? ' open' : '') . '><summary><b>DEV</b><span>' . e(t('See as', 'Tingnan bilang')) . '</span><em>' . e($now !== '' ? ($name[$now] ?? $now) : t('Myself', 'Ako')) . '</em></summary><div class="dv-body">';
+    if (!empty($_SESSION['dev_flash'])) { $o .= '<p class="dv-msg" role="status">' . e((string) $_SESSION['dev_flash']) . '</p>'; unset($_SESSION['dev_flash']); }
+    if ($levels) {
+        $o .= '<form method="post" action="view-as.php" class="dv-levels">' . $hidden . '<input type="hidden" name="action" value="switch">';
+        foreach ($levels as $l) {
+            $lv = (string) ($l['level'] ?? '');
+            $com = !empty($l['committee']) ? ' · ' . (string) (committees_all()[(string) $l['committee']]['short_en'] ?? $l['committee']) : '';
+            $o .= '<button type="submit" name="level" value="' . e($lv) . '" class="dv-l' . ($lv === $now ? ' p-on' : '') . '" data-r="' . e(['super' => 'chair', 'captain' => 'staff', 'committee' => 'kagawad', 'moderator' => 'staff'][$lv] ?? 'staff') . '"' . ($lv === $now ? ' aria-current="true"' : '') . '>' . e(($name[$lv] ?? $lv) . $com) . '</button>';
+        }
+        $o .= '</form>';
+    }
+    if ($now !== '') {
+        $o .= '<form method="post" action="view-as.php">' . $hidden . '<button type="submit" name="action" value="back" class="dv-back">' . e(t('Back to my own account', 'Bumalik sa sarili kong account')) . '</button></form>';
+    } else {
+        $sel = '';
+        foreach (committees_active() as $ck => $cl) { $sel .= '<option value="' . e($ck) . '">' . e($cl) . '</option>'; }
+        $o .= '<form method="post" action="view-as.php" class="dv-setup">' . $hidden . '<input type="hidden" name="action" value="setup">'
+            . '<label><span>' . e(t('Kagawad and staff of', 'Kagawad at kawani ng')) . '</span><select name="committee">' . $sel . '</select></label>'
+            . '<button type="submit">' . e($levels ? t('Move them', 'Ilipat sila') : t('Make my test accounts', 'Gawin ang aking mga test account')) . '</button></form>';
+    }
+    return $o . '</div></details>';
+}
+
+/** While a developer looks through a test account: a band across the top that says so, with the way back. */
+function dev_view_banner(): string
+{
+    $now = (string) ($_SESSION['dev_view'] ?? '');
+    if ($now === '' || !isset($_SESSION['dev_origin'])) return '';
+    $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')][$now] ?? $now;
+    return '<div class="dv-band" role="status"><b>' . e(sprintf(t('Seeing the portal as %s', 'Tinitingnan ang portal bilang %s'), $name)) . '</b><span>'
+        . e(t('A test account: what you change here is real.', 'Isang test account: totoo ang anumang babaguhin mo rito.')) . '</span>'
+        . '<form method="post" action="view-as.php"><input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><button type="submit" name="action" value="back">' . e(t('Back to my own account', 'Bumalik sa sarili kong account')) . '</button></form></div>';
+}
+
 function layout_head(string $title, string $active = ''): void
 {
     $admin = current_admin();
@@ -326,6 +375,7 @@ window.ssAccessToken = function (initial) {
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
       <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><?= e($sideC['label']) ?></span></div>
     <?php endif; ?>
+    <?= dev_switcher() ?>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
@@ -351,6 +401,7 @@ window.ssAccessToken = function (initial) {
   </aside>
 
   <main class="p-main">
+  <?= dev_view_banner() ?>
 <?php
     $storm = storm_state();
     if ($storm): ?>

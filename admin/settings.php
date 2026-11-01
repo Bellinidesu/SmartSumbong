@@ -647,7 +647,7 @@ unset($_SESSION['st_flash']);
 $admins = [];
 try {
     $admins = $db->select('users', [
-        'select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev',
+        'select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev,is_test',
         'role'   => 'eq.admin',
         'order'  => 'created_at.asc',
     ]);
@@ -711,7 +711,7 @@ try {
     <tbody id="jp-rows">
     <?php foreach ($admins as $a): $isK = ($a['official_role'] ?? '') === 'kagawad'; $hasC = in_array($a['official_role'] ?? '', ['kagawad', 'secretary'], true); $me = $a['id'] === $admin['id']; ?>
       <tr class="ss-arow" data-id="<?= e($a['id']) ?>" data-name="<?= e(strtolower(($a['full_name'] ?? '') . ' ' . ($a['email'] ?? ''))) ?>" data-role="<?= e(($a['official_role'] ?? '') === '' ? 'staff' : (string) $a['official_role']) ?>">
-        <td><div class="p-person"><?= admin_chip($a['id'], (string) $a['full_name'], 30) ?><span><?= e(formal_name($a['full_name'])) ?><?= $me ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?><small class="ss-mail"><?= e((string) ($a['email'] ?? '')) ?></small></span></div></td>
+        <td><div class="p-person"><?= admin_chip($a['id'], (string) $a['full_name'], 30) ?><span><?= e(formal_name($a['full_name'])) ?><?= !empty($a['is_test']) ? ' <span class="p-badge dv-test" title="' . e(t('A development team test account', 'Isang test account ng development team')) . '">TEST</span>' : '' ?><?= $me ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?><small class="ss-mail"><?= e((string) ($a['email'] ?? '')) ?></small></span></div></td>
         <td><?= rank_chip($a['official_role'] ?? null, null, false) ?></td>
         <td><?php if ($isK && !empty($a['committee'])): ?><span class="ss-comm"><span class="cdot" style="--cc:<?= e(committee_colour($a['committee'])) ?>" aria-hidden="true"></span><?= e(committee_labels()[$a['committee']][0] ?? '') ?></span><?php else: ?><span class="p-sub">&mdash;</span><?php endif; ?></td>
         <td><div class="p-badges"><?php if (!empty($a['is_suspended'])): ?><span class="p-badge p-b-denied"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-badge p-b-pending"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-badge p-b-done"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></div></td>

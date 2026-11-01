@@ -51,7 +51,17 @@ function db(): Supabase
  */
 function attempt_login(string $email, string $password): void
 {
-    $session = Supabase::signIn($email, $password);
+    establish_session(Supabase::signIn($email, $password));
+}
+
+/**
+ * Makes a GoTrue session the portal's signed-in administrator: the profile, the suspension and administrator checks, and the
+ * session itself. Used by the password sign-in and by a developer's switch into a test account (view-as.php, 0162).
+ *
+ * @throws SupabaseError when the session is not an active administrator's
+ */
+function establish_session(array $session): void
+{
     $token   = $session['access_token'] ?? null;
     if (!$token) {
         throw new SupabaseError(t('Sign in failed. Please try again.', 'Hindi nakapag-sign in. Subukan muli.'));
@@ -59,7 +69,7 @@ function attempt_login(string $email, string $password): void
 
     $client  = new Supabase($token);
     $profile = $client->select('users', [
-        'select' => 'id,full_name,email,role,verification_status,is_suspended,must_change_password,avatar_url,admin_tier,is_dev,committee',
+        'select' => 'id,full_name,email,role,verification_status,is_suspended,must_change_password,avatar_url,admin_tier,is_dev,committee,is_test',
         'id'     => 'eq.' . ($session['user']['id'] ?? ''),
         'limit'  => '1',
     ]);
@@ -100,6 +110,7 @@ function attempt_login(string $email, string $password): void
         // 0145: what this administrator may see and do (refreshed every two minutes by access_refresh)
         'admin_tier'    => $me['admin_tier'] ?? null,
         'is_dev'        => !empty($me['is_dev']),
+        'is_test'       => !empty($me['is_test']),
         'committee'     => $me['committee'] ?? null,
         'access_at'     => time(),
     ];
