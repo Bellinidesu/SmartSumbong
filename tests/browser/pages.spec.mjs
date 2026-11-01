@@ -123,8 +123,35 @@ test('SMART Iteration 2: measured, healthy, and the recheck stage', async ({ pag
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Settings, peak: the SMART tab shows one group at a time and remembers it; the services are a band over a blue header', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'settings.php#status');
+  const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { band: Math.round(R('.st-svcband').bottom), table: Math.round(R('.st-svc').top), th: getComputedStyle(document.querySelector('.st-svc thead th')).backgroundColor }; });
+  expect(Math.abs(g.band - g.table), 'the band and the table touch').toBeLessThanOrEqual(1);
+  expect(g.th, 'blue under the orange band').toBe('rgb(0, 48, 143)');
+  await page.evaluate(() => { try { localStorage.removeItem('ss-smart-sub'); } catch (e) {} });   // a clean start: no group remembered
+  await page.locator('.st-tabs [data-st="smart"]').click();
+  await page.reload();
+  await page.locator('.st-tabs [data-st="smart"]').click();
+  await expect(page.locator('#sm-tabs [data-go]')).toHaveCount(4);
+  await expect(page.locator('#smart-measured'), 'it opens on the overview').toBeVisible();
+  await expect(page.locator('#smart-history'), 'and the rules wait').toBeHidden();
+  await expect(page.locator('#smart-words')).toBeHidden();
+  await page.locator('#sm-tabs [data-go="words"]').click();
+  await expect(page.locator('#smart-words')).toBeVisible();
+  await expect(page.locator('#smart-measured')).toBeHidden();
+  await page.locator('#sm-tabs [data-go="rules"]').click();
+  await expect(page.locator('#smart-history')).toBeVisible();
+  await page.reload();
+  await page.locator('.st-tabs [data-st="smart"]').click();
+  await expect(page.locator('#smart-history'), 'it comes back to the group it was in').toBeVisible();
+  await page.locator('#sm-tabs [data-go="overview"]').click();
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('SMART Iteration 3: rules need a reason, can be tested first, and have a history', async ({ page }) => {
   const r = await open(page, 'settings.php#smart');
+  await page.locator('#sm-tabs [data-go="rules"]').click();   // the SMART tab shows one group at a time; this is the rules
   await expect(page.locator('#rl-why')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Test on the last 90 days' })).toBeVisible();
   await expect(page.locator('#smart-history .ss-vlist li')).toHaveCount(3);

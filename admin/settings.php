@@ -1446,7 +1446,8 @@ endif;
     <?php endif; ?>
   </div>
   <?php endif; ?>
-  <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t st-table">
+  <div class="p-band ss-pband st-svcband"><h2><?= e(t('Services', 'Mga serbisyo')) ?></h2><span class="p-spacer"></span><small class="ss-subnote"><?= e(t('Each one this portal depends on, and how it answered just now', 'Bawat isang umaasa ang portal na ito, at paano sila sumagot ngayon lang')) ?></small></div>
+  <div class="p-card p-table-card st-svc"><div class="p-tscroll"><table class="p-t st-table">
     <thead><tr><th><?= e(t('Service', 'Serbisyo')) ?></th><th><?= e(t('Where it runs', 'Saan tumatakbo')) ?></th><th class="p-right"><?= e(t('Response', 'Tugon')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>
     <tbody id="st-rows"></tbody></table></div></div>
   <p class="st-note"><?= e(t('Supabase, Cloudinary and push alerts are checked from the portal\'s server; maps, address lookup, rain data, live updates and the flood map from this browser, so a failure there can also mean this computer\'s internet connection. No keys or passwords are shown.', 'Sinusuri mula sa server ang Supabase, Cloudinary at push alert; mula sa browser na ito ang mapa, address, ulan, live na update at mapa ng baha.')) ?></p>
@@ -1505,8 +1506,27 @@ endif;
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
   <div class="ss-head"><?= smart_logo(44) ?><p><?= e(t('How the engine scores and sorts complaints. Change a rule, try it, then re-score.', 'Paano minamarkahan at inaayos ng engine ang mga sumbong. Baguhin ang patakaran, subukan, saka muling markahan.')) ?></p></div>
+  <nav class="st-tabs sm-tabs" id="sm-tabs" role="tablist" aria-label="<?= e(t('SMART sections', 'Mga bahagi ng SMART')) ?>">
+    <button type="button" class="st-link p-on" role="tab" data-go="overview" aria-selected="true"><?= e(t('Overview', 'Buod')) ?></button>
+    <button type="button" class="st-link" role="tab" data-go="rules" aria-selected="false"><?= e(t('Rules', 'Mga patakaran')) ?><?php if (!empty($hist)): ?><b class="pd-tn"><?= count($hist) ?></b><?php endif; ?></button>
+    <button type="button" class="st-link" role="tab" data-go="words" aria-selected="false"><?= e(t('Words', 'Mga salita')) ?><?php if (!empty($words)): ?><b class="pd-tn"><?= count($words) ?></b><?php endif; ?></button>
+    <button type="button" class="st-link" role="tab" data-go="test" aria-selected="false"><?= e(t('Try and measure', 'Subukan at sukatin')) ?></button>
+  </nav>
+  <script>
+  (function () {   // one group of the SMART tab at a time; the one you were in is the one you come back to after a save
+    var bar = document.getElementById('sm-tabs'), pane = bar && bar.closest('.st-pane'); if (!pane) return;
+    var KEY = 'ss-smart-sub', ok = ['overview', 'rules', 'words', 'test'];
+    function show(g) {
+      [].forEach.call(pane.querySelectorAll('[data-sm]'), function (e) { e.hidden = e.dataset.sm !== g; });
+      [].forEach.call(bar.querySelectorAll('[data-go]'), function (b) { var on = b.dataset.go === g; b.classList.toggle('p-on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    }
+    var start = 'overview'; try { var v = localStorage.getItem(KEY); if (ok.indexOf(v) >= 0) start = v; } catch (e) {}
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { show(start); }); else show(start);   // the cards below are not parsed yet
+    bar.addEventListener('click', function (e) { var b = e.target.closest('[data-go]'); if (!b) return; show(b.dataset.go); try { localStorage.setItem(KEY, b.dataset.go); } catch (er) {} });
+  })();
+  </script>
   <?php if (is_array($smp) || is_array($smf)): $pk = (array) $smp; $fx = (array) $smf; ?>
-  <div class="p-card p-card-pad st-uptime" id="smart-measured">
+  <div class="p-card p-card-pad st-uptime" id="smart-measured" data-sm="overview">
     <p class="p-eyebrow"><?= e(t('How SMART is doing, last 90 days', 'Kumusta ang SMART, nakaraang 90 araw')) ?></p>
     <div class="st-uptime-tiles">
       <div class="st-uptime-tile"><b><?= isset($pk['top_pick_pct']) ? e(rtrim(rtrim(number_format((float) $pk['top_pick_pct'], 1), '0'), '.')) . '%' : '—' ?></b><span><?= e(sprintf(t('Its first choice of tanod was taken · %d of %d dispatches ranked', 'Kinuha ang unang pinili nitong tanod · %d sa %d na dispatch ang na-rank'), (int) ($pk['top_pick'] ?? 0), (int) ($pk['ranked'] ?? 0))) ?></span></div>
@@ -1519,7 +1539,7 @@ endif;
   <?php if (!$sr): ?>
     <p class="p-none-line"><?= e(t('SMART could not be read. Try again in a moment.', 'Hindi mabasa ang SMART. Subukan muli mamaya.')) ?></p>
   <?php else: ?>
-  <div class="ss-two">
+  <div class="ss-two" data-sm="overview">
     <div class="p-card p-card-pad">
       <p class="p-eyebrow"><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></p>
       <p class="p-hint"><?= e(t('While it is on, flood zones and flood, live-wire and collapse reports count double, and the case list says so.', 'Habang naka-on, doble ang bilang ng mga lugar na binabaha at ng mga ulat ng baha, nakakuryente at pagguho.')) ?></p>
@@ -1544,7 +1564,7 @@ endif;
   </div>
 
   <?php if (feature_on('command_center')): ?>
-  <section class="p-card p-card-pad" id="cmd-settings">
+  <section class="p-card p-card-pad" id="cmd-settings" data-sm="overview">
     <p class="p-eyebrow"><?= e(t('Command center', 'Sentro ng Pamamahala')) ?></p>
     <p class="p-hint"><?= e(t('Spatial Distribution becomes a command center for one situation at a time: Fire Surroundings, Quake Check, Flood Watch or Typhoon Board. SMART suggests a mode with its reason, and an administrator turns it on. Only a person turns a mode off, with a note.', 'Nagiging command center ang Spatial Distribution para sa isang sitwasyon sa bawat pagkakataon: Paligid ng Sunog, Suri sa Lindol, Bantay-baha o Pisara ng Bagyo. Nagmumungkahi ang SMART ng mode kasama ang dahilan, at ini-o-on ito ng administrator. Tao lamang ang nag-o-off ng mode, na may note.')) ?></p>
     <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cmd_auto">
@@ -1588,7 +1608,7 @@ endif;
   </section>
   <?php endif; ?>
 
-  <section class="p-card p-card-pad" id="smart-words">
+  <section class="p-card p-card-pad" id="smart-words" data-sm="words">
     <p class="p-eyebrow"><?= e(t('Words to learn', 'Mga salitang aaralin')) ?><em><?= count($words) ?></em></p>
     <p class="p-hint"><?= e(t('Words residents keep using that SMART does not know yet. You teach each one, or dismiss it; nothing is learned on its own.', 'Mga salitang madalas gamitin ng mga residente na hindi pa alam ng SMART. Ikaw ang nagtuturo ng bawat isa, o hindi ito pinapansin; walang natututuhan nang kusa.')) ?></p>
     <?php if (!$words): ?>
@@ -1627,7 +1647,7 @@ endif;
     <?php endif; ?>
   </section>
 
-  <form method="post" class="p-card p-card-pad">
+  <form method="post" class="p-card p-card-pad" data-sm="rules">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rules">
     <p class="p-eyebrow"><?= e(t('Points for each kind of complaint', 'Puntos sa bawat uri ng sumbong')) ?></p>
     <p class="p-hint"><?= e(t('A report starts with these points; words, hazard zones, neighbours reporting the same thing and the hour add to them. The total decides the level.', 'Nagsisimula ang ulat sa mga puntos na ito; dinadagdagan ito ng mga salita, lugar na may panganib, kapitbahay na nag-ulat ng pareho at oras. Ang kabuuan ang magpapasya ng antas.')) ?></p>
@@ -1653,7 +1673,7 @@ endif;
     <p class="p-hint"><?= e(t('Test first: it shows how many past reports would change level, and saves nothing.', 'Subukan muna: ipinapakita kung ilang nakaraang ulat ang magbabago ng antas, at walang sine-save.')) ?></p>
   </form>
   <?php if (is_array($replay) && is_array($replay['result'] ?? null)): $rp = $replay['result']; ?>
-  <div class="p-card p-card-pad" id="smart-replay">
+  <div class="p-card p-card-pad" id="smart-replay" data-sm="rules">
     <p class="p-eyebrow"><?= e(t('What the change would do', 'Ano ang gagawin ng pagbabago')) ?></p>
     <p><b><?= (int) ($rp['moved'] ?? 0) ?></b> <?= e(sprintf(t('of %d reports from the last %d days would change level.', 'sa %d ulat sa nakaraang %d araw ang magbabago ng antas.'), (int) ($rp['reports'] ?? 0), (int) ($rp['days'] ?? 90))) ?>
       <?= e(t('Nothing was saved.', 'Walang na-save.')) ?></p>
@@ -1674,12 +1694,12 @@ endif;
     <p class="st-note"><?= e(t('The form above keeps what you typed. Add a reason and press Save rules to make the change.', 'Nasa form sa itaas pa rin ang tinype mo. Maglagay ng dahilan at pindutin ang I-save ang mga patakaran para gawin ang pagbabago.')) ?></p>
   </div>
   <?php endif; ?>
-  <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
+  <form method="post" class="ss-posform" data-sm="rules"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Re-score open reports', 'Muling markahan ang mga bukas na ulat')) ?></button>
     <span class="p-hint"><?= e(t('Applies the rules above to every case that is still open. Levels an administrator set by hand stay.', 'Ilalapat ang mga patakaran sa lahat ng kasong bukas pa. Mananatili ang antas na itinakda ng administrator.')) ?></span></form>
 
   <?php if ($hist): ?>
-  <div class="p-card p-card-pad" id="smart-history">
+  <div class="p-card p-card-pad" id="smart-history" data-sm="rules">
     <p class="p-eyebrow"><?= e(t('Versions of the rules', 'Mga bersyon ng mga patakaran')) ?><em><?= count($hist) ?></em></p>
     <p class="p-hint"><?= e(t('Every change to the rules or the word list is kept, with who made it and why. Rolling back restores a version as a new one, and re-scores the open reports.', 'Itinatago ang bawat pagbabago sa mga patakaran o listahan ng salita, kasama kung sino at bakit. Ibinabalik ng rollback ang isang bersyon bilang bago, at muling minamarkahan ang mga bukas na ulat.')) ?></p>
     <ul class="ss-vlist">
@@ -1701,7 +1721,7 @@ endif;
   </div>
   <?php endif; ?>
 
-  <form method="post" class="p-card p-card-pad">
+  <form method="post" class="p-card p-card-pad" data-sm="test">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_try">
     <p class="p-eyebrow"><?= e(t('Try it', 'Subukan')) ?></p>
     <p class="p-hint"><?= e(t('Type a complaint and see what level SMART would give it, and why. Nothing is saved.', 'Mag-type ng sumbong at tingnan ang antas na ibibigay ng SMART, at kung bakit. Walang mase-save.')) ?></p>
@@ -1721,7 +1741,7 @@ endif;
   </form>
 
   <?php if ($cal || $fac): ?>
-  <div class="ss-two">
+  <div class="ss-two" data-sm="test">
     <?php if ($cal): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the levels are doing (90 days)', 'Kumusta ang mga antas (90 araw)')) ?></p>
       <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('To dispatch (min)', 'Hanggang dispatch (min)')) ?></th></tr></thead><tbody>
       <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : (int) round((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>
