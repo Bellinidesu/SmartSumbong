@@ -323,7 +323,7 @@ test('Roles and pages 1a: Administrative Services and the Control Room take thei
   r = await open(page, 'control-room.php');
   await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Complaint types', 'Rules', 'Emergency numbers', 'Wording', 'The barangay', 'Parts of the system'])   // the fake's own wording renames Hotlines;
   await page.locator('.st-tabs [data-st="parts"]').click();
-  await expect(page.locator('#acc-switches li')).toHaveCount(2);
+  await expect(page.locator('#acc-switches li')).toHaveCount(3);   // Workspace, Command center, Live preview on a phone
   expect(await axe(page), 'Control Room > Parts of the system').toEqual([]);
   await page.goto('settings.php#types');
   await expect(page).toHaveURL(/control-room\.php#types$/);
@@ -421,6 +421,36 @@ test('Control Room: a live phone follows the forms (Report, Emergency, Home, Spl
   await page.locator('.st-tabs [data-st="rules"]').click();
   await expect(page.locator('#ed-phone'), 'Rules has no screen').toBeHidden();
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+});
+
+test('Control Room, live on a phone: off by default; once on, a pairing starts and the draft follows the forms', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  await page.request.get('http://127.0.0.1:54399/__feat?ws=1&cc=1&lp=0');
+  await open(page, 'control-room.php');
+  await expect(page.locator('#ed-live'), 'nothing to pair while it is switched off').toHaveCount(0);
+  await expect(page.locator('.ed-live-off')).toBeVisible();
+  await page.request.get('http://127.0.0.1:54399/__feat?ws=1&cc=1&lp=1');
+  const r = await open(page, 'control-room.php');
+  await expect(page.locator('#ed-live-go')).toBeVisible();
+  await page.evaluate(() => { window.__sent = null; window.__edHook = m => { window.__sent = m; }; });
+  await page.locator('#ed-live-go').click();
+  await expect(page.locator('#ed-live-code')).toHaveText('ABCD 2345');
+  await expect(page.locator('#ed-live-count')).toHaveText(/^\d+:\d\d$/);
+  await expect(page.locator('#ed-live-go'), 'the button gives way to the code').toBeHidden();
+  await page.locator('#types-card details.ty-cat summary').nth(1).click();
+  await page.locator('#types-card details.ty-cat[open] input[name="label_en"]').first().fill('Roads and Drainage');
+  await page.waitForFunction(() => window.__sent && window.__sent.cats.some(c => c.label_en === 'Roads and Drainage'));
+  const m = await page.evaluate(() => window.__sent);
+  expect(m.cats.length, 'every category is in the draft').toBe(8);
+  expect(m.cats[0].options.length, 'with its options').toBeGreaterThan(0);
+  expect(m.hotlines.length, 'the emergency numbers').toBeGreaterThan(0);
+  expect(m.switches.length, 'the parts').toBe(3);
+  expect(m.barangay.name, 'and the barangay').toBeTruthy();
+  await page.locator('#ed-live-end').click();
+  await expect(page.locator('.ed-live-box')).toBeHidden();
+  await expect(page.locator('#ed-live-go')).toBeVisible();
+  expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
+  await page.request.get('http://127.0.0.1:54399/__feat?ws=1&cc=1&lp=0');
 });
 
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
