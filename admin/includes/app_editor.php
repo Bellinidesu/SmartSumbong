@@ -15,7 +15,7 @@ const APP_EDITOR_SCREENS = ['types' => 'report', 'wording' => 'report', 'hotline
  * @param array $hlTop    the top-level hotline groups; $hlKids their sub-groups by parent id; $hlNums their numbers by group id
  * @param array $switches the feature switch rows
  */
-function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hlNums, array $switches): void
+function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hlNums, array $switches, bool $liveOn = false): void
 {
     $b = barangay();
     $cats = categories_all();
@@ -87,6 +87,25 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
   <nav class="ed-switch" aria-label="<?= e(t('Screens', 'Mga screen')) ?>">
     <?php foreach ($screenName as $sk => $sl): ?><button type="button" data-go="<?= e($sk) ?>"><?= e($sl) ?></button><?php endforeach; ?>
   </nav>
+  <?php if ($liveOn): ?>
+  <div class="ed-live" id="ed-live" data-cfg="<?= e(json_encode([
+      'url' => supabase_url(), 'key' => supabase_key(), 'token' => access_token(),
+      't' => ['wait' => t('Waiting for the phone…', 'Hinihintay ang telepono…'), 'paired' => t('Paired with %s', 'Nakakonekta sa %s'), 'phone' => t('a phone', 'isang telepono'),
+              'live' => t('Connected: the phone shows your edits', 'Nakakonekta: ipinapakita ng telepono ang mga edit mo'), 'ran' => t('The code ran out. Start again.', 'Naubos ang code. Magsimulang muli.'),
+              'ended' => t('Ended', 'Tapos na'), 'fail' => t('Could not start. Try again.', 'Hindi masimulan. Subukan muli.')],
+  ], JSON_UNESCAPED_UNICODE)) ?>">
+    <button type="button" class="p-btn p-btn-sm ed-live-go" id="ed-live-go"><?= e(t('Show on a phone', 'Ipakita sa telepono')) ?></button>
+    <div class="ed-live-box" hidden>
+      <small><?= e(t('On the phone, open the app, go to About, tap the version seven times, and type this code.', 'Sa telepono, buksan ang app, pumunta sa About, pindutin ng pitong beses ang bersyon, at i-type ang code na ito.')) ?></small>
+      <b class="ed-live-code" id="ed-live-code" aria-live="polite"></b>
+      <div class="ed-live-meta"><span id="ed-live-count"></span><span id="ed-live-state"></span></div>
+      <button type="button" class="p-btn p-btn-ghost p-btn-sm" id="ed-live-end"><?= e(t('End', 'Tapusin')) ?></button>
+    </div>
+    <p class="ed-live-err" id="ed-live-err" role="alert" hidden></p>
+  </div>
+  <?php else: ?>
+  <p class="ed-live-off"><?= e(t('Showing it on a real phone is off. Turn on "Live preview on a phone" under Parts of the system.', 'Naka-off ang pagpapakita sa totoong telepono. I-on ang "Live na preview sa telepono" sa Mga bahagi ng sistema.')) ?></p>
+  <?php endif; ?>
 </aside>
 <?php
 }
@@ -94,7 +113,11 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
 /** The Control Room's page footer: closes the forms' column, adds the phone beside it and starts its script. Called where the page ends. */
 function app_editor_end(array $catOpts, array $hlTop, array $hlKids, array $hlNums, array $switches): void
 {
+    $liveOn = false;
+    foreach ($switches as $sw) { if (($sw['key'] ?? '') === 'live_preview' && !empty($sw['enabled'])) { $liveOn = true; } }
     echo '</div>';
-    render_app_phone($catOpts, $hlTop, $hlKids, $hlNums, $switches);
-    echo '</div><script src="assets/js/app-editor.js?v=' . e(asset_version('../js/app-editor.js')) . '"></script>';
+    render_app_phone($catOpts, $hlTop, $hlKids, $hlNums, $switches, $liveOn);
+    echo '</div>';
+    if ($liveOn) { echo '<script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>'; }
+    echo '<script src="assets/js/app-editor.js?v=' . e(asset_version('../js/app-editor.js')) . '"></script>';
 }

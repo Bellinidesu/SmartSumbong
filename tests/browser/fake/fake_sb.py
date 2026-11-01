@@ -129,7 +129,7 @@ for _c in TABLES['committees']:
 
 # The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
 CMD = {'active': None}
-FEAT = {'workspace': True, 'command_center': True}   # 0144: the real database ships both off; the tests flip them with /__feat
+FEAT = {'workspace': True, 'command_center': True, 'live_preview': False}   # 0144: the real database ships both off; the tests flip them with /__feat
 CMD_MODES = [{'mode': 'fire', 'en': 'Fire Surroundings', 'fil': 'Paligid ng Sunog'}, {'mode': 'quake', 'en': 'Quake Check', 'fil': 'Suri sa Lindol'},
              {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha'}, {'mode': 'typhoon', 'en': 'Typhoon Board', 'fil': 'Pisara ng Bagyo'}]
 
@@ -246,6 +246,8 @@ RPC = {
     'tanod_pick_list': [{'id': 'u5', 'full_name': 'Martin, Jericho Troy'}],
     'propose_tanod_committee': 'proposed', 'decide_tanod_committee': None, 'remove_tanod_committee': None, 'punch': None,
     'app_release_publish': 'e1000000-0000-0000-0000-000000000009', 'app_release_set_active': None,
+
+    'preview_start': lambda p: {'id': 'e0000000-0000-0000-0000-000000000001', 'code': 'ABCD2345', 'channel': 'c' * 36, 'expires_at': ahead(0.5)}, 'preview_end': None,
     'punch_cards': [{'id': 's1', 'name': 'Santos, Ben', 'tier': 'moderator', 'committee': 'peace_order', 'position': 'secretary',
                      'days': [{'day': (NOW - dt.timedelta(days=d)).date().isoformat(), 'first_in': ago(5 + d * 24), 'last_out': None if d == 0 else ago(d * 24 - 3),
                                'touched': 2 - min(d, 2), 'cases': ['SS-2610-1001', 'SS-2610-1002'][:2 - min(d, 2)]} for d in range(7)]},
@@ -348,7 +350,7 @@ class H(BaseHTTPRequestHandler):
         n = int(self.headers.get('Content-Length') or 0)
         body = self.rfile.read(n) if n else b''
         if u.path == '/__feat':   # ?ws=0&cc=0
-            FEAT['workspace'] = qs.get('ws', ['1'])[0] == '1'; FEAT['command_center'] = qs.get('cc', ['1'])[0] == '1'
+            FEAT['workspace'] = qs.get('ws', ['1'])[0] == '1'; FEAT['command_center'] = qs.get('cc', ['1'])[0] == '1'; FEAT['live_preview'] = qs.get('lp', ['0'])[0] == '1'
             return self.send(200, {})
         if u.path == '/__cmd_reset':   # the command-center test starts with nothing on
             CMD['active'] = None; return self.send(200, {})
@@ -366,7 +368,7 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith('/rest/v1/'):
             t = u.path.split('/')[-1]
             rows = TABLES.get(t)
-            if t == 'feature_switches': rows = [{'key': k, 'enabled': v, 'label_en': {'workspace': 'Workspace', 'command_center': 'Command center'}.get(k, k), 'label_fil': {'workspace': 'Workspace', 'command_center': 'Command center'}.get(k, k), 'note': 'Off until after the defense' if k == 'command_center' else None} for k, v in FEAT.items()]
+            if t == 'feature_switches': rows = [{'key': k, 'enabled': v, 'label_en': {'workspace': 'Workspace', 'command_center': 'Command center', 'live_preview': 'Live preview on a phone'}.get(k, k), 'label_fil': {'workspace': 'Workspace', 'command_center': 'Command center', 'live_preview': 'Live preview on a phone'}.get(k, k), 'note': 'Off until after the defense' if k == 'command_center' else None} for k, v in FEAT.items()]
             if rows is None:
                 print('TABLE missing', t, file=sys.stderr, flush=True); rows = []
             if m != 'GET': return self.send(200, rows[:1])

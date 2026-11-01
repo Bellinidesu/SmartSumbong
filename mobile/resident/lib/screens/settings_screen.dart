@@ -23,6 +23,8 @@ import '../d/d_theme.dart';
 import '../d/d_switches.dart';
 import '../d/d_ui.dart';
 import '../dev/app_updater.dart';
+
+import '../dev/live_preview.dart';
 import '../theme.dart';
 import '../widgets/figma_ui.dart';
 import '../tanod/tanod_strings.dart';
@@ -359,7 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (_version != null) ...[
             const SizedBox(height: 18),
             // D: the branch the app came from, in the build name. (The easter eggs come later.)
-            Center(child: Text('SmartSumbong • D · v$_version', style: DType.body(d.muted, size: 11.5))),
+            Center(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _tapVersion, child: Padding(padding: const EdgeInsets.all(6), child: Text('SmartSumbong • D · v$_version', style: DType.body(d.muted, size: 11.5))))),
             const SizedBox(height: 2),
             Center(child: Text(context.tr('Powered by SMART', 'Pinatatakbo ng SMART'), style: DType.body(d.muted, size: 11))),
             if (AppUpdater.supported) Center(child: TextButton(onPressed: () => AppUpdater.checkNow(context), child: Text(context.tr('Check for updates', 'Tingnan kung may update')))),
@@ -367,6 +369,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  // Seven taps on the version line (within four seconds) ask for a live preview code. Only a super admin's code opens anything.
+  int _versionTaps = 0;
+  DateTime? _versionTapAt;
+
+  void _tapVersion() {
+    final now = DateTime.now();
+    if (_versionTapAt == null || now.difference(_versionTapAt!) > const Duration(seconds: 4)) _versionTaps = 0;
+    _versionTapAt = now;
+    if (++_versionTaps >= 7) {
+      _versionTaps = 0;
+      showLivePreviewDialog(context);
+    }
   }
 
   static String _initials(String? name) {
