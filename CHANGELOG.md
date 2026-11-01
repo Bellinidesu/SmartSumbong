@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (Control Room: Show on a phone, the portal part of live preview, 1 Nov)**
+- With the `live_preview` switch on (Parts of the system), the live view has a Show on a phone button: a one-time code with a countdown and an End button. While it is up, the Control Room sends what the forms say right now (complaint types and options, emergency numbers, parts, the barangay's name and place) to the phone's secret channel as you type. Off, the live view says so and nothing can start. The app's side (pairing and the overlay) follows.
+
 **Changed (Control Room: Wording, The barangay, Parts of the system; Planning, 1 Nov)**
 - Parts of the system: a card and a switch each. The barangay: the seal is the hero of its form, a dashed drop area for a new seal, and a save bar that says when something is unsaved. Wording: a search that leads, a card per label, App and Portal told apart by colour, the barangay's own wording marked. The same plain headings on Planning and the other tabs.
 

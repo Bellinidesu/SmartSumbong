@@ -153,4 +153,90 @@
       var r = new FileReader(); r.onload = function () { qa('img.ed-sealimg', phone).forEach(function (i) { i.src = r.result; }); }; r.readAsDataURL(e.target.files[0]);
     });
   }
+
+  /* ---- showing it on a real phone (developer mode, 0160) ---- */
+  var live = document.getElementById('ed-live');
+  if (live && window.supabase) (function () {
+    var cfg = {}; try { cfg = JSON.parse(live.dataset.cfg || '{}'); } catch (e) {}
+    var T = cfg.t || {};
+    var sb = window.supabase.createClient(cfg.url, cfg.key, { accessToken: window.ssAccessToken(cfg.token) });
+    var go = q('#ed-live-go'), box = q('.ed-live-box', live), codeEl = q('#ed-live-code'), cnt = q('#ed-live-count'), st = q('#ed-live-state'), end = q('#ed-live-end'), err = q('#ed-live-err');
+    var sess = null, ch = null, ready = false, tick = null, poll = null, beat = null, deb = null;
+    var val = function (f, n) { var e = f && q('[name="' + n + '"]', f); return e ? e.value : ''; };
+    var on = function (f, n) { var e = f && q('[name="' + n + '"]', f); return !!(e && e.checked); };
+
+    /* what the forms say right now: the draft the phone should show (what saving would publish) */
+    function opts(d, add) {
+      var o = qa('form.ty-opt:not(.ty-add)', d).map(function (f) { return { id: +val(f, 'id') || null, label_en: val(f, 'label_en'), label_fil: val(f, 'label_fil'), active: on(f, 'active') }; });
+      qa('form.ty-add', d).forEach(function (f) { if (val(f, 'label_en').trim()) o.push({ id: null, label_en: val(f, 'label_en'), label_fil: val(f, 'label_fil'), active: true }); });
+      return o;
+    }
+    function group(d) {
+      var f = q(':scope > form.hl-row', d);
+      var nums = qa(':scope > ul form.hl-num:not(.ty-add)', d).map(function (n) { return { id: val(n, 'id'), label: val(n, 'label'), number: val(n, 'number'), carrier: val(n, 'carrier'), active: on(n, 'active') }; });
+      qa(':scope > ul form.hl-num.ty-add', d).forEach(function (n) { if (val(n, 'number').trim()) nums.push({ id: null, label: val(n, 'label'), number: val(n, 'number'), carrier: val(n, 'carrier'), active: true }); });
+      return { id: val(f, 'id'), name: val(f, 'name'), display: val(f, 'display'), active: on(f, 'active'), numbers: nums, groups: qa(':scope > details.hl-g', d).map(group) };
+    }
+    function model() {
+      var cats = qa('#types-card details.ty-cat').map(function (d) {
+        var f = q('form.ty-row', d);
+        return { key: val(f, 'key'), label_en: val(f, 'label_en'), label_fil: val(f, 'label_fil'), colour: val(f, 'colour'), icon: val(f, 'icon'), active: on(f, 'active'), options: opts(d) };
+      });
+      var nf = q('#types-card form.ty-new');
+      if (nf && val(nf, 'label_en').trim()) cats.push({ key: null, label_en: val(nf, 'label_en'), label_fil: val(nf, 'label_fil'), colour: val(nf, 'colour'), icon: val(nf, 'icon'), active: true, options: [] });
+      var bf = document.getElementById('brgy-card');
+      return {
+        v: 1, at: Date.now(), cats: cats,
+        hotlines: qa('#hotlines-card > details.hl-g').map(group),
+        switches: qa('#acc-switches form').map(function (f) { return { key: val(f, 'key'), on: on(f, 'on') }; }),
+        barangay: { name: val(bf, 'name'), place: val(bf, 'place') }
+      };
+    }
+    function send() { var m = model(); if (window.__edHook) window.__edHook(m); /* a seam for the tests */ if (ch && ready) ch.send({ type: 'broadcast', event: 'draft', payload: m }); }
+    function queue() { clearTimeout(deb); deb = setTimeout(send, 250); }
+    document.addEventListener('input', function () { if (sess) queue(); });
+    document.addEventListener('change', function () { if (sess) queue(); });
+
+    function stop(msg) {
+      clearInterval(tick); clearInterval(poll); clearInterval(beat); clearTimeout(deb);
+      if (ch) { try { sb.removeChannel(ch); } catch (e) {} }
+      ch = null; ready = false; sess = null; box.hidden = true; go.hidden = false;
+      err.hidden = !msg; err.textContent = msg || '';
+    }
+    function begin() {
+      codeEl.textContent = sess.code.slice(0, 4) + ' ' + sess.code.slice(4);
+      st.textContent = T.wait || ''; box.hidden = false; go.hidden = true;
+      ch = sb.channel('pv:' + sess.channel, { config: { broadcast: { self: false } } });
+      ch.on('broadcast', { event: 'hello' }, function () { st.textContent = T.live || ''; queue(); })
+        .subscribe(function (s) { if (s === 'SUBSCRIBED') { ready = true; send(); } });
+      var count = function () {
+        var ms = new Date(sess.expires_at) - Date.now();
+        if (ms <= 0) { stop(T.ran); return; }
+        cnt.textContent = Math.floor(ms / 60000) + ':' + ('0' + (Math.floor(ms / 1000) % 60)).slice(-2);
+      };
+      count(); tick = setInterval(count, 1000);
+      poll = setInterval(function () {
+        if (!sess) return;
+        sb.from('preview_sessions').select('paired_at,paired_device,ended_at').eq('id', sess.id).maybeSingle().then(function (r) {
+          var d = r && r.data; if (!d || !sess) return;
+          if (d.ended_at) { stop(T.ended); return; }
+          if (d.paired_at && st.textContent !== T.live) st.textContent = (T.paired || '%s').replace('%s', d.paired_device || T.phone);
+        });
+      }, 4000);
+      beat = setInterval(send, 5000);
+    }
+    go.addEventListener('click', function () {
+      err.hidden = true; go.disabled = true;
+      sb.rpc('preview_start').then(function (r) {
+        go.disabled = false;
+        if (r.error || !r.data) { err.textContent = (r.error && r.error.message) || T.fail || ''; err.hidden = false; return; }
+        sess = r.data; begin();
+      });
+    });
+    end.addEventListener('click', function () {
+      var id = sess && sess.id; stop('');
+      if (id) sb.rpc('preview_end', { p_id: id });
+    });
+    window.addEventListener('pagehide', function () { if (sess) sb.rpc('preview_end', { p_id: sess.id }); });
+  })();
 })();
