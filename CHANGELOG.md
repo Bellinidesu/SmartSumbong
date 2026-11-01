@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (0162: the development team sees every rung, 2 Nov)**
+- A DEV switcher in the sidebar (developers only): make your test accounts (super admin, captain, Kagawad and staff of a committee you pick), switch into any of them with no password, and come back. A striped band says which rung you are seeing as. The level-switch Edge Function does the sign-in with the service key the portal never holds, and only into the developer's own test accounts. Test accounts are marked TEST in Administrators and are never taken for a committee's Kagawad by routing; every switch is recorded.
+
 **Changed (Settings, 2 Nov)**
 - SMART: the long tab shows one group at a time (Overview, Rules, Words, Try and measure), with counts on the tabs, and comes back to the group you were in after a save. System status: the services are an orange band over a blue-header table. The same plain headings as the Control Room, count badges beside them, and the SMART level table's header no longer breaks into one word a line.
 

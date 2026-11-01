@@ -501,6 +501,27 @@ test('Control Room, live on a phone: off by default; once on, a pairing starts a
   await page.request.get('http://127.0.0.1:54399/__feat?ws=1&cc=1&lp=0');
 });
 
+test('Development team: the DEV switcher makes test accounts, switches into a rung with a banner that says so, and comes back', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'notifications.php');
+  const sw = page.locator('.dv-sw');
+  await expect(sw, 'a developer has the switcher').toHaveCount(1);
+  await sw.locator('summary').click();
+  await expect(sw.locator('.dv-l')).toHaveCount(4);   // Super admin, Captain, Kagawad, Staff
+  await expect(sw.locator('.dv-l').nth(2)).toContainText('Kagawad');
+  await expect(sw.locator('.dv-l').nth(2)).toContainText('Peace and Order');
+  await sw.locator('.dv-setup button').click();
+  await expect(page.locator('.dv-msg')).toContainText('test accounts are ready');
+  await page.locator('.dv-sw summary').click();
+  await page.locator('.dv-sw .dv-l').nth(2).click();
+  await expect(page.locator('.dv-band'), 'a band says whose eyes these are').toContainText('Seeing the portal as Kagawad');
+  await expect(page.locator('.dv-sw .dv-l.p-on')).toContainText('Kagawad');
+  await page.locator('.dv-band button').click();
+  await expect(page.locator('.dv-band')).toHaveCount(0);
+  expect(await axe(page), 'the switcher').toEqual([]);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');

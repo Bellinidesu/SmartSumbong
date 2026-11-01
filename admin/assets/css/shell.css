@@ -91,3 +91,28 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-pill{min-width:17px;height:17px;padding:0 4px;font-size:9.5px}
   html[data-side="hover"] .p-sidebar:not(:hover):not(:focus-within) .p-nav .p-brain-pill{width:17px;height:17px}
 }
+
+/* ================= The development team's switcher (0162): see the portal as each rung sees it ================= */
+.dv-sw { margin: 6px 14px 10px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: #fff; }
+.dv-sw > summary { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; list-style: none; font: 600 12.5px Inter, sans-serif; }
+.dv-sw > summary::-webkit-details-marker { display: none; }
+.dv-sw > summary b { padding: 1px 6px; border-radius: 6px; background: #FF9800; color: #2B1A00; font: 800 10.5px Inter, sans-serif; letter-spacing: .06em; }
+.dv-sw > summary em { margin-left: auto; font-style: normal; font-weight: 800; }
+.dv-body { display: grid; gap: 8px; padding: 0 10px 10px; }
+.dv-levels { display: grid; gap: 6px; }
+.dv-l { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 0; border-radius: 10px; background: rgba(255,255,255,.1); color: #fff; font: 700 12.5px Inter, sans-serif; text-align: left; cursor: pointer; }
+.dv-l::before { content: ""; width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--rk, #00E5FF); box-shadow: 0 0 6px var(--rk, #00E5FF); }
+.dv-l[data-r="chair"] { --rk: #FF3D6E; } .dv-l[data-r="kagawad"] { --rk: #B66CFF; } .dv-l[data-r="staff"] { --rk: #00E5FF; }
+.dv-l:hover { background: rgba(255,255,255,.18); }
+.dv-l.p-on { background: #fff; color: #141B34; }
+.dv-back, .dv-setup button { width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: #FF9800; color: #2B1A00; font: 800 12.5px Inter, sans-serif; cursor: pointer; }
+.dv-setup { display: grid; gap: 6px; }
+.dv-setup label { display: grid; gap: 4px; font: 600 11.5px Inter, sans-serif; opacity: .9; }
+.dv-setup select { width: 100%; padding: 6px 8px; border-radius: 8px; border: 0; background: #fff; color: #141B34; font: 600 12.5px Inter, sans-serif; }
+.dv-setup select option { color: #141B34; }
+.dv-msg { margin: 0; font: 600 12px/1.4 Inter, sans-serif; color: #FFD9A0; }
+:root[data-side="min"] .dv-sw { display: none; }
+.dv-band { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 16px; border-radius: 14px; background: repeating-linear-gradient(135deg, #FF9800 0 14px, #FFA726 14px 28px); color: #2B1A00; font: 600 13px Inter, sans-serif; box-shadow: 0 8px 20px -10px rgba(255,152,0,.7); }
+.dv-band b { font: 800 14px Urbanist, sans-serif; } .dv-band form { margin: 0 0 0 auto; }
+.dv-band button { padding: 6px 14px; border: 0; border-radius: 10px; background: #2B1A00; color: #fff; font: 800 12.5px Inter, sans-serif; cursor: pointer; }
+.p-badge.dv-test { background: repeating-linear-gradient(135deg, #FFE0B2 0 6px, #FFF3E0 6px 12px); color: #8A4B00; font-weight: 800; letter-spacing: .04em; }

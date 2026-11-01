@@ -248,6 +248,11 @@ RPC = {
     'app_release_publish': 'e1000000-0000-0000-0000-000000000009', 'app_release_set_active': None,
 
     'preview_start': lambda p: {'id': 'e0000000-0000-0000-0000-000000000001', 'code': 'ABCD2345', 'channel': 'c' * 36, 'expires_at': ahead(0.5)}, 'preview_end': None,
+    'dev_levels': [{'level': 'super', 'account': 't-super', 'name': 'Test Super admin, Marites', 'committee': None},
+                   {'level': 'captain', 'account': 't-captain', 'name': 'Test Captain, Marites', 'committee': None},
+                   {'level': 'committee', 'account': 't-committee', 'name': 'Test Kagawad, Marites', 'committee': 'peace_order'},
+                   {'level': 'moderator', 'account': 't-moderator', 'name': 'Test Staff, Marites', 'committee': 'peace_order'}],
+    'dev_test_accounts_ensure': {'made': 0, 'committee': 'peace_order'},
     'punch_cards': [{'id': 's1', 'name': 'Santos, Ben', 'tier': 'moderator', 'committee': 'peace_order', 'position': 'secretary',
                      'days': [{'day': (NOW - dt.timedelta(days=d)).date().isoformat(), 'first_in': ago(5 + d * 24), 'last_out': None if d == 0 else ago(d * 24 - 3),
                                'touched': 2 - min(d, 2), 'cases': ['SS-2610-1001', 'SS-2610-1002'][:2 - min(d, 2)]} for d in range(7)]},
@@ -354,6 +359,8 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, {})
         if u.path == '/__cmd_reset':   # the command-center test starts with nothing on
             CMD['active'] = None; return self.send(200, {})
+        if u.path == '/functions/v1/level-switch':   # 0162: a test account's session (the fake keeps everyone the demo administrator)
+            return self.send(200, {'access_token': 'fake', 'refresh_token': 'fake', 'expires_in': 3600, 'user': {'id': ADMIN['id']}})
         if u.path.startswith('/auth/v1/'):
             if 'token' in u.path:
                 return self.send(200, {'access_token': 'fake', 'refresh_token': 'fake', 'expires_in': 3600, 'user': {'id': ADMIN['id']}})

@@ -41,6 +41,7 @@ How the database fits the rest of the system is in
 | `committees` | The barangay's committees, made and edited by a super admin; switched off = not created (0145). For 183: Peace and Order, Environment and Disaster Risk, Health and Sanitation (the Anti-Drug Abuse Council is off, 0159) | 0145 |
 | `committees.colour` | Each committee's colour, chosen by a super admin; its admins' sidebar wears it; no two active committees, and no committee and the super admins, may be close (0150) | 0150 |
 | `committee_categories` | The categories each committee sees (the super admin's ticks) | 0145 |
+| `users.is_test`, `dev_test_accounts`, `dev_level_switches` | A developer's test account per rung (marked TEST, never taken for a committee's Kagawad by routing) and every switch into one | 0162 |
 | `app_releases` | Published versions of the app for the self-updater (https link, SHA-256, notes in English and Tagalog, must update, active); read only by a super admin, written only by the release functions | 0161 |
 | `preview_sessions`, `preview_attempts` | A super admin's pairings with a phone (the code kept hashed, a secret channel, an expiry) and the wrong codes a person has tried; written only by the preview functions | 0160 |
 | `committee_for_category` | The committee that usually takes each kind of complaint (editable defaults) | 0130 |
@@ -199,6 +200,7 @@ policy by design. "Latest" is the migration that last redefined it.
 | `committee_save`, `committee_set_categories`, `set_admin_access` | 0145 | A super admin makes or changes a committee, ticks the categories it sees, and sets an administrator's tier, committee and developer mark |
 | `complaint_catalogue` | 0146 | The categories and their options, in order, for the app and the portal (`p_all`: a super admin also gets the ones switched off) |
 | `propose_tanod_committee`, `decide_tanod_committee`, `remove_tanod_committee`, `tanod_pick_list`, `personnel_committees`; `account_directory` (scoped) | 0153 | A tanod's committees: a Kagawad proposes, a super admin approves; names to propose from; each tanod's committees as the caller may see them and the committee of the case they are on; a committee's admins list only their tanods |
+| `dev_test_accounts_ensure`, `dev_levels` | 0162 | A developer makes their test account for each rung (super, captain, Kagawad, staff) and lists them for the switcher; the level-switch Edge Function signs them in |
 | `latest_app_release`, `app_release_publish`, `app_release_set_active` | 0161 | The self-updater: everyone asks for the newest active release, a super admin publishes (link, SHA-256, notes, must update) or withdraws one; switch `app_updates` turns the offers off |
 | `preview_start`, `preview_pair`, `preview_end` | 0160 | Live preview on a phone (developer mode, switch `live_preview`, off by default): a super admin gets a one-time code, the phone trades it for a secret channel, five wrong codes lock a person out for 15 minutes |
 | `purge_old_records` | 0158 | The nightly retention purge (cron only) |
