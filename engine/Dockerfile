@@ -1,7 +1,7 @@
 # SmartSumbong engine (0137): the work the database hands out, starting with reading ID photos.
 # Build context: engine/ (Render: Root Directory "engine"). Its own image, apart from the portal's.
 # 3.12.15: newer than two weeks, taken for its security fixes (Debian's libpcre2 and perl among them)
-FROM python:3.12.15-slim-bookworm
+FROM python:3.12.16-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 
