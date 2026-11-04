@@ -28,6 +28,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/module_brain.php';   // the person's SMART module, at the top of the engine's window
 
 $admin = require_admin();
 $db    = db();
@@ -374,6 +375,7 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
     <button type="button" class="ss-win-x" id="ss-win-close" aria-label="<?= e(t('Close', 'Isara')) ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </header>
   <div class="ss-win-body"><div class="ss-panel-in">
+    <?= module_brain_section($db) ?>
     <section class="p-card p-card-pad rs-w-card"><p class="p-eyebrow"><?= e(t('In short', 'Sa madaling salita')) ?></p>
       <?php if ($story): ?><ul class="rs-w-list"><?php foreach ($story as $line): ?><li><?= e($line) ?></li><?php endforeach; ?></ul>
       <?php else: ?><p class="p-hint"><?= e(t('Nothing was filed in this period.', 'Walang naisampa sa panahong ito.')) ?></p><?php endif; ?>
