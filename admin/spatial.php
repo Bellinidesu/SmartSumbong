@@ -1656,6 +1656,9 @@ window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 98
       const lr = d.getBoundingClientRect(), top = lr.left < sr.right + 8 ? Math.max(84, sr.bottom - shell.top + 12) : 84;
       if (top === 84) { d.style.top = ''; d.style.maxHeight = ''; } else { d.style.top = top + 'px'; d.style.maxHeight = 'calc(100% - ' + (top + 16) + 'px)'; }
     });
+    // Rose (2 Nov 2026): the cards under the tab (the SMART suggestion, the layers' notes) sit below it however tall it is now
+    // that the layers are its last row.
+    sec.querySelectorAll('.cc-suggest, .ss-lyr-info').forEach(el => { el.style.top = Math.max(124, sr.bottom - shell.top + 12) + 'px'; });
   };
   if (window.ResizeObserver) new ResizeObserver(place).observe(bar);
   if (window.MutationObserver) drawers.forEach(d => new MutationObserver(place).observe(d, { attributes: true, attributeFilter: ['hidden'] }));

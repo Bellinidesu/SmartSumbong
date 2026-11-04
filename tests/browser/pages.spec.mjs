@@ -1236,3 +1236,29 @@ test('Settings for a Kagawad and staff: their look, their committee read only, t
   await expect(page.locator('.sm-four')).toHaveCount(0);   // decisions stay with the Kagawad
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
+
+test('Rose, 2 Nov: the lock holds when the map is pressed, the layers are a row of the floating tab, and the first day picked can be taken back', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'spatial.php');
+  await expect(page.locator('#map-search .p-row-lyr #lyr-list .map-sw')).not.toHaveCount(0);   // the layers, in the tab
+  await expect(page.locator('#layers-btn')).toBeHidden();
+  await page.locator('#map-pin').click();
+  await expect(page.locator('#map-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.mouse.move(1200, 900); await page.mouse.down(); await page.mouse.move(1260, 860, { steps: 6 }); await page.mouse.up();   // press and drag on the map
+  await page.waitForTimeout(600);
+  await expect(page.locator('#f-category')).toBeVisible();   // the filters stay
+  expect(await page.locator('.p-row-lyr').evaluate(e => e.getBoundingClientRect().height)).toBeGreaterThan(30);
+  await page.locator('#map-pin').click();   // unlocked again for the other tests
+  const s = await open(page, 'summary.php');
+  await page.locator('#period-form .sdp-btn').first().click();
+  const day = page.locator('.sdp-rng .sdp-d[data-d]').nth(9);
+  await day.click();
+  await expect(page.locator('.sdp-rng [data-go]')).toBeEnabled();
+  await day.click();   // the same day again takes it back
+  await expect(page.locator('.sdp-rng [data-go]')).toBeDisabled();
+  await day.click(); await page.locator('.sdp-rng .sdp-d[data-d]').nth(14).click();
+  await expect(page.locator('.sdp-rng .sdp-rt')).toContainText('6 days');
+  await page.locator('.sdp-rng [data-clear]').click();
+  await expect(page.locator('.sdp-rng [data-go]')).toBeDisabled();
+  expect(r.errors.concat(s.errors), 'console errors').toEqual([]);
+});

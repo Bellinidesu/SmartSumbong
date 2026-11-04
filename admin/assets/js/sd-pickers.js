@@ -180,7 +180,8 @@
       pop.addEventListener('pointerdown', function (e) { var d = dayAt(e); if (!d) return; e.preventDefault(); st.drag = true; st.moved = false; st.start = d; st.unpick = false;
         if (st.anchor && st.anchor.getTime() === d.getTime()) { st.a = null; st.b = null; st.anchor = null; st.done = true; st.unpick = true; }
         else if (st.anchor) { st.a = st.anchor; st.b = d; st.anchor = null; st.done = true; } else { st.a = d; st.b = d; st.done = false; } render(); });
-      pop.addEventListener('pointerover', function (e) { if (!st.drag) return; var d = dayAt(e); if (!d || st.done) return; if (d.getTime() !== st.start.getTime()) st.moved = true; st.b = d; render(); });
+      // a redraw puts a new day under the pointer, which is a new pointerover: redraw only when the day under it changes
+      pop.addEventListener('pointerover', function (e) { if (!st.drag) return; var d = dayAt(e); if (!d || st.done || (st.b && st.b.getTime() === d.getTime())) return; if (d.getTime() !== st.start.getTime()) st.moved = true; st.b = d; render(); });
       // every press ends here, wherever the pointer is let go (the old one-time listener missed every press after the first)
       window.addEventListener('pointerup', function up() { if (!pop.isConnected) { window.removeEventListener('pointerup', up); return; } if (!st.drag) return; st.drag = false; if (st.unpick) { st.unpick = false; render(); return; } if (!st.done && !st.moved) st.anchor = st.start; else st.anchor = null; render(); });
       pop.addEventListener('click', function (e) {
