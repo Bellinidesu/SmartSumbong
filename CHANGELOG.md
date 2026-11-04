@@ -9,6 +9,9 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Changed (Case Reports: a case with more than one concern, 4 Nov)**
+- The Category filter finds a case by any of its concerns, not only its main category (an inner join on the concerns; the main category is one of them), and the count and pages follow. A case with extra concerns shows a +N pill beside its category, with their names and whether each is open or resolved in the tip; the pill sits on the same line, so rows stay one height.
+
 **New (0162: the development team sees every rung, 2 Nov)**
 - A DEV switcher in the sidebar (developers only): make your test accounts (super admin, captain, Kagawad and staff of a committee you pick), switch into any of them with no password, and come back. A striped band says which rung you are seeing as. The level-switch Edge Function does the sign-in with the service key the portal never holds, and only into the developer's own test accounts. Test accounts are marked TEST in Administrators and are never taken for a committee's Kagawad by routing; every switch is recorded.
 

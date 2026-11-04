@@ -236,7 +236,8 @@ try {
                   . 'resident:users!reports_resident_id_fkey(full_name),'
                   . 'handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
                   . 'triage:report_triage(score,effective_level,override_level,possible_duplicates),'
-                  . 'case_committee,committee,awaiting_placement,forwards:case_forwards(kind,from_committee,to_super,created_at)',
+                  . 'case_committee,committee,awaiting_placement,forwards:case_forwards(kind,from_committee,to_super,created_at),'
+                  . 'concerns:report_concerns(category,status)',
         'forwards.order' => 'created_at.desc',
         'deleted_at' => 'is.null',
         'order'      => $sort,
@@ -270,7 +271,9 @@ try {
         $query['handler_id'] = 'eq.' . $who;
     }
     if ($category !== '') {
-        $query['category'] = 'eq.' . $category;
+        // 0130: the case's main category is one of its concerns, so one inner join on the concerns finds a case by any of them
+        $query['select'] .= ',cn:report_concerns!inner(category)';
+        $query['cn.category'] = 'eq.' . $category;
     }
     if ($com === 'none') {
         $query['case_committee'] = 'is.null';
@@ -369,6 +372,7 @@ try {
     $regTotal = 0; $notesTotal = 0;
     if ($tab === 'all') {
         $cq = $query; unset($cq['select'], $cq['order'], $cq['limit'], $cq['offset'], $cq['forwards.order']);
+        if ($category !== '') { $cq['select'] = 'id,cn:report_concerns!inner(category)'; }
         $regTotal = $view === 'attention' ? 0 : $db->count('reports', $cq);
         // 0152: the chips' counts, in one round
         $chipQ = ['all' => ['reports', ['deleted_at' => 'is.null']]];
@@ -826,7 +830,9 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
               <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></span></div>
             <?php endif; ?></div>
           </td>
-          <td><?= e(category_label($r['category'])) ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
+          <td><?= e(category_label($r['category'])) ?><?php
+              $more = array_values(array_filter((array) ($r['concerns'] ?? []), fn ($c) => ($c['category'] ?? '') !== $r['category']));
+              if ($more): $tip = t('Also in this report', 'Kasama rin sa ulat na ito') . ': ' . implode(', ', array_map(fn ($c) => category_label((string) $c['category']) . ' (' . (($c['status'] ?? '') === 'resolved' ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) . ')', $more)); ?> <span class="cr-more" title="<?= e($tip) ?>">+<?= count($more) ?></span><?php endif; ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
           <?php if (sees_everything()): ?><td><?= committee_pill($r['case_committee'] ?? null, !empty($r['awaiting_placement'])) ?></td><?php endif; ?>
           <td><div class="p-badges">
             <?= sensitive_badge($r) ?>

@@ -41,3 +41,6 @@
   .page-cases .ss-cr-band > form.ss-band-filters:not(.ss-six) { flex: 3 1 0; min-width: 0; }
   .page-cases .ss-cr-band .p-search { flex: 1 1 240px; min-width: 200px; }
 }
+
+/* Case Reports: a case with more than one concern says so beside its category (the names are in the tip and on the case page) */
+.cr-more { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; margin-left: 6px; border: 1px solid var(--p-line); border-radius: 99px; font: 800 11px Inter, sans-serif; color: var(--p-muted); vertical-align: 1px; cursor: help; white-space: nowrap; }
