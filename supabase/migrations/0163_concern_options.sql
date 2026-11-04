@@ -16,7 +16,7 @@
 --   _catalogue_change_note()                renaming or switching off a category or an option writes a note on the timeline
 --                                           of every open case that has it: what it is called now, what the case was filed as
 --
--- The names of concerns raised before this migration are today's names: what they were called before is not recorded anywhere.
+-- The concerns raised before this migration are named as they were filed wherever something recorded it (step 2).
 -- =============================================================
 
 set search_path = public, extensions;
@@ -35,21 +35,69 @@ comment on column public.report_concerns.filed_category_en is '0163: the categor
 alter table public.report_concerns drop constraint if exists report_concerns_report_id_category_key;
 create unique index if not exists report_concerns_one_each on public.report_concerns (report_id, category, coalesce(option_id, 0));
 
--- 2. the concerns already there: a main concern gets the option its report's subject names; every concern keeps today's names
-update public.report_concerns rc
-   set option_id = (select o.id from public.complaint_options o
-                     where o.category = rc.category::text and (o.label_en = r.subject or o.label_fil = r.subject)
-                     order by o.active desc, o.id limit 1)
-  from public.reports r
- where r.id = rc.report_id and rc.category = r.category and rc.option_id is null;
-update public.report_concerns rc
-   set filed_category_en = c.label_en, filed_category_fil = c.label_fil
-  from public.complaint_categories c
- where c.key = rc.category::text and rc.filed_category_en is null;
-update public.report_concerns rc
-   set filed_option_en = o.label_en, filed_option_fil = o.label_fil
-  from public.complaint_options o
- where o.id = rc.option_id and rc.filed_option_en is null;
+-- 2. the concerns already there, named as they were filed wherever something recorded it:
+--    - a category untouched since the concern was raised: today's name is the name it was filed under;
+--    - otherwise the name the catalogue's own log (smart_events 'Category saved: ...', 0146) had at that moment;
+--    - before the catalogue could be edited at all (0146, 29 Oct 2026): the original fixed names, below;
+--    - the main concern's option: the report's subject IS the option's English name as filed; its row is found by today's
+--      name, by a name the log shows it had, or by its place in the original list.
+--    Only a Tagalog name changed between 29 Oct and today, for a concern raised in between, falls back to today's.
+do $backfill$
+declare
+  x record; c_en text; c_fil text; h_en text; s_en text; s_fil text; v_en text; v_fil text; v_opt bigint; o_en text; o_fil text;
+begin
+  create temporary table _seed_cat (key text primary key, en text, fil text) on commit drop;
+  insert into _seed_cat values
+    ('street_obstruction', 'Street Obstruction', 'Sagabal sa Kalsada'),
+    ('public_safety_infrastructure', 'Public Safety and Infrastructure', 'Kaligtasan at Imprastraktura'),
+    ('environmental_waste_hazard', 'Environmental and Waste Hazards', 'Kapaligiran at Basura'),
+    ('animal_welfare', 'Animal Welfare', 'Kapakanan ng Hayop'),
+    ('traffic_violation', 'Traffic Violation', 'Paglabag sa Trapiko'),
+    ('barangay_service', 'Barangay Service', 'Serbisyo ng Barangay'),
+    ('peace_order_nuisance', 'Peace, Order, & Nuisance', 'Kapayapaan, Kaayusan at Istorbo'),
+    ('other', 'Others', 'Iba pa');
+  create temporary table _seed_opt (category text, en text, n bigint) on commit drop;
+  insert into _seed_opt select c, o, n from (values
+    ('street_obstruction', array['Obstructed Sidewalks', 'Illegal Parking', 'Vendor Blocking Sidewalks']),
+    ('public_safety_infrastructure', array['Dangling Electric Wires', 'Poor Street Lighting', 'Unsecured Construction Site', 'Potholes', 'Open Manholes / Damaged Drainage Covers']),
+    ('environmental_waste_hazard', array['Illegal Dumping of Garbage', 'Public Urination', 'Clogged Drainage', 'Foul-Smelling Surrounding', 'Industrial / Commercial Smoke Emission', 'Flooded Street / Road', 'Open Burning of Waste', 'Smoking / Vaping in Prohibited Areas']),
+    ('animal_welfare', array['Animal Cruelty', 'Stray / Nuisance Animals', 'Animal Defecation', 'Neglected Pets']),
+    ('traffic_violation', array['Unregistered / Unlicensed', 'Habal-Habal', 'Excessive Fare', 'Reckless Driving', 'Overloading', 'Abandoning Vehicle']),
+    ('barangay_service', array['Delayed Barangay Response', 'Duty & Negligence', 'Rude Barangay Personnel', 'Document Processing']),
+    ('peace_order_nuisance', array['Troublemaking Loiterer', 'Street Drinking Nuisance', 'Altercations / Street Brawls', 'Unreasonable Neighborhood Noise'])
+  ) as t(c, opts), unnest(opts) with ordinality as u(o, n);
+
+  for x in
+    select rc.id, rc.category::text as cat, rc.created_at as t, rc.option_id, r.subject, (rc.category = r.category) as is_main
+      from public.report_concerns rc join public.reports r on r.id = rc.report_id
+     where rc.filed_category_en is null
+  loop
+    select label_en, label_fil into c_en, c_fil from public.complaint_categories where key = x.cat;
+    select regexp_replace(e.summary, '^Category saved: ', '') into h_en
+      from public.smart_events e where e.kind = 'catalogue' and e.detail ->> 'category' = x.cat and e.at <= x.t order by e.at desc limit 1;
+    select en, fil into s_en, s_fil from _seed_cat where key = x.cat;
+    v_en := coalesce(h_en, s_en, c_en);
+    v_fil := case when v_en = c_en then c_fil when v_en = s_en then s_fil else v_en end;
+    v_opt := x.option_id; o_en := null; o_fil := null;
+    if x.is_main and x.subject is not null
+       and x.subject not in (coalesce(c_en, ''), coalesce(c_fil, ''), coalesce(s_en, ''), coalesce(s_fil, ''), coalesce(h_en, ''), v_en) then
+      if v_opt is null then
+        v_opt := coalesce(
+          (select o.id from public.complaint_options o where o.category = x.cat and (o.label_en = x.subject or o.label_fil = x.subject) order by o.active desc, o.id limit 1),
+          (select o.id from public.smart_events e join public.complaint_options o on o.id = (e.detail ->> 'option')::bigint
+            where e.kind = 'catalogue' and e.summary = 'Option saved: ' || x.subject and o.category = x.cat order by e.at desc limit 1),
+          (select o.id from _seed_opt so join public.complaint_options o on o.category = so.category and o.sort = so.n
+            where so.category = x.cat and so.en = x.subject limit 1));
+      end if;
+      o_en := x.subject;
+      select case when o.label_en = x.subject then o.label_fil else x.subject end into o_fil from public.complaint_options o where o.id = v_opt;
+      o_fil := coalesce(o_fil, x.subject);
+    end if;
+    update public.report_concerns
+       set option_id = v_opt, filed_category_en = v_en, filed_category_fil = v_fil, filed_option_en = o_en, filed_option_fil = o_fil
+     where id = x.id;
+  end loop;
+end $backfill$;
 
 -- 3. from now on: the names are taken when a concern is raised, and never changed after
 create or replace function public._concern_snapshot()

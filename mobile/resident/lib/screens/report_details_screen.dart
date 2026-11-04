@@ -557,7 +557,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       final description = _description.text.trim();
       // An empty, untouched form is nothing worth remembering — drop any
       // previously-saved draft instead of writing a blank one back.
-      if (description.isEmpty && _photos.isEmpty && _video == null) {
+      if (description.isEmpty && _photos.isEmpty && _video == null && _extras.isEmpty) {
         await prefs.remove(_draftPrefsKey);
         return;
       }
@@ -569,6 +569,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           'photoPaths': _photos.map((f) => f.path).toList(),
           'videoPath': _video?.path,
           'anonymous': _anonymous,
+          'concerns': [for (final x in _extras) x.toJson()],
         }),
       );
     } catch (_) {
@@ -605,10 +606,22 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         restoredVideo = File(videoPath);
       }
       final restoredDescription = (draft['description'] as String?) ?? '';
+      // 0163: the other concerns, as long as the barangay still offers them
+      final restoredExtras = <ExtraConcern>[];
+      for (final c in (draft['concerns'] as List? ?? const [])) {
+        if (c is! Map) continue;
+        final cat = ComplaintCatalogue.current.where((x) => x.wire == c['category']).firstOrNull;
+        if (cat == null) continue;
+        final id = (c['option'] as num?)?.toInt();
+        final opt = id == null ? null : cat.options.where((o) => o.id == id).firstOrNull;
+        if (id != null && opt == null) continue;
+        restoredExtras.add(ExtraConcern(cat, opt));
+      }
 
       final restoredSomething = restoredPhotos.isNotEmpty ||
           restoredVideo != null ||
-          restoredDescription.isNotEmpty;
+          restoredDescription.isNotEmpty ||
+          restoredExtras.isNotEmpty;
       if (!restoredSomething || !mounted) return;
 
       _restoringDraft = true;
@@ -619,6 +632,9 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
         _photos.addAll(restoredPhotos);
         _video = restoredVideo;
         _anonymous = (draft['anonymous'] as bool?) ?? _anonymous;
+        _extras
+          ..clear()
+          ..addAll(restoredExtras.take(_MoreConcerns.max));
       });
       _restoringDraft = false;
 
@@ -633,6 +649,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 setState(() {
                   _description.clear();
                   _photos.clear();
+                  _extras.clear();
                   _uploaded.clear();
                   _video = null;
                   _uploadedVideo = null;
@@ -937,8 +954,14 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                     main: widget.choice,
                     extras: _extras,
                     enabled: !_busy,
-                    onAdd: (x) => setState(() => _extras.add(x)),
-                    onRemove: (x) => setState(() => _extras.remove(x)),
+                    onAdd: (x) {
+                      setState(() => _extras.add(x));
+                      _scheduleDraftSave();
+                    },
+                    onRemove: (x) {
+                      setState(() => _extras.remove(x));
+                      _scheduleDraftSave();
+                    },
                   ),
                 ]),
                 const SizedBox(height: 12),
