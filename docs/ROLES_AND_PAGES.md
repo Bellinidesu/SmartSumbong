@@ -68,6 +68,7 @@ super admin stays one.
 | Page | Super admin | Kagawad | Staff |
 |---|---|---|---|
 | Dashboard | Yes | No | No |
+| Home (4 Nov 2026) | No (the Dashboard) | Their landing page: their decisions, their committee right now, the engine's lists | Their landing page: their cases, the ones nobody has taken, the engine's lists |
 | Report Summary | Overall, plus a Committee filter and a By committee tab | Their committee's version | Their committee's version |
 | Spatial Distribution | Yes (plan *open*, discussed later) | Yes | Yes |
 | Case Reports | All, committee chips, forwarding | Their committee's, forwarding | Their committee's, can flag for forwarding |
@@ -235,6 +236,7 @@ a trigger on `inbox_messages`. The Kagawad's endorsement is
 | 7 | Edit Profile banner, retirement endorsement | Built (0157) |
 | P2.1 | Each rung's sidebar: seal, committee logo; staff in Personnel, view only | Built (0164) |
 | P2.2 | Each rung's SMART engine module (`smart_module()`); a Kagawad's and staff's own Settings | Built (0165) |
+| P2.3 | Home for Kagawad and staff, read from their module; where they land after signing in | Built |
 
 Spatial Distribution is discussed later.
 

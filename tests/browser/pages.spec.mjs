@@ -588,7 +588,7 @@ test('Roles and pages 2: staff are moderators of a committee; the Administrators
   for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
   await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(1);   // their own Settings (4 Nov 2026)
   await page.goto('control-room.php');
-  await expect(page).toHaveURL(/notifications\.php/);
+  await expect(page).toHaveURL(/home\.php/);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
 
@@ -1168,9 +1168,9 @@ test('0145 access: a committee admin sees only its pages, and no SMART drawer', 
   await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
   await expect(page.locator('#side-user')).toContainText('Peace and Order');
   await page.goto('dashboard.php');
-  await expect(page).toHaveURL(/notifications\.php/);
+  await expect(page).toHaveURL(/home\.php/);
   await page.goto('control-room.php');
-  await expect(page).toHaveURL(/notifications\.php/);
+  await expect(page).toHaveURL(/home\.php/);
   const s = await open(page, 'spatial.php');
   await expect(page.locator('#smart-toggle')).toHaveCount(0);
   await expect(page.locator('#smart-side')).toHaveCount(0);
@@ -1234,5 +1234,28 @@ test('Settings for a Kagawad and staff: their look, their committee read only, t
   await page.locator('.st-tabs [data-st="module"]').click();
   await expect(page.locator('.my-mod h2')).toHaveText('Staff module');
   await expect(page.locator('.sm-four')).toHaveCount(0);   // decisions stay with the Kagawad
+  expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});
+
+test('Home for a Kagawad and staff: they land there, it reads their SMART module, and the Dashboard stays with the super admins (part 3)', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  await page.goto('index.php');
+  await expect(page).toHaveURL(/home\.php/);   // where they land after signing in
+  const r = await open(page, 'home.php');
+  await expect(page.locator('.p-sidebar .p-nav a').first()).toHaveAttribute('href', 'home.php');
+  await expect(page.locator('.hm-banner')).toContainText('Peace and Order');
+  await expect(page.locator('.hm-lead .hm-tile')).toHaveCount(4);
+  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Escalations to approve');
+  await expect(page.locator('.hm-row-6 .hm-tile')).toHaveCount(6);
+  await expect(page.locator('.hm-list tr[data-href^="case.php?id="]').first()).toBeAttached();
+  expect(await axe(page), 'Home, Kagawad').toEqual([]);
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'home.php');
+  await expect(page.locator('.hm-lead .hm-tile').first()).toContainText('Yours');   // staff: their work, not decisions
+  await expect(page.locator('.hm-lead')).not.toContainText('Escalations to approve');
+  await context.addCookies([{ name: 'ss_tier', value: 'super', url: 'http://127.0.0.1:8013' }]);
+  await page.goto('home.php');
+  await expect(page).toHaveURL(/notifications\.php/);   // a super admin has the Dashboard
+  await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
