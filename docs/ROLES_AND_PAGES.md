@@ -177,7 +177,8 @@ asks the Kagawad; `answer_reroute_question` and the every-minute
 - Kagawads and staff get an **automatic punch card**: when they signed in
   and out and the cases they touched, built from the sign-ins and the case
   history. Super admins see every card; a Kagawad sees their staff's; a
-  staff member sees their committee's staff and Kagawad (0164, view only).
+  staff member sees their committee's other staff, not their Kagawad (0164,
+  view only).
 - When a tanod is on a case, other committees see only that committee's pill,
   never the case.
 - **Automatic reroute** (a tanod did not accept in time) picks from the

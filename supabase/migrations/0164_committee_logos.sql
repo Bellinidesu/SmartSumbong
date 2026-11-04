@@ -3,11 +3,12 @@
 --
 -- Ace, 4 Nov 2026 (Priority 2): a Kagawad's and a staff member's sidebar carries their committee's logo beside the barangay
 -- seal; the super admin chooses each committee's logo. Staff get Personnel, scoped to their committee and view only: their
--- committee's tanods (already theirs through account_directory and personnel_committees) and their committee's staff cards.
+-- committee's tanods (already theirs through account_directory and personnel_committees) and their fellow staff's cards (not
+-- their Kagawad's: 0153 keeps a Kagawad's card from the staff under them).
 --
 --   committees.logo_url            the committee's logo (an upload; null: the committee's symbol in its colour stands in)
 --   committee_set_logo(key, url)   a super admin sets or clears it
---   _sees_punch_card(user)         a staff member also sees the punch cards of their committee's staff and its Kagawad
+--   _sees_punch_card(user)         a staff member also sees the punch cards of their committee's other staff
 -- =============================================================
 
 set search_path = public, extensions;
@@ -34,8 +35,8 @@ revoke all on function public.committee_set_logo(text, text) from public, anon;
 grant execute on function public.committee_set_logo(text, text) to authenticated;
 comment on function public.committee_set_logo(text, text) is '0164: a super admin sets (or, with null, clears) a committee''s logo.';
 
--- A staff member (moderator) sees the staff of their own committee and its Kagawad; a Kagawad still sees their staff; nobody
--- in a committee sees another committee's cards.
+-- A staff member (moderator) sees the other staff of their own committee; a Kagawad still sees their staff; nobody in a
+-- committee sees another committee's cards, and staff never see their Kagawad's.
 create or replace function public._sees_punch_card(p_user uuid)
 returns boolean
 language sql stable security definer
@@ -46,7 +47,7 @@ as $$
       or (public.admin_tier() in ('committee', 'moderator') and exists (
             select 1 from public.users t, public.users me
              where t.id = p_user and me.id = auth.uid() and t.role = 'admin' and me.committee is not null and t.committee = me.committee
-               and (t.admin_tier = 'moderator' or (me.admin_tier = 'moderator' and t.admin_tier = 'committee'))))
+               and t.admin_tier = 'moderator'))
 $$;
 revoke all on function public._sees_punch_card(uuid) from public;
 grant execute on function public._sees_punch_card(uuid) to authenticated;
