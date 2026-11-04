@@ -47,7 +47,7 @@ returns integer
 language plpgsql security definer set search_path = public
 as $backfill$
 declare
-  n integer := 0;
+  v_count integer := 0;
   x record; c_en text; c_fil text; h_en text; s_en text; s_fil text; v_en text; v_fil text; v_opt bigint; o_en text; o_fil text;
 begin
   create temporary table if not exists _seed_cat (key text primary key, en text, fil text) on commit drop;
@@ -102,9 +102,9 @@ begin
     update public.report_concerns
        set option_id = v_opt, filed_category_en = v_en, filed_category_fil = v_fil, filed_option_en = o_en, filed_option_fil = o_fil
      where id = x.id;
-    n := n + 1;
+    v_count := v_count + 1;
   end loop;
-  return n;
+  return v_count;
 end $backfill$;
 revoke all on function public._concern_backfill() from public, anon, authenticated;
 select public._concern_backfill();
