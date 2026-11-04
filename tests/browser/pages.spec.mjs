@@ -540,6 +540,24 @@ test('Case Reports: a case with more than one concern says so, and is found by a
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Case page: each concern shows its category and option, and what it was filed as when that changed since', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, `case.php?id=${CASE}`);
+  const list = page.locator('.ss-concern-list');
+  await expect(list.locator('li', { hasText: 'Dangling Electric Wires' }), 'the option is named beside its category').toHaveCount(1);
+  await expect(list.locator('li', { hasText: 'Dangling Electric Wires' }).locator('.cn-was'), 'renamed since: what it was filed as').toContainText('Filed as "Public Safety and Infrastructure: Live wire on the ground" (renamed since)');
+  await expect(list.locator('li', { hasText: 'Neglected Pets' }).locator('.cn-was'), 'switched off since').toContainText('no longer offered');
+  await expect(list.locator('li', { hasText: 'Barangay Service' }).locator('.cn-was'), 'nothing changed: no line').toHaveCount(0);
+  // adding one: a category and, when it has them, one of its options; what the case already has is not offered again
+  const add = page.locator('#ac-cat');
+  if (await add.count()) {
+    expect(await add.locator('option[value="public_safety_infrastructure|4"]').count(), 'an option the case already has').toBe(0);
+    expect(await add.locator('option[value="public_safety_infrastructure|5"]').count(), 'another option of the same category').toBe(1);
+    expect(await add.locator('option[value="animal_welfare|6"]').count(), 'a switched-off option').toBe(0);
+  }
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');

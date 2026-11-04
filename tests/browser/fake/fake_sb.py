@@ -50,7 +50,8 @@ TABLES = {
     'users': [ADMIN, KAG, CHAIR, tanod(1, 'Bautista, Jose'), tanod(2, 'Mendoza, Liza', True), tanod(3, 'Cruz, Ben')],
     'reports': REPORTS,
     'report_concerns': [
-        {'id': 'e1', 'report_id': REPORTS[0]['id'], 'category': 'public_safety_infrastructure', 'note': 'Wire is on the ground', 'status': 'resolved', 'resolved_at': ago(2), 'remark': 'Meralco crew cut the power', 'created_at': ago(30)},
+        {'id': 'e1', 'report_id': REPORTS[0]['id'], 'category': 'public_safety_infrastructure', 'option_id': 4, 'filed_category_en': 'Public Safety and Infrastructure', 'filed_category_fil': 'Kaligtasan at Imprastraktura', 'filed_option_en': 'Live wire on the ground', 'filed_option_fil': 'Kawad sa lupa', 'note': 'Wire is on the ground', 'status': 'resolved', 'resolved_at': ago(2), 'remark': 'Meralco crew cut the power', 'created_at': ago(30)},
+        {'id': 'e3', 'report_id': REPORTS[0]['id'], 'category': 'animal_welfare', 'option_id': 6, 'filed_category_en': 'Animal Welfare', 'filed_category_fil': 'Kapakanan ng Hayop', 'filed_option_en': 'Neglected Pets', 'filed_option_fil': 'Pinabayaang alaga', 'note': None, 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(28)},
         {'id': 'e2', 'report_id': REPORTS[0]['id'], 'category': 'barangay_service', 'note': 'Nobody answered the hotline', 'status': 'open', 'resolved_at': None, 'remark': None, 'created_at': ago(29)}],
     'committee_for_category': [{'category': c, 'committee': 'peace_order'} for c in CATS],
     'smart_rules': [{'id': 1, 'storm_mode': True, 'storm_until': ahead(8), 'storm_reason': 'PAGASA orange rainfall warning', 'category_points': {'public_safety_infrastructure': 35, 'peace_order_nuisance': 30, 'environmental_waste_hazard': 25, 'traffic_violation': 20,

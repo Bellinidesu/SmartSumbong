@@ -66,6 +66,7 @@ import '../d/d_theme.dart';
 import '../d/d_ui.dart';
 import '../preview/demo.dart';
 import '../i18n.dart';
+import '../models/complaint_catalogue.dart';
 import '../models/complaint_category.dart';
 import '../outbox.dart';
 import '../theme.dart';
@@ -115,6 +116,8 @@ class ReportDetailsScreen extends StatefulWidget {
 }
 
 class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
+  /// 0163: the other concerns in this report, two at most (four with the main one is the database's limit).
+  final List<ExtraConcern> _extras = [];
   final _map = BrgyMapController();
   late final TextEditingController _description;
 
@@ -698,6 +701,8 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
           for (final m in _uploaded) m.toJson(),
       ],
       uploadedVideo: _uploadedVideo?.toJson(),
+      optionId: widget.choice.optionId,
+      concerns: [for (final x in _extras) x.toJson()],
     );
     unawaited(_clearDraft());
     if (!mounted) return;
@@ -764,6 +769,7 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
       final row = await Supabase.instance.client.rpc(
         'file_report',
         params: {
+          ...concernParams(widget.choice.optionId, [for (final x in _extras) x.toJson()]),
           'p_category': widget.choice.category.wire,
           'p_subject': widget.choice.subject,
           'p_description': _description.text.trim(),
@@ -926,6 +932,14 @@ class _ReportDetailsScreenState extends State<ReportDetailsScreen> {
                 const SizedBox(height: 12),
                 section(2, s.reportDetailsStep2, [
                   _DescriptionBox(controller: _description, error: _errors['description'], enabled: !_busy),
+                  const SizedBox(height: 12),
+                  _MoreConcerns(
+                    main: widget.choice,
+                    extras: _extras,
+                    enabled: !_busy,
+                    onAdd: (x) => setState(() => _extras.add(x)),
+                    onRemove: (x) => setState(() => _extras.remove(x)),
+                  ),
                 ]),
                 const SizedBox(height: 12),
                 section(3, s.reportDetailsStep3, [
@@ -1652,4 +1666,122 @@ class _Suggestions extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// One more concern in the same report (0163): a category and, when it has them, one of its options.
+class ExtraConcern {
+  const ExtraConcern(this.category, this.option);
+
+  final ComplaintCategory category;
+  final ComplaintOption? option;
+
+  Map<String, dynamic> toJson() => {'category': category.wire, if (option?.id != null) 'option': option!.id};
+
+  bool same(String wire, int? optionId) => category.wire == wire && option?.id == optionId;
+}
+
+/// "Is there more than one problem?": the other concerns as chips, and a sheet to add one (category, then option).
+class _MoreConcerns extends StatelessWidget {
+  const _MoreConcerns({required this.main, required this.extras, required this.enabled, required this.onAdd, required this.onRemove});
+
+  static const max = 2;
+
+  final CategoryChoice main;
+  final List<ExtraConcern> extras;
+  final bool enabled;
+  final void Function(ExtraConcern) onAdd;
+  final void Function(ExtraConcern) onRemove;
+
+  bool _taken(String wire, int? optionId) =>
+      (main.category.wire == wire && main.optionId == optionId) || extras.any((x) => x.same(wire, optionId));
+
+  Future<void> _pick(BuildContext context) async {
+    final d = context.d;
+    final picked = await showModalBottomSheet<ExtraConcern>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: d.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * .75),
+          child: ListView(padding: const EdgeInsets.fromLTRB(18, 16, 18, 18), shrinkWrap: true, children: [
+            Text(ctx.tr('Add another concern', 'Magdagdag ng isa pang concern'), style: DType.body(d.ink, size: 16, w: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(ctx.tr('Pick what else is wrong. Each one is looked at, and resolved, on its own.',
+                    'Piliin kung ano pa ang problema. Bawat isa ay titingnan, at aayusin, nang hiwalay.'),
+                style: DType.body(d.muted, size: 12.5)),
+            const SizedBox(height: 10),
+            for (final c in ComplaintCatalogue.current)
+              Builder(builder: (ctx) {
+                final col = categoryColour(c);
+                final picks = <Widget>[
+                  if (c.options.isEmpty && !_taken(c.wire, null))
+                    _ConcernPill(label: ctx.tr(c.label, c.labelFil), colour: col, onTap: () => Navigator.of(ctx).pop(ExtraConcern(c, null))),
+                  for (final o in c.options)
+                    if (!_taken(c.wire, o.id))
+                      _ConcernPill(label: ctx.tr(o.en, o.fil), colour: col, onTap: () => Navigator.of(ctx).pop(ExtraConcern(c, o))),
+                ];
+                if (picks.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Container(width: 9, height: 9, decoration: BoxDecoration(shape: BoxShape.circle, color: col)),
+                      const SizedBox(width: 7),
+                      Text(ctx.tr(c.label, c.labelFil).toUpperCase(), style: DType.label(d.muted)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 6, runSpacing: 6, children: picks),
+                  ]),
+                );
+              }),
+          ]),
+        ),
+      ),
+    );
+    if (picked != null) onAdd(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = context.d;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(context.tr('Is there more than one problem? (optional)', 'May iba pa bang problema? (opsyonal)'), style: DType.body(d.ink, size: 13.5, w: FontWeight.w800)),
+      const SizedBox(height: 6),
+      Wrap(spacing: 6, runSpacing: 6, children: [
+        for (final x in extras)
+          InputChip(
+            label: Text(x.option == null ? context.tr(x.category.label, x.category.labelFil) : '${context.tr(x.category.label, x.category.labelFil)}: ${context.tr(x.option!.en, x.option!.fil)}'),
+            onDeleted: enabled ? () => onRemove(x) : null,
+            deleteButtonTooltipMessage: context.tr('Remove', 'Alisin'),
+          ),
+        if (extras.length < max)
+          ActionChip(
+            avatar: const Icon(Icons.add_rounded, size: 18),
+            label: Text(context.tr('Add another concern', 'Magdagdag ng isa pang concern')),
+            onPressed: enabled ? () => _pick(context) : null,
+          ),
+      ]),
+    ]);
+  }
+}
+
+class _ConcernPill extends StatelessWidget {
+  const _ConcernPill({required this.label, required this.colour, required this.onTap});
+
+  final String label;
+  final Color colour;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: colour.withValues(alpha: .12),
+        shape: StadiumBorder(side: BorderSide(color: colour.withValues(alpha: .6))),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Text(label, style: DType.body(context.d.ink, size: 13, w: FontWeight.w700))),
+        ),
+      );
 }

@@ -9,6 +9,11 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (0163: several categories and sub-categories on one report, kept as filed, 4 Nov; app 1.0.2)**
+- In the app, under What happened: "Is there more than one problem?" adds up to two more concerns, each a category and, when it has them, one of its options (two options of one category are two concerns). They file with the report, offline too (the outbox keeps them); one switched off while the report waited is left out and the report still files.
+- Every concern keeps the names its category and option had when it was raised. When the Control Room later renames or switches one off, the case page and the resident's report say "Filed as ... (renamed since / no longer offered)", and every open case that has it gets a note on its timeline. Nobody takes a case by that note.
+- The case page names each concern by category and option; Add a concern picks a category and option. Case Reports' option filter finds cases by a concern's option, so a renamed option still finds what was filed under its old name.
+
 **Changed (Case Reports: a case with more than one concern, 4 Nov)**
 - The Category filter finds a case by any of its concerns, not only its main category (an inner join on the concerns; the main category is one of them), and the count and pages follow. A case with extra concerns shows a +N pill beside its category, with their names and whether each is open or resolved in the tip; the pill sits on the same line, so rows stay one height.
 

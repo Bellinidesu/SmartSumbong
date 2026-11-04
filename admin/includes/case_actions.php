@@ -74,7 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
 
                 case 'add_concern':
-                    $db->rpc('add_report_concern', ['p_report' => $id, 'p_category' => (string) ($_POST['category'] ?? ''), 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null]);
+                    [$acCat, $acOpt] = array_pad(explode('|', (string) ($_POST['category'] ?? ''), 2), 2, '');   // "category|option id" (0163)
+                    $db->rpc('add_report_concern', ['p_report' => $id, 'p_category' => $acCat, 'p_note' => trim((string) ($_POST['note'] ?? '')) ?: null,
+                                                    'p_option' => ctype_digit($acOpt) ? (int) $acOpt : null]);
                     $flash = t('Concern added.', 'Naidagdag ang alalahanin.');
                     break;
 
