@@ -585,7 +585,8 @@ test('Roles and pages 2: staff are moderators of a committee; the Administrators
   const m = await open(page, 'cases.php');
   await expect(page.locator('#side-user')).toContainText('Staff · Peace and Order');
   await expect(page.locator('.p-side-com')).toContainText('Peace and Order');
-  for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'settings.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  for (const href of ['dashboard.php', 'administrative-services.php', 'control-room.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  await expect(page.locator('.p-sidebar a[href="settings.php"]')).toHaveCount(1);   // their own Settings (4 Nov 2026)
   await page.goto('control-room.php');
   await expect(page).toHaveURL(/notifications\.php/);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
