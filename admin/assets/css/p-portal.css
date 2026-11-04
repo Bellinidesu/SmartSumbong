@@ -864,3 +864,16 @@ textarea.p-input-plain { height: auto; min-height: 180px; padding: 10px 12px; li
 td.ss-em { min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* the statuses are one column of pills, left-aligned, whatever their number, so no row has them half inline and half stacked */
 .ss-ohead:has(#accounts-tbody) td:nth-last-child(2) .p-badges { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 4px; }
+/* Rose, 2 Nov 2026: what waits on a super admin, the committees and the live feed live in the Dashboard's engine window */
+.ss-win .dc-needs, .ss-win .dc-coms { margin: 0; }
+.ss-win .dw-com .p-card-head, .ss-win .dw-feed .p-card-head { display: flex; align-items: center; padding: 0 0 8px; }
+.ss-win .dw-com h2, .ss-win .dw-feed h2 { margin: 0; font-size: 16px; }
+.ss-win .dw-feed .dh-feedl { grid-auto-rows: auto; }
+.ss-win .dc-needs .ss-tile > span:first-child { min-height: 0; }
+.ss-win .ss-panel-in { grid-template-columns: minmax(0, 1fr); }
+.ss-win .dw-com .ss-table { width: 100%; table-layout: fixed; }
+.ss-win .dw-com .ss-table th:first-child, .ss-win .dw-com .ss-table td:first-child { width: auto; }
+.ss-win .dw-com .ss-table th.n, .ss-win .dw-com .ss-table td.n { width: 76px; }
+.ss-win .dw-com .dh-bar { max-width: 100%; }
+.ss-win .ss-two > *, .ss-win .ss-stack, .ss-win .ss-stack > * { min-width: 0; }
+.ss-win .ss-table.ss-nowrap { display: block; overflow-x: auto; }   /* its rows stay on one line and scroll inside the card */

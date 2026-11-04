@@ -9,6 +9,13 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Rose's notes (2 Nov)**
+- The Dashboard has its own layout again: the month's reports across the top, the three figures stacked beside the two donuts,
+  then resolution efficiency. The greeting header and the month filter stay. What waits on a super admin, the committees and
+  the live feed are in the engine's window.
+- Report Summary's calendar: pressing the first day picked again takes it back, and Clear empties a range.
+- Spatial Distribution: the lock holds when the map is pressed; the layers are the floating tab's last row.
+
 **New (0163: several categories and sub-categories on one report, kept as filed, 4 Nov; app 1.0.2)**
 - In the app, under What happened: "Is there more than one problem?" adds up to two more concerns, each a category and, when it has them, one of its options (two options of one category are two concerns). They file with the report, offline too (the outbox keeps them); one switched off while the report waited is left out and the report still files.
 - Every concern keeps the names its category and option had when it was raised. When the Control Room later renames or switches one off, the case page and the resident's report say "Filed as ... (renamed since / no longer offered)", and every open case that has it gets a note on its timeline. Nobody takes a case by that note. Concerns raised before this are named as they were filed wherever something recorded it: today's name when the category was not touched since, the catalogue's own log otherwise, the original fixed names before 29 Oct, and the report's subject for its option. A report's saved draft keeps its other concerns.

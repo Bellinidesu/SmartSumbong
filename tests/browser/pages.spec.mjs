@@ -756,12 +756,16 @@ test('Case Reports and the Dashboard: equal rows, Review is the main button, wha
   expect(cut, 'the Forward button is inside the table').toBe(false);
   const d = await open(page, 'dashboard.php');
   await page.waitForTimeout(1500);   // the tiles ease in
-  const strip = await page.locator('.dh-kpi .ss-tile').evaluateAll(ts => ts.map(t => { const b = t.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.height)]; }));
-  const hero = await page.locator('.dh-hero').evaluate(h => Math.round(h.getBoundingClientRect().top));
-  expect(strip.length, 'four tiles').toBe(4);
-  expect(new Set(strip.map(t => t[0])).size, 'tiles on one line').toBe(1);
-  expect(new Set(strip.map(t => t[1])).size, 'tiles one height').toBe(1);
-  expect(strip[0][0], 'the strip is above the charts').toBeLessThan(hero);
+  // Rose, 2 Nov 2026: the Dashboard's own layout again. The month's reports across the top, the three figures stacked beside
+  // the donuts; what waits on a super admin is in the engine's window.
+  const chart = await page.locator('.dh-recv').evaluate(h => Math.round(h.getBoundingClientRect().bottom));
+  const figs = await page.locator('.p-dash-mid .p-stack .p-tile-s').evaluateAll(ts => ts.map(t => { const b = t.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)]; }));
+  expect(figs.length, 'three figures').toBe(3);
+  expect(new Set(figs.map(t => t[0])).size, 'stacked in one column').toBe(1);
+  expect(figs[0][1], 'below the chart').toBeGreaterThan(chart);
+  await page.locator('#ss-win-open').click();
+  await expect(page.locator('#ss-panel .dc-needs .ss-tile')).toHaveCount(4);
+  await expect(page.locator('#ss-panel .dc-coms')).toBeVisible();
   expect(r.errors.concat(d.errors), 'console errors').toEqual([]);
 });
 
@@ -1235,6 +1239,32 @@ test('Settings for a Kagawad and staff: their look, their committee read only, t
   await expect(page.locator('.my-mod h2')).toHaveText('Staff module');
   await expect(page.locator('.sm-four')).toHaveCount(0);   // decisions stay with the Kagawad
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});
+
+test('Rose, 2 Nov: the lock holds when the map is pressed, the layers are a row of the floating tab, and the first day picked can be taken back', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'spatial.php');
+  await expect(page.locator('#map-search .p-row-lyr #lyr-list .map-sw')).not.toHaveCount(0);   // the layers, in the tab
+  await expect(page.locator('#layers-btn')).toBeHidden();
+  await page.locator('#map-pin').click();
+  await expect(page.locator('#map-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.mouse.move(1200, 900); await page.mouse.down(); await page.mouse.move(1260, 860, { steps: 6 }); await page.mouse.up();   // press and drag on the map
+  await page.waitForTimeout(600);
+  await expect(page.locator('#f-category')).toBeVisible();   // the filters stay
+  expect(await page.locator('.p-row-lyr').evaluate(e => e.getBoundingClientRect().height)).toBeGreaterThan(30);
+  await page.locator('#map-pin').click();   // unlocked again for the other tests
+  const s = await open(page, 'summary.php');
+  await page.locator('#period-form .sdp-btn').first().click();
+  const day = page.locator('.sdp-rng .sdp-d[data-d]').nth(9);
+  await day.click();
+  await expect(page.locator('.sdp-rng [data-go]')).toBeEnabled();
+  await day.click();   // the same day again takes it back
+  await expect(page.locator('.sdp-rng [data-go]')).toBeDisabled();
+  await day.click(); await page.locator('.sdp-rng .sdp-d[data-d]').nth(14).click();
+  await expect(page.locator('.sdp-rng .sdp-rt')).toContainText('6 days');
+  await page.locator('.sdp-rng [data-clear]').click();
+  await expect(page.locator('.sdp-rng [data-go]')).toBeDisabled();
+  expect(r.errors.concat(s.errors), 'console errors').toEqual([]);
 });
 
 test('Home for a Kagawad and staff: they land there, it reads their SMART module, and the Dashboard stays with the super admins (part 3)', async ({ page, context }) => {

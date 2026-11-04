@@ -1339,8 +1339,10 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 #s-spatial .ss-pin[aria-pressed="true"] svg { transform: rotate(0deg); fill: currentColor; }
 #s-spatial .ss-pin svg { transform: rotate(35deg); transition: transform .25s; }
 #s-spatial .ss-pin:focus-visible { outline: 3px solid var(--p-link); outline-offset: 2px; }
-#s-spatial .p-map-search.ss-pinned .p-row,
-#s-spatial.ss-dragging .p-map-search.ss-pinned .p-row { max-height: 110px; opacity: 1; margin-top: 10px; overflow: visible; pointer-events: auto; }
+/* Rose (2 Nov 2026): locked means locked. Pressing on the map marks it as being dragged, and the fold-while-dragging rule
+   outranked the lock, so the filters vanished the moment the map was touched; the doubled id puts the lock above every fold. */
+#s-spatial#s-spatial .p-map-search.ss-pinned .p-row { max-height: none; opacity: 1; margin-top: 10px; overflow: visible; pointer-events: auto; }
+:root[data-theme="dark"] #s-spatial#s-spatial.ss-dragging .p-map-search.ss-pinned { background: color-mix(in srgb, var(--p-surface) 94%, transparent); }
 
 /* The buttons at the bottom right are squircles at rest, and widen to show what they are while the mouse is on them. */
 #s-spatial .p-map-dock { justify-items: end; }
@@ -1350,3 +1352,23 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 #s-spatial .p-map-dock:hover .p-dock-btn .dl, #s-spatial .p-map-dock:focus-within .p-dock-btn .dl { max-width: 140px; opacity: 1; }
 @media (prefers-reduced-motion: reduce) { #s-spatial .p-map-dock .p-dock-btn, #s-spatial .p-map-dock .p-dock-btn .dl { transition: none; } }
 #s-spatial .p-map-dock .ss-dock-logo .dl { color: #EDFA04; }
+/* Rose (2 Nov 2026): the layers are the floating tab's last row: a label, then each layer as a pill the height of the
+   filters beside it (its picture, round, and its name); a pill that is on wears the orange. */
+#s-spatial#s-spatial .p-map-search .p-row-lyr { display: flex; align-items: center; gap: 12px; }
+#s-spatial .p-row-lyr .lyr-h { flex: none; font: 800 11.5px Inter, sans-serif; letter-spacing: .07em; text-transform: uppercase; color: var(--p-muted); }
+#s-spatial#s-spatial .p-map-search .ss-lyr.ss-lyr-in { position: static; z-index: auto; flex: 1 1 auto; width: auto; max-width: none; min-width: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in::before, #s-spatial#s-spatial .p-map-search .ss-lyr-in::after { display: none; }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .lyr-list { display: flex; flex-wrap: wrap; gap: 6px; }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .map-sw { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; width: auto; height: 36px; padding: 3px 12px 3px 3px;
+  border: 1px solid var(--p-line); border-radius: 99px; background: var(--p-surface-2); cursor: pointer; transition: border-color .15s, background .15s; }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .map-sw .scene { width: 28px; height: 28px; aspect-ratio: auto; border-radius: 50%; flex: none; }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .map-sw:hover .scene { transform: none; }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .map-sw b { font: 700 12.5px Inter, sans-serif; white-space: nowrap; max-width: none; overflow: visible; }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .map-sw:hover { border-color: var(--p-orange); }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .map-sw:has(input:checked) { border-color: var(--p-orange); background: color-mix(in srgb, var(--p-orange) 14%, var(--p-surface-2)); }
+#s-spatial#s-spatial .p-map-search .ss-lyr-in .map-sw:has(input:focus-visible) { outline: 3px solid var(--p-link); outline-offset: 2px; }
+#s-spatial#s-spatial .p-map-search .p-row-lyr { flex-wrap: nowrap; }
+#s-spatial#s-spatial .p-map-search .p-row-lyr > .lyr-h { flex: 0 0 auto; }
+#s-spatial#s-spatial .p-map-search .p-row-lyr > .ss-lyr-in { flex: 1 1 0; min-width: 0; }
+#s-spatial#s-spatial .p-map-search .p-row-lyr > .ss-lyr-in { height: auto; min-height: 0; max-height: none; align-self: center; }
+#s-spatial#s-spatial .p-map-search .p-row-lyr > .lyr-h { margin: 0; }

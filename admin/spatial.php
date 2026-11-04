@@ -1578,7 +1578,7 @@ addEventListener('resize', () => { if (!side.hasAttribute('hidden')) placeSide()
 // side of the map, so opening one closes the others.
 function mapDrawer(which) {
   if (which !== 'sheet' && csFor) closeCaseSheet();
-  if (which !== 'layers') { const lc = document.getElementById('ss-lyr'); if (lc && !lc.hidden) { lc.hidden = true; document.getElementById('layers-btn').setAttribute('aria-expanded', 'false'); } }
+  if (which !== 'layers') { const lc = document.getElementById('ss-lyr'); if (lc && !lc.hidden && !lc.classList.contains('ss-lyr-in')) { lc.hidden = true; document.getElementById('layers-btn').setAttribute('aria-expanded', 'false'); } }
   if (which !== 'incidents') { side.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); }
   if (which !== 'smart' && window.sdSmart) { sdSmart.close(); }
   if (which !== 'command' && window.sdCmd) { sdCmd.close(); }
@@ -1656,6 +1656,9 @@ window.addEventListener('resize', () => { if (!window.matchMedia('(min-width: 98
       const lr = d.getBoundingClientRect(), top = lr.left < sr.right + 8 ? Math.max(84, sr.bottom - shell.top + 12) : 84;
       if (top === 84) { d.style.top = ''; d.style.maxHeight = ''; } else { d.style.top = top + 'px'; d.style.maxHeight = 'calc(100% - ' + (top + 16) + 'px)'; }
     });
+    // Rose (2 Nov 2026): the cards under the tab (the SMART suggestion, the layers' notes) sit below it however tall it is now
+    // that the layers are its last row.
+    sec.querySelectorAll('.cc-suggest, .ss-lyr-info').forEach(el => { el.style.top = Math.max(124, sr.bottom - shell.top + 12) + 'px'; });
   };
   if (window.ResizeObserver) new ResizeObserver(place).observe(bar);
   if (window.MutationObserver) drawers.forEach(d => new MutationObserver(place).observe(d, { attributes: true, attributeFilter: ['hidden'] }));
@@ -2021,14 +2024,23 @@ function layerSync() {
     if (k === 'noah') { sc.innerHTML = TILE.noah; return; }
     if (k === 'dim') sc.innerHTML = DIMPIC; if (k === 'transit') sc.innerHTML = ROUTEPIC;
     sc.querySelectorAll('svg.mk-ic').forEach(v => v.remove()); sc.insertAdjacentHTML('beforeend', TILE[k]); });
-  btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+  // Rose (2 Nov 2026): the layers live in the floating tab, as its last row, beside the filters they work with; the tile at
+  // the bottom left that opened them goes. The card keeps its id and its pictures, only smaller.
+  const tab = document.getElementById('map-search');
+  if (tab) {
+    const row = document.createElement('div'); row.className = 'p-row p-row-lyr';
+    row.innerHTML = '<span class="lyr-h">' + T('Layers', 'Mga layer') + '</span>';
+    card.classList.add('ss-lyr-in'); card.hidden = false; row.appendChild(card); tab.appendChild(row); btn.hidden = true;
+  } else {
+    btn.addEventListener('click', e => { e.stopPropagation(); const open = card.hidden; if (open) mapDrawer('layers'); card.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+    document.addEventListener('click', e => { if (!card.hidden && !e.target.closest('#ss-lyr, #layers-btn')) { card.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
+  }
   card.addEventListener('click', e => { if (!e.target.closest('#lyr-off')) return; document.querySelectorAll('#lyr-list input:checked').forEach(c => c.click()); });
   card.addEventListener('change', e => {
     const m = /^lyr-(.+)$/.exec(e.target.id || ''); if (!m) { layerSync(); return; } const k = m[1];
     LAYER[k] = e.target.checked; layerSync();
     layerDraw(k).then(() => { if (LAYER[k] && !LAYER_DATA[k]) LAYER[k] = false; layerSync(); });
   });
-  document.addEventListener('click', e => { if (!card.hidden && !e.target.closest('#ss-lyr, #layers-btn')) { card.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   window.addEventListener('themechange', () => ['aq', 'transit', 'grid'].forEach(k => { if (map.getLayer({ aq: 'aq-fill', transit: 'transit-glow', grid: 'grid-fill' }[k])) layerDraw(k); }));
   // The outline arrives after the page does; the air-quality tint follows it.
   const wait = setInterval(() => { if (rings.length) { clearInterval(wait); if (map.getSource('aq')) map.getSource('aq').setData(layerShape()); } }, 600); setTimeout(() => clearInterval(wait), 20000);
