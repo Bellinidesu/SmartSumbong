@@ -5,8 +5,8 @@
  *
  *   super      every page                      (at 183: Sir Kiko, Chairperson Zuniga, the development team)
  *   captain    the overview pages, read-only    (no Dashboard, no Settings)
- *   committee  the case pages, its categories   (no Dashboard, no Settings, no residents); Personnel: its tanods and staff
- *   moderator  the case pages, its categories   as a Kagawad, but Personnel is view only (0164)
+ *   committee  the case pages, its categories   (no Dashboard, no residents); Personnel: its tanods and staff; its own Settings
+ *   moderator  the case pages, its categories   as a Kagawad, but Personnel is view only (0164); its own Settings
  *
  * The tier, the developer mark and the committee are read at sign-in and again every two minutes, so a change a super
  * admin makes reaches the person's next page without signing them out.
@@ -16,7 +16,7 @@ declare(strict_types=1);
 /** Pages each tier may open. A page not listed (the small JSON doors) is open to every administrator. */
 const PAGE_TIERS = [
     'dashboard.php'           => ['super'],
-    'settings.php'            => ['super'],
+    'settings.php'            => ['super', 'committee', 'moderator'],   // a Kagawad's and staff's own: look, their committee, their SMART module (4 Nov 2026)
     'retirement-requests.php' => ['super'],
     'administrative-services.php' => ['super'],
     'control-room.php'        => ['super'],

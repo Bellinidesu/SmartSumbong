@@ -244,3 +244,42 @@
 .page-administrative-services .cmx-foot .cmx-col input[type="color"] { flex: none; width: 40px; height: 32px; }   /* the old rows' full-width swatch, not in the card's footer */
 .cmx-logo-f .cmx-logo { min-height: 40px; gap: 16px; }
 .cmx-logo-f .cmx-lgi { width: 40px; height: 40px; }
+/* A Kagawad's or staff member's Settings (4 Nov 2026): My committee, read only, and their SMART module */
+.my-com { padding: 0; overflow: hidden; }
+.my-com .cmx-banner { margin: 0; }
+.my-com-body { display: grid; gap: 22px; padding: 22px 24px 24px; }
+.my-com-id { display: flex; align-items: center; gap: 22px; }
+.my-com-logo { width: 88px; height: 88px; flex: none; object-fit: contain; }
+.my-com-logo.p-brand-sym { box-shadow: 0 0 0 3px var(--p-surface), 0 0 0 4px var(--p-line); }
+.my-com-dl { display: grid; grid-template-columns: repeat(3, minmax(0, auto)); gap: 6px 36px; margin: 0; }
+.my-com-dl dt { font: 600 12.5px Inter, sans-serif; color: var(--p-muted); }
+.my-com-dl dd { margin: 2px 0 0; font-weight: 700; color: var(--p-ink); display: flex; align-items: center; gap: 8px; }
+.my-com-sw { width: 18px; height: 18px; border-radius: 5px; background: var(--cc); box-shadow: 0 0 0 1px var(--p-line); }
+.my-com-sec .p-eyebrow { margin: 0 0 10px; }
+.my-com-people { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.my-com-people li { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border: 1px solid var(--p-line); border-radius: 999px; background: var(--p-surface); }
+.my-com-people li .p-avatar, .my-com-people li img { width: 32px; height: 32px; }
+.my-com-tanods { color: var(--p-muted); padding-left: 14px !important; }
+.my-com-tanods a { font-weight: 700; }
+.my-com-note { margin: 0; padding-top: 14px; border-top: 1px solid var(--p-line); }
+.my-mod-head { display: flex; align-items: center; gap: 14px; }
+.my-mod-head h2 { margin: 2px 0 0; font-size: 20px; }
+.my-mod-brain { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: color-mix(in srgb, var(--p-orange, #FF9800) 16%, transparent); color: var(--p-orange-d, #B26500); flex: none; }
+.sm-h { margin: 18px 0 10px; }
+.sm-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }   /* ten readings in two even rows */
+.sm-tiles.sm-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1280px) { .sm-tiles, .sm-tiles.sm-four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sm-tile { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--p-line); border-radius: 12px; background: var(--p-surface); }
+.sm-tile span { font: 600 12.5px Inter, sans-serif; color: var(--p-muted); }
+.sm-tile b { font-size: 24px; line-height: 1.1; color: var(--p-ink); }
+.sm-tile.sm-hot { border-color: color-mix(in srgb, #E53935 45%, transparent); background: color-mix(in srgb, #E53935 8%, var(--p-surface)); }
+.sm-tile.sm-hot b { color: #C62828; }
+.sm-tile.sm-warm { border-color: color-mix(in srgb, var(--p-orange, #FF9800) 50%, transparent); background: color-mix(in srgb, var(--p-orange, #FF9800) 9%, var(--p-surface)); }
+.my-mod-what { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.my-mod-sig { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.my-mod-sig li { display: grid; gap: 2px; padding-left: 14px; border-left: 3px solid var(--p-orange, #FF9800); }
+.my-mod-sig span { color: var(--p-muted); font-size: 13.5px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sm-tile.sm-hot b { color: #FF6B6B; } }
+:root[data-theme="dark"] .sm-tile.sm-hot b { color: #FF6B6B; }
+@media (max-width: 1100px) { .my-mod-what { grid-template-columns: 1fr; } .my-com-dl { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .my-com-id { flex-direction: column; align-items: flex-start; } }

@@ -1162,13 +1162,13 @@ test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card
 test('0145 access: a committee admin sees only its pages, and no SMART drawer', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
   const r = await open(page, 'cases.php');
-  for (const href of ['dashboard.php', 'settings.php', 'residents.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  for (const href of ['dashboard.php', 'residents.php', 'administrative-services.php', 'control-room.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
   await expect(page.locator('.p-sidebar a[href="personnel.php"]').first()).toBeVisible();   // 0153: a Kagawad sees their committee's tanods and staff
   await expect(page.locator('.p-sidebar a[href="cases.php"]').first()).toBeVisible();
   await expect(page.locator('#side-user')).toContainText('Peace and Order');
   await page.goto('dashboard.php');
   await expect(page).toHaveURL(/notifications\.php/);
-  await page.goto('settings.php');
+  await page.goto('control-room.php');
   await expect(page).toHaveURL(/notifications\.php/);
   const s = await open(page, 'spatial.php');
   await expect(page.locator('#smart-toggle')).toHaveCount(0);
@@ -1210,6 +1210,28 @@ test('0164 each rung: the seal alone for a super admin, the committee logo besid
   await open(page, 'personnel.php?id=u2');
   await expect(page.locator('.p-main form')).toHaveCount(0);
   expect(await axe(page), 'tanod page, staff').toEqual([]);
-  for (const href of ['residents.php', 'administrative-services.php', 'control-room.php', 'settings.php', 'dashboard.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  for (const href of ['residents.php', 'administrative-services.php', 'control-room.php', 'dashboard.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});
+
+test('Settings for a Kagawad and staff: their look, their committee read only, their SMART module (0165)', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const r = await open(page, 'settings.php');
+  await expect(page.locator('.st-tabs [data-st]')).toHaveText(['Appearance', 'My committee', 'SMART']);
+  await expect(page.locator('#places, #st-check, [data-pane="status"], [data-pane="smart"]')).toHaveCount(0);   // the super admins' own
+  await page.locator('.st-tabs [data-st="committee"]').click();
+  await expect(page.locator('[data-pane="committee"] .cmx-banner')).toContainText('Peace and Order');
+  await expect(page.locator('[data-pane="committee"] form, [data-pane="committee"] input')).toHaveCount(0);   // read only
+  await page.locator('.st-tabs [data-st="module"]').click();
+  await expect(page.locator('.my-mod h2')).toHaveText('Committee module');
+  await expect(page.locator('.sm-four .sm-tile')).toHaveCount(4);   // the decisions waiting on the Kagawad
+  expect(await axe(page), 'Settings, Kagawad').toEqual([]);
+  await page.goto('settings.php#smart');   // an old link to the SMART tab opens their module, and does not loop
+  await expect(page.locator('[data-pane="module"]')).toBeVisible();
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'settings.php');
+  await page.locator('.st-tabs [data-st="module"]').click();
+  await expect(page.locator('.my-mod h2')).toHaveText('Staff module');
+  await expect(page.locator('.sm-four')).toHaveCount(0);   // decisions stay with the Kagawad
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
