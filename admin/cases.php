@@ -792,8 +792,8 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     <?php endforeach; ?>
     <a class="cm-chip cm-chip-none<?= $com === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $com === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?><em class="<?= ($crOd[''] ?? 0) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) ($crOd[''] ?? 0))) ?></em></span><b><?= (int) ($chipN['none'] ?? 0) ?></b></a>
   <?php elseif ($myCom !== ''): ?>
-    <a class="cm-chip<?= $com === 'fwd' ? ' p-on' : '' ?>" style="--cc:<?= e(committee_colour($myCom)) ?>;--ct:<?= e(ink_on(committee_colour($myCom))) ?>" href="<?= e($comHref('fwd')) ?>"<?= $com === 'fwd' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&rarr;</i><span class="cm-n"><?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?></span><b><?= (int) ($chipN['fwd'] ?? 0) ?></b></a>
-    <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&#9873;</i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
+    <a class="cm-chip<?= $com === 'fwd' ? ' p-on' : '' ?>" title="<?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?>" style="--cc:<?= e(committee_colour($myCom)) ?>;--ct:<?= e(ink_on(committee_colour($myCom))) ?>" href="<?= e($comHref('fwd')) ?>"<?= $com === 'fwd' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&rarr;</i><span class="cm-n"><?= e(t('Forwarded to us', 'Ipinasa sa amin')) ?></span><b><?= (int) ($chipN['fwd'] ?? 0) ?></b></a>
+    <?php if (my_tier() === 'committee'): ?><a class="cm-chip cm-chip-flag<?= $com === 'flagged' ? ' p-on' : '' ?>" title="<?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?>" href="<?= e($comHref('flagged')) ?>"<?= $com === 'flagged' ? ' aria-current="true"' : '' ?>><i class="cm-sym">&#9873;</i><span class="cm-n"><?= e(t('Flagged to forward', 'Na-flag para ipasa')) ?></span><b><?= (int) ($chipN['flagged'] ?? 0) ?></b></a><?php endif; ?>
   <?php endif; ?>
 </nav>
 <?= committee_banner_script() ?>
@@ -836,7 +836,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
               <div class="p-person"><span class="p-avatar p-av-sm" aria-hidden="true"><?= e(admin_initials($r['resident']['full_name'] ?? '')) ?></span><span><?= e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></span></div>
             <?php endif; ?></div>
           </td>
-          <td><?= e(category_label($r['category'])) ?><?php
+          <td><span class="cat-n" title="<?= e(category_label($r['category'])) ?>"><?= e(category_label($r['category'])) ?></span><?php
               // every concern but the report's own (the first of its main category)
               $more = (array) ($r['concerns'] ?? []); $mi = array_search($r['category'], array_column($more, 'category'), true); if ($mi !== false) array_splice($more, (int) $mi, 1);
               if ($more): $tip = t('Also in this report', 'Kasama rin sa ulat na ito') . ': ' . implode(', ', array_map(fn ($c) => category_label((string) $c['category']) . (!empty($c['filed_option_en']) ? ': ' . $c['filed_option_en'] : '') . ' (' . (($c['status'] ?? '') === 'resolved' ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) . ')', $more)); ?> <span class="cr-more" title="<?= e($tip) ?>">+<?= count($more) ?></span><?php endif; ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>

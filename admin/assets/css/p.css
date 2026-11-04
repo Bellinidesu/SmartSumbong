@@ -77,6 +77,7 @@
 .p-check input{ accent-color: var(--p-blue); width: 16px; height: 16px; }
 .p-link{ color: var(--p-link); font-weight: 600; text-decoration: none; font-size: 13px; }
 .p-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: var(--p-r); border: 1.5px solid transparent; font-weight: 700; font-size: 14.5px; transition: background .15s, transform .05s, box-shadow .15s; white-space: nowrap; }
+.p-btn{ background: var(--p-surface); border-color: var(--p-line-2); color: var(--p-ink); }   /* 5 Nov sweep: a button with no variant is the secondary one, never the browser's grey */
 .p-btn:active{ transform: translateY(1px); }
 .p-btn:focus-visible, .p-nav a:focus-visible, .p-chip:focus-visible{ outline: 3px solid rgba(255,152,0,.55); outline-offset: 2px; }
 .p-btn-primary{ background: var(--p-blue); color: #fff; box-shadow: 0 4px 12px rgba(0,48,143,.25); }

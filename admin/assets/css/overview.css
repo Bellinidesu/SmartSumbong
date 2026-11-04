@@ -78,3 +78,9 @@
 @media (max-width: 1500px) { .page-home .hm-row-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 1180px) { .page-home .hm-grid { grid-template-columns: 1fr; } .page-home .hm-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .page-home .hm-row-4, .page-home .hm-row-6 { grid-template-columns: 1fr; } .page-home .hm-legend { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* 5 Nov sweep: on a narrow screen a long category ("Public Safety and Infrastructure") keeps to two lines, so every row of
+   Report Summary and Case Reports stays one height; the whole name is in its tooltip. */
+@media (max-width: 1180px) {
+  .cat-n { display: -webkit-inline-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; vertical-align: top; }
+  td:has(> .cr-more) > .cat-n { max-width: calc(100% - 44px); }   /* the +N pill stays on the name's line */
+}

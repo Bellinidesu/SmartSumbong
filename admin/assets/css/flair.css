@@ -308,3 +308,6 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .remember input { width: 14px; height: 14px; }
 .login-note, .login-error { font-size: 13px; }
 .sdp-foot .sdp-clr { background: none; border: 1px solid var(--p-line, #D9DEEA); color: inherit; padding: 6px 14px; border-radius: 99px; font: inherit; font-weight: 700; cursor: pointer; } .sdp-foot .sdp-clr:hover { border-color: currentColor; }   /* Rose (2 Nov): take the picked days back */
+.sdp-foot .sdp-clr, .sdp-foot .sdp-go { height: 36px; display: inline-flex; align-items: center; justify-content: center; padding-top: 0; padding-bottom: 0; }   /* 5 Nov sweep: Clear and Apply, one height */
+/* 5 Nov sweep: the sign-in pages' checkboxes as the app's and the portal's: the identity orange, large enough to hit */
+.remember input, .field-check input { width: 16px; height: 16px; accent-color: #FF9800; }

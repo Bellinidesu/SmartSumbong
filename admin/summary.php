@@ -520,7 +520,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
           <td><?= !empty($r['is_anonymous'])
                   ? '<span class="p-anon">' . e(t('Anonymous', 'Hindi nagpakilala')) . '</span>'
                   : e(formal_or($r['resident']['full_name'] ?? null, t('Unknown', 'Hindi kilala'))) ?></td>
-          <td><?= e(category_label($r['category'])) ?></td>
+          <td><span class="cat-n" title="<?= e(category_label($r['category'])) ?>"><?= e(category_label($r['category'])) ?></span></td>
           <?php if ($overall): ?><td><?= committee_pill($r['case_committee'] ?? null) ?></td><?php endif; ?>
           <td><?php if (!empty($r['referred_to'])): ?><span class="p-badge p-b-violet"><?= e(t('Escalated to ', 'In-escalate sa ') . $r['referred_to']) ?></span>
               <?php else: ?><?= sensitive_badge($r) ?><span class="p-badge p-b-<?= e(status_class($r['status'])) ?>"><?= e(status_label($r['status'])) ?><?= report_is_overdue($r) ? e(t(' (overdue)', ' (lampas na)')) : '' ?></span><?php endif; ?></td>
@@ -566,7 +566,7 @@ $tlCount = count(array_unique(array_map(fn($l) => $l['report']['tracking_id'] ??
       <?php foreach ($referralRows as $r): ?>
         <tr>
           <td><span class="p-mono-id"><?= e($r['tracking_id']) ?></span></td>
-          <td><?= e(category_label($r['category'])) ?></td>
+          <td><span class="cat-n" title="<?= e(category_label($r['category'])) ?>"><?= e(category_label($r['category'])) ?></span></td>
           <?php if ($overall): ?><td><?= committee_pill($r['case_committee'] ?? null) ?></td><?php endif; ?>
           <td><b><?= e($r['referred_to']) ?></b></td>
           <td class="p-num"><?= e(short_date($r['referred_at'] ?? null)) ?: '—' ?></td>

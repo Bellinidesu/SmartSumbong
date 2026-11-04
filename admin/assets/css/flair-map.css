@@ -1372,3 +1372,7 @@ html.sdp-live #s-spatial .p-map-search .p-row { max-height: 110px; opacity: 1; m
 #s-spatial#s-spatial .p-map-search .p-row-lyr > .ss-lyr-in { flex: 1 1 0; min-width: 0; }
 #s-spatial#s-spatial .p-map-search .p-row-lyr > .ss-lyr-in { height: auto; min-height: 0; max-height: none; align-self: center; }
 #s-spatial#s-spatial .p-map-search .p-row-lyr > .lyr-h { margin: 0; }
+/* 5 Nov sweep: where the seven layers do not fit on one line, two even lines (four and three), never six and a lone one */
+@media (max-width: 1800px) { #s-spatial#s-spatial .p-map-search .ss-lyr-in .lyr-list { display: grid; grid-template-columns: repeat(4, max-content); } }
+/* and where the title row wraps, the connection note takes its own line rather than leaving the lock alone */
+@media (max-width: 1100px) { #s-spatial .p-map-search .p-ttl .p-note { order: 5; flex-basis: 100%; } }
