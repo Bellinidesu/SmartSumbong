@@ -522,6 +522,24 @@ test('Development team: the DEV switcher makes test accounts, switches into a ru
   expect(r.errors, 'console errors').toEqual([]);
 });
 
+test('Case Reports: a case with more than one concern says so, and is found by any of them', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'cases.php');
+  const row = page.locator('tr', { hasText: 'SS-2610-1001' });
+  await expect(row.locator('.cr-more'), 'two more concerns beside the main category').toHaveText('+2');
+  await expect(row.locator('.cr-more')).toHaveAttribute('title', /Barangay Service \(Open\)/);
+  await expect(row.locator('.cr-more')).toHaveAttribute('title', /Public Safety and Infrastructure \(Resolved\)/);
+  expect(await page.locator('tr:has(.cr-more)').first().evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the pill does not make its row taller').toBeLessThanOrEqual(await page.locator('tbody tr').nth(1).evaluate(e => Math.round(e.getBoundingClientRect().height)) + 2);
+  // a concern's category finds the case, though it is not the main one
+  await open(page, 'cases.php?category=barangay_service');
+  await expect(page.locator('tr', { hasText: 'SS-2610-1001' }), 'found by its second concern').toHaveCount(1);
+  await open(page, 'cases.php?category=peace_order_nuisance');
+  await expect(page.locator('tr', { hasText: 'SS-2610-1001' }), 'and by its main category').toHaveCount(1);
+  await open(page, 'cases.php?category=animal_welfare');
+  await expect(page.locator('tr', { hasText: 'SS-2610-1001' }), 'not by a category it does not have').toHaveCount(0);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
 test('Roles and pages 1b: committee colours, the super admin colour, and the sidebar each one wears', async ({ page, context }) => {
   let r = await open(page, 'administrative-services.php#access');
   await expect(page.locator('#acc-super input[type="color"]')).toHaveValue('#00308f');

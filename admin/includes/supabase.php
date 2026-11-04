@@ -336,7 +336,7 @@ final class Supabase
     /** Row count without transferring the rows. */
     public function count(string $table, array $query = []): int
     {
-        $query['select'] = 'id';
+        $query['select'] = $query['select'] ?? 'id';   // a caller may keep its own (an inner join on concerns)
         $qs = '?' . http_build_query($query);
 
         $ch = curl_init(supabase_url() . "/rest/v1/{$table}{$qs}");

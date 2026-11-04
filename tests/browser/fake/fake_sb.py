@@ -33,6 +33,7 @@ def report(i, **kw):
     r.update(kw); return r
 
 REPORTS = [report(i) for i in range(1, 20)]
+REPORTS[0]['concerns'] = [{'category': REPORTS[0]['category'], 'status': 'open'}, {'category': 'public_safety_infrastructure', 'status': 'resolved'}, {'category': 'barangay_service', 'status': 'open'}]
 for r in REPORTS:
     if r['handler_id']: r['handler'] = {'id': ADMIN['id'], 'full_name': ADMIN['full_name'], 'official_role': 'secretary', 'committee': None}
 REPORTS[0].update(is_anonymous=True, status='validated', tier=1, handler_id=KAG['id'], handler={'id': KAG['id'], 'full_name': KAG['full_name'], 'official_role': 'kagawad', 'committee': 'peace_order'}, subject='Live wire sparking near the school', is_sensitive=False)
@@ -325,6 +326,8 @@ def apply_filters(rows, qs):
     for k, vs in qs.items():
         if k in ('select', 'order', 'limit', 'offset'): continue
         v = vs[0]
+        if k == 'cn.category' and v.startswith('eq.'):   # an inner join on the concerns: the main category or any concern
+            w = v[3:]; out = [r for r in out if r.get('category') == w or any(c.get('category') == w for c in r.get('concerns', []))]; continue
         if v.startswith('eq.'):
             want = v[3:]
             if any(k in r for r in out): out = [r for r in out if (str(r.get(k)).lower() if isinstance(r.get(k), bool) else str(r.get(k))) == want]
