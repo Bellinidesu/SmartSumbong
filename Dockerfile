@@ -24,7 +24,11 @@ FROM composer:2.10.3 AS composer
 # cannot, and Dependabot raises it with each new patch.
 FROM php:8.5.12-apache
 
+# apt-get upgrade (4 Nov 2026): Debian's security fixes that are newer than the PHP base image. The scan failed on 51
+# findings, all in linux-libc-dev (the kernel headers, part of the base image itself); Debian's fixed version arrives this
+# way, and the next one will too, at the next build.
 RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
     && docker-php-ext-install curl mbstring zip \
     && a2enmod rewrite expires headers deflate \
