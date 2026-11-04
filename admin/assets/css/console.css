@@ -229,3 +229,18 @@
 .page-settings .st-pane .p-card > p.p-eyebrow em { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 10px; padding: 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-muted) 18%, transparent); color: var(--p-ink); font: 700 12px Inter, sans-serif; font-style: normal; vertical-align: middle; letter-spacing: 0; }
 .page-settings .ss-table thead th { white-space: nowrap; }
 @media (max-width: 1100px) { .page-settings .ss-two { grid-template-columns: minmax(0, 1fr); } }
+/* A committee's logo (0164): the picture beside the barangay seal in its sidebar, or its first symbol in its colour until there is one */
+.cmx-logo { display: inline-flex; align-items: center; gap: 10px; }
+.cmx-lg { display: inline-flex; align-items: center; gap: 8px; position: relative; cursor: pointer; font: 600 13px Inter, sans-serif; color: var(--p-muted); }
+.cmx-lg input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.cmx-lgi { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--cc); color: var(--ci); box-shadow: 0 0 0 1px var(--p-line); flex: none; }
+.cmx-lgi:has(img) { background: transparent; }
+.cmx-lgi img { width: 100%; height: 100%; object-fit: contain; }
+.cmx-lgi svg { width: 18px; height: 18px; }
+.cmx-lg:hover .cmx-lgt { color: var(--p-ink); text-decoration: underline; }
+.cmx-lg:has(input:focus-visible) .cmx-lgi { outline: 3px solid var(--p-orange, #FF9800); outline-offset: 2px; }
+.cmx-lgx { display: inline-flex; align-items: center; gap: 6px; font: 600 12.5px Inter, sans-serif; color: var(--p-muted); cursor: pointer; }
+.cmx-col span, .cmx-lgt, .cmx-lgx span { white-space: nowrap; }
+.page-administrative-services .cmx-foot .cmx-col input[type="color"] { flex: none; width: 40px; height: 32px; }   /* the old rows' full-width swatch, not in the card's footer */
+.cmx-logo-f .cmx-logo { min-height: 40px; gap: 16px; }
+.cmx-logo-f .cmx-lgi { width: 40px; height: 40px; }

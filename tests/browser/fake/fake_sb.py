@@ -128,6 +128,12 @@ TABLES = {
 # 0150: each committee's colour, as the migration starts them
 for _c in TABLES['committees']:
     _c['colour'] = {'peace_order': '#D32F2F', 'environment': '#00838F', 'health_sanitation': '#1E9E4A', 'anti_drug': '#5C6BC0', 'women_family': '#D81B60'}.get(_c['key'], '#78909C')
+    # 0164: one committee has a logo uploaded (a drawn one, so the tests need no network); the others show their symbol
+    _c['logo_url'] = None
+TABLES['committees'][1]['logo_url'] = ('data:image/svg+xml,' + __import__('urllib.parse').parse.quote(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="#F3FFF8" stroke="#00838F" stroke-width="4"/>'
+    '<circle cx="48" cy="48" r="36" fill="#00838F"/><path d="M48 24c14 8 18 22 10 34-4 6-10 9-10 14 0-5-6-8-10-14-8-12-4-26 10-34z" fill="#C8F5D8"/>'
+    '<path d="M48 34v38" stroke="#00838F" stroke-width="3" stroke-linecap="round"/></svg>'))
 
 # The command center (0143): a small memory of which mode is on, so a test can turn one on, hand over and turn it off.
 CMD = {'active': None}

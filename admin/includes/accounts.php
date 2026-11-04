@@ -53,11 +53,11 @@ function render_account_screen(string $role): void
     // 0153: the Committee staff tab (punch cards) of Personnel
     if ($isTanod) {
         require_once __DIR__ . '/personnel_committees.php';
-        if (($_GET['view'] ?? '') === 'staff' && (is_super() || is_captain() || is_committee())) {
+        if (($_GET['view'] ?? '') === 'staff' && (is_super() || is_captain() || is_scoped())) {
             render_punch_page($db);
             return;
         }
-        if (isset($_GET['staff']) && (is_super() || is_captain() || is_committee())) {
+        if (isset($_GET['staff']) && (is_super() || is_captain() || is_scoped())) {
             render_staff_profile($db, (string) $_GET['staff']);
             return;
         }
@@ -252,7 +252,7 @@ function render_account_screen(string $role): void
         ? array_values(array_filter($got['requests'], fn($r) => ($r['who']['role'] ?? '') === ($isTanod ? 'tanod' : 'resident')))
         : [];
     ?>
-    <?php if ($requests): ?>
+    <?php if ($requests && is_super()): ?>
       <div class="p-card p-card-pad ss-requests">
         <p class="p-eyebrow"><?= e(t('Requests waiting', 'Mga naghihintay na kahilingan')) ?> · <?= count($requests) ?></p>
         <div style="display:grid;gap:12px">
@@ -286,7 +286,7 @@ function render_account_screen(string $role): void
     <?php endif; ?>
 
     <!-- Always rendered so the polling below can show it as accounts age past the window. -->
-    <div class="p-flash p-flash--error" id="overdue-banner" role="alert"<?= $overdue > 0 ? '' : ' hidden' ?>>
+    <div class="p-flash p-flash--error" id="overdue-banner" role="alert"<?= $overdue > 0 && is_super() ? '' : ' hidden' ?>>
       <span id="overdue-text"><?= $overdue ?> <?= e(t(($overdue === 1 ? 'registration has' : 'registrations have') . ' passed the two-hour verification window.',
                                                  'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.')) ?></span>
     </div>
@@ -416,10 +416,11 @@ function render_account_screen(string $role): void
                       && (empty($a['ocr_processed_at'])
                           || (string) $a['ocr_processed_at'] < (string) $a['ocr_rescan_requested_at'])): ?><span class="p-badge p-b-grey" title="<?= e(t('Waiting for them to open the app', 'Hinihintay na buksan nila ang app')) ?>"><?= e(t('Re-check pending', 'Nakabinbing muling pagsuri')) ?></span><?php endif; ?></div></td>
               <td class="p-right">
-                <a class="p-btn p-btn-sm <?= $a['verification_status'] === 'pending' ? 'p-btn-primary' : 'p-btn-ghost' ?>" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
-                  <?= $a['verification_status'] === 'pending' ? e(t('Review', 'Suriin')) : e(t('View', 'Tingnan')) ?>
+                <?php $toReview = $a['verification_status'] === 'pending' && is_super(); ?>
+                <a class="p-btn p-btn-sm <?= $toReview ? 'p-btn-primary' : 'p-btn-ghost' ?>" href="<?= e($self) ?>?id=<?= e($a['id']) ?>">
+                  <?= $toReview ? e(t('Review', 'Suriin')) : e(t('View', 'Tingnan')) ?>
                 </a>
-                <?php if ($a['verification_status'] === 'pending'
+                <?php if ($a['verification_status'] === 'pending' && is_super()
                           && ID_OCR_ENABLED && account_ocr_is_clean($a)
                           && empty($dupes[$a['id']])): ?>
                   <form method="post" class="quick-verify-form" style="display:inline" data-name="<?= e(display_name($a['full_name'])) ?>">
@@ -468,6 +469,7 @@ function render_account_screen(string $role): void
       // input.
       const CSRF = <?= json_encode(csrf_token()) ?>;
       const OCR_ON = <?= json_encode(ID_OCR_ENABLED) ?>;
+      const CAN_VERIFY = <?= json_encode(is_super()) ?>;   // only a super admin verifies (staff and Kagawads see the list)
       const STATUS_LABEL = <?= json_encode(status_labels(), JSON_UNESCAPED_UNICODE) ?>;
       const NOUN_LABEL = <?= json_encode(strtolower($nounLabel), JSON_UNESCAPED_UNICODE) ?>;
       const IS_TANOD = <?= json_encode($isTanod) ?>;
@@ -702,7 +704,7 @@ function render_account_screen(string $role): void
         document.getElementById('pending-count').textContent = pending;
 
         var overdueBanner = document.getElementById('overdue-banner');
-        overdueBanner.hidden = !(overdue > 0);
+        overdueBanner.hidden = !(overdue > 0 && CAN_VERIFY);
         document.getElementById('overdue-text').textContent =
           overdue + ' ' + T((overdue === 1 ? 'registration has' : 'registrations have') + ' passed the two-hour verification window.',
                             'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.');
@@ -735,7 +737,7 @@ function render_account_screen(string $role): void
             extra += '<span class="p-badge p-b-grey" title="' + T('Waiting for them to open the app', 'Hinihintay na buksan nila ang app') + '">' + T('Re-check pending', 'Nakabinbing muling pagsuri') + '</span>';
           }
           var quickVerify = '';
-          if (OCR_ON && a.verification_status === 'pending' && ocrIsClean(a) &&
+          if (CAN_VERIFY && OCR_ON && a.verification_status === 'pending' && ocrIsClean(a) &&
               !(dupes[a.id] && dupes[a.id].length)) {
             quickVerify =
               '<form method="post" class="quick-verify-form" style="display:inline" data-name="' + escapeHtml(window.ssName(a.full_name)) + '">' +
@@ -759,8 +761,8 @@ function render_account_screen(string $role): void
                 '<td class="pe-contact"><span class="p-num">' + escapeHtml(a.mobile_number) + '</span><span class="pe-mail"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '—') + '</span></td>'
               : '<td class="pe-contact"><span class="p-num">' + escapeHtml(a.mobile_number) + '</span><span class="pe-mail"' + (a.email ? ' title="' + escapeHtml(a.email) + '"' : '') + '>' + (a.email ? escapeHtml(a.email) : '—') + '</span></td>') +
             '<td><div class="p-badges">' + statusPillsHtml(a) + extra + '</div></td>' +
-            '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
-              (a.verification_status === 'pending' ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +
+            '<td class="p-right"><a class="p-btn p-btn-sm ' + (a.verification_status === 'pending' && CAN_VERIFY ? 'p-btn-primary' : 'p-btn-ghost') + '" href="' + SELF + '?id=' + encodeURIComponent(a.id) + '">' +
+              (a.verification_status === 'pending' && CAN_VERIFY ? T('Review', 'Suriin') : T('View', 'Tingnan')) + '</a>' + quickVerify + '</td>' +
             '</tr>';
         }).join('');
       }

@@ -1188,3 +1188,28 @@ test('0145 access: a captain reads a case but its controls are view only', async
   expect(await axe(page), 'Case page, captain').toEqual([]);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('0164 each rung: the seal alone for a super admin, the committee logo beside it for a Kagawad, Personnel view only for staff', async ({ page, context }) => {
+  const r = await open(page, 'notifications.php');
+  await expect(page.locator('.p-side-top .p-brand-img')).toHaveCount(1);   // the barangay seal
+  await expect(page.locator('.p-side-top .p-brand-com')).toHaveCount(0);
+  await expect(page.locator('.p-sidebar img[src*="logo-wordmark"]')).toHaveCount(0);   // the wordmark is on the sign-in pages only
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'environment', url: 'http://127.0.0.1:8013' }]);
+  await open(page, 'notifications.php');
+  await expect(page.locator('.p-side-top img.p-brand-com')).toHaveAttribute('alt', /Environment and Disaster Risk/);   // an uploaded logo
+  await context.addCookies([{ name: 'ss_tier', value: 'moderator', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const m = await open(page, 'personnel.php');
+  await expect(page.locator('.p-side-top .p-brand-com.p-brand-sym svg path').first()).toBeAttached();   // no logo yet: the committee's symbol
+  await expect(page.locator('.p-sidebar a[href="personnel.php"]').first()).toBeVisible();
+  await expect(page.locator('.tc-tabs a')).toHaveText(['Tanods', 'Committee staff']);
+  await expect(page.locator('#tc-propose, #ss-bulk-tc, .quick-verify-form, .ss-requests')).toHaveCount(0);
+  await expect(page.locator('#overdue-banner')).toBeHidden();
+  await expect(page.locator('#ss-people a.p-btn-primary')).toHaveCount(0);   // nothing to review: only a super admin verifies
+  await open(page, 'personnel.php?view=staff');
+  await expect(page.locator('.p-main form')).toHaveCount(0);
+  await open(page, 'personnel.php?id=u2');
+  await expect(page.locator('.p-main form')).toHaveCount(0);
+  expect(await axe(page), 'tanod page, staff').toEqual([]);
+  for (const href of ['residents.php', 'administrative-services.php', 'control-room.php', 'settings.php', 'dashboard.php']) await expect(page.locator(`.p-sidebar a[href="${href}"]`)).toHaveCount(0);
+  expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
+});

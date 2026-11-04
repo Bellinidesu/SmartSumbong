@@ -67,10 +67,10 @@ function tc_list_pills(?array $row): string
     return '<div class="tc-pills">' . $o . '</div>';
 }
 
-/** Tanods | Committee staff, for the people who see both. */
+/** Tanods | Committee staff, for the people who see both (staff too since 0164, view only). */
 function personnel_tabs(string $on): string
 {
-    if (!(is_super() || is_captain() || is_committee())) return '';
+    if (!(is_super() || is_captain() || is_scoped())) return '';
     $tabs = ['' => t('Tanods', 'Mga Tanod'), 'staff' => is_committee() ? t('My staff', 'Aking mga kawani') : t('Committee staff', 'Mga kawani ng komite')];
     if (is_committee()) { $tabs['retire'] = t('Retirement requests', 'Mga hiling magretiro'); }
     $o = '<nav class="st-tabs tc-tabs" aria-label="' . e(t('Personnel', 'Mga Tanod')) . '">';
