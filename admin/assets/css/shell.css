@@ -116,3 +116,17 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
 .dv-band b { font: 800 14px Urbanist, sans-serif; } .dv-band form { margin: 0 0 0 auto; }
 .dv-band button { padding: 6px 14px; border: 0; border-radius: 10px; background: #2B1A00; color: #fff; font: 800 12.5px Inter, sans-serif; cursor: pointer; }
 .p-badge.dv-test { background: repeating-linear-gradient(135deg, #FFE0B2 0 6px, #FFF3E0 6px 12px); color: #8A4B00; font-weight: 800; letter-spacing: .04em; }
+/* The top of the sidebar (4 Nov 2026): the barangay seal alone for a super admin; a committee's logo beside it for a Kagawad or staff member */
+.p-sidebar .p-brand.p-brand-seal{display:flex;align-items:center;justify-content:center;gap:14px;padding:2px 0 4px}
+.p-sidebar .p-brand.p-brand-seal .p-brand-img{width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.28))}
+.p-sidebar .p-brand.p-brand-pair .p-brand-img,.p-sidebar .p-brand.p-brand-pair .p-brand-com{width:84px;height:84px;flex:none}
+.p-sidebar .p-brand .p-brand-com{object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.28))}
+.p-brand-sym{display:grid;place-items:center;border-radius:50%;background:var(--cc);color:var(--ci);box-shadow:0 0 0 3px rgba(255,255,255,.88),0 8px 18px -6px rgba(0,0,0,.45)}
+.p-brand-sym svg{width:48%;height:48%}
+.p-brand-sep{width:1px;height:56px;flex:none;background:rgba(255,255,255,.3)}
+@media (max-width:980px){
+  .p-sidebar .p-brand.p-brand-seal{gap:8px;padding:0}
+  .p-sidebar .p-brand.p-brand-seal .p-brand-img,.p-sidebar .p-brand.p-brand-pair .p-brand-com{width:44px;height:44px}
+  .p-brand-sep{height:30px}
+  .p-brand-sym{box-shadow:0 0 0 2px rgba(255,255,255,.88)}
+}

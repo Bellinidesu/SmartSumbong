@@ -310,6 +310,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 if (is_string($saved) && ($key !== '' || $cats)) {
                     $db->rpc('committee_set_categories', ['p_key' => $saved, 'p_categories' => '{' . implode(',', $cats) . '}']);
                 }
+                // 0164: the logo beside the barangay seal in the committee's sidebar
+                if (is_string($saved) && !empty($_POST['logo_clear'])) {
+                    $db->rpc('committee_set_logo', ['p_key' => $saved, 'p_url' => null]);
+                } elseif (is_string($saved) && ($pic = cloudinary_upload_files('logo', 1, 'committees'))) {
+                    $db->rpc('committee_set_logo', ['p_key' => $saved, 'p_url' => $pic[0]['media_url']]);
+                }
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $key === '' ? t('Committee made.', 'Nagawa ang komite.') : t('Committee saved.', 'Nai-save ang komite.')];
             } elseif ($_POST['action'] === 'super_colour') {
                 // 0150: the one colour of every super admin; the database refuses one near an active committee's
@@ -954,7 +960,7 @@ endif;
     <?php endif; ?>
     <div class="cmx-grid">
     <?php foreach (committees_all() as $ck => $cc): $ticked = $cmCats[$ck] ?? []; $lead = $cmLead[$ck] ?? []; $nT = (int) ($cmTanods[$ck] ?? 0); $cHex = committee_colour($ck); ?>
-      <form method="post" class="acc-row cmx-card<?= empty($cc['active']) ? ' acc-off' : '' ?>">
+      <form method="post" class="acc-row cmx-card<?= empty($cc['active']) ? ' acc-off' : '' ?>" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
         <div class="cm-chips cmx-banner" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cc['short_en']) ?><span class="cm-n"><?= e((string) $cc['short_en']) ?></span><b><?= $nT ?></b></a></div>
         <div class="cmx-body">
@@ -966,6 +972,16 @@ endif;
               <input class="p-input-plain" id="cf-<?= e($ck) ?>" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>" title="<?= e((string) $cc['name_fil']) ?>" maxlength="120"></label>
             <label class="ty-f" for="cs-<?= e($ck) ?>"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
               <input class="p-input-plain" id="cs-<?= e($ck) ?>" name="short_en" value="<?= e((string) $cc['short_en']) ?>" maxlength="40"></label>
+            <?php $lg = (string) ($cc['logo_url'] ?? ''); $lgHex = committee_colour($ck); ?>
+            <div class="ty-f cmx-logo-f"><span><?= e(t('Sidebar logo', 'Logo sa sidebar')) ?></span>
+              <span class="cmx-logo">
+                <label class="cmx-lg" title="<?= e(t('The logo beside the barangay seal in this committee\'s sidebar', 'Ang logo sa tabi ng selyo ng barangay sa sidebar ng komiteng ito')) ?>">
+                  <span class="cmx-lgi" style="--cc:<?= e($lgHex) ?>;--ci:<?= e(ink_on($lgHex)) ?>"><?php if ($lg !== ''): ?><img src="<?= e(cld_thumb($lg, 96)) ?>" alt=""><?php else: ?><svg class="cmx-ti" data-ic="<?= e((string) (($sdTypes[$ck][0][1] ?? null) ?: 'other')) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg><?php endif; ?></span>
+                  <span class="cmx-lgt"><?= e($lg !== '' ? t('Change logo', 'Palitan ang logo') : t('Upload logo', 'Mag-upload ng logo')) ?></span>
+                  <input type="file" name="logo[]" accept="image/png,image/jpeg,image/webp"></label>
+                <?php if ($lg !== ''): ?><label class="cmx-lgx"><input type="checkbox" name="logo_clear" value="1"><span><?= e(t('Use the symbol instead', 'Gamitin ang simbolo')) ?></span></label><?php endif; ?>
+              </span>
+            </div>
           </div>
           <fieldset class="cmx-types acc-cats"><legend><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></legend>
             <div class="cmx-chips"><?php $typeChips($ticked, $ck); ?></div></fieldset>
@@ -981,7 +997,7 @@ endif;
     </div>
     <details class="cmx-newd">
       <summary><span class="cmx-plus" aria-hidden="true">+</span><?= e(t('Add a committee', 'Magdagdag ng komite')) ?></summary>
-      <form method="post" class="acc-row acc-new cmx-card cmx-card-new">
+      <form method="post" class="acc-row acc-new cmx-card cmx-card-new" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="">
         <div class="cm-chips cmx-banner" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="--cc:#78909C;--ct:#FFFFFF;--g1:#78909C;--g2:#78909C;--g3:#78909C"><i class="cm-sym cm-sym-sd"></i><span class="cm-n"><?= e(t('Your new committee', 'Ang bago mong komite')) ?></span><b>0</b></a></div>
         <div class="cmx-body">
@@ -992,6 +1008,14 @@ endif;
               <input class="p-input-plain" id="cf-new" name="name_fil" maxlength="120"></label>
             <label class="ty-f" for="cs-new"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
               <input class="p-input-plain" id="cs-new" name="short_en" maxlength="40"></label>
+            <div class="ty-f cmx-logo-f"><span><?= e(t('Sidebar logo', 'Logo sa sidebar')) ?></span>
+              <span class="cmx-logo">
+                <label class="cmx-lg" title="<?= e(t('The logo beside the barangay seal in this committee\'s sidebar', 'Ang logo sa tabi ng selyo ng barangay sa sidebar ng komiteng ito')) ?>">
+                  <span class="cmx-lgi" style="--cc:#78909C;--ci:#FFFFFF"><svg class="cmx-ti" data-ic="other" viewBox="0 0 24 24" aria-hidden="true"></svg></span>
+                  <span class="cmx-lgt"><?= e(t('Upload logo', 'Mag-upload ng logo')) ?></span>
+                  <input type="file" name="logo[]" accept="image/png,image/jpeg,image/webp"></label>
+              </span>
+            </div>
           </div>
           <fieldset class="cmx-types acc-cats"><legend><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></legend>
             <div class="cmx-chips"><?php $typeChips([], 'new'); ?></div></fieldset>
@@ -1027,7 +1051,14 @@ endif;
           var nm = (f.querySelector('input[name="short_en"]').value || f.querySelector('input[name="name_en"]').value || '').trim();
           chip.querySelector('.cm-n').textContent = nm || chip.querySelector('.cm-n').textContent;
         }
-        function dirty() { var d = new URLSearchParams(new FormData(f)).toString() !== initial; f.classList.toggle('cmx-dirty', d); if (save) save.disabled = !d; f.classList.toggle('acc-off', !isNew && !f.querySelector('input[name="active"]').checked); }
+        // a logo picked shows in its slot at once (0164); a file input does not change the form's text, so it is checked on its own
+        var lgIn = f.querySelector('.cmx-lg input[type="file"]'), lgBox = f.querySelector('.cmx-lgi'), lgUrl = null;
+        if (lgIn) lgIn.addEventListener('change', function () {
+          if (lgUrl) URL.revokeObjectURL(lgUrl);
+          var file = lgIn.files && lgIn.files[0]; if (!file) return;
+          lgUrl = URL.createObjectURL(file); lgBox.innerHTML = ''; var im = document.createElement('img'); im.src = lgUrl; im.alt = ''; lgBox.appendChild(im);
+        });
+        function dirty() { var d = new URLSearchParams(new FormData(f)).toString() !== initial || !!(lgIn && lgIn.files && lgIn.files.length); f.classList.toggle('cmx-dirty', d); if (save) save.disabled = !d; f.classList.toggle('acc-off', !isNew && !f.querySelector('input[name="active"]').checked); }
         f.addEventListener('input', function () { banner(); dirty(); }); f.addEventListener('change', function () { banner(); dirty(); });
         banner();
       });

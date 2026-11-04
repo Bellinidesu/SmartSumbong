@@ -5,7 +5,8 @@
  *
  *   super      every page                      (at 183: Sir Kiko, Chairperson Zuniga, the development team)
  *   captain    the overview pages, read-only    (no Dashboard, no Settings)
- *   committee  the case pages, its categories   (no Dashboard, no Settings, no residents or personnel)
+ *   committee  the case pages, its categories   (no Dashboard, no Settings, no residents); Personnel: its tanods and staff
+ *   moderator  the case pages, its categories   as a Kagawad, but Personnel is view only (0164)
  *
  * The tier, the developer mark and the committee are read at sign-in and again every two minutes, so a change a super
  * admin makes reaches the person's next page without signing them out.
@@ -22,7 +23,7 @@ const PAGE_TIERS = [
     'certificate.php'         => ['super'],
     'workspace.php'           => ['super'],
     'residents.php'           => ['super', 'captain'],
-    'personnel.php'           => ['super', 'captain', 'committee'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests
+    'personnel.php'           => ['super', 'captain', 'committee', 'moderator'],   // a Kagawad: their tanods, their staff, their tanods' retirement requests; staff: the same tanods and staff, view only (0164)
     'activity.php'            => ['super', 'captain'],
     'summary.php'             => ['super', 'captain', 'committee', 'moderator'],
     'spatial.php'             => ['super', 'captain', 'committee', 'moderator'],
@@ -86,17 +87,21 @@ function require_page_access(): void
     }
 }
 
-/** The barangay's committees (0145), read once per request: key => [name_en, name_fil, short_en, active, sort]. */
+/** The barangay's committees (0145), read once per request: key => [name_en, name_fil, short_en, active, sort, colour, logo_url]. */
 function committees_all(): array
 {
     static $memo = null;
     if ($memo !== null) return $memo;
     $memo = [];
-    try {
-        foreach ((array) db()->select('committees', ['select' => 'key,name_en,name_fil,short_en,active,sort,colour', 'order' => 'sort.asc,key.asc']) as $c) {
-            $memo[(string) $c['key']] = $c;
-        }
-    } catch (Throwable) {}
+    // logo_url arrives with 0164; until it is applied the committees are read without it
+    foreach (['key,name_en,name_fil,short_en,active,sort,colour,logo_url', 'key,name_en,name_fil,short_en,active,sort,colour'] as $cols) {
+        try {
+            foreach ((array) db()->select('committees', ['select' => $cols, 'order' => 'sort.asc,key.asc']) as $c) {
+                $memo[(string) $c['key']] = $c + ['logo_url' => null];
+            }
+            break;
+        } catch (Throwable) {}
+    }
     return $memo;
 }
 

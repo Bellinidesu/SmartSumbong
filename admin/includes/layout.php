@@ -179,6 +179,71 @@ function side_colour_style(): string
     return "<style>:root{{$light}}@media (prefers-color-scheme: dark){:root:not([data-theme=\"light\"]){{$dark}}}:root[data-theme=\"dark\"]{{$dark}}</style>\n";
 }
 
+/** One Spatial Distribution symbol (assets/js/sd-icons.js) as inline SVG markup, for the places drawn without the script. */
+function sd_icon_paths(string $name): string
+{
+    static $js = null;
+    $js ??= (string) @file_get_contents(dirname(__DIR__) . '/assets/js/sd-icons.js');
+    foreach ([$name, 'other'] as $n) {
+        if (preg_match('/^\s*"' . preg_quote($n, '/') . '":\s*("(?:[^"\\\\]|\\\\.)*")/m', $js, $m)) return (string) json_decode($m[1]);
+    }
+    return '';
+}
+
+/**
+ * The symbol of the first kind of complaint a committee sees (its banner's first symbol), kept in the session for two minutes so
+ * the sidebar does not read the committee's kinds on every page.
+ */
+function committee_first_symbol(string $ck): string
+{
+    session_start_once();
+    $memo = $_SESSION['com_sym'] ?? null;
+    if (is_array($memo) && ($memo['key'] ?? null) === $ck && ($memo['at'] ?? 0) > time() - 120) return (string) $memo['ic'];
+    $ic = 'other';
+    try {
+        $mine = array_column((array) db()->select('committee_categories', ['select' => 'category', 'committee' => 'eq.' . $ck]), 'category');
+        foreach (categories_all() as $catKey => $cat) {
+            if (in_array($catKey, $mine, true) && !empty($cat['active'])) { $ic = sd_icon_for_category((string) $catKey, (array) $cat); break; }
+        }
+    } catch (Throwable) {}
+    $_SESSION['com_sym'] = ['key' => $ck, 'ic' => $ic, 'at' => time()];
+    return $ic;
+}
+
+/** The SD symbol a complaint type wears: forwarding.php's sd_icon_for, here for the pages that do not load forwarding.php. */
+function sd_icon_for_category(string $catKey, array $cat = []): string
+{
+    if (function_exists('sd_icon_for')) return sd_icon_for($catKey, $cat);
+    $iconOf = ['street_obstruction' => 'obstruction', 'public_safety_infrastructure' => 'infra', 'environmental_waste_hazard' => 'waste', 'animal_welfare' => 'animal',
+               'traffic_violation' => 'traffic', 'barangay_service' => 'service', 'peace_order_nuisance' => 'noise', 'other' => 'other'];
+    return $iconOf[(string) ($cat['icon'] ?? $catKey)] ?? ($iconOf[$catKey] ?? 'other');
+}
+
+/** A committee's logo (0164): the picture the super admin uploaded, or until there is one, the committee's first symbol in its colour. */
+function committee_logo_html(string $ck, string $class): string
+{
+    $c = committees_all()[$ck] ?? null;
+    $alt = e(sprintf(t('%s logo', 'Logo ng %s'), (string) ($c['short_en'] ?? $ck)));
+    $url = (string) ($c['logo_url'] ?? '');
+    if ($url !== '') return '<img class="' . e($class) . '" src="' . e(cld_thumb($url, 192)) . '" alt="' . $alt . '">';
+    $hex = committee_colour($ck);
+    return '<span class="' . e($class) . ' p-brand-sym" style="--cc:' . e($hex) . ';--ci:' . e(ink_on($hex)) . '" role="img" aria-label="' . $alt . '">'
+         . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . sd_icon_paths(committee_first_symbol($ck)) . '</svg></span>';
+}
+
+/**
+ * The top of the sidebar (Ace, 4 Nov 2026): a super admin sees the barangay's seal alone, a Kagawad or staff member their
+ * committee's logo beside it. The SmartSumbong wordmark stays on the sign-in pages.
+ */
+function side_brand(): string
+{
+    $ck = is_scoped() ? (string) (current_admin()['committee'] ?? '') : '';
+    $pair = $ck !== '' && isset(committees_all()[$ck]);
+    return '<a class="p-brand p-brand-seal' . ($pair ? ' p-brand-pair' : '') . '" href="' . e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) . '">'
+         . ($pair ? committee_logo_html($ck, 'p-brand-com') . '<i class="p-brand-sep" aria-hidden="true"></i>' : '')
+         . brgy_seal_img('p-brand-img') . '</a>';
+}
+
 /** Black or white text on a colour, whichever reads. */
 /** Lettering for large bold text on a vivid colour (3:1 is enough at that size); the average of several colours for a blend. */
 function ink_on_bold(array $hexes): string
@@ -370,7 +435,7 @@ window.ssAccessToken = function (initial) {
     <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
             aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
-    <div class="p-side-top"><a class="p-brand" href="<?= e(page_allowed('dashboard.php') ? 'dashboard.php' : landing_page()) ?>"><img src="assets/img/logo-wordmark.webp" width="355" height="369" alt="Smart Sumbong"></a></div>
+    <div class="p-side-top"><?= side_brand() ?></div>
     <?php $sideC = side_colour(); if ($sideC['label'] !== null): ?>
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
       <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><?= e($sideC['label']) ?></span></div>

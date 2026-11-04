@@ -52,6 +52,11 @@ super admin stays one.
 - A committee admin's **sidebar wears the committee's colour**, with a banner
   naming the committee, so a screenshot says which committee it came from.
   Super admins keep the super admin colour.
+- **The top of the sidebar (0164).** A super admin sees the barangay seal
+  alone. A Kagawad or staff member sees their committee's logo beside the
+  seal; the super admin uploads it on the committee's card (Administrative
+  Services > Committees), and until then the committee's first symbol in its
+  colour stands in. The SmartSumbong wordmark is on the sign-in pages only.
 - **The ladder colours** are vivid and locked: Staff cyan (#00A3C4 light,
   #00E5FF dark), Tanod green (#00A651 / #1DF08A), Kagawad violet
   (#8A2BE2 / #B66CFF), Chairman red (#FF1744 / #FF3D6E) with a gold ring
@@ -69,7 +74,7 @@ super admin stays one.
 | Notifications | All, system alerts included | Their committee's; forwarded and flagged cases pinned on top | Their committee's |
 | Inbox (new) | Yes | Yes | Yes |
 | Residents | Yes | No | No |
-| Personnel | Everyone, by committee | Their staff and their tanods | Their committee's |
+| Personnel | Everyone, by committee | Their staff and their tanods | Their committee's tanods and staff, view only (0164) |
 | Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals, Planning | Retirement requests: view and review; can endorse a staff member's | No |
 | Control Room (new) | Complaint types, rules, hotlines, wording, the barangay's name and seal, parts of the system | No | No |
 | Settings | System status, plan and usage, SMART, appearance | No | No |
@@ -171,7 +176,8 @@ asks the Kagawad; `answer_reroute_question` and the every-minute
 - Tanods keep their four statuses (On Duty, Lunch, Break, Offline).
 - Kagawads and staff get an **automatic punch card**: when they signed in
   and out and the cases they touched, built from the sign-ins and the case
-  history. Super admins see every card; a Kagawad sees their staff's.
+  history. Super admins see every card; a Kagawad sees their staff's; a
+  staff member sees their committee's staff and Kagawad (0164, view only).
 - When a tanod is on a case, other committees see only that committee's pill,
   never the case.
 - **Automatic reroute** (a tanod did not accept in time) picks from the
@@ -226,5 +232,6 @@ a trigger on `inbox_messages`. The Kagawad's endorsement is
 | 5 | Inbox and the reroute question | Built (0155) |
 | 6 | Dashboard, Report Summary and Notifications changes | Built (0156) |
 | 7 | Edit Profile banner, retirement endorsement | Built (0157) |
+| P2.1 | Each rung's sidebar: seal, committee logo; staff in Personnel, view only | Built (0164) |
 
 Spatial Distribution is discussed later.

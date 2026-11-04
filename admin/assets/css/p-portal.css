@@ -648,7 +648,7 @@ td.tc-cell { min-width: 260px; max-width: 300px; }
 /* 0150: a committee admin's sidebar names the committee, in its colour */
 .p-side-com { display: flex; align-items: center; gap: 8px; margin: 0 6px 14px; padding: 8px 12px; border-radius: 10px; background: var(--cc); color: var(--ci); font-weight: 800; font-size: 12.5px; line-height: 1.25; box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 6px 16px -8px var(--cc); }
 .p-side-com i { width: 8px; height: 8px; border-radius: 50%; background: var(--ci); flex: none; }
-.p-side-com span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-side-com span { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }   /* the committee's whole title, on two lines when it needs them */
 html[data-side="min"] .p-side-com, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com { justify-content: center; padding: 8px; }
 html[data-side="min"] .p-side-com span, html[data-side="hover"] .p-sidebar:not(:hover) .p-side-com span { display: none; }
 /* 0150: colours on the Committees tab */
