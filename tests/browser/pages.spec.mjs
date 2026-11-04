@@ -1259,3 +1259,25 @@ test('Home for a Kagawad and staff: they land there, it reads their SMART module
   await expect(page.locator('.p-sidebar a[href="home.php"]')).toHaveCount(0);
   expect(r.errors.concat(m.errors), 'console errors').toEqual([]);
 });
+
+test('The brain button answers from the person\'s SMART module on Case Reports, Notifications, Report Summary and Home (part 4)', async ({ page, context }) => {
+  await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+  const errs = [];
+  for (const p of ['cases.php', 'notifications.php', 'summary.php', 'home.php']) {
+    const r = await open(page, p);
+    errs.push(...r.errors);
+    await page.locator('#ss-win-open').click();
+    await expect(page.locator('#ss-panel')).toHaveClass(/is-open/);
+    await expect(page.locator('#ss-panel .mb-sec').first()).toContainText('Peace and Order');
+    await expect(page.locator('#ss-panel .mb-sec .ss-tile').first()).toContainText('Escalations to decide');
+    if (p === 'cases.php') {
+      await expect(page.locator('.ss-brain-n')).toHaveText('5');   // the decisions waiting on the Kagawad
+      expect(await axe(page), 'engine window on Case Reports, Kagawad').toEqual([]);
+    }
+    if (p === 'home.php') await expect(page.locator('#ss-panel .mb-home')).toHaveCount(0);   // already home
+    if (p === 'summary.php') await expect(page.locator('#ss-panel .rs-w-card').first()).toBeAttached();   // the report's own notes follow
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#ss-panel')).not.toHaveClass(/is-open/);
+  }
+  expect(errs, 'console errors').toEqual([]);
+});

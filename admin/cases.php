@@ -16,6 +16,7 @@ require_once __DIR__ . '/includes/issues.php';
 require_once __DIR__ . '/includes/board.php';
 require_once __DIR__ . '/includes/widget_panel.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/module_brain.php';   // the brain button answers from the person's SMART module (4 Nov 2026)
 
 $admin = require_admin();
 $db    = db();
@@ -452,7 +453,8 @@ layout_head($workspace ? t('Workspace', 'Tablero ng Gawain') : ($notices ? t('No
 ?>
 
 <div class="p-topbar"><h1><?= $workspace ? e(t('Workspace', 'Tablero ng Gawain')) : ($notices ? e(t('Notifications', 'Mga Abiso')) : e(t('Case Reports', 'Mga Sumbong'))) ?></h1>
-  <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
+  <span class="p-live" id="live-badge" title="<?= e(t('Updates as they happen — no reload needed', 'Nag-a-update habang nangyayari — hindi na kailangang i-reload')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>
+  <span class="p-spacer" style="flex:1"></span><?= module_brain($db) ?></div>
 
 <?php if ($error): ?>
   <div class="p-flash p-flash--error" role="alert"><?= e($error) ?></div>

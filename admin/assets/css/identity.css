@@ -552,3 +552,20 @@
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead { box-shadow: none; }
 :root:root .p-body:is(.page-residents, .page-personnel) .cm-chips { margin-top: 0; border-top: 0; }
 .cn-was { margin-top: 3px; padding: 2px 8px; display: inline-block; border-radius: 8px; background: color-mix(in srgb, var(--p-orange, #FF9800) 12%, transparent); color: var(--p-orange-d, #8A4B00); font: 700 12px Inter, sans-serif; }
+/* The brain button's module (4 Nov 2026): the person's SMART module in the engine's window */
+.ss-win .mb-sec { display: grid; gap: 10px; }
+.ss-win .mb-sec .p-eyebrow { margin: 0; }
+.ss-win .mb-h { margin: 4px 0 0; font: 700 12.5px Inter, sans-serif; color: var(--p-muted); }
+.ss-win .mb-sec .ss-tiles { margin: 0; }
+.ss-win .mb-sec .ss-tile > span:first-child { min-height: 0; }
+.ss-win .mb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ss-win .mb-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--p-line); border-radius: 10px; }
+.ss-win .mb-list li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p-muted); font-size: 13px; }
+.ss-win .mb-list em { font-style: normal; font: 700 12px Inter, sans-serif; color: var(--p-muted); }
+.ss-win .mb-r { padding: 2px 9px; border-radius: 99px; }
+.ss-win .mb-r-high { background: color-mix(in srgb, #E53935 14%, transparent); color: #C62828; }
+.ss-win .mb-r-medium { background: color-mix(in srgb, #F59E0B 18%, transparent); color: #A15C00; }
+.ss-win .mb-line { margin: 0; font-size: 13.5px; }
+.ss-win .mb-home { justify-self: start; }
+:root[data-theme="dark"] .ss-win .mb-r-high { color: #FF7B7B; } :root[data-theme="dark"] .ss-win .mb-r-medium { color: #FFC266; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ss-win .mb-r-high { color: #FF7B7B; } :root:not([data-theme="light"]) .ss-win .mb-r-medium { color: #FFC266; } }

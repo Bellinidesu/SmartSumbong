@@ -237,6 +237,7 @@ a trigger on `inbox_messages`. The Kagawad's endorsement is
 | P2.1 | Each rung's sidebar: seal, committee logo; staff in Personnel, view only | Built (0164) |
 | P2.2 | Each rung's SMART engine module (`smart_module()`); a Kagawad's and staff's own Settings | Built (0165) |
 | P2.3 | Home for Kagawad and staff, read from their module; where they land after signing in | Built |
+| P2.4 | The brain button answers from the person's module: Case Reports, Notifications, Report Summary (above the report's own notes), Home | Built |
 
 Spatial Distribution is discussed later.
 

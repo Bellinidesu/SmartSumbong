@@ -13,13 +13,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';   // the committee's banner
+require_once __DIR__ . '/includes/module_brain.php';   // the brain button, from the same module
 
 $admin = require_admin();
 $db    = db();
 $tz    = new DateTimeZone('Asia/Manila');
 
-$m = null;
-try { $m = $db->rpc('smart_module'); } catch (SupabaseError) { $m = null; }
+$m = smart_module_read($db);   // one read, shared with the brain button
 $ok   = is_array($m);
 $cn   = $ok ? (array) ($m['counts'] ?? []) : [];
 $dc   = $ok && is_array($m['decisions'] ?? null) ? $m['decisions'] : null;
@@ -57,6 +57,7 @@ $hoursLeft = function ($h): string {
     <p><?= e($now->format('l, F j')) ?> &middot; <?= e($isCom ? t('here is what needs you today.', 'narito ang kailangan mo ngayon.') : t('here is what needs handling today.', 'narito ang dapat asikasuhin ngayon.')) ?></p></header>
   <span class="p-spacer"></span>
   <span class="p-asof"><?= e(t('Data as of', 'Datos hanggang')) ?> <span class="p-num"><?= e($now->format('g:i A, j M Y')) ?></span></span>
+  <?= module_brain($db, false) ?>
 </div>
 
 <?php if (!$ok): ?>
