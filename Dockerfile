@@ -24,29 +24,16 @@ FROM composer:2.10.3 AS composer
 # cannot, and Dependabot raises it with each new patch.
 FROM php:8.5.12-apache
 
-# The -dev packages are needed only to compile the three extensions. They pull in the C library's and the kernel's headers
-# (linux-libc-dev), which Trivy flags whenever Debian patches the kernel (4 Nov 2026: 51 findings, all in that one package),
-# and the portal never uses them. So they come out again in the same step, the way the official PHP image builds its own
-# extensions: everything installed here is marked removable, the libraries the compiled extensions link to are kept, and
-# the rest is purged. apt-get upgrade picks up Debian's security fixes newer than the base image. The step fails the build
-# if an extension is missing afterwards or the headers are still there.
-RUN savedAptMark="$(apt-mark showmanual)" \
-    && apt-get update \
+# apt-get upgrade (4 Nov 2026): Debian's security fixes that are newer than the PHP base image. The scan failed on 51
+# findings, all in linux-libc-dev (the kernel headers, part of the base image itself); Debian's fixed version arrives this
+# way, and the next one will too, at the next build.
+RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libzip-dev \
     && docker-php-ext-install curl mbstring zip \
-    && apt-mark auto '.*' > /dev/null \
-    && apt-mark manual $savedAptMark > /dev/null \
-    && find /usr/local -type f -executable -exec ldd '{}' ';' 2>/dev/null \
-       | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
-       | sort -u | xargs -r dpkg-query --search 2>/dev/null | cut -d: -f1 | sort -u | xargs -r apt-mark manual > /dev/null \
-    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-    && rm -rf /var/lib/apt/lists/* \
-    && php -m | grep -qix curl && php -m | grep -qix mbstring && php -m | grep -qix zip \
-    && ! dpkg -s linux-libc-dev > /dev/null 2>&1
-
-RUN a2enmod rewrite expires headers deflate \
-    && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+    && a2enmod rewrite expires headers deflate \
+    && sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf \
+    && rm -rf /var/lib/apt/lists/*
 
 # The image ships no php.ini, and PHP's built-in default prints errors
 # into the page — a fatal on request-access.php showed visitors the
