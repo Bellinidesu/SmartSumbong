@@ -42,11 +42,16 @@ create unique index if not exists report_concerns_one_each on public.report_conc
 --    - the main concern's option: the report's subject IS the option's English name as filed; its row is found by today's
 --      name, by a name the log shows it had, or by its place in the original list.
 --    Only a Tagalog name changed between 29 Oct and today, for a concern raised in between, falls back to today's.
-do $backfill$
+create or replace function public._concern_backfill()
+returns integer
+language plpgsql security definer set search_path = public
+as $backfill$
 declare
+  n integer := 0;
   x record; c_en text; c_fil text; h_en text; s_en text; s_fil text; v_en text; v_fil text; v_opt bigint; o_en text; o_fil text;
 begin
-  create temporary table _seed_cat (key text primary key, en text, fil text) on commit drop;
+  create temporary table if not exists _seed_cat (key text primary key, en text, fil text) on commit drop;
+  truncate _seed_cat;
   insert into _seed_cat values
     ('street_obstruction', 'Street Obstruction', 'Sagabal sa Kalsada'),
     ('public_safety_infrastructure', 'Public Safety and Infrastructure', 'Kaligtasan at Imprastraktura'),
@@ -56,7 +61,8 @@ begin
     ('barangay_service', 'Barangay Service', 'Serbisyo ng Barangay'),
     ('peace_order_nuisance', 'Peace, Order, & Nuisance', 'Kapayapaan, Kaayusan at Istorbo'),
     ('other', 'Others', 'Iba pa');
-  create temporary table _seed_opt (category text, en text, n bigint) on commit drop;
+  create temporary table if not exists _seed_opt (category text, en text, n bigint) on commit drop;
+  truncate _seed_opt;
   insert into _seed_opt select c, o, n from (values
     ('street_obstruction', array['Obstructed Sidewalks', 'Illegal Parking', 'Vendor Blocking Sidewalks']),
     ('public_safety_infrastructure', array['Dangling Electric Wires', 'Poor Street Lighting', 'Unsecured Construction Site', 'Potholes', 'Open Manholes / Damaged Drainage Covers']),
@@ -96,8 +102,12 @@ begin
     update public.report_concerns
        set option_id = v_opt, filed_category_en = v_en, filed_category_fil = v_fil, filed_option_en = o_en, filed_option_fil = o_fil
      where id = x.id;
+    n := n + 1;
   end loop;
+  return n;
 end $backfill$;
+revoke all on function public._concern_backfill() from public, anon, authenticated;
+select public._concern_backfill();
 
 -- 3. from now on: the names are taken when a concern is raised, and never changed after
 create or replace function public._concern_snapshot()

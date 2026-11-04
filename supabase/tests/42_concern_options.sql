@@ -76,5 +76,37 @@ begin
     v_log := v_log || E'\n' || 'ok  a renamed category or a switched-off option leaves each case as filed, notes it on the timeline, and takes nobody''s case';
   exception when others then v_log := v_log || E'\n' || 'FAIL changes: ' || sqlerrm; end;
 
+  -- 4. concerns from before 0163 are named as they were filed: the original names before 29 Oct, the catalogue's log after
+  declare r_old public.reports; r_new public.reports; v_opt bigint; c record;
+  begin
+    perform set_config('request.jwt.claim.sub', v_sup::text, true);
+    select id into v_opt from public.complaint_options where category = 'traffic_violation' and label_en = 'Reckless Driving';
+    update public.complaint_options set label_en = 'Careless Driving' where id = v_opt;
+    insert into public.reports (resident_id, category, subject, description, latitude, longitude)
+    values (v_res, 'traffic_violation', 'Reckless Driving', 'Mabilis magpatakbo sa kanto ng paaralan.', lat, lng) returning * into r_old;
+    insert into public.reports (resident_id, category, subject, description, latitude, longitude)
+    values (v_res, 'animal_welfare', 'Animal Welfare', 'Maraming aso sa kalye gabi-gabi.', lat, lng) returning * into r_new;
+    alter table public.report_concerns disable trigger concern_snapshot;   -- as the rows were before 0163: no option, no names
+    update public.report_concerns set option_id = null, filed_category_en = null, filed_category_fil = null, filed_option_en = null, filed_option_fil = null,
+                                      created_at = '2026-10-01 09:00+08' where report_id = r_old.id;
+    update public.report_concerns set filed_category_en = null, filed_category_fil = null, created_at = now() - interval '30 minutes' where report_id = r_new.id;
+    insert into public.smart_events (kind, actor, summary, detail, at)
+    values ('catalogue', v_sup, 'Category saved: Animal Care', jsonb_build_object('category', 'animal_welfare'), now() - interval '1 hour');
+    update public.complaint_categories set label_en = 'Road Rules' where key = 'traffic_violation';
+    perform public._concern_backfill();
+    alter table public.report_concerns enable trigger concern_snapshot;
+    select * into c from public.report_concerns where report_id = r_old.id;
+    if c.filed_category_en <> 'Traffic Violation' or c.filed_category_fil <> 'Paglabag sa Trapiko' then
+      raise exception 'a concern from before 29 Oct is not named by the original category: % / %', c.filed_category_en, c.filed_category_fil;
+    end if;
+    if c.filed_option_en <> 'Reckless Driving' or c.option_id is distinct from v_opt then
+      raise exception 'its option was not found by the original list: % (%)', c.filed_option_en, c.option_id;
+    end if;
+    select * into c from public.report_concerns where report_id = r_new.id;
+    if c.filed_category_en <> 'Animal Care' then raise exception 'the catalogue''s log was not used: %', c.filed_category_en; end if;
+    if c.filed_option_en is not null then raise exception 'a subject that is only the category''s name became an option: %', c.filed_option_en; end if;
+    v_log := v_log || E'\n' || 'ok  older concerns are named as filed: the original names before 29 Oct, the catalogue''s log after, the subject for the option';
+  exception when others then v_log := v_log || E'\n' || 'FAIL backfill: ' || sqlerrm; end;
+
   raise exception 'SWEEP-ROLLBACK%', v_log;
 end $sweep$;
