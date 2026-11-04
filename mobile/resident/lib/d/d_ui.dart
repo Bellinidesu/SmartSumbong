@@ -295,7 +295,8 @@ class DButton extends StatelessWidget {
       DButtonKind.orange => (DColors.orange, const Color(0xFF141B34), null),
       DButtonKind.white => (Colors.white, d.tanod ? const Color(0xFF14181D) : DColors.brandNavy, null),
       DButtonKind.accent => (d.btn, Colors.white, null),
-      DButtonKind.ghost => (Colors.transparent, d.ink, d.line),
+      // the card's fill (5 Nov 2026): a transparent Back with a pale line all but vanished on the light contour background
+      DButtonKind.ghost => (d.card, d.ink, d.line),
       DButtonKind.green => (DColors.greenVivid, Colors.white, null),
       DButtonKind.greenLine => (Colors.transparent, d.dark ? const Color(0xFF5FD68A) : DColors.green, d.dark ? const Color(0xFF3DBE6E) : DColors.green),
       DButtonKind.danger => (Colors.transparent, const Color(0xFFC62828), const Color(0xFFE7B4B4)),

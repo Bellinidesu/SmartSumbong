@@ -1026,7 +1026,7 @@ endif;
           <div class="cmx-foot acc-act">
             <?php $freeHex = '#78909C'; foreach (COMMITTEE_PALETTE as $ph) { if (colour_clash($ph) === null) { $freeHex = $ph; break; } } ?>
             <label class="acc-col cmx-col" title="<?= e(t('The colour of this committee\'s admins\' sidebar', 'Ang kulay ng sidebar ng mga admin ng komiteng ito')) ?>"><span><?= e(t('Sidebar colour', 'Kulay ng sidebar')) ?></span><input type="color" name="colour" value="<?= e(strtolower($freeHex)) ?>" list="cm-palette"></label>
-            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button>
           </div>
         </div>
       </form>
@@ -1077,7 +1077,7 @@ endif;
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="super_colour">
       <label class="acc-col"><span class="p-sr"><?= e(t('Super admin colour', 'Kulay ng super admin')) ?></span><input type="color" name="colour" value="<?= e(strtolower($supHex)) ?>"></label>
       <code><?= e($supHex) ?></code><?php if ($supHex === SUPER_BLUE): ?><span class="p-badge p-b-progress"><?= e(t('Branding blue', 'Asul ng branding')) ?></span><?php endif; ?>
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save colour', 'I-save ang kulay')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save colour', 'I-save ang kulay')) ?></button>
       <?php if ($supHex !== SUPER_BLUE): ?><button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="colour" value="<?= e(SUPER_BLUE) ?>"><?= e(t('Back to branding blue', 'Ibalik sa branding blue')) ?></button><?php endif; ?>
     </form>
   </div>
@@ -1185,7 +1185,7 @@ endif;
           <label class="ty-f ty-col"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" name="colour" value="<?= e($cc['colour']) ?>"></label>
           <label class="ty-f"><span><?= e(t('Symbol on the map', 'Simbolo sa mapa')) ?></span><select class="p-input-plain" name="icon"><?php foreach ($iconChoices as $iv => $il): ?><option value="<?= e($iv) ?>" <?= $cc['icon'] === $iv ? 'selected' : '' ?>><?= e($il) ?></option><?php endforeach; ?></select></label>
           <label class="sd-c ty-on"><input type="checkbox" name="active" value="1" <?= $cc['active'] ? 'checked' : '' ?>> <?= e(t('Residents can pick it', 'Mapipili ng mga residente')) ?></label>
-          <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save category', 'I-save ang kategorya')) ?></button>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save category', 'I-save ang kategorya')) ?></button>
         </form>
         <ul class="ty-opts">
           <?php foreach ($opts as $o): ?>
@@ -1202,7 +1202,7 @@ endif;
             <label class="p-sr" for="oe-new-<?= e($ck) ?>"><?= e(t('New option in English', 'Bagong opsyon sa Ingles')) ?></label><input class="p-input-plain" id="oe-new-<?= e($ck) ?>" name="label_en" required minlength="2" maxlength="60" placeholder="<?= e(t('New option, for example: Overgrown trees', 'Bagong opsyon, halimbawa: Lumagong puno')) ?>">
             <label class="p-sr" for="of-new-<?= e($ck) ?>"><?= e(t('New option in Tagalog', 'Bagong opsyon sa Tagalog')) ?></label><input class="p-input-plain" id="of-new-<?= e($ck) ?>" name="label_fil" maxlength="60" placeholder="<?= e(t('In Tagalog', 'Sa Tagalog')) ?>">
             <span></span>
-            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Add option', 'Idagdag ang opsyon')) ?></button>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Add option', 'Idagdag ang opsyon')) ?></button>
           </form></li>
         </ul>
       </details>
@@ -1214,7 +1214,7 @@ endif;
       <label class="ty-f ty-col"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" name="colour" value="#2E7D32"></label>
       <label class="ty-f"><span><?= e(t('Symbol on the map', 'Simbolo sa mapa')) ?></span><select class="p-input-plain" name="icon"><?php foreach ($iconChoices as $iv => $il): ?><option value="<?= e($iv) ?>"><?= e($il) ?></option><?php endforeach; ?></select></label>
       <span></span>
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make category', 'Gumawa ng kategorya')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make category', 'Gumawa ng kategorya')) ?></button>
     </form>
   </div>
 </section>
@@ -1313,7 +1313,7 @@ endif;
           <label class="ty-f"><span><?= e(t('Group name', 'Pangalan ng grupo')) ?></span><input class="p-input-plain" name="name" value="<?= e((string) $g['name']) ?>" required maxlength="120"></label>
           <label class="ty-f"><span><?= e(t('On the first screen', 'Sa unang screen')) ?></span><select class="p-input-plain" name="display"><option value="inline" <?= $g['display'] === 'inline' ? 'selected' : '' ?>><?= e(t('Show its numbers', 'Ipakita ang mga numero')) ?></option><option value="link" <?= $g['display'] === 'link' ? 'selected' : '' ?>><?= e(t('A row that opens it', 'Hilerang nagbubukas nito')) ?></option></select></label>
           <label class="sd-c ty-on"><input type="checkbox" name="active" value="1" <?= !empty($g['is_active']) ? 'checked' : '' ?>> <?= e(t('Shown', 'Ipinapakita')) ?></label>
-          <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save group', 'I-save ang grupo')) ?></button>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save group', 'I-save ang grupo')) ?></button>
         </form>
         <ul class="ty-opts">
           <?php foreach ($nums as $n): $nid = (string) $n['id']; ?>
@@ -1332,7 +1332,7 @@ endif;
             <label class="p-sr" for="hl-n-new-<?= e($gid) ?>"><?= e(t('New number', 'Bagong numero')) ?></label><input class="p-input-plain" id="hl-n-new-<?= e($gid) ?>" name="number" required minlength="3" maxlength="32" inputmode="tel" placeholder="<?= e(t('Number', 'Numero')) ?>">
             <label class="p-sr" for="hl-c-new-<?= e($gid) ?>"><?= e(t('New number\'s network', 'Network ng bagong numero')) ?></label><input class="p-input-plain" id="hl-c-new-<?= e($gid) ?>" name="carrier" maxlength="20" placeholder="<?= e(t('Network', 'Network ng SIM')) ?>">
             <span></span>
-            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Add number', 'Idagdag ang numero')) ?></button>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Add number', 'Idagdag ang numero')) ?></button>
           </form></li>
         </ul>
         <?php foreach ($hlKids[$gid] ?? [] as $k) $hlGroup($k, $depth + 1); ?>
@@ -1344,7 +1344,7 @@ endif;
       <label class="ty-f"><span><?= e(t('New group', 'Bagong grupo')) ?></span><input class="p-input-plain" name="name" required maxlength="120" placeholder="<?= e(t('For example: Health Center', 'Halimbawa: Health Center')) ?>"></label>
       <label class="ty-f"><span><?= e(t('On the first screen', 'Sa unang screen')) ?></span><select class="p-input-plain" name="display"><option value="inline"><?= e(t('Show its numbers', 'Ipakita ang mga numero')) ?></option><option value="link"><?= e(t('A row that opens it', 'Hilerang nagbubukas nito')) ?></option></select></label>
       <label class="ty-f"><span><?= e(t('Inside', 'Sa loob ng')) ?></span><select class="p-input-plain" name="parent"><option value=""><?= e(t('The first screen', 'Ang unang screen')) ?></option><?php foreach ($hlTop as $g): ?><option value="<?= e((string) $g['id']) ?>"><?= e((string) $g['name']) ?></option><?php endforeach; ?></select></label>
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make group', 'Gumawa ng grupo')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make group', 'Gumawa ng grupo')) ?></button>
     </form>
   </div>
 </section>
@@ -1371,7 +1371,7 @@ $wRow = static function (string $src, array $c, ?array $ov, string $wq): void { 
     <label class="ty-f"><span><?= e(t('In English', 'Sa Ingles')) ?></span><textarea class="p-input-plain" id="wd-en-<?= $id ?>" name="en" rows="1" maxlength="600"><?= e((string) ($ov['en'] ?? $c['en'])) ?></textarea></label>
     <label class="ty-f"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span><textarea class="p-input-plain" id="wd-fil-<?= $id ?>" name="fil" rows="1" maxlength="600"><?= e((string) ($ov['fil'] ?? $c['fil'])) ?></textarea></label>
     <div class="wd-btns">
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
       <?php if ($ov): ?><button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="reset" value="1"><?= e(t('Use its own wording', 'Gamitin ang sariling salita')) ?></button><?php endif; ?>
     </div>
   </form>
@@ -1639,7 +1639,7 @@ endif;
     <form method="post" class="ss-vroll cmd-make"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cmd_link">
       <label class="p-sr" for="cmd-label"><?= e(t('Name of the display', 'Pangalan ng display')) ?></label>
       <input class="p-input-plain" id="cmd-label" name="label" required minlength="2" maxlength="60" placeholder="<?= e(t('Name it, for example: Hall TV', 'Pangalanan, halimbawa: TV sa hall')) ?>">
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make a display link', 'Gumawa ng display link')) ?></button></form>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make a display link', 'Gumawa ng display link')) ?></button></form>
   </section>
   <?php endif; ?>
 

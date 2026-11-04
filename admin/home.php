@@ -67,7 +67,7 @@ $hoursLeft = function ($h): string {
 <!-- the committee's banner, joined to what needs this person -->
 <section class="hm-lead" aria-label="<?= e($isCom ? t('Needs your decision', 'Kailangan ng desisyon mo') : t('Your work', 'Ang trabaho mo')) ?>">
   <?php if ($cRow): ?>
-    <div class="cm-chips cmx-banner hm-banner"><a class="cm-chip cm-sd" href="cases.php" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cRow['short_en']) ?><span class="cm-n"><?= e((string) $cRow['short_en']) ?><small class="pc-gn">· <?= e($isCom ? t('needs your decision', 'kailangan ng desisyon mo') : t('your work', 'ang trabaho mo')) ?></small></span><b><?= (int) ($cn['open'] ?? 0) ?></b></a></div>
+    <div class="cm-chips cmx-banner hm-banner"><a class="cm-chip cm-sd" href="cases.php" title="<?= e((string) $cRow['name_en']) ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cRow['short_en']) ?><span class="cm-n"><?= e((string) $cRow['short_en']) ?><small class="pc-gn">· <?= e($isCom ? t('needs your decision', 'kailangan ng desisyon mo') : t('your work', 'ang trabaho mo')) ?></small></span><b><?= (int) ($cn['open'] ?? 0) ?></b></a></div>
   <?php endif; ?>
   <div class="hm-row hm-row-4">
     <?php if ($isCom && $dc !== null): ?>

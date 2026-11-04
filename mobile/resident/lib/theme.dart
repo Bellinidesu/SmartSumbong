@@ -423,12 +423,14 @@ ThemeData buildResidentTheme(Brightness brightness) {
       elevation: 3,
     ),
 
+    // The sign-in screen's box everywhere (5 Nov 2026): rounded, a firm outline, orange with a navy tick when ticked.
     checkboxTheme: CheckboxThemeData(
-      side: BorderSide(color: c.navy),
+      side: BorderSide(color: c.navy, width: 2),
       fillColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? c.navy : c.field,
+        (s) => s.contains(WidgetState.selected) ? const Color(0xFFFF9800) : c.field,
       ),
-      shape: const RoundedRectangleBorder(),
+      checkColor: const WidgetStatePropertyAll(Color(0xFF141B34)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       visualDensity: VisualDensity.compact,
     ),
   );
@@ -536,12 +538,14 @@ ThemeData buildTanodTheme(Brightness brightness) {
       ),
     ),
 
+    // The sign-in screen's box everywhere (5 Nov 2026): rounded, a firm outline, orange with a navy tick when ticked.
     checkboxTheme: CheckboxThemeData(
-      side: BorderSide(color: c.navy),
+      side: BorderSide(color: c.navy, width: 2),
       fillColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? c.navy : c.field,
+        (s) => s.contains(WidgetState.selected) ? const Color(0xFFFF9800) : c.field,
       ),
-      shape: const RoundedRectangleBorder(),
+      checkColor: const WidgetStatePropertyAll(Color(0xFF141B34)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       visualDensity: VisualDensity.compact,
     ),
   );
