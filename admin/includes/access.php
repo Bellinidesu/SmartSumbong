@@ -16,6 +16,7 @@ declare(strict_types=1);
 /** Pages each tier may open. A page not listed (the small JSON doors) is open to every administrator. */
 const PAGE_TIERS = [
     'dashboard.php'           => ['super'],
+    'home.php'                => ['committee', 'moderator'],   // their Home, from their SMART module (0165); the Dashboard stays the super admins'
     'settings.php'            => ['super', 'committee', 'moderator'],   // a Kagawad's and staff's own: look, their committee, their SMART module (4 Nov 2026)
     'retirement-requests.php' => ['super'],
     'administrative-services.php' => ['super'],
@@ -52,10 +53,10 @@ function page_allowed(string $page): bool
     return !isset(PAGE_TIERS[$page]) || in_array(my_tier(), PAGE_TIERS[$page], true);
 }
 
-/** Where a person lands when a page is not for them: the notifications page is for everyone. */
+/** Where a person lands after signing in, or when a page is not for them: a Kagawad or staff member their Home, everyone else Notifications. */
 function landing_page(): string
 {
-    return 'notifications.php';
+    return is_scoped() ? 'home.php' : 'notifications.php';
 }
 
 /** The person's access, fresh from the database every two minutes (called from require_admin). */

@@ -11,6 +11,7 @@ function nav_items(): array
 {
     $items = [
         ['dashboard.php',  t('Dashboard', 'Dashboard'),                       'i-dash'],
+        ['home.php',       t('Home', 'Tahanan'),                              'i-home'],   // a Kagawad's and staff member's own (4 Nov 2026)
         ['summary.php',    t('Report Summary', 'Buod ng mga Ulat'),           'i-doc'],
         ['spatial.php',    t('Spatial Distribution', 'Mapa ng mga Sumbong'),  'i-map'],
         ['cases.php',      t('Case Reports', 'Mga Sumbong'),                  'i-chat'],
@@ -411,7 +412,7 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/smart.css?v=<?= e(asset_version('smart.css')) ?>" rel="stylesheet">
 <link href="assets/css/shell.css?v=<?= e(asset_version('shell.css')) ?>" rel="stylesheet">
 <link href="assets/css/aesthetic.css?v=<?= e(asset_version('aesthetic.css')) ?>" rel="stylesheet">
-<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php'], true)) : // Case Reports, the Dashboard and Report Summary (overview.css) ?>
+<?php if (in_array($active, ['cases.php', 'dashboard.php', 'summary.php', 'home.php'], true)) : // Case Reports, the Dashboard, Report Summary and Home (overview.css) ?>
 <link href="assets/css/overview.css?v=<?= e(asset_version('overview.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?php if (in_array($active, ['administrative-services.php', 'control-room.php', 'settings.php'], true)) : // the super admin consoles (console.css) ?>

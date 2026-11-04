@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->rpc('clear_password_change_flag');
             $_SESSION[SESSION_KEY]['must_change'] = false;
             $_SESSION['flash'] = ['text' => t('Password changed.', 'Napalitan na ang password.'), 'level' => 'ok'];
-            header('Location: notifications.php');
+            header('Location: ' . landing_page());
             exit;
         } catch (SupabaseError $ex) {
             $error = safe_error($ex);
