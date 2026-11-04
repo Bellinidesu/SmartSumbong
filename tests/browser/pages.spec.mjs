@@ -756,12 +756,16 @@ test('Case Reports and the Dashboard: equal rows, Review is the main button, wha
   expect(cut, 'the Forward button is inside the table').toBe(false);
   const d = await open(page, 'dashboard.php');
   await page.waitForTimeout(1500);   // the tiles ease in
-  const strip = await page.locator('.dh-kpi .ss-tile').evaluateAll(ts => ts.map(t => { const b = t.getBoundingClientRect(); return [Math.round(b.top), Math.round(b.height)]; }));
-  const hero = await page.locator('.dh-hero').evaluate(h => Math.round(h.getBoundingClientRect().top));
-  expect(strip.length, 'four tiles').toBe(4);
-  expect(new Set(strip.map(t => t[0])).size, 'tiles on one line').toBe(1);
-  expect(new Set(strip.map(t => t[1])).size, 'tiles one height').toBe(1);
-  expect(strip[0][0], 'the strip is above the charts').toBeLessThan(hero);
+  // Rose, 2 Nov 2026: the Dashboard's own layout again. The month's reports across the top, the three figures stacked beside
+  // the donuts; what waits on a super admin is in the engine's window.
+  const chart = await page.locator('.dh-recv').evaluate(h => Math.round(h.getBoundingClientRect().bottom));
+  const figs = await page.locator('.p-dash-mid .p-stack .p-tile-s').evaluateAll(ts => ts.map(t => { const b = t.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)]; }));
+  expect(figs.length, 'three figures').toBe(3);
+  expect(new Set(figs.map(t => t[0])).size, 'stacked in one column').toBe(1);
+  expect(figs[0][1], 'below the chart').toBeGreaterThan(chart);
+  await page.locator('#ss-win-open').click();
+  await expect(page.locator('#ss-panel .dc-needs .ss-tile')).toHaveCount(4);
+  await expect(page.locator('#ss-panel .dc-coms')).toBeVisible();
   expect(r.errors.concat(d.errors), 'console errors').toEqual([]);
 });
 
