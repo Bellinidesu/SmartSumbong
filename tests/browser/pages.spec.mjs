@@ -1265,6 +1265,7 @@ test('Rose, 2 Nov: the lock holds when the map is pressed, the layers are a row 
   await page.locator('.sdp-rng [data-clear]').click();
   await expect(page.locator('.sdp-rng [data-go]')).toBeDisabled();
   expect(r.errors.concat(s.errors), 'console errors').toEqual([]);
+});
 
 test('Home for a Kagawad and staff: they land there, it reads their SMART module, and the Dashboard stays with the super admins (part 3)', async ({ page, context }) => {
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
