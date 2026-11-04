@@ -133,7 +133,7 @@
     var lab = host.closest('label'), name = lab && lab.querySelector('.p-sr'); if (name) btn.setAttribute('aria-label', name.textContent.trim());
     host.parentNode.insertBefore(btn, host); hideNative(host);
     var dfmt = new Intl.DateTimeFormat(lang, { month: 'short', day: 'numeric' }), yfmt = new Intl.DateTimeFormat(lang, { year: 'numeric' }), mfmt = new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' });
-    var ALL = lang === 'en-US' ? 'All time' : 'Lahat ng panahon', APPLY = lang === 'en-US' ? 'Apply' : 'I-apply', MON1 = lang === 'en-US' ? 'This month' : 'Ngayong buwan', DAYS = lang === 'en-US' ? ' days' : ' araw', DAY1 = lang === 'en-US' ? ' day' : ' araw';
+    var ALL = lang === 'en-US' ? 'All time' : 'Lahat ng panahon', APPLY = lang === 'en-US' ? 'Apply' : 'I-apply', MON1 = lang === 'en-US' ? 'This month' : 'Ngayong buwan', DAYS = lang === 'en-US' ? ' days' : ' araw', DAY1 = lang === 'en-US' ? ' day' : ' araw', CLEAR = lang === 'en-US' ? 'Clear' : 'Burahin';
     var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     var parse = function (v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
     function text() {
@@ -166,7 +166,7 @@
           '<div class="sdp-wk">' + [0, 1, 2, 3, 4, 5, 6].map(function (k) { return '<span>' + esc(new Intl.DateTimeFormat(lang, { weekday: 'narrow' }).format(new Date(2026, 9, 4 + k))) + '</span>'; }).join('') + '</div>' +
           '<div class="sdp-dg">' + cells + '</div>' +
           (mx ? '<div class="sdp-key"><i></i>' + (lang === 'en-US' ? 'Fuller = more complaints that day' : 'Mas puno = mas maraming sumbong') + '</div>' : '') +
-          '<div class="sdp-foot rng"><span class="sdp-rt">' + (lo ? esc(dfmt.format(lo) + (days > 1 ? ' – ' + dfmt.format(hi) : '')) + ' · ' + days + (days > 1 ? DAYS : DAY1) : (lang === 'en-US' ? 'Pick a day, or drag across days' : 'Pumili ng araw, o i-drag')) + '</span><button type="button" class="sdp-go" data-go' + (lo ? '' : ' disabled') + '>' + APPLY + '</button></div>' +
+          '<div class="sdp-foot rng"><span class="sdp-rt">' + (lo ? esc(dfmt.format(lo) + (days > 1 ? ' – ' + dfmt.format(hi) : '')) + ' · ' + days + (days > 1 ? DAYS : DAY1) : (lang === 'en-US' ? 'Pick a day, or drag across days' : 'Pumili ng araw, o i-drag')) + '</span>' + (lo ? '<button type="button" class="sdp-clr" data-clear>' + CLEAR + '</button>' : '') + '<button type="button" class="sdp-go" data-go' + (lo ? '' : ' disabled') + '>' + APPLY + '</button></div>' +
           '<div class="sdp-pre"><button type="button" data-all>' + ALL + '</button><button type="button" data-month>' + MON1 + '</button></div>';
       }
       function apply() {
@@ -176,11 +176,17 @@
       }
       render();
       function dayAt(e) { var t = e.target.closest('.sdp-d[data-d]'); return t ? parse(t.dataset.d) : null; }
-      pop.addEventListener('pointerdown', function (e) { var d = dayAt(e); if (!d) return; e.preventDefault(); st.drag = true; st.moved = false; st.start = d; if (st.anchor && st.anchor.getTime() !== d.getTime()) { st.a = st.anchor; st.b = d; st.anchor = null; st.done = true; } else { st.a = d; st.b = d; st.done = false; } render(); });
-      pop.addEventListener('pointerover', function (e) { if (!st.drag) return; var d = dayAt(e); if (!d || st.done) return; if (d.getTime() !== st.start.getTime()) st.moved = true; st.b = d; render(); });
-      window.addEventListener('pointerup', function up() { window.removeEventListener('pointerup', up); if (!st.drag) return; st.drag = false; if (!st.done && !st.moved) st.anchor = st.start; else st.anchor = null; render(); });
+      // Rose (2 Nov 2026): the first day picked can be taken back. Pressing it again clears it; Clear empties any range.
+      pop.addEventListener('pointerdown', function (e) { var d = dayAt(e); if (!d) return; e.preventDefault(); st.drag = true; st.moved = false; st.start = d; st.unpick = false;
+        if (st.anchor && st.anchor.getTime() === d.getTime()) { st.a = null; st.b = null; st.anchor = null; st.done = true; st.unpick = true; }
+        else if (st.anchor) { st.a = st.anchor; st.b = d; st.anchor = null; st.done = true; } else { st.a = d; st.b = d; st.done = false; } render(); });
+      // a redraw puts a new day under the pointer, which is a new pointerover: redraw only when the day under it changes
+      pop.addEventListener('pointerover', function (e) { if (!st.drag) return; var d = dayAt(e); if (!d || st.done || (st.b && st.b.getTime() === d.getTime())) return; if (d.getTime() !== st.start.getTime()) st.moved = true; st.b = d; render(); });
+      // every press ends here, wherever the pointer is let go (the old one-time listener missed every press after the first)
+      window.addEventListener('pointerup', function up() { if (!pop.isConnected) { window.removeEventListener('pointerup', up); return; } if (!st.drag) return; st.drag = false; if (st.unpick) { st.unpick = false; render(); return; } if (!st.done && !st.moved) st.anchor = st.start; else st.anchor = null; render(); });
       pop.addEventListener('click', function (e) {
         var n = e.target.closest('.sdp-nav'); if (n) { view = new Date(view.getFullYear(), view.getMonth() + Number(n.dataset.d), 1); render(); return; }
+        if (e.target.closest('[data-clear]')) { st.a = null; st.b = null; st.anchor = null; render(); return; }
         if (e.target.closest('[data-go]')) { if (st.a && st.b) apply(); return; }
         if (e.target.closest('[data-all]')) { if (opts.allTime && !opts.allTime.checked) { opts.allTime.checked = true; opts.allTime.dispatchEvent(new Event('change', { bubbles: true })); } paint(); close(true); if (opts.onApply) opts.onApply(); return; }
         if (e.target.closest('[data-month]')) { st.a = new Date(now.getFullYear(), now.getMonth(), 1); st.b = new Date(now.getFullYear(), now.getMonth() + 1, 0); apply(); }

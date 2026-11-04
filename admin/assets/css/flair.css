@@ -307,3 +307,4 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 :root:not([data-theme="dark"]) .login-signup a { color: #00308F; font-weight: 700; text-decoration: underline; }
 .remember input { width: 14px; height: 14px; }
 .login-note, .login-error { font-size: 13px; }
+.sdp-foot .sdp-clr { background: none; border: 1px solid var(--p-line, #D9DEEA); color: inherit; padding: 6px 14px; border-radius: 99px; font: inherit; font-weight: 700; cursor: pointer; } .sdp-foot .sdp-clr:hover { border-color: currentColor; }   /* Rose (2 Nov): take the picked days back */

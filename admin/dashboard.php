@@ -207,7 +207,47 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
   </header>
   <div class="ss-win-body"><div class="ss-panel-in">
 <?php endif; ?>
+<!-- Rose, 2 Nov 2026: what waits on a super admin, the committees and the live feed, here in the engine's window -->
 <?php if ($coms !== null) { $nm = $coms['needs_me']; $decide = (int) $nm['escalations'] + (int) $nm['to_place'] + (int) $nm['tanods']; } ?>
+  <?php if ($coms !== null): ?>
+  <!-- 0156: what waits on a super admin -->
+  <div class="ss-tiles dc-needs">
+    <a class="p-card ss-tile<?= $decide > 0 ? ' hot' : '' ?>" href="notifications.php"><span><?= e(t('Waiting for you', 'Naghihintay sa iyo')) ?></span><b class="p-num"><?= $decide ?></b>
+      <small><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e((int) $nm['tanods'] === 1 ? t('tanod proposed', 'tanod na iminungkahi') : t('tanods proposed', 'tanod na iminungkahi')) ?></small></a>
+    <a class="p-card ss-tile<?= (int) $nm['overdue'] > 0 ? ' hot' : '' ?>" href="cases.php?view=attention"><span><?= e(t('Overdue', 'Lampas-oras')) ?></span><b class="p-num"><?= (int) $nm['overdue'] ?></b>
+      <small><?= e(t('open past the deadline', 'bukas na lampas sa deadline')) ?></small></a>
+    <a class="p-card ss-tile<?= (int) $nm['no_committee'] > 0 ? ' hot' : '' ?>" href="cases.php?com=none"><span><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b class="p-num"><?= (int) $nm['no_committee'] ?></b>
+      <small><?= e(t('open, nobody has them', 'bukas, walang may hawak')) ?></small></a>
+    <a class="p-card ss-tile" href="cases.php"><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b class="p-num"><?= (int) $nm['open'] ?></b>
+      <small><?= e(t('across the barangay', 'sa buong barangay')) ?></small></a>
+  </div>
+  <?php endif; ?>
+  <?php if ($coms !== null): $comMax = 1; foreach ((array) $coms['committees'] as $cr) { $comMax = max($comMax, (int) $cr['open']); } $comMax = max($comMax, (int) $coms['none']['open']); ?>
+  <section class="p-card p-card-pad dc-coms dw-com">
+    <div class="p-card-head"><h2><?= e(t('The committees', 'Ang mga komite')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="administrative-services.php"><?= e(t('Manage', 'Pamahalaan')) ?> &rarr;</a></div>
+    <table class="ss-table dh-ctab"><thead><tr><th><?= e(t('Committee', 'Komite')) ?></th><th class="n"><?= e(t('Open', 'Bukas')) ?></th><th class="n"><?= e(t('Overdue', 'Lampas-oras')) ?></th></tr></thead><tbody>
+    <?php foreach ((array) $coms['committees'] as $cr): ?>
+      <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><?php $ld = $leadBy[(string) $cr['key']] ?? []; ?><a class="dc-name" title="<?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?>" style="--cc:<?= e(committee_colour((string) $cr['key'])) ?>" href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><i aria-hidden="true"></i><span><b><?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?></b><small<?= $ld ? '' : ' class="dc-warn"' ?>><?= $ld ? e(t('Led by', 'Pinangungunahan ni')) . ' ' . e(implode(', ', $ld)) : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></small></span></a>
+        <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $cr['open'] / $comMax * 100) ?>%;background:<?= e(committee_colour((string) $cr['key'])) ?>"></i></span></td>
+        <td class="n"><?= (int) $cr['open'] ?></td><td class="n<?= (int) $cr['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $cr['overdue'] ?></td></tr>
+    <?php endforeach; ?>
+      <tr class="p-click" data-href="cases.php?com=none"><td><a class="dc-name dc-none" style="--cc:var(--p-red)" href="cases.php?com=none"><i aria-hidden="true"></i><span><b><?= e(t('No committee yet', 'Wala pang komite')) ?></b><small><?= e(t('Nobody has these cases', 'Walang may hawak ng mga kasong ito')) ?></small></span></a>
+        <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $coms['none']['open'] / $comMax * 100) ?>%;background:var(--p-red)"></i></span></td>
+        <td class="n"><?= (int) $coms['none']['open'] ?></td><td class="n<?= (int) $coms['none']['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $coms['none']['overdue'] ?></td></tr>
+    </tbody></table>
+  </section>
+  <?php endif; ?>
+  <?php if ($panelOn): ?>
+  <section class="p-card p-card-pad dw-feed">
+    <div class="p-card-head"><h2><?= e(t('Live feed', 'Live na daloy')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="activity.php"><?= e(t('Activity', 'Aktibidad')) ?> &rarr;</a></div>
+    <?php if (!$feed): ?><p class="p-hint"><?= e(t('All quiet. Nothing has happened on a case yet.', 'Tahimik. Wala pang nangyayari sa anumang kaso.')) ?></p><?php else: ?>
+    <ul class="dh-feedl">
+      <?php foreach ($feed as $f): $tone = ($f['is_system'] ?? false) ? 'w' : (in_array($f['new_status'] ?? '', ['resolved', 'closed'], true) ? 'g' : 'i'); ?>
+        <li class="<?= $tone ?>"><i aria-hidden="true"></i><span><span class="p-mono-id"><?= e((string) ($f['report']['tracking_id'] ?? '')) ?></span> <?= e((string) (($f['remark'] ?? '') !== '' ? $f['remark'] : status_label((string) $f['new_status']))) ?></span><small><?= e(relative_time((string) $f['created_at'])) ?></small></li>
+      <?php endforeach; ?>
+    </ul><?php endif; ?>
+  </section>
+  <?php endif; ?>
 <?php if ($smSum !== null): $uw = (int) ($smSum['urgent_waiting'] ?? 0) + (int) ($smSum['high_waiting'] ?? 0); ?>
 <div class="ss-tiles">
   <a class="p-card ss-tile<?= $uw > 0 ? ' hot' : '' ?>" href="<?= e(ws_href('?own=free')) ?>"><span><?= e(t('Urgent, waiting for a tanod', 'Madalian, naghihintay ng tanod')) ?></span><b><?= $uw ?></b>
@@ -232,7 +272,7 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
   <?php endif; ?>
   <?php if (!empty($sm['times'])): ?>
   <section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('When complaints come in', 'Kailan dumarating ang mga sumbong')) ?></p>
-    <table class="ss-table ss-nowrap"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th><?= e(t('When', 'Kailan')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Times usual', 'Beses ng karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
+    <table class="ss-table ss-nowrap" tabindex="0" aria-label="<?= e(t('When complaints come in', 'Kailan dumarating ang mga sumbong')) ?>"><thead><tr><th><?= e(t('Kind', 'Uri')) ?></th><th><?= e(t('When', 'Kailan')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Times usual', 'Beses ng karaniwan')) ?></th><th><?= e(t('Mostly', 'Karamihan')) ?></th></tr></thead><tbody>
     <?php foreach (array_slice((array) $sm['times'], 0, 5) as $tp): ?>
       <tr><td title="<?= e(category_label((string) $tp['category'])) ?>"><?= e(category_label((string) $tp['category'])) ?></td><td><?= e((string) $tp['weekday'] . ' ' . (string) $tp['hours']) ?></td><td class="n"><?= (int) $tp['reports'] ?></td><td class="n">&times;<?= e(rtrim(rtrim(number_format((float) $tp['times_usual'], 1), '0'), '.')) ?></td><td><?= e((string) ($tp['place'] ?? '')) ?></td></tr>
     <?php endforeach; ?></tbody></table>
@@ -261,70 +301,36 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php endif; ?>
 
-<!-- ---------- Trend hero (layout 3): the trend and the month's figures, the status, what needs me, then categories, committees and the feed ---------- -->
-<div class="dh-grid">
-  <section class="p-card dh-hero">
+<!-- ---------- the Dashboard's own layout again (Rose, 2 Nov 2026; Ace agreed): the month's reports across the top, then the
+     three figures stacked beside the two donuts. The header stays. What waits on a super admin, the committees and the live
+     feed are in the engine's window. ---------- -->
+<div class="p-card dh-recv" style="margin-bottom:20px">
     <div class="p-card-head"><h2><?= e(t('Total reports received', 'Kabuuang natanggap na ulat')) ?></h2><span class="p-spacer"></span>
       <span class="p-hint"><?= e(month_year($month)) ?></span><span class="p-delta-t" id="received-delta"></span></div>
-    <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="300" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
+    <div class="p-chart-wrap"><svg id="chart-received" width="100%" height="260" style="display:block" role="img" aria-label="<?= e(t('Reports filed each day', 'Mga ulat na naisampa bawat araw')) ?>"></svg><div class="p-chart-tip"></div>
       <div class="p-empty-state" id="received-empty" hidden><b><?= e(t('No complaints were filed in ', 'Walang naisampang sumbong noong ') . month_year($month)) ?>.</b><span><?= e(t('Pick another month above.', 'Pumili ng ibang buwan sa itaas.')) ?></span></div></div>
-    <div class="dh-stats">
-      <div><span class="p-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></span><b class="p-num" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-resolved-delta"></span></div>
-      <div><span class="p-label"><?= e(t('Escalated Reports', 'Na-escalate na Ulat')) ?></span><b class="p-num" id="tile-escalated-value"><?= (int) $tiles['escalated'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-escalated-delta"></span></div>
-      <div><span class="p-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></span><b class="p-num" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></b><small><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?></small><span class="p-delta-t" id="tile-overdue-delta"></span></div>
-    </div>
-  </section>
-  <div class="p-card p-donut-card dh-status">
+</div>
+
+<div class="p-dash-mid p-grid" style="margin-bottom:20px">
+  <div class="p-stack">
+    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Reports Resolved', 'Nalutas na Ulat')) ?></span><b class="p-num" id="tile-resolved-value"><?= (int) $tiles['resolved'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-resolved-delta"></span></div>
+    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Escalated Reports', 'Na-escalate na Ulat')) ?></span><b class="p-num" id="tile-escalated-value"><?= (int) $tiles['escalated'] ?></b><small><?= e(month_year($month)) ?></small><span class="p-delta-t" id="tile-escalated-delta"></span></div>
+    <div class="p-card p-tile-s"><span class="p-label"><?= e(t('Overdue Cases', 'Lampas-oras na Kaso')) ?></span><b class="p-num" id="tile-overdue-value"><?= (int) $tiles['overdue'] ?></b><small><?= e(t('Past their resolution target', 'Lampas sa target na paglutas')) ?></small><span class="p-delta-t" id="tile-overdue-delta"></span></div>
+  </div>
+  <div class="p-card p-donut-card">
     <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?></h2></div>
     <div class="p-donut"><svg id="donut-status" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?>"></svg><div class="p-center"><b class="p-num" id="status-donut-total">0</b><span id="status-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-status"></div>
     <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
     <div class="p-empty-state" id="status-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
   </div>
-  <?php if ($coms !== null): ?>
-  <!-- 0156: what waits on a super admin -->
-  <div class="dh-kpi dc-needs">
-    <a class="p-card ss-tile<?= $decide > 0 ? ' hot' : '' ?>" href="notifications.php"><span><?= e(t('Waiting for you', 'Naghihintay sa iyo')) ?></span><b class="p-num"><?= $decide ?></b>
-      <small><?= (int) $nm['escalations'] ?> <?= e(t('to decide', 'pagpapasyahan')) ?> · <?= (int) $nm['to_place'] ?> <?= e(t('to place', 'ilalagay')) ?> · <?= (int) $nm['tanods'] ?> <?= e((int) $nm['tanods'] === 1 ? t('tanod proposed', 'tanod na iminungkahi') : t('tanods proposed', 'tanod na iminungkahi')) ?></small></a>
-    <a class="p-card ss-tile<?= (int) $nm['overdue'] > 0 ? ' hot' : '' ?>" href="cases.php?view=attention"><span><?= e(t('Overdue', 'Lampas-oras')) ?></span><b class="p-num"><?= (int) $nm['overdue'] ?></b>
-      <small><?= e(t('open past the deadline', 'bukas na lampas sa deadline')) ?></small></a>
-    <a class="p-card ss-tile<?= (int) $nm['no_committee'] > 0 ? ' hot' : '' ?>" href="cases.php?com=none"><span><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b class="p-num"><?= (int) $nm['no_committee'] ?></b>
-      <small><?= e(t('open, nobody has them', 'bukas, walang may hawak')) ?></small></a>
-    <a class="p-card ss-tile" href="cases.php"><span><?= e(t('Open now', 'Bukas ngayon')) ?></span><b class="p-num"><?= (int) $nm['open'] ?></b>
-      <small><?= e(t('across the barangay', 'sa buong barangay')) ?></small></a>
-  </div>
-  <?php endif; ?>
-  <div class="p-card p-donut-card dh-cat">
+  <div class="p-card p-donut-card">
     <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Category Distribution', 'Hati ayon sa Kategorya')) ?></h2></div>
     <div class="p-donut"><svg id="donut-category" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaints by category', 'Mga sumbong ayon sa kategorya')) ?>"></svg><div class="p-center"><b class="p-num" id="category-donut-total">0</b><span id="category-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-category"></div>
     <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
     <div class="p-empty-state" id="category-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
   </div>
-  <?php if ($coms !== null): $comMax = 1; foreach ((array) $coms['committees'] as $cr) { $comMax = max($comMax, (int) $cr['open']); } $comMax = max($comMax, (int) $coms['none']['open']); ?>
-  <section class="p-card dh-com dc-coms">
-    <div class="p-card-head"><h2><?= e(t('The committees', 'Ang mga komite')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="administrative-services.php"><?= e(t('Manage', 'Pamahalaan')) ?> &rarr;</a></div>
-    <table class="ss-table dh-ctab"><thead><tr><th><?= e(t('Committee', 'Komite')) ?></th><th class="n"><?= e(t('Open', 'Bukas')) ?></th><th class="n"><?= e(t('Overdue', 'Lampas-oras')) ?></th></tr></thead><tbody>
-    <?php foreach ((array) $coms['committees'] as $cr): ?>
-      <tr class="p-click" data-href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><td><?php $ld = $leadBy[(string) $cr['key']] ?? []; ?><a class="dc-name" title="<?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?>" style="--cc:<?= e(committee_colour((string) $cr['key'])) ?>" href="cases.php?com=<?= e(rawurlencode((string) $cr['key'])) ?>"><i aria-hidden="true"></i><span><b><?= e((string) (committees_all()[(string) $cr['key']]['short_en'] ?? $cr['key'])) ?></b><small<?= $ld ? '' : ' class="dc-warn"' ?>><?= $ld ? e(t('Led by', 'Pinangungunahan ni')) . ' ' . e(implode(', ', $ld)) : e(t('No Kagawad yet', 'Wala pang Kagawad')) ?></small></span></a>
-        <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $cr['open'] / $comMax * 100) ?>%;background:<?= e(committee_colour((string) $cr['key'])) ?>"></i></span></td>
-        <td class="n"><?= (int) $cr['open'] ?></td><td class="n<?= (int) $cr['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $cr['overdue'] ?></td></tr>
-    <?php endforeach; ?>
-      <tr class="p-click" data-href="cases.php?com=none"><td><a class="dc-name dc-none" style="--cc:var(--p-red)" href="cases.php?com=none"><i aria-hidden="true"></i><span><b><?= e(t('No committee yet', 'Wala pang komite')) ?></b><small><?= e(t('Nobody has these cases', 'Walang may hawak ng mga kasong ito')) ?></small></span></a>
-        <span class="dh-bar" aria-hidden="true"><i style="width:<?= round((int) $coms['none']['open'] / $comMax * 100) ?>%;background:var(--p-red)"></i></span></td>
-        <td class="n"><?= (int) $coms['none']['open'] ?></td><td class="n<?= (int) $coms['none']['overdue'] > 0 ? ' dc-hot' : '' ?>"><?= (int) $coms['none']['overdue'] ?></td></tr>
-    </tbody></table>
-  </section>
-  <?php endif; ?>
-  <section class="p-card dh-feed">
-    <div class="p-card-head"><h2><?= e(t('Live feed', 'Live na daloy')) ?></h2><span class="p-spacer"></span><a class="dh-more" href="activity.php"><?= e(t('Activity', 'Aktibidad')) ?> &rarr;</a></div>
-    <?php if (!$feed): ?><p class="p-hint"><?= e(t('All quiet. Nothing has happened on a case yet.', 'Tahimik. Wala pang nangyayari sa anumang kaso.')) ?></p><?php else: ?>
-    <ul class="dh-feedl">
-      <?php foreach ($feed as $f): $tone = ($f['is_system'] ?? false) ? 'w' : (in_array($f['new_status'] ?? '', ['resolved', 'closed'], true) ? 'g' : 'i'); ?>
-        <li class="<?= $tone ?>"><i aria-hidden="true"></i><span><span class="p-mono-id"><?= e((string) ($f['report']['tracking_id'] ?? '')) ?></span> <?= e((string) (($f['remark'] ?? '') !== '' ? $f['remark'] : status_label((string) $f['new_status']))) ?></span><small><?= e(relative_time((string) $f['created_at'])) ?></small></li>
-      <?php endforeach; ?>
-    </ul><?php endif; ?>
-  </section>
   <!-- 0156: a segment or its name opens its complaints here, beside the donuts -->
   <section class="p-card dq-box" id="dq-box" hidden aria-live="polite">
     <div class="dq-head"><i id="dq-dot"></i><h2 id="dq-title"></h2><span class="p-spacer"></span>
