@@ -551,3 +551,4 @@
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead :is(th, th:first-child, th:last-child) { border-radius: 0; }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead { box-shadow: none; }
 :root:root .p-body:is(.page-residents, .page-personnel) .cm-chips { margin-top: 0; border-top: 0; }
+.cn-was { margin-top: 3px; padding: 2px 8px; display: inline-block; border-radius: 8px; background: color-mix(in srgb, var(--p-orange, #FF9800) 12%, transparent); color: var(--p-orange-d, #8A4B00); font: 700 12px Inter, sans-serif; }

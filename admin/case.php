@@ -18,6 +18,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/issues.php';   // 0163: the options by id, and what a concern was filed as
 
 $admin = require_admin();
 
@@ -144,7 +145,7 @@ try {
         // 0124/0127: everything SMART knows about this case, in one call. Optional: no card if it fails.
         'smart' => ['rpc/smart_case_card', ['p_report' => $id], true],
         // 0130: the concerns of this report, and the tanods designated for women and children cases.
-        'concerns' => ['report_concerns', ['select' => 'id,category,note,status,resolved_at,remark,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'concerns' => ['report_concerns', ['select' => 'id,category,option_id,filed_category_en,filed_category_fil,filed_option_en,filed_option_fil,note,status,resolved_at,remark,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
         'women'    => ['users', ['select' => 'id', 'role' => 'eq.tanod', 'women_responder' => 'is.true'], true],
     ]);
     $report = $first['report'][0] ?? null;
@@ -581,8 +582,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <ul class="ss-concern-list">
       <?php foreach ($concerns as $cn): $done = $cn['status'] === 'resolved'; ?>
         <li class="<?= $done ? 'is-done' : '' ?>">
-          <div><b><?= e(category_label((string) $cn['category'])) ?></b>
+          <?php [$cnName, $cnWas] = concern_names($cn); ?>
+          <div><b><?= e($cnName) ?></b>
             <span class="p-badge p-b-<?= $done ? 'done' : 'pending' ?>"><?= e($done ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) ?></span>
+            <?php if ($cnWas !== null): ?><div class="cn-was" title="<?= e(t('Changed in the Control Room after this was filed', 'Binago sa Control Room matapos itong isampa')) ?>"><?= e($cnWas) ?></div><?php endif; ?>
             <?php if (!empty($cn['note'])): ?><div class="p-sub"><?= e($cn['note']) ?></div><?php endif; ?>
             <?php if (!empty($cn['remark'])): ?><div class="p-quote"><?= e($cn['remark']) ?></div><?php endif; ?></div>
           <?php if ($mine ?? false): ?>
@@ -610,8 +613,14 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <input type="hidden" name="action" value="add_concern">
           <div class="p-cfield"><label class="p-flabel" for="ac-cat"><?= e(t('Kind of concern', 'Uri ng alalahanin')) ?></label>
             <select class="p-input-plain" id="ac-cat" name="category">
-              <?php $have = array_column($concerns, 'category'); foreach (category_keys(true) as $c0): if (in_array($c0, $have, true)) continue; ?>
-                <option value="<?= e($c0) ?>"><?= e(category_label($c0)) ?></option>
+              <?php $have = array_map(fn ($x) => $x['category'] . '|' . (int) ($x['option_id'] ?? 0), $concerns);
+                    foreach (category_keys(true) as $c0): ?>
+                <optgroup label="<?= e(category_label($c0)) ?>">
+                  <?php if (!in_array($c0 . '|0', $have, true)): ?><option value="<?= e($c0) ?>|"><?= e(category_label($c0)) ?></option><?php endif; ?>
+                  <?php foreach (category_options()[$c0] ?? [] as $oid => $o): if (!$o['active'] || in_array($c0 . '|' . $oid, $have, true)) continue; ?>
+                    <option value="<?= e($c0 . '|' . $oid) ?>"><?= e(category_label($c0) . ': ' . t($o['en'], $o['fil'])) ?></option>
+                  <?php endforeach; ?>
+                </optgroup>
               <?php endforeach; ?>
             </select></div>
           <div class="p-cfield"><label class="p-flabel" for="ac-note"><?= e(t('Note (optional)', 'Tala (opsyonal)')) ?></label>

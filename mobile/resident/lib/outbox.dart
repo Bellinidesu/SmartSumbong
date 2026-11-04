@@ -44,7 +44,13 @@ class OutboxItem {
     required this.uploadedVideo,
     required this.queuedAt,
     this.error,
+    this.optionId,
+    this.concerns = const [],
   });
+
+  /// 0163: the main option's id, and the other concerns ({category, option}).
+  final int? optionId;
+  final List<Map<String, dynamic>> concerns;
 
   /// Also the report's client_ref (0066).
   final String id;
@@ -81,6 +87,8 @@ class OutboxItem {
         'uploadedVideo': uploadedVideo,
         'queuedAt': queuedAt.toIso8601String(),
         'error': error,
+        'optionId': optionId,
+        'concerns': concerns,
       };
 
   factory OutboxItem.fromJson(Map<String, dynamic> j) => OutboxItem(
@@ -103,6 +111,8 @@ class OutboxItem {
         queuedAt: DateTime.tryParse(j['queuedAt'] as String? ?? '') ??
             DateTime.now(),
         error: j['error'] as String?,
+        optionId: (j['optionId'] as num?)?.toInt(),
+        concerns: [for (final c in (j['concerns'] as List? ?? const [])) Map<String, dynamic>.from(c as Map)],
       );
 }
 
@@ -208,6 +218,8 @@ class Outbox extends ChangeNotifier {
     File? video,
     List<Map<String, dynamic>> uploaded = const [],
     Map<String, dynamic>? uploadedVideo,
+    int? optionId,
+    List<Map<String, dynamic>> concerns = const [],
   }) async {
     await _load();
     final dir = Directory('${(await _dir()).path}/$id');
@@ -237,6 +249,8 @@ class Outbox extends ChangeNotifier {
         video: videoPath,
         uploaded: [...uploaded],
         uploadedVideo: uploadedVideo,
+        optionId: optionId,
+        concerns: [...concerns],
         queuedAt: DateTime.now(),
       ),
     ];
@@ -284,6 +298,7 @@ class Outbox extends ChangeNotifier {
                 if (item.uploadedVideo != null) item.uploadedVideo!,
               ],
               'p_client_ref': item.id,
+              ...concernParams(item.optionId, item.concerns),
             },
           );
           await _remove(item.id);
@@ -332,3 +347,9 @@ class Outbox extends ChangeNotifier {
     } catch (_) {}
   }
 }
+
+/// file_report()'s 0163 arguments, only when there is something to send, so a report with one concern files as it always did.
+Map<String, dynamic> concernParams(int? optionId, List<Map<String, dynamic>> concerns) => {
+      'p_option': ?optionId,
+      if (concerns.isNotEmpty) 'p_concerns': concerns,
+    };

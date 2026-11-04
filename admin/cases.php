@@ -237,7 +237,8 @@ try {
                   . 'handler_id,handler:users!reports_handler_id_fkey(full_name,official_role),'
                   . 'triage:report_triage(score,effective_level,override_level,possible_duplicates),'
                   . 'case_committee,committee,awaiting_placement,forwards:case_forwards(kind,from_committee,to_super,created_at),'
-                  . 'concerns:report_concerns(category,status)',
+                  . 'concerns:report_concerns(category,status,filed_option_en,created_at)',
+        'concerns.order' => 'created_at.asc',
         'forwards.order' => 'created_at.desc',
         'deleted_at' => 'is.null',
         'order'      => $sort,
@@ -285,7 +286,10 @@ try {
         $query['case_committee'] = 'eq.' . $com;
     }
     if ($issue !== '') {
-        $query['subject'] = 'eq.' . $issue;   // the app writes the issue picked into the subject
+        // 0163: a concern points at its option by id, so a renamed option still finds what was filed under its old name
+        $oid = array_search($issue, array_map(fn ($o) => $o['en'], category_options()[$category] ?? []), true);
+        if ($oid !== false && $category !== '') { $query['cn.option_id'] = 'eq.' . $oid; }
+        else { $query['subject'] = 'eq.' . $issue; }   // the app writes the issue picked into the subject
     }
     if ($month !== '') {
         $mtz   = new DateTimeZone('Asia/Manila');
@@ -371,7 +375,7 @@ try {
     // the total behind the pages (the register by its filters, notifications by their search)
     $regTotal = 0; $notesTotal = 0;
     if ($tab === 'all') {
-        $cq = $query; unset($cq['select'], $cq['order'], $cq['limit'], $cq['offset'], $cq['forwards.order']);
+        $cq = $query; unset($cq['select'], $cq['order'], $cq['limit'], $cq['offset'], $cq['forwards.order'], $cq['concerns.order']);
         if ($category !== '') { $cq['select'] = 'id,cn:report_concerns!inner(category)'; }
         $regTotal = $view === 'attention' ? 0 : $db->count('reports', $cq);
         // 0152: the chips' counts, in one round
@@ -831,8 +835,9 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
             <?php endif; ?></div>
           </td>
           <td><?= e(category_label($r['category'])) ?><?php
-              $more = array_values(array_filter((array) ($r['concerns'] ?? []), fn ($c) => ($c['category'] ?? '') !== $r['category']));
-              if ($more): $tip = t('Also in this report', 'Kasama rin sa ulat na ito') . ': ' . implode(', ', array_map(fn ($c) => category_label((string) $c['category']) . ' (' . (($c['status'] ?? '') === 'resolved' ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) . ')', $more)); ?> <span class="cr-more" title="<?= e($tip) ?>">+<?= count($more) ?></span><?php endif; ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
+              // every concern but the report's own (the first of its main category)
+              $more = (array) ($r['concerns'] ?? []); $mi = array_search($r['category'], array_column($more, 'category'), true); if ($mi !== false) array_splice($more, (int) $mi, 1);
+              if ($more): $tip = t('Also in this report', 'Kasama rin sa ulat na ito') . ': ' . implode(', ', array_map(fn ($c) => category_label((string) $c['category']) . (!empty($c['filed_option_en']) ? ': ' . $c['filed_option_en'] : '') . ' (' . (($c['status'] ?? '') === 'resolved' ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) . ')', $more)); ?> <span class="cr-more" title="<?= e($tip) ?>">+<?= count($more) ?></span><?php endif; ?><?php if (!empty($r['location_label'])): ?><div class="p-sub"><?= e($r['location_label']) ?></div><?php endif; ?><?= forwarded_tag((array) ($r['forwards'] ?? [])) ?></td>
           <?php if (sees_everything()): ?><td><?= committee_pill($r['case_committee'] ?? null, !empty($r['awaiting_placement'])) ?></td><?php endif; ?>
           <td><div class="p-badges">
             <?= sensitive_badge($r) ?>
