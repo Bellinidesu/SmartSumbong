@@ -23,6 +23,7 @@ require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/qr.php';
 require_once __DIR__ . '/includes/forwarding.php';   // the committee banners (committee_sd_types, cm_banner_style, sd_icon_for)
 require_once __DIR__ . '/includes/app_editor.php';   // the Control Room's live view of the app
+require_once __DIR__ . '/includes/settings_mine.php';   // a Kagawad's or staff member's own Settings (4 Nov 2026)
 
 $admin = require_admin();
 $db    = db();
@@ -34,8 +35,10 @@ const ST_PAGES = [
     'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'look']],
     'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'ladder', 'plan']],
     'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts', 'updates']],
+    // a Kagawad or staff member (4 Nov 2026): their own look, their committee (read only) and their module of the engine
+    'mine'     => ['file' => 'settings.php', 'tabs' => ['look', 'committee', 'module']],
 ];
-$stPage = defined('ST_PAGE') && isset(ST_PAGES[ST_PAGE]) ? ST_PAGE : 'settings';
+$stPage = defined('ST_PAGE') && isset(ST_PAGES[ST_PAGE]) ? ST_PAGE : (is_scoped() ? 'mine' : 'settings');
 
 function st_on(string $tab): bool
 {
@@ -613,7 +616,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     exit;
 }
 $places = []; $kinds = [];
-try {
+if ($stPage !== 'mine') try {   // the barangay's places are a super admin's to keep
     $got = $db->selectMany([
         'places' => ['places', ['select' => 'id,name,grp,aliases,lat,lng', 'source' => 'eq.barangay', 'active' => 'eq.true', 'order' => 'name.asc', 'limit' => '200'], true],
         'kinds'  => ['place_kinds', ['select' => 'grp,label', 'order' => 'label.asc'], true],
@@ -622,7 +625,7 @@ try {
     $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
 } catch (SupabaseError $ex) { /* the card says so below */ }
 
-$stTitle = ['settings' => t('Settings', 'Mga Setting'), 'admin' => t('Administrative Services', 'Mga Serbisyong Pang-admin'),
+$stTitle = ['settings' => t('Settings', 'Mga Setting'), 'mine' => t('Settings', 'Mga Setting'), 'admin' => t('Administrative Services', 'Mga Serbisyong Pang-admin'),
             'control' => t('Control Room', 'Silid-Kontrol')][$stPage];
 layout_head($stTitle, ST_PAGES[$stPage]['file']);
 ?>
@@ -634,7 +637,8 @@ $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => 
     'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Administrators', 'Mga Administrator'), 'ladder' => t('Escalation and responders', 'Eskalasyon at mga responder'),
     'plan' => t('Planning', 'Pagpaplano'), 'types' => t('Complaint types', 'Mga uri ng reklamo'), 'rules' => t('Rules', 'Mga patakaran'),
     'hotlines' => t('Hotlines', 'Mga hotline'), 'wording' => t('Wording', 'Mga salita'), 'brgy' => t('The barangay', 'Ang barangay'),
-    'parts' => t('Parts of the system', 'Mga bahagi ng sistema'), 'updates' => t('App updates', 'Mga update ng app')];
+    'parts' => t('Parts of the system', 'Mga bahagi ng sistema'), 'updates' => t('App updates', 'Mga update ng app'),
+    'committee' => t('My committee', 'Aking komite'), 'module' => 'SMART'];
 ?>
 <div class="p-seg-mini st-tabs" role="tablist" aria-label="<?= e(sprintf(t('%s sections', 'Mga bahagi ng %s'), $stTitle)) ?>">
   <?php foreach (ST_PAGES[$stPage]['tabs'] as $k => $tb): ?>
@@ -650,8 +654,8 @@ $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => 
 // temporary password. Adding one from here comes with the account service.
 $stFlash = $_SESSION['st_flash'] ?? null;
 unset($_SESSION['st_flash']);
-$admins = [];
-try {
+$admins = []; $tanods = []; $cmap = [];
+if ($stPage !== 'mine') try {   // the administrators, tanods and committee map are for the super admins' tabs
     $admins = $db->select('users', [
         'select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev,is_test',
         'role'   => 'eq.admin',
@@ -1947,6 +1951,13 @@ endif;
       <button type="button" class="st-surf" role="radio" data-surf="solid" aria-checked="false"><span class="sv-pic s"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Solid', 'Buo')) ?></b><small><?= e(t('Flat graphite, no blur or gloss', 'Patag na graphite, walang blur o kinang')) ?></small></span></button>
     </div>
   </div>
+  <?php if ($stPage === 'mine'): ?>
+  <div class="p-card p-card-pad st-look my-alerts">
+    <p class="p-eyebrow"><?= e(t('Alerts and your profile', 'Mga alerto at ang profile mo')) ?></p>
+    <p class="st-note" style="margin-top:0"><?= e(t('What you are alerted about, quiet hours, your name, picture and password are in Edit Profile.', 'Nasa Edit Profile ang mga ia-alerto sa iyo, ang tahimik na oras, ang pangalan, larawan at password mo.')) ?></p>
+    <a class="p-btn p-btn-ghost p-btn-sm" href="profile.php#alerts"><?= e(t('Open Edit Profile', 'Buksan ang Edit Profile')) ?></a>
+  </div>
+  <?php else: ?>
   <div class="p-card p-card-pad st-places" id="places">
     <p class="p-eyebrow"><?= e(t('The barangay\'s places', 'Mga lugar ng barangay')) ?><em><?= count($places) ?></em></p>
     <p class="st-note" style="margin-top:0"><?= e(t('Search on the map and in the app finds these first: the landmarks the barangay keeps, and any place no map has, by the names people use (Other names, separated by commas). To add one, open Spatial Distribution, right-click the spot (or press and hold), and choose Add a place here. Places only, never anyone\'s home.', 'Ito ang unang nahahanap sa mapa at sa app: ang mga landmark ng barangay, at anumang lugar na wala sa mapa, sa pangalang ginagamit ng mga tao (Ibang pangalan, pinaghihiwalay ng kuwit). Para magdagdag, buksan ang Spatial Distribution, i-right-click ang lugar (o pindutin nang matagal), at piliin ang Magdagdag ng lugar dito. Mga lugar lamang, hindi kailanman ang bahay ng sinuman.')) ?></p>
@@ -1976,8 +1987,10 @@ endif;
     </ul>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </section>
 <?php endif; ?>
+<?php if ($stPage === 'mine') { render_my_committee_pane($db); render_my_module_pane($db); } ?>
 
 <?php if (st_on('usage')): ?>
 <section class="st-pane" data-pane="usage" hidden>
@@ -2213,7 +2226,8 @@ document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEven
 // A tab that moved to another page (30 Oct 2026) sends the old link on to it.
 var stOwner = <?= json_encode(array_merge(...array_map(fn ($p) => array_fill_keys($p['tabs'], $p['file']), array_values(ST_PAGES)))) ?>;
 var stTab = location.hash === '#places' ? 'look' : location.hash.slice(1);
-if (stTab && stOwner[stTab] && !document.querySelector('.st-tabs [data-st="' + stTab + '"]')) { location.replace(stOwner[stTab] + location.search + location.hash); }
+if (stTab === 'smart' && document.querySelector('.st-tabs [data-st="module"]')) stTab = 'module';   // a Kagawad's or staff member's SMART tab is their module
+if (stTab && stOwner[stTab] && stOwner[stTab] !== location.pathname.split('/').pop() && !document.querySelector('.st-tabs [data-st="' + stTab + '"]')) { location.replace(stOwner[stTab] + location.search + location.hash); }
 else if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 if (!document.querySelector('.st-pane:not([hidden])')) { var f = document.querySelector('.st-tabs [data-st]'); if (f) f.click(); }
 </script>

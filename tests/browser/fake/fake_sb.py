@@ -219,6 +219,16 @@ TANOD_EXTRA = [
 ]
 
 RPC = {
+    # 0165: the caller's module of the engine (the fake cannot tell rungs apart, so it answers as a Kagawad of Peace and Order)
+    'smart_module': {'module': 'committee', 'committee': 'peace_order', 'categories': ['peace_order_nuisance', 'traffic_violation'],
+                     'counts': {'open': 9, 'urgent_waiting': 1, 'high_waiting': 2, 'overdue': 2, 'due_24h': 3, 'untaken': 4, 'mine': 2},
+                     'decisions': {'escalations': 1, 'reroute': 1, 'forwarded': 2, 'flags': 1, 'to_place': None, 'tanods_proposed': None},
+                     'deadline_risk': [{'report_id': 'c0000000-0000-0000-0000-000000000001', 'tracking_id': 'SS-2610-1001', 'hours_left': 3.5, 'risk': 'high', 'reasons': []},
+                                       {'report_id': 'c0000000-0000-0000-0000-000000000002', 'tracking_id': 'SS-2610-1002', 'hours_left': 11.0, 'risk': 'medium', 'reasons': []}],
+                     'quiet': [{'report_id': 'c0000000-0000-0000-0000-000000000003', 'tracking_id': 'SS-2610-1003', 'status': 'assigned', 'days_quiet': 4, 'last_activity': 'Tanod accepted'}],
+                     'spikes': [{'category': 'peace_order_nuisance', 'this_week': 6, 'usual': 2.1, 'times_usual': 2.9, 'place': 'Sampaguita Street'}],
+                     'patterns': [{'pattern_key': 'p1', 'category': 'peace_order_nuisance', 'reports': 5, 'weeks': 4, 'residents': 4, 'still_open': 2, 'hazard': None, 'last_at': ago(600), 'tracking_ids': ['SS-2610-1001']}],
+                     'tanods': {'total': 4, 'on_duty': 1, 'busy': 2, 'lunch': 1, 'break': 0, 'offline': 0}, 'at': ago(0)},
     'command_hall': lambda p: None if (p.get('p_token') != 'f' * 48 or not FEAT['command_center']) else {
         'as_of': ago(0), 'barangay': 'Barangay 183, Zone 20', 'today': {'filed': 7, 'resolved': 3, 'open': 19}, 'tanods_on_duty': 4,
         'mode': {'mode': 'flood', 'en': 'Flood Watch', 'fil': 'Bantay-baha', 'since': ago(40), 'reports': 3, 'open': 2, 'resolved': 1,

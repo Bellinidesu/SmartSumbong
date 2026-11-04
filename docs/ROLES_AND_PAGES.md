@@ -77,7 +77,7 @@ super admin stays one.
 | Personnel | Everyone, by committee | Their staff and their tanods | Their committee's tanods and staff, view only (0164) |
 | Administrative Services (renamed) | Committees, administrators, retirement requests, tanod-to-committee approvals, Planning | Retirement requests: view and review; can endorse a staff member's | No |
 | Control Room (new) | Complaint types, rules, hotlines, wording, the barangay's name and seal, parts of the system | No | No |
-| Settings | System status, plan and usage, SMART, appearance | No | No |
+| Settings | System status, plan and usage, SMART, appearance | Their own: appearance, their committee (read only), their SMART module | The same, their module without decisions |
 | Edit Profile | Their own | Their own | Their own |
 
 ### Dashboard (super admins)
@@ -234,5 +234,21 @@ a trigger on `inbox_messages`. The Kagawad's endorsement is
 | 6 | Dashboard, Report Summary and Notifications changes | Built (0156) |
 | 7 | Edit Profile banner, retirement endorsement | Built (0157) |
 | P2.1 | Each rung's sidebar: seal, committee logo; staff in Personnel, view only | Built (0164) |
+| P2.2 | Each rung's SMART engine module (`smart_module()`); a Kagawad's and staff's own Settings | Built (0165) |
 
 Spatial Distribution is discussed later.
+
+## SMART engine modules (0165)
+
+Every rung's pages are powered by its own module of the engine. `smart_module()` answers for whoever calls it:
+
+| Module | Who | What it reads |
+|---|---|---|
+| Barangay | Super admin (and captain, without decisions) | Every case; decisions waiting on the super admins: cases to place, tanods proposed, escalations, reroute questions, flags sent to them |
+| Committee | Kagawad | Their committee's cases only; decisions waiting on them: escalations to approve, tanods to pick, cases forwarded to them, their staff's flags |
+| Staff | Staff (moderator) | Their committee's cases only, no decisions: their own cases and the ones nobody has taken |
+
+Each module carries the counts (open, urgent with no tanod, overdue, due in 24 hours, nobody has taken, yours), deadline risk,
+quiet cases, spikes and recurring problems (kept to the kinds of complaint the committee sees) and the tanods (free, on a
+case, lunch, break, off). Lists are kept to the cases the person may open, by the same rule row level security uses.
+

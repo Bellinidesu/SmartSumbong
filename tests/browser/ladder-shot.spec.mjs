@@ -17,4 +17,10 @@ for (const [tier, com] of RUNGS) for (const p of PAGES) for (const [W, mode] of 
     forms: document.querySelectorAll('.p-main form').length }));
   console.log('LS', tier, com, p, W, mode, JSON.stringify(o));
   await page.screenshot({ path: `${OUT}${tier}-${com || 'all'}-${p.replace(/\W+/g, '_')}-${mode}-${W}.png`, fullPage: true });
+  // a page with tabs (Settings): each tab too
+  for (const t of await page.$$eval('.st-tabs [data-st]', bs => bs.map(b => b.dataset.st))) {
+    await page.locator(`.st-tabs [data-st="${t}"]`).click(); await page.waitForTimeout(400);
+    console.log('LS', tier, com, p, t, JSON.stringify({ overflowX: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth) }));
+    await page.screenshot({ path: `${OUT}${tier}-${com || 'all'}-${p.replace(/\W+/g, '_')}-${t}-${mode}-${W}.png`, fullPage: true });
+  }
 });
