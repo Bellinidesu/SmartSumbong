@@ -56,7 +56,7 @@ const CLASSIFY = () => {
     } else if (tag === 'a') {
       kind = 'link'; const raw = el.getAttribute('href');
       if (el.matches('[data-open],[data-p-open]')) { does = 'opens a popup'; how = 'data-open'; }
-      else if (raw === '#' || /^s*(javascript|data|vbscript):/i.test(raw)) { does = o1 || d1 ? 'acts in place' : 'DEAD: a # link with nothing listening'; how = o1 || d1 || ''; }
+      else if (raw === '#' || /^\s*(javascript|data|vbscript):/i.test(raw)) { does = o1 || d1 ? 'acts in place' : 'DEAD: a # link with nothing listening'; how = o1 || d1 || ''; }
       else if (raw.startsWith('#')) { does = o1 || d1 ? 'acts in place (in-page link)' : 'jumps within the page'; how = o1 || d1 || 'hash'; }
       else if (el.target === '_blank') { does = 'opens a new tab'; }
       else {
