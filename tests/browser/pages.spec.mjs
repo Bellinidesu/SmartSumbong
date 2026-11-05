@@ -382,13 +382,14 @@ test('Committees tab: a card each, a live banner, chips for the kinds of complai
   expect(r.errors.filter(e => !/WebSocket/.test(e)), 'console errors').toEqual([]);
 });
 
-test('Administrators and Escalation, peak: position banners filter the table, one seamless block, kinds of complaint wear their colour', async ({ page }) => {
+test('Roles and Escalation, peak: the position chooser filters the table, the band, chooser and table are three objects, kinds of complaint wear their colour', async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1000 });
   const r = await open(page, 'administrative-services.php');
   await page.locator('.st-tabs [data-st="admins"]').click();
   await expect(page.locator('.ad-roles .cm-chip')).toHaveCount(5);   // All, Chairman, Councilor, Secretary, Staff
   const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(); return { a: Math.round(R('.page-administrative-services .ss-pband').bottom), b: Math.round(R('.ad-roles').top), c: Math.round(R('.ad-roles').bottom), d: Math.round(R('#ss-people').top), th: getComputedStyle(document.querySelector('#ss-people thead th')).backgroundColor }; });
-  expect(Math.abs(g.a - g.b) + Math.abs(g.c - g.d), 'the band, the banners and the table touch').toBeLessThanOrEqual(2);
+  expect(Math.min(g.b - g.a, g.d - g.c), 'the band, the chooser and the table are three objects with a gap between them').toBeGreaterThanOrEqual(10);
+  expect(await page.locator('.ad-roles .cm-ind').evaluate(e => e.offsetWidth > 0), 'the chooser pill is drawn, even though its tab was hidden at load').toBe(true);
   expect(g.th, 'blue under the orange band').toBe('rgb(0, 48, 143)');
   const all = await page.locator('#jp-rows tr.ss-arow:visible').count();
   await page.locator('.ad-roles .cm-chip[data-role="kagawad"]').click();

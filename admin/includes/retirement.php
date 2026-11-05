@@ -211,7 +211,7 @@ function render_retirement_queue(): void
     <?php // the same tab bar as administrative-services.php: this queue is one of its tabs, at its own address ?>
     <nav class="p-seg-mini st-tabs" aria-label="<?= e(t('Administrative Services sections', 'Mga bahagi ng Mga Serbisyong Pang-admin')) ?>">
       <a class="st-link" href="administrative-services.php#access"><?= e(t('Committees', 'Mga komite')) ?></a>
-      <a class="st-link" href="administrative-services.php#admins"><?= e(t('Administrators', 'Mga Administrator')) ?></a>
+      <a class="st-link" href="administrative-services.php#admins"><?= e(t('Roles', 'Mga Tungkulin')) ?></a>
       <a class="st-link p-on" href="retirement-requests.php" aria-current="page"><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?></a>
       <a class="st-link" href="administrative-services.php#plan"><?= e(t('Planning', 'Pagpaplano')) ?></a>
     </nav>
@@ -346,17 +346,24 @@ function render_retirement_queue(): void
       <h2><?= e(t('Retirement requests', 'Mga kahilingang magretiro')) ?><span class="p-badge-n p-badge-n--quiet" id="ret-count"><?= count($requests) ?></span><span class="p-badge-n" id="pending-wrap"<?= $pending > 0 ? '' : ' hidden' ?>><span id="pending-count"><?= $pending ?></span> <?= e(t('waiting', 'naghihintay')) ?></span></h2>
       <form class="p-search" role="search">
         <?= p_icon('i-search', 16) ?><label class="p-sr" for="ret-q"><?= e(t('Search', 'Maghanap')) ?></label>
-        <input id="ret-q" type="search" placeholder="<?= e(t('Search a tanod', 'Hanapin ang tanod')) ?>" autocomplete="off">
+        <input id="ret-q" type="search" placeholder="<?= e(t('Search a name', 'Hanapin ang pangalan')) ?>" autocomplete="off">
       </form>
       <span class="p-spacer"></span>
       <label class="p-pill-select"><span class="p-lbl"><?= e(t('Status', 'Katayuan')) ?></span>
         <select id="ret-filter" aria-label="<?= e(t('Status', 'Katayuan')) ?>"><option value="pending"><?= e(t('Waiting', 'Naghihintay')) ?></option><option value="" id="ret-all" data-label="<?= e(t('All', 'Lahat')) ?>"><?= e(t('All', 'Lahat')) ?> (<?= count($requests) ?>)</option></select></label>
     </div>
 
+    <nav class="cm-chips cm-choose ret-roles" data-chooser="a.cm-chip" aria-label="<?= e(t('Who is retiring', 'Sino ang magreretiro')) ?>">
+      <a class="cm-chip cm-sd p-on" href="#" data-role="" style="--cc:#2D5BFF;--ct:#FFFFFF;--g1:#2D5BFF;--g2:#00A3FF;--g3:#00A3FF" aria-current="true"><span class="cm-n"><?= e(t('Everyone', 'Lahat')) ?></span><b id="ret-n-all">0</b></a>
+      <a class="cm-chip cm-sd" href="#" data-role="tanod" style="--cc:#0E8F8A;--ct:#FFFFFF;--g1:#0E8F8A;--g2:#35D0A8;--g3:#35D0A8"><span class="cm-n"><?= e(t('Tanods', 'Mga tanod')) ?></span><b id="ret-n-tanod">0</b></a>
+      <a class="cm-chip cm-sd" href="#" data-role="staff" style="--cc:#6C7A9C;--ct:#FFFFFF;--g1:#6C7A9C;--g2:#9AA6C4;--g3:#9AA6C4"><span class="cm-n"><?= e(t('Staff', 'Kawani')) ?></span><b id="ret-n-staff">0</b></a>
+    </nav>
+    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
+
     <div class="p-card p-table-card"><div class="p-tscroll">
       <table class="p-t ss-ohead">
         <thead><tr>
-          <th scope="col"><?= e(t('Tanod', 'Tanod')) ?></th>
+          <th scope="col"><?= e(t('Person', 'Tao')) ?></th>
           <th scope="col"><?= e(t('Requested', 'Hiniling')) ?></th>
           <th scope="col"><?= e(t('Status', 'Katayuan')) ?></th>
           <th scope="col"><?= e(t('Decision', 'Desisyon')) ?></th>
@@ -513,14 +520,19 @@ function render_retirement_queue(): void
 
         var tbody = document.getElementById('requests-tbody');
         var want = document.getElementById('ret-filter').value;
+        var roleOf = function (r) { return r.role === 'staff' ? 'staff' : 'tanod'; };
+        var byRole = { '': rows.length, tanod: rows.filter(function (r) { return roleOf(r) === 'tanod'; }).length, staff: rows.filter(function (r) { return roleOf(r) === 'staff'; }).length };
+        document.getElementById('ret-n-all').textContent = byRole['']; document.getElementById('ret-n-tanod').textContent = byRole.tanod; document.getElementById('ret-n-staff').textContent = byRole.staff;
+        var roleSel = (document.querySelector('.ret-roles .cm-chip.p-on') || {}).dataset ? document.querySelector('.ret-roles .cm-chip.p-on').dataset.role : '';
         var shown = want ? rows.filter(function (r) { return r.status === want; }) : rows;
+        if (roleSel) shown = shown.filter(function (r) { return roleOf(r) === roleSel; });
         var qn = (document.getElementById('ret-q').value || '').trim().toLowerCase();
         if (qn) shown = shown.filter(function (r) { return String(r.full_name || '').toLowerCase().indexOf(qn) !== -1; });
         document.getElementById('ret-count').textContent = rows.length;
         if (!shown.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="p-empty">' + (rows.length
-            ? T('No requests waiting.', 'Walang naghihintay na kahilingan.')
-            : T('No tanod has requested retirement yet.', 'Wala pang tanod na humiling na magretiro.')) + '</td></tr>';
+            ? (roleSel === 'staff' ? T('No staff member has asked to retire.', 'Walang kawaning humiling na magretiro.') : T('No requests waiting.', 'Walang naghihintay na kahilingan.'))
+            : T('Nobody has requested retirement yet.', 'Wala pang humiling na magretiro.')) + '</td></tr>';
           return;
         }
         tbody.innerHTML = shown.map(function (r) {
@@ -534,6 +546,7 @@ function render_retirement_queue(): void
         }).join('');
       }
       document.getElementById('ret-filter').addEventListener('change', function () { renderRequests(window.__retRows || []); });
+      document.querySelectorAll('.ret-roles .cm-chip').forEach(function (c) { c.addEventListener('click', function (e) { e.preventDefault(); document.querySelectorAll('.ret-roles .cm-chip').forEach(function (x) { x.classList.toggle('p-on', x === c); x.toggleAttribute('aria-current', x === c); }); renderRequests(window.__retRows || []); }); });
       document.getElementById('ret-q').form.addEventListener('submit', function (e) { e.preventDefault(); });
       document.getElementById('ret-q').addEventListener('input', function () { renderRequests(window.__retRows || []); });
       renderRequests(<?= json_encode(array_values($requests), JSON_UNESCAPED_UNICODE) ?>);
