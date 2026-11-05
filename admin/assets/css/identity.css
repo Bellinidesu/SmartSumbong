@@ -690,3 +690,59 @@
 .sdp-rng .sdp-rt { flex: 1 0 100%; font-size: 13px; }
 .sdp-rng .sdp-foot.rng :is(.sdp-clr, .sdp-go) { flex: 1; }
 .sdp-rng .sdp-pre { margin-top: 10px; }
+
+/* ================= 6 Nov 2026, Case Reports: one orange header, a chooser built like Report Summary's tabs (still in the committees' colours), a white column head ================= */
+@property --ig1 { syntax: "<color>"; inherits: true; initial-value: #356CF9; }
+@property --ig2 { syntax: "<color>"; inherits: true; initial-value: #356CF9; }
+@property --ig3 { syntax: "<color>"; inherits: true; initial-value: #356CF9; }
+@property --ict { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
+
+/* the header: its own rounded bar, every control in it one height and one radius, as the Report Summary period bar */
+:root:root .p-body.page-cases .ss-cr-band { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-cases .ss-cr-band :is(.p-search, .p-pill-select, .p-chip-band) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-cases .ss-cr-band .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-cases .ss-cr-band .p-search { padding: 0 14px; }
+:root:root .p-body.page-cases .ss-cr-band .p-chip-band { display: inline-flex; align-items: center; padding: 0 14px; font-size: 13.5px; }
+
+/* the chooser: the Report Summary tab bar, one line of tabs (a name, a count, a small overdue pill); the chosen tab is a pill in the committee's own
+   colours, with the contour lines over it, that slides to the next one and changes colour on the way */
+:root:root:root .p-body.page-cases .cm-chips { position: relative; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; margin: 0 0 14px; width: 100%; box-sizing: border-box;
+  background: var(--p-surface); border: 1px solid var(--p-line); border-radius: 14px; box-shadow: var(--p-shadow); overflow: visible; }
+:root:not([data-theme="dark"]) .p-body.page-cases .cm-chips { border-color: transparent; box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
+.cm-ind { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0; border-radius: 10px; pointer-events: none; overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(120% 220% at 6% -40%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
+    radial-gradient(110% 200% at 104% 150%, rgba(0,0,0,.3) 0%, rgba(0,0,0,0) 62%),
+    linear-gradient(105deg, var(--ig1) 0%, var(--ig1) 18%, var(--ig2) 50%, var(--ig3) 82%, var(--ig3) 100%);
+  box-shadow: 0 6px 16px -6px var(--ig1), inset 0 1px 0 rgba(255,255,255,.3);
+  transition: transform .4s cubic-bezier(.2, .9, .25, 1.04), width .4s cubic-bezier(.2, .9, .25, 1), height .4s ease, --ig1 .4s ease, --ig2 .4s ease, --ig3 .4s ease; }
+.cm-ind::after { content: ""; position: absolute; inset: 0; background: #fff; opacity: .22;
+  -webkit-mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip { position: relative; z-index: 1; overflow: visible; isolation: auto; flex: 1 1 0; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 34px; min-height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; box-shadow: none; filter: none; transform: none; white-space: nowrap;
+  color: var(--p-muted); font: 700 13px Inter, sans-serif; text-decoration: none; text-shadow: none; transition: background-color .22s ease, color .3s ease; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip > i.cm-sym, :root:root:root .p-body.page-cases .cm-chips .cm-chip > .cm-bg { display: none; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip::before { content: ""; position: static; inset: auto; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--p-ink)); opacity: 1; mask: none; -webkit-mask: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, var(--p-ink)) 20%, transparent); transition: background-color .3s ease, box-shadow .3s ease; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 9%, transparent); color: var(--p-ink); filter: none; transform: none; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on { background: transparent; color: var(--ct, #fff); box-shadow: none; filter: none; transform: none; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on::before { background: var(--ct, #fff); box-shadow: 0 0 0 3px rgba(255,255,255,.28); }
+:root:root:root .p-body.page-cases .cm-chips:not(.has-ind) .cm-chip.p-on { background: linear-gradient(105deg, var(--g1, #356CF9), var(--g3, #356CF9)); }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n { display: contents; color: inherit; text-shadow: none; font: inherit; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip > b { order: 1; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted);
+  font: 700 11px Inter, sans-serif; letter-spacing: 0; transition: background-color .3s ease, color .3s ease; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip:hover > b { background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, transparent); color: var(--p-ink); }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on > b { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n em:not(.cm-od) { display: none; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n em.cm-od { order: 2; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-red) 12%, transparent); color: var(--p-red);
+  font: 700 11px Inter, sans-serif; letter-spacing: .01em; opacity: 1; border: 0; box-shadow: none; text-shadow: none; transition: background-color .3s ease, color .3s ease; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n em.cm-od::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: none; animation: none; }
+:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on .cm-n em.cm-od { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body.page-cases .cm-chips ~ .p-table-card { border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .cm-ind, :root:root:root .p-body.page-cases .cm-chips .cm-chip { transition: none !important; } }
+
+/* the column head is white: the orange header above is the only header (Case Reports and Report Summary alike) */
+:root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root .p-body.page-cases .ss-cases-t thead th :is(a, .p-th-sort, .p-th-sort:hover) { color: inherit; }
+:root:root .p-body.page-cases .ss-cases-t thead th .p-th-sort:hover { color: var(--p-ink); }
+.page-summary .p-table-card thead.p-blue th, :root[data-theme="dark"] .page-summary .p-table-card thead.p-blue th { background: var(--p-surface); }
