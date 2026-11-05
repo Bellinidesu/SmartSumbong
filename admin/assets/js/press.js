@@ -26,6 +26,9 @@
     // a live update: the region is fetched again at the address on screen, quietly (no bar, no focus move, nothing read out)
     refresh: function (sel) {
       if (!window.htmx || !document.querySelector(sel)) return null;
+      // a background refresh never cancels something a person pressed: while a press is on its way it steps aside (the next round
+      // of the refresh, or the press's own answer, brings the list up to date)
+      if (typeof inflight !== 'undefined' && inflight.size) return null;
       return htmx.ajax('GET', location.pathname + location.search, { target: sel, select: sel, swap: 'outerHTML', headers: { 'X-Press-Quiet': '1' } });
     }
   };

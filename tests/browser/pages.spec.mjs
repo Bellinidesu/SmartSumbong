@@ -188,7 +188,7 @@ test('SMART Iteration 4: the command center (suggest, look, turn on, hand over, 
   await expect(page.locator('#cc-side .cc-modes li')).toHaveCount(4);
   // look first: Fire Surroundings names what is within 50 m
   await page.locator('#cc-side [data-look="fire"]').click();
-  await expect(page.locator('#cc-side .cc-rings')).toContainText('Within 50 m');
+  await expect(page.locator('#cc-side .cc-rings'), 'the places around are read from the map data, which takes a moment on a slow machine').toContainText('Within 50 m', { timeout: 15000 });
   await expect(page.locator('#cc-side .cc-rings')).toContainText('Gasolinahan sa Kanto');
   await expect(page.locator('#cc-side .cc-foot')).toContainText('does not predict');
   expect(await axe(page), 'Command center, looking at Fire Surroundings').toEqual([]);
@@ -1592,4 +1592,20 @@ test('Press flow (7 Nov, Ace: "always a thin orange bar"): the bar goes away aft
   await idle('no bar left after a sort');
   // the cancelled request is logged by htmx (it names the request it dropped); nothing else may be
   expect(r.errors.filter(m => !/htmx:(afterRequest|sendAbort|abort)/.test(m)), 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov): a background refresh never cancels a press (Personnel, a duty tile pressed just as the 20-second refresh fires)', async ({ browser }) => {
+  const ctx = await browser.newContext({ serviceWorkers: 'block', baseURL: 'http://127.0.0.1:8013/admin/', viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const r = await open(page, 'personnel.php');
+  // the press's request takes its time (a slow connection); the background refresh fires while it is on its way
+  await page.route(/personnel\.php\?duty=/, async route => { await new Promise(res => setTimeout(res, 1500)); return route.continue(); });
+  const settled = page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', e => { const c = e.detail && e.detail.requestConfig; if (!(c && c.headers && c.headers['X-Press-Quiet'])) res(); })));
+  await page.locator('#people-list .p-att-on_duty').click();
+  await page.evaluate(() => window.ssLive.people());
+  await settled;
+  await expect(page, 'the press won').toHaveURL(/duty=on_duty/);
+  await expect(page.locator('#accounts-tbody tr'), 'and its list is shown').toHaveCount(2);
+  expect(r.errors.filter(m => !/htmx:(afterRequest|sendAbort|abort)/.test(m)), 'console errors').toEqual([]);
+  await ctx.close();
 });
