@@ -964,3 +964,45 @@
 .cr-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .cr-actions .p-btn { height: 42px; padding: 0 20px; border-radius: 12px; }
 @media (prefers-reduced-motion: reduce) { .cr-scrim, .cr-modal { transition: none; } }
+
+/* ================= 6 Nov 2026, Administrative Services (the easy tabs): Roles with the shared chooser, retirement for tanods and staff, the steps of an escalation ================= */
+:root:root .p-body.page-administrative-services .ss-pband { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-administrative-services .ss-pband :is(.p-search, .p-pill-select, .jp-add) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-administrative-services .ss-pband .p-search { padding: 0 14px; }
+:root:root .p-body.page-administrative-services .ss-pband .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-administrative-services .ss-pband .jp-add { display: inline-flex; align-items: center; padding: 0 20px; font-size: 14px; }
+:root:root .p-body.page-administrative-services .ss-subband .ss-subnote { font-size: 13.5px; }
+
+/* how a case goes up: four steps side by side, each in its role colour, with an arrow between them */
+.es-flow { list-style: none; margin: 18px 0 18px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.es-step { position: relative; display: grid; }
+.es-num { position: absolute; top: -13px; left: 18px; z-index: 2; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; font: 800 14px Inter Tight, Inter, sans-serif; color: #fff;
+  background: color-mix(in srgb, var(--lc) 82%, #000); box-shadow: 0 0 0 4px var(--p-bg, #fff); }
+:root[data-theme="dark"] .es-step[style*="rk-chair"] .es-num { color: #14181D; }
+.es-box { display: grid; gap: 10px; align-content: start; height: 100%; padding: 26px 20px 18px; border-top: 4px solid var(--lc); }
+.es-box h3 { margin: 0; display: grid; gap: 2px; font: 800 17px Inter Tight, Inter, sans-serif; }
+.es-box h3 small { font: 600 12.5px Inter, sans-serif; color: var(--p-muted); }
+.es-box p { margin: 0; color: var(--p-ink-2); font: 500 13.5px/1.55 Inter, sans-serif; }
+.es-box > .p-badge, .es-box > .ss-holder { justify-self: start; }
+.es-step:not(:last-child)::after { content: ""; position: absolute; right: -14px; top: 50%; width: 10px; height: 10px; border-top: 3px solid var(--p-line-2); border-right: 3px solid var(--p-line-2); transform: translateY(-50%) rotate(45deg); }
+@media (max-width: 1500px) { .es-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } .es-step:nth-child(2n)::after { display: none; } }
+@media (max-width: 760px) { .es-flow { grid-template-columns: 1fr; } .es-step::after { display: none; } }
+.es-map { overflow: hidden; margin-bottom: 18px; }
+.es-maph { display: grid; gap: 4px; padding: 18px 22px 12px; }
+.es-maph h3 { margin: 0; font: 800 17px Inter Tight, Inter, sans-serif; }
+.es-maph p { margin: 0; color: var(--p-muted); font: 500 13.5px Inter, sans-serif; }
+.es-white .ss-ohead thead th, :root[data-theme="dark"] .es-white .ss-ohead thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+
+/* the women responders header is a curved bar like the others */
+:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin: 0 0 14px; border-radius: 16px; overflow: hidden; }
+:root:root .p-body.page-administrative-services .wr-banner .cm-chip { border-radius: 16px; }
+:root:root .p-body.page-administrative-services .wr-banner + .ss-adm { border-radius: 16px; overflow: hidden; }
+:root:root:root:root .p-body.page-administrative-services .cm-chips.cm-choose.ad-roles { margin: 0 0 14px; border-radius: 14px; }
+:root:root:root:root .p-body.page-administrative-services .cm-chips.cm-choose.ad-roles .cm-chip { flex: 1 1 0; }
+:root:root:root:root .p-body.page-administrative-services .ss-pband { margin-bottom: 14px; border-radius: 16px; }
+:root:root .p-body .es-white .ss-ohead thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root[data-theme="dark"] .p-body .es-white .ss-ohead thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); }
+/* the women responders banner stays one block with its list, with the curve on top and on the bottom of the block */
+:root:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin: 0; border-radius: 16px 16px 0 0; overflow: hidden; }
+:root:root:root .p-body.page-administrative-services .wr-banner .cm-chip { border-radius: 16px 16px 0 0; }
+:root:root:root .p-body.page-administrative-services .wr-banner + .ss-adm { margin-top: 0; margin-bottom: 18px; border-radius: 0 0 16px 16px; overflow: hidden; }

@@ -634,7 +634,7 @@ layout_head($stTitle, ST_PAGES[$stPage]['file']);
 
 <?php
 $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => t('Plan and usage', 'Plano at paggamit'), 'smart' => 'SMART',
-    'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Administrators', 'Mga Administrator'), 'ladder' => t('Escalation and responders', 'Eskalasyon at mga responder'),
+    'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Roles', 'Mga Tungkulin'), 'ladder' => t('Escalation and responders', 'Eskalasyon at mga responder'),
     'plan' => t('Planning', 'Pagpaplano'), 'types' => t('Complaint types', 'Mga uri ng reklamo'), 'rules' => t('Rules', 'Mga patakaran'),
     'hotlines' => t('Hotlines', 'Mga hotline'), 'wording' => t('Wording', 'Mga salita'), 'brgy' => t('The barangay', 'Ang barangay'),
     'parts' => t('Parts of the system', 'Mga bahagi ng sistema'), 'updates' => t('App updates', 'Mga update ng app'),
@@ -679,7 +679,7 @@ if ($stPage !== 'mine') try {   // the administrators, tanods and committee map 
   <?php endif; ?>
   <?php $roleOpts = ['' => t('Staff', 'Kawani'), 'secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')]; ?>
   <div class="p-band ss-pband">
-    <h2><?= e(t('Administrators', 'Mga Administrator')) ?><span class="p-badge-n p-badge-n--quiet" id="jp-count"><?= count($admins) ?></span></h2>
+    <h2><?= e(t('Roles', 'Mga Tungkulin')) ?><span class="p-badge-n p-badge-n--quiet" id="jp-count"><?= count($admins) ?></span></h2>
     <form class="p-search" role="search">
       <?= p_icon('i-search', 16) ?><label class="p-sr" for="jp-q"><?= e(t('Search for names', 'Hanapin ang pangalan')) ?></label>
       <input type="search" id="jp-q" placeholder="<?= e(t('Search for names', 'Hanapin ang pangalan')) ?>" autocomplete="off">
@@ -696,7 +696,7 @@ if ($stPage !== 'mine') try {   // the administrators, tanods and committee map 
   $rkDef = ['' => [t('All', 'Lahat'), '#2D5BFF', '#00A3FF', '#FFFFFF', 'layers'], 'chairman' => [t('Chairman', 'Punong Barangay'), '#E5383B', '#FF6A3D', '#FFFFFF', 'focus'],
             'kagawad' => [t('Councilor', 'Kagawad'), '#7A5AE0', '#B15CFF', '#FFFFFF', 'handler'], 'secretary' => [t('Secretary', 'Kalihim'), '#0097B8', '#35D0E8', '#FFFFFF', 'calendar'],
             'staff' => [t('Staff', 'Kawani'), '#6C7A9C', '#9AA6C4', '#FFFFFF', 'copy']]; ?>
-  <nav class="cm-chips ad-roles" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
+  <nav class="cm-chips cm-choose ad-roles" data-chooser="a.cm-chip" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
     <?php foreach ($rkDef as $rk => [$rl, $c1, $c2, $ink, $ic]): ?>
       <a class="cm-chip cm-sd<?= $rk === '' ? ' p-on' : '' ?>" href="#" data-role="<?= e($rk) ?>" style="--cc:<?= e($c1) ?>;--ct:<?= e($ink) ?>;--g1:<?= e($c1) ?>;--g2:<?= e($c2) ?>;--g3:<?= e($c2) ?>" title="<?= e($rl) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="<?= e($ic) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e($rl) ?></span><b><?= (int) ($rkN[$rk] ?? 0) ?></b></a>
     <?php endforeach; ?>
@@ -707,6 +707,7 @@ if ($stPage !== 'mine') try {   // the administrators, tanods and committee map 
     chips.forEach(function (c) { c.addEventListener('click', function (e) { e.preventDefault(); sel.value = c.dataset.role; sel.dispatchEvent(new Event('change', { bubbles: true })); chips.forEach(function (x) { x.classList.toggle('p-on', x === c); x.toggleAttribute('aria-current', x === c); }); }); });
   })();
   </script>
+  <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
   <div class="p-card p-table-card jp-scope ss-people ss-adm" id="ss-people"><div class="p-tscroll">
     <table class="p-t ss-ohead">
     <thead><tr>
@@ -802,25 +803,49 @@ if ($stPage !== 'mine') try {   // the administrators, tanods and committee map 
   $nTanods = count($tanods);
   ?>
   <div class="p-band ss-pband ss-subband">
-    <h2><?= e(t('Layered escalation', 'Patong-patong na eskalasyon')) ?><span class="p-badge-n p-badge-n--quiet">3</span></h2>
+    <h2><?= e(t('How a case goes up', 'Paano umaakyat ang kaso')) ?><span class="p-badge-n p-badge-n--quiet">4</span></h2>
     <span class="p-spacer"></span>
-    <span class="ss-subnote"><?= e(t('A case goes up one step at a time, and only when a person sends it. Nothing moves by itself.', 'Isang hakbang bawat pag-akyat ng kaso, at kapag may taong nagpadala lang. Walang kusang gumagalaw.')) ?></span>
+    <span class="ss-subnote"><?= e(t('Every step is a person\'s decision. Nothing moves by itself, and a case can be sent back down.', 'Desisyon ng tao ang bawat hakbang. Walang kusang gumagalaw, at maibabalik ang kaso pababa.')) ?></span>
   </div>
-  <div class="ss-levels">
-    <div class="ss-lvl" style="--lc:var(--rk-tanod)">
-      <span class="ss-num">1</span>
-      <div class="p-card ss-lbox">
-        <h3><?= e(t('Tanod', 'Tanod')) ?><small><?= e(t('first on the case', 'unang hahawak')) ?></small></h3>
-        <p><?= e(t('Whoever the barangay dispatches. They can escalate from the app, on site or from the job screen.', 'Sinumang ipadala ng barangay. Maaari silang mag-escalate mula sa app, sa lugar o sa job screen.')) ?></p>
+  <ol class="ss-levels es-flow">
+    <li class="es-step" style="--lc:var(--rk-tanod)">
+      <span class="es-num">1</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Tanod', 'Tanod')) ?><small><?= e(t('asks', 'humihiling')) ?></small></h3>
+        <p><?= e(t('Does the job on site. If it is too much, the tanod asks to escalate from the app, with a reason. A tanod asks; they cannot move the case themselves.', 'Gumagawa ng trabaho sa lugar. Kapag napakabigat, humihiling ang tanod na i-escalate mula sa app, may dahilan. Humihiling lang ang tanod; hindi nila malilipat ang kaso.')) ?></p>
         <span class="p-badge p-b-progress"><?= $nTanods ?> <?= e(t($nTanods === 1 ? 'active tanod' : 'active tanods', 'aktibong tanod')) ?></span>
       </div>
-    </div>
-    <div class="ss-lvl" style="--lc:var(--rk-kagawad)">
-      <span class="ss-num">2</span>
-      <div class="p-card p-table-card ss-lbox ss-lbox--tbl">
-        <h3><?= e(t('Kagawad of the committee', 'Kagawad ng komite')) ?><small><?= e(t('when the Tanod escalates', 'kapag nag-escalate ang Tanod')) ?></small></h3>
-        <p><?= e(t('Pick which committee takes each kind of complaint first. A Kagawad needs a committee.', 'Piliin kung aling komite ang unang hahawak sa bawat uri ng reklamo. Kailangan ng komite ang Kagawad.')) ?></p>
-        <div class="p-tscroll jp-scope ss-people ss-adm ss-lst"><table class="p-t ss-ohead">
+    </li>
+    <li class="es-step" style="--lc:var(--rk-kagawad)">
+      <span class="es-num">2</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Kagawad of the committee', 'Kagawad ng komite')) ?><small><?= e(t('decides, then takes over', 'nagpapasya, saka hahawak')) ?></small></h3>
+        <p><?= e(t('The committee that takes this kind of complaint first (set below) decides the request. If it is approved, the Kagawad of that committee with the fewest open cases becomes the handler.', 'Ang komiteng unang humahawak sa ganitong reklamo (itinakda sa ibaba) ang nagpapasya sa hiling. Kapag inaprubahan, ang Kagawad ng komiteng iyon na pinakakaunti ang bukas na kaso ang hahawak.')) ?></p>
+        <span class="p-badge p-b-grey"><?= e(t('Staff cannot escalate up', 'Hindi makakapag-escalate paakyat ang kawani')) ?></span>
+      </div>
+    </li>
+    <li class="es-step" style="--lc:var(--rk-chair)">
+      <span class="es-num">3</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Chairman', 'Punong Barangay')) ?><small><?= e(t('last step in the barangay', 'huling hakbang sa barangay')) ?></small></h3>
+        <p><?= e(t('When a Kagawad escalates, the Chairman becomes the handler and decides. The Chairman can send the case back down.', 'Kapag nag-escalate ang Kagawad, ang Punong Barangay ang hahawak at magpapasya. Maibabalik ng Punong Barangay ang kaso pababa.')) ?></p>
+        <?php if ($chairs): foreach ($chairs as $c): ?><span class="ss-who ss-holder"><?= admin_chip($c['id'], (string) $c['full_name'], 28) ?><?= e(formal_name($c['full_name'])) ?></span><?php endforeach; else: ?>
+          <span class="p-badge p-b-denied"><?= e(t('No Chairman yet', 'Wala pang Punong Barangay')) ?></span><?php endif; ?>
+      </div>
+    </li>
+    <li class="es-step" style="--lc:#6C7A9C">
+      <span class="es-num">4</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Outside office', 'Labas na tanggapan')) ?><small><?= e(t('closes it here', 'dito nagsasara')) ?></small></h3>
+        <p><?= e(t('For what the barangay cannot settle (the VAWC desk, the police, DSWD), an official refers the case out from the case page. It closes here, with the office and a note on record.', 'Sa hindi kayang ayusin ng barangay (VAWC desk, pulis, DSWD), ipinapadala ito ng opisyal mula sa pahina ng kaso. Dito ito nagsasara, may tanggapan at tala sa talaan.')) ?></p>
+      </div>
+    </li>
+  </ol>
+
+  <div class="p-card p-table-card es-map">
+    <div class="es-maph"><h3><?= e(t('Which committee takes each kind of complaint first', 'Aling komite ang unang hahawak sa bawat uri ng reklamo')) ?></h3>
+      <p><?= e(t('This sets whose Kagawad receives an escalation for that kind of complaint. A Kagawad needs a committee.', 'Dito itinatakda kung kaninong Kagawad mapupunta ang escalation sa uri ng reklamong iyon. Kailangan ng komite ang Kagawad.')) ?></p></div>
+    <div class="p-tscroll jp-scope ss-people ss-adm ss-lst es-white"><table class="p-t ss-ohead">
           <thead><tr><th scope="col"><?= e(t('Kind of complaint', 'Uri ng reklamo')) ?></th><th scope="col"><?= e(t('Committee that takes it first', 'Komiteng unang hahawak')) ?></th><th scope="col"><?= e(t('Kagawad on it now', 'Kagawad ngayon')) ?></th></tr></thead>
           <tbody>
           <?php foreach ($cmap as $m):
@@ -843,17 +868,6 @@ if ($stPage !== 'mine') try {   // the administrators, tanods and committee map 
           <?php endforeach; ?>
           </tbody>
         </table></div>
-      </div>
-    </div>
-    <div class="ss-lvl" style="--lc:var(--rk-chair)">
-      <span class="ss-num">3</span>
-      <div class="p-card ss-lbox">
-        <h3><?= e(t('Chairman', 'Punong Barangay')) ?><small><?= e(t('final step: when the Kagawad escalates', 'huling hakbang: kapag nag-escalate ang Kagawad')) ?></small></h3>
-        <?php if ($chairs): foreach ($chairs as $c): ?><span class="ss-who ss-holder"><?= admin_chip($c['id'], (string) $c['full_name'], 28) ?><?= e(formal_name($c['full_name'])) ?></span><?php endforeach; else: ?>
-          <span class="p-badge p-b-denied"><?= e(t('No Chairman yet', 'Wala pang Punong Barangay')) ?></span><?php endif; ?>
-        <p class="p-sub"><?= e(t('There is one Chairman. Cases that need an outside office are sent from the case page.', 'Iisa ang Punong Barangay. Ang mga kasong kailangan ng labas na tanggapan ay ipinapadala mula sa pahina ng kaso.')) ?></p>
-      </div>
-    </div>
   </div>
 
   <nav class="cm-chips wr-banner" aria-label="<?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?>">
