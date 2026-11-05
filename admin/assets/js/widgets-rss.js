@@ -19,7 +19,7 @@
   var stories = function (items, o) { items = byNew(items); return items.length ? '<div class="wx-stories">' + items.map(function (x) { return story(x, o); }).join('') + '</div>' : A.empty('news', T('Nothing new in this feed', 'Walang bago sa feed na ito')); };
   var viaNote = function () { return '<p class="wx-note">' + T('News stories from a search, with the publisher named. Not an official notice: confirm with the utility or the city.', 'Mga balita mula sa paghahanap, may pangalan ng naglathala. Hindi opisyal na abiso: kumpirmahin sa utility o sa lungsod.') + '</p>'; };
   var feedOf = function (key) { return ok(WS.group('rss:' + key)); };
-  var head = function (d, extra) { return '<div class="wx-row"><b style="font:800 15px Urbanist">' + esc(d.name) + '</b>' + (d.search ? A.pill(T('via Google News', 'sa pamamagitan ng Google News'), L.low) : '') + '<span class="wx-note" style="margin-left:auto">' + d.items.length + ' ' + T('stories', 'balita') + '</span></div>' + (extra || ''); };
+  var head = function (d, extra) { return '<div class="wx-row"><b style="font:800 15px Inter">' + esc(d.name) + '</b>' + (d.search ? A.pill(T('via Google News', 'sa pamamagitan ng Google News'), L.low) : '') + '<span class="wx-note" style="margin-left:auto">' + d.items.length + ' ' + T('stories', 'balita') + '</span></div>' + (extra || ''); };
 
   function simple(id, key, opts) {
     opts = opts || {};
@@ -68,7 +68,7 @@
       var keys = ['pna', 'inquirer', 'doh'], all = [];
       keys.forEach(function (k) { var d = feedOf(k); if (d) d.items.slice(0, 6).forEach(function (x) { all.push(Object.assign({ feed: d.name }, x)); }); });
       all.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
-      return '<div class="wx-row"><b style="font:800 15px Urbanist">PNA · Inquirer · DOH</b>' + A.pill(T('PNA and DOH via news search', 'PNA at DOH sa pamamagitan ng paghahanap'), L.low) + '</div>' + stories(all.slice(0, 7)) + '<p class="wx-note">' + T('PNA publishes no feed and the DOH site blocks automatic readers, so their stories come through a news search. Confirm advisories with the source.', 'Walang feed ang PNA at hinaharang ng site ng DOH ang awtomatikong pagbasa, kaya ang balita nila ay dumadaan sa paghahanap ng balita. Kumpirmahin ang mga abiso sa pinagmulan.') + '</p>';
+      return '<div class="wx-row"><b style="font:800 15px Inter">PNA · Inquirer · DOH</b>' + A.pill(T('PNA and DOH via news search', 'PNA at DOH sa pamamagitan ng paghahanap'), L.low) + '</div>' + stories(all.slice(0, 7)) + '<p class="wx-note">' + T('PNA publishes no feed and the DOH site blocks automatic readers, so their stories come through a news search. Confirm advisories with the source.', 'Walang feed ang PNA at hinaharang ng site ng DOH ang awtomatikong pagbasa, kaya ang balita nila ay dumadaan sa paghahanap ng balita. Kumpirmahin ang mga abiso sa pinagmulan.') + '</p>';
     }, src: 'Inquirer · Google News (PNA, DOH)'
   };
 
@@ -97,7 +97,7 @@
     r: function () {
       var d = ok(WS.group('rssmine'));
       if (!d.stream.length) return A.empty('rss', T('Your stream is empty', 'Walang laman ang iyong stream'), T('Follow a feed in My own feed, or add the news widgets to your rail: their feeds join this stream.', 'Sumunod sa feed sa Sarili kong feed, o idagdag ang mga widget ng balita sa rail: sasali ang mga feed nila sa stream na ito.'));
-      return '<div class="wx-row"><b style="font:800 15px Urbanist">' + T('All my feeds', 'Lahat ng feed ko') + '</b><span class="wx-note" style="margin-left:auto">' + d.feeds.length + ' ' + T('feeds', 'feed') + ' · ' + d.stream.length + ' ' + T('stories', 'balita') + '</span></div>' + stories(d.stream.slice(0, 8), { words: d.keywords });
+      return '<div class="wx-row"><b style="font:800 15px Inter">' + T('All my feeds', 'Lahat ng feed ko') + '</b><span class="wx-note" style="margin-left:auto">' + d.feeds.length + ' ' + T('feeds', 'feed') + ' · ' + d.stream.length + ' ' + T('stories', 'balita') + '</span></div>' + stories(d.stream.slice(0, 8), { words: d.keywords });
     }
   };
   W.rsskey = Object.assign({

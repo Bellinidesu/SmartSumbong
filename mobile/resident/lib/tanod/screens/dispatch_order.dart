@@ -648,11 +648,11 @@ class _DispatchOrderState extends State<_DispatchOrder>
                       const SizedBox(height: 14),
                       Text(context.tr('Dispatch accepted', 'Tinanggap ang dispatch'),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white)),
+                          style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w900, fontSize: 30, color: Colors.white)),
                       const SizedBox(height: 4),
                       Text(widget.ticket.subject,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white)),
+                          style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 19, color: Colors.white)),
                       Text(
                         near != null && near.isNotEmpty ? '${widget.ticket.trackingId} · ${s.dispatchNear(near)}' : widget.ticket.trackingId,
                         textAlign: TextAlign.center,
@@ -666,7 +666,7 @@ class _DispatchOrderState extends State<_DispatchOrder>
                           const Icon(Icons.visibility_outlined, size: 16, color: Colors.white),
                           const SizedBox(width: 6),
                           Text(context.tr('The barangay can see you took it', 'Nakikita ng barangay na tinanggap mo'),
-                              style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)),
+                              style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white)),
                         ]),
                       ),
                     ]),
@@ -742,7 +742,7 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) => Text.rich(
     TextSpan(
       style: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter',
         fontWeight: FontWeight.w500,
         fontSize: 14,
         height: 15 / 14,
@@ -784,7 +784,7 @@ class _Link extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                   color: ink,
@@ -851,7 +851,7 @@ class _Pill extends StatelessWidget {
               borderRadius: BorderRadius.circular(radius),
             ),
             textStyle: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: fontSize,
             ),

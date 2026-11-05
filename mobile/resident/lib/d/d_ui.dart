@@ -315,7 +315,7 @@ class DButton extends StatelessWidget {
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: fontSize ?? (small ? 13.5 : 15), color: fg)),
+                  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: fontSize ?? (small ? 13.5 : 15), color: fg)),
             ),
           ]);
     final enabled = onTap != null && !busy;

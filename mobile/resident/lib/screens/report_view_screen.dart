@@ -925,7 +925,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
         backgroundColor: ctx.colors.bg,
         title: Text(s.followUpTitle,
             style: TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter Tight',
                 fontWeight: FontWeight.w800,
                 color: ctx.colors.navy)),
         content: Column(
@@ -934,7 +934,7 @@ class _ReportViewScreenState extends State<ReportViewScreen> {
           children: [
             Text(s.followUpBody,
                 style: TextStyle(
-                    fontFamily: 'Urbanist', fontSize: 13.5, color: ctx.colors.navy)),
+                    fontFamily: 'Inter', fontSize: 13.5, color: ctx.colors.navy)),
             const SizedBox(height: 12),
             TextField(
               controller: note,
@@ -1247,7 +1247,7 @@ class _SubmittedStepRow extends StatelessWidget {
           Text(
             s.reportViewSubmittedStep,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.navy,
@@ -1313,7 +1313,7 @@ class _TimelineRow extends StatelessWidget {
           Text(
             s.reportStatusLabel(status.wire),
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.navy,
@@ -1374,7 +1374,7 @@ class _UpcomingStepRow extends StatelessWidget {
           Text(
             s.reportStatusLabel(wire),
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: context.colors.muted,
@@ -1604,7 +1604,7 @@ class _ActionDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter Tight',
                 fontWeight: FontWeight.w700,
                 fontSize: 24,
                 height: 21 / 24,
@@ -1617,7 +1617,7 @@ class _ActionDialog extends StatelessWidget {
                 body!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
                   height: 15 / 16,
@@ -1666,7 +1666,7 @@ class _DialogPill extends StatelessWidget {
     );
     const size = Size(106, 40);
     const text = TextStyle(
-      fontFamily: 'Urbanist',
+      fontFamily: 'Inter',
       fontWeight: FontWeight.w700,
       fontSize: 16,
     );
@@ -1805,7 +1805,7 @@ class _PhotoViewerState extends State<_PhotoViewer> {
                       child: Text(
                         '${_index + 1} / ${items.length}',
                         style: const TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           color: Colors.white,
@@ -1949,7 +1949,7 @@ class _FeedbackCard extends StatelessWidget {
           given == null ? s.reportViewHowDidWeDo : s.reportViewYourFeedback,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontFamily: 'Urbanist',
+            fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
             fontSize: 14,
             color: context.colors.navy,
@@ -2104,7 +2104,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 s.reportViewFeedbackTitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter Tight',
                   fontWeight: FontWeight.w800,
                   fontSize: 28,
                   height: 25 / 28,
@@ -2153,7 +2153,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                   child: Text(
                     s.reportViewProvideFeedback,
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       height: 22 / 14,
@@ -2173,7 +2173,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                     maxLength: 300,
                     textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
                       color: c.navy,
@@ -2181,7 +2181,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                     decoration: InputDecoration(
                       hintText: s.reportViewCommentHint,
                       hintStyle: TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w400,
                         fontSize: 12,
                         color: c.navy,
@@ -2210,7 +2210,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                       builder: (context, v, _) => Text(
                         '${v.text.characters.length}/300',
                         style: TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w300,
                           fontSize: 10,
                           color: c.navy,

@@ -9,6 +9,16 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**New (the system's type: Inter Tight over Inter, 5 Nov; app 1.0.4)**
+- The portal and the app change from Urbanist, which read curvy, to the Apple pairing: Inter Tight for headings and big figures,
+  Inter for everything else. Apple's San Francisco cannot ship on Android or the web, and Inter is built on the same ideas.
+- Display sizes (17 px and up) take Inter Tight; everything smaller takes Inter. The heaviest weight is Bold (an 800 asks for the
+  Bold file). Inter is a little wider than Urbanist, so some long text wraps one line sooner.
+- Portal: `fonts.css`, `admin/assets/vendor/fonts` (Inter Tight woff2, listed in `vendor.json`), the preloads and the perf budget.
+  App: `pubspec.yaml`, `assets/fonts` (Inter Tight and the italics, Latin and symbols). `tools/make_inter_tight.py` cuts all of
+  them from Google's variable fonts; `tests/browser/font-audit.spec.mjs` checks what every piece of text really renders with.
+- The password-reset email template (`docs/email/reset-password.html`) follows; paste it into Supabase to use it.
+
 **Rose's notes (2 Nov)**
 - The Dashboard has its own layout again: the month's reports across the top, the three figures stacked beside the two donuts,
   then resolution efficiency. The greeting header and the month filter stay. What waits on a super admin, the committees and

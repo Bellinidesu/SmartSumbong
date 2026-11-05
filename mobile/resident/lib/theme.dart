@@ -336,12 +336,12 @@ ThemeData buildResidentTheme(Brightness brightness) {
     brightness: brightness,
     colorScheme: scheme,
     scaffoldBackgroundColor: c.bg,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Inter',
 
     textTheme: TextTheme(
       // "Sign Up as Resident"
       headlineLarge: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter Tight',
         fontWeight: FontWeight.w700,
         fontSize: 30,
         height: 1.15,
@@ -349,14 +349,14 @@ ThemeData buildResidentTheme(Brightness brightness) {
       ),
       // "Create your Account"
       titleMedium: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter',
         fontWeight: FontWeight.w500,
         fontSize: 16,
         color: c.navy,
       ),
       // Field labels
       labelLarge: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter',
         fontWeight: FontWeight.w700,
         fontSize: 16,
         color: c.navy,
@@ -398,7 +398,7 @@ ThemeData buildResidentTheme(Brightness brightness) {
           borderRadius: BorderRadius.circular(Tokens.pill),
         ),
         textStyle: const TextStyle(
-          fontFamily: 'Urbanist',
+          fontFamily: 'Inter',
           fontWeight: FontWeight.w700,
           fontSize: 16,
         ),
@@ -407,12 +407,12 @@ ThemeData buildResidentTheme(Brightness brightness) {
 
     // Every snackbar (the draft-restored note, save/copy confirmations,
     // errors) in the design's language rather than Material's grey: a
-    // floating navy pill, radius 25, light Urbanist text, orange action.
+    // floating navy pill, radius 25, light Inter text, orange action.
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: c.navy,
       contentTextStyle: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter',
         fontWeight: FontWeight.w600,
         fontSize: 14,
         color: c.bg,
@@ -469,12 +469,12 @@ ThemeData buildTanodTheme(Brightness brightness) {
     brightness: brightness,
     colorScheme: scheme,
     scaffoldBackgroundColor: c.bg,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Inter',
 
     textTheme: TextTheme(
       // "Sign Up as Resident"
       headlineLarge: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter Tight',
         fontWeight: FontWeight.w700,
         fontSize: 30,
         height: 1.15,
@@ -482,14 +482,14 @@ ThemeData buildTanodTheme(Brightness brightness) {
       ),
       // "Create your Account"
       titleMedium: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter',
         fontWeight: FontWeight.w500,
         fontSize: 16,
         color: c.navy,
       ),
       // Field labels
       labelLarge: TextStyle(
-        fontFamily: 'Urbanist',
+        fontFamily: 'Inter',
         fontWeight: FontWeight.w700,
         fontSize: 16,
         color: c.navy,
@@ -531,7 +531,7 @@ ThemeData buildTanodTheme(Brightness brightness) {
           borderRadius: BorderRadius.circular(Tokens.pill),
         ),
         textStyle: const TextStyle(
-          fontFamily: 'Urbanist',
+          fontFamily: 'Inter',
           fontWeight: FontWeight.w700,
           fontSize: 16,
         ),

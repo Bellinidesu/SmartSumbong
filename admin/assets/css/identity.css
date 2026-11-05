@@ -30,7 +30,7 @@
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .id-on :is(.p-kpi, .dh-kpi .ss-tile):hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20,27,52,.06), 0 16px 32px -14px color-mix(in srgb, var(--tile-acc, var(--id-acc)) 60%, transparent); }
-.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-family: Urbanist, system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
+.id-on :is(.p-kpi .p-value, .dh-kpi .ss-tile b) { font-family: Inter Tight, system-ui, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -.025em; line-height: 1; }
 .id-on :is(.p-kpi .p-label, .dh-kpi .ss-tile > span) { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
 .id-on .dh-kpi .ss-tile { --tile-acc: #FF9800; }
 .id-on .dh-kpi .ss-tile.hot { --tile-acc: var(--p-red); }
@@ -144,7 +144,7 @@
   transform: translateX(100%); visibility: hidden; transition: transform .3s cubic-bezier(.2,.8,.2,1), visibility 0s .3s; }
 .ss-win.is-open { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
 .ss-win-head { display: flex; align-items: center; gap: 14px; padding: 18px 20px; color: #fff; background: linear-gradient(135deg, #141B34 0%, #0A2A6E 100%); }
-.ss-win-ttl b { display: block; font: 800 19px Urbanist, sans-serif; letter-spacing: -.01em; }
+.ss-win-ttl b { display: block; font: 800 19px Inter Tight, sans-serif; letter-spacing: -.01em; }
 .ss-win-ttl small { display: block; margin-top: 3px; font-size: 12.5px; opacity: .8; }
 .ss-win-x { margin-left: auto; flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
 .ss-win-x:hover { background: rgba(255,255,255,.22); }
@@ -153,14 +153,14 @@
 .ss-win .ss-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .ss-win .ss-two { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .ss-win .ss-stack { display: grid; gap: 14px; }
-.ss-win-about h3 { margin: 4px 0 8px; font: 800 17px Urbanist, sans-serif; }
+.ss-win-about h3 { margin: 4px 0 8px; font: 800 17px Inter Tight, sans-serif; }
 .ss-win-about .dq-notes ul { margin: 0 0 12px; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
 @media (prefers-reduced-motion: reduce) { .ss-win, .ss-win-scrim, .ss-brain-btn { transition: none; } }
 
 /* ---- the committees: a name that titles a row is never a pill; a colour bar, the name, who leads it, the load ---- */
 .dc-name { display: flex; align-items: center; gap: 12px; color: var(--p-ink); text-decoration: none; }
 .dc-name > i { flex: none; width: 4px; align-self: stretch; min-height: 32px; border-radius: 2px; background: var(--cc, var(--id-acc)); }
-.dc-name b { display: block; font: 700 14.5px/1.25 Urbanist, sans-serif; }
+.dc-name b { display: block; font: 700 14.5px/1.25 Inter, sans-serif; }
 .dc-name small { display: block; margin-top: 1px; font-size: 12px; color: var(--p-muted); }
 .dc-name small.dc-warn { color: var(--p-red); font-weight: 700; }
 .dh-ctab .dh-bar { margin: 8px 0 0 16px; }
@@ -224,7 +224,7 @@
 .page-summary .ss-sumkpis .p-kpi { display: grid; grid-template-rows: auto auto 1fr; gap: 6px; min-height: 148px; }
 :root:root .p-body.page-summary .ss-sumkpis > .p-kpi::before { height: 3px; }
 .page-summary .ss-sumkpis .p-value { display: flex; align-items: baseline; gap: 8px; }
-.rs-of { font: 700 15px Urbanist, sans-serif; letter-spacing: 0; color: var(--p-muted); }
+.rs-of { font: 700 15px Inter, sans-serif; letter-spacing: 0; color: var(--p-muted); }
 .rs-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; align-self: end; }
 .rs-chg { font: 700 12.5px Inter, sans-serif; white-space: nowrap; color: var(--p-muted); }
 .rs-chg.rs-good { color: var(--p-green); } .rs-chg.rs-bad { color: var(--p-red); }
@@ -264,7 +264,7 @@
 .rs-tn-row b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rs-tn-bar { height: 8px; border-radius: 99px; background: var(--p-line); overflow: hidden; }
 .rs-tn-bar i { display: block; height: 100%; border-radius: 99px; background: #FF9800; }
-.rs-tn-n { font: 800 14px Urbanist, sans-serif; white-space: nowrap; }
+.rs-tn-n { font: 800 14px Inter, sans-serif; white-space: nowrap; }
 .rs-tn-n small { font: 600 11.5px Inter, sans-serif; color: var(--p-muted); }
 .rs-tn-n.rs-low { color: var(--p-red); }
 @media (max-width: 1100px) { .rs-tn-row { grid-template-columns: 1fr auto auto; } .rs-tn-bar, .rs-tn-n:nth-of-type(n+4) { display: none; } }
@@ -275,7 +275,7 @@
 .rs-w-card .p-eyebrow { margin: 0; }
 .rs-w-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.45; }
 .rs-w-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--p-line); }
-.rs-w-row b { font: 800 16px Urbanist, sans-serif; color: var(--p-red); }
+.rs-w-row b { font: 800 16px Inter, sans-serif; color: var(--p-red); }
 .ss-win .rs-tn { padding: 18px; }
 .ss-win .rs-tn-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 10px; padding: 10px 0; }
 .ss-win .rs-tn-row b, .ss-win .rs-tn-bar { grid-column: 1 / -1; }
@@ -293,7 +293,7 @@
 }
 .page-summary .p-table-card > .p-card-head h2 { color: #2B1A00; font-size: 16px; font-weight: 800; margin: 0; }
 .page-summary .p-table-card > .p-card-head .p-hint { color: rgba(43,26,0,.75); font-weight: 700; }
-.page-summary .p-table-card thead.p-blue th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
+.page-summary .p-table-card thead.p-blue th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; }
 .page-summary .p-table-card thead.p-blue th a { color: #fff; }
 
 /* ---- the Case Timeline: a picker on the left, one case's story on the right, on a rail ---- */
@@ -307,7 +307,7 @@
 .rs-tl-view { padding: 18px 26px 26px; min-width: 0; }
 .rs-tl-head { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--p-line); }
 .rs-tl-head > div { display: grid; gap: 2px; }
-.rs-tl-head b { font: 800 17px Urbanist, sans-serif; }
+.rs-tl-head b { font: 800 17px Inter Tight, sans-serif; }
 .rs-tl-id { font-size: 13px; }
 .rs-tl2 { list-style: none; margin: 0; padding: 0 0 0 8px; position: relative; display: grid; }
 .rs-tl2::before { content: ""; position: absolute; left: 14px; top: 8px; bottom: 8px; width: 2px; background: var(--p-line); }
@@ -334,12 +334,12 @@
 :root:root .p-body .cr-fig > a.p-card + a.p-card { border-left: 1px solid var(--p-line); }
 :root:root .p-body .cr-fig > a.p-card:hover { background: color-mix(in srgb, var(--id-acc) 5%, transparent); transform: none; }
 .cr-fig .ss-tile > span { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--p-muted); }
-.cr-fig .ss-tile b { font: 800 40px/1 Urbanist, sans-serif; letter-spacing: -.025em; }
+.cr-fig .ss-tile b { font: 800 40px/1 Inter Tight, sans-serif; letter-spacing: -.025em; }
 .cr-fig .ss-tile.hot b { color: var(--p-red); }
 .cr-fig .ss-tile small { font-size: 12.5px; line-height: 1.35; color: var(--p-muted); }
 @media (max-width: 1100px) { .cr-fig { grid-template-columns: repeat(2, minmax(0, 1fr)); } :root:root .p-body .cr-fig > a.p-card:nth-child(3) { border-left: 0; } :root:root .p-body .cr-fig > a.p-card:nth-child(n+3) { border-top: 1px solid var(--p-line); } }
 /* the column header under the orange band is the Figma blue */
-:root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
+:root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; }
 :root:root .p-body.page-cases .ss-cases-t thead th :is(a, .p-th-sort, .p-th-sort:hover) { color: #fff; }
 /* overdue in red, escalated in violet */
 .page-cases tr.cr-od > td:first-child { box-shadow: inset 4px 0 0 var(--p-red); }
@@ -362,10 +362,10 @@
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.p-on { background: color-mix(in srgb, var(--cc, var(--p-ink)) 11%, var(--p-surface)); box-shadow: inset 0 -3px 0 var(--cc, var(--p-ink)); }
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i { width: 4px; height: 32px; border-radius: 2px; background: var(--cc, var(--p-ink)); }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:first-child { --cc: var(--p-ink); }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Urbanist, sans-serif; white-space: normal; overflow-wrap: anywhere; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { display: grid; gap: 1px; min-width: 0; font: 700 13.5px/1.25 Inter, sans-serif; white-space: normal; overflow-wrap: anywhere; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em { font: 600 11.5px Inter, sans-serif; font-style: normal; color: var(--p-muted); }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od { color: var(--p-red); font-weight: 700; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 22px Urbanist, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { min-width: 0; height: auto; padding: 0; border-radius: 0; background: none; font: 800 22px Inter Tight, sans-serif; letter-spacing: -.02em; color: var(--p-ink); }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; margin-top: 0; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips ~ .fw-bulk { margin: 10px 0; }
 /* a case's tag and place stay on one line (the whole text on hover) so every row is one height */
@@ -380,7 +380,7 @@
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips ~ .p-table-card { border-radius: 0 0 16px 16px; border-top: 0; box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--id-acc) 45%, transparent); }
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; min-height: 66px; padding: 10px 18px 10px 14px; position: relative; }
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym {
-  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font: 800 13px/1 Urbanist, sans-serif; letter-spacing: .02em; font-style: normal;
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font: 800 13px/1 Inter, sans-serif; letter-spacing: .02em; font-style: normal;
   color: color-mix(in srgb, var(--cc, var(--p-ink)) 70%, var(--p-ink)); background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, var(--p-surface));
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc, var(--p-ink)) 45%, transparent);
 }
@@ -422,7 +422,7 @@
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chips:has(.p-on) .cm-chip:not(.p-on):hover { filter: saturate(1.3) brightness(1.06); }
 /* the glass tile with the symbol, as on the quick-view header */
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym {
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; min-width: 42px; height: 42px; padding: 0 9px; border-radius: 12px; font: 800 13px/1 Urbanist, sans-serif; font-style: normal;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; min-width: 42px; height: 42px; padding: 0 9px; border-radius: 12px; font: 800 13px/1 Inter, sans-serif; font-style: normal;
   color: var(--ct); background: color-mix(in srgb, var(--ct) 20%, transparent); box-shadow: none; border: 0;
 }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-ic { width: 24px; height: 24px; flex: none; }
@@ -431,10 +431,10 @@
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym-all { font-size: 0; }
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym-none { background: color-mix(in srgb, var(--ct) 20%, transparent); border: 0; color: var(--ct); }
 /* the name, the overdue as a dark glass pill (the app's chip), the count */
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { color: var(--ct); font: 800 15px/1.2 Urbanist, sans-serif; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { color: var(--ct); font: 800 15px/1.2 Inter, sans-serif; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em { color: var(--ct); opacity: .86; font: 600 12px Inter, sans-serif; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od { opacity: 1; display: inline-block; justify-self: start; padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.38); color: #fff; font: 700 11px Inter, sans-serif; letter-spacing: .02em; }
-:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { color: var(--ct); font: 800 28px Urbanist, sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,.22); }
+:root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { color: var(--ct); font: 800 28px Inter Tight, sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,.22); }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip:first-child { --cc: #2D5BFF; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.cm-chip-none { --cc: #FF2D4B; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip.cm-chip-flag { --cc: #FF9800; --ct: #2B1A00; }
@@ -523,7 +523,7 @@
 /* ================= the committee strip, slim and seamless: as tall as Report Summary's tab strip, nothing outside its cells ================= */
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip { min-height: 54px; padding: 6px 16px; gap: 10px; }
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > i.cm-sym { display: none; }
-:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: 800 14px/1.2 Urbanist, sans-serif; }
+:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: 800 14px/1.2 Inter, sans-serif; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em:not(.cm-od) { display: none; }
 :is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip .cm-n em.cm-od { padding: 1px 8px 1px 7px; font-size: 11px; }
 :root:root .p-body:is(.page-cases, .page-notifications, .page-residents, .page-personnel, .page-administrative-services, .page-settings, .page-home) .cm-chip > b { font-size: 22px; }
@@ -542,7 +542,7 @@
 :root:root .p-body:is(.page-residents, .page-personnel) .cm-chip { flex: 1 1 150px; }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-pband { border-radius: 16px 16px 0 0; margin-bottom: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people { border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 0; }
-:root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Urbanist, sans-serif; letter-spacing: .02em; }
+:root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; }
 :root:root .p-body:is(.page-residents, .page-personnel) .ss-people thead th :is(a, label) { color: #fff; }
 /* Squares: cards wide enough that eight residents are not seven and a lone one; the strip closes off when there is no table card under it */
 :root:root .p-body .ss-people.ss-sq tbody { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
