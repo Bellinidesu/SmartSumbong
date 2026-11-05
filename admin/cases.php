@@ -533,7 +533,7 @@ $noteBadge = $notesUnread + $escCount;
 <?php if (sees_everything()):
     $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
 <?php $sdTypes = committee_sd_types($db); ?>
-<nav class="cm-chips nf-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips nf-chips" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>" data-nc=""><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= (int) ($ncN['all'] ?? 0) ?></b></a>
   <?php foreach (committees_active() as $ck => $cl): ?>
     <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>" data-nc="<?= e($ck) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= (int) ($ncN[$ck] ?? 0) ?></b></a>
@@ -542,6 +542,7 @@ $noteBadge = $notesUnread + $escCount;
   <a class="cm-chip cm-chip-sys<?= $nCom === 'system' ? ' p-on' : '' ?>" href="<?= e($ncHref('system')) ?>"<?= $nCom === 'system' ? ' aria-current="true"' : '' ?> title="<?= e(t('System', 'Sistema')) ?>" data-nc="system"><i class="cm-sym cm-sym-sys">S</i><span class="cm-n"><?= e(t('System', 'Sistema')) ?></span><b><?= (int) ($ncN['system'] ?? 0) ?></b></a>
 </nav>
 <?= committee_banner_script() ?>
+<script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
 <?php endif; ?>
 
 <!-- ---------- escalation requests (0073) ---------- -->
@@ -607,7 +608,7 @@ $noteBadge = $notesUnread + $escCount;
       </summary>
       <div class="nf-body"><ul class="nf-items">
         <?php foreach ($n['group'] as $g): preg_match($waitRe, (string) $g['message'], $gm); ?>
-          <li><?= notification_dot($g) ?><span class="p-mono-id"><?= e($gm[1] ?? '') ?></span> <?= e(sprintf(t('waited %s min', 'naghintay nang %s min'), $gm[2] ?? '?')) ?> <span class="p-when"><?= e(relative_time($g['created_at'])) ?></span>
+          <li><span class="nf-dotc"><?= notification_dot($g) ?></span><span class="p-mono-id"><?= e($gm[1] ?? '') ?></span><span class="nf-wait-t"><?= e(sprintf(t('waited %s min', 'naghintay nang %s min'), $gm[2] ?? '?')) ?></span><span class="p-when"><?= e(relative_time($g['created_at'])) ?></span>
             <?php if (!empty($g['report_id'])): ?><a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= empty($g['is_read']) ? e($g['id']) : '' ?>" href="case.php?id=<?= e($g['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a><?php endif; ?></li>
         <?php endforeach; ?>
       </ul>

@@ -895,19 +895,19 @@ test('Case Reports: the header, the chooser and the list are three rounded objec
   await expect(page.locator('.rs-layout, .cr-rail'), 'no rail anywhere').toHaveCount(0);
 });
 
-test('Notifications keeps its live layout and wears the committee banners, joined to its band', async ({ page }) => {
+test('Notifications keeps its live layout and wears the committee chooser, a slim bar under its header', async ({ page }) => {
   for (const w of [2048, 1440]) {
     await page.setViewportSize({ width: w, height: 1000 });
     const r = await open(page, 'notifications.php');
     const g = await page.evaluate(() => { const b = document.querySelector('.nf-main .p-band--calm').getBoundingClientRect(), c = document.querySelector('.nf-chips').getBoundingClientRect(), m = document.querySelector('.nf-main').getBoundingClientRect(), rail = document.querySelector('.nf-rail'); return { x: [b.left, b.right, c.left, c.right].map(Math.round), y: [b.bottom, c.top].map(Math.round), railBeside: !!rail && rail.getBoundingClientRect().left >= m.right - 1 }; });
     expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
-    expect(Math.abs(g.y[0] - g.y[1]) <= 1, 'with no gap at ' + w).toBe(true);
+    expect(g.y[1] - g.y[0], 'a gap between the header and the chooser at ' + w).toBeGreaterThanOrEqual(10);
     if (w === 2048) expect(g.railBeside, 'the live layout: the work and the engine reading beside the feed').toBe(true);
     await expect(page.locator('.nf-chips .cm-chip')).toHaveCount(1 + 4 + 1 + 1);   // All, each active committee, No committee, System
-    expect(await page.locator('.nf-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundImage === 'none').length), 'every banner is a gradient at ' + w).toBe(0);
+    expect(await page.locator('.nf-chips .cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the chosen tab is a gradient pill at ' + w).toBe(true);
     expect(await page.locator('.nf-chips .cm-bg').count(), 'each carries its faint symbol at ' + w).toBeGreaterThanOrEqual(6);
-    expect(await page.locator('.nf-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip is as slim as the tab strip of Report Summary at ' + w).toBeLessThanOrEqual(80);
-    expect(await page.locator('.nf-chips ~ .p-notif-card').first().evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'and the list is attached to it, square at the top, at ' + w).toEqual(['0px', '0px']);
+    expect(await page.locator('.nf-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser is as slim as the tab bar of Report Summary at ' + w).toBeLessThanOrEqual(100);   // one line when the seven tabs fit, two when the feed column leaves them less room
+    expect(await page.locator('.nf-chips ~ .p-notif-card').first().evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'and the list is its own rounded card at ' + w).toEqual(['16px', '16px']);
     expect(await page.locator('.nf-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
     expect(r.errors, 'console errors').toEqual([]);
   }

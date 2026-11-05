@@ -706,9 +706,9 @@
 
 /* the chooser: the Report Summary tab bar, one line of tabs (a name, a count, a small overdue pill); the chosen tab is a pill in the committee's own
    colours, with the contour lines over it, that slides to the next one and changes colour on the way */
-:root:root:root .p-body.page-cases .cm-chips { position: relative; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; margin: 0 0 14px; width: 100%; box-sizing: border-box;
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips { position: relative; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; margin: 0 0 14px; width: 100%; box-sizing: border-box;
   background: var(--p-surface); border: 1px solid var(--p-line); border-radius: 14px; box-shadow: var(--p-shadow); overflow: visible; }
-:root:not([data-theme="dark"]) .p-body.page-cases .cm-chips { border-color: transparent; box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
+:root:not([data-theme="dark"]) .p-body:is(.page-cases, .page-notifications) .cm-chips { border-color: transparent; box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
 .cm-ind { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0; border-radius: 10px; pointer-events: none; overflow: hidden; isolation: isolate;
   background:
     radial-gradient(120% 220% at 6% -40%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
@@ -718,31 +718,78 @@
   transition: transform .4s cubic-bezier(.2, .9, .25, 1.04), width .4s cubic-bezier(.2, .9, .25, 1), height .4s ease, --ig1 .4s ease, --ig2 .4s ease, --ig3 .4s ease; }
 .cm-ind::after { content: ""; position: absolute; inset: 0; background: #fff; opacity: .22;
   -webkit-mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip { position: relative; z-index: 1; overflow: visible; isolation: auto; flex: 1 1 0; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip { position: relative; z-index: 1; overflow: visible; isolation: auto; flex: 1 1 0; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 34px; min-height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; box-shadow: none; filter: none; transform: none; white-space: nowrap;
   color: var(--p-muted); font: 700 13px Inter, sans-serif; text-decoration: none; text-shadow: none; transition: background-color .22s ease, color .3s ease; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip > i.cm-sym, :root:root:root .p-body.page-cases .cm-chips .cm-chip > .cm-bg { display: none; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip::before { content: ""; position: static; inset: auto; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--p-ink)); opacity: 1; mask: none; -webkit-mask: none;
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip > i.cm-sym, :root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip > .cm-bg { display: none; }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip::before { content: ""; position: static; inset: auto; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--p-ink)); opacity: 1; mask: none; -webkit-mask: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, var(--p-ink)) 20%, transparent); transition: background-color .3s ease, box-shadow .3s ease; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 9%, transparent); color: var(--p-ink); filter: none; transform: none; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on { background: transparent; color: var(--ct, #fff); box-shadow: none; filter: none; transform: none; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on::before { background: var(--ct, #fff); box-shadow: 0 0 0 3px rgba(255,255,255,.28); }
-:root:root:root .p-body.page-cases .cm-chips:not(.has-ind) .cm-chip.p-on { background: linear-gradient(105deg, var(--g1, #356CF9), var(--g3, #356CF9)); }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n { display: contents; color: inherit; text-shadow: none; font: inherit; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip > b { order: 1; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted);
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 9%, transparent); color: var(--p-ink); filter: none; transform: none; }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on { background: transparent; color: var(--ct, #fff); box-shadow: none; filter: none; transform: none; }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on::before { background: var(--ct, #fff); box-shadow: 0 0 0 3px rgba(255,255,255,.28); }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips:not(.has-ind) .cm-chip.p-on { background: linear-gradient(105deg, var(--g1, #356CF9), var(--g3, #356CF9)); }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n { display: contents; color: inherit; text-shadow: none; font: inherit; }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip > b { order: 1; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted);
   font: 700 11px Inter, sans-serif; letter-spacing: 0; transition: background-color .3s ease, color .3s ease; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip:hover > b { background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, transparent); color: var(--p-ink); }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on > b { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n em:not(.cm-od) { display: none; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n em.cm-od { order: 2; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-red) 12%, transparent); color: var(--p-red);
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip:hover > b { background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, transparent); color: var(--p-ink); }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on > b { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n em:not(.cm-od) { display: none; }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n em.cm-od { order: 2; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-red) 12%, transparent); color: var(--p-red);
   font: 700 11px Inter, sans-serif; letter-spacing: .01em; opacity: 1; border: 0; box-shadow: none; text-shadow: none; transition: background-color .3s ease, color .3s ease; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip .cm-n em.cm-od::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: none; animation: none; }
-:root:root:root .p-body.page-cases .cm-chips .cm-chip.p-on .cm-n em.cm-od { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
-:root:root:root .p-body.page-cases .cm-chips ~ .p-table-card { border-radius: 16px; }
-@media (prefers-reduced-motion: reduce) { .cm-ind, :root:root:root .p-body.page-cases .cm-chips .cm-chip { transition: none !important; } }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n em.cm-od::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: none; animation: none; }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on .cm-n em.cm-od { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips ~ .p-table-card { border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .cm-ind, :root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip { transition: none !important; } }
 
 /* the column head is white: the orange header above is the only header (Case Reports and Report Summary alike) */
 :root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
 :root:root .p-body.page-cases .ss-cases-t thead th :is(a, .p-th-sort, .p-th-sort:hover) { color: inherit; }
 :root:root .p-body.page-cases .ss-cases-t thead th .p-th-sort:hover { color: var(--p-ink); }
 .page-summary .p-table-card thead.p-blue th, :root[data-theme="dark"] .page-summary .p-table-card thead.p-blue th { background: var(--p-surface); }
+
+/* ================= 6 Nov 2026, Notifications: the same header bar and chooser as Case Reports, folded rows that open to a tidy panel, a divider before Right now ================= */
+:root:root .p-body.page-notifications .nf-main > .p-band { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-notifications .nf-main > .p-band :is(.p-search, .p-pill-select, .p-btn, .p-seg-mini) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-seg-mini a { height: 34px; display: inline-flex; align-items: center; border-radius: 9px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-search { padding: 0 14px; }
+:root:root .p-body.page-notifications .nf-main > .p-band .p-btn { display: inline-flex; align-items: center; padding: 0 16px; font-size: 13.5px; }
+:root:root .p-body.page-notifications .nf-main > .p-band + .nf-chips { margin: 0 0 14px; }
+:root:root:root .p-body.page-notifications .nf-chips ~ .p-notif-card { border-radius: 16px; margin-top: 0; }
+
+/* a folded row's chevron is a small round button; the panel it opens is one tidy inset: rows of one height, columns that line up, room to breathe */
+.page-notifications .nf-chev { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--p-surface-2); color: var(--p-ink-2); font-size: 12px; line-height: 1;
+  transition: transform .3s cubic-bezier(.2, .9, .3, 1.2), background-color .2s ease; }
+.page-notifications .nf-group > summary:hover .nf-chev { background: var(--p-line); }
+.page-notifications .nf-group[open] .nf-chev { background: color-mix(in srgb, var(--p-ink) 10%, var(--p-surface)); }
+:root:root .p-body.page-notifications .nf-group .nf-body { margin: 0 18px 16px; padding: 6px; display: grid; gap: 8px; border: 1px solid var(--p-line); border-radius: 14px;
+  background: color-mix(in srgb, var(--p-ink) 3%, var(--p-surface)); animation: nfOpen .3s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes nfOpen { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+:root:root .p-body.page-notifications .nf-group .nf-items { gap: 4px; }
+:root:root .p-body.page-notifications .nf-group .nf-items li { display: grid; grid-template-columns: 18px 148px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; min-height: 48px; padding: 6px 8px 6px 12px;
+  border-radius: 10px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); font-size: 14px; }
+:root:root .p-body.page-notifications .nf-group .nf-items.nf-case-items li { grid-template-columns: 18px minmax(0, 1fr) auto 36px; }
+.page-notifications .nf-items .nf-dotc { display: grid; place-items: center; }
+.page-notifications .nf-items .nf-wait-t { min-width: 0; color: var(--p-ink-2); }
+.page-notifications .nf-items .p-when { margin: 0; white-space: nowrap; color: var(--p-muted); font-size: 13px; }
+.page-notifications .nf-case-items .nf-sev { margin: 0; justify-self: center; }
+.page-notifications .nf-case-items .p-n-x { margin: 0; justify-self: end; }
+:root:root .p-body.page-notifications .nf-items .p-btn { margin: 0; height: 32px; min-height: 32px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 13px; }
+:root:root .p-body.page-notifications .nf-group .nf-case-act, :root:root .p-body.page-notifications .nf-group .nf-body > .nf-readall { padding: 10px 6px 4px; border-top: 1px solid var(--p-line); margin: 0; }
+:root:root .p-body.page-notifications .nf-group .nf-case-act { gap: 10px; }
+@media (prefers-reduced-motion: reduce) { :root:root .p-body.page-notifications .nf-group .nf-body { animation: none; } .page-notifications .nf-chev { transition: none; } }
+
+/* a clear divider between the unread list and Right now: a hairline down the gutter, and Right now headed like a section */
+.nf-grid:not(.nf-grid--solo) { column-gap: 40px; }
+.nf-grid:not(.nf-grid--solo) .nf-rail { position: relative; }
+.nf-grid:not(.nf-grid--solo) .nf-rail::before { content: ""; position: absolute; left: -21px; top: 0; bottom: 0; width: 1px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent 0, var(--p-line-2) 40px, var(--p-line-2) calc(100% - 40px), transparent 100%); }
+.nf-rail .ss-lab { display: flex; align-items: center; gap: 10px; margin: 2px 0 0; color: var(--p-ink-2); font: 800 12px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.nf-rail .ss-lab::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--p-orange); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-orange) 22%, transparent); }
+.nf-rail .ss-lab::after { content: ""; flex: 1; height: 1px; background: var(--p-line-2); }
+@media (max-width: 1900px) {
+  .nf-grid:not(.nf-grid--solo) { row-gap: 28px; }
+  .nf-grid:not(.nf-grid--solo) .nf-rail::before { left: 0; right: 0; top: auto; bottom: -15px; width: auto; height: 1px; background: linear-gradient(to right, transparent 0, var(--p-line-2) 40px, var(--p-line-2) calc(100% - 40px), transparent 100%); }
+}
+.page-notifications .nf-chev { font-size: 16px; }
+:root:root .p-body.page-notifications .nf-group .nf-body > .nf-readall, :root:root .p-body.page-notifications .nf-group .nf-case-act { justify-self: stretch; }
