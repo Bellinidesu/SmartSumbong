@@ -20,3 +20,7 @@
 form[aria-busy="true"] { cursor: progress; }
 @keyframes ssSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .is-sending::after { animation-duration: 2s; } }
+/* step 4: a save sent in place shows the same turning ring on its button until its answer comes */
+form.htmx-request button[type="submit"]::after { content: ""; display: inline-block; width: 13px; height: 13px; margin-left: 8px; vertical-align: -2px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent; animation: ssSpin .7s linear infinite; }
+form.htmx-request { cursor: progress; }

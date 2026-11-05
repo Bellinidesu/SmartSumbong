@@ -138,6 +138,19 @@ function greeting_flair(DateTimeImmutable $now, string $first = ''): array
     return ['headline' => $head . ($first !== '' ? ', ' . $first : ''), 'event' => $chip];
 }
 
+/**
+ * The press flow, step 4 (7 Nov 2026): a save that updates its region in place. The form posts in the background exactly as it
+ * always has; the server's usual answer (its redirect back to the list) is followed, and only the region swaps. A save in flight
+ * cannot be sent again (hx-sync drop) and its button is disabled until the answer comes; the page's message comes as a toast.
+ * Without JavaScript the form posts and the page reloads, as before.
+ *   <form method="post"<?= press_save('nf-list') ?>>
+ */
+function press_save(string $region): string
+{
+    $r = preg_replace('/[^a-z0-9_-]/i', '', $region);
+    return ' hx-boost="true" hx-target="#' . $r . '" hx-select="#' . $r . '" hx-swap="outerHTML" hx-push-url="false" hx-sync="this:drop" hx-disabled-elt="find button[type=submit]" data-press-save="1"';
+}
+
 /** The engine's brain as a small icon, for places a square button or tile needs one (the map's dock, a SMART notification). */
 function smart_brain(int $size = 20): string
 {

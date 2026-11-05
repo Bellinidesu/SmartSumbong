@@ -93,7 +93,7 @@ function render_tc_strip(Supabase $db, array $tc, array $accounts): void
       <div class="p-card p-card-pad tc-strip" id="tc-waiting">
         <p class="p-eyebrow"><?= e(t('Tanods proposed for a committee', 'Mga tanod na iminungkahi para sa komite')) ?> · <?= count($waiting) ?></p>
         <?php foreach ($waiting as [$tid, $c]): ?>
-          <form method="post" class="tc-row">
+          <form method="post" class="tc-row"<?= press_save('people-list') ?>>
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id" value="<?= e($tid) ?>">
             <input type="hidden" name="action" value="tc_decide"><input type="hidden" name="committee" value="<?= e($c['key']) ?>"><input type="hidden" name="to_list" value="1">
             <b><?= e(formal_name((string) ($names[$tid] ?? ''))) ?></b><?= tc_pill($c) ?>
@@ -115,7 +115,7 @@ function render_tc_strip(Supabase $db, array $tc, array $accounts): void
         <?php if (!$pick): ?>
           <p class="p-hint"><?= e(t('Every active tanod is already in your committee or waiting for approval.', 'Nasa komite mo na o naghihintay ng pag-apruba ang bawat aktibong tanod.')) ?></p>
         <?php else: ?>
-        <form method="post" class="tc-row">
+        <form method="post" class="tc-row"<?= press_save('people-list') ?>>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="tc_propose">
           <input type="hidden" name="committee" value="<?= e($myCom) ?>"><input type="hidden" name="to_list" value="1">
           <label class="p-sr" for="tc-who"><?= e(t('Tanod', 'Tanod')) ?></label>

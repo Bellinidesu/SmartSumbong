@@ -23,7 +23,7 @@ function session_start_once(): void
             'samesite' => 'Lax',
             // Render terminates HTTPS at its proxy, so PHP itself sees plain
             // HTTP; the proxy says so in X-Forwarded-Proto.
-            'secure'   => !empty($_SERVER['HTTPS']) || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https',
+            'secure'   => request_is_https(),
         ]);
         session_start();
     }

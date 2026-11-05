@@ -104,6 +104,21 @@
   document.addEventListener('htmx:swapError', fallback);
   document.addEventListener('htmx:timeout', fallback);
 
+  // a save sent in place: the message the server put on the page (its green or red line) comes as a toast, unless the region that is
+  // swapped in already shows it; the save's region is announced
+  var saveNote = null;
+  document.addEventListener('htmx:beforeSwap', function (e) {
+    var c = e.detail && e.detail.requestConfig; saveNote = null;
+    if (!c || String(c.verb).toLowerCase() === 'get' || !e.detail.serverResponse) return;
+    try {
+      var doc = new DOMParser().parseFromString(e.detail.serverResponse, 'text/html');
+      var sel = c.elt && c.elt.closest && c.elt.closest('[hx-select]'), region = sel ? doc.querySelector(sel.getAttribute('hx-select')) : null;
+      var f = doc.querySelector('.p-flash[role="status"], .p-flash[role="alert"], .p-flash');
+      if (f && !(region && region.contains(f)) && f.textContent.trim()) saveNote = f.textContent.replace(/\s+/g, ' ').trim();
+    } catch (x) { saveNote = null; }
+  });
+  document.addEventListener('htmx:afterSettle', function () { if (saveNote) { if (window.pToast) pToast(saveNote); saveNote = null; } });
+
   // focus: the pressed control keeps it when it is still on the page; otherwise the region that changed takes it (without scrolling)
   var pressed = null;
   document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) pressed = document.activeElement; });

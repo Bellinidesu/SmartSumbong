@@ -1537,3 +1537,41 @@ test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles
   expect(page.url()).toMatch(/duty=/);
   expect(r.errors.concat(p2.errors), 'console errors').toEqual([]);
 });
+
+test('Press flow step 4 (7 Nov): saves update their region in place: a mark as read, a forward, a proposed tanod; the address stays; one request per save', async ({ page }) => {
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  let posts = 0; page.on('request', q => { if (q.method() === 'POST' && /\.php/.test(q.url()) && !/geocode|heartbeat|presence|ping/.test(q.url())) posts++; });
+  // Notifications: mark one as read
+  const r = await open(page, 'notifications.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  const url0 = page.url();
+  const tick = page.locator('#nf-list form.p-n-x button[type="submit"]').first();
+  if (await tick.count()) {
+    let s = settle(); posts = 0; await tick.click(); await s;
+    expect(await page.evaluate(() => window.__stay), 'a mark as read does not reload').toBe(1);
+    expect(page.url(), 'the address stays').toBe(url0);
+    expect(posts, 'one save, one request').toBe(1);
+  }
+  // Case Reports: a forward from the dialog
+  const r2 = await open(page, 'cases.php');
+  await page.evaluate(() => { window.__stay = 2; });
+  const fw = page.locator('#cr-list tbody [data-fw-open]').first();
+  if (await fw.count()) {
+    await fw.click(); await expect(page.locator('#fw-dlg')).toBeVisible();
+    const to = page.locator('#fw-dlg select[name="to"]');
+    if (await to.count()) await to.evaluate(sel => { const o = [...sel.options].find(x => x.value && !x.disabled); if (o) { sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); } });
+    let s = settle(); posts = 0; await page.locator('#fw-dlg button[type="submit"]').first().click(); await s;
+    expect(await page.evaluate(() => window.__stay), 'a forward does not reload').toBe(2);
+    await expect(page.locator('#fw-dlg'), 'the dialog closes').toBeHidden();
+    expect(posts).toBe(1);
+  }
+  // Personnel: a proposed tanod
+  const r3 = await open(page, 'personnel.php');
+  await page.evaluate(() => { window.__stay = 3; });
+  const ok = page.locator('#people-list form.tc-row button[type="submit"]').first();
+  if (await ok.count()) {
+    let s = settle(); await ok.click(); await s;
+    expect(await page.evaluate(() => window.__stay), 'a decision does not reload').toBe(3);
+  }
+  expect(r.errors.concat(r2.errors, r3.errors), 'console errors').toEqual([]);
+});

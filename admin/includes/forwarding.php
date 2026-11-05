@@ -76,12 +76,12 @@ function forward_options(?string $except = null): string
 }
 
 /** The one dialog the Forward and Flag buttons open. $back: the list address to return to. */
-function forward_dialog(string $back): string
+function forward_dialog(string $back, string $region = ''): string
 {
     $mod = my_tier() === 'moderator';
     ob_start(); ?>
 <dialog class="fw-dlg" id="fw-dlg" aria-labelledby="fw-title">
-  <form method="post" class="fw-form">
+  <form method="post" class="fw-form"<?= $region !== '' ? press_save($region) : '' ?>>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="action" value="<?= $mod ? 'flag_list' : 'forward_list' ?>">
     <input type="hidden" name="ids" id="fw-ids" value="">
