@@ -398,7 +398,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     <nav class="pf-menu" aria-label="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
       <a href="#pf-details" class="on"><?= p_icon('i-users', 18) ?><span><b><?= e(t('Your details', 'Iyong mga detalye')) ?></b><small><?= e(t('Name, mobile, email', 'Pangalan, mobile, email')) ?></small></span></a>
       <a href="#pf-look"><?= p_icon('i-cam', 18) ?><span><b><?= e(t('Profile picture', 'Larawan sa profile')) ?></b><small><?= e(t('Your face, in your role colour', 'Ang iyong mukha, sa kulay ng tungkulin')) ?></small></span></a>
-      <a href="#pf-cover"><?= p_icon('i-doc', 18) ?><span><b><?= e(t('Cover photo', 'Cover photo')) ?></b><small><?= e(t('The banner on your profile', 'Ang banner ng iyong profile')) ?></small></span></a>
+      <a href="#pf-cover"><?= p_icon('i-doc', 18) ?><span><b><?= e(t('Cover photo', 'Larawan sa itaas')) ?></b><small><?= e(t('The banner on your profile', 'Ang banner ng iyong profile')) ?></small></span></a>
       <a href="#pf-password"><?= p_icon('i-shield', 18) ?><span><b><?= e(t('Password', 'Password')) ?></b><small><?= e(t('How you sign in', 'Paano ka nagsa-sign in')) ?></small></span></a>
     </nav>
     <div class="pf-sections">
@@ -439,7 +439,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
       </section>
       <section class="p-card p-card-pad pf-sec" id="pf-cover">
         <?php $bp = (string) ($me['banner_preset'] ?? 'sidebar'); ?>
-        <div class="pf-fbh"><h3 class="pf-h"><?= e(t('Cover photo', 'Cover photo')) ?></h3>
+        <div class="pf-fbh"><h3 class="pf-h"><?= e(t('Cover photo', 'Larawan sa itaas')) ?></h3>
           <span class="pf-fba">
             <label class="p-btn" for="banner"><?= p_icon('i-cam', 16) ?><?= e(t('Choose a picture', 'Pumili ng larawan')) ?></label>
             <input class="ss-file" type="file" id="banner" name="banner[]" accept="image/jpeg,image/png,image/webp">
@@ -447,7 +447,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
           </span></div>
         <div class="ss-pf-banner pf-cover<?= in_array($bp, ['photo', 'contour'], true) ? ' ss-pf-banner--plain' : '' ?>" id="ss-pf-banner" aria-hidden="true" style="<?= profile_banner_style($me) ?>"></div>
         <fieldset class="pf-banner">
-          <legend class="p-sr"><?= e(t('Cover', 'Cover')) ?></legend>
+          <legend class="p-sr"><?= e(t('Cover', 'Larawan sa itaas')) ?></legend>
           <div class="pf-presets" role="radiogroup">
             <?php foreach (['sidebar' => t('My sidebar colour', 'Kulay ng aking sidebar'), 'contour' => t('The barangay\'s contour pattern', 'Contour pattern ng barangay'), 'solid' => t('A colour', 'Isang kulay'),
                             'committee' => t('My committee\'s colour', 'Kulay ng aking komite'), 'photo' => t('My own picture', 'Sarili kong larawan')] as $pk => $pl):
