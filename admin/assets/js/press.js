@@ -26,15 +26,37 @@
     // a live update: the region is fetched again at the address on screen, quietly (no bar, no focus move, nothing read out)
     refresh: function (sel) {
       if (!window.htmx || !document.querySelector(sel)) return null;
+      // a background refresh never cancels something a person pressed: while a press is on its way it steps aside (the next round
+      // of the refresh, or the press's own answer, brings the list up to date)
+      if (typeof inflight !== 'undefined' && inflight.size) return null;
+      // nor does it take away what someone is in the middle of: typing in the region, a dropdown open, a dialog open. It waits, and
+      // runs when they leave it.
+      if (editing(sel)) { pendingRefresh = sel; return null; }
+      pendingRefresh = null;
       return htmx.ajax('GET', location.pathname + location.search, { target: sel, select: sel, swap: 'outerHTML', headers: { 'X-Press-Quiet': '1' } });
     }
   };
+  var pendingRefresh = null;
+  function editing(sel) {
+    var region = document.querySelector(sel), el = document.activeElement;
+    // typing: a text box or a text area (a tick box, a radio or a button is not; ticks are kept across a refresh anyway)
+    var typing = el && (el.tagName === 'TEXTAREA' || el.isContentEditable || (el.tagName === 'INPUT' && /^(text|search|email|tel|url|number|password|date|month|week|time|datetime-local|)$/.test(el.type || '')));
+    if (region && typing && region.contains(el)) return true;
+    if (document.documentElement.classList.contains('sdp-live')) return true;   // one of the portal's dropdowns or calendars is open
+    if (document.querySelector('dialog[open], .p-scrim.p-on, .cr-scrim')) return true;
+    return false;
+  }
+  function retryRefresh() { setTimeout(function () { if (pendingRefresh && !editing(pendingRefresh)) window.ssPress.refresh(pendingRefresh); }, 60); }
+  document.addEventListener('focusout', retryRefresh);
+  document.addEventListener('click', retryRefresh);
+  document.addEventListener('keyup', function (e) { if (e.key === 'Escape') retryRefresh(); });
   function quietReq(e) { var c = e && e.detail && e.detail.requestConfig; return !!(c && c.headers && c.headers['X-Press-Quiet']); }
   // the portal's own widgets: on the page they set themselves up; in swapped HTML they are set up here
   window.ssPress.ready(function (root) {
     if (root === document) return;
     if (window.ssPickersInit) window.ssPickersInit(root);
     if (window.ssChooserInit) window.ssChooserInit(root);
+    if (window.ssPaintOpen) window.ssPaintOpen();   // who is looking at each case, drawn again into the new rows (presence.js)
   });
   function runInits(root) { inits.forEach(function (fn) { try { fn(root); } catch (e) { if (window.console) console.error(e); } }); }
 
@@ -48,13 +70,20 @@
   var bar = document.createElement('div');
   bar.className = 'ss-progress'; bar.setAttribute('aria-hidden', 'true');
   document.body.appendChild(bar);
-  var inflight = 0, showT = null;
-  function busy(on) {
-    if (on) { if (inflight++ === 0) { clearTimeout(showT); showT = setTimeout(function () { bar.className = 'ss-progress is-on'; }, 120); } document.documentElement.setAttribute('aria-busy', 'true'); return; }
-    if (--inflight > 0) return; inflight = 0; clearTimeout(showT);
-    document.documentElement.removeAttribute('aria-busy');
-    if (bar.classList.contains('is-on')) { bar.className = 'ss-progress is-on is-done'; setTimeout(function () { bar.className = 'ss-progress'; }, 380); }
+  // Every request that started is tracked by itself until it finishes, is cancelled or fails (a newer press cancels an older one; a
+  // cancelled request sends no "finished"), so the bar can never be left on. A watchdog clears anything older than 20 seconds.
+  var inflight = new Map(), showT = null;
+  function paintBar() {
+    if (inflight.size) {
+      if (!bar.classList.contains('is-on') && !showT) showT = setTimeout(function () { showT = null; if (inflight.size) bar.className = 'ss-progress is-on'; }, 120);
+      document.documentElement.setAttribute('aria-busy', 'true'); return;
+    }
+    clearTimeout(showT); showT = null; document.documentElement.removeAttribute('aria-busy');
+    if (bar.classList.contains('is-on')) { bar.className = 'ss-progress is-on is-done'; setTimeout(function () { if (!inflight.size) bar.className = 'ss-progress'; }, 380); }
   }
+  function start(key) { inflight.set(key, Date.now()); paintBar(); }
+  function end(key) { if (inflight.delete(key)) paintBar(); }
+  setInterval(function () { var now = Date.now(), gone = false; inflight.forEach(function (t, k) { if (now - t > 20000) { inflight.delete(k); gone = true; } }); if (gone) paintBar(); }, 2000);
 
   // ---- step 2: every save shows that it is working and cannot be sent twice (forms that load the next page the usual way).
   // The guard is set the moment the form is sent and lifted again if any script stopped the send (a confirm, the bot check, a
@@ -71,9 +100,9 @@
       if (e.defaultPrevented || newTab) { release(f); return; }   // a script took over this send, or it opens elsewhere
       f.setAttribute('aria-busy', 'true');
       if (sub) { sub.classList.add('is-sending'); sub.setAttribute('aria-disabled', 'true'); }
-      busy(true);
+      start(f);
       var post = String(f.getAttribute('method') || 'get').toLowerCase() === 'post';
-      f._pressT = setTimeout(function () { release(f); busy(false); }, post ? 25000 : 6000);
+      f._pressT = setTimeout(function () { release(f); end(f); }, post ? 25000 : 6000);
     }, 0);
   });
   function release(f) {
@@ -82,14 +111,23 @@
     var id = f.id; if (id) document.querySelectorAll('[form="' + id + '"].is-sending').forEach(function (b) { b.classList.remove('is-sending'); b.removeAttribute('aria-disabled'); });
   }
   // a dropdown that sends its form on change (data-autosubmit) also shows the bar
-  document.addEventListener('change', function (e) { var el = e.target.closest && e.target.closest('[data-autosubmit]'); if (el && el.form) busy(true); });
+  // a dropdown that sends its plain form on change shows the bar until the next page; one that htmx sends is tracked as its request
+  document.addEventListener('change', function (e) {
+    var el = e.target.closest && e.target.closest('[data-autosubmit]'); if (!el || !el.form) return;
+    var f = el.form; if (f.closest('[hx-boost="true"]') || f.hasAttribute('hx-get') || f.hasAttribute('hx-post')) return;
+    start(f); setTimeout(function () { end(f); }, 8000);
+  });
   window.addEventListener('pageshow', function (e) { if (e.persisted) document.querySelectorAll('form[data-press-sending]').forEach(release); });
 
   if (!htmx) return;
   htmx.config.globalViewTransitions = !reduce && typeof document.startViewTransition === 'function';
 
-  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) busy(true); });
-  document.addEventListener('htmx:afterRequest', function (e) { if (!quietReq(e)) busy(false); });
+  function xkey(e) { return (e.detail && (e.detail.xhr || (e.detail.requestConfig && e.detail.requestConfig.xhr))) || null; }
+  document.addEventListener('htmx:beforeRequest', function (e) { var k = xkey(e); if (k && !quietReq(e)) start(k); });
+  ['htmx:afterRequest', 'htmx:abort', 'htmx:sendAbort', 'htmx:sendError', 'htmx:responseError', 'htmx:timeout', 'htmx:swapError'].forEach(function (n) {
+    document.addEventListener(n, function (e) { var k = xkey(e); if (k) end(k); });
+  });
+  document.addEventListener('htmx:afterSettle', function () { inflight.forEach(function (t, k) { if (k && k.readyState === 4) inflight.delete(k); }); paintBar(); });
 
   // a failed fetch never strands the press: a GET opens the plain page instead; a POST says so and leaves the form as it was
   function fallback(e) {
@@ -106,33 +144,50 @@
 
   // a save sent in place: the message the server put on the page (its green or red line) comes as a toast, unless the region that is
   // swapped in already shows it; the save's region is announced
-  var saveNote = null;
+  var saveNote = null, sideNav = null;
   document.addEventListener('htmx:beforeSwap', function (e) {
-    var c = e.detail && e.detail.requestConfig; saveNote = null;
-    if (!c || String(c.verb).toLowerCase() === 'get' || !e.detail.serverResponse) return;
-    try {
-      var doc = new DOMParser().parseFromString(e.detail.serverResponse, 'text/html');
-      var sel = c.elt && c.elt.closest && c.elt.closest('[hx-select]'), region = sel ? doc.querySelector(sel.getAttribute('hx-select')) : null;
-      var f = doc.querySelector('.p-flash[role="status"], .p-flash[role="alert"], .p-flash');
-      if (f && !(region && region.contains(f)) && f.textContent.trim()) saveNote = f.textContent.replace(/\s+/g, ' ').trim();
-    } catch (x) { saveNote = null; }
+    var c = e.detail && e.detail.requestConfig; saveNote = null; sideNav = null;
+    if (!c || !e.detail.serverResponse) return;
+    var doc; try { doc = new DOMParser().parseFromString(e.detail.serverResponse, 'text/html'); } catch (x) { return; }
+    // the sidebar's counts (unread notifications, cases waiting) follow every answer, saves and live refreshes alike
+    var nav = doc.getElementById('side-nav'); if (nav) sideNav = nav.innerHTML;
+    if (String(c.verb).toLowerCase() === 'get') return;
+    var sel = c.elt && c.elt.closest && c.elt.closest('[hx-select]'), region = sel ? doc.querySelector(sel.getAttribute('hx-select')) : null;
+    var f = doc.querySelector('.p-flash[role="status"], .p-flash[role="alert"], .p-flash');
+    if (f && !(region && region.contains(f)) && f.textContent.trim()) saveNote = f.textContent.replace(/\s+/g, ' ').trim();
+  });
+  document.addEventListener('htmx:afterSettle', function () {
+    if (sideNav !== null) { var cur = document.getElementById('side-nav'); if (cur && cur.innerHTML !== sideNav) cur.innerHTML = sideNav; sideNav = null; }
   });
   document.addEventListener('htmx:afterSettle', function () { if (saveNote) { if (window.pToast) pToast(saveNote); saveNote = null; } });
 
   // focus: the pressed control keeps it when it is still on the page; otherwise the region that changed takes it (without scrolling)
   var pressed = null;
-  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) pressed = document.activeElement; });
+  var pressedId = '', pressedHref = '';
+  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) { pressed = document.activeElement; pressedId = pressed && pressed.id || ''; pressedHref = pressed && pressed.tagName === 'A' ? pressed.getAttribute('href') || '' : ''; } });
   document.addEventListener('htmx:afterSettle', function (e) {
     var t = e.detail && e.detail.target;
+    // after an outerHTML swap htmx names the old target, which is no longer on the page: the new one is found by its id
+    if (t && t.nodeType === 1 && !document.contains(t) && t.id) t = document.getElementById(t.id) || t;
     if (t && t.nodeType === 1) runInits(t);
     if (quietReq(e)) return;
+    var same = null;
+    if (!(pressed && document.contains(pressed))) {
+      if (pressedId) same = document.getElementById(pressedId);
+      // a link without an id (a chooser tab, a page number): the link to the same address in the new content keeps the place
+      if (!same && pressedHref && t && t.querySelector) { try { same = t.querySelector('a[href="' + (window.CSS && CSS.escape ? CSS.escape(pressedHref) : pressedHref) + '"]'); } catch (x) { same = null; } }
+    }
     if (pressed && document.contains(pressed)) { if (pressed !== document.activeElement && pressed.focus) pressed.focus({ preventScroll: true }); }
+    else if (same && same.focus) {   // the same control in the new content (the search box keeps its cursor, at the end of what was typed)
+      same.focus({ preventScroll: true });
+      if (/^(INPUT|TEXTAREA)$/.test(same.tagName) && typeof same.setSelectionRange === 'function' && /^(text|search|tel|email|url|)$/.test(same.type || '')) { var n = same.value.length; try { same.setSelectionRange(n, n); } catch (x) {} }
+    }
     else if (t && t.nodeType === 1) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true }); }
-    pressed = null;
+    pressed = null; pressedId = ''; pressedHref = '';
     var say = t && t.getAttribute && (t.getAttribute('data-announce') || t.getAttribute('aria-label'));
     announce(say ? say : TXT.updated);
   });
 
   // a page restored from the back-forward cache comes back without a stuck bar
-  window.addEventListener('pageshow', function (e) { if (e.persisted) { inflight = 1; busy(false); } });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) { inflight.clear(); paintBar(); } });
 })();

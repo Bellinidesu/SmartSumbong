@@ -139,6 +139,27 @@ function greeting_flair(DateTimeImmutable $now, string $first = ''): array
 }
 
 /**
+ * Where a save goes back to: the view the person was on (its filters, its tab, its page), not the page's bare address. Read from
+ * htmx's HX-Current-URL (a save sent in place) or the browser's Referer (a plain form), and used only when it is the same page on
+ * this same host; anything else gets $fallback, as before. (Found 7 Nov 2026: marking a notification read on a filtered view, or
+ * deciding a proposed tanod on a filtered roster, sent the person back to the unfiltered list.)
+ */
+function view_after_post(string $fallback): string
+{
+    $script = basename((string) strtok($fallback, '?'));
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    foreach ([(string) ($_SERVER['HTTP_HX_CURRENT_URL'] ?? ''), (string) ($_SERVER['HTTP_REFERER'] ?? '')] as $u) {
+        if ($u === '' || strlen($u) > 2000) continue;
+        $p = parse_url($u);
+        if (!is_array($p) || empty($p['path']) || empty($p['host'])) continue;
+        $h = strtolower($p['host'] . (isset($p['port']) ? ':' . $p['port'] : ''));
+        if ($host === '' || $h !== $host || basename($p['path']) !== $script) continue;
+        return $script . (isset($p['query']) && $p['query'] !== '' ? '?' . $p['query'] : '');
+    }
+    return $fallback;
+}
+
+/**
  * The press flow, step 4 (7 Nov 2026): a save that updates its region in place. The form posts in the background exactly as it
  * always has; the server's usual answer (its redirect back to the list) is followed, and only the region swaps. A save in flight
  * cannot be sent again (hx-sync drop) and its button is disabled until the answer comes; the page's message comes as a toast.
@@ -856,40 +877,9 @@ window.SS_PRESENCE = <?= json_encode([
 })();
 </script>
 <?php endif; ?>
-<script>
-// One submit per form. A double-click on Accept or Dispatch (or holding
-// the A shortcut on case.php) sent two POSTs: the first did the work and
-// the second came back with the database's "already reviewed"-style
-// error, so the admin landed on a red flash for an action that actually
-// succeeded. Buttons are disabled on the next tick, not inside this
-// handler, because a disabled submitter is dropped from the form data
-// and the server would never see which action was clicked.
-(function () {
-  document.addEventListener('submit', function (ev) {
-    var form = ev.target;
-    if (ev.defaultPrevented || String(form.method).toLowerCase() !== 'post') return;
-    if (form.dataset.submitting) { ev.preventDefault(); return; }
-    form.dataset.submitting = '1';
-    setTimeout(function () {
-      form.querySelectorAll('button[type="submit"], button:not([type])').forEach(function (b) {
-        if (!b.disabled) { b.disabled = true; b.dataset.guarded = '1'; }
-      });
-    }, 0);
-  });
-  // Coming back with the browser's Back button can restore the page
-  // exactly as it was left, disabled buttons included.
-  window.addEventListener('pageshow', function (ev) {
-    if (!ev.persisted) return;
-    document.querySelectorAll('form[data-submitting]').forEach(function (form) {
-      delete form.dataset.submitting;
-      form.querySelectorAll('button[data-guarded]').forEach(function (b) {
-        b.disabled = false;
-        delete b.dataset.guarded;
-      });
-    });
-  });
-})();
-</script>
+<?php // One submit per form is kept by the press flow (assets/js/press.js, step 2, 7 Nov 2026). It replaced the older guard here, which
+      // marked a form as sent before later scripts ran: when one of them stopped the send (a cancelled confirm, the bot check fetching
+      // its token) the form stayed marked and its buttons disabled, and the bot check's own resend was refused. ?>
 <?= turnstile_tags() ?>
 </body>
 </html>

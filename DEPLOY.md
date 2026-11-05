@@ -154,6 +154,7 @@ Render:
 | `RESIDENT_APP_URL` | the Workspace's Report QR widget (an https link) | the widget asks for the link |
 | `VAPID_PUBLIC_KEY` | browser alerts (Profile → Alerts); the same public key as the function's | the card says browser alerts are not set up |
 | `PORTAL_MOVED_TO` | only on an old host: forwards every page to the new address | no forwarding |
+| `NOMINATIM_URL` | only to point the street-label lookup (geocode.php) somewhere else; the browser tests use their fake server | OpenStreetMap's Nominatim, as always |
 
 Nothing on Render needs the service-role key.
 

@@ -24,3 +24,6 @@ form[aria-busy="true"] { cursor: progress; }
 form.htmx-request button[type="submit"]::after { content: ""; display: inline-block; width: 13px; height: 13px; margin-left: 8px; vertical-align: -2px; border-radius: 50%;
   border: 2px solid currentColor; border-right-color: transparent; animation: ssSpin .7s linear infinite; }
 form.htmx-request { cursor: progress; }
+/* a region that takes the focus after a swap (when the pressed control is gone) shows no box for a mouse press, a quiet one for the keyboard */
+.press-region:focus { outline: none; }
+.press-region:focus-visible { outline: 2px solid color-mix(in srgb, var(--p-orange, #FF9800) 55%, transparent); outline-offset: 6px; border-radius: 16px; }
