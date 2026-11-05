@@ -142,6 +142,17 @@ function turnstile_tags(): string
          . '<script src="assets/js/turnstile.js?v=' . htmlspecialchars(asset_version('../js/turnstile.js'), ENT_QUOTES) . '" defer></script>';
 }
 
+/**
+ * Whether this request reached the portal over HTTPS: directly, or through Render's proxy, which ends TLS and says so in
+ * X-Forwarded-Proto. Used for the CSP's upgrade-insecure-requests (meaningless over plain http, where it would send the
+ * browser to an https address nothing answers, as on a developer's machine) and for the session cookie's secure flag.
+ */
+function request_is_https(): bool
+{
+    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+}
+
 function send_security_policy(): void
 {
     if (PHP_SAPI === 'cli' || headers_sent()) return;
@@ -165,8 +176,8 @@ function send_security_policy(): void
         "base-uri 'self'",
         "form-action 'self'",
         "object-src 'none'",
-        "upgrade-insecure-requests",
     ];
+    if (request_is_https()) $policy[] = "upgrade-insecure-requests";
     header('Content-Security-Policy: ' . implode('; ', $policy));
     // Stamp the nonce on every <script> of an HTML page as it goes out.
     ob_start(function (string $out) use ($nonce): string {
