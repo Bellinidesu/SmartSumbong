@@ -38,13 +38,13 @@ Future<void> loadAppFonts() async {
   if (_fontsLoaded) return;
   _fontsLoaded = true;
   const families = {
-    'Urbanist': ['Light', 'Regular', 'Italic', 'Medium', 'MediumItalic', 'SemiBold', 'Bold', 'BoldItalic', 'ExtraBold', 'Black'],
-    'Inter': ['Regular', 'Medium', 'SemiBold', 'Bold'],
+    'Inter Tight': ['Regular', 'Italic', 'Medium', 'MediumItalic', 'SemiBold', 'Bold', 'BoldItalic'],
+    'Inter': ['Regular', 'Italic', 'Medium', 'MediumItalic', 'SemiBold', 'Bold'],
   };
   for (final entry in families.entries) {
     final loader = FontLoader(entry.key);
     for (final style in entry.value) {
-      loader.addFont(rootBundle.load('assets/fonts/${entry.key}-$style.ttf'));
+      loader.addFont(rootBundle.load('assets/fonts/${entry.key.replaceAll(' ', '')}-$style.ttf'));
     }
     await loader.load();
   }

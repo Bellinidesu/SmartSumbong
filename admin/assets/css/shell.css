@@ -113,7 +113,7 @@ html[data-side="min"] .p-nav .p-brain-pill svg{width:10px;height:10px}
 .dv-msg { margin: 0; font: 600 12px/1.4 Inter, sans-serif; color: #FFD9A0; }
 :root[data-side="min"] .dv-sw { display: none; }
 .dv-band { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 16px; border-radius: 14px; background: repeating-linear-gradient(135deg, #FF9800 0 14px, #FFA726 14px 28px); color: #2B1A00; font: 600 13px Inter, sans-serif; box-shadow: 0 8px 20px -10px rgba(255,152,0,.7); }
-.dv-band b { font: 800 14px Urbanist, sans-serif; } .dv-band form { margin: 0 0 0 auto; }
+.dv-band b { font: 800 14px Inter, sans-serif; } .dv-band form { margin: 0 0 0 auto; }
 .dv-band button { padding: 6px 14px; border: 0; border-radius: 10px; background: #2B1A00; color: #fff; font: 800 12.5px Inter, sans-serif; cursor: pointer; }
 .p-badge.dv-test { background: repeating-linear-gradient(135deg, #FFE0B2 0 6px, #FFF3E0 6px 12px); color: #8A4B00; font-weight: 800; letter-spacing: .04em; }
 /* The top of the sidebar (4 Nov 2026): the barangay seal alone for a super admin; a committee's logo beside it for a Kagawad or staff member */

@@ -562,7 +562,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           alignment: Alignment.center,
                           child: (_newAvatar != null || _avatarUrl != null)
                               ? (_uploadingAvatar ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) : null)
-                              : Text(_SettingsInitials.of(_name), style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 32, color: Colors.white)),
+                              : Text(_SettingsInitials.of(_name), style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 32, color: Colors.white)),
                         ),
                         Positioned(
                           right: -2,
@@ -679,7 +679,7 @@ class _FRow extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           Expanded(child: Text(label.toUpperCase(), style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: .66, color: d.muted))),
-          if (em != null && em!.isNotEmpty) Text(em!, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
+          if (em != null && em!.isNotEmpty) Text(em!, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
         ]),
         const SizedBox(height: 4),
         field,
@@ -718,10 +718,10 @@ class _EditableField extends StatelessWidget {
         controller: controller,
         enabled: enabled,
         keyboardType: keyboardType,
-        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 15, color: d.ink),
+        style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 15, color: d.ink),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 15, color: d.muted, fontStyle: FontStyle.normal),
+          hintStyle: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 15, color: d.muted, fontStyle: FontStyle.normal),
           isDense: true,
           filled: false,
           contentPadding: const EdgeInsets.symmetric(vertical: 2),
@@ -731,7 +731,7 @@ class _EditableField extends StatelessWidget {
           disabledBorder: InputBorder.none,
         ),
       ),
-      below: error == null ? null : Padding(padding: const EdgeInsets.only(top: 4), child: Text(error!, style: TextStyle(fontFamily: 'Urbanist', fontSize: 11.5, fontWeight: FontWeight.w700, color: d.dark ? const Color(0xFFFF8A8A) : DColors.red))),
+      below: error == null ? null : Padding(padding: const EdgeInsets.only(top: 4), child: Text(error!, style: TextStyle(fontFamily: 'Inter', fontSize: 11.5, fontWeight: FontWeight.w700, color: d.dark ? const Color(0xFFFF8A8A) : DColors.red))),
     );
   }
 }
@@ -754,7 +754,7 @@ class _LockedField extends StatelessWidget {
     return _FRow(
       first: first,
       label: label,
-      field: Text(value, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: dots ? 18 : 15, letterSpacing: dots ? 3 : 0, height: 1.3, color: d.ink2)),
+      field: Text(value, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: dots ? 18 : 15, letterSpacing: dots ? 3 : 0, height: 1.3, color: d.ink2)),
       below: Align(
         alignment: Alignment.centerLeft,
         child: GestureDetector(
@@ -762,7 +762,7 @@ class _LockedField extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           child: Padding(
             padding: const EdgeInsets.only(top: 2, bottom: 2),
-            child: Text(note, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 13, color: d.link)),
+            child: Text(note, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 13, color: d.link)),
           ),
         ),
       ),
@@ -981,7 +981,7 @@ class _ProfileDialog extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter Tight',
                 fontWeight: FontWeight.w700,
                 fontSize: 24,
                 height: 21 / 24,
@@ -1020,7 +1020,7 @@ class _Pill extends StatelessWidget {
     );
     const size = Size(106, 40);
     const text = TextStyle(
-      fontFamily: 'Urbanist',
+      fontFamily: 'Inter',
       fontWeight: FontWeight.w700,
       fontSize: 16,
     );

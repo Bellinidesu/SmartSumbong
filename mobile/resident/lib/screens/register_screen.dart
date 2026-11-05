@@ -1088,7 +1088,7 @@ class _PhotoRow extends StatelessWidget {
                                   children: [
                                     Text(s.reportDetailsAttachMedia,
                                         style: TextStyle(
-                                          fontFamily: 'Urbanist',
+                                          fontFamily: 'Inter',
                                           fontWeight: FontWeight.w700,
                                           fontSize: 12,
                                           height: 14 / 12,
@@ -1096,7 +1096,7 @@ class _PhotoRow extends StatelessWidget {
                                         )),
                                     Text(s.reportDetailsMaxPhotoSize,
                                         style: TextStyle(
-                                          fontFamily: 'Urbanist',
+                                          fontFamily: 'Inter',
                                           fontWeight: FontWeight.w400,
                                           fontSize: 10,
                                           height: 1,
@@ -1199,7 +1199,7 @@ class _ReviewRow extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
                 color: context.colors.muted,
@@ -1228,7 +1228,7 @@ class _ReviewPhoto extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 11,
               color: context.colors.muted,

@@ -400,8 +400,8 @@ window.ssAccessToken = function (initial) {
 <?php // Speed (pass 4): open the database connection and fetch the two
       // main font files while the page is still being read. ?>
 <link rel="preconnect" href="<?= e(supabase_url()) ?>" crossorigin>
-<link rel="preload" href="assets/vendor/fonts/urbanist-regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/vendor/fonts/urbanist-bold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/vendor/fonts/inter-regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/vendor/fonts/inter-tight-bold.woff2" as="font" type="font/woff2" crossorigin>
 <link href="assets/css/fonts.css?v=<?= e(asset_version('fonts.css')) ?>" rel="stylesheet">
 <link href="assets/css/p.css?v=<?= e(asset_version('p.css')) ?>" rel="stylesheet">
 <link href="assets/css/p-portal.css?v=<?= e(asset_version('p-portal.css')) ?>" rel="stylesheet">

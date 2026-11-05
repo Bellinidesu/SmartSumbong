@@ -300,7 +300,7 @@ class _NavScreenState extends State<_NavScreen> {
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(
                           here ? s.navArrive : (toNext != null ? navDistance(toNext) : navDistance(left)),
-                          style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w900, fontSize: 26, height: 1.05, color: Colors.white),
+                          style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w900, fontSize: 26, height: 1.05, color: Colors.white),
                         ),
                         const SizedBox(height: 3),
                         Text(
@@ -311,7 +311,7 @@ class _NavScreenState extends State<_NavScreen> {
                                   : (next ?? route.steps.lastOrNull)?.instruction(s) ?? s.navStart,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white),
+                          style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white),
                         ),
                       ]),
                     ),
@@ -336,14 +336,14 @@ class _NavScreenState extends State<_NavScreen> {
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(context.tr('Then ', 'Pagkatapos '),
-                          style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13.5, color: Colors.white70)),
+                          style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13.5, color: Colors.white70)),
                       Icon(after.icon, size: 16, color: Colors.white),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(after.instruction(s),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13.5, color: Colors.white)),
+                            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13.5, color: Colors.white)),
                       ),
                     ]),
                   ),
@@ -407,7 +407,7 @@ class _NavScreenState extends State<_NavScreen> {
                     const SizedBox(height: 10),
                     Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
                       Text(here ? context.tr('You’re here', 'Narito ka na') : '$mins min',
-                          style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w900, fontSize: 26, color: d.dark ? const Color(0xFF5FD68A) : DColors.green)),
+                          style: TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w900, fontSize: 26, color: d.dark ? const Color(0xFF5FD68A) : DColors.green)),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(here ? context.tr('at the report', 'sa report') : '${navDistance(left)} · ${s.navArriveAt(etaText)}',

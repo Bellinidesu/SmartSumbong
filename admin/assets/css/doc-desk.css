@@ -2,7 +2,7 @@
    complaint-summary.php (7 Oct 2026). Screen only; nothing here prints. */
 @media screen {
   html, body { height: 100%; }
-  body { display: flex; flex-direction: column; font-family: Urbanist, "Segoe UI", Arial, sans-serif; font-size: 15px; color: var(--cd-ink); background: var(--cd-bg); }
+  body { display: flex; flex-direction: column; font-family: Inter, "Segoe UI", Arial, sans-serif; font-size: 15px; color: var(--cd-ink); background: var(--cd-bg); }
   body::before { display: none; }
   :root { --cd-ink: #141B34; --cd-ink2: #3A4058; --cd-muted: #606678; --cd-bg: #E9EDF5; --cd-surface: #fff; --cd-surface2: #F8F9FC; --cd-line: #E3E6EE; --cd-dot: rgba(20,27,52,.16);
           --cd-green: #1C7D3E; --cd-green-bg: #E5F6EA; --cd-amber: #9C6000; --cd-amber-bg: #FFF1D6; --cd-blue: #00308F; --cd-blue-50: #EEF3FF; --z: 1; }
@@ -16,7 +16,7 @@
   .cd-state { font: 700 12px Inter, sans-serif; padding: 5px 11px; border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; }
   .cd-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
   .cd-state.ok { background: var(--cd-green-bg); color: var(--cd-green); } .cd-state.wait { background: var(--cd-amber-bg); color: var(--cd-amber); }
-  .cd-btn { height: 38px; padding: 0 18px; border-radius: 11px; border: 0; background: #FF9800; color: #141B34; font: 800 14px Urbanist, Arial, sans-serif; box-shadow: 0 4px 12px rgba(255,152,0,.3); cursor: pointer; }
+  .cd-btn { height: 38px; padding: 0 18px; border-radius: 11px; border: 0; background: #FF9800; color: #141B34; font: 800 14px Inter, Arial, sans-serif; box-shadow: 0 4px 12px rgba(255,152,0,.3); cursor: pointer; }
   .cd-btn:hover { background: #F08A00; }   /* ink on orange: 7.9:1 (white was 2.2:1, under WCAG AA's 4.5) */
   .cd-btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
   .cd-work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
@@ -45,7 +45,7 @@
   .cd-chk .y i { background: var(--cd-green); color: #fff; } .cd-chk .n i { border: 2px solid var(--cd-amber); } .cd-chk .n { color: var(--cd-muted); }
   .cd-field { display: grid; gap: 5px; }
   .cd-field label { font: 700 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--cd-muted); }
-  .cd-field input { height: 40px; border: 1px solid var(--cd-line); border-radius: 11px; background: var(--cd-surface2); padding: 0 12px; font: 600 14px Urbanist, Arial, sans-serif; color: var(--cd-ink); width: 100%; }
+  .cd-field input { height: 40px; border: 1px solid var(--cd-line); border-radius: 11px; background: var(--cd-surface2); padding: 0 12px; font: 600 14px Inter, Arial, sans-serif; color: var(--cd-ink); width: 100%; }
   .cd-field input:focus { outline: none; border-color: var(--cd-blue); box-shadow: 0 0 0 3px rgba(0,48,143,.18); background: var(--cd-surface); }
   .cd-field input::placeholder { color: var(--cd-muted); font-weight: 500; font-style: italic; }
   .cd-seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
@@ -85,9 +85,9 @@
   .cd-sec .cd-row b.prev { color: var(--cd-muted); font-weight: 600; }
   .cd-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .cd-tile { border: 1px solid var(--cd-line); background: var(--cd-surface2); border-radius: 11px; padding: 10px 12px; display: grid; gap: 2px; }
-  .cd-tile b { font: 800 22px Urbanist, Arial, sans-serif; color: var(--cd-ink); line-height: 1.1; }
+  .cd-tile b { font: 800 22px Inter Tight, Arial, sans-serif; color: var(--cd-ink); line-height: 1.1; }
   .cd-tile span { font-size: 12.5px; color: var(--cd-muted); }
-  .cd-field input[type=month] { font-family: Urbanist, Arial, sans-serif; }
+  .cd-field input[type=month] { font-family: Inter, Arial, sans-serif; }
 }
 
 /* Check boxes in the inspector (complaint-print.php) */

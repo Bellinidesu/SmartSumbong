@@ -217,7 +217,7 @@ class _IssuePill extends StatelessWidget {
           ),
           child: Text(label,
               style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 12.5,
                   color: selected ? Colors.white : d.ink)),

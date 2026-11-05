@@ -1134,7 +1134,7 @@ class _LocationStatus extends StatelessWidget {
                     borderRadius: BorderRadius.circular(50),
                   ),
                   textStyle: const TextStyle(
-                    fontFamily: 'Urbanist',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -1198,7 +1198,7 @@ class _ManualAddressField extends StatelessWidget {
         // The search icon stays: it is how the typed address is looked up.
         Text(context.s.reportDetailsManualAddressLabel,
             style: TextStyle(
-              fontFamily: 'Urbanist',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 14,
               height: 19 / 14,
@@ -1218,7 +1218,7 @@ class _ManualAddressField extends StatelessWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20),
               hintText: context.s.reportDetailsManualAddressHint,
               hintStyle: TextStyle(
-                fontFamily: 'Urbanist',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w400,
                 fontSize: 12,
                 fontStyle: FontStyle.normal,
@@ -1409,7 +1409,7 @@ class _PhotoStrip extends StatelessWidget {
                       children: [
                         Text(context.s.reportDetailsAttachMedia,
                             style: TextStyle(
-                              fontFamily: 'Urbanist',
+                              fontFamily: 'Inter',
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
                               height: 14 / 12,
@@ -1417,7 +1417,7 @@ class _PhotoStrip extends StatelessWidget {
                             )),
                         Text(context.s.reportDetailsMaxPhotoSize,
                             style: TextStyle(
-                              fontFamily: 'Urbanist',
+                              fontFamily: 'Inter',
                               fontWeight: FontWeight.w400,
                               fontSize: 10,
                               height: 1,
@@ -1498,7 +1498,7 @@ class _VideoAttach extends StatelessWidget {
               const SizedBox(height: 6),
               Text(context.s.reportDetailsAttachVideoOptional,
                   style: TextStyle(
-                    fontFamily: 'Urbanist',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                     color: context.colors.navy,
@@ -1602,7 +1602,7 @@ class _Acknowledgement extends StatelessWidget {
                   child: Text(
                     context.s.reportDetailsAcknowledgement,
                     style: TextStyle(
-                      fontFamily: 'Urbanist',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                       fontSize: 13,
                       height: 1.45,
