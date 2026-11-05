@@ -210,5 +210,51 @@
     host.paint = paint;
   }
 
-  window.sdPickers = { select: select, month: month, range: range, close: close };
+
+  /* ---------------- colour ---------------- */
+  // The browser's colour box, in the portal's own look: the button is the colour itself (filled, no frame of white), the list is a square of
+  // shade, a hue bar, a hex box and the colours the portal already uses. The real <input type="color"> keeps the value and fires input / change.
+  function colour(inp) {
+    if (!inp || inp.dataset.sdp) return; inp.dataset.sdp = '1';
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'sdp-btn sdp-colour'; btn.setAttribute('aria-haspopup', 'dialog'); btn.setAttribute('aria-expanded', 'false');
+    var lab = inp.closest('label'), name = lab && lab.querySelector('span'); if (name) btn.setAttribute('aria-label', name.textContent.trim());
+    inp.parentNode.insertBefore(btn, inp); hideNative(inp);
+    function hex2rgb(h) { var m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return [0, 48, 143]; var n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+    function rgb2hex(r, g, b) { return '#' + [r, g, b].map(function (v) { return ('0' + Math.round(v).toString(16)).slice(-2); }).join(''); }
+    function rgb2hsv(r, g, b) { r /= 255; g /= 255; b /= 255; var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0; if (d) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return [h, mx ? d / mx : 0, mx]; }
+    function hsv2rgb(h, s, v) { var c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c, r = 0, g = 0, b = 0; if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; } else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; } return [(r + m) * 255, (g + m) * 255, (b + m) * 255]; }
+    function ink(h) { var c = hex2rgb(h); return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) > 160 ? '#141B34' : '#fff'; }
+    function paint() { var h = (inp.value || '#00308f').toLowerCase(); btn.style.setProperty('--c', h); btn.style.setProperty('--ci', ink(h)); btn.innerHTML = '<span>' + h.toUpperCase() + '</span>' + CHEV; }
+    var d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(inp, 'value', { configurable: true, get: function () { return d.get.call(inp); }, set: function (v) { d.set.call(inp, v); paint(); } });
+    paint(); inp.addEventListener('input', paint); inp.addEventListener('change', paint);
+    btn.disabled = inp.disabled;
+    var SW = ['#00308F', '#356CF9', '#00A3C4', '#0E8F8A', '#34C759', '#EDFA04', '#FFB000', '#FF9800', '#FF5A4D', '#FF1744', '#8A2BE2', '#B15CFF', '#141B34', '#64748B', '#A8B0C4', '#FFFFFF'];
+    btn.addEventListener('click', function () {
+      if (open && open.btn === btn) { close(true); return; }
+      var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-clr'; pop.setAttribute('role', 'dialog');
+      pop.innerHTML = '<div class="sdp-sv"><i class="sdp-svk"></i></div><div class="sdp-hue"><i class="sdp-hk"></i></div>' +
+        '<div class="sdp-hexrow"><span class="sdp-prev"></span><input class="sdp-hex" maxlength="7" spellcheck="false" aria-label="Hex"></div>' +
+        '<div class="sdp-sw">' + SW.map(function (c) { return '<button type="button" class="sdp-swc" style="--c:' + c + '" data-c="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div>';
+      var sv = pop.querySelector('.sdp-sv'), svk = pop.querySelector('.sdp-svk'), hue = pop.querySelector('.sdp-hue'), hk = pop.querySelector('.sdp-hk'), hexI = pop.querySelector('.sdp-hex'), prev = pop.querySelector('.sdp-prev');
+      var c0 = hex2rgb(inp.value), hsv = rgb2hsv(c0[0], c0[1], c0[2]);
+      function draw(fromHex) {
+        var rgb = hsv2rgb(hsv[0], hsv[1], hsv[2]), h = rgb2hex(rgb[0], rgb[1], rgb[2]);
+        sv.style.background = 'linear-gradient(to top,#000,rgba(0,0,0,0)),linear-gradient(to right,#fff,hsl(' + hsv[0] + ',100%,50%))';
+        svk.style.left = hsv[1] * 100 + '%'; svk.style.top = (1 - hsv[2]) * 100 + '%'; svk.style.background = h; hk.style.left = hsv[0] / 360 * 100 + '%'; hk.style.background = 'hsl(' + hsv[0] + ',100%,50%)';
+        prev.style.background = h; if (!fromHex) hexI.value = h.toUpperCase(); return h;
+      }
+      function commit(fromHex, end) { var h = draw(fromHex); if (d.get.call(inp) !== h) { d.set.call(inp, h); paint(); inp.dispatchEvent(new Event('input', { bubbles: true })); } if (end) inp.dispatchEvent(new Event('change', { bubbles: true })); }
+      function drag(el, fn) { el.addEventListener('pointerdown', function (e) { e.preventDefault(); el.setPointerCapture(e.pointerId); var r = el.getBoundingClientRect(); fn(e, r); var mv = function (ev) { fn(ev, r); }, up = function () { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); commit(false, true); }; el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up); }); }
+      drag(sv, function (e, r) { hsv[1] = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); hsv[2] = 1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)); commit(false, false); });
+      drag(hue, function (e, r) { hsv[0] = Math.min(359.9, Math.max(0, (e.clientX - r.left) / r.width * 360)); commit(false, false); });
+      hexI.addEventListener('input', function () { var v = hexI.value.trim(); if (v[0] !== '#') v = '#' + v; if (/^#[0-9a-f]{6}$/i.test(v)) { var c = hex2rgb(v); hsv = rgb2hsv(c[0], c[1], c[2]); commit(true, true); } });
+      pop.querySelector('.sdp-sw').addEventListener('click', function (e) { var b = e.target.closest('.sdp-swc'); if (!b) return; var c = hex2rgb(b.dataset.c); hsv = rgb2hsv(c[0], c[1], c[2]); commit(false, true); });
+      if (window.EyeDropper) { var eye = document.createElement('button'); eye.type = 'button'; eye.className = 'sdp-eye'; eye.title = 'Pick from the screen'; eye.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5l3 3M4 20l1-4 9.5-9.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg>'; pop.querySelector('.sdp-hexrow').appendChild(eye); eye.addEventListener('click', function () { new window.EyeDropper().open().then(function (r) { var c = hex2rgb(r.sRGBHex); hsv = rgb2hsv(c[0], c[1], c[2]); commit(false, true); }).catch(function () {}); }); }
+      draw(false);
+      show(btn, pop, function (e) { if (e.key === 'Escape') { e.preventDefault(); close(true); } });
+    });
+  }
+
+  window.sdPickers = { select: select, month: month, range: range, colour: colour, close: close };
 })();

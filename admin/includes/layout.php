@@ -786,6 +786,7 @@ window.SS_PRESENCE = <?= json_encode([
     sdPickers.select(s, { dot: dotsFor(s), field: !pill });
   });
   document.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
+  document.querySelectorAll('input[type="color"]').forEach(function (i) { if (!i.dataset.native) sdPickers.colour(i); });
 })();
 </script>
 <?= prefs_script() ?>

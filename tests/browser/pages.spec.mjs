@@ -1154,6 +1154,32 @@ test('Roles and pages 6c: Notifications by committee, a dot on each case, engine
   expect(n.errors.concat(k.errors), 'console errors').toEqual([]);
 });
 
+test('Profile (6 Nov): Profile then Edit Profile as the title, the role ring is solid, a picture goes through the editor, the colour box is filled, Save asks once', async ({ page }) => {
+  await open(page, 'profile.php');
+  await expect(page.locator('.p-topbar h1')).toHaveText('Profile');
+  const e = await open(page, 'profile.php?edit=1');
+  await expect(page.locator('.p-topbar h1')).toHaveText('Edit Profile');
+  expect(await page.locator('#profile-form').getAttribute('data-native-confirm'), 'the page asks with its own dialog only, not the browser as well').toBeNull();
+  await expect(page.locator('.pf-menu a')).toHaveCount(3);
+  const ring = await page.locator('.ss-pf-av[data-r]').first().evaluate(el => { const s = getComputedStyle(el); return [s.outlineStyle, s.borderTopWidth]; });
+  expect(ring, 'the role colour fills its ring: no outline gap, no white border').toEqual(['none', '0px']);
+  expect(await page.locator('.sdp-colour').evaluate(el => getComputedStyle(el).backgroundColor), 'the colour box is the colour, filled').toBe('rgb(0, 48, 143)');
+  // a picked photo opens in the editor and comes back cropped into the file box
+  const png = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 600; c.height = 400; const g = c.getContext('2d'); g.fillStyle = '#356cf9'; g.fillRect(0, 0, 600, 400); return c.toDataURL('image/png').split(',')[1]; });
+  await page.setInputFiles('#avatar', { name: 'a.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+  await expect(page.locator('.cr-modal')).toBeVisible();
+  await page.locator('.cr-ok').click();
+  await expect(page.locator('.cr-modal')).toHaveCount(0);
+  expect(await page.locator('#avatar').evaluate(i => [i.files.length, i.files[0].name, i.files[0].size > 0]), 'the cropped picture is what the form posts').toEqual([1, 'photo.jpg', true]);
+  // Save asks once: the page's own dialog, and the browser's never
+  let native = 0; page.on('dialog', d => { native++; d.dismiss(); });
+  if (!(await page.locator('#mobile_number').inputValue())) await page.locator('#mobile_number').fill('09171234567');
+  await page.locator('#profile-form button[type=submit]').click();
+  await expect(page.locator('#confirm-save')).toBeVisible();
+  expect(native, 'the browser did not ask as well').toBe(0);
+  expect(e.errors.filter(m => !/WebSocket/.test(m)), 'console errors').toEqual([]);
+});
+
 test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card) and a Kagawad endorsing a retirement', async ({ page, context }) => {
   const p = await open(page, 'profile.php');
   for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
