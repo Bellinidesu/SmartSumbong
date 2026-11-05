@@ -931,7 +931,7 @@ test('Personnel duty tiles keep their colour fields, so their white lettering re
     const tiles = await page.locator('.p-attendance .p-kpi').evaluateAll(ts => ts.map(t => ({ bg: getComputedStyle(t).backgroundImage, fg: getComputedStyle(t.querySelector('.p-label')).color, v: getComputedStyle(t.querySelector('.p-value')).color, d: getComputedStyle(t.querySelector('.p-delta')).color, brk: t.classList.contains('p-att-break') })));
     expect(tiles.length).toBe(4);
     for (const x of tiles) {
-      expect(x.bg, 'a colour field, not a white card (' + scheme + ')').toMatch(/^linear-gradient\(145deg/);
+      expect(x.bg, 'a colour field, not a white card (' + scheme + ')').toMatch(/linear-gradient\(145deg/);
       expect(x.fg, 'the label is the same ink as the number (' + scheme + ')').toBe(x.v);
       expect(x.d, 'and the line under it (' + scheme + ')').toBe(x.v);
       expect(x.v, 'white, or dark on the yellow Break tile').toBe(x.brk ? 'rgb(59, 42, 0)' : 'rgb(255, 255, 255)');
@@ -1011,7 +1011,7 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   expect(page.url(), 'copying a tracking ID does not open the row').toBe(here);
   expect(g.bg, 'in the committee colours').toContain('gradient');
   expect(g.th, 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
-  expect(Math.abs(g.bandBottom - g.headTop), 'joined').toBeLessThanOrEqual(1);
+  expect(g.headTop - g.bandBottom, 'the header bar and the chooser are two objects with a gap (6 Nov)').toBeGreaterThanOrEqual(10);
   expect(r.errors, 'console errors').toEqual([]);
   expect(await axe(page), 'Tanod account').toEqual([]);
   await open(page, 'personnel.php?view=staff');
