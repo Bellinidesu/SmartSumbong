@@ -517,7 +517,7 @@ $noteBadge = $notesUnread + $escCount;
   </form>
   <span class="p-spacer"></span>
   <?php if ($notesUnread > 0): ?>
-  <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_all">
+  <form method="post"<?= press_save('nf-list') ?>><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_all">
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Mark all as read', 'Markahang nabasa ang lahat')) ?></button></form>
   <?php endif; ?>
   <form method="get" hx-boost="true">
@@ -612,7 +612,7 @@ $noteBadge = $notesUnread + $escCount;
             <?php if (!empty($g['report_id'])): ?><a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= empty($g['is_read']) ? e($g['id']) : '' ?>" href="case.php?id=<?= e($g['report_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a><?php endif; ?></li>
         <?php endforeach; ?>
       </ul>
-      <?php if ($gUnread): ?><form method="post" class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_column($gUnread, 'id'))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+      <?php if ($gUnread): ?><form method="post"<?= press_save('nf-list') ?> class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_column($gUnread, 'id'))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
         <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= p_icon('i-check', 15) ?><?= e(t('Mark all of them as read', 'Markahang nabasa ang lahat ng ito')) ?></button></form><?php endif; ?>
       </div>
     </details>
@@ -632,12 +632,12 @@ $noteBadge = $notesUnread + $escCount;
       <div class="nf-body"><ul class="nf-items nf-case-items">
         <?php foreach ($cg as $g): $gu = empty($g['is_read']); $gl = notif_look((string) ($g['kind'] ?? ''), (string) $g['message']); ?>
           <li data-sev="<?= e($gl[0]) ?>"><i class="nf-sev" aria-hidden="true"></i><span class="nf-msg<?= $gu ? ' is-unread' : '' ?>"><?= e($g['message']) ?></span> <span class="p-when"><?= e(relative_time($g['created_at'])) ?></span>
-            <?php if ($gu): ?><form method="post" class="p-n-x"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($g['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+            <?php if ($gu): ?><form method="post"<?= press_save('nf-list') ?> class="p-n-x"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($g['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
               <button class="p-n-check" type="submit" title="<?= e(t('Mark as read', 'Markahang nabasa')) ?>" aria-label="<?= e(t('Mark as read', 'Markahang nabasa')) ?>"><?= p_icon('i-check', 16) ?></button></form><?php endif; ?></li>
         <?php endforeach; ?>
       </ul>
       <div class="nf-case-act"><a class="p-btn p-btn-sm p-btn-orange" href="case.php?id=<?= e($n['report_id']) ?>"><?= e(t('Open the case', 'Buksan ang kaso')) ?></a>
-        <?php if ($cgUn): ?><form method="post" class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_map(fn ($g) => $g['id'], $cgUn))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+        <?php if ($cgUn): ?><form method="post"<?= press_save('nf-list') ?> class="nf-readall"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_many"><input type="hidden" name="ids" value="<?= e(implode(',', array_map(fn ($g) => $g['id'], $cgUn))) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
           <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= p_icon('i-check', 15) ?><?= e(t('Mark all as read', 'Markahang nabasa ang lahat')) ?></button></form><?php endif; ?></div>
       </div>
     </details>
@@ -654,7 +654,7 @@ $noteBadge = $notesUnread + $escCount;
         <a class="p-btn p-btn-sm p-btn-orange" data-nid="<?= $unread ? e($n['id']) : '' ?>" href="<?= ($n['subject']['role'] ?? '') === 'tanod' ? 'personnel.php' : 'residents.php' ?>?id=<?= e($n['subject_user_id']) ?>"><?= e(t('Review', 'Suriin')) ?></a>
       <?php endif; ?>
       </div>
-      <form method="post" class="p-n-x"><?php if ($unread): ?><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($n['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
+      <form method="post"<?= press_save('nf-list') ?> class="p-n-x"><?php if ($unread): ?><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_one"><input type="hidden" name="id" value="<?= e($n['id']) ?>"><input type="hidden" name="back" value="<?= (int) $npage ?>">
         <button class="p-n-check" type="submit" title="<?= e(t('Mark as read', 'Markahang nabasa')) ?>" aria-label="<?= e(t('Mark as read', 'Markahang nabasa')) ?>"><?= p_icon('i-check', 16) ?></button><?php endif; ?></form>
     </div>
   <?php endforeach; ?>
@@ -699,7 +699,7 @@ foreach ($openRows ?? [] as $r) { if (!empty($r['due_at']) && strtotime((string)
 $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '%d ang lampas') : t('%d overdue', '%d ang lampas'), $n) : t('none overdue', 'walang lampas');
 ?>
 <?php $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : ''); ?>
-<?= forward_dialog($fwBack) ?>
+<?= forward_dialog($fwBack, 'cr-list') ?>
 <?php // The press flow (step 3, 7 Nov 2026): the figures, the filters, the chooser, the list and the pager are one region. A press on a
       // figure, a filter, a committee, a column or a page fetches this same page and swaps only this region; the address follows, so
       // Back, Forward and a refresh land on the same view. Row links still open the case. ?>
@@ -903,6 +903,8 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   });
   // the live refresh waits while cases are ticked or the dialog is open, so it never takes a selection away
   window.ssCasesBusy = function () { return picked().length > 0 || dlg.open; };
+  // a forward sent in place closes the dialog when its answer has come
+  dlg.addEventListener('htmx:afterRequest', function (e) { if (e.detail && e.detail.successful) dlg.close(); });
 })();
 </script>
 <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
