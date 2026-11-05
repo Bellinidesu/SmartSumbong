@@ -878,7 +878,7 @@ test('Case Reports: the header, the chooser and the list are three rounded objec
     expect([g.x[2], g.x[3]], 'and the list at ' + w).toEqual([g.x[4], g.x[5]]);
     expect(g.y[1] - g.y[0], 'a gap between the header and the chooser at ' + w).toBeGreaterThanOrEqual(10);
     expect(g.y[3] - g.y[2], 'and between the chooser and the list at ' + w).toBeGreaterThanOrEqual(10);
-    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser is as slim as the tab bar of Report Summary at ' + w).toBeLessThanOrEqual(w === 720 ? 330 : 60);
+    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser is as slim as the tab bar of Report Summary at ' + w).toBeLessThanOrEqual(w === 720 ? 330 : w === 1440 ? 100 : 60);   // one line on a wide screen, two when the seven tabs no longer fit
     const cut = await page.locator('.cm-chips .cm-chip').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
     expect(cut, 'no committee name is cut at ' + w).toBe(0);
     const heads = await page.locator('.ss-cases-t thead th').first().evaluate(e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).textTransform]);
