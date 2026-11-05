@@ -115,6 +115,21 @@
           "sha256": "5bc36f1f6fdf85eb4f863ed4c10eba882dc10b3830f21373f9418a5612d80458"
         }
       }
+    },
+    "htmx": {
+      "npm": "htmx.org",
+      "version": "2.0.11",
+      "licence": "0BSD",
+      "how": "copy",
+      "note": "Hypermedia partial updates (7 Nov 2026, the press flow): a press fetches the page's own HTML and swaps the part that changed. Loaded with the page's CSP nonce; eval and inline indicator styles are off (assets/js/press.js sets the config).",
+      "licence_file": "htmx/LICENSE",
+      "licence_from": "LICENSE",
+      "files": {
+        "htmx/htmx.min.js": {
+          "from": "dist/htmx.min.js",
+          "sha256": "d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717"
+        }
+      }
     }
   }
 }

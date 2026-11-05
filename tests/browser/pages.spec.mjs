@@ -1387,3 +1387,33 @@ test('The DEV switcher is a floating pill: out of the sidebar, draggable, rememb
   expect(Math.abs(back.x - home.x) + Math.abs(back.y - home.y), 'a double-click puts it back').toBeLessThan(4);
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('Press flow foundation (7 Nov): htmx with the portal config, a swap changes only its region, no page HTML in localStorage, a failed fetch falls back to the plain page', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const cfg = await page.evaluate(() => [typeof htmx, htmx.config.allowEval, htmx.config.allowScriptTags, htmx.config.historyCacheSize, htmx.config.selfRequestsOnly, typeof ssPress, typeof ssPickersInit, typeof ssChooserInit, !!document.querySelector('.ss-progress')]);
+  expect(cfg, 'htmx and the press layer are on the page, set up safely').toEqual(['object', false, false, 0, true, 'object', 'function', 'function', true]);
+  const before = await page.locator('.ss-cases-t tbody tr').count();
+  await page.evaluate(() => {
+    window.__stay = 1;
+    const b = document.createElement('button'); b.id = 'hx-probe'; b.textContent = 'probe';
+    b.setAttribute('hx-get', 'cases.php?com=none'); b.setAttribute('hx-select', '.ss-cases-t tbody'); b.setAttribute('hx-target', '.ss-cases-t tbody'); b.setAttribute('hx-swap', 'outerHTML');
+    document.body.appendChild(b); htmx.process(b);
+    window.__settled = new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true }));
+  });
+  await page.locator('#hx-probe').click();
+  await page.evaluate(() => window.__settled);
+  expect(await page.evaluate(() => window.__stay), 'the page did not reload').toBe(1);
+  expect(await page.locator('.ss-cases-t tbody tr').count(), 'the list was swapped').toBeGreaterThan(0);
+  expect(await page.evaluate(() => Object.keys(localStorage).filter(k => /htmx/i.test(k))), 'no page HTML kept in the browser').toEqual([]);
+  expect(before).toBeGreaterThan(0);
+  // a fetch that fails: the press opens the plain page instead of doing nothing
+  await page.route(/cases\.php\?com=fallback/, route => (route.request().headers()['hx-request'] ? route.abort() : route.continue()));
+  await page.evaluate(() => {
+    const b = document.createElement('button'); b.id = 'hx-probe2'; b.textContent = 'probe2';
+    b.setAttribute('hx-get', 'cases.php?com=fallback'); b.setAttribute('hx-select', '.ss-cases-t tbody'); b.setAttribute('hx-target', '.ss-cases-t tbody');
+    document.body.appendChild(b); htmx.process(b);
+  });
+  await Promise.all([page.waitForURL(/com=fallback/), page.locator('#hx-probe2').click()]);
+  // the simulated failure itself is logged (htmx names the failed request, the browser the aborted fetch); nothing else may be
+  expect(r.errors.filter(m => !/htmx:(afterRequest|sendError)|net::ERR_FAILED/.test(m)), 'console errors').toEqual([]);
+});

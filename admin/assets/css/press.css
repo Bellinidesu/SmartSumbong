@@ -1,0 +1,15 @@
+/* The press flow (7 Nov 2026): a press always answers. A thin bar runs along the top while anything is in flight (it shows only
+   after 120 ms, so a fast answer never flickers), the pressed control says it is working, and a swap fades rather than jumps. */
+.ss-progress { position: fixed; left: 0; top: 0; z-index: 2000; height: 3px; width: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, #FF9800, #FFC21A, #FF9800); box-shadow: 0 0 10px rgba(255,152,0,.7);
+  transition: width .2s ease, opacity .25s ease; }
+.ss-progress.is-on { opacity: 1; width: 82%; transition: width 6s cubic-bezier(.08,.6,.2,1), opacity .15s ease; }
+.ss-progress.is-on.is-done { width: 100%; opacity: 0; transition: width .2s ease, opacity .3s ease .15s; }
+/* the control that started a request */
+.htmx-request:is(a, button), button.htmx-request, form.htmx-request [type="submit"] { cursor: progress; }
+.htmx-request:is(a, button):not(.cm-chip), form.htmx-request [type="submit"] { opacity: .78; }
+/* the region being replaced */
+.htmx-swapping { opacity: .55; transition: opacity .12s ease; }
+.htmx-settling { transition: opacity .18s ease; }
+[aria-busy="true"] body { cursor: progress; }
+@media (prefers-reduced-motion: reduce) { .ss-progress, .ss-progress.is-on, .htmx-swapping, .htmx-settling { transition: none; } }
