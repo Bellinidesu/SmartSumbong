@@ -784,7 +784,7 @@ $comHref = fn (string $c) => 'cases.php?' . http_build_query(array_filter(array_
 $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 <?php if ($casesFlash): ?><div class="p-flash p-flash--<?= $casesFlash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($casesFlash['text']) ?></div><?php endif; ?>
-<nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $com === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $com === '' ? ' aria-current="true"' : '' ?> title="<?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?><em class="<?= array_sum($crOd) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) array_sum($crOd))) ?></em></span><b><?= (int) ($chipN['all'] ?? 0) ?></b></a>
   <?php if (sees_everything()): ?>
     <?php foreach (committees_active() as $ck => $cl): ?>
@@ -797,6 +797,7 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
   <?php endif; ?>
 </nav>
 <?= committee_banner_script() ?>
+<script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
 <?php if (is_super()): ?>
 <div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
 <?php endif; ?>

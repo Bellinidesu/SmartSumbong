@@ -862,36 +862,30 @@ test('Case Reports, peak: figures that link to their lists, the blue column head
   expect(new Set(tops).size, 'the four figures are one band').toBe(1);
   await expect(page.locator('.cr-fig > a').first()).toHaveAttribute('href', /view=attention/);
   expect(Number(await page.locator('.cr-fig > a').first().locator('b').textContent())).toBeGreaterThan(0);
-  expect(await page.locator('.ss-cases-t thead th').first().evaluate(e => getComputedStyle(e).backgroundColor), 'the column header is the Figma blue').toBe('rgb(0, 48, 143)');
+  expect(await page.locator('.ss-cases-t thead th').first().evaluate(e => getComputedStyle(e).backgroundColor), 'the column header is no longer the blue (6 Nov: white under the one orange header)').not.toBe('rgb(0, 48, 143)');
   expect(await page.locator('.ss-cases-t tr.cr-od').count(), 'overdue rows are marked').toBeGreaterThan(0);
   await page.locator('.cr-fig > a').first().click();
   await expect(page).toHaveURL(/view=attention/);
   expect(r.errors, 'console errors').toEqual([]);
 });
 
-test('The stacked layout: the strip is one object with the band and the table, no name is cut, the header join is square', async ({ page }) => {
+test('Case Reports: the header, the chooser and the list are three rounded objects on one grid, the chooser is a slim bar like the Report Summary tabs, no name is cut, the column head is white', async ({ page }) => {
   for (const w of [2048, 1440, 720]) {
     await page.setViewportSize({ width: w, height: 1000 });
     const r = await open(page, 'cases.php');
     const g = await page.evaluate(() => { const b = document.querySelector('.ss-cr-band').getBoundingClientRect(), c = document.querySelector('.cm-chips').getBoundingClientRect(), t = document.querySelector('.ss-cases-t').closest('.p-table-card').getBoundingClientRect(); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(Math.round) }; });
-    expect([g.x[0], g.x[1]], 'the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
-    expect([g.x[2], g.x[3]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
-    expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap at ' + w + ': ' + g.y).toBe(true);
-    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip is as slim as the tab strip of Report Summary at ' + w).toBeLessThanOrEqual(w === 720 ? 400 : 80);
-    const cut = await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
+    expect([g.x[0], g.x[1]], 'the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+    expect([g.x[2], g.x[3]], 'and the list at ' + w).toEqual([g.x[4], g.x[5]]);
+    expect(g.y[1] - g.y[0], 'a gap between the header and the chooser at ' + w).toBeGreaterThanOrEqual(10);
+    expect(g.y[3] - g.y[2], 'and between the chooser and the list at ' + w).toBeGreaterThanOrEqual(10);
+    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser is as slim as the tab bar of Report Summary at ' + w).toBeLessThanOrEqual(w === 720 ? 330 : w === 1440 ? 100 : 60);   // one line on a wide screen, two when the seven tabs no longer fit
+    const cut = await page.locator('.cm-chips .cm-chip').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length);
     expect(cut, 'no committee name is cut at ' + w).toBe(0);
-    expect(await page.locator('.ss-cases-t thead th:first-child').evaluate(e => [getComputedStyle(e).borderTopLeftRadius, getComputedStyle(e).borderTopRightRadius]), 'square header corners at ' + w).toEqual(['0px', '0px']);
-    const joint = await page.evaluate(() => { const card = getComputedStyle(document.querySelector('.ss-cases-t').closest('.p-table-card')), band = getComputedStyle(document.querySelector('.ss-cr-band')); return { cardTop: [card.borderTopLeftRadius, card.borderTopRightRadius], bandBottom: [band.borderBottomLeftRadius, band.borderBottomRightRadius], glow: band.boxShadow.includes('240') && !/^rgba\(255, 255, 255, 0.4\) 0px 1px 0px 0px inset$/.test(band.boxShadow) }; });
-    expect(joint.cardTop, 'the table card (it clips the header) has square top corners at ' + w).toEqual(['0px', '0px']);
-    expect(joint.bandBottom, 'and so does the band at its bottom, at ' + w).toEqual(['0px', '0px']);
-    expect(joint.glow, 'the band casts no glow onto the strip at ' + w).toBe(false);
-    expect(await page.locator('.cm-chips .cm-bg').count(), 'every banner carries its large faint symbol at ' + w).toBeGreaterThanOrEqual(5);
-    const mismatch = await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c.querySelector('.cm-n')).color !== getComputedStyle(c.querySelector('b')).color).length);
-    expect(mismatch, 'each button name and count share one colour at ' + w).toBe(0);
-    const flat = await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => getComputedStyle(c).backgroundImage === 'none').length);
-    expect(flat, 'every committee cell is a stylised gradient button at ' + w).toBe(0);
-    expect(await page.locator('.cm-chip.cm-sd .cm-ic svg, .cm-chip.cm-sd svg.cm-ic').count(), 'the committees wear Spatial Distribution icons at ' + w).toBeGreaterThanOrEqual(3);
-    expect(await page.locator('.cm-chip.cm-sd svg.cm-ic').evaluateAll(v => v.filter(x => !x.innerHTML.trim()).length), 'every icon is drawn from the SD family at ' + w).toBe(0);
+    const heads = await page.locator('.ss-cases-t thead th').first().evaluate(e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).textTransform]);
+    expect(heads[0], 'the column head is not the blue at ' + w).not.toBe('rgb(0, 48, 143)');
+    expect(await page.locator('.cm-ind').count(), 'the chosen tab is one sliding pill at ' + w).toBe(1);
+    expect(await page.locator('.cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'in the committee colours at ' + w).toBe(true);
+    expect(await page.locator('.cm-chips .cm-chip > b').count(), 'every tab carries its count at ' + w).toBeGreaterThanOrEqual(5);
     expect(r.errors, 'console errors').toEqual([]);
   }
   await page.setViewportSize({ width: 2048, height: 1000 });
