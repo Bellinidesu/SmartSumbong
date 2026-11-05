@@ -1434,7 +1434,8 @@ test('Press flow step 2 (7 Nov): a save shows that it is working and a second pr
     const fr = document.createElement('iframe'); fr.name = 'sink'; fr.hidden = true; document.body.appendChild(fr);
     const csrf = document.querySelector('input[name="csrf"]').value;
     const f = document.createElement('form'); f.method = 'post'; f.action = 'notifications.php'; f.target = 'sink'; f.id = 'probe-save';
-    f.innerHTML = '<input type="hidden" name="csrf" value="' + csrf + '"><input type="hidden" name="action" value="read_all"><button type="submit">Save</button>';
+    [['csrf', csrf], ['action', 'read_all']].forEach(([n, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); });
+    const b = document.createElement('button'); b.type = 'submit'; b.textContent = 'Save'; f.appendChild(b);
     document.body.appendChild(f);
   });
   const btn = page.locator('#probe-save button');
