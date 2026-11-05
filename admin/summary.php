@@ -404,7 +404,11 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
   </div></div>
 </aside>
 <div class="p-topbar"><h1><?= e(t('Report Summary', 'Buod ng mga Ulat')) ?></h1>
-  <span class="rs-scope"><?= $scopeCom !== '' ? committee_pill($scopeCom) : ($com === 'none' ? committee_pill(null) : '<span class="cm-pill" style="--cc:' . e(barangay()['super_colour'] ?? SUPER_BLUE) . '"><i></i>' . e(t('Whole barangay', 'Buong barangay')) . '</span>') ?></span>
+  <?php // Report Summary | Barangay Overall: the scope is plain words after a hairline, with its colour as a small bar, not a pill (Ace, 6 Nov 2026)
+        if ($scopeCom !== '' && isset(committees_all()[$scopeCom])) { $scopeLabel = (string) committees_all()[$scopeCom]['short_en']; $scopeCc = committee_colour($scopeCom); }
+        elseif ($com === 'none') { $scopeLabel = t('No committee yet', 'Wala pang komite'); $scopeCc = 'var(--p-red)'; }
+        else { $scopeLabel = t('Barangay Overall', 'Barangay sa Kabuuan'); $scopeCc = (string) (barangay()['super_colour'] ?? SUPER_BLUE); } ?>
+  <span class="rs-scope" style="--cc:<?= e($scopeCc) ?>"><i aria-hidden="true"></i><?= e($scopeLabel) ?></span>
   <span class="p-spacer" style="flex:1"></span>
   <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($engineDot): ?><i class="ss-brain-dot" aria-hidden="true"></i><?php endif; ?></button></div>
 
@@ -449,7 +453,7 @@ $engineSub = $story ? $story[0] : sprintf(t('%s to %s', '%s hanggang %s'), short
         <option value="none" <?= $com === 'none' ? 'selected' : '' ?>><?= e(t('No committee yet', 'Wala pang komite')) ?></option>
       </select></label>
     <?php endif; ?>
-    <button class="p-btn p-btn-primary p-btn-sm" style="height:36px" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
+    <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Apply', 'Ilapat')) ?></button>
   </form>
   <span class="p-chips-q">
     <?php foreach ($RANGES as $key => [$lbl, $a, $b]): ?>
@@ -725,8 +729,20 @@ $tlTone = function (array $l): string {
     ids.forEach(function (k) { panes[k].classList.toggle('rs-off', k !== id); });
     links.forEach(function (a) { var on = a.getAttribute('href') === '#' + id; a.classList.toggle('on', on); a.setAttribute('aria-selected', String(on)); });
     if (!keepHash && location.hash !== '#' + id && history.replaceState) history.replaceState(null, '', '#' + id);
+    if (typeof slide === 'function') slide(!nav.classList.contains('has-ind'));
   }
   nav.setAttribute('role', 'tablist'); links.forEach(function (a) { a.setAttribute('role', 'tab'); });
+  // the chosen tab is a pill that slides to the next one (and the page's sections swap under it); without this the chosen tab colours itself
+  var ind = document.createElement('span'); ind.className = 'ss-jump-ind'; ind.setAttribute('aria-hidden', 'true'); nav.insertBefore(ind, nav.firstChild);
+  function slide(instant) {
+    var on = nav.querySelector('a.on'); if (!on) return;
+    if (instant) ind.style.transition = 'none';
+    ind.style.width = on.offsetWidth + 'px'; ind.style.height = on.offsetHeight + 'px'; ind.style.transform = 'translate(' + on.offsetLeft + 'px,' + on.offsetTop + 'px)';
+    if (instant) { void ind.offsetWidth; ind.style.transition = ''; }
+    nav.classList.add('has-ind');
+  }
+  window.addEventListener('resize', function () { slide(true); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { slide(true); });
   nav.addEventListener('click', function (e) { var a = e.target.closest('a'); if (!a) return; e.preventDefault(); show(a.getAttribute('href').slice(1)); });
   var q = location.search, want = location.hash.slice(1);
   if (!panes[want]) want = /[?&]lp=/.test(q) ? 'rs-ledger' : /[?&]rp=/.test(q) ? 'rs-esc' : /[?&]tp=/.test(q) ? 'rs-tanod' : ids[0];

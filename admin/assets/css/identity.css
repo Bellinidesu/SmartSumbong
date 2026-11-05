@@ -285,22 +285,15 @@
 .page-summary .ss-jump a { justify-content: center; white-space: nowrap; }
 @media (max-width: 760px) { :root:root .p-body.page-summary .ss-jump { display: flex; flex-wrap: wrap; } .page-summary .ss-jump a { flex: 1 1 auto; } }
 
-/* ---- Report Summary: the title row is the orange band, the column header under it is the blue (the Figma pair) ---- */
-.page-summary .p-table-card > .p-card-head {
-  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 22px !important; margin: 0;
-  background: linear-gradient(105deg, #FFB43A 0%, #FF9800 45%, #F58200 100%); color: #2B1A00; border-radius: 16px 16px 0 0;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
-}
-.page-summary .p-table-card > .p-card-head h2 { color: #2B1A00; font-size: 16px; font-weight: 800; margin: 0; }
-.page-summary .p-table-card > .p-card-head .p-hint { color: rgba(43,26,0,.75); font-weight: 700; }
-.page-summary .p-table-card thead.p-blue th { background: var(--p-blue); color: #fff; border-color: transparent; font: 700 12.5px Inter, sans-serif; letter-spacing: .02em; }
-.page-summary .p-table-card thead.p-blue th a { color: #fff; }
+/* ---- Report Summary: a list's title row sits on its card and the column head under it is quiet (6 Nov: the orange band and the blue head are gone; the period band above is the page's one orange) ---- */
+.page-summary .p-table-card > .p-card-head { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 22px !important; margin: 0; border-radius: 16px 16px 0 0; }
 
 /* ---- the Case Timeline: a picker on the left, one case's story on the right, on a rail ---- */
 .rs-tl-split { display: grid; grid-template-columns: minmax(270px, 340px) minmax(0, 1fr); }
 .rs-tl-pick { border-right: 1px solid var(--p-line); min-width: 0; }
-.rs-tl-pick tbody tr.p-sel > td { background: color-mix(in srgb, #FF9800 12%, transparent); }
-.rs-tl-pick tbody tr.p-sel > td:first-child { box-shadow: inset 4px 0 0 #FF9800; }
+.rs-tl-pick { --rs-sel: var(--p-blue); } :root[data-theme="dark"] .rs-tl-pick { --rs-sel: #356CF9; }
+.rs-tl-pick tbody tr.p-sel > td { background: color-mix(in srgb, var(--rs-sel) 9%, transparent); }
+.rs-tl-pick tbody tr.p-sel > td:first-child { box-shadow: inset 4px 0 0 var(--rs-sel); }
 .rs-tl-pick td { padding-top: 10px; padding-bottom: 10px; }
 .rs-tl-st { display: block; margin-top: 4px; }
 .rs-tl-n { display: inline-grid; place-items: center; min-width: 26px; height: 24px; padding: 0 8px; border-radius: 99px; background: var(--p-grey-bg); font: 800 12.5px Inter, sans-serif; }
@@ -632,3 +625,68 @@
   .ss-brain-btn, .ss-brain-btn .ss-brain-ico, .ss-brain-btn .ss-brain-ico path, .ss-win-head::after, .ss-win-head .ss-engine img, .p-donut svg.is-empty .trk { animation: none !important; }
   .ss-win.is-open :is(.ss-engine, .ss-win-ttl, .ss-win-x, .ss-panel-in > *) { animation: none; }
 }
+
+
+/* ---- 6 Nov 2026, Report Summary: Ace's pass ---- */
+/* Report Summary | Barangay Overall: the scope is words after a hairline, with its colour as a small bar */
+.page-summary .rs-scope { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 0 16px; padding: 0 0 0 16px; border-left: 2px solid var(--p-line-2); font: 600 17px Inter Tight, Inter, sans-serif; color: var(--p-muted); letter-spacing: -.005em; vertical-align: middle; }
+.page-summary .rs-scope i { width: 4px; height: 18px; border-radius: 2px; background: var(--cc, var(--p-muted)); flex: none; }
+
+/* the period band is the page's one orange: every control in it is one height, one radius, the two stylised downloads included */
+:root:root .page-summary .p-period-band { align-items: center; gap: 10px 12px; }
+:root:root .page-summary .p-period-band :is(.p-pill-select, .p-chip, form .p-btn-primary, .p-btn-xls, .p-btn-pdf2) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .page-summary .p-period-band .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .page-summary .p-period-band .p-chip { display: inline-flex; align-items: center; padding: 0 13px; font-size: 13.5px; }
+:root:root .page-summary .p-period-band form .p-btn-primary { padding: 0 20px; font-size: 14px; }
+:root:root .page-summary .p-period-band :is(.p-btn-xls, .p-btn-pdf2) { padding: 0 20px 0 14px; gap: 10px; font-size: 14px; line-height: 1; }
+.page-summary .p-period-band :is(.xls-ico, .pdf-ico) { width: 20px; height: 23px; }
+.page-summary .p-period-band .rs-dl { gap: 10px; }
+.page-summary .p-period-band .p-chips-q { gap: 8px; }
+
+/* the sections' tabs: the chosen one is a blue pill that slides to the next, and a tab answers the pointer before it is clicked */
+.page-summary .ss-jump { --rs-sel: var(--p-blue); }
+:root[data-theme="dark"] .page-summary .ss-jump { --rs-sel: #356CF9; }
+.ss-jump-ind { position: absolute; left: 0; top: 0; z-index: 0; width: 0; height: 0; border-radius: 10px; pointer-events: none; background: var(--rs-sel);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--rs-sel) 70%, transparent);
+  transition: transform .4s cubic-bezier(.2, .9, .25, 1.04), width .4s cubic-bezier(.2, .9, .25, 1), height .4s ease; }
+:root:root .p-body.page-summary .ss-jump a { position: relative; z-index: 1; transition: color .25s ease, background-color .22s ease; }
+:root:root .p-body.page-summary .ss-jump a b { transition: background-color .25s ease, color .25s ease; }
+:root:root .p-body.page-summary .ss-jump a:not(.on):hover { background: color-mix(in srgb, var(--rs-sel) 10%, transparent); color: var(--p-ink); }
+:root:root .p-body.page-summary .ss-jump a:not(.on):hover b { background: color-mix(in srgb, var(--rs-sel) 18%, transparent); color: var(--rs-sel); }
+:root:root .p-body.page-summary .ss-jump a.on { background: var(--rs-sel); color: #fff; box-shadow: none; }
+:root:root .p-body.page-summary .ss-jump a.on b { background: rgba(255,255,255,.24); color: #fff; }
+:root:root .p-body.page-summary .ss-jump.has-ind a.on { background: transparent; }
+@media (prefers-reduced-motion: reduce) { .ss-jump-ind, .page-summary .ss-jump a { transition: none !important; } }
+
+/* Watching is Live: the same glowing pill */
+:root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) { background: linear-gradient(135deg, #E3FAEA, #C7F3D5); color: #0B7A33; cursor: help;
+  box-shadow: 0 0 0 1px rgba(52,199,89,.38), 0 6px 18px -6px rgba(52,199,89,.8), inset 0 1px 0 rgba(255,255,255,.75); }
+.p-watching { height: 30px; padding: 0 12px; gap: 8px; font-size: 13px; font-weight: 700; }
+.p-watching i { width: 8px; height: 8px; filter: drop-shadow(0 0 4px #34C759); }
+:root[data-theme="dark"] .p-watching:not(.p-down) { background: linear-gradient(135deg, rgba(52,199,89,.26), rgba(52,199,89,.12)); color: #6BF59A; text-shadow: 0 0 10px rgba(107,245,154,.55);
+  box-shadow: 0 0 0 1px rgba(107,245,154,.42), 0 0 22px -3px rgba(52,199,89,.6), inset 0 0 12px rgba(52,199,89,.14); }
+:root[data-theme="dark"] .p-watching i { filter: drop-shadow(0 0 6px #5CF58E); }
+
+/* the lists: no orange band, no blue head. A title row on the card, a quiet column head under it */
+.page-summary .p-table-card > .p-card-head { background: transparent; box-shadow: none; border-bottom: 1px solid var(--p-line); }
+.page-summary .p-table-card > .p-card-head h2 { color: var(--p-ink); font: 800 17px Inter Tight, Inter, sans-serif; letter-spacing: -.01em; }
+.page-summary .p-table-card > .p-card-head .p-hint { color: var(--p-muted); font-weight: 700; font-size: 13px; }
+.page-summary .p-table-card thead.p-blue th, :root[data-theme="dark"] .page-summary .p-table-card thead.p-blue th { background: var(--p-surface-2); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line);
+  font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.page-summary .p-table-card thead.p-blue th a { color: inherit; }
+
+/* the calendar in the light theme: one soft band for the days between, solid ends, room around the words under it */
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in::before { background: rgba(255,152,0,.13); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l1::before { background: rgba(255,152,0,.24); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l2::before { background: rgba(255,152,0,.4); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l3::before { background: linear-gradient(145deg, #FFC06B, #F78A12); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.in.l3 b { color: #fff; }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.a::before, :root:not([data-theme="dark"]) .sdp-rng .sdp-d.z::before { background: linear-gradient(145deg, #FFB347, #F27A00); box-shadow: 0 3px 8px -2px rgba(242,122,0,.6); }
+:root:not([data-theme="dark"]) .sdp-rng .sdp-d.a b, :root:not([data-theme="dark"]) .sdp-rng .sdp-d.z b { color: #fff; }
+.sdp-rng .sdp-dg { gap: 4px 0; }
+.sdp-rng .sdp-yr { margin-bottom: 12px; } .sdp-rng .sdp-wk { margin-bottom: 6px; }
+.sdp-rng .sdp-key { margin-top: 12px; }
+.sdp-rng .sdp-foot.rng { flex-wrap: wrap; gap: 10px 8px; margin-top: 12px; padding-top: 12px; }
+.sdp-rng .sdp-rt { flex: 1 0 100%; font-size: 13px; }
+.sdp-rng .sdp-foot.rng :is(.sdp-clr, .sdp-go) { flex: 1; }
+.sdp-rng .sdp-pre { margin-top: 10px; }
