@@ -575,7 +575,9 @@
 :root[data-theme="dark"] .dh-event { color: #FFD9A0; background: linear-gradient(135deg, rgba(255,152,0,.26), rgba(255,152,0,.14)); box-shadow: 0 0 0 1px rgba(255,170,60,.45), 0 0 16px -4px rgba(255,152,0,.55); }
 
 /* the donuts with nothing in them: a dotted ring that turns slowly, the 0 inside it, and the words below it, not across it */
-.p-donut-card.is-empty { grid-template-rows: auto auto auto; align-content: center; justify-items: center; }
+.p-donut-card.is-empty { grid-template-rows: auto 1fr 1fr; align-content: stretch; justify-items: center; }   /* the title stays at the top like the filled card's; the ring and its words sit centred in the space below */
+.p-donut-card.is-empty .p-donut { align-self: end; margin: 0 auto 10px; }
+.p-donut-card.is-empty .p-empty-state { align-self: start; text-align: center; }
 .p-donut-card.is-empty .p-row-between { justify-self: stretch; }
 .p-donut-card.is-empty .p-legend, .p-donut-card.is-empty > .p-hint { display: none; }
 .p-donut-card.is-empty .p-empty-state { position: static; padding: 0; gap: 3px; }
