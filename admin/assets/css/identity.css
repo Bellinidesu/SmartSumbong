@@ -1101,3 +1101,31 @@
 .pf-modal .pf-mn, .pf-modal .p-hint { margin: 0; }
 :root:root .p-flash a.p-btn, :root:root .p-flash .p-btn-ghost { color: #141B34; background: #fff; }
 :root:root .p-flash--warn a.p-btn, :root:root .p-flash--warn .p-btn-ghost { color: #141B34; }
+
+/* ================= 6 Nov 2026: no pastel anywhere, light or dark. Every status pill is a solid colour with its own lettering; rank chips, the storm line and event chips too ================= */
+:root:root:root:root:root:root:root .p-badge { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; border: 0; text-shadow: none;
+  --pb: #566285; --pt: #fff; background: var(--pb); color: var(--pt); box-shadow: 0 4px 12px -5px var(--pb), inset 0 1px 0 rgba(255,255,255,.22); }
+:root:root:root:root:root:root:root .p-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--pt); opacity: .92; box-shadow: none; }
+:root:root:root:root:root:root:root .p-badge.p-b-done { --pb: #087F31; }
+:root:root:root:root:root:root:root .p-badge.p-b-progress { --pb: #2457E6; }
+:root:root:root:root:root:root:root .p-badge.p-b-pending { --pb: #FFB300; --pt: #2B1A00; }
+:root:root:root:root:root:root:root .p-badge.p-b-denied { --pb: #C4172A; }
+:root:root:root:root:root:root:root .p-badge.p-b-violet { --pb: #6A3FD1; }
+:root:root:root:root:root:root:root .p-badge.p-b-grey { --pb: #566285; }
+:root:root:root:root:root:root:root .p-badge.p-b-sensitive { --pb: #B31B7E; }
+:root:root:root:root:root:root:root .p-badge.p-b-sensitive::before { display: none; }
+:root[data-theme="dark"] .p-badge { box-shadow: 0 0 14px -3px var(--pb), inset 0 1px 0 rgba(255,255,255,.2); }
+/* the count beside a title on the orange band is a solid navy chip */
+:root:root .p-band .p-badge-n--quiet { background: #141B34; color: #fff; box-shadow: 0 3px 10px -4px rgba(10,20,60,.6); }
+/* rank chips: the rung's colour, solid */
+:root:root .rank { color: #04202A; background: var(--rc); border: 0; box-shadow: 0 4px 12px -5px var(--rc); }
+:root:root .rank i { background: #04202A; box-shadow: none; opacity: .85; }
+:root:root .rank.kagawad, :root:root .rank.chair { color: #fff; } :root:root .rank.kagawad i, :root:root .rank.chair i { background: #fff; }
+:root:root .rank.chair { background: #D5102F; }
+:root[data-theme="dark"] .rank { color: #04202A; box-shadow: 0 0 14px -3px var(--rc); }
+:root[data-theme="dark"] .rank.kagawad { color: #1B1340; } :root[data-theme="dark"] .rank.kagawad i { background: #1B1340; }
+:root[data-theme="dark"] .rank.chair { background: var(--rk-chair); color: #14181D; } :root[data-theme="dark"] .rank.chair i { background: #14181D; }
+/* the storm line, the holiday chip */
+:root:root .ss-storm { background: linear-gradient(100deg, #FFA000, #FFC21A); border: 0; color: #2B1A00; box-shadow: 0 10px 24px -12px rgba(255,160,0,.8), inset 0 1px 0 rgba(255,255,255,.35); }
+:root:root[data-theme="dark"] .ss-storm { background: linear-gradient(100deg, #E58A00, #FFB300); color: #2B1A00; }
+:root:root .dh-event { background: linear-gradient(135deg, #FF9800, #FFB300); color: #2B1A00; box-shadow: 0 6px 16px -6px rgba(255,152,0,.9), inset 0 1px 0 rgba(255,255,255,.35); }

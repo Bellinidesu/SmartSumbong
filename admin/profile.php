@@ -292,9 +292,6 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
         <?php if (!empty($me['committee'])): ?><?= committee_pill((string) $me['committee']) ?><?php endif; ?>
       </div>
     </div>
-    <div class="ss-pf-act">
-      <button type="button" class="p-btn p-btn-orange" data-open="m-details"><?= p_icon('i-gear', 16) ?><?= e(t('Edit profile', 'I-edit ang profile')) ?></button>
-    </div>
   </div>
 </section>
 
