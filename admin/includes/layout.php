@@ -299,7 +299,9 @@ function dev_switcher(): string
     $name = ['super' => t('Super admin', 'Pangunahing admin'), 'captain' => t('Captain', 'Kapitan'), 'committee' => t('Councilor (Kagawad)', 'Kagawad'), 'moderator' => t('Staff', 'Kawani')];
     $from = basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
     $hidden = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '"><input type="hidden" name="from" value="' . e($from) . '">';
-    $o = '<details class="dv-sw"' . ($now !== '' ? ' open' : '') . '><summary><b>DEV</b><span>' . e(t('See as', 'Tingnan bilang')) . '</span><em>' . e($now !== '' ? ($name[$now] ?? $now) : t('Myself', 'Ako')) . '</em></summary><div class="dv-body">';
+    // A floating pill, not a sidebar block (6 Nov 2026): it sits on the page, drags anywhere, remembers where (dev-widget.js), and the
+    // sidebar keeps its room for its own widgets. It opens only when asked, or to show what the last action said.
+    $o = '<details class="dv-sw"' . (!empty($_SESSION['dev_flash']) ? ' open' : '') . '><summary><b>DEV</b><span>' . e(t('See as', 'Tingnan bilang')) . '</span><em>' . e($now !== '' ? ($name[$now] ?? $now) : t('Myself', 'Ako')) . '</em></summary><div class="dv-body">';
     if (!empty($_SESSION['dev_flash'])) { $o .= '<p class="dv-msg" role="status">' . e((string) $_SESSION['dev_flash']) . '</p>'; unset($_SESSION['dev_flash']); }
     if ($levels) {
         $o .= '<form method="post" action="view-as.php" class="dv-levels">' . $hidden . '<input type="hidden" name="action" value="switch">';
@@ -319,7 +321,7 @@ function dev_switcher(): string
             . '<label><span>' . e(t('Kagawad and staff of', 'Kagawad at kawani ng')) . '</span><select name="committee">' . $sel . '</select></label>'
             . '<button type="submit">' . e($levels ? t('Move them', 'Ilipat sila') : t('Make my test accounts', 'Gawin ang aking mga test account')) . '</button></form>';
     }
-    return $o . '</div></details>';
+    return '<div class="dv-float" id="dv-float">' . $o . '</div></details></div><script src="assets/js/dev-widget.js?v=' . e(asset_version('../js/dev-widget.js')) . '" defer></script>';
 }
 
 /** While a developer looks through a test account: a band across the top that says so, with the way back. */
@@ -441,7 +443,6 @@ window.ssAccessToken = function (initial) {
       <?php // 0150: a committee admin's sidebar names the committee, in its colour ?>
       <div class="p-side-com" style="--cc:<?= e($sideC['hex']) ?>;--ci:<?= e(ink_on($sideC['hex'])) ?>" title="<?= e($sideC['label']) ?>"><i aria-hidden="true"></i><span><?= e($sideC['label']) ?></span></div>
     <?php endif; ?>
-    <?= dev_switcher() ?>
     <nav class="p-nav" id="side-nav" aria-label="<?= e(t('Main', 'Pangunahin')) ?>">
       <?php $counts = nav_counts(); ?>
       <?php foreach (nav_items() as [$href, $label, $icon]): ?>
@@ -648,6 +649,7 @@ function layout_foot(): void
     ?>
   </main>
 </div>
+<?= dev_switcher() ?>
 <?php if ($me = current_admin()): ?>
 <script>
 // 0087: who is online and which case each admin has open (presence.js).

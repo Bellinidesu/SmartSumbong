@@ -512,7 +512,7 @@ test('Development team: the DEV switcher makes test accounts, switches into a ru
   await expect(sw.locator('.dv-l').nth(2)).toContainText('Peace and Order');
   await sw.locator('.dv-setup button').click();
   await expect(page.locator('.dv-msg')).toContainText('test accounts are ready');
-  await page.locator('.dv-sw summary').click();
+  await expect(page.locator('.dv-sw[open]'), 'the panel is open to show what the last action said').toHaveCount(1);
   await page.locator('.dv-sw .dv-l').nth(2).click();
   await expect(page.locator('.dv-band'), 'a band says whose eyes these are').toContainText('Seeing the portal as Councilor (Kagawad)');
   await expect(page.locator('.dv-sw .dv-l.p-on')).toContainText('Kagawad');
@@ -1310,4 +1310,31 @@ test('The brain button answers from the person\'s SMART module on Case Reports, 
     await expect(page.locator('#ss-panel')).not.toHaveClass(/is-open/);
   }
   expect(errs, 'console errors').toEqual([]);
+});
+
+test('The DEV switcher is a floating pill: out of the sidebar, draggable, remembered, put back by a double-click', async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1100 });
+  const r = await open(page, 'notifications.php');
+  await expect(page.locator('.p-sidebar .dv-sw'), 'the sidebar keeps its room').toHaveCount(0);
+  const pill = page.locator('.dv-float summary');
+  await expect(pill).toBeVisible();
+  await expect(page.locator('.dv-sw[open]'), 'closed until asked').toHaveCount(0);
+  const home = await pill.boundingBox();
+  await page.mouse.move(home.x + 20, home.y + 10); await page.mouse.down(); await page.mouse.move(home.x + 520, home.y - 400, { steps: 8 }); await page.mouse.up();
+  const moved = await pill.boundingBox();
+  expect(Math.abs(moved.x - home.x), 'it moved').toBeGreaterThan(300);
+  await expect(page.locator('.dv-sw[open]'), 'a drag does not open it').toHaveCount(0);
+  await page.goto('cases.php', { waitUntil: 'networkidle' });
+  const again = await pill.boundingBox();
+  expect(Math.abs(again.x - moved.x) + Math.abs(again.y - moved.y), 'it stays where it was left on the next page').toBeLessThan(4);
+  await pill.click();
+  await expect(page.locator('.dv-sw[open] .dv-body')).toBeVisible();
+  const panel = await page.locator('.dv-sw .dv-body').boundingBox();
+  expect(panel.x >= 0 && panel.x + panel.width <= 2048 && panel.y >= 0 && panel.y + panel.height <= 1100, 'the panel stays on screen').toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.dv-sw[open]')).toHaveCount(0);
+  await pill.dblclick();
+  const back = await pill.boundingBox();
+  expect(Math.abs(back.x - home.x) + Math.abs(back.y - home.y), 'a double-click puts it back').toBeLessThan(4);
+  expect(r.errors, 'console errors').toEqual([]);
 });
