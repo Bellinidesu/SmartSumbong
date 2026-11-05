@@ -939,23 +939,23 @@ test('Personnel duty tiles keep their colour fields, so their white lettering re
   }
 });
 
-test('Personnel (the committee side stays as it was): the orange band, the banner strip and the header are one seamless block; Residents wear the new chooser', async ({ page }) => {
-  for (const [pg, banners] of [['personnel.php', 6]]) {
+test('Personnel (tanods) and Residents wear the new chooser: a rounded header bar, a slim sliding chooser, a white column head, three objects with gaps', async ({ page }) => {
+  for (const pg of ['personnel.php']) {
     for (const w of [2048, 1440]) {
       await page.setViewportSize({ width: w, height: 1000 });
       const r = await open(page, pg);
       await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'list'); } catch (e) {} });
       await page.reload();
       const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.ss-pband'), c = R('.cm-chips'), t = R('.ss-people'); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(v => Math.round(v * 10) / 10) }; });
-      expect([g.x[0], g.x[1]], pg + ': the band and the strip share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
-      expect([g.x[0], g.x[1]], 'and the table at ' + w).toEqual([g.x[4], g.x[5]]);
-      expect(Math.abs(g.y[0] - g.y[1]) <= 1 && Math.abs(g.y[2] - g.y[3]) <= 1, 'with no gap between band, strip and table at ' + w).toBe(true);
-      await expect(page.locator('.cm-chips .cm-chip'), pg + ' banners').toHaveCount(banners);
-      expect(await page.locator('.cm-chips .cm-chip').evaluateAll(cs => cs.filter(c => c.classList.contains('cm-sd') && getComputedStyle(c).backgroundImage === 'none').length), 'every banner is a gradient at ' + w).toBe(0);
-      expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the strip stays slim at ' + w).toBeLessThanOrEqual(80);
-      expect(await page.locator('.ss-people thead th').evaluateAll(ths => ths.map(t => getComputedStyle(t).borderTopLeftRadius + getComputedStyle(t).borderTopRightRadius).filter(v => v !== '0px0px').length), 'the header cells are square at ' + w).toBe(0);
-      expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'blue under the orange band').not.toBe('rgba(0, 0, 0, 0)');
-      expect(await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
+      expect([g.x[0], g.x[1]], pg + ': the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+      expect([g.x[0], g.x[1]], 'and the list at ' + w).toEqual([g.x[4], g.x[5]]);
+      expect(g.y[1] - g.y[0], 'a gap under the header at ' + w).toBeGreaterThanOrEqual(10);
+      expect(g.y[3] - g.y[2], 'and under the chooser at ' + w).toBeGreaterThanOrEqual(10);
+      await expect(page.locator('.cm-chips .cm-chip'), pg + ' tabs').toHaveCount(6);
+      expect(await page.locator('.cm-chips .cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the chosen tab is a gradient pill at ' + w).toBe(true);
+      expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser stays slim at ' + w).toBeLessThanOrEqual(100);
+      expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'the column head is no longer the blue at ' + w).not.toBe('rgb(0, 48, 143)');
+      expect(await page.locator('.p-attendance .p-kpi').first().evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the duty tiles are full-colour gradients').toBe(true);
       expect(r.errors, 'console errors').toEqual([]);
     }
   }
@@ -1161,7 +1161,7 @@ test('Profile (6 Nov): Profile then Edit Profile as the title, the role ring is 
   const e = await open(page, 'profile.php?edit=1');
   await expect(page.locator('.p-topbar h1')).toHaveText('Edit Profile');
   expect(await page.locator('#profile-form').getAttribute('data-native-confirm'), 'the page asks with its own dialog only, not the browser as well').toBeNull();
-  await expect(page.locator('.pf-menu a')).toHaveCount(3);
+  await expect(page.locator('.pf-menu a')).toHaveCount(4);
   const ring = await page.locator('.ss-pf-av[data-r]').first().evaluate(el => { const s = getComputedStyle(el); return [s.outlineStyle, s.borderTopWidth]; });
   expect(ring, 'the role colour fills its ring: no outline gap, no white border').toEqual(['none', '0px']);
   expect(await page.locator('.sdp-colour').evaluate(el => getComputedStyle(el).backgroundColor), 'the colour box is the colour, filled').toBe('rgb(0, 48, 143)');

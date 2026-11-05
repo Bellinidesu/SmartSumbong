@@ -275,6 +275,7 @@ $lastVal  = $comma > 0 ? trim(substr($me['full_name'], 0, $comma)) : '';
 $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit=1#' . $field . '">' . e(t('Change', 'Palitan')) . '</a>';
 ?>
 <!-- Ace (7 Oct): banner header (idea A) over settings rows (idea B). -->
+<?php if (!$editing): ?>
 <section class="p-card ss-pf-head">
   <div class="ss-pf-banner<?= in_array($me['banner_preset'] ?? 'sidebar', ['photo', 'contour'], true) ? ' ss-pf-banner--plain' : '' ?>" id="ss-pf-banner" aria-hidden="true" style="<?= profile_banner_style($me) ?>"></div>
   <div class="ss-pf-id">
@@ -295,6 +296,7 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     </div>
   </div>
 </section>
+<?php endif; ?>
 
 <?php if (!$editing): ?>
 <div class="pf-grid"><div class="pf-left">
@@ -395,7 +397,8 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     <input type="hidden" name="action" value="profile">
     <nav class="pf-menu" aria-label="<?= e(t('Edit profile', 'I-edit ang profile')) ?>">
       <a href="#pf-details" class="on"><?= p_icon('i-users', 18) ?><span><b><?= e(t('Your details', 'Iyong mga detalye')) ?></b><small><?= e(t('Name, mobile, email', 'Pangalan, mobile, email')) ?></small></span></a>
-      <a href="#pf-look"><?= p_icon('i-cam', 18) ?><span><b><?= e(t('Photo and banner', 'Larawan at banner')) ?></b><small><?= e(t('How you appear', 'Paano ka lumalabas')) ?></small></span></a>
+      <a href="#pf-look"><?= p_icon('i-cam', 18) ?><span><b><?= e(t('Profile picture', 'Larawan sa profile')) ?></b><small><?= e(t('Your face, in your role colour', 'Ang iyong mukha, sa kulay ng tungkulin')) ?></small></span></a>
+      <a href="#pf-cover"><?= p_icon('i-doc', 18) ?><span><b><?= e(t('Cover photo', 'Cover photo')) ?></b><small><?= e(t('The banner on your profile', 'Ang banner ng iyong profile')) ?></small></span></a>
       <a href="#pf-password"><?= p_icon('i-shield', 18) ?><span><b><?= e(t('Password', 'Password')) ?></b><small><?= e(t('How you sign in', 'Paano ka nagsa-sign in')) ?></small></span></a>
     </nav>
     <div class="pf-sections">
@@ -419,42 +422,44 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     </div>
 
       </section>
-      <section class="p-card p-card-pad pf-sec" id="pf-look"><h3 class="pf-h"><?= e(t('Photo and banner', 'Larawan at banner')) ?></h3>
-    <?php $bp = (string) ($me['banner_preset'] ?? 'sidebar'); ?>
-    <fieldset class="pf-banner">
-      <div class="pf-photo">
-        <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av pf-photo-av" data-r="<?= e($pfRank) ?>" src="<?= e(cld_thumb($me['avatar_url'], 240, true)) ?>" alt=""><?php else: ?><span class="ss-pf-av ss-pf-ini pf-photo-av" data-r="<?= e($pfRank) ?>"><?= e($initials) ?></span><?php endif; ?>
-        <span class="pf-photo-t"><b><?= e(t('Your photo', 'Iyong larawan')) ?></b><small><?= e(t('Shown as a circle, framed in your role colour everywhere in the portal.', 'Lalabas bilang bilog, na may kulay ng iyong tungkulin sa buong portal.')) ?></small></span>
-        <span class="pf-photo-act">
-          <label class="p-btn" for="avatar"><?= p_icon('i-cam', 16) ?><?= e(t('Change photo', 'Palitan ang larawan')) ?></label>
-          <input class="ss-file" type="file" id="avatar" name="avatar[]" accept="image/jpeg,image/png,image/webp">
-          <?php if (!empty($me['avatar_url'])): ?>
-            <button type="button" class="p-btn p-btn-ghost" id="avatar-adjust" data-src="<?= e(cld_thumb($me['avatar_url'], 900, true)) ?>"><?= e(t('Adjust', 'Ayusin')) ?></button>
-            <label class="p-check"><input type="checkbox" name="remove_avatar" value="1"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label>
-          <?php endif; ?>
-        </span>
-      </div>
-      <legend class="p-eyebrow ss-pf-sec2"><?= e(t('Banner', 'Larawan sa itaas')) ?></legend>
-      <div class="pf-presets" role="radiogroup">
-        <?php foreach (['sidebar' => t('My sidebar colour', 'Kulay ng aking sidebar'), 'contour' => t('The barangay\'s contour pattern', 'Contour pattern ng barangay'), 'solid' => t('A colour', 'Isang kulay'),
-                        'committee' => t('My committee\'s colour', 'Kulay ng aking komite'), 'photo' => t('My own picture', 'Sarili kong larawan')] as $pk => $pl):
-              if ($pk === 'committee' && empty($me['committee'])) continue; ?>
-          <label class="ib-person"><input type="radio" name="banner_preset" value="<?= e($pk) ?>"<?= $bp === $pk ? ' checked' : '' ?>> <?= e($pl) ?></label>
-        <?php endforeach; ?>
-      </div>
-      <div class="ss-pf-2 pf-bpick">
-        <label class="p-field" for="banner_colour"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" id="banner_colour" name="banner_colour" value="<?= e((string) ($me['banner_colour'] ?? '#00308F')) ?>"></label>
-        <div class="p-field"><span><?= e(t('Picture', 'Larawan')) ?></span>
-          <div class="pf-pic">
+      <section class="p-card p-card-pad pf-sec" id="pf-look">
+        <div class="pf-fbh"><h3 class="pf-h"><?= e(t('Profile picture', 'Larawan sa profile')) ?></h3>
+          <span class="pf-fba">
+            <label class="p-btn" for="avatar"><?= p_icon('i-cam', 16) ?><?= e(t('Change photo', 'Palitan ang larawan')) ?></label>
+            <input class="ss-file" type="file" id="avatar" name="avatar[]" accept="image/jpeg,image/png,image/webp">
+            <?php if (!empty($me['avatar_url'])): ?>
+              <button type="button" class="p-btn p-btn-ghost" id="avatar-adjust" data-src="<?= e(cld_thumb($me['avatar_url'], 900, true)) ?>"><?= e(t('Adjust', 'Ayusin')) ?></button>
+            <?php endif; ?>
+          </span></div>
+        <div class="pf-fbav">
+          <?php if (!empty($me['avatar_url'])): ?><img class="ss-pf-av pf-photo-av" data-r="<?= e($pfRank) ?>" src="<?= e(cld_thumb($me['avatar_url'], 360, true)) ?>" alt=""><?php else: ?><span class="ss-pf-av ss-pf-ini pf-photo-av" data-r="<?= e($pfRank) ?>"><?= e($initials) ?></span><?php endif; ?>
+        </div>
+        <p class="p-hint pf-fbn"><?= e(t('Shown as a circle, framed in your role colour everywhere in the portal.', 'Lalabas bilang bilog, na may kulay ng iyong tungkulin sa buong portal.')) ?></p>
+        <?php if (!empty($me['avatar_url'])): ?><label class="p-check pf-fbrm"><input type="checkbox" name="remove_avatar" value="1"> <?= e(t('Remove my photo', 'Alisin ang aking larawan')) ?></label><?php endif; ?>
+      </section>
+      <section class="p-card p-card-pad pf-sec" id="pf-cover">
+        <?php $bp = (string) ($me['banner_preset'] ?? 'sidebar'); ?>
+        <div class="pf-fbh"><h3 class="pf-h"><?= e(t('Cover photo', 'Cover photo')) ?></h3>
+          <span class="pf-fba">
             <label class="p-btn" for="banner"><?= p_icon('i-cam', 16) ?><?= e(t('Choose a picture', 'Pumili ng larawan')) ?></label>
             <input class="ss-file" type="file" id="banner" name="banner[]" accept="image/jpeg,image/png,image/webp">
-            <?php if (!empty($me['banner_url'])): ?><button type="button" class="p-btn p-btn-ghost" id="banner-adjust" data-src="<?= e(cld_thumb((string) $me['banner_url'], 2400)) ?>"><?= e(t('Adjust the current one', 'Ayusin ang kasalukuyan')) ?></button><?php endif; ?>
-            <span class="pf-fn" id="banner-fn"></span>
+            <?php if (!empty($me['banner_url'])): ?><button type="button" class="p-btn p-btn-ghost" id="banner-adjust" data-src="<?= e(cld_thumb((string) $me['banner_url'], 2400)) ?>"><?= e(t('Adjust', 'Ayusin')) ?></button><?php endif; ?>
+          </span></div>
+        <div class="ss-pf-banner pf-cover<?= in_array($bp, ['photo', 'contour'], true) ? ' ss-pf-banner--plain' : '' ?>" id="ss-pf-banner" aria-hidden="true" style="<?= profile_banner_style($me) ?>"></div>
+        <fieldset class="pf-banner">
+          <legend class="p-sr"><?= e(t('Cover', 'Cover')) ?></legend>
+          <div class="pf-presets" role="radiogroup">
+            <?php foreach (['sidebar' => t('My sidebar colour', 'Kulay ng aking sidebar'), 'contour' => t('The barangay\'s contour pattern', 'Contour pattern ng barangay'), 'solid' => t('A colour', 'Isang kulay'),
+                            'committee' => t('My committee\'s colour', 'Kulay ng aking komite'), 'photo' => t('My own picture', 'Sarili kong larawan')] as $pk => $pl):
+                  if ($pk === 'committee' && empty($me['committee'])) continue; ?>
+              <label class="ib-person"><input type="radio" name="banner_preset" value="<?= e($pk) ?>"<?= $bp === $pk ? ' checked' : '' ?>> <?= e($pl) ?></label>
+            <?php endforeach; ?>
           </div>
-        </div>
-      </div>
-      <input type="hidden" id="banner_y" name="banner_y" value="<?= (int) ($me['banner_y'] ?? 50) ?>">
-    </fieldset>
+          <div class="pf-colrow"><span><?= e(t('Colour', 'Kulay')) ?></span>
+            <label class="pf-col" for="banner_colour"><span class="p-sr"><?= e(t('Colour', 'Kulay')) ?></span><input type="color" id="banner_colour" name="banner_colour" value="<?= e((string) ($me['banner_colour'] ?? '#00308F')) ?>"></label>
+            <span class="pf-fn" id="banner-fn"></span></div>
+          <input type="hidden" id="banner_y" name="banner_y" value="<?= (int) ($me['banner_y'] ?? 50) ?>">
+        </fieldset>
       </section>
       <section class="p-card p-card-pad pf-sec" id="pf-password"><h3 class="pf-h"><?= e(t('Password', 'Password')) ?></h3>
     <p class="p-hint" style="margin:-4px 0 12px"><?= e(t('To change your password, fill in all three boxes. Leave them empty to keep it.', 'Para palitan ang password, punan ang tatlong kahon. Iwanang blangko para panatilihin ito.')) ?></p>
@@ -527,15 +532,20 @@ $change   = fn(string $field) => '<a class="ss-pf-change" href="profile.php?edit
     file.addEventListener('change', function () { var f = file.files && file.files[0]; if (!f) return; window.ssCrop.open(Object.assign({ file: f }, BANNER)).then(function (blob) { if (!bannerDone(blob)) file.value = ''; }); });
     if (bnAdj) bnAdj.addEventListener('click', function () { window.ssCrop.open(Object.assign({ url: bnAdj.dataset.src }, BANNER)).then(bannerDone); });
   })();
-  // the menu follows the section in view, and a "Change" link from the profile lands with its box focused
+  // the menu follows the scroll, down and up: the section whose top has passed a third of the screen is the one you are in; at the very bottom, the last
   (function () {
-    var links = [].slice.call(document.querySelectorAll('.pf-menu a')), secs = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
-    function on(id) { links.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + id); }); }
-    if (window.IntersectionObserver) {
-      var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) on(e.target.id); }); }, { rootMargin: '-20% 0px -65% 0px' });
-      secs.forEach(function (s) { if (s) io.observe(s); });
+    var links = [].slice.call(document.querySelectorAll('.pf-menu a')), secs = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }), cur = '', tick = false;
+    function on(id) { if (id === cur) return; cur = id; links.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + id); }); }
+    function spy() {
+      tick = false; var line = innerHeight * 0.34, pick = secs[0] && secs[0].id;
+      secs.forEach(function (s) { if (s && s.getBoundingClientRect().top <= line) pick = s.id; });
+      if (innerHeight + (window.scrollY || document.documentElement.scrollTop) >= document.documentElement.scrollHeight - 4 && secs.length) pick = secs[secs.length - 1].id;
+      if (pick) on(pick);
     }
+    function req() { if (!tick) { tick = true; requestAnimationFrame(spy); } }
+    window.addEventListener('scroll', req, { passive: true }); document.addEventListener('scroll', req, { passive: true, capture: true }); window.addEventListener('resize', req);
     links.forEach(function (a) { a.addEventListener('click', function () { on(a.getAttribute('href').slice(1)); }); });
+    spy();
     var box = location.hash && document.getElementById(location.hash.slice(1));
     if (box && box.focus && /^(INPUT|SELECT|TEXTAREA)$/.test(box.tagName)) { box.focus(); box.scrollIntoView({ block: 'center' }); }
   })();
