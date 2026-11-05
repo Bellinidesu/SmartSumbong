@@ -843,3 +843,22 @@
 .ss-win .rs-al.is-zero { opacity: .62; }
 .ss-win .rs-al .p-btn { height: 32px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 13px; }
 :root:root:root .p-body .pe-res.ss-sq #accounts-tbody td:nth-last-child(2) .p-badges { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+
+/* ================= 6 Nov 2026, Personnel (the tanod side): the one-height header, a white column head, squares that hold; the committee strip waits ================= */
+:root:root .p-body.page-personnel .ss-pband :is(.p-search, .ss-viewsw, .p-pill-select) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-personnel .ss-pband .p-search { padding: 0 14px; }
+:root:root .p-body.page-personnel .ss-pband .p-pill-select { padding: 0 12px; font-size: 14px; }
+:root:root .p-body.page-personnel .ss-pband .ss-viewsw { padding: 3px; gap: 2px; }
+:root:root .p-body.page-personnel .ss-pband .ss-viewsw button { height: 34px; border-radius: 9px; padding: 0 14px; }
+:root:root .p-body.page-personnel .ss-people.ss-tanods thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root .p-body.page-personnel .ss-people.ss-tanods thead th :is(a, .p-th-sort) { color: inherit; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody { align-items: stretch; gap: 14px; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody tr { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px 16px; text-align: center; min-height: 0; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody td { width: 100%; max-width: 100%; text-align: center; min-width: 0; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody td.ss-cbc { width: auto; }
+:root:root .p-body.page-personnel .ss-people.ss-sq .p-person { justify-content: center; }
+:root:root .p-body.page-personnel .ss-people.ss-sq td.pe-contact { display: grid; gap: 2px; justify-items: center; }
+:root:root .p-body.page-personnel .ss-people.ss-sq td.pe-contact .pe-mail { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:root .p-body.page-personnel .ss-people.ss-sq .p-badge { white-space: nowrap; flex: none; }
+:root:root .p-body.page-personnel .ss-people.ss-sq tbody td.p-right { margin-top: auto; padding-top: 6px; }
+:root:root:root .p-body .ss-tanods.ss-sq #accounts-tbody td:nth-last-child(2) .p-badges { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
