@@ -848,8 +848,8 @@ test('Report Summary, peak: each figure says how it moved and shows its shape, o
   const wrong = await page.locator('#rs-ledger tbody tr').evaluateAll(rs => rs.filter(r => /Resolved|Closed/.test(r.children[4].textContent) && /open \d/.test(r.children[r.children.length - 1].textContent)).length);
   expect(wrong, 'a resolved case never reads as open').toBe(0);
   const bands = await page.evaluate(() => { const c = id => getComputedStyle(document.querySelector(id)).backgroundImage + '|' + getComputedStyle(document.querySelector(id)).backgroundColor; return [c('#rs-ledger > .p-card-head'), getComputedStyle(document.querySelector('#rs-ledger thead th')).backgroundColor]; });
-  expect(bands[0], 'the title row is the orange band').toMatch(/255, 1[5-8]\d, \d+/);
-  expect(bands[1], 'the column header under it is the blue').toBe('rgb(0, 48, 143)');
+  expect(bands[0], 'the title row is no longer an orange band (6 Nov: the period band is the one orange is the period band)').not.toMatch(/255, 1[5-8]\d, \d+/);
+  expect(bands[1], 'the column header under it is no longer the blue').not.toBe('rgb(0, 48, 143)');
   await expect(page.locator('thead.p-orange'), 'one pair of colours on every tab').toHaveCount(0);
   await expect(page.locator('.p-period-band .p-btn-pdf2')).toBeVisible();
   expect(r.errors, 'console errors').toEqual([]);
@@ -1108,7 +1108,7 @@ test('Roles and pages 6a: the Dashboard super admin module, the box beside the d
 
 test('Roles and pages 6b: Report Summary by committee, and the committee form signed by its Kagawad', async ({ page, context }) => {
   const s = await open(page, 'summary.php?range=month');
-  await expect(page.locator('.rs-scope')).toContainText('Whole barangay');
+  await expect(page.locator('.rs-scope')).toContainText('Barangay Overall');
   await expect(page.locator('#rs-ledger thead th', { hasText: 'Committee' })).toHaveCount(1);
   await expect(page.locator('#rs-com tbody tr')).toHaveCount(4 + 1);
   await expect(page.locator('#ss-jump a[href="#rs-com"]')).toHaveCount(1);
