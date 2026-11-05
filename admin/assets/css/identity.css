@@ -791,3 +791,5 @@
   .nf-grid:not(.nf-grid--solo) { row-gap: 28px; }
   .nf-grid:not(.nf-grid--solo) .nf-rail::before { left: 0; right: 0; top: auto; bottom: -15px; width: auto; height: 1px; background: linear-gradient(to right, transparent 0, var(--p-line-2) 40px, var(--p-line-2) calc(100% - 40px), transparent 100%); }
 }
+.page-notifications .nf-chev { font-size: 16px; }
+:root:root .p-body.page-notifications .nf-group .nf-body > .nf-readall, :root:root .p-body.page-notifications .nf-group .nf-case-act { justify-self: stretch; }
