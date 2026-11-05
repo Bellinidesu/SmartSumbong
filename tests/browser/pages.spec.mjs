@@ -1155,37 +1155,48 @@ test('Roles and pages 6c: Notifications by committee, a dot on each case, engine
   expect(n.errors.concat(k.errors), 'console errors').toEqual([]);
 });
 
-test('Profile (6 Nov): Profile then Edit Profile as the title, the role ring is solid, a picture goes through the editor, the colour box is filled, Save asks once', async ({ page }) => {
-  await open(page, 'profile.php');
+test('Profile (6 Nov), the Facebook way: edited in popups from the face, the cover, Edit profile and Change; the role ring is solid; the colour box is filled; Save is one step', async ({ page }) => {
+  const e = await open(page, 'profile.php');
   await expect(page.locator('.p-topbar h1')).toHaveText('Profile');
-  const e = await open(page, 'profile.php?edit=1');
-  await expect(page.locator('.p-topbar h1')).toHaveText('Edit Profile');
-  expect(await page.locator('#profile-form').getAttribute('data-native-confirm'), 'the page asks with its own dialog only, not the browser as well').toBeNull();
-  await expect(page.locator('.pf-menu a')).toHaveCount(4);
+  expect(await page.locator('#profile-form').getAttribute('data-native-confirm'), 'no browser dialog on Save').toBeNull();
   const ring = await page.locator('.ss-pf-av[data-r]').first().evaluate(el => { const s = getComputedStyle(el); return [s.outlineStyle, s.borderTopWidth]; });
   expect(ring, 'the role colour fills its ring: no outline gap, no white border').toEqual(['none', '0px']);
-  expect(await page.locator('.sdp-colour').evaluate(el => getComputedStyle(el).backgroundColor), 'the colour box is the colour, filled').toBe('rgb(0, 48, 143)');
-  // a picked photo opens in the editor and comes back cropped into the file box
+  // hovering the head shows the cover's Edit button; the face is a button
+  await page.locator('.ss-pf-head').hover();
+  await expect(page.locator('.pf-cvbtn')).toBeVisible();
+  await page.locator('.pf-avbtn').click();
+  await expect(page.locator('#m-avatar')).toBeVisible();
   const png = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 600; c.height = 400; const g = c.getContext('2d'); g.fillStyle = '#356cf9'; g.fillRect(0, 0, 600, 400); return c.toDataURL('image/png').split(',')[1]; });
   await page.setInputFiles('#avatar', { name: 'a.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
   await expect(page.locator('.cr-modal')).toBeVisible();
   await page.locator('.cr-ok').click();
   await expect(page.locator('.cr-modal')).toHaveCount(0);
   expect(await page.locator('#avatar').evaluate(i => [i.files.length, i.files[0].name, i.files[0].size > 0]), 'the cropped picture is what the form posts').toEqual([1, 'photo.jpg', true]);
-  // Save asks once: the page's own dialog, and the browser's never
+  await page.locator('#m-avatar [data-pf-cancel]').click();
+  await expect(page.locator('#m-avatar')).toBeHidden();
+  // the cover popup, with our colour box filled with the colour
+  await page.goto('profile.php'); await page.locator('.ss-pf-head').hover(); await page.locator('.pf-cvbtn').click();
+  await expect(page.locator('#m-cover')).toBeVisible();
+  expect(await page.locator('#m-cover .sdp-colour').evaluate(el => getComputedStyle(el).backgroundColor), 'the colour box is the colour, filled').toBe('rgb(0, 48, 143)');
+  // Change (name, mobile) opens the details popup; Change (password) opens the password popup; Save is one step, the browser never asks
+  await page.goto('profile.php');
   let native = 0; page.on('dialog', d => { native++; d.dismiss(); });
-  if (!(await page.locator('#mobile_number').inputValue())) await page.locator('#mobile_number').fill('09171234567');
-  await page.locator('#profile-form button[type=submit]').click();
-  await expect(page.locator('#confirm-save')).toBeVisible();
-  expect(native, 'the browser did not ask as well').toBe(0);
+  await page.locator('.ss-pf-change').first().click();
+  await expect(page.locator('#m-details')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.locator('.ss-pf-change', { hasText: 'Change' }).last().click();
+  await expect(page.locator('#m-password')).toBeVisible();
+  expect(native, 'the browser did not ask').toBe(0);
   expect(e.errors.filter(m => !/WebSocket/.test(m)), 'console errors').toEqual([]);
+  expect(await axe(page), 'Profile with a popup open').toEqual([]);
 });
 
 test('Roles and pages 7: Edit Profile (banner, pills, alert switches, punch card) and a Kagawad endorsing a retirement', async ({ page, context }) => {
   const p = await open(page, 'profile.php');
   for (const k of ['case_forwarded', 'forward_flag', 'reroute_question', 'inbox_mail']) await expect(page.locator(`.ss-al-kinds input[data-kind="${k}"]`)).toHaveCount(1);
   await expect(page.locator('.ss-pf-who .rank')).toHaveCount(1);
-  const e = await open(page, 'profile.php?edit=1');
+  const e = await open(page, 'profile.php');
+  await page.locator('.ss-pf-head').hover(); await page.locator('.pf-cvbtn').click();
   await page.locator('input[name="banner_preset"][value="solid"]').check();
   await page.locator('#banner_colour').fill('#1e9e4a');
   await expect(page.locator('#ss-pf-banner')).toHaveAttribute('style', /background: (rgb\(30, 158, 74\)|#1e9e4a)/);

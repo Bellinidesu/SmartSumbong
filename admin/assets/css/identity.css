@@ -1048,3 +1048,56 @@
 .pf-edit .pf-col .sdp-btn.sdp-colour { width: 150px; height: 38px; padding: 0 12px; border-radius: 10px; font-size: 13px; }
 .pf-sec { gap: 16px; }
 :root[data-theme="dark"] .pf-cover { background-color: #0F1426; }
+
+/* ================= 6 Nov 2026: Profile edited in popups, the Facebook way; solid vibrant status and warnings; the women responders block really joined ================= */
+/* the women responders banner and its list: the pane puts 16px between its children, so the banner pulls back by 16px */
+:root:root:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin-bottom: -16px; }
+
+/* the face is a button: a camera appears over it on hover or focus */
+.pf-avbtn { position: relative; flex: none; display: block; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; line-height: 0; }
+.pf-avov { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; color: #fff; background: rgba(10,16,40,.55); opacity: 0; transition: opacity .2s ease; }
+.pf-avbtn:hover .pf-avov, .pf-avbtn:focus-visible .pf-avov { opacity: 1; }
+.pf-avbtn:focus-visible { outline: 3px solid var(--p-orange); outline-offset: 6px; }
+/* the cover has an Edit button at its bottom right, shown on hover (always on a touch screen) */
+.ss-pf-head { position: relative; }
+.pf-cvbtn { position: absolute; right: 20px; top: 174px; z-index: 3; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 0; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,.94); color: #141B34; font: 700 14px Inter, sans-serif; box-shadow: 0 6px 18px rgba(8,14,44,.35); opacity: 0; transform: translateY(6px); transition: opacity .2s ease, transform .2s ease; }
+.ss-pf-head:hover .pf-cvbtn, .pf-cvbtn:focus-visible { opacity: 1; transform: none; }
+@media (hover: none) { .pf-cvbtn { opacity: 1; transform: none; } }
+@media (max-width: 760px) { .pf-cvbtn { top: 100px; right: 12px; } .pf-cvbtn span { display: none; } .pf-cvbtn { width: 40px; padding: 0; justify-content: center; } }
+
+/* the popups */
+.pf-modal { width: min(520px, 94vw); max-height: 92vh; overflow-y: auto; text-align: left; display: grid; gap: 16px; }
+.pf-modal--wide { width: min(680px, 94vw); }
+.pf-modal h3 { margin: 0; font: 800 20px Inter Tight, Inter, sans-serif; }
+.pf-modal .ss-pf-2, .pf-modal .ss-pf-3 { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.pf-modal .p-field { display: grid; gap: 6px; align-content: start; }
+.pf-modal .p-field > span { font: 600 13px Inter, sans-serif; color: var(--p-ink-2); }
+.pf-mav { display: grid; place-items: center; padding: 10px 0 4px; }
+.pf-mav .ss-pf-av, :root:root .pf-mav .ss-pf-av { width: 170px; height: 170px; margin: 0; }
+.pf-mn { text-align: center; margin: 0; }
+.pf-macts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: center; }
+.pf-modal .pf-cover { height: 130px; border-radius: 12px; }
+.pf-modal .pf-banner { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+.pf-modal .p-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.pf-modal .p-btn { height: 42px; display: inline-flex; align-items: center; padding: 0 18px; border-radius: 12px; cursor: pointer; }
+
+/* status that is vibrant, not pastel: Live, Watching and Reconnecting are solid colour with white lettering and a glow */
+:root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) { background: linear-gradient(135deg, #067A2D, #0A8D37); color: #fff; text-shadow: none; cursor: help;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.18), 0 8px 20px -6px rgba(6,138,52,.85), inset 0 1px 0 rgba(255,255,255,.3); }
+:root:root :is(.p-live, .p-watching):not(.p-down):not(.p-cnt) i { background: #7CFFA8; filter: drop-shadow(0 0 5px #7CFFA8); }
+:root:root :is(.p-live, .p-watching).p-down { background: linear-gradient(135deg, #C4172A, #DB2A3B); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.18), 0 8px 20px -6px rgba(219,42,59,.85), inset 0 1px 0 rgba(255,255,255,.28); }
+:root:root :is(.p-live, .p-watching).p-down i { background: #fff; animation: none; }
+:root[data-theme="dark"] :is(.p-live, .p-watching):not(.p-cnt) { text-shadow: none; }
+/* the big banners (the red two-hour warning, the yellow storm line's cousins) are solid too */
+:root:root .p-flash { color: #fff; border-left: 0; box-shadow: 0 10px 24px -12px rgba(8,14,44,.5), inset 0 1px 0 rgba(255,255,255,.22); }
+:root:root .p-flash--error { background: linear-gradient(100deg, #BE1527, #DC2C3D); }
+:root:root .p-flash--ok { background: linear-gradient(100deg, #066F29, #0A8A36); }
+:root:root .p-flash--warn { background: linear-gradient(100deg, #F29100, #FFAE00); color: #2B1A00; }
+:root:root .p-flash--info { background: linear-gradient(100deg, #1B47C7, #2F66F2); }
+:root:root .p-flash .p-btn { border-color: transparent; }
+:root:root .p-flash a { color: inherit; }
+:root:root .rs-banner-x { color: #fff; opacity: .9; }
+.pf-modal .pf-mn, .pf-modal .p-hint { margin: 0; }
+:root:root .p-flash a.p-btn, :root:root .p-flash .p-btn-ghost { color: #141B34; background: #fff; }
+:root:root .p-flash--warn a.p-btn, :root:root .p-flash--warn .p-btn-ghost { color: #141B34; }
