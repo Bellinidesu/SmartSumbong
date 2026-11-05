@@ -37,8 +37,8 @@ $me = (string) ($admin['id'] ?? '');
 layout_head(t('Home', 'Tahanan'), 'home.php');
 
 $now = new DateTimeImmutable('now', $tz); $hr = (int) $now->format('G');
-$greet = $hr < 12 ? t('Good morning', 'Magandang umaga') : ($hr < 18 ? t('Good afternoon', 'Magandang hapon') : t('Good evening', 'Magandang gabi'));
 $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? '')), ' '));
+$flair = greeting_flair($now, $first);
 // a tile: a number that opens the cases behind it
 $tile = function (string $href, string $label, $n, string $sub, bool $hot = false): string {
     $n = (int) $n;
@@ -53,8 +53,8 @@ $hoursLeft = function ($h): string {
 };
 ?>
 <div class="p-dash-top">
-  <header class="dh-greet"><h1><?= e($greet) ?><?= $first !== '' ? ', ' . e($first) : '' ?></h1>
-    <p><?= e($now->format('l, F j')) ?> &middot; <?= e($isCom ? t('here is what needs you today.', 'narito ang kailangan mo ngayon.') : t('here is what needs handling today.', 'narito ang dapat asikasuhin ngayon.')) ?></p></header>
+  <header class="dh-greet"><h1><?= e($flair['headline']) ?></h1>
+    <p><?= e($now->format('l, F j')) ?><?php if ($flair['event'] !== null): ?> &middot; <span class="dh-event"><?= e($flair['event']) ?></span><?php endif; ?> &middot;<?= e($isCom ? t('here is what needs you today.', 'narito ang kailangan mo ngayon.') : t('here is what needs handling today.', 'narito ang dapat asikasuhin ngayon.')) ?></p></header>
   <span class="p-spacer"></span>
   <span class="p-asof"><?= e(t('Data as of', 'Datos hanggang')) ?> <span class="p-num"><?= e($now->format('g:i A, j M Y')) ?></span></span>
   <?= module_brain($db, false) ?>

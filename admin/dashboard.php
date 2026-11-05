@@ -162,12 +162,12 @@ $isCurrent = $month->format('Y-m') === (new DateTimeImmutable('now', $tz))->form
 <?php
 // The page says whose it is and what it is for: a greeting by the hour in Manila, the first name, the day.
 $now = new DateTimeImmutable('now', $tz); $hr = (int) $now->format('G');
-$greet = $hr < 12 ? t('Good morning', 'Magandang umaga') : ($hr < 18 ? t('Good afternoon', 'Magandang hapon') : t('Good evening', 'Magandang gabi'));
 $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? '')), ' '));
+$flair = greeting_flair($now, $first);
 ?>
 <div class="p-dash-top">
-  <header class="dh-greet"><h1><?= e($greet) ?><?= $first !== '' ? ', ' . e($first) : '' ?></h1>
-    <p><?= e($now->format('l, F j')) ?> &middot; <?= e(t('here is what needs you today.', 'narito ang kailangan mo ngayon.')) ?></p></header>
+  <header class="dh-greet"><h1><?= e($flair['headline']) ?></h1>
+    <p><?= e($now->format('l, F j')) ?><?php if ($flair['event'] !== null): ?> &middot; <span class="dh-event"><?= e($flair['event']) ?></span><?php endif; ?> &middot; <?= e(t('here is what needs you today.', 'narito ang kailangan mo ngayon.')) ?></p></header>
   <span class="p-spacer"></span>
   <?php if ($panelOn): $brainN = (int) (($smSum['urgent_waiting'] ?? 0) + ($smSum['high_waiting'] ?? 0)) + (int) $smRisk; ?>
     <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($brainN > 0): ?><b class="ss-brain-n"><?= $brainN > 99 ? '99+' : $brainN ?></b><?php endif; ?></button>
@@ -322,14 +322,14 @@ $first = trim((string) strtok(display_name((string) ($admin['full_name'] ?? ''))
     <div class="p-donut"><svg id="donut-status" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaint status', 'Katayuan ng mga sumbong')) ?>"></svg><div class="p-center"><b class="p-num" id="status-donut-total">0</b><span id="status-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-status"></div>
     <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
-    <div class="p-empty-state" id="status-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
+    <div class="p-empty-state" id="status-empty" hidden><b><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></b><span><?= e(t('The ring fills as reports come in.', 'Mapupuno ang bilog habang dumarating ang mga ulat.')) ?></span></div>
   </div>
   <div class="p-card p-donut-card">
     <div class="p-row-between"><h2 class="p-card-title"><?= e(t('Category Distribution', 'Hati ayon sa Kategorya')) ?></h2></div>
     <div class="p-donut"><svg id="donut-category" viewBox="0 0 42 42" width="184" height="184" role="img" aria-label="<?= e(t('Complaints by category', 'Mga sumbong ayon sa kategorya')) ?>"></svg><div class="p-center"><b class="p-num" id="category-donut-total">0</b><span id="category-donut-label"><?= e(t('Reports', 'Ulat')) ?></span></div></div>
     <div class="p-legend" id="legend-category"></div>
     <p class="p-hint" style="margin:0"><?= e(t('Click a segment or a name to see those complaints here.', 'I-click ang isang bahagi o pangalan para makita rito ang mga sumbong na iyon.')) ?></p>
-    <div class="p-empty-state" id="category-empty" hidden><span><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></span></div>
+    <div class="p-empty-state" id="category-empty" hidden><b><?= e(t('Nothing to chart for this month.', 'Walang maipapakita para sa buwang ito.')) ?></b><span><?= e(t('The ring fills as reports come in.', 'Mapupuno ang bilog habang dumarating ang mga ulat.')) ?></span></div>
   </div>
   <!-- 0156: a segment or its name opens its complaints here, beside the donuts -->
   <section class="p-card dq-box" id="dq-box" hidden aria-live="polite">
@@ -472,7 +472,8 @@ $_SESSION['dash_intro'] = true;
   // The preview's thin-ring donut; each segment and legend row opens its complaints.
   function donut(svg, legend, parts) {
     var total = parts.reduce(function (a, p) { return a + p.n; }, 0), off = 25;
-    var s = '<circle cx="21" cy="21" r="15.9" fill="none" stroke="' + css('--p-line') + '" stroke-width="5"/>';
+    svg.classList.toggle('is-empty', !total);
+    var s = '<circle class="trk" cx="21" cy="21" r="15.9" fill="none" stroke="' + css('--p-line') + '" stroke-width="5"/>';
     parts.forEach(function (p, i) { if (!p.n) return; var len = p.n / total * 100; s += '<circle data-i="' + i + '" cx="21" cy="21" r="15.9" fill="none" stroke="' + p.colour + '" stroke-width="5" stroke-dasharray="' + Math.max(0, len - 1.2) + ' ' + (100 - len + 1.2) + '" stroke-dashoffset="' + off + '" style="cursor:pointer"><title>' + esc(p.label) + ': ' + p.n + '</title></circle>'; off -= len; });
     svg.innerHTML = s;
     legend.innerHTML = parts.map(function (p, i) { return '<div data-i="' + i + '" role="link" tabindex="0"><i style="background:' + p.colour + '"></i>' + esc(p.label) + '<span class="p-n">' + p.n + '</span></div>'; }).join('');
@@ -574,13 +575,13 @@ $_SESSION['dash_intro'] = true;
     ];
     if (+st.rejected) parts.push({ label: T('Denied', 'Tinanggihan'), n: +st.rejected, colour: '#8E9ABB', href: 'cases.php?status=rejected&month=' + MONTH, kind: 'status', key: 'rejected' });
     var stTotal = parts.reduce(function (a, p) { return a + p.n; }, 0);
-    $('status-empty').hidden = stTotal !== 0;
+    $('status-empty').hidden = stTotal !== 0; $('status-empty').parentNode.classList.toggle('is-empty', stTotal === 0);
     donut($('donut-status'), $('legend-status'), stTotal ? parts : []);
     $('status-donut-total').textContent = stTotal;
     $('status-donut-label').textContent = T(stTotal === 1 ? 'Report' : 'Reports', 'Ulat');
 
     var cp = cats.map(function (c) { return { label: CATEGORY_LABEL[c.category] || c.category, n: +c.n || 0, colour: CATEGORY_COLOUR[c.category] || '#8E9ABB', href: 'cases.php?category=' + encodeURIComponent(c.category) + '&month=' + MONTH, kind: 'category', key: c.category }; });
-    $('category-empty').hidden = cp.length !== 0;
+    $('category-empty').hidden = cp.length !== 0; $('category-empty').parentNode.classList.toggle('is-empty', cp.length === 0);
     donut($('donut-category'), $('legend-category'), cp);
     $('category-donut-total').textContent = total;
     $('category-donut-label').textContent = T(total === 1 ? 'Report' : 'Reports', 'Ulat');

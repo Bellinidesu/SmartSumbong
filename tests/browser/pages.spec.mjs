@@ -510,7 +510,7 @@ test('Development team: the DEV switcher makes test accounts, switches into a ru
   await expect(sw.locator('.dv-l')).toHaveCount(4);   // Super admin, Captain, Kagawad, Staff
   await expect(sw.locator('.dv-l').nth(2)).toContainText('Kagawad');
   await expect(sw.locator('.dv-l').nth(2)).toContainText('Peace and Order');
-  await sw.locator('.dv-setup button').click();
+  await sw.locator('.dv-setup button[type=submit]').click();
   await expect(page.locator('.dv-msg')).toContainText('test accounts are ready');
   await expect(page.locator('.dv-sw[open]'), 'the panel is open to show what the last action said').toHaveCount(1);
   await page.locator('.dv-sw .dv-l').nth(2).click();
@@ -654,7 +654,7 @@ test('Roles and pages 4: tanods in committees, the punch cards, and a Kagawad\'s
   await expect(page.locator('.pc-card').first()).toContainText('Not in today');
   expect(await axe(page), 'Personnel, Committee staff').toEqual([]);
   const d = await open(page, 'personnel.php?id=u2');
-  await expect(page.locator('#tc-card .tc-add button')).toContainText('Add to the committee');
+  await expect(page.locator('#tc-card .tc-add button[type=submit]')).toContainText('Add to the committee');
   expect(await page.locator('.p-controls form').count()).toBeGreaterThan(0);   // a super admin's account controls are there
 
   await context.addCookies([{ name: 'ss_tier', value: 'committee', url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
@@ -689,7 +689,7 @@ test('Personnel roster: equal rows, duty tiles filter, bulk add to a committee, 
   await page.locator('tr[data-id="u7"] .ss-cb').check(); await page.locator('tr[data-id="u10"] .ss-cb').check();
   await expect(page.locator('#ss-bulk')).toBeVisible();
   await page.locator('#ss-bulk-com').selectOption('peace_order');
-  await Promise.all([page.waitForURL(/personnel\.php/), page.locator('#ss-bulk-tc button').click()]);
+  await Promise.all([page.waitForURL(/personnel\.php/), page.locator('#ss-bulk-tc button[type=submit]').click()]);
   await expect(page.locator('.p-flash--ok')).toContainText('2 added to Peace and Order');
   // the list's 20-second refresh redraws the rows the way the server drew them
   await page.waitForTimeout(21500);

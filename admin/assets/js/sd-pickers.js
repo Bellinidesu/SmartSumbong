@@ -43,30 +43,42 @@
 
   /* ---------------- select ---------------- */
   function select(sel, opts) {
-    if (!sel || sel.dataset.sdp) return; sel.dataset.sdp = '1'; opts = opts || {};
+    if (sel && sel.dataset.sdp) { if (sel._sdp && opts && opts.dot) { sel._sdp.opts.dot = opts.dot; sel._sdp.paint(); } return; }   // a page that knows better colours than the guess says so
+    if (!sel) return; sel.dataset.sdp = '1'; opts = opts || {};
     var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'sdp-btn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
     var lab = sel.closest('label'), name = lab && lab.querySelector('.p-sr'); if (name) btn.setAttribute('aria-label', name.textContent.trim());
     sel.parentNode.insertBefore(btn, sel); hideNative(sel);
+    // a select whose options are colour-coded (the categories, the committees) shows each one's dot; "All" gets the whole spectrum
+    function hasDots() { return !!opts.dot && Array.prototype.some.call(sel.options, function (o) { return o.value && opts.dot(o.value); }); }
+    function dotFor(o) { if (!opts.dot) return ''; if (o.value) { var c = opts.dot(o.value); return c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '<i class="sdp-dot none"></i>'; } return hasDots() && !o.disabled ? '<i class="sdp-dot all"></i>' : ''; }
     function paint() {
-      var o = sel.options[sel.selectedIndex], v = o ? o.value : '', c = v && opts.dot ? opts.dot(v) : null;
-      btn.innerHTML = (c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '') + '<span>' + esc(o ? o.textContent.trim() : '') + '</span>' + CHEV;
-      btn.classList.toggle('set', !!v);
+      var o = sel.options[sel.selectedIndex];
+      btn.innerHTML = (o ? dotFor(o) : '') + '<span>' + esc(o ? o.textContent.trim() : '') + '</span>' + CHEV;
+      btn.classList.toggle('set', !!(o && o.value && !o.disabled));
     }
+    if (opts.field) btn.classList.add('sdp-field');
+    sel._sdp = { opts: opts, paint: paint };
     paint(); sel.addEventListener('change', paint);
-    btn.disabled = sel.disabled; new MutationObserver(function () { btn.disabled = sel.disabled; paint(); }).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+    // other scripts set .value / .selectedIndex or rebuild the options (forwarding, the handler picker): the button follows
+    ['value', 'selectedIndex'].forEach(function (k) {
+      var d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, k);
+      if (d && d.set) Object.defineProperty(sel, k, { configurable: true, get: function () { return d.get.call(sel); }, set: function (v) { d.set.call(sel, v); paint(); } });
+    });
+    btn.disabled = sel.disabled; new MutationObserver(function () { btn.disabled = sel.disabled; paint(); }).observe(sel, { attributes: true, attributeFilter: ['disabled'], childList: true, subtree: true });
     btn.addEventListener('click', function () {
       if (open && open.btn === btn) { close(true); return; }
       var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-list'; pop.setAttribute('role', 'listbox'); pop.tabIndex = -1;
       var items = Array.prototype.map.call(sel.options, function (o, i) {
-        var c = o.value && opts.dot ? opts.dot(o.value) : null, row = document.createElement('button');
-        row.type = 'button'; row.className = 'sdp-opt' + (i === sel.selectedIndex ? ' on' : ''); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(i === sel.selectedIndex)); row.dataset.i = i;
+        var row = document.createElement('button');
+        row.type = 'button'; row.className = 'sdp-opt' + (i === sel.selectedIndex ? ' on' : '') + (o.disabled ? ' off' : ''); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(i === sel.selectedIndex)); row.dataset.i = i;
+        if (o.disabled) row.setAttribute('aria-disabled', 'true');
         row.style.setProperty('--d', (i * 18) + 'ms');
-        row.innerHTML = (c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '<i class="sdp-dot none"></i>') + '<span>' + esc(o.textContent.trim()) + '</span>' + TICK;
+        row.innerHTML = (opts.dot ? (dotFor(o) || '<i class="sdp-dot none"></i>') : '') + '<span>' + esc(o.textContent.trim()) + '</span>' + TICK;
         pop.appendChild(row); return row;
       });
       var cur = sel.selectedIndex;
       function focusRow(i) { cur = (i + items.length) % items.length; items.forEach(function (r, k) { r.classList.toggle('hot', k === cur); }); items[cur].scrollIntoView({ block: 'nearest' }); }
-      function pick(i) { sel.selectedIndex = i; sel.dispatchEvent(new Event('change', { bubbles: true })); close(true); }
+      function pick(i) { if (sel.options[i] && sel.options[i].disabled) return; sel.selectedIndex = i; sel.dispatchEvent(new Event('change', { bubbles: true })); close(true); }
       var typed = '', tt;
       show(btn, pop, function (e) {
         if (e.key === 'Escape') { e.preventDefault(); close(true); }

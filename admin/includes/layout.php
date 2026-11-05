@@ -63,6 +63,81 @@ function pager(int $total, int $page, string $param = 'page', ?int $per = null, 
     return $o . '<span class="of">' . $from1 . '&ndash;' . $to1 . ' ' . e(t('of', 'sa')) . ' ' . $total . '</span></nav>';
 }
 
+/**
+ * The greeting at the top of Dashboard and Home (Ace, 6 Nov 2026): by the hour in Manila, with a few ways to say it so the page is not
+ * the same every day, and the Philippine holidays and observances say their own. The same day and hour always give the same words,
+ * so a refresh does not change them.
+ *   greeting_flair($now, 'Ace')  ->  ['headline' => 'Rise and shine, Ace', 'event' => "All Saints' Day" | null]
+ */
+function greeting_flair(DateTimeImmutable $now, string $first = ''): array
+{
+    $y = (int) $now->format('Y'); $md = $now->format('m-d'); $hr = (int) $now->format('G'); $doy = (int) $now->format('z');
+    $nth = function (int $month, int $weekday, int $n) use ($y): string {   // the nth weekday of a month, as m-d
+        $d = new DateTimeImmutable(sprintf('%d-%02d-01', $y, $month));
+        $off = ($weekday - (int) $d->format('w') + 7) % 7;
+        return $d->modify('+' . ($off + 7 * ($n - 1)) . ' days')->format('m-d');
+    };
+    $lastMon = (new DateTimeImmutable("last monday of august $y"))->format('m-d');
+    // Easter (Meeus), for Holy Week
+    $a = $y % 19; $b = intdiv($y, 100); $c = $y % 100; $d = intdiv($b, 4); $e = $b % 4; $f = intdiv($b + 8, 25); $g = intdiv($b - $f + 1, 3);
+    $h = (19 * $a + $b - $d - $g + 15) % 30; $i = intdiv($c, 4); $k = $c % 4; $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7; $m = intdiv($a + 11 * $h + 22 * $l, 451);
+    $easter = new DateTimeImmutable(sprintf('%d-%02d-%02d', $y, intdiv($h + $l - 7 * $m + 114, 31), (($h + $l - 7 * $m + 114) % 31) + 1));
+    $holy = [$easter->modify('-3 days')->format('m-d') => 'maundy', $easter->modify('-2 days')->format('m-d') => 'good', $easter->modify('-1 day')->format('m-d') => 'black', $easter->format('m-d') => 'easter'];
+
+    $ev = null;   // [greeting, chip]
+    $day = [
+        '01-01' => [t('Happy New Year', 'Manigong Bagong Taon'), t("New Year's Day", 'Bagong Taon')],
+        '02-14' => [t("Happy Hearts Day", 'Maligayang Araw ng mga Puso'), t("Valentine's Day", 'Araw ng mga Puso')],
+        '02-25' => [t('Remembering EDSA', 'Alalahanin ang EDSA'), t('EDSA People Power Anniversary', 'Anibersaryo ng EDSA People Power')],
+        '04-09' => [t('Honouring our heroes', 'Pagpupugay sa ating mga bayani'), t('Day of Valor', 'Araw ng Kagitingan')],
+        '05-01' => [t('Happy Labor Day', 'Maligayang Araw ng Paggawa'), t('Labor Day', 'Araw ng Paggawa')],
+        '06-12' => [t('Happy Independence Day', 'Maligayang Araw ng Kalayaan'), t('Independence Day', 'Araw ng Kalayaan')],
+        '08-21' => [t('Remembering Ninoy', 'Alalahanin si Ninoy'), t('Ninoy Aquino Day', 'Araw ni Ninoy Aquino')],
+        '09-01' => [t('The ber months begin', 'Simula na ng ber months'), t('The ber months', 'Ber months')],
+        '10-31' => [t('Happy Halloween', 'Maligayang Halloween'), t('Halloween', 'Undas na')],
+        '11-01' => [t('Remembering our loved ones', 'Alaala ng ating mga mahal sa buhay'), t("All Saints' Day", 'Araw ng mga Santo')],
+        '11-02' => [t('Remembering our loved ones', 'Alaala ng ating mga yumao'), t("All Souls' Day", 'Araw ng mga Kaluluwa')],
+        '11-30' => [t('Happy Bonifacio Day', 'Maligayang Araw ni Bonifacio'), t('Bonifacio Day', 'Araw ni Bonifacio')],
+        '12-08' => [t('Happy Feast Day', 'Maligayang Kapistahan'), t('Feast of the Immaculate Conception', 'Kapistahan ng Immaculada Concepcion')],
+        '12-24' => [t('Merry Christmas Eve', 'Maligayang Noche Buena'), t('Christmas Eve', 'Bisperas ng Pasko')],
+        '12-25' => [t('Merry Christmas', 'Maligayang Pasko'), t('Christmas Day', 'Araw ng Pasko')],
+        '12-30' => [t('Remembering Rizal', 'Alalahanin si Rizal'), t('Rizal Day', 'Araw ni Rizal')],
+        '12-31' => [t("Happy New Year's Eve", 'Maligayang Bisperas ng Bagong Taon'), t("New Year's Eve", 'Bisperas ng Bagong Taon')],
+        $nth(5, 0, 2) => [t("Happy Mother's Day", 'Maligayang Araw ng mga Ina'), t("Mother's Day", 'Araw ng mga Ina')],
+        $nth(6, 0, 3) => [t("Happy Father's Day", 'Maligayang Araw ng mga Ama'), t("Father's Day", 'Araw ng mga Ama')],
+        $lastMon      => [t('Happy National Heroes Day', 'Maligayang Araw ng mga Bayani'), t('National Heroes Day', 'Araw ng mga Pambansang Bayani')],
+    ];
+    if (isset($holy[$md])) {
+        $ev = match ($holy[$md]) {
+            'maundy' => [t('A blessed Maundy Thursday', 'Mapagpalang Huwebes Santo'), t('Maundy Thursday', 'Huwebes Santo')],
+            'good'   => [t('A blessed Good Friday', 'Mapagpalang Biyernes Santo'), t('Good Friday', 'Biyernes Santo')],
+            'black'  => [t('A quiet Black Saturday', 'Mapayapang Sabado de Gloria'), t('Black Saturday', 'Sabado de Gloria')],
+            default  => [t('Happy Easter', 'Maligayang Pasko ng Pagkabuhay'), t('Easter Sunday', 'Pasko ng Pagkabuhay')],
+        };
+    } elseif (isset($day[$md])) {
+        $ev = $day[$md];
+    } elseif ($md >= '12-16' && $md <= '12-23') {
+        $ev = [t('Simbang Gabi season', 'Simbang Gabi na'), t('Dawn Masses', 'Simbang Gabi')];
+    }
+
+    if ($ev !== null) { $head = $ev[0]; $chip = $ev[1]; }
+    else {
+        $pick = [
+            [[0, 4],   [t('Burning the midnight oil', 'Gising pa rin'), t('Still up', 'Puyat na naman'), t('The barangay never sleeps', 'Hindi natutulog ang barangay')]],
+            [[5, 8],   [t('Rise and shine', 'Gising na, bagong araw'), t('Good morning', 'Magandang umaga'), t('Early start', 'Maagang simula')]],
+            [[9, 11],  [t('Good morning', 'Magandang umaga'), t('Morning', 'Magandang umaga'), t('Good morning', 'Magandang umaga')]],
+            [[12, 13], [t('Good noon', 'Magandang tanghali'), t('Good noon', 'Magandang tanghali'), t('Lunch hour already', 'Tanghalian na')]],
+            [[14, 17], [t('Good afternoon', 'Magandang hapon'), t('Keeping steady', 'Tuloy lang'), t('Good afternoon', 'Magandang hapon')]],
+            [[18, 20], [t('Good evening', 'Magandang gabi'), t('Winding down', 'Malapit nang magpahinga'), t('Good evening', 'Magandang gabi')]],
+            [[21, 23], [t('Working late', 'Gabi na, narito pa rin'), t('Good evening', 'Magandang gabi'), t('Night shift', 'Panggabing duty')]],
+        ];
+        $head = $pick[0][1][0];
+        foreach ($pick as $p) { if ($hr >= $p[0][0] && $hr <= $p[0][1]) { $head = $p[1][($doy + $p[0][0]) % count($p[1])]; break; } }
+        $chip = null;
+    }
+    return ['headline' => $head . ($first !== '' ? ', ' . $first : ''), 'event' => $chip];
+}
+
 /** The engine's brain as a small icon, for places a square button or tile needs one (the map's dock, a SMART notification). */
 function smart_brain(int $size = 20): string
 {
@@ -693,10 +768,23 @@ window.SS_PRESENCE = <?= json_encode([
 <div class="p-toast" id="p-toast" role="status"></div>
 <script src="assets/js/sd-pickers.js?v=<?= e(asset_version('../js/sd-pickers.js')) ?>"></script>
 <script>
-// Every dropdown and month box on the pills and report bands is the portal's own glass picker; the real controls stay underneath, so forms, auto-submit and the keyboard behave as before.
+// Every dropdown and month box in the portal is the portal's own glass picker (Ace, 6 Nov 2026: the category dropdown and the calendar are the standard).
+// The real controls stay underneath, so forms, auto-submit, required and the keyboard behave as before. A dropdown of categories or of committees
+// shows each one's own colour dot, read from the system's own lists, so a category added in Settings arrives with its colour.
 (function () {
   if (!window.sdPickers) return;
-  document.querySelectorAll('.p-pill-select select, .p-band select, .ss-ps select').forEach(function (s) { if (!s.dataset.native) sdPickers.select(s); });
+  var COLOURS = { cat: <?= json_encode(category_colours()) ?>, com: <?= json_encode((function () { $o = []; foreach (array_keys(committees_all()) as $k) { $o[(string) $k] = committee_colour((string) $k); } return $o; })()) ?> };
+  function dotsFor(s) {
+    var vals = Array.prototype.map.call(s.options, function (o) { return o.value; }).filter(Boolean); if (!vals.length) return null;
+    var best = null, top = 0;
+    Object.keys(COLOURS).forEach(function (k) { var n = vals.filter(function (v) { return COLOURS[k][v]; }).length; if (n > top) { top = n; best = COLOURS[k]; } });
+    return best && top * 2 >= vals.length ? function (v) { return best[v] || null; } : null;
+  }
+  document.querySelectorAll('select').forEach(function (s) {
+    if (s.dataset.native || s.dataset.sdp || s.multiple || s.size > 1 || s.closest('.dv-sw')) return;   // the DEV pill keeps its own plain select
+    var pill = !!s.closest('.p-pill-select, .p-band, .ss-ps');
+    sdPickers.select(s, { dot: dotsFor(s), field: !pill });
+  });
   document.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
 })();
 </script>
