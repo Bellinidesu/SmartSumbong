@@ -311,3 +311,15 @@ button:hover > .dn i, button:focus-visible > .dn i, .p-side-toggle:hover .dn i {
 .sdp-foot .sdp-clr, .sdp-foot .sdp-go { height: 36px; display: inline-flex; align-items: center; justify-content: center; padding-top: 0; padding-bottom: 0; }   /* 5 Nov sweep: Clear and Apply, one height */
 /* 5 Nov sweep: the sign-in pages' checkboxes as the app's and the portal's: the identity orange, large enough to hit */
 .remember input, .field-check input { width: 16px; height: 16px; accent-color: #FF9800; }
+
+/* ---- 6 Nov 2026: the category dropdown and the calendar are the standard for every dropdown ---- */
+.sdp-dot.all { background: conic-gradient(#356CF9, #FF9800, #EDFA04, #34C759, #F93535, #356CF9); box-shadow: 0 0 0 2px color-mix(in srgb, var(--p-muted) 22%, transparent); }
+.sdp-opt.off { opacity: .42; cursor: default; }
+.sdp-opt.off:hover { background: transparent; }
+/* a dropdown inside a form is a field: same height, edge and radius as the inputs beside it, the same glass list underneath */
+.sdp-btn.sdp-field { height: 42px; padding: 0 12px; border: 1px solid var(--p-line-2); border-radius: 14px; background: var(--p-surface); box-shadow: var(--p-shadow-sm);
+  transition: border-color .18s, box-shadow .18s; }
+.sdp-btn.sdp-field:hover { border-color: color-mix(in srgb, var(--p-orange) 50%, var(--p-line-2)); }
+.sdp-btn.sdp-field.open, .sdp-btn.sdp-field:focus-visible { border-color: var(--p-orange); box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-orange) 18%, transparent); outline: 0; }
+.sdp-btn.sdp-field:not(.set) { color: var(--p-muted); font-weight: 500; }
+.sdp-btn.sdp-field:disabled { background: var(--p-surface-2); }
