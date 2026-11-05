@@ -1417,3 +1417,36 @@ test('Press flow foundation (7 Nov): htmx with the portal config, a swap changes
   // the simulated failure itself is logged (htmx names the failed request, the browser the aborted fetch); nothing else may be
   expect(r.errors.filter(m => !/htmx:(afterRequest|sendError)|net::ERR_FAILED/.test(m)), 'console errors').toEqual([]);
 });
+
+test('Press flow step 2 (7 Nov): a save shows that it is working and a second press does not send it again', async ({ browser }) => {
+  // its own context with the service worker blocked: the portal's worker answers requests before a test's network hook would see them
+  const ctx = await browser.newContext({ serviceWorkers: 'block', baseURL: 'http://127.0.0.1:8013/admin/', viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const r = await open(page, 'notifications.php');
+  let posts = 0;
+  await page.route(/notifications\.php/, async route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    posts++; await new Promise(res => setTimeout(res, 2500)); return route.continue();   // a slow connection
+  });
+  // a plain save form (the guard covers every form that loads the next page the usual way), answering into a hidden frame so this
+  // page stays on screen while the save is on its way (a test cannot read a page that a form is navigating away)
+  await page.evaluate(() => {
+    const fr = document.createElement('iframe'); fr.name = 'sink'; fr.hidden = true; document.body.appendChild(fr);
+    const csrf = document.querySelector('input[name="csrf"]').value;
+    const f = document.createElement('form'); f.method = 'post'; f.action = 'notifications.php'; f.target = 'sink'; f.id = 'probe-save';
+    [['csrf', csrf], ['action', 'read_all']].forEach(([n, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); });
+    const b = document.createElement('button'); b.type = 'submit'; b.textContent = 'Save'; f.appendChild(b);
+    document.body.appendChild(f);
+  });
+  const btn = page.locator('#probe-save button');
+  await btn.click();
+  await expect(btn, 'the pressed button says it is working').toHaveClass(/is-sending/);
+  await expect(page.locator('#probe-save')).toHaveAttribute('aria-busy', 'true');
+  // a second press, and a script sending the form again, while the first is on its way
+  await btn.click({ force: true });
+  await page.evaluate(() => document.getElementById('probe-save').requestSubmit());
+  await page.waitForTimeout(3200);
+  expect(posts, 'one press, one request').toBe(1);
+  expect(r.errors, 'console errors').toEqual([]);
+  await ctx.close();
+});

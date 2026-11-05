@@ -13,3 +13,10 @@
 .htmx-settling { transition: opacity .18s ease; }
 [aria-busy="true"] body { cursor: progress; }
 @media (prefers-reduced-motion: reduce) { .ss-progress, .ss-progress.is-on, .htmx-swapping, .htmx-settling { transition: none; } }
+/* step 2: a button that has sent its form shows a turning ring and cannot be pressed again */
+.is-sending { position: relative; cursor: progress !important; pointer-events: none; }
+.is-sending::after { content: ""; display: inline-block; width: 13px; height: 13px; margin-left: 8px; vertical-align: -2px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent; animation: ssSpin .7s linear infinite; }
+form[aria-busy="true"] { cursor: progress; }
+@keyframes ssSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .is-sending::after { animation-duration: 2s; } }
