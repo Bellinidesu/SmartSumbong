@@ -499,16 +499,16 @@ $noteBadge = $notesUnread + $escCount;
   $nowHtml = '';
   if ($notices && !$workspace) { ob_start(); render_briefing($db, $admin, 'strip'); $nowHtml = (string) ob_get_clean(); }
   $railOn = $pins || ($nowHtml !== '' && !str_contains($nowHtml, 'ss-calm')); ?>
-<div class="nf-grid<?= $railOn ? '' : ' nf-grid--solo' ?>"><div class="nf-main">
+<div class="nf-grid<?= $railOn ? '' : ' nf-grid--solo' ?>"><?php // the press flow (step 3): the header, the chooser, the list and the pager swap in place ?><div class="nf-main press-region" id="nf-list" hx-target="#nf-list" hx-select="#nf-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#nf-list:replace" data-announce="<?= e(sprintf(t('Showing %d notifications', 'Ipinapakita ang %d abiso'), (int) $notesTotal)) ?>">
 <!-- ---------- notifications ---------- -->
 <?php $nHref = fn(string $v) => '?' . http_build_query(array_filter(['nview' => $v === 'all' ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : ''])); ?>
 <div class="p-band p-band--calm">
   <h2><?= e($nAll || $nSearch !== '' ? t('All notifications', 'Lahat ng abiso') : t('Unread', 'Hindi pa nababasa')) ?><span class="p-badge-n" id="notif-count"><?= (int) $notesTotal ?></span></h2>
-  <div class="p-seg-mini bd-scope" role="group" aria-label="<?= e(t('Which notifications', 'Aling mga abiso')) ?>">
+  <div class="p-seg-mini bd-scope" hx-boost="true" role="group" aria-label="<?= e(t('Which notifications', 'Aling mga abiso')) ?>">
     <a href="<?= e($nHref('unread')) ?>" class="<?= !$nAll ? 'p-on' : '' ?>"><?= e(t('Unread', 'Hindi pa nababasa')) ?></a>
     <a href="<?= e($nHref('all')) ?>" class="<?= $nAll ? 'p-on' : '' ?>"><?= e(t('All', 'Lahat')) ?></a>
   </div>
-  <form class="p-search" method="get" role="search">
+  <form class="p-search" method="get" role="search" hx-boost="true">
     <?= p_icon('i-search', 16) ?>
     <input type="search" name="nq" placeholder="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>" value="<?= e($nSearch) ?>"
            aria-label="<?= e(t('Search notifications', 'Maghanap sa mga abiso')) ?>">
@@ -520,7 +520,7 @@ $noteBadge = $notesUnread + $escCount;
   <form method="post"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="read_all">
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Mark all as read', 'Markahang nabasa ang lahat')) ?></button></form>
   <?php endif; ?>
-  <form method="get">
+  <form method="get" hx-boost="true">
     <input type="hidden" name="nq" value="<?= e($nSearch) ?>"><?php if ($nAll): ?><input type="hidden" name="nview" value="all"><?php endif; ?>
     <?php foreach ($keep as $k => $v): ?><input type="hidden" name="<?= e($k) ?>" value="<?= e($v) ?>"><?php endforeach; ?>
     <label class="p-pill-select"><span class="p-lbl"><?= e(t('Sort by', 'Ayusin ayon sa')) ?></span>
@@ -533,7 +533,7 @@ $noteBadge = $notesUnread + $escCount;
 <?php if (sees_everything()):
     $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
 <?php $sdTypes = committee_sd_types($db); ?>
-<nav class="cm-chips cm-choose nf-chips" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips cm-choose nf-chips" hx-boost="true" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>" data-nc=""><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= (int) ($ncN['all'] ?? 0) ?></b></a>
   <?php foreach (committees_active() as $ck => $cl): ?>
     <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>" data-nc="<?= e($ck) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= (int) ($ncN[$ck] ?? 0) ?></b></a>
@@ -660,7 +660,7 @@ $noteBadge = $notesUnread + $escCount;
   <?php endforeach; ?>
 </div></div>
 
-<div id="notes-pager"><?= pager($notesTotal, $npage, 'npage') ?></div>
+<div id="notes-pager" hx-boost="true" hx-swap="outerHTML show:#nf-list:top"><?= pager($notesTotal, $npage, 'npage') ?></div>
 </div>
 <?php if ($railOn): ?>
 <aside class="nf-rail" aria-label="<?= e(t('What needs you now', 'Ang kailangan mo ngayon')) ?>">
@@ -698,7 +698,14 @@ $crOd = [];   // overdue open cases, by committee ('' = none)
 foreach ($openRows ?? [] as $r) { if (!empty($r['due_at']) && strtotime((string) $r['due_at']) < time()) { $k = (string) ($r['case_committee'] ?? ''); $crOd[$k] = ($crOd[$k] ?? 0) + 1; } }
 $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '%d ang lampas') : t('%d overdue', '%d ang lampas'), $n) : t('none overdue', 'walang lampas');
 ?>
-<div class="cr-fig" aria-label="<?= e(t('What needs attention', 'Ang kailangan ng pansin')) ?>">
+<?php $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : ''); ?>
+<?= forward_dialog($fwBack) ?>
+<?php // The press flow (step 3, 7 Nov 2026): the figures, the filters, the chooser, the list and the pager are one region. A press on a
+      // figure, a filter, a committee, a column or a page fetches this same page and swaps only this region; the address follows, so
+      // Back, Forward and a refresh land on the same view. Row links still open the case. ?>
+<div id="cr-list" class="press-region" hx-target="#cr-list" hx-select="#cr-list" hx-swap="outerHTML" hx-push-url="true" hx-sync="#cr-list:replace"
+     data-announce="<?= e(sprintf(t('Showing %d reports', 'Ipinapakita ang %d ulat'), (int) $regTotal)) ?>">
+<div class="cr-fig" hx-boost="true" aria-label="<?= e(t('What needs attention', 'Ang kailangan ng pansin')) ?>">
   <a class="p-card ss-tile<?= $atc > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['view' => 'attention'])) ?>"><span><?= e(t('Needs attention', 'Kailangan ng pansin')) ?></span><b class="p-num"><?= (int) $atc ?></b>
     <small><?= e(t('late, asked again, or waiting for approval', 'huli, muling nagtanong, o naghihintay ng pag-apruba')) ?></small></a>
   <a class="p-card ss-tile<?= $crFree > 0 ? ' hot' : '' ?>" href="<?= e($crHref(['who' => 'unclaimed'])) ?>"><span><?= e(t('Nobody has it', 'Walang may hawak')) ?></span><b class="p-num"><?= (int) $crFree ?></b>
@@ -709,7 +716,7 @@ $crOdText = fn (int $n): string => $n > 0 ? sprintf($n === 1 ? t('%d overdue', '
     <small><?= e(t('not yet resolved or closed', 'hindi pa nalulutas o naisasara')) ?></small></a>
 </div>
 <?php $vAnyBand = $view === 'attention' || $who !== '' || $filter !== '' || $category !== '' || $issue !== '' || $month !== '' || $tanod !== '' || $search !== ''; ?>
-<div class="p-band ss-cr-band">
+<div class="p-band ss-cr-band" hx-boost="true">
   <h2><?= e(t('Reports', 'Mga Ulat')) ?><span class="p-badge-n p-badge-n--quiet" id="reports-count"><?= (int) $regTotal ?></span></h2>
   <form class="p-search" method="get" role="search">
     <?= p_icon('i-search', 16) ?>
@@ -785,7 +792,7 @@ $comHref = fn (string $c) => 'cases.php?' . http_build_query(array_filter(array_
 $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 <?php if ($casesFlash): ?><div class="p-flash p-flash--<?= $casesFlash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($casesFlash['text']) ?></div><?php endif; ?>
-<nav class="cm-chips cm-choose" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips cm-choose" hx-boost="true" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $com === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $com === '' ? ' aria-current="true"' : '' ?> title="<?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?><em class="<?= array_sum($crOd) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) array_sum($crOd))) ?></em></span><b><?= (int) ($chipN['all'] ?? 0) ?></b></a>
   <?php if (sees_everything()): ?>
     <?php foreach (committees_active() as $ck => $cl): ?>
@@ -802,14 +809,12 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 <?php if (is_super()): ?>
 <div class="fw-bulk" id="fw-bulk" hidden><span id="fw-bulk-n"></span><button type="button" class="p-btn p-btn-primary p-btn-sm" data-fw-open="bulk"><?= e(t('Forward the selected cases', 'Ipasa ang mga napili')) ?></button></div>
 <?php endif; ?>
-<?= forward_dialog($fwBack) ?>
-
 <div class="p-card p-table-card"><div class="p-tscroll">
   <?php // 0159: column widths by name, so the optional columns (select, committee) never push the rest out of place
   $cw = ['sel' => is_super() ? 3 : 0, 'id' => 12, 'cat' => 14, 'com' => sees_everything() ? 14 : 0, 'st' => 13, 'fil' => 7, 'smart' => 9, 'hnd' => 12, 'act' => 16];
   $cwSum = array_sum($cw); ?>
   <table class="p-t ss-cases-t<?= sees_everything() ? ' ss-cases-wide' : '' ?>">
-    <thead><tr>
+    <thead hx-boost="true"><tr>
       <?php if (is_super()): ?><th scope="col" style="width:<?= round($cw['sel'] / $cwSum * 100, 2) ?>%" class="ss-c fw-selc"><input type="checkbox" id="fw-all" aria-label="<?= e(t('Select every case on this page', 'Piliin ang bawat kaso sa pahinang ito')) ?>"></th><?php endif; ?>
       <th scope="col" style="width:<?= round($cw['id'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('id', $sortCol, $sortDir)) ?>"><?= e(t('Case', 'Kaso')) ?><?= sort_caret('id', $sortCol, $sortDir) ?></a></th>
       <th scope="col" style="width:<?= round($cw['cat'] / $cwSum * 100, 2) ?>%"><a class="p-th-sort" href="<?= e(sort_link('category', $sortCol, $sortDir)) ?>"><?= e(t('Category', 'Kategorya')) ?><?= sort_caret('category', $sortCol, $sortDir) ?></a></th>
@@ -864,7 +869,8 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     </tbody>
   </table>
 </div></div>
-<div id="reports-pager"><?= pager((int) $regTotal, $page) ?></div>
+<div id="reports-pager" hx-boost="true" hx-swap="outerHTML show:#cr-list:top"><?= pager((int) $regTotal, $page) ?></div>
+</div><?php // #cr-list ?>
 
 <?php endif; ?>
 
@@ -872,9 +878,9 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
 // 0152: the Forward / Flag dialog, for one case (its row's button) or for the cases ticked (super admins)
 (function () {
   var dlg = document.getElementById('fw-dlg'); if (!dlg) return;
-  var ids = document.getElementById('fw-ids'), what = document.getElementById('fw-what'), bulk = document.getElementById('fw-bulk');
+  var ids = document.getElementById('fw-ids'), what = document.getElementById('fw-what');
   function picked() { return Array.prototype.slice.call(document.querySelectorAll('.fw-sel:checked')); }
-  function paintBulk() { if (!bulk) return; var n = picked().length; bulk.hidden = n === 0; document.getElementById('fw-bulk-n').textContent = n + ' ' + T('selected', 'ang napili'); }
+  function paintBulk() { var bulk = document.getElementById('fw-bulk'); if (!bulk) return; var n = picked().length; bulk.hidden = n === 0; document.getElementById('fw-bulk-n').textContent = n + ' ' + T('selected', 'ang napili'); }
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-fw-open]');
     if (b) {
@@ -891,6 +897,12 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     if (e.target.id === 'fw-all') { document.querySelectorAll('.fw-sel').forEach(function (x) { x.checked = e.target.checked; }); }
     if (e.target.id === 'fw-all' || e.target.classList.contains('fw-sel')) paintBulk();
   });
+  document.addEventListener('htmx:afterSettle', function () {
+    paintBulk();
+    var back = dlg.querySelector('input[name="back"]'); if (back) back.value = location.pathname.split('/').pop() + location.search;
+  });
+  // the live refresh waits while cases are ticked or the dialog is open, so it never takes a selection away
+  window.ssCasesBusy = function () { return picked().length > 0 || dlg.open; };
 })();
 </script>
 <script src="assets/vendor/supabase/supabase.js?v=2.117.3"></script>
@@ -1331,8 +1343,28 @@ $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVE
     timerRef.id = setTimeout(fn, 250);
   };
   // only the part of the page that is on screen is refreshed
-  const kickReports = debounced(TAB === 'all' ? loadReports : TAB === 'next' ? refreshBoard : () => {}, { id: null });
-  const kickNotifs  = debounced(TAB === 'notes' ? loadNotifications : () => {}, { id: null });
+  // With the press flow on, the list is drawn by the server only: a change asks for the view on screen now (its address), so a view
+  // chosen in place is never redrawn with the filters this page first loaded with. Without htmx, the old in-page redraw runs.
+  let liveWaiting = false;
+  function liveList() {
+    if (!(window.htmx && window.ssPress && document.getElementById('cr-list'))) return loadReports();
+    if (window.ssCasesBusy && window.ssCasesBusy()) { liveWaiting = true; return; }
+    liveWaiting = false; window.ssPress.refresh('#cr-list');
+  }
+  document.addEventListener('change', function () { if (liveWaiting && !(window.ssCasesBusy && window.ssCasesBusy())) liveList(); });
+  document.addEventListener('close', function (e) { if (e.target && e.target.id === 'fw-dlg' && liveWaiting) liveList(); }, true);
+  window.ssLive = window.ssLive || {}; window.ssLive.cases = liveList;
+  const kickReports = debounced(TAB === 'all' ? liveList : TAB === 'next' ? refreshBoard : () => {}, { id: null });
+  // Notifications with the press flow: the server draws the list for the address on screen; a refresh waits while a folded group is open
+  let notesWaiting = false;
+  function liveNotes() {
+    if (!(window.htmx && window.ssPress && document.getElementById('nf-list'))) return loadNotifications();
+    if (document.querySelector('#nf-list details[open]')) { notesWaiting = true; return; }
+    notesWaiting = false; window.ssPress.refresh('#nf-list');
+  }
+  document.addEventListener('toggle', function () { if (notesWaiting && !document.querySelector('#nf-list details[open]')) liveNotes(); }, true);
+  window.ssLive = window.ssLive || {}; window.ssLive.notes = liveNotes;
+  const kickNotifs  = debounced(TAB === 'notes' ? liveNotes : () => {}, { id: null });
 
   let wasDown = false;
   sb.channel('cases-list')

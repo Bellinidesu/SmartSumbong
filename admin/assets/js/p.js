@@ -22,7 +22,7 @@
   // button marked data-native-confirm asks first with the browser's dialog.
   document.addEventListener('change', function (e) {
     var el = e.target.closest && e.target.closest('[data-autosubmit]');
-    if (el && el.form) el.form.submit();
+    if (el && el.form) { if (el.form.requestSubmit) el.form.requestSubmit(); else el.form.submit(); }
   });
   document.addEventListener('submit', function (e) {
     var m = e.target.getAttribute && e.target.getAttribute('data-native-confirm');

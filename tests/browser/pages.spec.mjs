@@ -1450,3 +1450,90 @@ test('Press flow step 2 (7 Nov): a save shows that it is working and a second pr
   expect(r.errors, 'console errors').toEqual([]);
   await ctx.close();
 });
+
+test('Press flow step 3, Case Reports (7 Nov): the chooser, a filter and the pager swap the list in place; the address follows; a live refresh keeps the view; the Forward dialog still works', async ({ page, context }) => {
+  const r = await open(page, 'cases.php');
+  const ids = async (p) => p.locator('.ss-cases-t tbody .p-mono-id').allTextContents();
+  await page.evaluate(() => { window.__stay = 1; });
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  // a committee on the chooser
+  let s = settle(); await page.locator('#cr-list .cm-chips .cm-chip').nth(1).click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload').toBe(1);
+  expect(page.url(), 'the address follows').toMatch(/com=/);
+  await expect(page.locator('#cr-list .cm-chips .cm-chip').nth(1)).toHaveClass(/p-on/);
+  const fresh = await context.newPage(); await fresh.goto(page.url(), { waitUntil: 'domcontentloaded' });
+  expect(await ids(page), 'the rows are what the server draws for this address').toEqual(await ids(fresh));
+  await fresh.close();
+  // a filter dropdown (autosubmit) swaps too
+  s = settle(); await page.evaluate(() => { const sel = document.querySelector('#cr-list form.ss-band-filters select[name="tanod"]'); sel.value = 'needs'; sel.dispatchEvent(new Event('change', { bubbles: true })); }); await s;
+  expect(await page.evaluate(() => window.__stay), 'a filter does not reload').toBe(1);
+  expect(page.url()).toMatch(/tanod=needs/);
+  // a live update asks the server for the view on screen now, not the one the page first loaded with
+  const shown = await ids(page);
+  s = settle(); await page.evaluate(() => window.ssLive.cases()); await s;
+  expect(await ids(page), 'a live refresh keeps the chosen view').toEqual(shown);
+  expect(page.url()).toMatch(/tanod=needs/);
+  // the Forward dialog is outside the region: after a swap it still opens, and it returns to the view on screen
+  const fw = page.locator('#cr-list tbody [data-fw-open]').first();
+  if (await fw.count()) {
+    await fw.click(); await expect(page.locator('#fw-dlg')).toBeVisible();
+    expect(await page.locator('#fw-dlg input[name="back"]').inputValue()).toMatch(/tanod=needs/);
+    await page.locator('#fw-dlg [data-fw-close]').first().click();
+  }
+  // Back returns to the earlier view
+  await page.goBack(); await page.waitForLoadState('domcontentloaded');
+  expect(page.url()).not.toMatch(/tanod=needs/);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow step 3, Notifications (7 Nov): Unread/All, the chooser and the sort swap in place, the address follows, a live refresh keeps the view', async ({ page, context }) => {
+  const r = await open(page, 'notifications.php');
+  await page.evaluate(() => { window.__stay = 1; });
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  let s = settle(); await page.locator('#nf-list .bd-scope a').nth(1).click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload').toBe(1);
+  expect(page.url()).toMatch(/nview=all/);
+  s = settle(); await page.locator('#nf-list .nf-chips .cm-chip').nth(1).click(); await s;
+  expect(page.url()).toMatch(/ncom=/);
+  const rows = async (p) => p.locator('#notif-list .p-notif, #notif-list .nf-group').count();
+  const fresh = await context.newPage(); await fresh.goto(page.url(), { waitUntil: 'domcontentloaded' });
+  expect(await rows(page), 'what the server draws for this address').toBe(await rows(fresh)); await fresh.close();
+  const before = await rows(page);
+  s = settle(); await page.evaluate(() => window.ssLive.notes()); await s;
+  expect(await rows(page), 'a live refresh keeps the view').toBe(before);
+  expect(page.url()).toMatch(/ncom=/);
+  expect(await page.evaluate(() => window.__stay)).toBe(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow step 3, Residents and Personnel (7 Nov): chooser and duty tiles swap in place; the view, the ticks and the put-away banner survive a swap', async ({ page, context }) => {
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  const r = await open(page, 'residents.php');
+  await page.evaluate(() => { window.__stay = 1; try { localStorage.setItem('ss-people-view', 'list'); sessionStorage.removeItem('ss-res-ov-off'); } catch (e) {} });
+  // put the banner away, choose Squares
+  if (await page.locator('#overdue-x').isVisible()) await page.locator('#overdue-x').click();
+  await page.locator('.ss-viewsw [data-view="sq"]').click();
+  let s = settle(); await page.locator('#people-list .rs-st .cm-chip[data-chip="verified"]').click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload').toBe(1);
+  expect(page.url()).toMatch(/sort=verified/);
+  await expect(page.locator('#ss-people'), 'Squares survives the swap').toHaveClass(/ss-sq/);
+  await expect(page.locator('#overdue-banner'), 'the banner stays put away').toBeHidden();
+  const fresh = await context.newPage(); await fresh.goto(page.url(), { waitUntil: 'domcontentloaded' });
+  const names = async (p) => p.locator('#accounts-tbody .p-person > span:last-child').allTextContents();
+  expect(await names(page), 'what the server draws for this address').toEqual(await names(fresh)); await fresh.close();
+  // a tick survives the 20-second refresh, and the bulk bar with it
+  await page.locator('.ss-viewsw [data-view="list"]').click();
+  await page.locator('#accounts-tbody .ss-cb').first().check();
+  await expect(page.locator('#ss-bulk')).toBeVisible();
+  s = settle(); await page.evaluate(() => window.ssLive.people()); await s;
+  await expect(page.locator('#accounts-tbody .ss-cb').first(), 'the tick is kept').toBeChecked();
+  await expect(page.locator('#ss-bulk')).toBeVisible();
+  expect(page.url()).toMatch(/sort=verified/);
+  // Personnel: a duty tile swaps the list
+  const p2 = await open(page, 'personnel.php');
+  await page.evaluate(() => { window.__stay = 2; });
+  s = settle(); await page.locator('#people-list #attendance-grid a').first().click(); await s;
+  expect(await page.evaluate(() => window.__stay), 'no reload on Personnel').toBe(2);
+  expect(page.url()).toMatch(/duty=/);
+  expect(r.errors.concat(p2.errors), 'console errors').toEqual([]);
+});
