@@ -22,8 +22,14 @@
   var inits = [];
   window.ssPress = {
     ready: function (fn) { inits.push(fn); try { fn(document); } catch (e) { if (window.console) console.error(e); } },
-    announce: announce
+    announce: announce,
+    // a live update: the region is fetched again at the address on screen, quietly (no bar, no focus move, nothing read out)
+    refresh: function (sel) {
+      if (!window.htmx || !document.querySelector(sel)) return null;
+      return htmx.ajax('GET', location.pathname + location.search, { target: sel, select: sel, swap: 'outerHTML', headers: { 'X-Press-Quiet': '1' } });
+    }
   };
+  function quietReq(e) { var c = e && e.detail && e.detail.requestConfig; return !!(c && c.headers && c.headers['X-Press-Quiet']); }
   // the portal's own widgets: on the page they set themselves up; in swapped HTML they are set up here
   window.ssPress.ready(function (root) {
     if (root === document) return;
@@ -82,11 +88,12 @@
   if (!htmx) return;
   htmx.config.globalViewTransitions = !reduce && typeof document.startViewTransition === 'function';
 
-  document.addEventListener('htmx:beforeRequest', function () { busy(true); });
-  document.addEventListener('htmx:afterRequest', function () { busy(false); });
+  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) busy(true); });
+  document.addEventListener('htmx:afterRequest', function (e) { if (!quietReq(e)) busy(false); });
 
   // a failed fetch never strands the press: a GET opens the plain page instead; a POST says so and leaves the form as it was
   function fallback(e) {
+    if (quietReq(e)) return;
     var d = e.detail || {}, cfg = d.requestConfig || {}, verb = String(cfg.verb || 'get').toLowerCase();
     if (!navigator.onLine) { window.pToast && pToast(TXT.offline); return; }
     if (verb === 'get' && cfg.path) { window.pToast && pToast(TXT.fail); location.href = cfg.path; return; }
@@ -99,10 +106,11 @@
 
   // focus: the pressed control keeps it when it is still on the page; otherwise the region that changed takes it (without scrolling)
   var pressed = null;
-  document.addEventListener('htmx:beforeRequest', function (e) { pressed = document.activeElement; });
+  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) pressed = document.activeElement; });
   document.addEventListener('htmx:afterSettle', function (e) {
     var t = e.detail && e.detail.target;
     if (t && t.nodeType === 1) runInits(t);
+    if (quietReq(e)) return;
     if (pressed && document.contains(pressed)) { if (pressed !== document.activeElement && pressed.focus) pressed.focus({ preventScroll: true }); }
     else if (t && t.nodeType === 1) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true }); }
     pressed = null;

@@ -21,10 +21,20 @@
     var from = -1;
     try { from = parseInt(sessionStorage.getItem(key), 10); sessionStorage.removeItem(key); } catch (e) { from = -1; }
     var start = items[from] && items[from] !== cur ? items[from] : cur;
-    paint(start, true); nav.classList.add('has-ind');
-    if (start !== cur) setTimeout(function () { paint(cur, false); }, 60);
+    var carry = window.__ssChooserCarry && window.__ssChooserCarry[location.pathname]; if (window.__ssChooserCarry) delete window.__ssChooserCarry[location.pathname];
+    if (carry) {   // a chooser that arrived in a swap starts where the old one's pill was, and slides on to the chosen tab
+      ind.style.transition = 'none'; ind.style.width = carry.w + 'px'; ind.style.height = carry.h + 'px'; ind.style.transform = 'translate(' + carry.x + 'px,' + carry.y + 'px)';
+      ['--ig1', '--ig2', '--ig3', '--ict'].forEach(function (k) { if (carry[k]) ind.style.setProperty(k, carry[k]); });
+      void ind.offsetWidth; ind.style.transition = ''; nav.classList.add('has-ind');
+      requestAnimationFrame(function () { paint(cur, false); });
+    } else {
+      paint(start, true); nav.classList.add('has-ind');
+      if (start !== cur) setTimeout(function () { paint(cur, false); }, 60);
+    }
     nav.addEventListener('click', function (e) {
       var a = e.target.closest('a'); if (!a || a.getAttribute('href') === '#' || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+      // swapped in place (the press flow): the pill moves now, before the answer, and the new list carries it on
+      if (window.htmx && nav.closest('[hx-boost="true"]')) { items.forEach(function (x) { x.classList.toggle('p-on', x === a); }); return; }
       try { sessionStorage.setItem(key, String(items.indexOf(cur))); } catch (x) {}
     });
     // a chooser that filters in the page (no reload): the pill follows the chosen one as its class moves
@@ -35,4 +45,14 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { paint(cur, true); });
   }
   window.ssChooserInit(document);
+  // before a swap replaces a chooser, where its pill is now is kept for the one that replaces it
+  document.addEventListener('htmx:beforeSwap', function (e) {
+    var t = e.detail && e.detail.target; if (!t || !t.querySelectorAll) return;
+    t.querySelectorAll('nav[data-chooser].has-ind').forEach(function (nav) {
+      var ind = nav.querySelector('.cm-ind'); if (!ind) return;
+      var r = ind.getBoundingClientRect(), n = nav.getBoundingClientRect(), cs = getComputedStyle(ind), c = { x: r.left - n.left - nav.clientLeft, y: r.top - n.top - nav.clientTop, w: r.width, h: r.height };
+      ['--ig1', '--ig2', '--ig3', '--ict'].forEach(function (k) { c[k] = cs.getPropertyValue(k).trim(); });
+      (window.__ssChooserCarry = window.__ssChooserCarry || {})[location.pathname] = c;
+    });
+  });
 })();
