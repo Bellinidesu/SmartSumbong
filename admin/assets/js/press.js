@@ -56,6 +56,7 @@
     if (root === document) return;
     if (window.ssPickersInit) window.ssPickersInit(root);
     if (window.ssChooserInit) window.ssChooserInit(root);
+    if (window.ssPaintOpen) window.ssPaintOpen();   // who is looking at each case, drawn again into the new rows (presence.js)
   });
   function runInits(root) { inits.forEach(function (fn) { try { fn(root); } catch (e) { if (window.console) console.error(e); } }); }
 
@@ -143,35 +144,46 @@
 
   // a save sent in place: the message the server put on the page (its green or red line) comes as a toast, unless the region that is
   // swapped in already shows it; the save's region is announced
-  var saveNote = null;
+  var saveNote = null, sideNav = null;
   document.addEventListener('htmx:beforeSwap', function (e) {
-    var c = e.detail && e.detail.requestConfig; saveNote = null;
-    if (!c || String(c.verb).toLowerCase() === 'get' || !e.detail.serverResponse) return;
-    try {
-      var doc = new DOMParser().parseFromString(e.detail.serverResponse, 'text/html');
-      var sel = c.elt && c.elt.closest && c.elt.closest('[hx-select]'), region = sel ? doc.querySelector(sel.getAttribute('hx-select')) : null;
-      var f = doc.querySelector('.p-flash[role="status"], .p-flash[role="alert"], .p-flash');
-      if (f && !(region && region.contains(f)) && f.textContent.trim()) saveNote = f.textContent.replace(/\s+/g, ' ').trim();
-    } catch (x) { saveNote = null; }
+    var c = e.detail && e.detail.requestConfig; saveNote = null; sideNav = null;
+    if (!c || !e.detail.serverResponse) return;
+    var doc; try { doc = new DOMParser().parseFromString(e.detail.serverResponse, 'text/html'); } catch (x) { return; }
+    // the sidebar's counts (unread notifications, cases waiting) follow every answer, saves and live refreshes alike
+    var nav = doc.getElementById('side-nav'); if (nav) sideNav = nav.innerHTML;
+    if (String(c.verb).toLowerCase() === 'get') return;
+    var sel = c.elt && c.elt.closest && c.elt.closest('[hx-select]'), region = sel ? doc.querySelector(sel.getAttribute('hx-select')) : null;
+    var f = doc.querySelector('.p-flash[role="status"], .p-flash[role="alert"], .p-flash');
+    if (f && !(region && region.contains(f)) && f.textContent.trim()) saveNote = f.textContent.replace(/\s+/g, ' ').trim();
+  });
+  document.addEventListener('htmx:afterSettle', function () {
+    if (sideNav !== null) { var cur = document.getElementById('side-nav'); if (cur && cur.innerHTML !== sideNav) cur.innerHTML = sideNav; sideNav = null; }
   });
   document.addEventListener('htmx:afterSettle', function () { if (saveNote) { if (window.pToast) pToast(saveNote); saveNote = null; } });
 
   // focus: the pressed control keeps it when it is still on the page; otherwise the region that changed takes it (without scrolling)
   var pressed = null;
-  var pressedId = '';
-  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) { pressed = document.activeElement; pressedId = pressed && pressed.id || ''; } });
+  var pressedId = '', pressedHref = '';
+  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) { pressed = document.activeElement; pressedId = pressed && pressed.id || ''; pressedHref = pressed && pressed.tagName === 'A' ? pressed.getAttribute('href') || '' : ''; } });
   document.addEventListener('htmx:afterSettle', function (e) {
     var t = e.detail && e.detail.target;
+    // after an outerHTML swap htmx names the old target, which is no longer on the page: the new one is found by its id
+    if (t && t.nodeType === 1 && !document.contains(t) && t.id) t = document.getElementById(t.id) || t;
     if (t && t.nodeType === 1) runInits(t);
     if (quietReq(e)) return;
-    var same = !(pressed && document.contains(pressed)) && pressedId ? document.getElementById(pressedId) : null;
+    var same = null;
+    if (!(pressed && document.contains(pressed))) {
+      if (pressedId) same = document.getElementById(pressedId);
+      // a link without an id (a chooser tab, a page number): the link to the same address in the new content keeps the place
+      if (!same && pressedHref && t && t.querySelector) { try { same = t.querySelector('a[href="' + (window.CSS && CSS.escape ? CSS.escape(pressedHref) : pressedHref) + '"]'); } catch (x) { same = null; } }
+    }
     if (pressed && document.contains(pressed)) { if (pressed !== document.activeElement && pressed.focus) pressed.focus({ preventScroll: true }); }
     else if (same && same.focus) {   // the same control in the new content (the search box keeps its cursor, at the end of what was typed)
       same.focus({ preventScroll: true });
       if (/^(INPUT|TEXTAREA)$/.test(same.tagName) && typeof same.setSelectionRange === 'function' && /^(text|search|tel|email|url|)$/.test(same.type || '')) { var n = same.value.length; try { same.setSelectionRange(n, n); } catch (x) {} }
     }
     else if (t && t.nodeType === 1) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true }); }
-    pressed = null; pressedId = '';
+    pressed = null; pressedId = ''; pressedHref = '';
     var say = t && t.getAttribute && (t.getAttribute('data-announce') || t.getAttribute('aria-label'));
     announce(say ? say : TXT.updated);
   });

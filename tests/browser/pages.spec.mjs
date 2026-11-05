@@ -1635,3 +1635,49 @@ test('Press flow (7 Nov): a background refresh waits while someone types in the 
   }
   expect(r.errors, 'console errors').toEqual([]);
 });
+
+test('Press flow (7 Nov): a keyboard press on a chooser tab keeps the focus on that tab after the swap', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  const tab = page.locator('#cr-list .cm-chips .cm-chip').nth(2);
+  const href = await tab.getAttribute('href');
+  await tab.focus();
+  const s = settle(); await page.keyboard.press('Enter'); await s;
+  expect(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('href')), 'the focus is on the tab that was pressed').toBe(href);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov): after a swap the new list has its widgets: the dropdowns are the portal pickers again and the chooser has its pill', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  const s = settle(); await page.locator('#cr-list .cm-chips .cm-chip').nth(1).click(); await s;
+  expect(await page.locator('#cr-list form.ss-band-filters .sdp-btn').count(), 'the filter dropdowns are pickers in the new list').toBeGreaterThan(0);
+  expect(await page.locator('#cr-list form.ss-band-filters select:not(.sdp-native)').count(), 'no bare browser dropdown left').toBe(0);
+  await expect(page.locator('#cr-list .cm-chips .cm-ind'), 'the chooser has its pill').toHaveCount(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
+
+test('Press flow (7 Nov): a cancelled confirm does not leave a form stuck; the next press sends it, once', async ({ browser }) => {
+  const ctx = await browser.newContext({ serviceWorkers: 'block', baseURL: 'http://127.0.0.1:8013/admin/', viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const r = await open(page, 'notifications.php');
+  let posts = 0;
+  await page.route(/notifications\.php/, route => { if (route.request().method() === 'POST') posts++; return route.continue(); });
+  await page.evaluate(() => {
+    const fr = document.createElement('iframe'); fr.name = 'sink2'; fr.hidden = true; document.body.appendChild(fr);
+    const f = document.createElement('form'); f.method = 'post'; f.action = 'notifications.php'; f.target = 'sink2'; f.id = 'probe-confirm';
+    f.setAttribute('data-native-confirm', 'Send it?');
+    [['csrf', document.querySelector('input[name="csrf"]').value], ['action', 'read_all']].forEach(([n, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); });
+    const b = document.createElement('button'); b.type = 'submit'; b.textContent = 'Send'; f.appendChild(b); document.body.appendChild(f);
+  });
+  const btn = page.locator('#probe-confirm button');
+  page.once('dialog', d => d.dismiss());
+  await btn.click(); await page.waitForTimeout(300);
+  expect(posts, 'a cancelled confirm sends nothing').toBe(0);
+  expect(await btn.evaluate(b => [b.disabled, b.classList.contains('is-sending'), b.form.dataset.pressSending || '']), 'and leaves nothing stuck').toEqual([false, false, '']);
+  page.once('dialog', d => d.accept());
+  await btn.click(); await page.waitForTimeout(800);
+  expect(posts, 'the next press sends it, once').toBe(1);
+  expect(r.errors, 'console errors').toEqual([]);
+  await ctx.close();
+});

@@ -11,7 +11,9 @@ does from the listeners attached in the browser (`tests/browser/press-audit.spec
   pagers, Unread/All, sorts, the duty tiles, the Case Reports figures and filters, Report Summary's ranges, Workspace and
   Activity scopes, Inbox tabs and rows, the Dashboard month and category, the "Refresh to include it" banners.
 - **About 150 forms that post and reload the whole page**, losing the scroll and the focus, with no sign that anything is
-  happening, and only one (the command bar) guarding against a second press.
+  happening. A second press was guarded by an older site-wide script (correction, 7 Nov: the audit first missed it), but that
+  script marked a form as sent before later scripts ran, so a cancelled confirm left the form stuck, and the bot check's resend
+  (when Turnstile is switched on) was refused. Step 2 replaced it.
 - **No dead presses.**
 
 ## How
