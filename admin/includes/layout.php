@@ -505,6 +505,12 @@ window.ssAccessToken = function (initial) {
 <link href="assets/css/identity.css?v=<?= e(asset_version('identity.css')) ?>" rel="stylesheet">
 <?php endif; ?>
 <?= side_colour_style() ?><script src="assets/js/p.js?v=<?= e(asset_version('../js/p.js')) ?>" defer></script>
+<?php // The press flow (7 Nov 2026): htmx swaps only what a press changes. No eval, no scripts from swapped HTML, no page HTML in
+      // localStorage (Back fetches the page fresh), same-origin only; assets/js/press.js is the portal's layer over it. ?>
+<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"historyCacheSize":0,"refreshOnHistoryMiss":true,"selfRequestsOnly":true,"includeIndicatorStyles":false,"scrollIntoViewOnBoost":false,"defaultSettleDelay":0,"getCacheBusterParam":false}'>
+<link href="assets/css/press.css?v=<?= e(asset_version('press.css')) ?>" rel="stylesheet">
+<script src="assets/vendor/htmx/htmx.min.js?v=2.0.11" defer></script>
+<script src="assets/js/press.js?v=<?= e(asset_version('../js/press.js')) ?>" defer></script>
 </head>
 <body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
@@ -780,13 +786,17 @@ window.SS_PRESENCE = <?= json_encode([
     Object.keys(COLOURS).forEach(function (k) { var n = vals.filter(function (v) { return COLOURS[k][v]; }).length; if (n > top) { top = n; best = COLOURS[k]; } });
     return best && top * 2 >= vals.length ? function (v) { return best[v] || null; } : null;
   }
-  document.querySelectorAll('select').forEach(function (s) {
-    if (s.dataset.native || s.dataset.sdp || s.multiple || s.size > 1 || s.closest('.dv-sw')) return;   // the DEV pill keeps its own plain select
-    var pill = !!s.closest('.p-pill-select, .p-band, .ss-ps');
-    sdPickers.select(s, { dot: dotsFor(s), field: !pill });
-  });
-  document.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
-  document.querySelectorAll('input[type="color"]').forEach(function (i) { if (!i.dataset.native) sdPickers.colour(i); });
+  // run for the page now, and by the press flow (press.js) for any piece of the page that is swapped in later
+  window.ssPickersInit = function (root) {
+    root.querySelectorAll('select').forEach(function (s) {
+      if (s.dataset.native || s.dataset.sdp || s.multiple || s.size > 1 || s.closest('.dv-sw')) return;   // the DEV pill keeps its own plain select
+      var pill = !!s.closest('.p-pill-select, .p-band, .ss-ps');
+      sdPickers.select(s, { dot: dotsFor(s), field: !pill });
+    });
+    root.querySelectorAll('.p-pill-select input[type="month"], .p-band input[type="month"]').forEach(function (i) { if (!i.dataset.native) sdPickers.month(i); });
+    root.querySelectorAll('input[type="color"]').forEach(function (i) { if (!i.dataset.native) sdPickers.colour(i); });
+  };
+  window.ssPickersInit(document);
 })();
 </script>
 <?= prefs_script() ?>

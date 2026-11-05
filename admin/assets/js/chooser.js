@@ -3,7 +3,10 @@
 //   <nav data-chooser="a.cm-chip"> ... </nav>      the chosen link has .p-on; its --g1/--g2/--g3/--ct colour the pill
 (function () {
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.querySelectorAll('nav[data-chooser]').forEach(function (nav) {
+  // run for the page now, and by the press flow (press.js) for a chooser that arrives in swapped HTML; a chooser is set up once
+  window.ssChooserInit = function (root) { root.querySelectorAll('nav[data-chooser]:not([data-chooser-on])').forEach(setup); };
+  function setup(nav) {
+    nav.setAttribute('data-chooser-on', '1');
     var items = [].slice.call(nav.querySelectorAll(nav.getAttribute('data-chooser') || 'a'));
     if (!items.length) return;
     var cur = nav.querySelector('.p-on') || items[0], key = 'ss-chooser:' + location.pathname;
@@ -30,5 +33,6 @@
     if (window.ResizeObserver) new ResizeObserver(function () { if (nav.offsetWidth) paint(cur, true); }).observe(nav);
     window.addEventListener('resize', function () { paint(cur, true); });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { paint(cur, true); });
-  });
+  }
+  window.ssChooserInit(document);
 })();
