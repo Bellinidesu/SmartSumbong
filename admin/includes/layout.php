@@ -139,6 +139,27 @@ function greeting_flair(DateTimeImmutable $now, string $first = ''): array
 }
 
 /**
+ * Where a save goes back to: the view the person was on (its filters, its tab, its page), not the page's bare address. Read from
+ * htmx's HX-Current-URL (a save sent in place) or the browser's Referer (a plain form), and used only when it is the same page on
+ * this same host; anything else gets $fallback, as before. (Found 7 Nov 2026: marking a notification read on a filtered view, or
+ * deciding a proposed tanod on a filtered roster, sent the person back to the unfiltered list.)
+ */
+function view_after_post(string $fallback): string
+{
+    $script = basename((string) strtok($fallback, '?'));
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    foreach ([(string) ($_SERVER['HTTP_HX_CURRENT_URL'] ?? ''), (string) ($_SERVER['HTTP_REFERER'] ?? '')] as $u) {
+        if ($u === '' || strlen($u) > 2000) continue;
+        $p = parse_url($u);
+        if (!is_array($p) || empty($p['path']) || empty($p['host'])) continue;
+        $h = strtolower($p['host'] . (isset($p['port']) ? ':' . $p['port'] : ''));
+        if ($host === '' || $h !== $host || basename($p['path']) !== $script) continue;
+        return $script . (isset($p['query']) && $p['query'] !== '' ? '?' . $p['query'] : '');
+    }
+    return $fallback;
+}
+
+/**
  * The press flow, step 4 (7 Nov 2026): a save that updates its region in place. The form posts in the background exactly as it
  * always has; the server's usual answer (its redirect back to the list) is followed, and only the region swaps. A save in flight
  * cannot be sent again (hx-sync drop) and its button is disabled until the answer comes; the page's message comes as a toast.

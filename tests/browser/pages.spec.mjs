@@ -1609,3 +1609,29 @@ test('Press flow (7 Nov): a background refresh never cancels a press (Personnel,
   expect(r.errors.filter(m => !/htmx:(afterRequest|sendAbort|abort)/.test(m)), 'console errors').toEqual([]);
   await ctx.close();
 });
+
+test('Press flow (7 Nov): a background refresh waits while someone types in the list, and a save goes back to the view it was made on', async ({ page }) => {
+  // Residents: typing in the search box when the 20-second refresh fires
+  const r = await open(page, 'residents.php');
+  const box = page.locator('#acc-q');
+  await box.click(); await box.pressSequentially('Mar');
+  await page.evaluate(() => { window.__swaps = 0; document.addEventListener('htmx:afterSettle', () => window.__swaps++); window.ssLive.people(); });
+  await page.waitForTimeout(700);
+  expect(await page.evaluate(() => window.__swaps), 'no swap while typing').toBe(0);
+  await expect(box, 'what was typed is still there').toHaveValue('Mar');
+  await expect(box, 'and the box keeps the cursor').toBeFocused();
+  await page.locator('.p-topbar h1').click();   // leaving the box lets the refresh run
+  await expect.poll(() => page.evaluate(() => window.__swaps), { message: 'the refresh runs once the box is left' }).toBeGreaterThan(0);
+  // Notifications: marking one read on a committee's view stays on that view
+  await open(page, 'notifications.php');
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  let s = settle(); await page.locator('#nf-list .nf-chips .cm-chip').nth(1).click(); await s;
+  const url = page.url(); expect(url).toMatch(/ncom=/);
+  const tick = page.locator('#nf-list form.p-n-x button[type="submit"]').first();
+  if (await tick.count()) {
+    s = settle(); await tick.click(); await s;
+    expect(page.url()).toBe(url);
+    await expect(page.locator('#nf-list .nf-chips .cm-chip').nth(1), 'the same committee is still chosen after the save').toHaveClass(/p-on/);
+  }
+  expect(r.errors, 'console errors').toEqual([]);
+});

@@ -29,9 +29,27 @@
       // a background refresh never cancels something a person pressed: while a press is on its way it steps aside (the next round
       // of the refresh, or the press's own answer, brings the list up to date)
       if (typeof inflight !== 'undefined' && inflight.size) return null;
+      // nor does it take away what someone is in the middle of: typing in the region, a dropdown open, a dialog open. It waits, and
+      // runs when they leave it.
+      if (editing(sel)) { pendingRefresh = sel; return null; }
+      pendingRefresh = null;
       return htmx.ajax('GET', location.pathname + location.search, { target: sel, select: sel, swap: 'outerHTML', headers: { 'X-Press-Quiet': '1' } });
     }
   };
+  var pendingRefresh = null;
+  function editing(sel) {
+    var region = document.querySelector(sel), el = document.activeElement;
+    // typing: a text box or a text area (a tick box, a radio or a button is not; ticks are kept across a refresh anyway)
+    var typing = el && (el.tagName === 'TEXTAREA' || el.isContentEditable || (el.tagName === 'INPUT' && /^(text|search|email|tel|url|number|password|date|month|week|time|datetime-local|)$/.test(el.type || '')));
+    if (region && typing && region.contains(el)) return true;
+    if (document.documentElement.classList.contains('sdp-live')) return true;   // one of the portal's dropdowns or calendars is open
+    if (document.querySelector('dialog[open], .p-scrim.p-on, .cr-scrim')) return true;
+    return false;
+  }
+  function retryRefresh() { setTimeout(function () { if (pendingRefresh && !editing(pendingRefresh)) window.ssPress.refresh(pendingRefresh); }, 60); }
+  document.addEventListener('focusout', retryRefresh);
+  document.addEventListener('click', retryRefresh);
+  document.addEventListener('keyup', function (e) { if (e.key === 'Escape') retryRefresh(); });
   function quietReq(e) { var c = e && e.detail && e.detail.requestConfig; return !!(c && c.headers && c.headers['X-Press-Quiet']); }
   // the portal's own widgets: on the page they set themselves up; in swapped HTML they are set up here
   window.ssPress.ready(function (root) {
@@ -140,14 +158,20 @@
 
   // focus: the pressed control keeps it when it is still on the page; otherwise the region that changed takes it (without scrolling)
   var pressed = null;
-  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) pressed = document.activeElement; });
+  var pressedId = '';
+  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) { pressed = document.activeElement; pressedId = pressed && pressed.id || ''; } });
   document.addEventListener('htmx:afterSettle', function (e) {
     var t = e.detail && e.detail.target;
     if (t && t.nodeType === 1) runInits(t);
     if (quietReq(e)) return;
+    var same = !(pressed && document.contains(pressed)) && pressedId ? document.getElementById(pressedId) : null;
     if (pressed && document.contains(pressed)) { if (pressed !== document.activeElement && pressed.focus) pressed.focus({ preventScroll: true }); }
+    else if (same && same.focus) {   // the same control in the new content (the search box keeps its cursor, at the end of what was typed)
+      same.focus({ preventScroll: true });
+      if (/^(INPUT|TEXTAREA)$/.test(same.tagName) && typeof same.setSelectionRange === 'function' && /^(text|search|tel|email|url|)$/.test(same.type || '')) { var n = same.value.length; try { same.setSelectionRange(n, n); } catch (x) {} }
+    }
     else if (t && t.nodeType === 1) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true }); }
-    pressed = null;
+    pressed = null; pressedId = '';
     var say = t && t.getAttribute && (t.getAttribute('data-announce') || t.getAttribute('aria-label'));
     announce(say ? say : TXT.updated);
   });

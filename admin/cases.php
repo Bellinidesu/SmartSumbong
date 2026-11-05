@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && defined('NOTICES_PAGE') && !defined
         } catch (SupabaseError) { /* the list will still show it */ }
     }
     if (!empty($_POST['beacon'])) { http_response_code(204); exit; }
-    header('Location: notifications.php' . (!empty($_POST['back']) ? '?' . http_build_query(['npage' => (int) $_POST['back']]) : ''), true, 303);
+    header('Location: ' . view_after_post('notifications.php' . (!empty($_POST['back']) ? '?' . http_build_query(['npage' => (int) $_POST['back']]) : '')), true, 303);
     exit;
 }
 
