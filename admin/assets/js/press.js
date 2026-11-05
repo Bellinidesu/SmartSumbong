@@ -50,6 +50,35 @@
     if (bar.classList.contains('is-on')) { bar.className = 'ss-progress is-on is-done'; setTimeout(function () { bar.className = 'ss-progress'; }, 380); }
   }
 
+  // ---- step 2: every save shows that it is working and cannot be sent twice (forms that load the next page the usual way).
+  // The guard is set the moment the form is sent and lifted again if any script stopped the send (a confirm, the bot check, a
+  // form handled by its own script), when the page comes back from the back-forward cache, or after a while for a form whose
+  // answer does not replace the page (a download, a new tab), so a button is never left stuck.
+  document.addEventListener('submit', function (e) {
+    var f = e.target; if (!f || f.tagName !== 'FORM') return;
+    if (f.hasAttribute('hx-post') || f.hasAttribute('hx-get') || f.hasAttribute('data-press-free')) return;   // htmx handles its own
+    var sub = e.submitter || null;
+    if (f.dataset.pressSending === '1') { e.preventDefault(); e.stopImmediatePropagation(); return; }   // a second press: ignored
+    var newTab = (sub && sub.getAttribute('formtarget') === '_blank') || f.target === '_blank';
+    f.dataset.pressSending = '1';
+    setTimeout(function () {
+      if (e.defaultPrevented || newTab) { release(f); return; }   // a script took over this send, or it opens elsewhere
+      f.setAttribute('aria-busy', 'true');
+      if (sub) { sub.classList.add('is-sending'); sub.setAttribute('aria-disabled', 'true'); }
+      busy(true);
+      var post = String(f.getAttribute('method') || 'get').toLowerCase() === 'post';
+      f._pressT = setTimeout(function () { release(f); busy(false); }, post ? 25000 : 6000);
+    }, 0);
+  });
+  function release(f) {
+    clearTimeout(f._pressT); delete f.dataset.pressSending; f.removeAttribute('aria-busy');
+    f.querySelectorAll('.is-sending').forEach(function (b) { b.classList.remove('is-sending'); b.removeAttribute('aria-disabled'); });
+    var id = f.id; if (id) document.querySelectorAll('[form="' + id + '"].is-sending').forEach(function (b) { b.classList.remove('is-sending'); b.removeAttribute('aria-disabled'); });
+  }
+  // a dropdown that sends its form on change (data-autosubmit) also shows the bar
+  document.addEventListener('change', function (e) { var el = e.target.closest && e.target.closest('[data-autosubmit]'); if (el && el.form) busy(true); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) document.querySelectorAll('form[data-press-sending]').forEach(release); });
+
   if (!htmx) return;
   htmx.config.globalViewTransitions = !reduce && typeof document.startViewTransition === 'function';
 

@@ -1417,3 +1417,21 @@ test('Press flow foundation (7 Nov): htmx with the portal config, a swap changes
   // the simulated failure itself is logged (htmx names the failed request, the browser the aborted fetch); nothing else may be
   expect(r.errors.filter(m => !/htmx:(afterRequest|sendError)|net::ERR_FAILED/.test(m)), 'console errors').toEqual([]);
 });
+
+test('Press flow step 2 (7 Nov): a save shows that it is working and a second press does not send it again', async ({ page }) => {
+  const r = await open(page, 'notifications.php');
+  let posts = 0;
+  await page.route(/notifications\.php/, async route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    posts++; await new Promise(res => setTimeout(res, 2500)); return route.continue();   // a slow connection
+  });
+  const btn = page.locator('form:has(input[name="action"][value="read_all"]) button[type="submit"]');
+  await expect(btn).toHaveCount(1);
+  await btn.click();
+  await expect(btn, 'the pressed button says it is working').toHaveClass(/is-sending/);
+  await btn.click({ force: true }).catch(() => {});
+  await page.evaluate(() => { const f = document.querySelector('form:has(input[name="action"][value="read_all"])'); f.requestSubmit(); });
+  await page.waitForLoadState('load');
+  expect(posts, 'one press, one request').toBe(1);
+  expect(r.errors, 'console errors').toEqual([]);
+});
