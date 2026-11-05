@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/module_brain.php';
 require_once __DIR__ . '/forwarding.php';   // the committee banners (committee_sd_types, cm_banner_style, cm_sym_tag, committee_banner_script)
 
 /**
@@ -235,8 +236,12 @@ function render_account_screen(string $role): void
     layout_head($title, $navFile);
     ?>
 
+    <?php $requests = isset($got['requests']) && is_array($got['requests'])
+        ? array_values(array_filter($got['requests'], fn($r) => ($r['who']['role'] ?? '') === ($isTanod ? 'tanod' : 'resident')))
+        : []; ?>
     <div class="p-topbar"><h1><?= e($title) ?></h1>
-      <span class="p-live" id="live-badge" title="<?= e(t('New registrations appear here on their own', 'Kusang lumalabas dito ang mga bagong rehistro')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span></div>
+      <span class="p-live" id="live-badge" title="<?= e(t('New registrations appear here on their own', 'Kusang lumalabas dito ang mga bagong rehistro')) ?>"><i></i><span id="live-badge-text"><?= e(t('Live', 'Live')) ?></span></span>
+      <?php if (!$isTanod): ?><span class="p-spacer" style="flex:1"></span><?= residents_brain($chipN, count($requests)) ?><?php endif; ?></div>
     <?= $isTanod ? personnel_tabs('') : '' ?>
 
     <?php if ($flash): ?>
@@ -253,7 +258,7 @@ function render_account_screen(string $role): void
         : [];
     ?>
     <?php if ($requests && is_super()): ?>
-      <div class="p-card p-card-pad ss-requests">
+      <div class="p-card p-card-pad ss-requests" id="ss-requests">
         <p class="p-eyebrow"><?= e(t('Requests waiting', 'Mga naghihintay na kahilingan')) ?> · <?= count($requests) ?></p>
         <div style="display:grid;gap:12px">
         <?php foreach ($requests as $r): ?>
@@ -286,10 +291,38 @@ function render_account_screen(string $role): void
     <?php endif; ?>
 
     <!-- Always rendered so the polling below can show it as accounts age past the window. -->
-    <div class="p-flash p-flash--error" id="overdue-banner" role="alert"<?= $overdue > 0 && is_super() ? '' : ' hidden' ?>>
+    <div class="p-flash p-flash--error rs-banner" id="overdue-banner" role="alert"<?= $overdue > 0 && is_super() ? '' : ' hidden' ?>>
       <span id="overdue-text"><?= $overdue ?> <?= e(t(($overdue === 1 ? 'registration has' : 'registrations have') . ' passed the two-hour verification window.',
                                                  'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.')) ?></span>
+      <a class="p-btn p-btn-sm p-btn-ghost" href="residents.php?sort=overdue"><?= e(t('Show them', 'Ipakita')) ?></a>
+      <?php if (!$isTanod): ?><button type="button" class="rs-banner-x" id="overdue-x" aria-label="<?= e(t('Keep this in the engine button', 'Itabi ito sa button ng engine')) ?>" title="<?= e(t('Keep this in the engine button', 'Itabi ito sa button ng engine')) ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><?php endif; ?>
     </div>
+    <?php if (!$isTanod): ?>
+    <script>
+    // The red banner can be put away; it is kept in the engine button, and comes back only if more registrations go past the window.
+    (function () {
+      var KEY = 'ss-res-ov-off', ban = document.getElementById('overdue-banner'), x = document.getElementById('overdue-x'), win = document.getElementById('ss-panel');
+      window.ssOvOff = function () { try { return parseInt(sessionStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; } };
+      function count() { var n = parseInt((document.getElementById('overdue-text').textContent || '').trim(), 10); return n > 0 ? n : 0; }
+      if (ban && !ban.hidden && count() <= window.ssOvOff()) ban.hidden = true;
+      if (x) x.addEventListener('click', function () {
+        try { sessionStorage.setItem(KEY, String(count())); } catch (e) {}
+        ban.hidden = true;
+        var b = document.getElementById('ss-win-open'); if (b) { b.classList.remove('is-nudged'); void b.offsetWidth; b.classList.add('is-nudged'); }
+      });
+      // the window's numbers and the button's badge follow the chips' live counts
+      var chips = document.querySelector('.rs-st');
+      function sync() {
+        if (!chips) return;
+        var n = {}; chips.querySelectorAll('.cm-chip[data-chip]').forEach(function (c) { var b = c.querySelector('b'); if (b) n[c.dataset.chip] = parseInt(b.textContent, 10) || 0; });
+        if (win) win.querySelectorAll('.rs-al[data-rs]').forEach(function (r) { var k = r.dataset.rs; if (k in n) { var e = r.querySelector('[data-rs-n]'); if (e) e.textContent = n[k]; r.classList.toggle('is-zero', !n[k]); } });
+        var badge = document.getElementById('rs-brain-n'); if (badge) { var req = win && win.querySelector('.rs-al[data-rs="requests"] .rs-al-n'); var t = (n.pending || 0) + (n.duplicate || 0) + (req ? parseInt(req.textContent, 10) || 0 : 0); badge.textContent = t > 99 ? '99+' : t; badge.hidden = !t; }
+      }
+      if (chips && window.MutationObserver) new MutationObserver(sync).observe(chips, { childList: true, subtree: true, characterData: true });
+      if (win) win.addEventListener('click', function (e) { if (e.target.closest('[data-close-win]')) { var c = document.getElementById('ss-win-close'); if (c) c.click(); } });
+    })();
+    </script>
+    <?php endif; ?>
 
     <?php if ($isTanod) { render_tc_strip($db, $tc, $allAccounts); } ?>
 
@@ -348,12 +381,13 @@ function render_account_screen(string $role): void
         $rsHref = fn (string $k) => 'residents.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $k], fn ($v) => $v !== ''));
         $rsDef = ['' => ['all', '#2D5BFF', '#00A3FF', '#FFFFFF', 'layers'], 'pending' => ['pending', '#FFC21A', '#FF9100', '#2B1A00', 'calendar'], 'verified' => ['verified', '#12B24F', '#0FA968', '#FFFFFF', 'handler'],
                   'overdue' => ['overdue', '#FF2D4B', '#FF6A3D', '#FFFFFF', 'focus'], 'duplicate' => ['duplicate', '#6A4CE0', '#B15CFF', '#FFFFFF', 'copy'], 'suspended' => ['suspended', '#4A5578', '#7C86A6', '#FFFFFF', 'obstruction']]; ?>
-    <nav class="cm-chips rs-st" aria-label="<?= e(t('Status', 'Katayuan')) ?>">
+    <nav class="cm-chips cm-choose rs-st" data-chooser="a.cm-chip" aria-label="<?= e(t('Status', 'Katayuan')) ?>">
       <?php foreach ($chipLabel as $k => $cl): [$dk, $c1, $c2, $ink, $ic] = $rsDef[$k]; ?>
         <a class="cm-chip cm-sd<?= $statusFilter === $k ? ' p-on' : '' ?>" data-chip="<?= e($dk) ?>" style="--cc:<?= e($c1) ?>;--ct:<?= e($ink) ?>;--g1:<?= e($c1) ?>;--g2:<?= e($c2) ?>;--g3:<?= e($c2) ?>" href="<?= e($rsHref($k)) ?>"<?= $statusFilter === $k ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="<?= e($ic) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e($cl) ?></span><b><?= (int) $chipN[$k] ?></b></a>
       <?php endforeach; ?>
     </nav>
     <?= committee_banner_script() ?>
+    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
     <?php endif; ?>
 
     <div class="ss-bulk" id="ss-bulk" hidden>
@@ -704,7 +738,7 @@ function render_account_screen(string $role): void
         document.getElementById('pending-count').textContent = pending;
 
         var overdueBanner = document.getElementById('overdue-banner');
-        overdueBanner.hidden = !(overdue > 0 && CAN_VERIFY);
+        overdueBanner.hidden = !(overdue > 0 && CAN_VERIFY && overdue > (window.ssOvOff ? window.ssOvOff() : 0));
         document.getElementById('overdue-text').textContent =
           overdue + ' ' + T((overdue === 1 ? 'registration has' : 'registrations have') + ' passed the two-hour verification window.',
                             'rehistro ang lumampas na sa dalawang oras na palugit ng beripikasyon.');

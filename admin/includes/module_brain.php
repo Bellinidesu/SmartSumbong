@@ -124,3 +124,54 @@ function module_brain(Supabase $db, bool $homeLink = true): string
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php return (string) ob_get_clean();
 }
+
+/**
+ * Residents' engine button and window (Ace, 6 Nov 2026): the alerts of the Residents page live here, one row each with a button that filters the
+ * list for the super admin, so they never have to set the filter by hand; the red banner on the page can be sent here and comes back as a count.
+ *   $n: the chip counts ('pending', 'overdue', 'duplicate', 'suspended'), $requests: the requests waiting (ID photo changes)
+ */
+function residents_brain(array $n, int $requests = 0): string
+{
+    $rows = [
+        ['overdue',   t('Past the two-hour window', 'Lampas sa dalawang oras'),   t('Registrations that waited longer than two hours for a review.', 'Mga rehistrong higit dalawang oras nang naghihintay ng pagsusuri.'), 'high', 'residents.php?sort=overdue'],
+        ['pending',   t('Waiting for review', 'Naghihintay ng pagsusuri'),        t('New registrations nobody has verified yet.', 'Mga bagong rehistrong wala pang nagbeberipika.'), 'warn', 'residents.php?sort=pending'],
+        ['duplicate', t('Possible duplicates', 'Posibleng doble'),                t('Accounts that look like another account.', 'Mga account na kahawig ng ibang account.'), 'info', 'residents.php?sort=duplicate'],
+        ['suspended', t('Suspended', 'Suspendido'),                              t('Accounts that are switched off right now.', 'Mga account na naka-off ngayon.'), 'info', 'residents.php?sort=suspended'],
+    ];
+    $badge = (int) ($n['pending'] ?? 0) + (int) ($n['duplicate'] ?? 0) + $requests;
+    ob_start(); ?>
+<button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><b class="ss-brain-n" id="rs-brain-n"<?= $badge > 0 ? '' : ' hidden' ?>><?= $badge > 99 ? '99+' : $badge ?></b></button>
+<div class="ss-win-scrim" id="ss-win-scrim"></div>
+<aside class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
+  <header class="ss-win-head">
+    <?= smart_logo(40) ?>
+    <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees', 'Ang nakikita ng engine')) ?></b><small><?= e(t('Residents', 'Mga Residente')) ?></small></div>
+    <button type="button" class="ss-win-x" id="ss-win-close" aria-label="<?= e(t('Close', 'Isara')) ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </header>
+  <div class="ss-win-body"><div class="ss-panel-in">
+    <section class="p-card p-card-pad mb-sec">
+      <p class="p-eyebrow"><?= e(t('Needs a super admin', 'Kailangan ng super admin')) ?></p>
+      <p class="p-hint" style="margin:0"><?= e(t('Press a button and the list is filtered for you.', 'Pindutin ang isang button at masasala ang listahan para sa iyo.')) ?></p>
+      <div class="rs-als">
+      <?php foreach ($rows as [$k, $label, $sentence, $tone, $href]): $c = (int) ($n[$k] ?? 0); ?>
+        <div class="rs-al rs-al-<?= e($tone) ?><?= $c > 0 ? '' : ' is-zero' ?>" data-rs="<?= e($k) ?>">
+          <b class="rs-al-n" data-rs-n><?= $c ?></b>
+          <div class="rs-al-t"><strong><?= e($label) ?></strong><span><?= e($sentence) ?></span></div>
+          <a class="p-btn p-btn-sm p-btn-orange" href="<?= e($href) ?>"><?= e(t('Show them', 'Ipakita')) ?></a>
+        </div>
+      <?php endforeach; ?>
+      <?php if ($requests > 0): ?>
+        <div class="rs-al rs-al-warn" data-rs="requests">
+          <b class="rs-al-n"><?= $requests ?></b>
+          <div class="rs-al-t"><strong><?= e(t('Requests waiting', 'Mga naghihintay na kahilingan')) ?></strong><span><?= e(t('New ID photos and other changes residents asked for.', 'Mga bagong litrato ng ID at iba pang hiniling ng mga residente.')) ?></span></div>
+          <a class="p-btn p-btn-sm p-btn-orange" href="#ss-requests" data-close-win><?= e(t('Show them', 'Ipakita')) ?></a>
+        </div>
+      <?php endif; ?>
+      </div>
+    </section>
+    <a class="p-btn p-btn-ghost p-btn-sm mb-home" href="residents.php"><?= e(t('Show every resident', 'Ipakita ang lahat ng residente')) ?> &rarr;</a>
+  </div></div>
+</aside>
+<script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
+<?php return (string) ob_get_clean();
+}
