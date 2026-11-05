@@ -1428,18 +1428,22 @@ test('Press flow step 2 (7 Nov): a save shows that it is working and a second pr
     if (route.request().method() !== 'POST') return route.continue();
     posts++; await new Promise(res => setTimeout(res, 2500)); return route.continue();   // a slow connection
   });
-  const btn = page.locator('form:has(input[name="action"][value="read_all"]) button[type="submit"]');
-  await expect(btn).toHaveCount(1);
-  // the form answers into a hidden frame, so this page stays on screen while the save is on its way (a test cannot read a page that
-  // a form is navigating away); the send itself is the normal one
-  await page.evaluate(() => { const fr = document.createElement('iframe'); fr.name = 'sink'; fr.hidden = true; document.body.appendChild(fr);
-    document.querySelector('form:has(input[name="action"][value="read_all"])').setAttribute('target', 'sink'); });
+  // a plain save form (the guard covers every form that loads the next page the usual way), answering into a hidden frame so this
+  // page stays on screen while the save is on its way (a test cannot read a page that a form is navigating away)
+  await page.evaluate(() => {
+    const fr = document.createElement('iframe'); fr.name = 'sink'; fr.hidden = true; document.body.appendChild(fr);
+    const csrf = document.querySelector('input[name="csrf"]').value;
+    const f = document.createElement('form'); f.method = 'post'; f.action = 'notifications.php'; f.target = 'sink'; f.id = 'probe-save';
+    f.innerHTML = '<input type="hidden" name="csrf" value="' + csrf + '"><input type="hidden" name="action" value="read_all"><button type="submit">Save</button>';
+    document.body.appendChild(f);
+  });
+  const btn = page.locator('#probe-save button');
   await btn.click();
   await expect(btn, 'the pressed button says it is working').toHaveClass(/is-sending/);
-  await expect(page.locator('form:has(input[name="action"][value="read_all"])')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#probe-save')).toHaveAttribute('aria-busy', 'true');
   // a second press, and a script sending the form again, while the first is on its way
   await btn.click({ force: true });
-  await page.evaluate(() => document.querySelector('form:has(input[name="action"][value="read_all"])').requestSubmit());
+  await page.evaluate(() => document.getElementById('probe-save').requestSubmit());
   await page.waitForTimeout(3200);
   expect(posts, 'one press, one request').toBe(1);
   expect(r.errors, 'console errors').toEqual([]);
