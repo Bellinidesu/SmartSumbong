@@ -48,13 +48,20 @@
   var bar = document.createElement('div');
   bar.className = 'ss-progress'; bar.setAttribute('aria-hidden', 'true');
   document.body.appendChild(bar);
-  var inflight = 0, showT = null;
-  function busy(on) {
-    if (on) { if (inflight++ === 0) { clearTimeout(showT); showT = setTimeout(function () { bar.className = 'ss-progress is-on'; }, 120); } document.documentElement.setAttribute('aria-busy', 'true'); return; }
-    if (--inflight > 0) return; inflight = 0; clearTimeout(showT);
-    document.documentElement.removeAttribute('aria-busy');
-    if (bar.classList.contains('is-on')) { bar.className = 'ss-progress is-on is-done'; setTimeout(function () { bar.className = 'ss-progress'; }, 380); }
+  // Every request that started is tracked by itself until it finishes, is cancelled or fails (a newer press cancels an older one; a
+  // cancelled request sends no "finished"), so the bar can never be left on. A watchdog clears anything older than 20 seconds.
+  var inflight = new Map(), showT = null;
+  function paintBar() {
+    if (inflight.size) {
+      if (!bar.classList.contains('is-on') && !showT) showT = setTimeout(function () { showT = null; if (inflight.size) bar.className = 'ss-progress is-on'; }, 120);
+      document.documentElement.setAttribute('aria-busy', 'true'); return;
+    }
+    clearTimeout(showT); showT = null; document.documentElement.removeAttribute('aria-busy');
+    if (bar.classList.contains('is-on')) { bar.className = 'ss-progress is-on is-done'; setTimeout(function () { if (!inflight.size) bar.className = 'ss-progress'; }, 380); }
   }
+  function start(key) { inflight.set(key, Date.now()); paintBar(); }
+  function end(key) { if (inflight.delete(key)) paintBar(); }
+  setInterval(function () { var now = Date.now(), gone = false; inflight.forEach(function (t, k) { if (now - t > 20000) { inflight.delete(k); gone = true; } }); if (gone) paintBar(); }, 2000);
 
   // ---- step 2: every save shows that it is working and cannot be sent twice (forms that load the next page the usual way).
   // The guard is set the moment the form is sent and lifted again if any script stopped the send (a confirm, the bot check, a
@@ -71,9 +78,9 @@
       if (e.defaultPrevented || newTab) { release(f); return; }   // a script took over this send, or it opens elsewhere
       f.setAttribute('aria-busy', 'true');
       if (sub) { sub.classList.add('is-sending'); sub.setAttribute('aria-disabled', 'true'); }
-      busy(true);
+      start(f);
       var post = String(f.getAttribute('method') || 'get').toLowerCase() === 'post';
-      f._pressT = setTimeout(function () { release(f); busy(false); }, post ? 25000 : 6000);
+      f._pressT = setTimeout(function () { release(f); end(f); }, post ? 25000 : 6000);
     }, 0);
   });
   function release(f) {
@@ -82,14 +89,23 @@
     var id = f.id; if (id) document.querySelectorAll('[form="' + id + '"].is-sending').forEach(function (b) { b.classList.remove('is-sending'); b.removeAttribute('aria-disabled'); });
   }
   // a dropdown that sends its form on change (data-autosubmit) also shows the bar
-  document.addEventListener('change', function (e) { var el = e.target.closest && e.target.closest('[data-autosubmit]'); if (el && el.form) busy(true); });
+  // a dropdown that sends its plain form on change shows the bar until the next page; one that htmx sends is tracked as its request
+  document.addEventListener('change', function (e) {
+    var el = e.target.closest && e.target.closest('[data-autosubmit]'); if (!el || !el.form) return;
+    var f = el.form; if (f.closest('[hx-boost="true"]') || f.hasAttribute('hx-get') || f.hasAttribute('hx-post')) return;
+    start(f); setTimeout(function () { end(f); }, 8000);
+  });
   window.addEventListener('pageshow', function (e) { if (e.persisted) document.querySelectorAll('form[data-press-sending]').forEach(release); });
 
   if (!htmx) return;
   htmx.config.globalViewTransitions = !reduce && typeof document.startViewTransition === 'function';
 
-  document.addEventListener('htmx:beforeRequest', function (e) { if (!quietReq(e)) busy(true); });
-  document.addEventListener('htmx:afterRequest', function (e) { if (!quietReq(e)) busy(false); });
+  function xkey(e) { return (e.detail && (e.detail.xhr || (e.detail.requestConfig && e.detail.requestConfig.xhr))) || null; }
+  document.addEventListener('htmx:beforeRequest', function (e) { var k = xkey(e); if (k && !quietReq(e)) start(k); });
+  ['htmx:afterRequest', 'htmx:abort', 'htmx:sendAbort', 'htmx:sendError', 'htmx:responseError', 'htmx:timeout', 'htmx:swapError'].forEach(function (n) {
+    document.addEventListener(n, function (e) { var k = xkey(e); if (k) end(k); });
+  });
+  document.addEventListener('htmx:afterSettle', function () { inflight.forEach(function (t, k) { if (k && k.readyState === 4) inflight.delete(k); }); paintBar(); });
 
   // a failed fetch never strands the press: a GET opens the plain page instead; a POST says so and leaves the form as it was
   function fallback(e) {
@@ -134,5 +150,5 @@
   });
 
   // a page restored from the back-forward cache comes back without a stuck bar
-  window.addEventListener('pageshow', function (e) { if (e.persisted) { inflight = 1; busy(false); } });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) { inflight.clear(); paintBar(); } });
 })();

@@ -1575,3 +1575,21 @@ test('Press flow step 4 (7 Nov): saves update their region in place: a mark as r
   }
   expect(r.errors.concat(r2.errors, r3.errors), 'console errors').toEqual([]);
 });
+
+test('Press flow (7 Nov, Ace: "always a thin orange bar"): the bar goes away after a filter change and after a press that cancels an earlier one', async ({ page }) => {
+  const r = await open(page, 'cases.php');
+  const idle = async (why) => { await page.waitForTimeout(900); expect(await page.evaluate(() => [document.querySelector('.ss-progress').classList.contains('is-on') && !document.querySelector('.ss-progress').classList.contains('is-done'), document.documentElement.getAttribute('aria-busy')]), why).toEqual([false, null]); };
+  const settle = () => page.evaluate(() => new Promise(res => document.addEventListener('htmx:afterSettle', res, { once: true })));
+  // a filter dropdown (autosubmit, sent by htmx)
+  let s = settle(); await page.evaluate(() => { const sel = document.querySelector('#cr-list form.ss-band-filters select[name="tanod"]'); sel.value = 'needs'; sel.dispatchEvent(new Event('change', { bubbles: true })); }); await s;
+  await idle('no bar left after a filter change');
+  // two chooser presses at once: the second cancels the first
+  s = settle(); await page.evaluate(() => { const c = document.querySelectorAll('#cr-list .cm-chips .cm-chip'); c[1].click(); c[2].click(); }); await s;
+  await idle('no bar left after a cancelled request');
+  // Notifications' sort
+  await open(page, 'notifications.php');
+  s = settle(); await page.evaluate(() => { const sel = document.querySelector('#nf-list select[name="nsort"]'); sel.value = 'oldest'; sel.dispatchEvent(new Event('change', { bubbles: true })); }); await s;
+  await idle('no bar left after a sort');
+  // the cancelled request is logged by htmx (it names the request it dropped); nothing else may be
+  expect(r.errors.filter(m => !/htmx:(afterRequest|sendAbort|abort)/.test(m)), 'console errors').toEqual([]);
+});
