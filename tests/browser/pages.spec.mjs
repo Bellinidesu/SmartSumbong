@@ -1418,7 +1418,10 @@ test('Press flow foundation (7 Nov): htmx with the portal config, a swap changes
   expect(r.errors.filter(m => !/htmx:(afterRequest|sendError)|net::ERR_FAILED/.test(m)), 'console errors').toEqual([]);
 });
 
-test('Press flow step 2 (7 Nov): a save shows that it is working and a second press does not send it again', async ({ page }) => {
+test('Press flow step 2 (7 Nov): a save shows that it is working and a second press does not send it again', async ({ browser }) => {
+  // its own context with the service worker blocked: the portal's worker answers requests before a test's network hook would see them
+  const ctx = await browser.newContext({ serviceWorkers: 'block', baseURL: 'http://127.0.0.1:8013/admin/', viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
   const r = await open(page, 'notifications.php');
   let posts = 0;
   await page.route(/notifications\.php/, async route => {
@@ -1427,11 +1430,18 @@ test('Press flow step 2 (7 Nov): a save shows that it is working and a second pr
   });
   const btn = page.locator('form:has(input[name="action"][value="read_all"]) button[type="submit"]');
   await expect(btn).toHaveCount(1);
+  // the form answers into a hidden frame, so this page stays on screen while the save is on its way (a test cannot read a page that
+  // a form is navigating away); the send itself is the normal one
+  await page.evaluate(() => { const fr = document.createElement('iframe'); fr.name = 'sink'; fr.hidden = true; document.body.appendChild(fr);
+    document.querySelector('form:has(input[name="action"][value="read_all"])').setAttribute('target', 'sink'); });
   await btn.click();
   await expect(btn, 'the pressed button says it is working').toHaveClass(/is-sending/);
-  await btn.click({ force: true }).catch(() => {});
-  await page.evaluate(() => { const f = document.querySelector('form:has(input[name="action"][value="read_all"])'); f.requestSubmit(); });
-  await page.waitForLoadState('load');
+  await expect(page.locator('form:has(input[name="action"][value="read_all"])')).toHaveAttribute('aria-busy', 'true');
+  // a second press, and a script sending the form again, while the first is on its way
+  await btn.click({ force: true });
+  await page.evaluate(() => document.querySelector('form:has(input[name="action"][value="read_all"])').requestSubmit());
+  await page.waitForTimeout(3200);
   expect(posts, 'one press, one request').toBe(1);
   expect(r.errors, 'console errors').toEqual([]);
+  await ctx.close();
 });
