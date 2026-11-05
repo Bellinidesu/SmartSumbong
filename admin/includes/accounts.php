@@ -368,7 +368,7 @@ function render_account_screen(string $role): void
         $comHref = fn (string $c) => 'personnel.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $statusFilter, 'duty' => $dutyF, 'com' => $c], fn ($v) => $v !== ''));
         $comN = fn (string $k) => count(array_filter($allAccounts, fn ($a) => $k === 'none' ? !$inCom($a, '') : $inCom($a, $k)));
         $sdTypes = committee_sd_types($db); ?>
-    <nav class="cm-chips" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+    <nav class="cm-chips cm-choose" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
       <a class="cm-chip<?= $comF === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $comF === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= count($allAccounts) ?></b></a>
       <?php foreach (committees_active() as $ck => $cl): ?>
         <a class="cm-chip cm-sd<?= $comF === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($comHref($ck)) ?>"<?= $comF === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= $comN($ck) ?></b></a>
@@ -376,6 +376,7 @@ function render_account_screen(string $role): void
       <a class="cm-chip cm-chip-none<?= $comF === 'none' ? ' p-on' : '' ?>" href="<?= e($comHref('none')) ?>"<?= $comF === 'none' ? ' aria-current="true"' : '' ?> title="<?= e(t('No committee yet', 'Wala pang komite')) ?>"><i class="cm-sym cm-sym-none">?</i><span class="cm-n"><?= e(t('No committee yet', 'Wala pang komite')) ?></span><b><?= $comN('none') ?></b></a>
     </nav>
     <?= committee_banner_script() ?>
+    <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
     <?php elseif (!$isTanod):
         // Residents: the slices of the list are banners with their counts (the dropdown they replace did the same in words)
         $rsHref = fn (string $k) => 'residents.php?' . http_build_query(array_filter(['q' => $search, 'sort' => $k], fn ($v) => $v !== ''));

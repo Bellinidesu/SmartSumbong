@@ -1006,3 +1006,45 @@
 :root:root:root .p-body.page-administrative-services .wr-banner.cm-chips { margin: 0; border-radius: 16px 16px 0 0; overflow: hidden; }
 :root:root:root .p-body.page-administrative-services .wr-banner .cm-chip { border-radius: 16px 16px 0 0; }
 :root:root:root .p-body.page-administrative-services .wr-banner + .ss-adm { margin-top: 0; margin-bottom: 18px; border-radius: 0 0 16px 16px; overflow: hidden; }
+
+/* ================= 6 Nov 2026, Personnel again: the same chooser as Residents, the header a rounded bar of its own, duty tiles that are vibrant, not pastel ================= */
+:root:root .p-body.page-personnel .ss-pband { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-personnel .ss-pband h2 { font-size: 18px; }
+:root:root .p-body.page-personnel .ss-pband .p-badge-n { white-space: nowrap; }
+:root:root .p-body.page-personnel .ss-pband .p-badge-n--quiet { height: 24px; min-width: 24px; display: inline-grid; place-items: center; }
+:root:root:root:root .p-body.page-personnel .cm-chips.cm-choose { margin: 0 0 14px; border-radius: 14px; overflow: visible; }
+:root:root:root:root .p-body.page-personnel .cm-chips.cm-choose .cm-chip { flex: 1 1 0; }
+/* the duty tiles: full colour from corner to corner, a small gloss only, a strong glow */
+.p-attendance .p-att-on_duty { --c: #00C853; } .p-attendance .p-att-lunch { --c: #FF8A00; } .p-attendance .p-att-break { --c: #FFC400; } .p-attendance .p-att-offline { --c: #FF1744; }
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card {
+  background: radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 46%), linear-gradient(145deg, color-mix(in srgb, var(--c) 94%, #fff) 0%, var(--c) 42%, color-mix(in srgb, var(--c) 78%, #000) 100%);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--c) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+}
+:root:root .p-body.id-on nav.p-attendance a.p-kpi.p-card:hover { box-shadow: 0 18px 38px color-mix(in srgb, var(--c) 68%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
+:root[data-theme="dark"] .p-body.id-on nav.p-attendance a.p-kpi.p-card { box-shadow: 0 0 28px -4px color-mix(in srgb, var(--c) 60%, transparent), inset 0 1px 0 rgba(255,255,255,.25); }
+
+/* ================= 6 Nov 2026, Profile the Facebook way: a big cover, a big face over it, the name beside; the editor is a picture card and a cover card, each with its own buttons ================= */
+.ss-pf-head { border-radius: 18px; }
+.ss-pf-banner { height: 230px; }
+.ss-pf-id { margin-top: -80px; padding: 0 32px 22px; gap: 24px; }
+:root:root .ss-pf-av { width: 160px; height: 160px; }
+:root:root .ss-pf-ini { font-size: 54px; }
+.ss-pf-who { padding-top: 92px; gap: 10px; }
+.ss-pf-who h2 { font-size: 32px; letter-spacing: -.02em; }
+.ss-pf-act { padding-top: 96px; }
+:root:root .p-body .ss-pf-act .p-btn { height: 44px; padding: 0 22px; font-size: 14.5px; }
+@media (max-width: 760px) { .ss-pf-banner { height: 150px; } .ss-pf-id { margin-top: -60px; padding: 0 18px 18px; } :root:root .ss-pf-av { width: 120px; height: 120px; } .ss-pf-who { padding-top: 70px; } .ss-pf-act { padding-top: 0; } }
+
+.pf-fbh { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pf-fba { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-fbav { display: grid; place-items: center; padding: 22px 0 10px; }
+.pf-fbav .pf-photo-av, :root:root .pf-fbav .ss-pf-av { width: 190px; height: 190px; margin: 0; }
+.pf-fbn { text-align: center; }
+.pf-fbrm { justify-self: center; }
+.pf-cover { height: 190px; border-radius: 14px; overflow: hidden; background-color: #222; }
+.pf-colrow { display: flex; align-items: center; gap: 12px; }
+.pf-colrow > span:first-child { font: 600 13px Inter, sans-serif; color: var(--p-ink-2); }
+.pf-col { display: block; }
+.pf-edit .pf-col .sdp-btn.sdp-colour { width: 150px; height: 38px; padding: 0 12px; border-radius: 10px; font-size: 13px; }
+.pf-sec { gap: 16px; }
+:root[data-theme="dark"] .pf-cover { background-color: #0F1426; }
