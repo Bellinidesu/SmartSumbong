@@ -938,8 +938,8 @@ test('Personnel duty tiles keep their colour fields, so their white lettering re
   }
 });
 
-test('Residents and Personnel: the orange band, the banner strip and the blue header are one seamless, square block', async ({ page }) => {
-  for (const [pg, banners] of [['residents.php', 6], ['personnel.php', 6]]) {
+test('Personnel (the committee side stays as it was): the orange band, the banner strip and the header are one seamless block; Residents wear the new chooser', async ({ page }) => {
+  for (const [pg, banners] of [['personnel.php', 6]]) {
     for (const w of [2048, 1440]) {
       await page.setViewportSize({ width: w, height: 1000 });
       const r = await open(page, pg);
@@ -957,6 +957,23 @@ test('Residents and Personnel: the orange band, the banner strip and the blue he
       expect(await page.locator('.cm-chips .cm-n').evaluateAll(ns => ns.filter(n => n.scrollWidth > n.clientWidth + 1).length), 'no name is cut at ' + w).toBe(0);
       expect(r.errors, 'console errors').toEqual([]);
     }
+  }
+  // Residents (6 Nov): a one-height header bar, the sliding chooser, a white column head, three rounded objects on one grid
+  for (const w of [2048, 1440]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    const r = await open(page, 'residents.php');
+    await page.evaluate(() => { try { localStorage.setItem('ss-people-view', 'list'); } catch (e) {} });
+    await page.reload();
+    const g = await page.evaluate(() => { const R = s => document.querySelector(s).getBoundingClientRect(), b = R('.ss-pband'), c = R('.cm-chips'), t = R('.ss-people'); return { x: [b.left, b.right, c.left, c.right, t.left, t.right].map(Math.round), y: [b.bottom, c.top, c.bottom, t.top].map(Math.round) }; });
+    expect([g.x[0], g.x[1]], 'residents: the header and the chooser share their edges at ' + w).toEqual([g.x[2], g.x[3]]);
+    expect([g.x[0], g.x[1]], 'and the list at ' + w).toEqual([g.x[4], g.x[5]]);
+    expect(g.y[1] - g.y[0], 'a gap under the header at ' + w).toBeGreaterThanOrEqual(10);
+    expect(g.y[3] - g.y[2], 'and under the chooser at ' + w).toBeGreaterThanOrEqual(10);
+    await expect(page.locator('.cm-chips .cm-chip'), 'residents tabs').toHaveCount(6);
+    expect(await page.locator('.cm-chips .cm-ind').evaluate(e => getComputedStyle(e).backgroundImage.includes('gradient')), 'the chosen tab is a gradient pill at ' + w).toBe(true);
+    expect(await page.locator('.cm-chips').evaluate(e => Math.round(e.getBoundingClientRect().height)), 'the chooser stays slim at ' + w).toBeLessThanOrEqual(100);
+    expect(await page.locator('.ss-people thead th').first().evaluate(t => getComputedStyle(t).backgroundColor), 'the column head is no longer the blue at ' + w).not.toBe('rgb(0, 48, 143)');
+    expect(r.errors, 'console errors').toEqual([]);
   }
   // Squares: wide cards, no lone straggler beside a gap, the strip closes off under the band
   await page.setViewportSize({ width: 2048, height: 1000 });

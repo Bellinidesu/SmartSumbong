@@ -533,7 +533,7 @@ $noteBadge = $notesUnread + $escCount;
 <?php if (sees_everything()):
     $ncHref = fn (string $c) => 'notifications.php?' . http_build_query(array_filter(['nview' => $nAll ? 'all' : '', 'nq' => $nSearch, 'nsort' => $nSort !== 'newest' ? $nSort : '', 'ncom' => $c])); ?>
 <?php $sdTypes = committee_sd_types($db); ?>
-<nav class="cm-chips nf-chips" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips cm-choose nf-chips" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $nCom === '' ? ' p-on' : '' ?>" href="<?= e($ncHref('')) ?>"<?= $nCom === '' ? ' aria-current="true"' : '' ?> title="<?= e(t('All', 'Lahat')) ?>" data-nc=""><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(t('All', 'Lahat')) ?></span><b><?= (int) ($ncN['all'] ?? 0) ?></b></a>
   <?php foreach (committees_active() as $ck => $cl): ?>
     <a class="cm-chip cm-sd<?= $nCom === $ck ? ' p-on' : '' ?>" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>" href="<?= e($ncHref($ck)) ?>"<?= $nCom === $ck ? ' aria-current="true"' : '' ?> title="<?= e($cl) ?>" data-nc="<?= e($ck) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cl) ?><span class="cm-n"><?= e($cl) ?></span><b><?= (int) ($ncN[$ck] ?? 0) ?></b></a>
@@ -785,7 +785,7 @@ $comHref = fn (string $c) => 'cases.php?' . http_build_query(array_filter(array_
 $fwBack = 'cases.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 ?>
 <?php if ($casesFlash): ?><div class="p-flash p-flash--<?= $casesFlash['level'] === 'error' ? 'error' : 'ok' ?>" role="status"><?= e($casesFlash['text']) ?></div><?php endif; ?>
-<nav class="cm-chips" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
+<nav class="cm-chips cm-choose" data-chooser="a.cm-chip" aria-label="<?= e(t('Committees', 'Mga komite')) ?>">
   <a class="cm-chip<?= $com === '' ? ' p-on' : '' ?>" href="<?= e($comHref('')) ?>"<?= $com === '' ? ' aria-current="true"' : '' ?> title="<?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?>"><i class="cm-sym cm-sym-all">ALL</i><span class="cm-n"><?= e(sees_everything() ? t('All', 'Lahat') : t('My committee', 'Aking komite')) ?><em class="<?= array_sum($crOd) > 0 ? 'cm-od' : '' ?>"><?= e($crOdText((int) array_sum($crOd))) ?></em></span><b><?= (int) ($chipN['all'] ?? 0) ?></b></a>
   <?php if (sees_everything()): ?>
     <?php foreach (committees_active() as $ck => $cl): ?>

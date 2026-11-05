@@ -706,9 +706,9 @@
 
 /* the chooser: the Report Summary tab bar, one line of tabs (a name, a count, a small overdue pill); the chosen tab is a pill in the committee's own
    colours, with the contour lines over it, that slides to the next one and changes colour on the way */
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips { position: relative; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; margin: 0 0 14px; width: 100%; box-sizing: border-box;
+:root:root:root .p-body .cm-chips.cm-choose { position: relative; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; margin: 0 0 14px; width: 100%; box-sizing: border-box;
   background: var(--p-surface); border: 1px solid var(--p-line); border-radius: 14px; box-shadow: var(--p-shadow); overflow: visible; }
-:root:not([data-theme="dark"]) .p-body:is(.page-cases, .page-notifications) .cm-chips { border-color: transparent; box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
+:root:not([data-theme="dark"]) .p-body .cm-chips.cm-choose { border-color: transparent; box-shadow: 0 1px 2px rgba(20,27,52,.22), 0 2px 6px 2px rgba(20,27,52,.14); }
 .cm-ind { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 0; border-radius: 10px; pointer-events: none; overflow: hidden; isolation: isolate;
   background:
     radial-gradient(120% 220% at 6% -40%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 56%),
@@ -718,28 +718,28 @@
   transition: transform .4s cubic-bezier(.2, .9, .25, 1.04), width .4s cubic-bezier(.2, .9, .25, 1), height .4s ease, --ig1 .4s ease, --ig2 .4s ease, --ig3 .4s ease; }
 .cm-ind::after { content: ""; position: absolute; inset: 0; background: #fff; opacity: .22;
   -webkit-mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; mask: url("../img/texture-contours.webp") 0 0 / 300px 300px repeat; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip { position: relative; z-index: 1; overflow: visible; isolation: auto; flex: 1 1 0; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip { position: relative; z-index: 1; overflow: visible; isolation: auto; flex: 1 1 0; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 34px; min-height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; box-shadow: none; filter: none; transform: none; white-space: nowrap;
   color: var(--p-muted); font: 700 13px Inter, sans-serif; text-decoration: none; text-shadow: none; transition: background-color .22s ease, color .3s ease; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip > i.cm-sym, :root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip > .cm-bg { display: none; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip::before { content: ""; position: static; inset: auto; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--p-ink)); opacity: 1; mask: none; -webkit-mask: none;
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip > i.cm-sym, :root:root:root .p-body .cm-chips.cm-choose .cm-chip > .cm-bg { display: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip::before { content: ""; position: static; inset: auto; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--p-ink)); opacity: 1; mask: none; -webkit-mask: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, var(--p-ink)) 20%, transparent); transition: background-color .3s ease, box-shadow .3s ease; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 9%, transparent); color: var(--p-ink); filter: none; transform: none; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on { background: transparent; color: var(--ct, #fff); box-shadow: none; filter: none; transform: none; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on::before { background: var(--ct, #fff); box-shadow: 0 0 0 3px rgba(255,255,255,.28); }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips:not(.has-ind) .cm-chip.p-on { background: linear-gradient(105deg, var(--g1, #356CF9), var(--g3, #356CF9)); }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n { display: contents; color: inherit; text-shadow: none; font: inherit; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip > b { order: 1; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted);
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip:hover { background: color-mix(in srgb, var(--cc, var(--p-ink)) 9%, transparent); color: var(--p-ink); filter: none; transform: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on { background: transparent; color: var(--ct, #fff); box-shadow: none; filter: none; transform: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on::before { background: var(--ct, #fff); box-shadow: 0 0 0 3px rgba(255,255,255,.28); }
+:root:root:root .p-body .cm-chips.cm-choose:not(.has-ind) .cm-chip.p-on { background: linear-gradient(105deg, var(--g1, #356CF9), var(--g3, #356CF9)); }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n { display: contents; color: inherit; text-shadow: none; font: inherit; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip > b { order: 1; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 99px; background: var(--p-grey-bg); color: var(--p-muted);
   font: 700 11px Inter, sans-serif; letter-spacing: 0; transition: background-color .3s ease, color .3s ease; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip:hover > b { background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, transparent); color: var(--p-ink); }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on > b { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n em:not(.cm-od) { display: none; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n em.cm-od { order: 2; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-red) 12%, transparent); color: var(--p-red);
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip:hover > b { background: color-mix(in srgb, var(--cc, var(--p-ink)) 16%, transparent); color: var(--p-ink); }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on > b { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n em:not(.cm-od) { display: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n em.cm-od { order: 2; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--p-red) 12%, transparent); color: var(--p-red);
   font: 700 11px Inter, sans-serif; letter-spacing: .01em; opacity: 1; border: 0; box-shadow: none; text-shadow: none; transition: background-color .3s ease, color .3s ease; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip .cm-n em.cm-od::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: none; animation: none; }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip.p-on .cm-n em.cm-od { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
-:root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips ~ .p-table-card { border-radius: 16px; }
-@media (prefers-reduced-motion: reduce) { .cm-ind, :root:root:root .p-body:is(.page-cases, .page-notifications) .cm-chips .cm-chip { transition: none !important; } }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip .cm-n em.cm-od::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: none; animation: none; }
+:root:root:root .p-body .cm-chips.cm-choose .cm-chip.p-on .cm-n em.cm-od { background: rgba(255,255,255,.24); color: var(--ct, #fff); }
+:root:root:root .p-body .cm-choose ~ .p-table-card { border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .cm-ind, :root:root:root .p-body .cm-chips.cm-choose .cm-chip { transition: none !important; } }
 
 /* the column head is white: the orange header above is the only header (Case Reports and Report Summary alike) */
 :root:root .p-body.page-cases .ss-cases-t thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
@@ -793,3 +793,53 @@
 }
 .page-notifications .nf-chev { font-size: 16px; }
 :root:root .p-body.page-notifications .nf-group .nf-body > .nf-readall, :root:root .p-body.page-notifications .nf-group .nf-case-act { justify-self: stretch; }
+
+/* ================= 6 Nov 2026, Residents: the shared chooser, a one-height header, no blue, squares that hold, the alerts in the engine ================= */
+:root:root .p-body.page-residents .ss-pband { border-radius: 16px; margin-bottom: 14px; align-items: center; gap: 10px 12px; box-shadow: none; }
+:root:root .p-body.page-residents .ss-pband :is(.p-search, .ss-viewsw, .p-pill-select) { height: 42px; min-height: 42px; box-sizing: border-box; border-radius: 12px; }
+:root:root .p-body.page-residents .ss-pband .p-search { padding: 0 14px; }
+:root:root .p-body.page-residents .ss-pband .ss-viewsw { padding: 3px; gap: 2px; }
+:root:root .p-body.page-residents .ss-pband .ss-viewsw button { height: 34px; border-radius: 9px; padding: 0 14px; }
+/* the squares view must not turn the chooser into a bottom-rounded strip */
+:root:root:root:root .p-body .cm-chips.cm-choose:has(~ .ss-people.ss-sq) { border-radius: 14px; overflow: visible; margin-bottom: 14px; }
+
+/* the column head is white, as on Case Reports */
+:root:root .p-body.page-residents .ss-people thead th { background: var(--p-surface); color: var(--p-muted); border: 0; border-bottom: 1px solid var(--p-line); font: 700 11.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+:root:root .p-body.page-residents .ss-people thead th :is(a, .p-th-sort) { color: inherit; }
+
+/* squares: every card the same height, the name and the contact centred, the statuses wrap whole (a pill is never squeezed), the button at the foot */
+:root:root .p-body.page-residents .ss-people.ss-sq tbody { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: stretch; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody tr { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px 16px; text-align: center; min-height: 0; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody td { width: 100%; max-width: 100%; text-align: center; min-width: 0; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody td.ss-cbc { width: auto; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-person { justify-content: center; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-person > span:last-child { white-space: normal; overflow-wrap: anywhere; }
+:root:root .p-body.page-residents .ss-people.ss-sq td.pe-contact { display: grid; gap: 2px; justify-items: center; }
+:root:root .p-body.page-residents .ss-people.ss-sq td.pe-contact .pe-mail { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+:root:root .p-body.page-residents .ss-people.ss-sq .p-badge { white-space: nowrap; flex: none; }
+:root:root .p-body.page-residents .ss-people.ss-sq tbody td.p-right { margin-top: auto; padding-top: 6px; }
+
+/* the red banner: its button, its close, and where it went */
+.rs-banner { display: flex; align-items: center; gap: 12px; }
+.rs-banner[hidden] { display: none; }
+.rs-banner > span { flex: 1; min-width: 0; }
+.rs-banner .p-btn { flex: none; }
+.rs-banner-x { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: transparent; color: inherit; cursor: pointer; opacity: .75; transition: background-color .18s, opacity .18s; }
+.rs-banner-x:hover { background: color-mix(in srgb, currentColor 14%, transparent); opacity: 1; }
+.ss-brain-btn.is-nudged { animation: ssRing 6s linear infinite, ssGlowCycle 6s linear infinite, ssNudge .9s cubic-bezier(.3, 1.6, .5, 1) 1; }
+@keyframes ssNudge { 0% { transform: scale(1); } 30% { transform: scale(1.28) rotate(-8deg); } 60% { transform: scale(.94) rotate(4deg); } 100% { transform: scale(1); } }
+
+/* the engine's rows for Residents: a number, what it is, a button that filters the list */
+.ss-win .rs-als { display: grid; gap: 8px; margin-top: 4px; }
+.ss-win .rs-al { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); }
+.ss-win .rs-al-n { display: grid; place-items: center; height: 40px; border-radius: 12px; font: 800 20px Inter Tight, sans-serif; letter-spacing: -.02em; background: var(--p-surface-2); color: var(--p-ink); }
+.ss-win .rs-al-high:not(.is-zero) .rs-al-n { background: color-mix(in srgb, var(--p-red) 14%, transparent); color: var(--p-red); }
+.ss-win .rs-al-warn:not(.is-zero) .rs-al-n { background: color-mix(in srgb, var(--p-orange) 18%, transparent); color: #A15C00; }
+:root[data-theme="dark"] .ss-win .rs-al-warn:not(.is-zero) .rs-al-n { color: #FFC266; }
+.ss-win .rs-al-t { display: grid; gap: 2px; min-width: 0; }
+.ss-win .rs-al-t strong { font: 700 14px Inter, sans-serif; }
+.ss-win .rs-al-t span { color: var(--p-muted); font-size: 12.5px; line-height: 1.35; }
+.ss-win .rs-al.is-zero { opacity: .62; }
+.ss-win .rs-al .p-btn { height: 32px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 13px; }
+:root:root:root .p-body .pe-res.ss-sq #accounts-tbody td:nth-last-child(2) .p-badges { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
