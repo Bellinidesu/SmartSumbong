@@ -1,0 +1,210 @@
+{
+ "landmark": "Shrine of St. Thérèse of the Child Jesus",
+ "anchor": [
+  121.015939,
+  14.521266
+ ],
+ "note": "Camera positions, headings, tilts and fields of view read off the address bar of each Google Street View screenshot (Ace's, private reference): used only to look at the model from the same place as the photograph.",
+ "cams": [
+  {
+   "file": "69ea266fd9.jpg",
+   "n": 1,
+   "lat": 14.5215873,
+   "lng": 121.0163123,
+   "heading": 226.45,
+   "tilt": 104.9,
+   "fov": 83.2,
+   "height": 2.5
+  },
+  {
+   "file": "3e0c353ee4.jpg",
+   "n": 2,
+   "lat": 14.5217789,
+   "lng": 121.0160911,
+   "heading": 186.32,
+   "tilt": 96.7,
+   "fov": 90.0,
+   "height": 2.5
+  },
+  {
+   "file": "f3e1d4d0a6.jpg",
+   "n": 3,
+   "lat": 14.5214572,
+   "lng": 121.0164413,
+   "heading": 216.6,
+   "tilt": 90.74,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "aa0a009f9e.jpg",
+   "n": 4,
+   "lat": 14.5214572,
+   "lng": 121.0164413,
+   "heading": 258.92,
+   "tilt": 99.3,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "8d8a206011.jpg",
+   "n": 5,
+   "lat": 14.5216526,
+   "lng": 121.0162455,
+   "heading": 241.95,
+   "tilt": 98.29,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "b0546c96f6.jpg",
+   "n": 6,
+   "lat": 14.5217201,
+   "lng": 121.0161745,
+   "heading": 210.75,
+   "tilt": 94.72,
+   "fov": 90.0,
+   "height": 2.5
+  },
+  {
+   "file": "5446c8bc3a.jpg",
+   "n": 7,
+   "lat": 14.5216576,
+   "lng": 121.0159276,
+   "heading": 99.89,
+   "tilt": 102.43,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "647def9d54.jpg",
+   "n": 8,
+   "lat": 14.5216576,
+   "lng": 121.0159276,
+   "heading": 171.07,
+   "tilt": 108.95,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "a9af17d328.jpg",
+   "n": 9,
+   "lat": 14.521599,
+   "lng": 121.0158634,
+   "heading": 199.11,
+   "tilt": 105.0,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "7e290f8b2a.jpg",
+   "n": 10,
+   "lat": 14.5214151,
+   "lng": 121.0156683,
+   "heading": 131.58,
+   "tilt": 122.66,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "bdd9ad3665.jpg",
+   "n": 11,
+   "lat": 14.5212588,
+   "lng": 121.0164464,
+   "heading": 263.1,
+   "tilt": 102.87,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "503d0221ea.jpg",
+   "n": 12,
+   "lat": 14.5210634,
+   "lng": 121.0162494,
+   "heading": 269.03,
+   "tilt": 102.79,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "e1a7df9d1a.jpg",
+   "n": 13,
+   "lat": 14.5210634,
+   "lng": 121.0162494,
+   "heading": 0.37,
+   "tilt": 98.57,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "1c5c91932c.jpg",
+   "n": 14,
+   "lat": 14.5210634,
+   "lng": 121.0162494,
+   "heading": 289.44,
+   "tilt": 97.38,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "4168bbeb61.jpg",
+   "n": 15,
+   "lat": 14.5208042,
+   "lng": 121.0160218,
+   "heading": 315.7,
+   "tilt": 107.85,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "58297e2a05.jpg",
+   "n": 16,
+   "lat": 14.5205329,
+   "lng": 121.0157351,
+   "heading": 14.37,
+   "tilt": 88.95,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "89ca91766a.jpg",
+   "n": 17,
+   "lat": 14.5207282,
+   "lng": 121.0155265,
+   "heading": 42.99,
+   "tilt": 93.12,
+   "fov": 90.0,
+   "height": 2.5
+  },
+  {
+   "file": "f165d7f392.jpg",
+   "n": 18,
+   "lat": 14.5208849,
+   "lng": 121.0151598,
+   "heading": 71.56,
+   "tilt": 101.93,
+   "fov": 50.6,
+   "height": 2.5
+  },
+  {
+   "file": "f70733e277.jpg",
+   "n": 19,
+   "lat": 14.521347,
+   "lng": 121.0165058,
+   "heading": 281.67,
+   "tilt": 97.87,
+   "fov": 75.0,
+   "height": 2.5
+  },
+  {
+   "file": "40f649247a.jpg",
+   "n": 20,
+   "lat": 14.5212892,
+   "lng": 121.0166719,
+   "heading": 269.85,
+   "tilt": 99.83,
+   "fov": 35.0,
+   "height": 2.5
+  }
+ ]
+}

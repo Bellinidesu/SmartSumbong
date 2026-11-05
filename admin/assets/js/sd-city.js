@@ -1,0 +1,664 @@
+// Spatial Distribution, City view (Bellinist, 9 Oct 2026): what the tilted map adds to the flat one, in the manner of
+// Apple Maps' detailed city experience, built only from open data (OpenStreetMap through OpenFreeMap, plus
+// assets/map/city-detail.json and buildings.json, which docs/map-data/build_city_detail.py and build_buildings.py make
+// from OpenStreetMap and Overture Maps).
+//   light and haze     a low sun on the walls, a sky and a fog that fades the far streets away
+//   buildings          every building in assets/map/buildings.json (Overture and OpenStreetMap footprints): walls with
+//                      windows (lit at night), pitched roofs in the colours this neighbourhood's roofs have
+//   shadows            baked ahead of time into one picture of the ground (docs/map-data/bake_shadows.py): what each
+//                      building and tree throws, and the dark at the foot of a wall and down a lane; free while the map moves
+//   wall faces         a thin plate over every wall face painted with its own baked light (docs/map-data/bake_detail.py): sun and
+//                      sky by day, the warmth of the nearest street lamps by night
+//   trees              the 93 OpenStreetMap has mapped, and rounded ones planted in the parks and the golf course
+//   road detail        zebra crossings (all 125 OpenStreetMap has) and dashed lane lines
+//   places             small coloured dots for shops, food, clinics and schools
+// Plain colours, no textures: colours and textures cost frames and memory, so buildings are single colours and the shading
+// (a tone for each building, the shadows on the ground) is baked ahead of time by docs/map-data/bake_shadows.py.
+// Nothing is drawn outside the Barangay 183 boundary, and beyond its edge the ground fades into fog.
+// Loaded after sd-tools.js; it shares map and mapReady with the page and leaves the flat map as it was.
+(function () {
+  'use strict';
+  if (typeof map === 'undefined' || typeof mapReady === 'undefined') return;
+  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+  const WINDOWS = false;   // the window-textured walls are kept behind this switch, off: textures eat memory and frames
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+
+  // ---- Bellinist night and Bellinist day ----
+  const PAL = {
+    night: {
+      light: { anchor: 'map', color: '#D6E0FF', intensity: .55, position: [1.4, 200, 48] },
+      sky: { 'sky-color': '#0E1226', 'horizon-color': '#2A3156', 'fog-color': '#171B2C', 'sky-horizon-blend': .55, 'horizon-fog-blend': .8, 'fog-ground-blend': .55 },
+      wall: { lo: ['#444C77', '#2C3150', '#FFD58A', .2], mid: ['#485079', '#292E4C', '#FFD08A', .3], hi: ['#535D8B', '#262B49', '#FFE0A0', .45] },
+      roofFlat: '#5C6590', roofs: ['#8C4650', '#9A5E48', '#3B5391', '#35705F', '#646880', '#8E846C', '#54424A', '#9EA1B5'],
+      canopy: ['#1F6B53', '#2E8A63'], canopy2: ['#27805F', '#3AA374'], palm: ['#2F7F4E', '#4C9A55'], trunk: '#2F2A3A', palmTrunk: '#5A5068', tshadow: ['#04060F', .38],
+      area: { fairway: '#2F8A63', green: '#3FA878', tee: '#3FA878', bunker: '#77738F', water: '#1D3A86', driving_range: '#2A7A58', 'pitch:basketball': '#B06A4C', 'pitch:tennis': '#4A73B8', 'pitch:soccer': '#3C9A6B', 'pitch:football': '#3C9A6B', playground: '#B9877A', swimming_pool: '#2E78C0', track: '#A8604A', other: '#3A9068' }, areaLine: ['#E9ECFA', .55], cross: ['#FFFFFF', .6], lane: ['#AEB6DA', .5],
+      wpal: ['#554C86', '#5A5090', '#4A5C90', '#4F6A92', '#654F90', '#505890', '#655A88', '#4C6090'], wtall: ['#4C5490', '#5A64A0'], glow: [255, 150, 46],
+      scool: [.97, .98, 1.04], swarm: [.97, .98, 1.04],
+      bake: .95, haloText: 'rgba(18,21,42,.92)', poiStroke: '#14172A',
+      wk: { cream: '#6E749D', white: '#7C82AC', tan: '#6B6489', sky: '#5D74AA', rose: '#8E5F86', sand: '#8F8A86', lilac: '#7A66A6' }, trim: '#8189B2', tower: '#767CA6',
+      rk: { blue: '#3B5391', green: '#2E6B5B', white: '#8D93B8', tan: '#7A7396', cream: '#8087AE', grey: '#6B7096', red: '#8C4650' },
+    },
+    day: {
+      light: { anchor: 'map', color: '#FFFFFF', intensity: .4, position: [1.3, 200, 50] },
+      sky: { 'sky-color': '#8FC1F0', 'horizon-color': '#E9F1FA', 'fog-color': '#E8EDF3', 'sky-horizon-blend': .5, 'horizon-fog-blend': .8, 'fog-ground-blend': .5 },
+      wall: { lo: ['#EEEAE4', '#CBD3DE', '#D3DAE4', .05], mid: ['#E8E6E4', '#C3CCD9', '#CBD4E0', .06], hi: ['#DEE2EA', '#B3C0D2', '#BFCADA', .08] },
+      roofFlat: '#F2EFEA', roofs: ['#C25446', '#D07A45', '#3F6FC4', '#3E8E6C', '#9A9DA6', '#E3D3AC', '#7A5A48', '#EDEDED'],
+      canopy: ['#7FCB5E', '#5FB55A'], canopy2: ['#8DD66A', '#6BC262'], palm: ['#74C24E', '#5DB04A'], trunk: '#8A6B4F', palmTrunk: '#B09370', tshadow: ['#2E4A2A', .2],
+      area: { fairway: '#9BDB82', green: '#7CD36A', tee: '#7CD36A', bunker: '#F6ECC9', water: '#7CC4F0', driving_range: '#A9DF92', 'pitch:basketball': '#E8A168', 'pitch:tennis': '#6FA3E6', 'pitch:soccer': '#86D073', 'pitch:football': '#86D073', playground: '#EBC9A5', swimming_pool: '#62BDF0', track: '#D98B6E', other: '#8FD27E' }, areaLine: ['#FFFFFF', .9], cross: ['#FFFFFF', .95], lane: ['#CBC7BE', .85],
+      wpal: ['#F5C2A6', '#F8DC9C', '#BEE2CB', '#B8D6F2', '#D3C2F0', '#F1ECE4', '#EBC590', '#D0D0D6'], wtall: ['#E6E4E2', '#D8DDE8'], glow: [0, 0, 0],
+      scool: [.94, .97, 1.05], swarm: [1.07, 1.02, .90],
+      bake: .6, haloText: 'rgba(255,255,255,.95)', poiStroke: '#FFFFFF',
+      wk: { cream: '#EDE4D0', white: '#F3F0EA', tan: '#D9C6A5', sky: '#CBD8EE', rose: '#F2CFCB', sand: '#F3E1A6', lilac: '#DDD0EE' }, trim: '#C9C4BA', tower: '#E9E4D8',
+      rk: { blue: '#2F5FB5', green: '#2F7F6F', white: '#F2EEE7', tan: '#D7C3A4', cream: '#EFE6D4', grey: '#B5B8C0', red: '#B5473A' },
+    },
+  };
+  // ---- looks: the lighting and shading of the City view, day and night. Everything here is baked or plain colour:
+  // a tone per building, roofs painted in a lit half and a shaded half, shadows laid on the ground. Nothing is a texture. ----
+  const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  const mixAll = (arr, b, t) => arr.map(c => mix(c, b, t));
+  const LOOKS = {
+    steps: { mode: 'steps', vg: false, toneK: 1 },     // the roofs as stepped slabs (what the City view had)
+    // Apple Maps: soft, pastel, a high even light, every roof a gentle two-tone
+    apple: { mode: 'halves', lit: 1.04, litN: 1.1, shade: .9, shadeN: .9, vg: false, toneK: 1, az: 200,
+      day: { light: { anchor: 'map', color: '#FFFFFF', intensity: .26, position: [1.2, 200, 56] }, roofs: Array(8).fill('#F6F4F0'), roofFlat: '#F6F4F0', rk: { blue: '#F6F4F0', green: '#F6F4F0', white: '#F6F4F0', tan: '#F6F4F0', cream: '#F6F4F0', grey: '#F6F4F0', red: '#F6F4F0' }, bake: .62 },
+      night: { light: { anchor: 'map', color: '#BFD0FF', intensity: .32, position: [1.3, 200, 52] }, sky: { 'sky-color': '#0E1226', 'horizon-color': '#4B3F72', 'fog-color': '#1A1E33', 'sky-horizon-blend': .6, 'horizon-fog-blend': .85, 'fog-ground-blend': .5 },
+        roofs: Array(8).fill('#2C3256'), roofFlat: '#2C3256', rk: { blue: '#2C3256', green: '#2C3256', white: '#2C3256', tan: '#2C3256', cream: '#2C3256', grey: '#2C3256', red: '#2C3256' }, bake: .95 } },
+    // two-tone roofs in the roofs' own colours, a strong lit side and shaded side
+    halves: { mode: 'halves', lit: 1.12, shade: .72, vg: false, toneK: 1, az: 200 },
+  };
+  let LOOK = 'apple';   // Apple Soft is the look; the other two stay for comparison (sdCityLook('steps') or ('halves') in the console)
+  try { LOOK = localStorage.getItem('ss-look') || 'apple'; } catch (e) { /* the default look */ }
+  const look = () => LOOKS[LOOK] || LOOKS.apple;
+  const palBase = () => { const base = isDark() ? PAL.night : PAL.day, o = look()[isDark() ? 'night' : 'day'] || {}; return Object.assign({}, base, o, { wall: Object.assign({}, base.wall, o.wall || {}) }); };
+  // ---- the Apple DCE look (Ace's recipe, 10 Oct): a switch, OFF by default, so the locked map is untouched. ?look=dce in the page address, or localStorage ss-dce = 1.
+  // It adds only: the dusk blue-violet palette (lavender-grey by day), safe-point buildings fully bright with a halo on the ground, a light roof edge, a dusk sky, an amber rim on the landmarks at night.
+  const DCE = (() => { try { return /[?&]look=dce\b/.test(location.search) || localStorage.getItem('ss-dce') === '1'; } catch (e) { return false; } })();
+  const dcePal = p => {
+    const n = isDark();
+    const wp = n ? ['#46507F', '#4F5486', '#43587F', '#53507F', '#4A5588', '#524F84', '#44547E', '#505488'] : ['#C9CCE0', '#D3CCDC', '#C7D0E0', '#D6D0E4', '#CDD2E6', '#D8D2E0', '#C4CCE0', '#D0D0E4'];
+    return Object.assign({}, p, {
+      wpal: wp, wtall: n ? ['#3A4270', '#464E80'] : ['#B8BCD4', '#AAB0CC'],
+      wk: Object.assign({}, p.wk, n ? { cream: '#4F5486', white: '#5A5E92', tan: '#53507F' } : { cream: '#D8D2E2', white: '#E6E2EE', tan: '#CFC6D6' }),
+      trim: n ? '#6A74B0' : '#E9E6F2', tower: n ? '#5A64A0' : '#DCD8EA',
+      roofs: Array(8).fill(n ? '#363D6E' : '#B9BDD6'), roofFlat: n ? '#3A4272' : '#D4D6E8',
+      rk: Object.fromEntries(Object.keys(p.rk).map(k => [k, n ? '#363D6E' : '#B9BDD6'])),
+      sky: n ? { 'sky-color': '#0E1226', 'horizon-color': '#5A4A8E', 'fog-color': '#2A2A5A', 'sky-horizon-blend': .6, 'horizon-fog-blend': .85, 'fog-ground-blend': .5 }
+             : { 'sky-color': '#CFDDF2', 'horizon-color': '#F4E9F3', 'fog-color': '#E8E4F0', 'sky-horizon-blend': .6, 'horizon-fog-blend': .85, 'fog-ground-blend': .5 },
+    });
+  };
+  const pal = () => DCE ? dcePal(palBase()) : palBase();
+  let SAFEB = {};
+  const SAFEC = ['#27D070', '#3F7BFF', '#FF9A4D', '#1F4FD0'];   // evacuation or shelter, health, fire or police, hall
+  const sfk = idx => DCE ? ({ e: 1, h: 2, r: 3, a: 4 }[SAFEB[idx]] || 0) : 0;
+  const sfcol = i => ['match', ['get', 'sf'], 1, ch(SAFEC[0], i), 2, ch(SAFEC[1], i), 3, ch(SAFEC[2], i), ch(SAFEC[3], i)];
+  const H = ['coalesce', ['get', 'render_height'], 6], MH = ['coalesce', ['get', 'render_min_height'], 0];
+  // a plain colour times the tone baked into each building (field 10 of buildings.json): the shading, without a texture
+  const KTONE = ['coalesce', ['get', 'k'], 1];
+  const toneExpr = () => look().toneStep ? ['step', KTONE, .7, .78, .82, .9, 1] : ['^', KTONE, look().toneK || 1];
+  const HALF = ['coalesce', ['get', 's'], 1];   // a roof half's lit or shaded factor (1 for everything else)
+  const ch = (hex, i) => parseInt(hex.substr(1 + i * 2, 2), 16);
+  const shaded = (f, add) => { const t = toneExpr(), a = i => add ? ['+', ['*', f(i), t, HALF], add(i)] : ['*', f(i), t, HALF]; return ['rgb', ['min', 255, a(0)], ['min', 255, a(1)], ['min', 255, a(2)]]; };
+  const roofColour = p => shaded(i => ['case', ['has', 'rk'], ['match', ['get', 'rk']].concat(...Object.keys(p.rk).map(k => [k, ch(p.rk[k], i)]), [ch(p.rk.grey, i)]),
+    ['match', ['get', 'c'], -1, ch(p.roofFlat, i)].concat(...p.roofs.map((c, j) => [j, ch(c, i)]), [ch(p.roofs[0], i)])]);
+  const wallKey = p => shaded(i => ['match', ['get', 'w']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]), i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
+  // houses in a set of pastels (one for each, from where it stands), towers in neutrals; at night a house with its lights on adds warmth
+  const wallPlain = p => shaded(i => ['case', ['>', ['coalesce', ['get', 'sf'], 0], 0], sfcol(i), ['>', ['coalesce', ['get', 'wg'], 0], 0], gcol(i), ['==', ['coalesce', ['get', 'wt'], 0], 1], ch(p.wk.tan, i), ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+    ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])], i => ['*', ['coalesce', ['get', 'g'], 0], p.glow[i]]);
+  // a wall face: its house's plain colour, the tone baked for the face, leaning warm where the sun reaches it and cool where only the sky does
+  const faceColour = p => shaded(i => ['*', ['case', ['has', 'lw'], ['match', ['get', 'lw']].concat(...Object.keys(p.wk).map(k => [k, ch(p.wk[k], i)]), [ch(p.wk.cream, i)]),
+    ['>', ['coalesce', ['get', 'sf'], 0], 0], sfcol(i),
+    ['>', ['coalesce', ['get', 'wg'], 0], 0], gcol(i),
+    ['==', ['coalesce', ['get', 'wt'], 0], 1], ch(p.wk.tan, i),
+    ['>=', ['get', 'h'], 9], ['step', ['get', 'h'], ch(p.wtall[0], i), 30, ch(p.wtall[1], i)],
+    ['match', ['get', 'wi']].concat(...p.wpal.map((c, j) => [j, ch(c, i)]), [ch(p.wpal[0], i)])],
+    ['+', p.scool[i], ['*', ['coalesce', ['get', 's2'], 0], p.swarm[i] - p.scool[i]]]],
+    i => ['*', p.glow[i], ['+', ['*', ['coalesce', ['get', 'g'], 0], .8], ['*', ['coalesce', ['get', 'w'], 0], 1.8]]]);
+  const trimColour = p => ['match', ['get', 'k'], 'tw', p.tower, 'sp', p.rk.grey,
+    'dw', isDark() ? '#232A55' : '#8A93A8', 'aw', isDark() ? '#8A4672' : '#E0705F', 'aw2', isDark() ? '#3F6E8F' : '#4F8CC4', 'aw3', isDark() ? '#8F7A35' : '#F2C14E',
+    'ac', isDark() ? '#4A5080' : '#D9DDE6', 'sd', isDark() ? '#9AA0C8' : '#F4F6FA', 'sl', isDark() ? '#1E2650' : '#46567E', 'bc', p.trim,
+    'sf1', SAFEC[0], 'sf2', SAFEC[1], 'sf3', SAFEC[2], 'sf4', SAFEC[3], 'edge', isDark() ? '#9AA2D8' : '#FFFFFF', 'amb', isDark() ? '#FFA640' : p.trim,
+    ...SIGNS, ...SIGNS.map((v, i) => i % 2 === 0 ? 'gr' + v.slice(1) : (isDark() ? v : p.trim)), p.trim];   // 'gr_x': the roof rim of a building with a place in it: the group's colour at night, the plain trim by day
+  const canopyColour = (p, k) => ['case', ['==', ['get', 's'], 2], ['interpolate', ['linear'], ['get', 'v'], 0, p.palm[0], 1, p.palm[1]], ['interpolate', ['linear'], ['get', 'v'], 0, p[k][0], 1, p[k][1]]];
+  const trunkColour = p => ['case', ['==', ['get', 's'], 2], p.palmTrunk, p.trunk];
+  const areaColour = p => ['match', ['get', 'k']].concat(...Object.keys(p.area).filter(k => k !== 'other').map(k => [k, p.area[k]]), [p.area.other]);
+
+  // ---- the window walls: a picture of a few floors of windows, some lit, repeated over the wall ----
+  const CLASSES = ['lo', 'mid', 'hi'];
+  function addWalls() {
+    const rows = { lo: 16, mid: 24, hi: 32 };
+    ['night', 'day'].forEach((t, ti) => CLASSES.forEach((k, ki) => {
+      const [base, win, lit, chance] = PAL[t].wall[k], S = 256, cols = 16, nrows = rows[k], c = document.createElement('canvas'); c.width = c.height = S;
+      const x = c.getContext('2d'); x.fillStyle = base; x.fillRect(0, 0, S, S);
+      let s = 7 + ki * 12 + ti * 5; const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+      const cw = S / cols, ch = S / nrows, w = cw * .5, h = ch * .55;
+      for (let r = 0; r < nrows; r++) {
+        x.fillStyle = 'rgba(0,0,0,.10)'; x.fillRect(0, r * ch + ch - 2, S, 2);
+        for (let q = 0; q < cols; q++) {
+          const on = rnd() < chance, px = q * cw + (cw - w) / 2, py = r * ch + (ch - h) / 2;
+          if (on) { x.fillStyle = t === 'night' ? 'rgba(255,230,170,.25)' : 'rgba(255,255,255,.4)'; x.fillRect(px - 1, py - 1, w + 2, h + 2); }
+          x.fillStyle = on ? lit : win; x.fillRect(px, py, w, h);
+        }
+      }
+      const d = x.getImageData(0, 0, S, S), name = 'cdw-' + k + '-' + (t === 'night' ? 'n' : 'd');
+      if (!map.hasImage(name)) map.addImage(name, { width: S, height: S, data: new Uint8Array(d.data.buffer) }, { pixelRatio: 1 });
+    }));
+  }
+  const wallName = k => 'cdw-' + k + '-' + (isDark() ? 'n' : 'd');
+
+  // ---- the buildings: walls, and a pitched roof built of a few stepped slabs (gable: the ridge runs along the long side) ----
+  // The landmarks are modelled a little further, from what the satellite picture shows of them: real roof colours,
+  // flat roofs with a parapet and plant boxes for the terminals, malls and the hospital, green sheet roofs on the schools,
+  // a bell tower on the churches. Each is one of the buildings in the file, found by the landmark's own position.
+  const MX = 107500, MY = 110574;
+  const MODELS = [
+    [/^Barangay 183 Hall/, { w: 'sky', rk: 'blue', type: 'gable' }],
+    [/Terminal|One-Stop|Bureau of Immigration/, { w: 'white', rk: 'white', type: 'flat', parapet: 1, boxes: 1 }],
+    [/Mall|Supermarket|Post Exchange/, { w: 'tan', rk: 'tan', type: 'flat', parapet: 1, boxes: 1 }],
+    [/Hospital/, { w: 'rose', rk: 'cream', type: 'flat', parapet: 1, boxes: 1 }],
+    [/School|College|Aeronautics/, { w: 'sand', rk: 'green', type: 'gable' }],
+    [/Prayer Room/, { w: 'white', rk: 'grey', type: 'gable' }],
+    [/Shrine|Chapel|Church|Ang Dating/, { w: 'lilac', rk: 'grey', type: 'gable', tower: 1 }],
+  ];
+  // commercial blocks (shops, malls, hotels, offices, car parks) are tan, the rest stay in the neighbourhood's pastels and greys
+  const COMM = new Set(['commercial', 'retail', 'hotel', 'parking', 'supermarket', 'office', 'pop-up_store']);
+  const COMM_NAME = /mall|hotel|resort|inn|suites|mansion|residences|plaza|centre|center|market|store|shop|bank|casino|theat|garage|carpark|parking|office|airlines|express|marriott|belmont|sheraton|okura|holiday|newport/i;
+  // colour by what is in the building (places.json, first group found): food, cafe, shop, health, education, lodging, bank, worship, government, services, auto; the soft pastels of the plain map
+  let SIGNS = ['g_f', '#FF9A3D', 'g_c', '#B8794A', 'g_s', '#4F8CFF', 'g_h', '#F0524F', 'g_e', '#9B6BFF', 'g_l', '#D56FE0', 'g_b', '#34B36B', 'g_w', '#22B8CF', 'g_g', '#6B7FD6', 'g_v', '#E4A8C8', 'g_a', '#8E97AB'];   // the legend (legend.json) replaces these
+  let GORDER = 'fcshelbwgva';
+  let GDAY = ['#F4D9BC', '#E7CDB5', '#EBD8AE', '#F6C9C6', '#F7E3A3', '#DCCBEA', '#C6E4CF', '#C5E6EC', '#C9D3F0', '#F0D2E2', '#D3D6DC'];
+  let GNIGHT = ['#7A6890', '#6F6385', '#6B6489', '#8A5F86', '#8C86A0', '#7A62A0', '#4F7F8E', '#4D86A3', '#5D6EA8', '#8A6597', '#5F6788'];
+  // a wall takes the colour of what mainly goes on in the building: lodging first, then health, education, worship, government, bank, shop, cafe, food; offices, services and car parks do not tint a wall (their sign still shows)
+  const WALL_PRIORITY = 'lhewgbscf';
+  const wgrp = idx => { const g = PLACES[idx]; if (!g) return 0; for (const k of WALL_PRIORITY) if (g.indexOf(k) >= 0) return GORDER.indexOf(k) + 1; return 0; };
+  const gcol = i => { const G = isDark() ? GNIGHT : GDAY; return ['match', ['get', 'wg']].concat(...G.map((c, j) => [j + 1, ch(c, i)]), [ch(G[0], i)]); };
+  const comm = (d, idx) => { const t = d.info && d.info[idx]; return (t && (COMM.has(t[1]) || COMM_NAME.test(t[0] || ''))) || /[fcslbv]/.test(PLACES[idx] || '') ? 1 : 0; };
+  const hit01 = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const inRing = (pt, ring) => { let c = false; for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) { const ax = ring[i], ay = ring[i + 1], bx = ring[j], by = ring[j + 1]; if ((ay > pt[1]) !== (by > pt[1]) && pt[0] < (bx - ax) * (pt[1] - ay) / (by - ay) + ax) c = !c; } return c; };
+  // A thin plate over each wall face (outside it by a hand's width), in two bands: the foot, and the rest of the wall. Its colour is the
+  // house's plain colour times the tone baked for that face; the lamp light baked for it is added warm at night.
+  const dig = ch => '0123456789abcdefghijklmnopqrstuvwxyz'.indexOf(ch);
+  function facePlates(d, faces) {
+    const out = [], BANDS = faces.bands || [0, 4.5, 64];
+    const hasSun = d.b.length && faces.f.length && faces.f[0].length > 2;
+    d.b.forEach((b, idx) => {
+      if (window.sdModels && window.sdModels.replaces.has(idx)) return;
+      const row = faces.f[idx]; if (!row || b[1] < 2) return;
+      const lmSpec = (DCE && SAFEB[idx]) ? null : (b._lm || null);
+      const ring = b[0], k = ring.length / 2, h = b[1], tone = row[0].split('|'), lamp = row[1].split('|'), sunS = hasSun && row[2] ? row[2].split('|') : null;
+      if (tone[0].length !== k) return;
+      const nb = tone.length;
+      let area = 0; for (let i = 0; i < k; i++) { const j = (i + 1) % k; area += ring[2 * i] * MX * ring[2 * j + 1] * MY - ring[2 * j] * MX * ring[2 * i + 1] * MY; }
+      const sg = area > 0 ? 1 : -1, wi = Math.min(7, Math.floor(hit01(b[4], b[5]) * 8)), g = b[12] || 0, wt = comm(d, idx), wg = wgrp(idx), sf = sfk(idx);
+      for (let i = 0; i < k; i++) {
+        const j = (i + 1) % k, x0 = ring[2 * i] * MX, y0 = ring[2 * i + 1] * MY, x1 = ring[2 * j] * MX, y1 = ring[2 * j + 1] * MY, dx = x1 - x0, dy = y1 - y0, ln = Math.hypot(dx, dy);
+        if (ln < 1.4) continue;
+        const nx = sg * dy / ln * .15, ny = -sg * dx / ln * .15, ox = nx * .8, oy = ny * .8;   // the plate stands 12 cm clear of the wall: closer than that and the depth buffer cannot tell the two surfaces apart at a distance
+        const quad = [[x0 + ox, y0 + oy], [x1 + ox, y1 + oy], [x1 + nx + ox, y1 + ny + oy], [x0 + nx + ox, y0 + ny + oy], [x0 + ox, y0 + oy]].map(([a, c]) => [a / MX, c / MY]);
+        const bands = []; for (let t = 0; t < nb; t++) bands.push([BANDS[t], t === nb - 1 ? h : Math.min(BANDS[t + 1], h), t]);
+        bands.forEach(([bb, tt, up]) => out.push({ type: 'Feature', properties: Object.assign({ b: bb, t: tt, h, wi, wt, wg, sf, g, k: .8 + .2 * (dig(tone[up][i]) / 35), w: dig(lamp[up][i]) / 35, s2: sunS ? dig(sunS[up][i]) / 35 : 0 }, lmSpec ? { lw: lmSpec.w } : {}), geometry: { type: 'Polygon', coordinates: [quad] } }));
+      }
+    });
+    return { type: 'FeatureCollection', features: out };
+  }
+  function bldShapes(d, lms, lk) {
+    lk = lk || LOOKS.steps;
+    const sun = (lk.az === undefined ? 200 : lk.az) * Math.PI / 180, sx = Math.sin(sun), sy = Math.cos(sun);
+    const walls = [], roofs = [], lmWalls = [], trim = [], spec = new Map();
+    (lms || []).forEach(l => {
+      const m = MODELS.find(([re]) => re.test(l.n)); if (!m) return;
+      let best = -1, bd = 1e9;
+      d.b.forEach((b, i) => {
+        const dx = Math.abs(b[4] - l.c[0]), dy = Math.abs(b[5] - l.c[1]); if (dx > .0009 || dy > .0009) return;
+        if (inRing(l.c, b[0])) { best = i; bd = -1; return; }
+        if (bd >= 0) { const dd = Math.hypot(dx * MX, dy * MY); if (dd < bd && dd < 28) { bd = dd; best = i; } }
+      });
+      if (best >= 0) { spec.set(best, m[1]); d.b[best]._lm = 1; }
+    });
+    const box = (x0, y0, co, si, u, v, hl, hw) => [[-hl, -hw], [hl, -hw], [hl, hw], [-hl, hw], [-hl, -hw]].map(([a, b]) => [(x0 + (u + a) * co - (v + b) * si) / MX, (y0 + (u + a) * si + (v + b) * co) / MY]);
+    // a pitched roof as two flat halves, one painted lit and one shaded: plain colours and one more polygon, no steps
+    const halves = (x0, y0, co, si, hl, hw, h, rise, props) => [1, -1].map(side => {
+      const lit = (-si * side) * sx + (co * side) * sy > 0, q = [[-hl, 0], [hl, 0], [hl, side * hw], [-hl, side * hw], [-hl, 0]].map(([a, b]) => [(x0 + a * co - b * si) / MX, (y0 + a * si + b * co) / MY]);
+      return { type: 'Feature', properties: Object.assign({ b: h, t: h + rise, s: lit ? ((isDark() ? lk.litN : 0) || lk.lit || 1.1) : ((isDark() ? lk.shadeN : 0) || lk.shade || .75) }, props), geometry: { type: 'Polygon', coordinates: [q] } };
+    });
+    // Apple's plain buildings are low-poly but detailed: a parapet and roof boxes on flat roofs, a ledge where the podium ends and a crown set in from the edge on tall compact ones.
+    // All stacked prisms, set out the same way every time, all within the footprint (the boxes and the crown rise a few metres over the roof, as plant and crowns do).
+    const shrink = (poly, x0, y0, co, si, L, W, dd) => poly.map(([lng, lat]) => {
+      const u = (lng * MX - x0) * co + (lat * MY - y0) * si, v = -(lng * MX - x0) * si + (lat * MY - y0) * co, fu = 1 - dd / Math.max(2, L / 2), fv = 1 - dd / Math.max(2, W / 2);
+      const uu = u * fu, vv = v * fv; return [(x0 + uu * co - vv * si) / MX, (y0 + uu * si + vv * co) / MY];
+    });
+    const polyArea = rg => { let a = 0; const n = rg.length / 2; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a += rg[2 * i] * MX * rg[2 * j + 1] * MY - rg[2 * j] * MX * rg[2 * i + 1] * MY; } return Math.abs(a) / 2; };
+    const topDetail = (poly, ring, h, L, W, cx, cy, th, flat, tall, idx) => {
+      const A_ = L * W;
+      if (DCE && flat && A_ >= 200 && h >= 6) trim.push({ type: 'Feature', properties: { b: h, t: h + .28, k: 'edge' }, geometry: { type: 'Polygon', coordinates: [poly, shrink(poly, cx * MX, cy * MY, Math.cos(th), Math.sin(th), L, W, .35).reverse()] } });   // a light roof edge (DCE)
+      if (DCE && SAFEB[idx]) trim.push({ type: 'Feature', properties: { b: h, t: h + .35, k: 'sf' + sfk(idx) }, geometry: { type: 'Polygon', coordinates: [poly] } });   // a safe point: a bright roof cap
+      if (QZ.some(z => inRing([cx, cy], z))) return;   // a quiet zone (Villamor Air Base): footprint, height and colour only
+      let off = (ZN.find(z => inRing([cx, cy], z.ring)) || { off: COREOFF }).off;   // what this zone leaves out
+      if (!PROPS) off = new Set([...off, 'house_gadgets', 'chimneys', 'tanks_all', 'highrise_extras', 'doors']);   // the big removal (10 Oct): no small props anywhere; shape stays (rims, parapets, ledges, crowns), colour-coded awnings and signs stay
+      const A = L * W;
+      const co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY, T = (b, t, rg) => trim.push({ type: 'Feature', properties: { b, t, k: 'p' }, geometry: { type: 'Polygon', coordinates: rg } });
+      // ---- details by rule, everywhere: doors and windows, awnings, balconies, air-conditioners, dishes, antennas, solar panels (all thin prisms on the footprint's own edges, placed by hash) ----
+      const pts = []; for (let i = 0; i < ring.length; i += 2) pts.push([ring[i] * MX, ring[i + 1] * MY]);
+      let ar = 0; for (let i = 0; i < pts.length; i++) { const j = (i + 1) % pts.length; ar += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1]; }
+      const sg = ar > 0 ? 1 : -1, edges = [];
+      for (let i = 0; i < pts.length; i++) { const a_ = pts[i], b_ = pts[(i + 1) % pts.length], dx = b_[0] - a_[0], dy = b_[1] - a_[1], ln = Math.hypot(dx, dy); if (ln >= 3) edges.push({ a: a_, u: [dx / ln, dy / ln], n: [sg * dy / ln, -sg * dx / ln], ln }); }
+      edges.sort((p_, q_) => q_.ln - p_.ln);
+      const pl = (e, t0, t1, z0, z1, d, k) => { const p0 = [e.a[0] + e.u[0] * t0, e.a[1] + e.u[1] * t0], p1 = [e.a[0] + e.u[0] * t1, e.a[1] + e.u[1] * t1];
+        const pp = [p0, p1, [p1[0] + e.n[0] * d, p1[1] + e.n[1] * d], [p0[0] + e.n[0] * d, p0[1] + e.n[1] * d], p0].map(([x, y]) => [x / MX, y / MY]);
+        trim.push({ type: 'Feature', properties: { b: z0, t: z1, k }, geometry: { type: 'Polygon', coordinates: [pp] } }); };
+      const e0 = edges[0], hh = k_ => hit01(cx + k_ * 1.7, cy - k_ * 2.3);
+      if (e0 && A >= 45 && A < 260 && h < 12) {            // a house: a door and windows on its longest wall, an air-conditioner, sometimes a dish
+        const tm = (.25 + hh(1) * .5) * e0.ln;
+        if (!off.has('doors')) {
+        pl(e0, tm - .5, tm + .5, 0, 2.1, .14, 'dw');
+        [-1, 1].forEach((sd, i) => { const tw = tm + sd * (1.6 + hh(2 + i) * .8); if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 1.0, 1.9, .12, 'dw'); });
+        if (h >= 5.5) [-1, 0, 1].forEach((sd, i) => { const tw = tm + sd * 2.0; if (tw > .7 && tw < e0.ln - .7) pl(e0, tw - .45, tw + .45, 4.2, 5.1, .12, 'dw'); });
+        }
+        if (!off.has('house_gadgets') && hh(4) > .5) { const tw = e0.ln * (.15 + hh(5) * .7); pl(e0, tw - .4, tw + .4, 2.2 + (h >= 5.5 ? 3.2 : 0), 3.0 + (h >= 5.5 ? 3.2 : 0), .4, 'ac'); }
+        if (!off.has('house_gadgets') && flat && hh(6) > .7 && A >= 70) { const su = (hh(7) - .5) * L * .3, sv = (hh(8) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .4, t: h + 1.5, k: 'sd' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, .45, .45)] } }); }
+      }
+      const grp = PLACES[idx] || '';                       // what is in it (places.json): an awning and a sign board in the colour of each kind of place, one wall each
+      if (e0 && (grp || (!off.has('awn_generic') && flat && A >= 60 && A < 700 && h < 9))) {
+        const aw = grp ? 'g_' + grp[0] : ['aw', 'aw2', 'aw3'][Math.floor(hh(9) * 3)];
+        pl(e0, .6, e0.ln - .6, 2.7, 2.98, 1.0, aw);
+      }
+      if (grp && flat && A >= 60) trim.push({ type: 'Feature', properties: { b: h, t: h + .45, k: 'gr_' + grp[0] }, geometry: { type: 'Polygon', coordinates: [poly, shrink(poly, x0, y0, co, si, L, W, .5).reverse()] } });
+      if (e0 && grp) grp.split('').forEach((g, i) => { const e = edges[Math.min(i, edges.length - 1)], w_ = Math.min(5.5, e.ln * .6); pl(e, e.ln / 2 - w_ / 2, e.ln / 2 + w_ / 2, 3.15, 3.95, .18, 'g_' + g); });
+      if (e0 && !off.has('highrise_extras') && flat && A >= 250 && h >= 9 && h < 32) {    // a mid-rise block: balconies and air-conditioners on its two longest walls, solar panels on some roofs
+        edges.slice(0, 2).forEach(e => { let c_ = 0; for (let z = 3.4; z < h - 1 && c_ < 60; z += 3.2 * (h > 20 ? 2 : 1)) for (let t = 2.2; t < e.ln - 2.2 && c_ < 60; t += 4.6) { pl(e, t, t + 2.2, z, z + .13, .9, 'bc'); c_++; } });
+        if (hh(10) > .45) { const su = (hh(11) - .5) * L * .3, sv = (hh(12) - .5) * W * .3, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) trim.push({ type: 'Feature', properties: { b: h + .5, t: h + 1.0, k: 'sl' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, su, sv, Math.min(L * .22, 9), Math.min(W * .2, 5))] } }); }
+      }
+      if (!off.has('highrise_extras') && flat && A >= 120 && hh(13) > .6) { const au = (hh(14) - .5) * L * .5, av = (hh(15) - .5) * W * .5, ax_ = (x0 + au * co - av * si) / MX, ay_ = (y0 + au * si + av * co) / MY; if (inRing([ax_, ay_], ring)) trim.push({ type: 'Feature', properties: { b: h, t: h + 3.5 + hh(16) * 3, k: 'sp' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, au, av, .12, .12)] } }); }   // an antenna mast
+      if (A >= 45 && A < 260 && h < 12) {   // a house: a flat roof gets a low rim, a water tank and a stair head; a pitched one a chimney (placed by hash, so the same every time)
+        const u1 = hit01(cx, cy + 3), u2 = hit01(cx + 5, cy);
+        if (flat) {
+          if (A >= 70) T(h, h + .4, [poly, shrink(poly, x0, y0, co, si, L, W, .45).reverse()]);
+          const tu = (u1 - .5) * L * .45, tv = (u2 - .5) * W * .45, cxm = (x0 + tu * co - tv * si) / MX, cym = (y0 + tu * si + tv * co) / MY;
+          if (inRing([cxm, cym], ring) && !off.has('tanks_all') && (!off.has('tanks_most') || u1 > .66)) { T(h, h + 1.6, [box(x0, y0, co, si, tu, tv, .55, .55)]); T(h + 1.6, h + 1.9, [box(x0, y0, co, si, tu, tv, .7, .7)]); }
+          if (!off.has('tanks_all') && !off.has('tanks_most') && u1 > .55 && A >= 90) { const su = -tu * .8 + L * .12, sv = -tv * .8, sx_ = (x0 + su * co - sv * si) / MX, sy_ = (y0 + su * si + sv * co) / MY; if (inRing([sx_, sy_], ring)) T(h, h + 2.3, [box(x0, y0, co, si, su, sv, 1.0, .9)]); }
+        } else if (!off.has('chimneys') && u1 > .35) {
+          const cu = (u2 - .5) * L * .5, cxm = (x0 + cu * co) / MX, cym = (y0 + cu * si) / MY;
+          if (inRing([cxm, cym], ring)) T(h, h + Math.max(.8, Math.min(2.4, W * .2)) * .6 + .9, [box(x0, y0, co, si, cu, W * .12, .28, .28)]);
+        }
+        return;
+      }
+      if (A < 260 || h < 5) return;
+      if (flat) {
+        T(h, h + .9, [poly, shrink(poly, x0, y0, co, si, L, W, 1.1).reverse()]);
+        const n = Math.min(6, Math.floor(A / 450));
+        for (let k = 0; k < n; k++) {
+          const u = (hit01(cx, k + 1) - .5) * L * .72, v = (hit01(cy, k + 7) - .5) * W * .72, hl = 1.3 + hit01(cx + k, cy) * 2, hw = 1.2 + hit01(cy + k, cx) * 1.6;
+          const cxm = (x0 + u * co - v * si) / MX, cym = (y0 + u * si + v * co) / MY;
+          if (inRing([cxm, cym], ring) && inRing([(x0 + (u + hl) * co - (v + hw) * si) / MX, (y0 + (u + hl) * si + (v + hw) * co) / MY], ring)) T(h, h + 1.4 + hit01(k, cx) * 1.4, [box(x0, y0, co, si, u, v, hl, hw)]);
+        }
+      }
+      if (tall && A >= 900 && polyArea(ring) / A > .72) {
+        const hp = Math.min(12, Math.max(6, h * .3));
+        T(hp, hp + .7, [shrink(poly, x0, y0, co, si, L, W, -.55), poly.slice().reverse()]);     // the ledge where the podium ends
+        if (flat) T(h, h + 2.4, [shrink(poly, x0, y0, co, si, L, W, Math.min(4, Math.min(L, W) * .12))]);   // the crown, set in from the edge
+      }
+    };
+    d.b.forEach(([ring, h, rt, ci, cx, cy, L, W, th, est, tone, rtone, lit], idx) => {
+      if (window.sdModels && window.sdModels.replaces.has(idx)) return;   // drawn as a model
+      const kk = tone || 1, rr = rtone || kk, gg = lit || 0, wi = Math.min(7, Math.floor(hit01(cx, cy) * 8));
+      const poly = []; for (let i = 0; i < ring.length; i += 2) poly.push([ring[i], ring[i + 1]]); poly.push(poly[0]);
+      const m = (DCE && SAFEB[idx]) ? undefined : spec.get(idx), co = Math.cos(th), si = Math.sin(th), x0 = cx * MX, y0 = cy * MY;
+      if (m) {
+        lmWalls.push({ type: 'Feature', properties: { h, w: m.w, k: kk, g: gg }, geometry: { type: 'Polygon', coordinates: [poly] } });
+        if (DCE) trim.push({ type: 'Feature', properties: { b: h, t: h + .7, k: 'amb' }, geometry: { type: 'Polygon', coordinates: [poly, shrink(poly, x0, y0, co, si, L, W, .6).reverse()] } });   // an amber rim on a landmark (DCE; shows at night)
+        const pitched = m.type === 'gable' && L * W > 60 && L * W < 2500;
+        if (!pitched) {
+          roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } });
+          if (m.parapet) {   // a low wall round the roof's edge
+            const inner = poly.map(([lng, lat]) => {
+              const u = (lng * MX - x0) * co + (lat * MY - y0) * si, v = -(lng * MX - x0) * si + (lat * MY - y0) * co, fu = 1 - 1.1 / Math.max(2, L / 2), fv = 1 - 1.1 / Math.max(2, W / 2);
+              const uu = u * fu, vv = v * fv; return [(x0 + uu * co - vv * si) / MX, (y0 + uu * si + vv * co) / MY];
+            });
+            trim.push({ type: 'Feature', properties: { b: h, t: h + .9, k: 'p' }, geometry: { type: 'Polygon', coordinates: [poly, inner.slice().reverse()] } });
+          }
+          if (m.boxes) {   // plant rooms and stair heads, set out the same way every time
+            const n = Math.min(9, Math.floor(L * W / 350));
+            for (let k = 0; k < n; k++) {
+              const u = (hit01(cx, k + 1) - .5) * L * .72, v = (hit01(cy, k + 7) - .5) * W * .72, hl = 1.3 + hit01(cx + k, cy) * 2, hw = 1.2 + hit01(cy + k, cx) * 1.6;
+              const q = box(x0, y0, co, si, u, v, hl, hw), cxm = (x0 + u * co - v * si) / MX, cym = (y0 + u * si + v * co) / MY;
+              if (inRing([cxm, cym], ring)) trim.push({ type: 'Feature', properties: { b: h, t: h + 1.4 + hit01(k, cx) * 1.4, k: 'p' }, geometry: { type: 'Polygon', coordinates: [q] } });
+            }
+          }
+        } else if (lk.mode === 'halves') {
+          halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.8, Math.min(2.4, W * .2)) * .6, { rk: m.rk, k: kk }).forEach(f => roofs.push(f));
+        } else if (lk.mode === 'flat') {
+          roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, rk: m.rk, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } });
+        } else {
+          const R = Math.max(.8, Math.min(2.4, W * .2)), step = R / 3;
+          for (let k = 0; k < 3; k++) {
+            const hl = (L + .6) / 2, hw = (W + .8) / 2 * (1 - k * .36);
+            roofs.push({ type: 'Feature', properties: { b: h + k * step, t: h + (k + 1) * step, rk: m.rk, k: rr }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, 0, 0, hl, hw)] } });
+          }
+        }
+        if (m.tower) {   // a bell tower at one end of the church, and a spire
+          const u = L / 2 - 2.4, hh = h + 7.5;
+          trim.push({ type: 'Feature', properties: { b: 0, t: hh, k: 'tw' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, u, 0, 1.7, 1.7)] } });
+          [[hh, hh + 1.6, 1.3], [hh + 1.6, hh + 3.2, .8], [hh + 3.2, hh + 4.6, .35]].forEach(([b, t, r]) => trim.push({ type: 'Feature', properties: { b, t, k: 'sp' }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, u, 0, r, r)] } }));
+        }
+        return;
+      }
+      walls.push({ type: 'Feature', properties: { h, k: kk, g: gg, wi, wt: comm(d, idx), wg: wgrp(idx), sf: sfk(idx) }, geometry: { type: 'Polygon', coordinates: [poly] } });
+      topDetail(poly, ring, h, L, W, cx, cy, th, !rt, h >= 20, idx);
+      if (!rt) { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: -1, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
+      if (lk.mode === 'halves') { halves(x0, y0, co, si, (L + .6) / 2, (W + .8) / 2, h, Math.max(.7, Math.min(2.4, W * .2)) * .6, { c: ci, k: rr }).forEach(f => roofs.push(f)); return; }
+      if (lk.mode === 'flat') { roofs.push({ type: 'Feature', properties: { b: h - .02, t: h + .25, c: ci, k: rr }, geometry: { type: 'Polygon', coordinates: [poly] } }); return; }
+      const R = Math.max(.7, Math.min(2.4, W * .2)), step = R / 3;
+      for (let k = 0; k < 3; k++) {
+        const hl = (L + .6) / 2 * (rt === 2 ? 1 - k * .3 : 1), hw = (W + .8) / 2 * (1 - k * .36);
+        roofs.push({ type: 'Feature', properties: { b: h + k * step, t: h + (k + 1) * step, c: ci, k: rr }, geometry: { type: 'Polygon', coordinates: [box(x0, y0, co, si, 0, 0, hl, hw)] } });
+      }
+    });
+    const fc = f => ({ type: 'FeatureCollection', features: f });
+    return [fc(walls), fc(roofs), fc(lmWalls), fc(trim)];
+  }
+
+  let prepared = false;
+  const live = () => on || prepared;   // the layers are built and kept ready (at no opacity) once loaded, so a tilt has nothing left to build
+  const PROPS = (() => { try { return !/[?&]props=0/.test(location.search); } catch (e) { return true; } })();   // the building details are Final (checklist, 10 Oct); ?props=0 leaves them out
+  let PLACES = {};   // what is in each building (places.json): a string of group letters
+  let QZ = [], ZN = [], COREOFF = new Set();   // the quiet zones, and the zones with what each leaves out (zones.json; outside every zone is the residential core)   // the quiet zones (zones.json): no by-rule detail there
+  let ready = null, on = false, TREES = [], FOG = null, FACES = null, BLD = null, LMS = [], BAKE = null;
+  const ngon = (cx, cy, r, n, rot) => {   // metres to degrees at this latitude
+    const out = []; for (let i = 0; i <= n; i++) { const a = rot + i / n * Math.PI * 2; out.push([cx + Math.cos(a) * r / 107500, cy + Math.sin(a) * r / 110574]); } return out;
+  };
+  function treeShapes(trees) {
+    const c1 = [], c2 = [], trunk = [], shade = [];
+    const feat = (props, ring) => ({ type: 'Feature', properties: props, geometry: { type: 'Polygon', coordinates: [ring] } });
+    const star = (cx, cy, R, r, n, rot) => { const out = []; for (let i = 0; i <= n * 2; i++) { const a = rot + i / (n * 2) * Math.PI * 2, rr = i % 2 ? r : R; out.push([cx + Math.cos(a) * rr / 107500, cy + Math.sin(a) * rr / 110574]); } return out; };
+    trees.forEach((t, i) => {
+      const [lng, lat, r, h, v, shape] = t, rot = (i * 2.399) % 6.283, s = shape || 0;
+      const jx = (Math.sin(i * 7.7) * .5) * r * .3, jy = (Math.cos(i * 5.3) * .5) * r * .3;      // the upper crown sits a little off-centre, so no two trees are quite alike
+      const ox = lng + jx / 107500, oy = lat + jy / 110574;
+      if (s === 2) {          // a palm: a tall slim trunk, a flat crown of fronds, a small tuft on top
+        c1.push(feat({ v, s, b: h * .86, h: h * .96 }, star(lng, lat, 3.4, 1.0, 8, rot)));
+        c2.push(feat({ v, s, b: h * .96, h: h * 1.06 }, ngon(lng, lat, 1.0, 7, rot)));
+        trunk.push(feat({ s, h: h * .88 }, ngon(lng, lat, .3, 5, rot)));
+      } else if (s === 1) {   // an evergreen: wide at its foot, narrow at its top
+        c1.push(feat({ v, s, b: h * .2, h: h * .6 }, ngon(lng, lat, r * .85, 8, rot)));
+        c2.push(feat({ v, s, b: h * .5, h }, ngon(lng, lat, r * .42, 7, rot)));
+        trunk.push(feat({ s, h: h * .35 }, ngon(lng, lat, .38, 5, rot)));
+      } else {                // a round-crowned tree: a full lower crown and a narrower, off-centre upper one
+        c1.push(feat({ v, s, b: h * .3, h: h * .7 }, ngon(lng, lat, r * (.92 + (v - .5) * .2), 9, rot)));
+        c2.push(feat({ v, s, b: h * .58, h }, ngon(ox, oy, r * .68, 8, rot + .4)));
+        trunk.push(feat({ s, h: h * .42 }, ngon(lng, lat, .38, 5, rot)));
+      }
+      shade.push(feat({}, ngon(lng + h * .22 / 107500, lat + h * .38 / 110574, (s === 2 ? 2.4 : r * .95), 9, rot)));   // the shadow on the ground, thrown away from the light
+    });
+    const fc = f => ({ type: 'FeatureCollection', features: f });
+    return [fc(c1), fc(c2), fc(trunk), fc(shade)];
+  }
+  // Places, as Apple draws them: a small round badge in the colour of what the place is, its name beside it in the same colour.
+  // They give way to each other (and to the landmarks) by importance, so only what fits on the screen is shown.
+  const POI_CAT = {
+    food: ['#FF9A3D', 'utensils', ['restaurant', 'fast_food', 'food_court', 'bar', 'bakery', 'ice_cream']],
+    cafe: ['#FF9A3D', 'coffee', ['cafe']],
+    shop: ['#4F8CFF', 'bag', ['shop', 'grocery', 'supermarket', 'clothing_store', 'convenience', 'department_store', 'mall', 'jewelry']],
+    health: ['#F0524F', 'health', ['hospital', 'doctors', 'pharmacy', 'dentist', 'clinic', 'veterinary']],
+    school: ['#9B6BFF', 'school', ['school', 'college', 'kindergarten', 'library', 'university']],
+    lodging: ['#D56FE0', 'bed', ['lodging', 'hotel']],
+    fuel: ['#2CC3D6', 'fuel', ['fuel']],
+    bank: ['#34B36B', 'service', ['bank', 'atm']],
+    worship: ['#22B8CF', 'church', ['place_of_worship']],
+    safety: ['#F0524F', 'responder', ['police', 'fire_station']],
+    park: ['#6BC25B', 'tree', ['park', 'playground', 'sports_centre']],
+    other: ['#8E97AB', 'pin', []],
+  };
+  const poiBadge = (cat, dark) => {
+    const [col, ic] = POI_CAT[cat], g = window.SD_ICONS[ic] || '';
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="30" r="22" fill="rgba(0,0,0,.28)"/><circle cx="28" cy="28" r="22" fill="' + col + '" stroke="' + (dark ? '#14172A' : '#FFFFFF') + '" stroke-width="3"/>' +
+      '<g transform="translate(15 15) scale(1.08)" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + g + '</g></svg>';
+  };
+  const poiImage = () => ['concat', 'cdp-', ['match', ['get', 'class']].concat(...Object.keys(POI_CAT).filter(k => POI_CAT[k][2].length).map(k => [POI_CAT[k][2], k]), ['other']), isDark() ? '-n' : '-d'];
+  const poiColour = () => ['match', ['get', 'class']].concat(...Object.keys(POI_CAT).filter(k => POI_CAT[k][2].length).map(k => [POI_CAT[k][2], POI_CAT[k][0]]), [POI_CAT.other[0]]);
+  async function addPoiImages() {
+    const load = (name, svg) => new Promise(res => { const im = new Image(); im.onload = () => { if (!map.hasImage(name)) map.addImage(name, im, { pixelRatio: 2 }); res(); }; im.onerror = res; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
+    await Promise.all(Object.keys(POI_CAT).flatMap(k => [load('cdp-' + k + '-n', poiBadge(k, true)), load('cdp-' + k + '-d', poiBadge(k, false))]));
+  }
+
+  async function init() {
+    if (ready) return ready;
+    return (ready = (async () => {
+      await mapReady;
+      if (typeof build3d === 'function') build3d();
+      if (window.sdModels) await window.sdModels.ready;
+      const bake = await fetch('assets/map/shadows.json').then(r => r.json()).catch(() => null);
+      const faces = bake && bake.faces ? await fetch('assets/map/' + bake.faces).then(r => r.json()).catch(() => null) : null;
+      const [detail, bld, lmj, zn, pl, lg, sfj] = await Promise.all(['city-detail', 'buildings'].map(f => fetch('assets/map/' + f + '.json').then(r => r.json()).catch(() => null)).concat(fetch('assets/map/landmarks.geojson').then(r => r.json()).catch(() => null), fetch('assets/map/zones.json').then(r => r.json()).catch(() => null), fetch('assets/map/places.json').then(r => r.json()).catch(() => null), fetch('assets/map/legend.json').then(r => r.json()).catch(() => null), DCE ? fetch('assets/map/safe.json').then(r => r.json()).catch(() => null) : Promise.resolve(null)));
+      QZ = (zn && zn.quiet) || [];
+      ZN = ((zn && zn.zones) || []).map(z => ({ ring: z.ring, off: new Set(z.off) }));
+      COREOFF = new Set((zn && zn.core_off) || []);
+      PLACES = (pl && pl.p) || {};
+      SAFEB = (sfj && sfj.p) || {};
+      if (DCE && window.sdModels) { window.sdModels.skip = new Set(Object.keys(SAFEB).map(Number)); Object.keys(SAFEB).forEach(i => window.sdModels.replaces.delete(+i)); }
+      if (lg && lg.groups) { GORDER = lg.groups.map(g => g.k).join(''); GDAY = lg.groups.map(g => g.day); GNIGHT = lg.groups.map(g => g.night); SIGNS = lg.groups.flatMap(g => ['g_' + g.k, g.sign]); }   // one legend for the walls, the signs and the glow
+      const lms = lmj ? lmj.features.map(f => ({ n: (f.properties && f.properties.name) || '', c: f.geometry.coordinates })).filter(x => x.n) : [];
+      if (WINDOWS) addWalls();
+      await addPoiImages();
+      // The style draws the roads after the buildings; the City view draws the ground (roads, shadows, crossings) first and the
+      // standing things over it, so the plain 3D layer moves up to just under the labels and everything of ours goes round it.
+      { const first = (map.getStyle().layers.find(l => l.type === 'symbol') || {}).id; if (map.getLayer('building-3d') && first) map.moveLayer('building-3d', first); }
+      const p = pal(), lyrs = map.getStyle().layers, i3 = lyrs.findIndex(l => l.id === 'building-3d'), above = i3 >= 0 && lyrs[i3 + 1] ? lyrs[i3 + 1].id : undefined;
+      const firstLabel = (lyrs.find(l => l.type === 'symbol') || {}).id, hide = { visibility: 'none' }, src = map.getSource('openmaptiles');
+      // the buildings: walls with windows by height, then their roofs (the map tiles' plain 3D buildings stay hidden underneath)
+      if (bld && bld.b) {
+        BLD = bld; LMS = lms; BAKE = bake;
+        if (window.sdModels) window.sdModels.init(map, firstLabel);
+        FACES = faces;
+        const [walls, roofs, lmw, trim] = bldShapes(bld, lms, look());
+        if (faces) { map.addSource('cd-faces', { type: 'geojson', data: facePlates(bld, faces) }); map.addLayer({ id: 'cd-face', type: 'fill-extrusion', source: 'cd-faces', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': faceColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d'); }
+        map.addSource('cd-bld', { type: 'geojson', data: walls }); map.addSource('cd-roofs', { type: 'geojson', data: roofs }); map.addSource('cd-lm', { type: 'geojson', data: lmw }); map.addSource('cd-trim', { type: 'geojson', data: trim });
+        const wall = (id, k, flt) => map.addLayer({ id, type: 'fill-extrusion', source: 'cd-bld', minzoom: 15, filter: flt, layout: hide,
+          paint: { 'fill-extrusion-pattern': wallName(k), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
+        if (WINDOWS) { wall('cd-w-lo', 'lo', ['<', ['get', 'h'], 9]); wall('cd-w-mid', 'mid', ['all', ['>=', ['get', 'h'], 9], ['<', ['get', 'h'], 30]]); wall('cd-w-hi', 'hi', ['>=', ['get', 'h'], 30]); }
+        else map.addLayer({ id: 'cd-wall', type: 'fill-extrusion', source: 'cd-bld', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': wallPlain(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
+        map.addLayer({ id: 'cd-lm-wall', type: 'fill-extrusion', source: 'cd-lm', minzoom: 15, layout: hide,
+          paint: { 'fill-extrusion-color': wallKey(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, 'building-3d');
+        map.addLayer({ id: 'cd-lm-trim', type: 'fill-extrusion', source: 'cd-trim', minzoom: 15, layout: hide,
+          paint: { 'fill-extrusion-color': trimColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d');
+        map.addLayer({ id: 'cd-roof', type: 'fill-extrusion', source: 'cd-roofs', minzoom: 15, layout: hide,
+          paint: { 'fill-extrusion-color': roofColour(p), 'fill-extrusion-height': ['get', 't'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 1 } }, 'building-3d');
+      }
+      // the ground, drawn under the first of our standing layers: the baked shadows, crossings, lane lines, the golf course and pitches
+      const ground = map.getLayer('cd-face') ? 'cd-face' : map.getLayer('cd-wall') ? 'cd-wall' : map.getLayer('cd-w-lo') ? 'cd-w-lo' : 'building-3d';
+      if (DCE && BLD && !map.getSource('cd-safe-halo')) {   // the DCE look: a soft halo on the ground under every safe-point building
+        const feats = [];
+        BLD.b.forEach((b, idx) => { const k = sfk(idx); if (!k) return; feats.push({ type: 'Feature', properties: { k }, geometry: { type: 'Polygon', coordinates: [ngon(b[4], b[5], Math.max(b[6], b[7]) * .7 + 8, 28, 0)] } }); });
+        map.addSource('cd-safe-halo', { type: 'geojson', data: { type: 'FeatureCollection', features: feats } });
+        map.addLayer({ id: 'cd-safe-halo', type: 'fill', source: 'cd-safe-halo', minzoom: 15, layout: hide, paint: { 'fill-color': ['match', ['get', 'k'], 1, SAFEC[0], 2, SAFEC[1], 3, SAFEC[2], SAFEC[3]], 'fill-opacity': isDark() ? .5 : .32 } }, ground);
+      }
+      // the baked shadows: one picture laid over the ground, under the buildings (a building hides the part that falls on it)
+      if (bake && bake.bounds) {
+        const [bw, bs, be, bn] = bake.bounds;
+        map.addSource('cd-bake', { type: 'image', url: 'assets/map/shadows.png', coordinates: [[bw, bn], [be, bn], [be, bs], [bw, bs]] });
+        map.addLayer({ id: 'cd-bake', type: 'raster', source: 'cd-bake', minzoom: 15, layout: hide, paint: { 'raster-opacity': p.bake, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+      }
+      // the light, baked: a pool under every lamp and a spill from lit windows (night), a warm bounce beside sunlit walls (day)
+      if (bake && bake.bounds && bake.glow) {
+        const [bw, bs, be, bn] = bake.bounds, co = [[bw, bn], [be, bn], [be, bs], [bw, bs]];
+        map.addSource('cd-glow', { type: 'image', url: 'assets/map/' + (bake.glowRt || bake.glow), coordinates: co });
+        map.addLayer({ id: 'cd-glow', type: 'raster', source: 'cd-glow', minzoom: 15, layout: hide, paint: { 'raster-opacity': 1, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+        map.addSource('cd-bounce', { type: 'image', url: 'assets/map/' + bake.bounce, coordinates: co });
+        map.addLayer({ id: 'cd-bounce', type: 'raster', source: 'cd-bounce', minzoom: 15, layout: hide, paint: { 'raster-opacity': .8, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+      }
+      // the lamps' light is baked into the ground (glow-rt) and onto the walls; there are no markers for the lamps themselves: a marker has no depth and would show through a wall
+      // the fog of war: outside the boundary the ground fades into haze (day) or dark (night); a flat dim covers what is beyond the picture
+      if (bake && bake.fog) {
+        const [fw, fs, fe, fn] = bake.fog.bounds, co = [[fw, fn], [fe, fn], [fe, fs], [fw, fs]], WORLD = [[-179.9, -85], [179.9, -85], [179.9, 85], [-179.9, 85], [-179.9, -85]];
+        map.addSource('cd-fog-n', { type: 'image', url: 'assets/map/' + bake.fog.night, coordinates: co });
+        map.addSource('cd-fog-d', { type: 'image', url: 'assets/map/' + bake.fog.day, coordinates: co });
+        map.addSource('cd-fog-far', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [WORLD, [[fw, fn], [fe, fn], [fe, fs], [fw, fs], [fw, fn]]] } } });
+        ['n', 'd'].forEach(k => map.addLayer({ id: 'cd-fog-' + k, type: 'raster', source: 'cd-fog-' + k, layout: hide, paint: { 'raster-opacity': 1, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground));
+        map.addLayer({ id: 'cd-fog-far', type: 'fill', source: 'cd-fog-far', layout: hide, paint: { 'fill-color': '#0E1226', 'fill-opacity': .93 } }, ground);
+        FOG = bake.fog;
+      }
+      // the day's ground, ray traced (docs/map-data/bake_gpu.py): bounced colour and soft contact shadow; the night keeps the lighter picture above
+      if (bake && bake.bounds && bake.ultra) {
+        const [bw, bs, be, bn] = bake.bounds;
+        map.addSource('cd-bake-u', { type: 'image', url: 'assets/map/' + bake.ultra, coordinates: [[bw, bn], [be, bn], [be, bs], [bw, bs]] });
+        map.addLayer({ id: 'cd-bake-u', type: 'raster', source: 'cd-bake-u', minzoom: 15, layout: hide, paint: { 'raster-opacity': 1, 'raster-fade-duration': 0, 'raster-resampling': 'linear' } }, ground);
+      }
+      // on the road: zebra crossings and the dashed lane lines
+      if (detail && detail.crossings) {
+        map.addSource('cd-cross', { type: 'geojson', data: detail.crossings });
+        map.addLayer({ id: 'cd-cross', type: 'fill', source: 'cd-cross', minzoom: 15, layout: hide, paint: { 'fill-color': p.cross[0], 'fill-opacity': p.cross[1] } }, ground);
+      }
+      if (detail && detail.areas) {   // the golf course as it is mapped, and the pitches, playgrounds and pools, drawn flat
+        map.addSource('cd-areas', { type: 'geojson', data: detail.areas });
+        map.addLayer({ id: 'cd-area', type: 'fill', source: 'cd-areas', minzoom: 15, layout: hide, paint: { 'fill-color': areaColour(p) } }, ground);
+        map.addLayer({ id: 'cd-area-line', type: 'line', source: 'cd-areas', minzoom: 15, layout: hide, filter: ['any', ['==', ['slice', ['get', 'k'], 0, 5], 'pitch'], ['==', ['get', 'k'], 'track']],
+          paint: { 'line-color': p.areaLine[0], 'line-opacity': p.areaLine[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .6, 19, 1.6] } }, ground);
+      }
+      if (src) map.addLayer({ id: 'cd-lane', type: 'line', source: 'openmaptiles', 'source-layer': 'transportation', minzoom: 15, layout: Object.assign({ 'line-cap': 'butt' }, hide),
+        filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary']]],
+        paint: { 'line-color': p.lane[0], 'line-opacity': p.lane[1], 'line-width': ['interpolate', ['linear'], ['zoom'], 16.4, .7, 19, 1.6], 'line-dasharray': [3, 4] } }, ground);
+      // over the buildings: trees, places
+      if (detail && detail.trees) {
+        TREES = detail.trees; const [lo, hi, tr, sh] = treeShapes(TREES);
+        map.addSource('cd-canopy', { type: 'geojson', data: lo }); map.addSource('cd-canopy2', { type: 'geojson', data: hi }); map.addSource('cd-trunk', { type: 'geojson', data: tr }); map.addSource('cd-tsh', { type: 'geojson', data: sh });
+        if (!bake) map.addLayer({ id: 'cd-tshadow', type: 'fill', source: 'cd-tsh', minzoom: 15, layout: hide, paint: { 'fill-color': p.tshadow[0], 'fill-opacity': p.tshadow[1] } }, ground);   // the bake has them; this is the fallback
+        const fade = ['interpolate', ['linear'], ['zoom'], 15.6, 0, 16.4, .97];
+        map.addLayer({ id: 'cd-trunk', type: 'fill-extrusion', source: 'cd-trunk', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': trunkColour(p), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 1 } }, above);
+        map.addLayer({ id: 'cd-canopy', type: 'fill-extrusion', source: 'cd-canopy', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
+        map.addLayer({ id: 'cd-canopy2', type: 'fill-extrusion', source: 'cd-canopy2', minzoom: 15, layout: hide, paint: { 'fill-extrusion-color': canopyColour(p, 'canopy2'), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': fade } }, above);
+      }
+      if (src) {   // places: a badge and a name, the more important winning a crowded spot; names come in as you zoom
+        map.addLayer({ id: 'cd-poi', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 16.2,
+          layout: { visibility: 'none', 'icon-image': poiImage(), 'icon-size': ['interpolate', ['linear'], ['zoom'], 16.2, .5, 18, .72], 'icon-padding': 3, 'icon-pitch-alignment': 'viewport', 'icon-allow-overlap': false,
+                    'symbol-sort-key': ['get', 'rank'], 'text-field': ['coalesce', ['get', 'name:latin'], ['get', 'name']], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 17, 10.5, 18, 11.5],
+                    'text-anchor': 'left', 'text-offset': [1.15, 0], 'text-max-width': 7, 'text-optional': true, 'text-pitch-alignment': 'viewport', 'text-padding': 3 },
+          paint: { 'text-color': poiColour(), 'text-halo-color': p.haloText, 'text-halo-width': 1.5, 'text-opacity': ['interpolate', ['linear'], ['zoom'], 16.9, 0, 17.3, 1] } }, above);
+      }
+      afterPrepare();   // built: kept ready at no opacity until the map is tilted
+    })());
+  }
+  const LAYERS = ['cd-safe-halo', 'cd-face', 'cd-bake', 'cd-bake-u', 'cd-glow', 'cd-bounce', 'cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-cross', 'cd-lane', 'cd-area', 'cd-area-line', 'cd-tshadow', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'cd-poi'];
+  const has = id => !!map.getLayer(id), set = (id, k, v) => { if (has(id)) map.setPaintProperty(id, k, v); };
+  function paint() {
+    const p = pal();
+    CLASSES.forEach(k => set('cd-w-' + k, 'fill-extrusion-pattern', wallName(k)));
+    set('cd-face', 'fill-extrusion-color', faceColour(p)); set('cd-wall', 'fill-extrusion-color', wallPlain(p)); set('cd-roof', 'fill-extrusion-color', roofColour(p)); set('cd-lm-wall', 'fill-extrusion-color', wallKey(p)); set('cd-lm-trim', 'fill-extrusion-color', trimColour(p));
+    set('cd-cross', 'fill-color', p.cross[0]); set('cd-cross', 'fill-opacity', p.cross[1]);
+    set('cd-lane', 'line-color', p.lane[0]); set('cd-lane', 'line-opacity', p.lane[1]);
+    set('cd-canopy', 'fill-extrusion-color', canopyColour(p, 'canopy')); set('cd-canopy2', 'fill-extrusion-color', canopyColour(p, 'canopy2')); set('cd-trunk', 'fill-extrusion-color', trunkColour(p));
+    set('cd-bake', 'raster-opacity', p.bake); set('cd-area', 'fill-color', areaColour(p)); set('cd-area-line', 'line-color', p.areaLine[0]); set('cd-area-line', 'line-opacity', p.areaLine[1]); set('cd-tshadow', 'fill-color', p.tshadow[0]); set('cd-tshadow', 'fill-opacity', p.tshadow[1]);
+    if (has('cd-poi')) { map.setLayoutProperty('cd-poi', 'icon-image', poiImage()); map.setPaintProperty('cd-poi', 'text-halo-color', p.haloText); }
+    try { map.setLight(p.light); map.setSky(p.sky); } catch (e) { /* an older map */ }
+    applyK();
+  }
+  // ---- the transition: tilt the map and the buildings do not pop in, they come up. K is how far the tilt has got (0 flat, 1 standing):
+  // every layer the City view adds fades in with it, the flat map's own building footprints fade out, and the models grow out of the ground.
+  // Nothing is switched by a zoom level any more, so zooming never pops anything either. ----
+  // Two fades. The standing buildings only need a short one at the very start of the tilt: seen from above, an extruded building looks like
+  // its footprint, and a half-transparent extrusion shows its own inside (hollow walls), so it is kept short. The flat things laid on the
+  // ground (shadows, light, the fog) have no inside and fade with the whole tilt.
+  let K = 0, KE = 0;
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const kOf = pitch => smooth(1.5, 54, pitch), keOf = pitch => smooth(.4, 7, pitch);
+  function fadeBase(p) {
+    return { 'cd-wall': 1, 'cd-w-lo': 1, 'cd-w-mid': 1, 'cd-w-hi': 1, 'cd-lm-wall': 1, 'cd-lm-trim': 1, 'cd-roof': 1, 'cd-face': 1, 'cd-trunk': 1, 'cd-canopy': .97, 'cd-canopy2': .97, 'building-3d': 1,
+      'cd-bake': p.bake, 'cd-bake-u': 1, 'cd-glow': 1, 'cd-bounce': .8, 'cd-fog-n': 1, 'cd-fog-d': 1, 'cd-cross': p.cross[1], 'cd-area': 1, 'cd-tshadow': p.tshadow[1], 'cd-lane': p.lane[1], 'cd-area-line': p.areaLine[1] };
+  }
+  const EXTRUDED = new Set(['cd-wall', 'cd-w-lo', 'cd-w-mid', 'cd-w-hi', 'cd-lm-wall', 'cd-lm-trim', 'cd-roof', 'cd-face', 'cd-trunk', 'cd-canopy', 'cd-canopy2', 'building-3d']);
+  const FADE_PROP = { 'fill-extrusion': 'fill-extrusion-opacity', raster: 'raster-opacity', fill: 'fill-opacity', line: 'line-opacity' };
+  function applyK() {
+    const base = fadeBase(pal());
+    Object.keys(base).forEach(id => { const l = map.getLayer(id); if (l) map.setPaintProperty(id, FADE_PROP[l.type], base[id] * (EXTRUDED.has(id) ? KE : K)); });
+    if (map.getLayer('building')) map.setPaintProperty('building', 'fill-opacity', 1 - KE);   // the flat map's footprints give way to the standing buildings
+    if (window.sdModels) window.sdModels.grow(smooth(.4, 16, map.getPitch()));
+  }
+  // ---- how much detail: Auto draws the window walls and drops to plain walls if the map is running slowly on this
+  // computer (Light also drops the pitched roofs); Full and Light (Settings, Appearance) fix it either way ----
+  const WALLS = ['cd-w-lo', 'cd-w-mid', 'cd-w-hi'];
+  const quality = () => { try { return localStorage.getItem('ss-city') || 'auto'; } catch (e) { return 'auto'; } };
+  let slow = false;
+  const plainWalls = p => ['step', H, p.wall.lo[0], 9, p.wall.mid[0], 30, p.wall.hi[0]];
+  function detail() {
+    const q = quality(), full = live() && (q === 'full' || (q === 'auto' && !slow)), plain = has('cd-wall') || has('cd-w-lo');
+    // walls and the landmark walls always; roofs, models' trim and (behind the switch) window textures only at Full
+    ['cd-wall', 'cd-lm-wall'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', live() ? 'visible' : 'none'); });
+    WALLS.forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });
+    ['cd-roof', 'cd-lm-trim', 'cd-face'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', full ? 'visible' : 'none'); });   // Light: plain boxes, no roofs, no model trim
+    if (has('building-3d')) {   // the map tiles' own 3D buildings are only a fallback, when the buildings file did not load
+      map.setLayoutProperty('building-3d', 'visibility', live() && !plain ? 'visible' : 'none');
+      if (live() && !plain) map.setPaintProperty('building-3d', 'fill-extrusion-color', plainWalls(pal()));
+    }
+  }
+  // the fog of war follows the Dim outside switch in Layers; the flat map's own dim hands over to it while the map is tilted
+  // the night's light only at night, the day's bounce only by day
+  // The ground goes back to plain (Ace, 10 Oct): the day and night colours we chose, none of the baked pictures (shadow, glow, bounce, fog), lane lines, crossings, tree shadows, area outlines.
+  // ?ground=1 in the page address brings them back.
+  // (checklist, 10 Oct) the baked shadows, glow, bounce, lane lines, crossings and tree shadows are Final and back; only the first baked fog pictures stay off (the soft-step fog of war is the fog); ?ground=1 brings the fog pictures too
+  const GROUND_BACK = (() => { try { return /[?&]ground=1/.test(location.search); } catch (e) { return false; } })();
+  function lightUpdate() {
+    const night = isDark();
+    ['cd-glow'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', live() && night ? 'visible' : 'none'); });
+    if (has('cd-bounce')) map.setLayoutProperty('cd-bounce', 'visibility', live() && !night && !has('cd-bake-u') ? 'visible' : 'none');   // the ray-traced day ground has its own bounce
+    if (has('cd-bake-u')) { map.setLayoutProperty('cd-bake-u', 'visibility', live() && !night ? 'visible' : 'none'); if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', live() && night ? 'visible' : 'none'); }
+    else if (has('cd-bake')) map.setLayoutProperty('cd-bake', 'visibility', live() ? 'visible' : 'none');
+    if (!GROUND_BACK) ['cd-fog-n', 'cd-fog-d', 'cd-fog-far'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', 'none'); });
+  }
+  function fogUpdate() {
+    const dim = document.getElementById('f-fog') ? document.getElementById('f-fog').checked : true, night = isDark();
+    if (has('cd-fog-n')) map.setLayoutProperty('cd-fog-n', 'visibility', live() && dim && night ? 'visible' : 'none');
+    if (has('cd-fog-d')) map.setLayoutProperty('cd-fog-d', 'visibility', live() && dim && !night ? 'visible' : 'none');
+    if (has('cd-fog-far') && FOG) { map.setLayoutProperty('cd-fog-far', 'visibility', live() && dim ? 'visible' : 'none'); map.setPaintProperty('cd-fog-far', 'fill-color', night ? '#0E1226' : '#EEF2F8'); map.setPaintProperty('cd-fog-far', 'fill-opacity', night ? FOG.alpha.night : FOG.alpha.day); }
+    if (has('fog')) map.setLayoutProperty('fog', 'visibility', (GROUND_BACK ? !on : true) && dim ? 'visible' : 'none');
+    for (let j = 1; j <= 6; j++) if (has('fog-s' + j)) map.setLayoutProperty('fog-s' + j, 'visibility', dim ? 'visible' : 'none');
+    if (!GROUND_BACK) ['cd-fog-n', 'cd-fog-d', 'cd-fog-far'].forEach(id => { if (has(id)) map.setLayoutProperty(id, 'visibility', 'none'); });
+  }
+  // nothing outside the boundary: places, lane lines and landmark badges are cut to it
+  let clipped = false;
+  function clip() {
+    if (clipped || typeof rings === 'undefined' || !rings.length) return;
+    const within = ['within', { type: 'MultiPolygon', coordinates: rings.map(r => [r]) }];
+    if (has('cd-poi')) map.setFilter('cd-poi', within);
+    if (has('cd-lane')) map.setFilter('cd-lane', ['all', ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary']]], within]);
+    if (has('lm-badge')) map.setFilter('lm-badge', within);
+    clipped = has('cd-poi') && has('cd-lane') && has('lm-badge');
+  }
+  // watch the frame rate while the map moves; when a quarter of the last ninety frames took over 28 ms, this screen cannot take the windows
+  { let last = 0; const win = [];
+    map.on('render', () => { if (!on || slow || quality() !== 'auto' || !map.isMoving()) { last = 0; win.length = 0; return; }
+      const now = performance.now(), dt = last ? now - last : 0; last = now; if (!dt || dt > 400) return;
+      win.push(dt > 28 ? 1 : 0); if (win.length > 90) win.shift();
+      if (win.length === 90 && win.reduce((a, b) => a + b, 0) > 22) { slow = true; detail(); } }); }
+  map.on('idle', () => { if (on && !clipped) clip(); });
+  // swap the lighting and shading for another look (and the roofs, which are built differently in each)
+  const EXTR = ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim'];
+  function applyLook() {
+    if (!ready || !BLD) return;
+    const [walls, roofs, lmw, trim] = bldShapes(BLD, LMS, look());
+    ['cd-bld', 'cd-roofs', 'cd-lm', 'cd-trim'].forEach((id, i) => { const src = map.getSource(id); if (src) src.setData([walls, roofs, lmw, trim][i]); });
+    EXTR.forEach(id => set(id, 'fill-extrusion-vertical-gradient', look().vg !== false));
+    if (BAKE && BAKE.bounds && map.getSource('cd-bake')) { const [bw, bs, be, bn] = BAKE.bounds; map.getSource('cd-bake').updateImage({ url: 'assets/map/' + (look().img || 'shadows.png'), coordinates: [[bw, bn], [be, bn], [be, bs], [bw, bs]] }); }
+    paint(); if (on) detail();
+  }
+  window.sdCityLook = name => { if (!LOOKS[name]) return false; LOOK = name; try { localStorage.setItem('ss-look', name); } catch (e) { /* this visit only */ } applyLook(); return true; };
+  window.sdCityLooks = () => Object.keys(LOOKS);
+  function afterPrepare() { prepared = true; applyK(); detail(); fogUpdate(); lightUpdate(); }
+  async function show(want) {
+    on = want; await init(); if (want !== on) return;
+    LAYERS.forEach(id => { if (has(id) && WALLS.indexOf(id) < 0 && ['cd-wall', 'cd-roof', 'cd-lm-wall', 'cd-lm-trim', 'cd-face', 'cd-glow', 'cd-bounce', 'cd-bake', 'cd-bake-u'].indexOf(id) < 0) map.setLayoutProperty(id, 'visibility', (want || id === 'cd-poi' ? want : live()) ? 'visible' : 'none'); });
+    detail(); fogUpdate(); lightUpdate(); clip();
+    if (window.sdModels) window.sdModels.show(live() && (quality() === 'full' || (quality() === 'auto' && !slow)), isDark());
+    K = kOf(map.getPitch()); KE = keOf(map.getPitch());
+    if (want) paint(); else { applyK(); try { map.setSky({}); map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: .5, position: [1.15, 210, 30] }); } catch (e) { /* nothing to undo */ } }
+  }
+  // the tilt drives everything: a frame at a time, so a fast tilt costs no more than a slow one
+  { let raf = 0;
+    map.on('pitch', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0;
+      const pit = map.getPitch(), up = pit > .4; K = kOf(pit); KE = keOf(pit);
+      if (up !== on) show(up); else if (on) applyK(); }); }); }
+  // load the City view's data before it is asked for (when the pointer comes to the Tilt button, and a few quiet seconds after the map is up),
+  // so the first tilt does not wait for it
+  { const pre = () => { init().catch(() => {}); };
+    const tb = document.getElementById('tilt-btn'); if (tb) ['pointerenter', 'focus', 'touchstart'].forEach(ev => tb.addEventListener(ev, pre, { once: true, passive: true }));
+    map.once('idle', () => setTimeout(() => { (window.requestIdleCallback || (f => setTimeout(f, 200)))(pre); }, 4000)); }
+  window.addEventListener('themechange', () => { if (on) { applyLook(); fogUpdate(); lightUpdate(); if (window.sdModels) window.sdModels.show(quality() !== 'light' && !slow, isDark()); } });
+  { const f = document.getElementById('f-fog'); if (f) f.addEventListener('change', () => { if (ready) fogUpdate(); }); }
+  window.addEventListener('storage', e => { if (e.key === 'ss-city') { slow = false; if (on) detail(); } });
+})();
