@@ -90,6 +90,8 @@ function doc_head(string $title, bool $desk = false): void
 <?php if ($desk): ?><link href="assets/css/doc-desk.css?v=<?= e(asset_version('doc-desk.css')) ?>" rel="stylesheet"><?php endif; ?>
 </head>
 <body>
+<main>
+<h1 style="position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"><?= e($title) ?></h1>
 <?php
 }
 

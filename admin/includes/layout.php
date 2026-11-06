@@ -571,7 +571,7 @@ window.ssSupabase = function (url, key, initial) {
 <body class="p-body page-<?= e(basename($active, '.php')) ?><?= in_array($active, ['case.php', 'spatial.php'], true) ? '' : ' id-on' ?>">
 <?= file_get_contents(__DIR__ . '/p_sprite.svg') ?>
 <div id="app" class="p-on">
-  <aside class="p-sidebar">
+  <aside class="p-sidebar" aria-label="<?= e(t('Main menu', 'Pangunahing menu')) ?>">
     <button type="button" class="p-edge" id="side-edge" aria-controls="side-nav" aria-expanded="true"
             data-collapse="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" data-expand="<?= e(t('Expand the sidebar', 'Palakihin ang sidebar')) ?>"
             aria-label="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>" title="<?= e(t('Shrink the sidebar', 'Paliitin ang sidebar')) ?>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
@@ -1327,6 +1327,12 @@ function timeline_title(array $log): string
 function safe_error(Throwable $e): string
 {
     $msg = $e->getMessage();
+
+    // the database could not be reached: say so plainly; the host, the port and cURL's words go to the server's log only
+    if (str_starts_with($msg, 'Could not reach the database')) {
+        error_log('SmartSumbong: ' . $msg);
+        return t('The database cannot be reached just now. Please try again in a moment.', 'Hindi maabot ang database ngayon. Subukan muli maya-maya.');
+    }
 
     $machinery = ['violates', 'constraint', 'relation ', 'column ', 'syntax error',
                   'function ', 'permission denied', 'duplicate key', 'PGRST',

@@ -7,7 +7,7 @@
 
 .ed-phone { position: sticky; top: 18px; display: grid; gap: 12px; justify-items: center; }
 .ed-bar { display: grid; gap: 2px; justify-items: center; text-align: center; max-width: 340px; }
-.ed-bar b { font: 800 14px Inter, sans-serif; letter-spacing: .01em; }
+.ed-bar b, .ed-bar-t { margin: 0; font: 800 14px Inter, sans-serif; letter-spacing: .01em; }
 .ed-bar small { color: var(--p-muted); font-size: 12.5px; line-height: 1.4; }
 .ed-dev { position: relative; width: 340px; height: 640px; padding: 12px; border-radius: 44px; background: #0E1430; box-shadow: 0 30px 60px -24px rgba(8,16,60,.55), inset 0 0 0 2px #26305C; }
 .ed-notch { position: absolute; top: 18px; left: 50%; width: 92px; height: 22px; border-radius: 99px; background: #0E1430; transform: translateX(-50%); z-index: 3; }
@@ -38,7 +38,7 @@
 .ed-cn { font: 700 13.5px/1.25 Inter, sans-serif; }
 .ed-cc { color: #6B6B6B; font: 600 11.5px Inter, sans-serif; }
 .ed-opts { margin: 8px 14px 0; padding: 12px 14px; border-radius: 16px; background: #fff; box-shadow: 0 1px 3px rgba(20,27,52,.08); }
-.ed-opts h5 { margin: 0 0 6px; font: 800 12px Inter, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #6B6B6B; }
+.ed-opts h4 { margin: 0 0 6px; font: 800 12px Inter, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #6B6B6B; }
 .ed-opts ul, .ed-hg ul { list-style: none; margin: 0; padding: 0; display: grid; }
 .ed-opt, .ed-hn { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; border-top: 1px solid #E3E6EE; font: 600 14px Inter, sans-serif; cursor: pointer; }
 .ed-opt:first-child, .ed-hn:first-child { border-top: 0; }

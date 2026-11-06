@@ -34,7 +34,7 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
       </div>
     <?php }; ?>
 <aside class="ed-phone" id="ed-phone" data-screen="report" aria-label="<?= e(t('Live view of the app', 'Live na tanaw ng app')) ?>">
-  <div class="ed-bar"><b><?= e(t('Live view of the app', 'Live na tanaw ng app')) ?></b><small><?= e(t('Changes show here as you type. Saving publishes them.', 'Lumalabas dito ang mga pagbabago habang nagta-type. Ang pag-save ang naglalathala.')) ?></small></div>
+  <div class="ed-bar"><h2 class="ed-bar-t"><?= e(t('Live view of the app', 'Live na tanaw ng app')) ?></h2><small><?= e(t('Changes show here as you type. Saving publishes them.', 'Lumalabas dito ang mga pagbabago habang nagta-type. Ang pag-save ang naglalathala.')) ?></small></div>
   <div class="ed-dev">
     <div class="ed-notch" aria-hidden="true"></div>
     <div class="ed-screen">
@@ -51,7 +51,7 @@ function render_app_phone(array $catOpts, array $hlTop, array $hlKids, array $hl
         </div>
         <?php foreach ($cats as $ck => $cc): ?>
           <div class="ed-opts<?= (string) $ck === $firstKey ? '' : ' ed-hide' ?>" data-for="<?= e((string) $ck) ?>">
-            <h5><?= e(t('What kind?', 'Anong uri?')) ?></h5>
+            <h4><?= e(t('What kind?', 'Anong uri?')) ?></h4>
             <ul>
               <?php foreach ($catOpts[$ck] ?? [] as $o): ?><li class="ed-opt<?= empty($o['active']) ? ' ed-off' : '' ?>" data-oid="<?= (int) $o['id'] ?>"><span class="ed-ol"><?= e(t((string) $o['label_en'], (string) $o['label_fil'])) ?></span><i class="ed-chev" aria-hidden="true"></i></li><?php endforeach; ?>
               <li class="ed-opt ed-hide ed-new" data-oid="new"><span class="ed-ol"></span><i class="ed-chev" aria-hidden="true"></i></li>

@@ -28,8 +28,9 @@ async function open(page, path) {
 }
 
 async function axe(page) {
-  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-  return r.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')
+  // every finding, moderate and minor included (7 Nov 2026: the a11y audit, a11y-audit.spec.mjs, found none left on any page)
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']).analyze();
+  return r.violations
     .map(v => `${v.impact} ${v.id}: ${v.help} (${v.nodes.length}× e.g. ${v.nodes[0].target.join(' ')})`);
 }
 
@@ -1075,7 +1076,7 @@ test('Account pages, peak: the tanod page leads with figures and banners, and a 
   await open(page, 'personnel.php?view=staff');
   await page.locator('.pc-name').first().click();
   await expect(page).toHaveURL(/staff=s1/);
-  await expect(page.locator('.pd-head h2')).toContainText('Santos');
+  await expect(page.locator('.pd-head h1')).toContainText('Santos');
   await expect(page.locator('.pd-fig > div')).toHaveCount(4);
   await expect(page.locator('.pd-head .pd-fadewrap'), 'the committee is the cover of the name card, not a card of its own').toHaveCount(1);
   await expect(page.locator('.pd-head .cm-pill')).toContainText('Peace and Order');

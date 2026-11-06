@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <!-- Right panel: orange field with the barangay photo washed behind it.
        Accepts either extension — whichever the team exported. -->
-  <section class="login-panel">
+  <main class="login-panel">
     <?= prefs_switches('prefs--login') ?>
     <?php
     $bg = null;
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </p>
     </div>
     <p class="login-powered"><span><?= e(t('Powered by', 'Pinapagana ng')) ?></span><img src="assets/img/smart-engine-sm.webp" width="56" height="22" alt="SMART engine" decoding="async"></p>
-</section>
+</main>
 </div>
 
 <script>

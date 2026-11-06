@@ -414,5 +414,6 @@ $dutyPct = fn(array $d) => ($d['on'] + $d['off']) > 0 ? (int) round($d['on'] / (
   requestAnimationFrame(function () { $('cd-zw').click(); });
 })();
 </script>
+</main>
 </body>
 </html>

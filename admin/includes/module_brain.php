@@ -110,7 +110,7 @@ function module_brain(Supabase $db, bool $homeLink = true): string
     ob_start(); ?>
 <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><?php if ($n > 0): ?><b class="ss-brain-n"><?= $n > 99 ? '99+' : $n ?></b><?php endif; ?></button>
 <div class="ss-win-scrim" id="ss-win-scrim"></div>
-<aside class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
+<div class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
   <header class="ss-win-head">
     <?= smart_logo(40) ?>
     <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees', 'Ang nakikita ng engine')) ?></b><small><?= e(module_brain_name($m)) ?></small></div>
@@ -120,7 +120,7 @@ function module_brain(Supabase $db, bool $homeLink = true): string
     <?= module_brain_section($db) ?>
     <?php if ($home): ?><a class="p-btn p-btn-ghost p-btn-sm mb-home" href="<?= e($home[0]) ?>"><?= e($home[1]) ?> &rarr;</a><?php endif; ?>
   </div></div>
-</aside>
+</div>
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php return (string) ob_get_clean();
 }
@@ -142,7 +142,7 @@ function residents_brain(array $n, int $requests = 0): string
     ob_start(); ?>
 <button type="button" class="ss-brain-btn" id="ss-win-open" aria-haspopup="dialog" aria-controls="ss-panel" title="<?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?>"><?= smart_brain(26) ?><span class="p-sr"><?= e(t('Ask the SMART engine', 'Tanungin ang SMART engine')) ?></span><b class="ss-brain-n" id="rs-brain-n"<?= $badge > 0 ? '' : ' hidden' ?>><?= $badge > 99 ? '99+' : $badge ?></b></button>
 <div class="ss-win-scrim" id="ss-win-scrim"></div>
-<aside class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
+<div class="ss-win" id="ss-panel" role="dialog" aria-modal="true" aria-labelledby="ss-win-title" aria-hidden="true">
   <header class="ss-win-head">
     <?= smart_logo(40) ?>
     <div class="ss-win-ttl"><b id="ss-win-title"><?= e(t('What the engine sees', 'Ang nakikita ng engine')) ?></b><small><?= e(t('Residents', 'Mga Residente')) ?></small></div>
@@ -171,7 +171,7 @@ function residents_brain(array $n, int $requests = 0): string
     </section>
     <a class="p-btn p-btn-ghost p-btn-sm mb-home" href="residents.php"><?= e(t('Show every resident', 'Ipakita ang lahat ng residente')) ?> &rarr;</a>
   </div></div>
-</aside>
+</div>
 <script src="assets/js/smart-panel.js?v=<?= e(asset_version('../js/smart-panel.js')) ?>"></script>
 <?php return (string) ob_get_clean();
 }
