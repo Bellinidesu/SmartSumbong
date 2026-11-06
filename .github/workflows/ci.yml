@@ -64,6 +64,8 @@ jobs:
           fail=0
           while IFS= read -r f; do php -l "$f" > /dev/null || fail=1; done < <(git ls-files '*.php')
           exit $fail
+      - name: Database client and shared cache (tests/php/perf_test.php)
+        run: php tests/php/perf_test.php
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
@@ -232,7 +234,7 @@ jobs:
       - name: PostgreSQL 17 (the version Supabase runs) with PostGIS and pg_cron
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -q
           sudo apt-get install -y -q postgresql-17 postgresql-17-postgis-3 postgresql-17-cron postgresql-17-hypopg

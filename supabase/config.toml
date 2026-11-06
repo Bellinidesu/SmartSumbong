@@ -32,3 +32,7 @@ verify_jwt = false
 # verify_jwt stays true (as deployed, version 11).
 [functions.send-dispatch-push]
 verify_jwt = true
+
+[functions.level-switch]
+# 0162: the caller is identified from their own token inside the function
+verify_jwt = true

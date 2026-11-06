@@ -286,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _busy ? null : _forgotPassword,
                     style: TextButton.styleFrom(foregroundColor: cardText, padding: const EdgeInsets.symmetric(horizontal: 4)),
                     child: Text(s.loginForgotPassword,
-                        style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 13, decoration: TextDecoration.underline, decorationColor: Colors.white)),
+                        style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 13, decoration: TextDecoration.underline, decorationColor: Colors.white)),
                   ),
                 ]),
                 if (_error != null) ...[
@@ -294,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     margin: const EdgeInsets.only(top: 4, bottom: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: const Color(0x33FFC107), border: Border.all(color: const Color(0x80FFC107))),
-                    child: Text(_error!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, color: Color(0xFFFFE08A), fontSize: 13)),
+                    child: Text(_error!, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, color: Color(0xFFFFE08A), fontSize: 13)),
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -395,7 +395,7 @@ class _DField extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 6),
-        child: Text(label, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
+        child: Text(label, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
       ),
       TextField(
         controller: controller,
@@ -404,10 +404,10 @@ class _DField extends StatelessWidget {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         autofillHints: autofill,
-        style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: obscure ? 20 : 15.5, letterSpacing: obscure ? 2 : 0, color: ink),
+        style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: obscure ? 20 : 15.5, letterSpacing: obscure ? 2 : 0, color: ink),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 14.5, letterSpacing: 0, color: dark ? Colors.white60 : const Color(0xFF8A90A3), fontStyle: FontStyle.normal),
+          hintStyle: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 14.5, letterSpacing: 0, color: dark ? Colors.white60 : const Color(0xFF8A90A3), fontStyle: FontStyle.normal),
           filled: true,
           fillColor: dark ? (tanod ? const Color(0xFF353B44) : const Color(0xFF22305E)) : Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -429,7 +429,7 @@ class _DField extends StatelessWidget {
       if (error != null)
         Padding(
           padding: const EdgeInsets.only(left: 4, top: 5),
-          child: Text(error!, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFFFFE08A))),
+          child: Text(error!, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12.5, color: Color(0xFFFFE08A))),
         ),
     ]);
   }

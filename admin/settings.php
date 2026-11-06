@@ -23,6 +23,7 @@ require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/qr.php';
 require_once __DIR__ . '/includes/forwarding.php';   // the committee banners (committee_sd_types, cm_banner_style, sd_icon_for)
 require_once __DIR__ . '/includes/app_editor.php';   // the Control Room's live view of the app
+require_once __DIR__ . '/includes/settings_mine.php';   // a Kagawad's or staff member's own Settings (4 Nov 2026)
 
 $admin = require_admin();
 $db    = db();
@@ -33,9 +34,11 @@ $db    = db();
 const ST_PAGES = [
     'settings' => ['file' => 'settings.php', 'tabs' => ['status', 'usage', 'smart', 'look']],
     'admin'    => ['file' => 'administrative-services.php', 'tabs' => ['access', 'admins', 'ladder', 'plan']],
-    'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts']],
+    'control'  => ['file' => 'control-room.php', 'tabs' => ['types', 'rules', 'hotlines', 'wording', 'brgy', 'parts', 'updates']],
+    // a Kagawad or staff member (4 Nov 2026): their own look, their committee (read only) and their module of the engine
+    'mine'     => ['file' => 'settings.php', 'tabs' => ['look', 'committee', 'module']],
 ];
-$stPage = defined('ST_PAGE') && isset(ST_PAGES[ST_PAGE]) ? ST_PAGE : 'settings';
+$stPage = defined('ST_PAGE') && isset(ST_PAGES[ST_PAGE]) ? ST_PAGE : (is_scoped() ? 'mine' : 'settings');
 
 function st_on(string $tab): bool
 {
@@ -269,6 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                     'p_colour' => preg_match('/^#[0-9a-fA-F]{6}$/', $p('colour')) ? $p('colour') : null, 'p_icon' => preg_match('/^[a-z_]+$/', $p('icon')) ? $p('icon') : null,
                     'p_active' => $isNew ? true : !empty($_POST['active']), 'p_sort' => null]);
                 if ($isNew && $madeKey) $db->rpc('catalogue_fill');
+                shared_forget('complaint_categories', 'complaint_options', 'committee_categories');   // catalogue_fill may add options and ticks
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $isNew
                     ? t('Category made. Residents can pick it once the app refreshes its list.', 'Nagawa ang kategorya. Mapipili ito ng mga residente kapag na-refresh ng app ang listahan.')
                     : t('Category saved.', 'Nai-save ang kategorya.')];
@@ -276,6 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 $isNew = $p('id') === '';
                 $db->rpc('option_save', ['p_id' => $isNew ? null : (int) $p('id'), 'p_category' => $p('category'), 'p_label_en' => $p('label_en'),
                     'p_label_fil' => $p('label_fil') ?: null, 'p_active' => $isNew ? true : !empty($_POST['active']), 'p_sort' => null]);
+                shared_forget('complaint_options');
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $isNew ? t('Option added.', 'Naidagdag ang opsyon.') : t('Option saved.', 'Nai-save ang opsyon.')];
             }
         } catch (SupabaseError $ex) {
@@ -310,6 +315,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 if (is_string($saved) && ($key !== '' || $cats)) {
                     $db->rpc('committee_set_categories', ['p_key' => $saved, 'p_categories' => '{' . implode(',', $cats) . '}']);
                 }
+                // 0164: the logo beside the barangay seal in the committee's sidebar
+                if (is_string($saved) && !empty($_POST['logo_clear'])) {
+                    $db->rpc('committee_set_logo', ['p_key' => $saved, 'p_url' => null]);
+                } elseif (is_string($saved) && ($pic = cloudinary_upload_files('logo', 1, 'committees'))) {
+                    $db->rpc('committee_set_logo', ['p_key' => $saved, 'p_url' => $pic[0]['media_url']]);
+                }
+                shared_forget('committees', 'committee_categories');
                 $_SESSION['st_flash'] = ['level' => 'info', 'text' => $key === '' ? t('Committee made.', 'Nagawa ang komite.') : t('Committee saved.', 'Nai-save ang komite.')];
             } elseif ($_POST['action'] === 'super_colour') {
                 // 0150: the one colour of every super admin; the database refuses one near an active committee's
@@ -328,6 +340,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         }
     }
     header('Location: ' . st_url($back));
+    exit;
+}
+
+// App updates (0161): a super admin publishes a version for the self-updater, or withdraws one.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['release_publish', 'release_active'], true)) {
+    session_start_once();
+    if (!csrf_check($_POST['csrf'] ?? null)) {
+        $_SESSION['st_flash'] = ['level' => 'error', 'text' => t('That form expired. Please try again.', 'Nag-expire ang form. Subukan muli.')];
+    } else {
+        try {
+            if ($_POST['action'] === 'release_publish') {
+                $db->rpc('app_release_publish', ['p_version' => trim((string) ($_POST['version'] ?? '')), 'p_build' => (int) ($_POST['build'] ?? 0), 'p_url' => trim((string) ($_POST['apk_url'] ?? '')),
+                    'p_sha256' => trim((string) ($_POST['sha256'] ?? '')), 'p_notes_en' => trim((string) ($_POST['notes_en'] ?? '')) ?: null, 'p_notes_fil' => trim((string) ($_POST['notes_fil'] ?? '')) ?: null,
+                    'p_mandatory' => !empty($_POST['mandatory'])]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Published. Phones are offered it the next time the app opens.', 'Nailathala. Iaalok ito sa mga telepono sa susunod na pagbukas ng app.')];
+            } else {
+                $db->rpc('app_release_set_active', ['p_id' => (string) ($_POST['id'] ?? ''), 'p_on' => !empty($_POST['on'])]);
+                $_SESSION['st_flash'] = ['level' => 'info', 'text' => t('Saved.', 'Nai-save.')];
+            }
+        } catch (SupabaseError $ex) {
+            $_SESSION['st_flash'] = ['level' => 'error', 'text' => safe_error($ex)];
+        }
+    }
+    header('Location: ' . st_url('updates'));
     exit;
 }
 
@@ -582,17 +618,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     header('Location: ' . st_url('places'));
     exit;
 }
-$places = []; $kinds = [];
-try {
-    $got = $db->selectMany([
-        'places' => ['places', ['select' => 'id,name,grp,aliases,lat,lng', 'source' => 'eq.barangay', 'active' => 'eq.true', 'order' => 'name.asc', 'limit' => '200'], true],
-        'kinds'  => ['place_kinds', ['select' => 'grp,label', 'order' => 'label.asc'], true],
-    ]);
-    $places = is_array($got['places'] ?? null) ? $got['places'] : [];
-    $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
-} catch (SupabaseError $ex) { /* the card says so below */ }
+/**
+ * Every read the tabs on this page make, by tab (speed work, 7 Nov 2026). The three pages this file draws (Settings,
+ * Administrative Services, Control Room) used to read tab by tab, one wait after another: up to fourteen. Now the reads of the
+ * tabs the page shows are declared here once, fetched together in one batch just below the header (st_prefetch), and each tab
+ * takes its own group again from the request's read memo (supabase.php) without a wait. A tab's own error handling is
+ * unchanged: a read that failed in the batch is not kept, so the tab's own call asks again and fails or succeeds as before.
+ *
+ * @return array<string, array<string, array>> group => selectMany entries
+ */
+function st_reads(string $stPage): array
+{
+    $g = [];
+    if ($stPage !== 'mine') {
+        // the barangay's places are a super admin's to keep
+        $g['places'] = [
+            'places' => ['places', ['select' => 'id,name,grp,aliases,lat,lng', 'source' => 'eq.barangay', 'active' => 'eq.true', 'order' => 'name.asc', 'limit' => '200'], true],
+            'kinds'  => ['place_kinds', ['select' => 'grp,label', 'order' => 'label.asc'], true],
+        ];
+        // the administrators, tanods and committee map are for the super admins' tabs
+        $g['people'] = [
+            'admins' => ['users', ['select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev,is_test',
+                                   'role' => 'eq.admin', 'order' => 'created_at.asc']],
+            'tanods' => ['users', ['select' => 'id,full_name,women_responder', 'role' => 'eq.tanod', 'is_suspended' => 'is.false', 'order' => 'full_name.asc']],
+            'cmap'   => ['committee_for_category', ['select' => 'category,committee', 'order' => 'category.asc']],
+        ];
+    }
+    if (st_on('status')) {
+        $g['status'] = [
+            'up'     => ['rpc/portal_uptime_summary', [], true],   // 0096: the database pings the portal every 10 minutes
+            'eng'    => ['rpc/engine_status', [], true],           // 0137: the engine that reads ID photos on the server
+            'smh'    => ['rpc/smart_engine_health', [], true],     // 0140: is SMART running, and how often its advice was taken
+            'smp'    => ['rpc/smart_pick_stats', ['p_days' => 90], true],
+            'smf'    => ['rpc/smart_fix_stats', ['p_days' => 90], true],
+            'errs'   => ['portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5'], true],
+            'alerts' => ['system_alerts', ['select' => 'key,message,raised_at', 'cleared_at' => 'is.null', 'order' => 'raised_at.desc'], true],   // 0119
+        ];
+    }
+    if (st_on('access')) {
+        $g['access'] = [
+            'cc'   => ['committee_categories', ['select' => 'committee,category'], true],
+            'fs'   => ['feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc'], true],
+            'pcom' => ['rpc/personnel_committees', []],
+        ];
+    }
+    if (st_on('updates')) {
+        $g['updates'] = ['releases' => ['app_releases', ['select' => 'id,version,build,apk_url,sha256,notes_en,notes_fil,mandatory,active,created_at', 'order' => 'build.desc'], true]];
+    }
+    if (st_on('parts')) {
+        $g['parts'] = ['switches' => ['feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc'], true]];
+    }
+    if (st_on('types')) {
+        $g['types'] = [
+            'opts'  => ['complaint_options', ['select' => 'id,category,label_en,label_fil,active,sort', 'order' => 'category.asc,sort.asc,id.asc'], true],
+            'ccats' => ['committee_categories', ['select' => 'committee,category'], true],
+        ];
+    }
+    if (st_on('rules') || st_on('hotlines')) {
+        $g['rules'] = [
+            'ops' => ['operational_settings', ['select' => '*', 'id' => 'eq.1']],
+            'sla' => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes']],
+            'hg'  => ['hotline_groups', ['select' => 'id,parent_id,name,display,sort_order,is_active', 'order' => 'sort_order.asc,name.asc']],
+            'hn'  => ['hotline_numbers', ['select' => 'id,group_id,label,number,carrier,sort_order,is_active', 'order' => 'sort_order.asc']],
+        ];
+    }
+    if (st_on('wording')) {
+        $g['wording'] = ['wording' => ['wording', ['select' => 'source,en,fil,updated_at', 'order' => 'updated_at.desc'], true]];
+    }
+    if (st_on('smart') || st_on('plan')) {
+        // 0142: planning. Each part may fail on its own; the card then says so.
+        $g['plan'] = [
+            'roster'   => ['rpc/smart_roster_suggestion', ['p_days' => 90], true],
+            'forecast' => ['rpc/smart_forecast', ['p_days' => 28], true],
+            'fair'     => ['rpc/smart_fairness', ['p_days' => 14], true],
+            'patterns' => ['rpc/smart_patterns', ['p_days' => 90], true],
+            'orders'   => ['smart_work_orders', ['select' => 'id,pattern_key,title,category,status,note,evidence,created_at', 'order' => 'created_at.desc', 'limit' => '40'], true],
+        ];
+        $g['hist'] = ['hist' => ['rpc/smart_rule_history', ['p_limit' => 12]]];
+        $g['smart'] = [
+            'rules'  => ['smart_rules', ['select' => '*', 'id' => 'eq.1', 'limit' => '1'], true],
+            'cal'    => ['rpc/smart_calibration', ['p_days' => 90], true],
+            'fac'    => ['rpc/smart_factor_stats', ['p_days' => 90], true],
+            'digest' => ['rpc/smart_digest_preview', [], true],
+            'words'  => ['rpc/smart_word_suggestions', ['p_days' => 30], true],
+            'cmd'    => ['command_state', ['select' => 'auto_switch', 'id' => 'eq.1', 'limit' => '1'], true],
+            'links'  => ['command_display_links', ['select' => 'id,label,created_at,revoked_at,last_seen_at', 'order' => 'created_at.desc', 'limit' => '8'], true],
+            'runs'   => ['command_sessions', ['select' => 'id,mode,how,reason,started_at,ended_at,end_note,starter:users!command_sessions_started_by_fkey(full_name)', 'order' => 'started_at.desc', 'limit' => '5'], true],
+        ];
+    }
+    return $g;
+}
 
-$stTitle = ['settings' => t('Settings', 'Mga Setting'), 'admin' => t('Administrative Services', 'Mga Serbisyong Pang-admin'),
+/** One tab's reads, as declared in st_reads(). */
+function st_group(string $group): array
+{
+    global $stPage;
+    return st_reads((string) $stPage)[$group] ?? [];
+}
+
+/** One read of a tab: its value (rows, or what the function returned); a failure is thrown, as the tab's own call always did. */
+function st_pick(Supabase $db, string $group, string $key): mixed
+{
+    $e = st_group($group)[$key] ?? null;
+    if ($e === null) return null;
+    $e[2] = false;
+    return $db->selectMany([$key => $e])[$key];
+}
+
+/** Every visible tab's reads in one wait, all optional here so one failure cannot stop the others. */
+function st_prefetch(Supabase $db, string $stPage): void
+{
+    $all = [];
+    foreach (st_reads($stPage) as $gk => $entries) {
+        foreach ($entries as $k => $e) { $e[2] = true; $all[$gk . ':' . $k] = $e; }
+    }
+    if ($all) { try { $db->selectMany($all); } catch (SupabaseError) { /* each tab asks again for itself */ } }
+}
+
+
+$stTitle = ['settings' => t('Settings', 'Mga Setting'), 'mine' => t('Settings', 'Mga Setting'), 'admin' => t('Administrative Services', 'Mga Serbisyong Pang-admin'),
             'control' => t('Control Room', 'Silid-Kontrol')][$stPage];
 layout_head($stTitle, ST_PAGES[$stPage]['file']);
 ?>
@@ -601,10 +745,11 @@ layout_head($stTitle, ST_PAGES[$stPage]['file']);
 
 <?php
 $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => t('Plan and usage', 'Plano at paggamit'), 'smart' => 'SMART',
-    'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Administrators', 'Mga Administrator'), 'ladder' => t('Escalation and responders', 'Eskalasyon at mga responder'),
+    'look' => t('Appearance', 'Itsura'), 'access' => t('Committees', 'Mga komite'), 'admins' => t('Roles', 'Mga Tungkulin'), 'ladder' => t('Escalation and responders', 'Eskalasyon at mga responder'),
     'plan' => t('Planning', 'Pagpaplano'), 'types' => t('Complaint types', 'Mga uri ng reklamo'), 'rules' => t('Rules', 'Mga patakaran'),
     'hotlines' => t('Hotlines', 'Mga hotline'), 'wording' => t('Wording', 'Mga salita'), 'brgy' => t('The barangay', 'Ang barangay'),
-    'parts' => t('Parts of the system', 'Mga bahagi ng sistema')];
+    'parts' => t('Parts of the system', 'Mga bahagi ng sistema'), 'updates' => t('App updates', 'Mga update ng app'),
+    'committee' => t('My committee', 'Aking komite'), 'module' => 'SMART'];
 ?>
 <div class="p-seg-mini st-tabs" role="tablist" aria-label="<?= e(sprintf(t('%s sections', 'Mga bahagi ng %s'), $stTitle)) ?>">
   <?php foreach (ST_PAGES[$stPage]['tabs'] as $k => $tb): ?>
@@ -620,15 +765,18 @@ $stLabels = ['status' => t('System status', 'Kalagayan ng sistema'), 'usage' => 
 // temporary password. Adding one from here comes with the account service.
 $stFlash = $_SESSION['st_flash'] ?? null;
 unset($_SESSION['st_flash']);
-$admins = [];
-try {
-    $admins = $db->select('users', [
-        'select' => 'id,full_name,email,must_change_password,is_suspended,created_at,official_role,committee,admin_tier,is_dev',
-        'role'   => 'eq.admin',
-        'order'  => 'created_at.asc',
-    ]);
-    $tanods  = $db->select('users', ['select' => 'id,full_name,women_responder', 'role' => 'eq.tanod', 'is_suspended' => 'is.false', 'order' => 'full_name.asc']);
-    $cmap    = $db->select('committee_for_category', ['select' => 'category,committee', 'order' => 'category.asc']);
+// every visible tab's reads, in one wait (st_reads above); each tab below takes its own from the request's read memo
+st_prefetch($db, $stPage);
+$places = []; $kinds = [];
+if ($stPage !== 'mine') try {
+    $got = $db->selectMany(st_group('places'));
+    $places = is_array($got['places'] ?? null) ? $got['places'] : [];
+    $kinds  = is_array($got['kinds'] ?? null) ? $got['kinds'] : [];
+} catch (SupabaseError $ex) { /* the card says so below */ }
+$admins = []; $tanods = []; $cmap = [];
+if ($stPage !== 'mine') try {
+    $got = $db->selectMany(st_group('people'));
+    $admins = (array) $got['admins']; $tanods = (array) $got['tanods']; $cmap = (array) $got['cmap'];
 } catch (SupabaseError $e) { $admins = []; $tanods = []; $cmap = []; }
 ?>
 <?php if (st_on('admins')): ?>
@@ -645,7 +793,7 @@ try {
   <?php endif; ?>
   <?php $roleOpts = ['' => t('Staff', 'Kawani'), 'secretary' => t('Secretary', 'Kalihim'), 'kagawad' => t('Councilor (Kagawad)', 'Kagawad'), 'chairman' => t('Chairman', 'Punong Barangay')]; ?>
   <div class="p-band ss-pband">
-    <h2><?= e(t('Administrators', 'Mga Administrator')) ?><span class="p-badge-n p-badge-n--quiet" id="jp-count"><?= count($admins) ?></span></h2>
+    <h2><?= e(t('Roles', 'Mga Tungkulin')) ?><span class="p-badge-n p-badge-n--quiet" id="jp-count"><?= count($admins) ?></span></h2>
     <form class="p-search" role="search">
       <?= p_icon('i-search', 16) ?><label class="p-sr" for="jp-q"><?= e(t('Search for names', 'Hanapin ang pangalan')) ?></label>
       <input type="search" id="jp-q" placeholder="<?= e(t('Search for names', 'Hanapin ang pangalan')) ?>" autocomplete="off">
@@ -662,7 +810,7 @@ try {
   $rkDef = ['' => [t('All', 'Lahat'), '#2D5BFF', '#00A3FF', '#FFFFFF', 'layers'], 'chairman' => [t('Chairman', 'Punong Barangay'), '#E5383B', '#FF6A3D', '#FFFFFF', 'focus'],
             'kagawad' => [t('Councilor', 'Kagawad'), '#7A5AE0', '#B15CFF', '#FFFFFF', 'handler'], 'secretary' => [t('Secretary', 'Kalihim'), '#0097B8', '#35D0E8', '#FFFFFF', 'calendar'],
             'staff' => [t('Staff', 'Kawani'), '#6C7A9C', '#9AA6C4', '#FFFFFF', 'copy']]; ?>
-  <nav class="cm-chips ad-roles" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
+  <nav class="cm-chips cm-choose ad-roles" data-chooser="a.cm-chip" aria-label="<?= e(t('Position', 'Posisyon')) ?>">
     <?php foreach ($rkDef as $rk => [$rl, $c1, $c2, $ink, $ic]): ?>
       <a class="cm-chip cm-sd<?= $rk === '' ? ' p-on' : '' ?>" href="#" data-role="<?= e($rk) ?>" style="--cc:<?= e($c1) ?>;--ct:<?= e($ink) ?>;--g1:<?= e($c1) ?>;--g2:<?= e($c2) ?>;--g3:<?= e($c2) ?>" title="<?= e($rl) ?>"><i class="cm-sym"><svg class="cm-ic" data-ic="<?= e($ic) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg></i><span class="cm-n"><?= e($rl) ?></span><b><?= (int) ($rkN[$rk] ?? 0) ?></b></a>
     <?php endforeach; ?>
@@ -673,6 +821,7 @@ try {
     chips.forEach(function (c) { c.addEventListener('click', function (e) { e.preventDefault(); sel.value = c.dataset.role; sel.dispatchEvent(new Event('change', { bubbles: true })); chips.forEach(function (x) { x.classList.toggle('p-on', x === c); x.toggleAttribute('aria-current', x === c); }); }); });
   })();
   </script>
+  <script src="assets/js/chooser.js?v=<?= e(asset_version('../js/chooser.js')) ?>"></script>
   <div class="p-card p-table-card jp-scope ss-people ss-adm" id="ss-people"><div class="p-tscroll">
     <table class="p-t ss-ohead">
     <thead><tr>
@@ -687,7 +836,7 @@ try {
     <tbody id="jp-rows">
     <?php foreach ($admins as $a): $isK = ($a['official_role'] ?? '') === 'kagawad'; $hasC = in_array($a['official_role'] ?? '', ['kagawad', 'secretary'], true); $me = $a['id'] === $admin['id']; ?>
       <tr class="ss-arow" data-id="<?= e($a['id']) ?>" data-name="<?= e(strtolower(($a['full_name'] ?? '') . ' ' . ($a['email'] ?? ''))) ?>" data-role="<?= e(($a['official_role'] ?? '') === '' ? 'staff' : (string) $a['official_role']) ?>">
-        <td><div class="p-person"><?= admin_chip($a['id'], (string) $a['full_name'], 30) ?><span><?= e(formal_name($a['full_name'])) ?><?= $me ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?><small class="ss-mail"><?= e((string) ($a['email'] ?? '')) ?></small></span></div></td>
+        <td><div class="p-person"><?= admin_chip($a['id'], (string) $a['full_name'], 30) ?><span><?= e(formal_name($a['full_name'])) ?><?= !empty($a['is_test']) ? ' <span class="p-badge dv-test" title="' . e(t('A development team test account', 'Isang test account ng development team')) . '">TEST</span>' : '' ?><?= $me ? ' <small>(' . e(t('you', 'ikaw')) . ')</small>' : '' ?><small class="ss-mail"><?= e((string) ($a['email'] ?? '')) ?></small></span></div></td>
         <td><?= rank_chip($a['official_role'] ?? null, null, false) ?></td>
         <td><?php if ($isK && !empty($a['committee'])): ?><span class="ss-comm"><span class="cdot" style="--cc:<?= e(committee_colour($a['committee'])) ?>" aria-hidden="true"></span><?= e(committee_labels()[$a['committee']][0] ?? '') ?></span><?php else: ?><span class="p-sub">&mdash;</span><?php endif; ?></td>
         <td><div class="p-badges"><?php if (!empty($a['is_suspended'])): ?><span class="p-badge p-b-denied"><?= e(t('Suspended', 'Suspendido')) ?></span><?php elseif (!empty($a['must_change_password'])): ?><span class="p-badge p-b-pending"><?= e(t('Must change password', 'Kailangang palitan ang password')) ?></span><?php else: ?><span class="p-badge p-b-done"><?= e(t('Active', 'Aktibo')) ?></span><?php endif; ?></div></td>
@@ -768,25 +917,49 @@ try {
   $nTanods = count($tanods);
   ?>
   <div class="p-band ss-pband ss-subband">
-    <h2><?= e(t('Layered escalation', 'Patong-patong na eskalasyon')) ?><span class="p-badge-n p-badge-n--quiet">3</span></h2>
+    <h2><?= e(t('How a case goes up', 'Paano umaakyat ang kaso')) ?><span class="p-badge-n p-badge-n--quiet">4</span></h2>
     <span class="p-spacer"></span>
-    <span class="ss-subnote"><?= e(t('A case goes up one step at a time, and only when a person sends it. Nothing moves by itself.', 'Isang hakbang bawat pag-akyat ng kaso, at kapag may taong nagpadala lang. Walang kusang gumagalaw.')) ?></span>
+    <span class="ss-subnote"><?= e(t('Every step is a person\'s decision. Nothing moves by itself, and a case can be sent back down.', 'Desisyon ng tao ang bawat hakbang. Walang kusang gumagalaw, at maibabalik ang kaso pababa.')) ?></span>
   </div>
-  <div class="ss-levels">
-    <div class="ss-lvl" style="--lc:var(--rk-tanod)">
-      <span class="ss-num">1</span>
-      <div class="p-card ss-lbox">
-        <h3><?= e(t('Tanod', 'Tanod')) ?><small><?= e(t('first on the case', 'unang hahawak')) ?></small></h3>
-        <p><?= e(t('Whoever the barangay dispatches. They can escalate from the app, on site or from the job screen.', 'Sinumang ipadala ng barangay. Maaari silang mag-escalate mula sa app, sa lugar o sa job screen.')) ?></p>
+  <ol class="ss-levels es-flow">
+    <li class="es-step" style="--lc:var(--rk-tanod)">
+      <span class="es-num">1</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Tanod', 'Tanod')) ?><small><?= e(t('asks', 'humihiling')) ?></small></h3>
+        <p><?= e(t('Does the job on site. If it is too much, the tanod asks to escalate from the app, with a reason. A tanod asks; they cannot move the case themselves.', 'Gumagawa ng trabaho sa lugar. Kapag napakabigat, humihiling ang tanod na i-escalate mula sa app, may dahilan. Humihiling lang ang tanod; hindi nila malilipat ang kaso.')) ?></p>
         <span class="p-badge p-b-progress"><?= $nTanods ?> <?= e(t($nTanods === 1 ? 'active tanod' : 'active tanods', 'aktibong tanod')) ?></span>
       </div>
-    </div>
-    <div class="ss-lvl" style="--lc:var(--rk-kagawad)">
-      <span class="ss-num">2</span>
-      <div class="p-card p-table-card ss-lbox ss-lbox--tbl">
-        <h3><?= e(t('Kagawad of the committee', 'Kagawad ng komite')) ?><small><?= e(t('when the Tanod escalates', 'kapag nag-escalate ang Tanod')) ?></small></h3>
-        <p><?= e(t('Pick which committee takes each kind of complaint first. A Kagawad needs a committee.', 'Piliin kung aling komite ang unang hahawak sa bawat uri ng reklamo. Kailangan ng komite ang Kagawad.')) ?></p>
-        <div class="p-tscroll jp-scope ss-people ss-adm ss-lst"><table class="p-t ss-ohead">
+    </li>
+    <li class="es-step" style="--lc:var(--rk-kagawad)">
+      <span class="es-num">2</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Kagawad of the committee', 'Kagawad ng komite')) ?><small><?= e(t('decides, then takes over', 'nagpapasya, saka hahawak')) ?></small></h3>
+        <p><?= e(t('The committee that takes this kind of complaint first (set below) decides the request. If it is approved, the Kagawad of that committee with the fewest open cases becomes the handler.', 'Ang komiteng unang humahawak sa ganitong reklamo (itinakda sa ibaba) ang nagpapasya sa hiling. Kapag inaprubahan, ang Kagawad ng komiteng iyon na pinakakaunti ang bukas na kaso ang hahawak.')) ?></p>
+        <span class="p-badge p-b-grey"><?= e(t('Staff cannot escalate up', 'Hindi makakapag-escalate paakyat ang kawani')) ?></span>
+      </div>
+    </li>
+    <li class="es-step" style="--lc:var(--rk-chair)">
+      <span class="es-num">3</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Chairman', 'Punong Barangay')) ?><small><?= e(t('last step in the barangay', 'huling hakbang sa barangay')) ?></small></h3>
+        <p><?= e(t('When a Kagawad escalates, the Chairman becomes the handler and decides. The Chairman can send the case back down.', 'Kapag nag-escalate ang Kagawad, ang Punong Barangay ang hahawak at magpapasya. Maibabalik ng Punong Barangay ang kaso pababa.')) ?></p>
+        <?php if ($chairs): foreach ($chairs as $c): ?><span class="ss-who ss-holder"><?= admin_chip($c['id'], (string) $c['full_name'], 28) ?><?= e(formal_name($c['full_name'])) ?></span><?php endforeach; else: ?>
+          <span class="p-badge p-b-denied"><?= e(t('No Chairman yet', 'Wala pang Punong Barangay')) ?></span><?php endif; ?>
+      </div>
+    </li>
+    <li class="es-step" style="--lc:#6C7A9C">
+      <span class="es-num">4</span>
+      <div class="p-card es-box">
+        <h3><?= e(t('Outside office', 'Labas na tanggapan')) ?><small><?= e(t('closes it here', 'dito nagsasara')) ?></small></h3>
+        <p><?= e(t('For what the barangay cannot settle (the VAWC desk, the police, DSWD), an official refers the case out from the case page. It closes here, with the office and a note on record.', 'Sa hindi kayang ayusin ng barangay (VAWC desk, pulis, DSWD), ipinapadala ito ng opisyal mula sa pahina ng kaso. Dito ito nagsasara, may tanggapan at tala sa talaan.')) ?></p>
+      </div>
+    </li>
+  </ol>
+
+  <div class="p-card p-table-card es-map">
+    <div class="es-maph"><h3><?= e(t('Which committee takes each kind of complaint first', 'Aling komite ang unang hahawak sa bawat uri ng reklamo')) ?></h3>
+      <p><?= e(t('This sets whose Kagawad receives an escalation for that kind of complaint. A Kagawad needs a committee.', 'Dito itinatakda kung kaninong Kagawad mapupunta ang escalation sa uri ng reklamong iyon. Kailangan ng komite ang Kagawad.')) ?></p></div>
+    <div class="p-tscroll jp-scope ss-people ss-adm ss-lst es-white"><table class="p-t ss-ohead">
           <thead><tr><th scope="col"><?= e(t('Kind of complaint', 'Uri ng reklamo')) ?></th><th scope="col"><?= e(t('Committee that takes it first', 'Komiteng unang hahawak')) ?></th><th scope="col"><?= e(t('Kagawad on it now', 'Kagawad ngayon')) ?></th></tr></thead>
           <tbody>
           <?php foreach ($cmap as $m):
@@ -809,17 +982,6 @@ try {
           <?php endforeach; ?>
           </tbody>
         </table></div>
-      </div>
-    </div>
-    <div class="ss-lvl" style="--lc:var(--rk-chair)">
-      <span class="ss-num">3</span>
-      <div class="p-card ss-lbox">
-        <h3><?= e(t('Chairman', 'Punong Barangay')) ?><small><?= e(t('final step: when the Kagawad escalates', 'huling hakbang: kapag nag-escalate ang Kagawad')) ?></small></h3>
-        <?php if ($chairs): foreach ($chairs as $c): ?><span class="ss-who ss-holder"><?= admin_chip($c['id'], (string) $c['full_name'], 28) ?><?= e(formal_name($c['full_name'])) ?></span><?php endforeach; else: ?>
-          <span class="p-badge p-b-denied"><?= e(t('No Chairman yet', 'Wala pang Punong Barangay')) ?></span><?php endif; ?>
-        <p class="p-sub"><?= e(t('There is one Chairman. Cases that need an outside office are sent from the case page.', 'Iisa ang Punong Barangay. Ang mga kasong kailangan ng labas na tanggapan ay ipinapadala mula sa pahina ng kaso.')) ?></p>
-      </div>
-    </div>
   </div>
 
   <nav class="cm-chips wr-banner" aria-label="<?= e(t('Women responders', 'Mga responder para sa kababaihan')) ?>">
@@ -856,20 +1018,13 @@ try {
 <?php if (st_on('status')):
 // 0096 (industry pass 5): the database pings the portal every 10 minutes
 // and keeps score.
-$up = null;
-try { $up = $db->rpc('portal_uptime_summary'); } catch (SupabaseError) {}
-$eng = null;   // the engine (0137): reads ID photos on the server
-try { $eng = $db->rpc('engine_status'); } catch (SupabaseError) {}
-// 0140: is SMART running, and how often was its advice taken and its fixes confirmed
-$smh = $smp = $smf = null;
-try { $smh = $db->rpc('smart_engine_health'); } catch (SupabaseError) {}
-try { $smp = $db->rpc('smart_pick_stats', ['p_days' => 90]); } catch (SupabaseError) {}
-try { $smf = $db->rpc('smart_fix_stats', ['p_days' => 90]); } catch (SupabaseError) {}
-$errs = null;
-try { $errs = $db->select('portal_errors', ['select' => 'source,page,message,count,last_seen', 'order' => 'last_seen.desc', 'limit' => '5']); } catch (SupabaseError) {}
-// 0119: what the hourly health check found and has not seen clear yet.
-$alerts = [];
-try { $alerts = $db->select('system_alerts', ['select' => 'key,message,raised_at', 'cleared_at' => 'is.null', 'order' => 'raised_at.desc']); } catch (SupabaseError) {}
+$up = $eng = $smh = $smp = $smf = $errs = null; $alerts = [];
+try {
+    $got = $db->selectMany(st_group('status'));
+    $ok = static fn (string $k) => ($got[$k] ?? null) instanceof SupabaseError ? null : ($got[$k] ?? null);
+    $up = $ok('up'); $eng = $ok('eng'); $smh = $ok('smh'); $smp = $ok('smp'); $smf = $ok('smf'); $errs = $ok('errs');
+    $alerts = $ok('alerts') ?? [];   // 0119: what the hourly health check found and has not seen clear yet
+} catch (SupabaseError) {}
 $upPct = fn(int $ok, int $n) => $n > 0 ? rtrim(rtrim(number_format($ok / $n * 100, 2), '0'), '.') . '%' : '—';
 endif;
 ?>
@@ -878,10 +1033,8 @@ endif;
 $cmCats = [];
 $switches = [];
 try {
-    $got = $db->selectMany([
-        'cc' => ['committee_categories', ['select' => 'committee,category'], true],
-        'fs' => ['feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc'], true],
-    ]);
+    $acc = st_group('access'); unset($acc['pcom']);
+    $got = $db->selectMany($acc);
     foreach ((array) (($got['cc'] ?? null) instanceof SupabaseError ? [] : $got['cc']) as $r) { $cmCats[$r['committee']][] = $r['category']; }
     $switches = ($got['fs'] ?? null) instanceof SupabaseError ? [] : (array) $got['fs'];
 } catch (SupabaseError) {}
@@ -897,7 +1050,7 @@ endif;
   $cmLead = []; $cmTanods = [];
   foreach ($admins as $x) { if (($x['official_role'] ?? '') === 'kagawad' && !empty($x['committee'])) $cmLead[(string) $x['committee']][] = formal_name((string) $x['full_name']); }
   try {
-      foreach ((array) $db->rpc('personnel_committees') as $r) {
+      foreach ((array) st_pick($db, 'access', 'pcom') as $r) {
           foreach ((array) ($r['committees'] ?? []) as $c) { if (($c['status'] ?? '') === 'approved') $cmTanods[(string) $c['key']] = ($cmTanods[(string) $c['key']] ?? 0) + 1; }
       }
   } catch (SupabaseError) {}
@@ -930,7 +1083,7 @@ endif;
     <?php endif; ?>
     <div class="cmx-grid">
     <?php foreach (committees_all() as $ck => $cc): $ticked = $cmCats[$ck] ?? []; $lead = $cmLead[$ck] ?? []; $nT = (int) ($cmTanods[$ck] ?? 0); $cHex = committee_colour($ck); ?>
-      <form method="post" class="acc-row cmx-card<?= empty($cc['active']) ? ' acc-off' : '' ?>">
+      <form method="post" class="acc-row cmx-card<?= empty($cc['active']) ? ' acc-off' : '' ?>" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="<?= e($ck) ?>">
         <div class="cm-chips cmx-banner" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="<?= e(cm_banner_style($ck, $sdTypes)) ?>"><?= cm_sym_tag($ck, $sdTypes, (string) $cc['short_en']) ?><span class="cm-n"><?= e((string) $cc['short_en']) ?></span><b><?= $nT ?></b></a></div>
         <div class="cmx-body">
@@ -942,6 +1095,16 @@ endif;
               <input class="p-input-plain" id="cf-<?= e($ck) ?>" name="name_fil" value="<?= e((string) $cc['name_fil']) ?>" title="<?= e((string) $cc['name_fil']) ?>" maxlength="120"></label>
             <label class="ty-f" for="cs-<?= e($ck) ?>"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
               <input class="p-input-plain" id="cs-<?= e($ck) ?>" name="short_en" value="<?= e((string) $cc['short_en']) ?>" maxlength="40"></label>
+            <?php $lg = (string) ($cc['logo_url'] ?? ''); $lgHex = committee_colour($ck); ?>
+            <div class="ty-f cmx-logo-f"><span><?= e(t('Sidebar logo', 'Logo sa sidebar')) ?></span>
+              <span class="cmx-logo">
+                <label class="cmx-lg" title="<?= e(t('The logo beside the barangay seal in this committee\'s sidebar', 'Ang logo sa tabi ng selyo ng barangay sa sidebar ng komiteng ito')) ?>">
+                  <span class="cmx-lgi" style="--cc:<?= e($lgHex) ?>;--ci:<?= e(ink_on($lgHex)) ?>"><?php if ($lg !== ''): ?><img src="<?= e(cld_thumb($lg, 96)) ?>" alt=""><?php else: ?><svg class="cmx-ti" data-ic="<?= e((string) (($sdTypes[$ck][0][1] ?? null) ?: 'other')) ?>" viewBox="0 0 24 24" aria-hidden="true"></svg><?php endif; ?></span>
+                  <span class="cmx-lgt"><?= e($lg !== '' ? t('Change logo', 'Palitan ang logo') : t('Upload logo', 'Mag-upload ng logo')) ?></span>
+                  <input type="file" name="logo[]" accept="image/png,image/jpeg,image/webp"></label>
+                <?php if ($lg !== ''): ?><label class="cmx-lgx"><input type="checkbox" name="logo_clear" value="1"><span><?= e(t('Use the symbol instead', 'Gamitin ang simbolo')) ?></span></label><?php endif; ?>
+              </span>
+            </div>
           </div>
           <fieldset class="cmx-types acc-cats"><legend><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></legend>
             <div class="cmx-chips"><?php $typeChips($ticked, $ck); ?></div></fieldset>
@@ -957,7 +1120,7 @@ endif;
     </div>
     <details class="cmx-newd">
       <summary><span class="cmx-plus" aria-hidden="true">+</span><?= e(t('Add a committee', 'Magdagdag ng komite')) ?></summary>
-      <form method="post" class="acc-row acc-new cmx-card cmx-card-new">
+      <form method="post" class="acc-row acc-new cmx-card cmx-card-new" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="committee_save"><input type="hidden" name="key" value="">
         <div class="cm-chips cmx-banner" aria-hidden="true"><a class="cm-chip cm-sd" tabindex="-1" style="--cc:#78909C;--ct:#FFFFFF;--g1:#78909C;--g2:#78909C;--g3:#78909C"><i class="cm-sym cm-sym-sd"></i><span class="cm-n"><?= e(t('Your new committee', 'Ang bago mong komite')) ?></span><b>0</b></a></div>
         <div class="cmx-body">
@@ -968,13 +1131,21 @@ endif;
               <input class="p-input-plain" id="cf-new" name="name_fil" maxlength="120"></label>
             <label class="ty-f" for="cs-new"><span><?= e(t('Short name', 'Maikling pangalan')) ?></span>
               <input class="p-input-plain" id="cs-new" name="short_en" maxlength="40"></label>
+            <div class="ty-f cmx-logo-f"><span><?= e(t('Sidebar logo', 'Logo sa sidebar')) ?></span>
+              <span class="cmx-logo">
+                <label class="cmx-lg" title="<?= e(t('The logo beside the barangay seal in this committee\'s sidebar', 'Ang logo sa tabi ng selyo ng barangay sa sidebar ng komiteng ito')) ?>">
+                  <span class="cmx-lgi" style="--cc:#78909C;--ci:#FFFFFF"><svg class="cmx-ti" data-ic="other" viewBox="0 0 24 24" aria-hidden="true"></svg></span>
+                  <span class="cmx-lgt"><?= e(t('Upload logo', 'Mag-upload ng logo')) ?></span>
+                  <input type="file" name="logo[]" accept="image/png,image/jpeg,image/webp"></label>
+              </span>
+            </div>
           </div>
           <fieldset class="cmx-types acc-cats"><legend><?= e(t('Kinds of complaint it sees', 'Mga uri ng reklamong nakikita nito')) ?></legend>
             <div class="cmx-chips"><?php $typeChips([], 'new'); ?></div></fieldset>
           <div class="cmx-foot acc-act">
             <?php $freeHex = '#78909C'; foreach (COMMITTEE_PALETTE as $ph) { if (colour_clash($ph) === null) { $freeHex = $ph; break; } } ?>
             <label class="acc-col cmx-col" title="<?= e(t('The colour of this committee\'s admins\' sidebar', 'Ang kulay ng sidebar ng mga admin ng komiteng ito')) ?>"><span><?= e(t('Sidebar colour', 'Kulay ng sidebar')) ?></span><input type="color" name="colour" value="<?= e(strtolower($freeHex)) ?>" list="cm-palette"></label>
-            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make committee', 'Gumawa ng komite')) ?></button>
           </div>
         </div>
       </form>
@@ -1003,7 +1174,14 @@ endif;
           var nm = (f.querySelector('input[name="short_en"]').value || f.querySelector('input[name="name_en"]').value || '').trim();
           chip.querySelector('.cm-n').textContent = nm || chip.querySelector('.cm-n').textContent;
         }
-        function dirty() { var d = new URLSearchParams(new FormData(f)).toString() !== initial; f.classList.toggle('cmx-dirty', d); if (save) save.disabled = !d; f.classList.toggle('acc-off', !isNew && !f.querySelector('input[name="active"]').checked); }
+        // a logo picked shows in its slot at once (0164); a file input does not change the form's text, so it is checked on its own
+        var lgIn = f.querySelector('.cmx-lg input[type="file"]'), lgBox = f.querySelector('.cmx-lgi'), lgUrl = null;
+        if (lgIn) lgIn.addEventListener('change', function () {
+          if (lgUrl) URL.revokeObjectURL(lgUrl);
+          var file = lgIn.files && lgIn.files[0]; if (!file) return;
+          lgUrl = URL.createObjectURL(file); lgBox.innerHTML = ''; var im = document.createElement('img'); im.src = lgUrl; im.alt = ''; lgBox.appendChild(im);
+        });
+        function dirty() { var d = new URLSearchParams(new FormData(f)).toString() !== initial || !!(lgIn && lgIn.files && lgIn.files.length); f.classList.toggle('cmx-dirty', d); if (save) save.disabled = !d; f.classList.toggle('acc-off', !isNew && !f.querySelector('input[name="active"]').checked); }
         f.addEventListener('input', function () { banner(); dirty(); }); f.addEventListener('change', function () { banner(); dirty(); });
         banner();
       });
@@ -1018,7 +1196,7 @@ endif;
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="super_colour">
       <label class="acc-col"><span class="p-sr"><?= e(t('Super admin colour', 'Kulay ng super admin')) ?></span><input type="color" name="colour" value="<?= e(strtolower($supHex)) ?>"></label>
       <code><?= e($supHex) ?></code><?php if ($supHex === SUPER_BLUE): ?><span class="p-badge p-b-progress"><?= e(t('Branding blue', 'Asul ng branding')) ?></span><?php endif; ?>
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save colour', 'I-save ang kulay')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save colour', 'I-save ang kulay')) ?></button>
       <?php if ($supHex !== SUPER_BLUE): ?><button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="colour" value="<?= e(SUPER_BLUE) ?>"><?= e(t('Back to branding blue', 'Ibalik sa branding blue')) ?></button><?php endif; ?>
     </form>
   </div>
@@ -1026,10 +1204,53 @@ endif;
 </section>
 <?php endif; ?>
 
+<?php if (st_on('updates')):
+// ---------- App updates (0161) ----------
+$releases = [];
+try { $releases = (array) st_pick($db, 'updates', 'releases'); } catch (SupabaseError) {}
+$relMax = $releases ? max(array_map(fn ($r) => (int) $r['build'], $releases)) : 0;
+$relNow = null; foreach ($releases as $r0) { if (!empty($r0['active'])) { $relNow = (int) $r0['build']; break; } }
+?>
+<section class="st-pane" data-pane="updates" hidden>
+  <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
+  <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
+  <div class="p-card p-card-pad cmx-page" id="updates-card">
+    <h2 class="cmx-h"><?= e(t('App updates', 'Mga update ng app')) ?></h2>
+    <p class="p-hint"><?= e(t('Publish a new version and phones with an older build are offered it the next time the app opens. A version marked must update cannot be skipped. The app checks the SHA-256 before it installs, and Android refuses an APK signed with a different key. Build the APK, host it at any https link, and paste the link here.', 'Mag-publish ng bagong bersyon at iaalok ito sa mga telepono na may mas lumang build sa susunod na pagbukas ng app. Hindi malalampasan ang bersyong minarkahang kailangang i-update. Sinusuri ng app ang SHA-256 bago mag-install, at tinatanggihan ng Android ang APK na may ibang susi. I-build ang APK, i-host sa anumang https link, at i-paste ang link dito.')) ?></p>
+    <form method="post" class="up-form" id="up-form">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="release_publish">
+      <label class="ty-f"><span><?= e(t('Version', 'Bersyon')) ?></span><input class="p-input-plain" name="version" required pattern="[0-9]+(\.[0-9]+){1,3}" placeholder="1.0.1" maxlength="20"></label>
+      <label class="ty-f"><span><?= e(t('Build number (higher than the last, which is', 'Build number (mas mataas sa huli, na')) ?> <?= (int) $relMax ?>)</span><input class="p-input-plain" type="number" name="build" required min="<?= $relMax + 1 ?>" value="<?= $relMax + 1 ?>"></label>
+      <label class="ty-f up-wide"><span><?= e(t('Link to the APK (https)', 'Link ng APK (https)')) ?></span><input class="p-input-plain" type="url" name="apk_url" required pattern="https://.+" maxlength="500" placeholder="https://"></label>
+      <label class="ty-f up-wide"><span><?= e(t('SHA-256 of the APK (in PowerShell: Get-FileHash app.apk -Algorithm SHA256)', 'SHA-256 ng APK (sa PowerShell: Get-FileHash app.apk -Algorithm SHA256)')) ?></span><input class="p-input-plain up-mono" name="sha256" required pattern="[0-9a-fA-F]{64}" maxlength="64" minlength="64" placeholder="64 characters"></label>
+      <label class="ty-f"><span><?= e(t('What is new (English)', 'Ano ang bago (English)')) ?></span><textarea class="p-input-plain" name="notes_en" rows="2" maxlength="600"></textarea></label>
+      <label class="ty-f"><span><?= e(t('What is new (Tagalog)', 'Ano ang bago (Tagalog)')) ?></span><textarea class="p-input-plain" name="notes_fil" rows="2" maxlength="600"></textarea></label>
+      <label class="cmx-sw up-sw"><input type="checkbox" name="mandatory" value="1"><i aria-hidden="true"></i><span><?= e(t('Must update: the app cannot be used until it is installed', 'Kailangang i-update: hindi magagamit ang app hangga\'t hindi na-install')) ?></span></label>
+      <div class="up-act"><button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Publish this version', 'I-publish ang bersyong ito')) ?></button></div>
+    </form>
+    <p class="p-eyebrow" style="margin-top:22px"><?= e(t('Published versions', 'Mga nailathalang bersyon')) ?> <span class="p-badge-n p-badge-n--quiet"><?= count($releases) ?></span></p>
+    <?php if (!$releases): ?><p class="p-hint"><?= e(t('Nothing published yet: no phone is offered an update.', 'Wala pang nailathala: walang teleponong inaalukan ng update.')) ?></p><?php endif; ?>
+    <ul class="up-list">
+      <?php foreach ($releases as $r): $isNow = !empty($r['active']) && (int) $r['build'] === $relNow; $host = (string) (parse_url((string) $r['apk_url'], PHP_URL_HOST) ?: ''); ?>
+        <li class="up-rel<?= empty($r['active']) ? ' up-off' : '' ?>">
+          <div class="up-main">
+            <b>v<?= e((string) $r['version']) ?></b><small><?= e(t('build', 'bilang ng build')) ?> <?= (int) $r['build'] ?> · <?= e(long_datetime((string) $r['created_at'])) ?> · <?= e($host) ?></small>
+            <span class="up-tags"><?php if ($isNow): ?><span class="p-badge p-b-done"><?= e(t('Offered now', 'Inaalok ngayon')) ?></span><?php endif; ?><?php if (!empty($r['mandatory'])): ?><span class="p-badge p-b-denied"><?= e(t('Must update', 'Kailangang i-update')) ?></span><?php endif; ?><?php if (empty($r['active'])): ?><span class="p-badge p-b-grey"><?= e(t('Withdrawn', 'Binawi')) ?></span><?php endif; ?></span>
+            <?php if (!empty($r['notes_en']) || !empty($r['notes_fil'])): ?><p class="up-notes"><?= e(t((string) ($r['notes_en'] ?? ''), (string) ($r['notes_fil'] ?? $r['notes_en'] ?? ''))) ?></p><?php endif; ?>
+          </div>
+          <form method="post" class="up-sw2"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="release_active"><input type="hidden" name="id" value="<?= e((string) $r['id']) ?>">
+            <label class="cmx-sw"><input type="checkbox" name="on" value="1" data-autosubmit <?= !empty($r['active']) ? 'checked' : '' ?>><i aria-hidden="true"></i><span><?= e(t('Offered', 'Inaalok')) ?></span></label></form>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+</section>
+<?php endif; ?>
+
 <?php if (st_on('parts')):
 // ---------- Parts of the system (0144) ----------
 $switches = [];
-try { $switches = (array) $db->select('feature_switches', ['select' => 'key,label_en,label_fil,enabled,note', 'order' => 'key.asc']); } catch (SupabaseError) {}
+try { $switches = (array) st_pick($db, 'parts', 'switches'); } catch (SupabaseError) {}
 ?>
 <section class="st-pane" data-pane="parts" hidden>
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
@@ -1050,7 +1271,7 @@ try { $switches = (array) $db->select('feature_switches', ['select' => 'key,labe
 // ---------- Complaint types (0146) ----------
 $catOpts = [];
 try {
-    foreach ((array) $db->select('complaint_options', ['select' => 'id,category,label_en,label_fil,active,sort', 'order' => 'category.asc,sort.asc,id.asc']) as $o) {
+    foreach ((array) st_pick($db, 'types', 'opts') as $o) {
         $catOpts[(string) $o['category']][] = $o;
     }
 } catch (SupabaseError) {}
@@ -1066,7 +1287,7 @@ endif;
   <?php
   // who sees each kind of complaint: the active committees it is connected to
   $tyOwn = [];
-  try { foreach ((array) $db->select('committee_categories', ['select' => 'committee,category']) as $r0) { if (!empty(committees_all()[$r0['committee']]['active'])) $tyOwn[(string) $r0['category']][] = (string) (committees_all()[$r0['committee']]['short_en'] ?? $r0['committee']); } } catch (SupabaseError) {}
+  try { foreach ((array) st_pick($db, 'types', 'ccats') as $r0) { if (!empty(committees_all()[$r0['committee']]['active'])) $tyOwn[(string) $r0['category']][] = (string) (committees_all()[$r0['committee']]['short_en'] ?? $r0['committee']); } } catch (SupabaseError) {}
   ?>
   <div class="p-card p-card-pad cmx-page" id="types-card">
     <h2 class="cmx-h"><?= e(t('Complaint types', 'Mga uri ng reklamo')) ?></h2>
@@ -1083,7 +1304,7 @@ endif;
           <label class="ty-f ty-col"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" name="colour" value="<?= e($cc['colour']) ?>"></label>
           <label class="ty-f"><span><?= e(t('Symbol on the map', 'Simbolo sa mapa')) ?></span><select class="p-input-plain" name="icon"><?php foreach ($iconChoices as $iv => $il): ?><option value="<?= e($iv) ?>" <?= $cc['icon'] === $iv ? 'selected' : '' ?>><?= e($il) ?></option><?php endforeach; ?></select></label>
           <label class="sd-c ty-on"><input type="checkbox" name="active" value="1" <?= $cc['active'] ? 'checked' : '' ?>> <?= e(t('Residents can pick it', 'Mapipili ng mga residente')) ?></label>
-          <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save category', 'I-save ang kategorya')) ?></button>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save category', 'I-save ang kategorya')) ?></button>
         </form>
         <ul class="ty-opts">
           <?php foreach ($opts as $o): ?>
@@ -1100,7 +1321,7 @@ endif;
             <label class="p-sr" for="oe-new-<?= e($ck) ?>"><?= e(t('New option in English', 'Bagong opsyon sa Ingles')) ?></label><input class="p-input-plain" id="oe-new-<?= e($ck) ?>" name="label_en" required minlength="2" maxlength="60" placeholder="<?= e(t('New option, for example: Overgrown trees', 'Bagong opsyon, halimbawa: Lumagong puno')) ?>">
             <label class="p-sr" for="of-new-<?= e($ck) ?>"><?= e(t('New option in Tagalog', 'Bagong opsyon sa Tagalog')) ?></label><input class="p-input-plain" id="of-new-<?= e($ck) ?>" name="label_fil" maxlength="60" placeholder="<?= e(t('In Tagalog', 'Sa Tagalog')) ?>">
             <span></span>
-            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Add option', 'Idagdag ang opsyon')) ?></button>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Add option', 'Idagdag ang opsyon')) ?></button>
           </form></li>
         </ul>
       </details>
@@ -1112,7 +1333,7 @@ endif;
       <label class="ty-f ty-col"><span><?= e(t('Colour', 'Kulay')) ?></span><input type="color" name="colour" value="#2E7D32"></label>
       <label class="ty-f"><span><?= e(t('Symbol on the map', 'Simbolo sa mapa')) ?></span><select class="p-input-plain" name="icon"><?php foreach ($iconChoices as $iv => $il): ?><option value="<?= e($iv) ?>"><?= e($il) ?></option><?php endforeach; ?></select></label>
       <span></span>
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make category', 'Gumawa ng kategorya')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make category', 'Gumawa ng kategorya')) ?></button>
     </form>
   </div>
 </section>
@@ -1122,12 +1343,7 @@ endif;
 // ---------- Rules and Hotlines (0147) ----------
 $ops = []; $slas = []; $hlGroups = []; $hlNums = [];
 try {
-    $got = $db->selectMany([
-        'ops' => ['operational_settings', ['select' => '*', 'id' => 'eq.1']],
-        'sla' => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes']],
-        'hg'  => ['hotline_groups', ['select' => 'id,parent_id,name,display,sort_order,is_active', 'order' => 'sort_order.asc,name.asc']],
-        'hn'  => ['hotline_numbers', ['select' => 'id,group_id,label,number,carrier,sort_order,is_active', 'order' => 'sort_order.asc']],
-    ]);
+    $got = $db->selectMany(st_group('rules'));
     $rows = static fn (string $k): array => is_array($got[$k] ?? null) ? $got[$k] : [];
     $ops = (array) ($rows('ops')[0] ?? []);
     foreach ($rows('sla') as $x) $slas[(string) $x['category']] = $x;
@@ -1211,7 +1427,7 @@ endif;
           <label class="ty-f"><span><?= e(t('Group name', 'Pangalan ng grupo')) ?></span><input class="p-input-plain" name="name" value="<?= e((string) $g['name']) ?>" required maxlength="120"></label>
           <label class="ty-f"><span><?= e(t('On the first screen', 'Sa unang screen')) ?></span><select class="p-input-plain" name="display"><option value="inline" <?= $g['display'] === 'inline' ? 'selected' : '' ?>><?= e(t('Show its numbers', 'Ipakita ang mga numero')) ?></option><option value="link" <?= $g['display'] === 'link' ? 'selected' : '' ?>><?= e(t('A row that opens it', 'Hilerang nagbubukas nito')) ?></option></select></label>
           <label class="sd-c ty-on"><input type="checkbox" name="active" value="1" <?= !empty($g['is_active']) ? 'checked' : '' ?>> <?= e(t('Shown', 'Ipinapakita')) ?></label>
-          <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save group', 'I-save ang grupo')) ?></button>
+          <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save group', 'I-save ang grupo')) ?></button>
         </form>
         <ul class="ty-opts">
           <?php foreach ($nums as $n): $nid = (string) $n['id']; ?>
@@ -1230,7 +1446,7 @@ endif;
             <label class="p-sr" for="hl-n-new-<?= e($gid) ?>"><?= e(t('New number', 'Bagong numero')) ?></label><input class="p-input-plain" id="hl-n-new-<?= e($gid) ?>" name="number" required minlength="3" maxlength="32" inputmode="tel" placeholder="<?= e(t('Number', 'Numero')) ?>">
             <label class="p-sr" for="hl-c-new-<?= e($gid) ?>"><?= e(t('New number\'s network', 'Network ng bagong numero')) ?></label><input class="p-input-plain" id="hl-c-new-<?= e($gid) ?>" name="carrier" maxlength="20" placeholder="<?= e(t('Network', 'Network ng SIM')) ?>">
             <span></span>
-            <button class="p-btn p-btn-sm" type="submit"><?= e(t('Add number', 'Idagdag ang numero')) ?></button>
+            <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Add number', 'Idagdag ang numero')) ?></button>
           </form></li>
         </ul>
         <?php foreach ($hlKids[$gid] ?? [] as $k) $hlGroup($k, $depth + 1); ?>
@@ -1242,7 +1458,7 @@ endif;
       <label class="ty-f"><span><?= e(t('New group', 'Bagong grupo')) ?></span><input class="p-input-plain" name="name" required maxlength="120" placeholder="<?= e(t('For example: Health Center', 'Halimbawa: Health Center')) ?>"></label>
       <label class="ty-f"><span><?= e(t('On the first screen', 'Sa unang screen')) ?></span><select class="p-input-plain" name="display"><option value="inline"><?= e(t('Show its numbers', 'Ipakita ang mga numero')) ?></option><option value="link"><?= e(t('A row that opens it', 'Hilerang nagbubukas nito')) ?></option></select></label>
       <label class="ty-f"><span><?= e(t('Inside', 'Sa loob ng')) ?></span><select class="p-input-plain" name="parent"><option value=""><?= e(t('The first screen', 'Ang unang screen')) ?></option><?php foreach ($hlTop as $g): ?><option value="<?= e((string) $g['id']) ?>"><?= e((string) $g['name']) ?></option><?php endforeach; ?></select></label>
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make group', 'Gumawa ng grupo')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make group', 'Gumawa ng grupo')) ?></button>
     </form>
   </div>
 </section>
@@ -1252,7 +1468,7 @@ endif;
 // ---------- Wording (0149) ----------
 $wq = trim((string) ($_GET['wq'] ?? ''));
 $wOwn = [];
-try { foreach ((array) $db->select('wording', ['select' => 'source,en,fil,updated_at', 'order' => 'updated_at.desc']) as $x) $wOwn[(string) $x['source']] = $x; } catch (SupabaseError) {}
+try { foreach ((array) st_pick($db, 'wording', 'wording') as $x) $wOwn[(string) $x['source']] = $x; } catch (SupabaseError) {}
 $wHits = [];
 if (mb_strlen($wq) >= 2) {
     foreach (wording_catalog() as $src => $c) {
@@ -1269,7 +1485,7 @@ $wRow = static function (string $src, array $c, ?array $ov, string $wq): void { 
     <label class="ty-f"><span><?= e(t('In English', 'Sa Ingles')) ?></span><textarea class="p-input-plain" id="wd-en-<?= $id ?>" name="en" rows="1" maxlength="600"><?= e((string) ($ov['en'] ?? $c['en'])) ?></textarea></label>
     <label class="ty-f"><span><?= e(t('In Tagalog', 'Sa Tagalog')) ?></span><textarea class="p-input-plain" id="wd-fil-<?= $id ?>" name="fil" rows="1" maxlength="600"><?= e((string) ($ov['fil'] ?? $c['fil'])) ?></textarea></label>
     <div class="wd-btns">
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Save', 'I-save')) ?></button>
       <?php if ($ov): ?><button class="p-btn p-btn-ghost p-btn-sm" type="submit" name="reset" value="1"><?= e(t('Use its own wording', 'Gamitin ang sariling salita')) ?></button><?php endif; ?>
     </div>
   </form>
@@ -1379,7 +1595,8 @@ endif;
     <?php endif; ?>
   </div>
   <?php endif; ?>
-  <div class="p-card p-table-card"><div class="p-tscroll"><table class="p-t st-table">
+  <div class="p-band ss-pband st-svcband"><h2><?= e(t('Services', 'Mga serbisyo')) ?></h2><span class="p-spacer"></span><small class="ss-subnote"><?= e(t('Each one this portal depends on, and how it answered just now', 'Bawat isang umaasa ang portal na ito, at paano sila sumagot ngayon lang')) ?></small></div>
+  <div class="p-card p-table-card st-svc"><div class="p-tscroll"><table class="p-t st-table">
     <thead><tr><th><?= e(t('Service', 'Serbisyo')) ?></th><th><?= e(t('Where it runs', 'Saan tumatakbo')) ?></th><th class="p-right"><?= e(t('Response', 'Tugon')) ?></th><th><?= e(t('Status', 'Katayuan')) ?></th></tr></thead>
     <tbody id="st-rows"></tbody></table></div></div>
   <p class="st-note"><?= e(t('Supabase, Cloudinary and push alerts are checked from the portal\'s server; maps, address lookup, rain data, live updates and the flood map from this browser, so a failure there can also mean this computer\'s internet connection. No keys or passwords are shown.', 'Sinusuri mula sa server ang Supabase, Cloudinary at push alert; mula sa browser na ito ang mapa, address, ulan, live na update at mapa ng baha.')) ?></p>
@@ -1397,28 +1614,13 @@ $replay = $_SESSION['smart_replay'] ?? null; unset($_SESSION['smart_replay']);  
 // 0142: planning, one parallel round. Each part may fail on its own; the card then says so.
 $plan = ['roster' => null, 'forecast' => null, 'fair' => null, 'patterns' => null, 'orders' => null];
 try {
-    $pg = $db->selectMany([
-        'roster'   => ['rpc/smart_roster_suggestion', ['p_days' => 90], true],
-        'forecast' => ['rpc/smart_forecast', ['p_days' => 28], true],
-        'fair'     => ['rpc/smart_fairness', ['p_days' => 14], true],
-        'patterns' => ['rpc/smart_patterns', ['p_days' => 90], true],
-        'orders'   => ['smart_work_orders', ['select' => 'id,pattern_key,title,category,status,note,evidence,created_at', 'order' => 'created_at.desc', 'limit' => '40'], true],
-    ]);
+    $pg = $db->selectMany(st_group('plan'));
     foreach ($plan as $pk => $_) { $plan[$pk] = ($pg[$pk] ?? null) instanceof SupabaseError ? null : ($pg[$pk] ?? null); }
 } catch (SupabaseError) {}
 $hist = [];
-try { $hist = $db->rpc('smart_rule_history', ['p_limit' => 12]); $hist = is_array($hist) ? $hist : []; } catch (SupabaseError) {}
+try { $hist = st_pick($db, 'hist', 'hist'); $hist = is_array($hist) ? $hist : []; } catch (SupabaseError) {}
 try {
-    $got = $db->selectMany([
-        'rules'  => ['smart_rules', ['select' => '*', 'id' => 'eq.1', 'limit' => '1'], true],
-        'cal'    => ['rpc/smart_calibration', ['p_days' => 90], true],
-        'fac'    => ['rpc/smart_factor_stats', ['p_days' => 90], true],
-        'digest' => ['rpc/smart_digest_preview', [], true],
-        'words'  => ['rpc/smart_word_suggestions', ['p_days' => 30], true],
-        'cmd'    => ['command_state', ['select' => 'auto_switch', 'id' => 'eq.1', 'limit' => '1'], true],
-        'links'  => ['command_display_links', ['select' => 'id,label,created_at,revoked_at,last_seen_at', 'order' => 'created_at.desc', 'limit' => '8'], true],
-        'runs'   => ['command_sessions', ['select' => 'id,mode,how,reason,started_at,ended_at,end_note,starter:users!command_sessions_started_by_fkey(full_name)', 'order' => 'started_at.desc', 'limit' => '5'], true],
-    ]);
+    $got = $db->selectMany(st_group('smart'));
     $sr     = !($got['rules'] instanceof SupabaseError) ? ($got['rules'][0] ?? null) : null;
     $cal    = !($got['cal'] instanceof SupabaseError) ? (array) $got['cal'] : [];
     $fac    = !($got['fac'] instanceof SupabaseError) ? array_slice((array) $got['fac'], 0, 12) : [];
@@ -1438,8 +1640,27 @@ endif;
   <?php if ($stFlash && $stFlash['level'] === 'info'): ?><div class="p-flash p-flash--ok" role="status"><?= e($stFlash['text']) ?></div>
   <?php elseif ($stFlash && $stFlash['level'] === 'error'): ?><div class="p-flash p-flash--error" role="alert"><?= e($stFlash['text']) ?></div><?php endif; ?>
   <div class="ss-head"><?= smart_logo(44) ?><p><?= e(t('How the engine scores and sorts complaints. Change a rule, try it, then re-score.', 'Paano minamarkahan at inaayos ng engine ang mga sumbong. Baguhin ang patakaran, subukan, saka muling markahan.')) ?></p></div>
+  <nav class="st-tabs sm-tabs" id="sm-tabs" role="tablist" aria-label="<?= e(t('SMART sections', 'Mga bahagi ng SMART')) ?>">
+    <button type="button" class="st-link p-on" role="tab" data-go="overview" aria-selected="true"><?= e(t('Overview', 'Buod')) ?></button>
+    <button type="button" class="st-link" role="tab" data-go="rules" aria-selected="false"><?= e(t('Rules', 'Mga patakaran')) ?><?php if (!empty($hist)): ?><b class="pd-tn"><?= count($hist) ?></b><?php endif; ?></button>
+    <button type="button" class="st-link" role="tab" data-go="words" aria-selected="false"><?= e(t('Words', 'Mga salita')) ?><?php if (!empty($words)): ?><b class="pd-tn"><?= count($words) ?></b><?php endif; ?></button>
+    <button type="button" class="st-link" role="tab" data-go="test" aria-selected="false"><?= e(t('Try and measure', 'Subukan at sukatin')) ?></button>
+  </nav>
+  <script>
+  (function () {   // one group of the SMART tab at a time; the one you were in is the one you come back to after a save
+    var bar = document.getElementById('sm-tabs'), pane = bar && bar.closest('.st-pane'); if (!pane) return;
+    var KEY = 'ss-smart-sub', ok = ['overview', 'rules', 'words', 'test'];
+    function show(g) {
+      [].forEach.call(pane.querySelectorAll('[data-sm]'), function (e) { e.hidden = e.dataset.sm !== g; });
+      [].forEach.call(bar.querySelectorAll('[data-go]'), function (b) { var on = b.dataset.go === g; b.classList.toggle('p-on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    }
+    var start = 'overview'; try { var v = localStorage.getItem(KEY); if (ok.indexOf(v) >= 0) start = v; } catch (e) {}
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { show(start); }); else show(start);   // the cards below are not parsed yet
+    bar.addEventListener('click', function (e) { var b = e.target.closest('[data-go]'); if (!b) return; show(b.dataset.go); try { localStorage.setItem(KEY, b.dataset.go); } catch (er) {} });
+  })();
+  </script>
   <?php if (is_array($smp) || is_array($smf)): $pk = (array) $smp; $fx = (array) $smf; ?>
-  <div class="p-card p-card-pad st-uptime" id="smart-measured">
+  <div class="p-card p-card-pad st-uptime" id="smart-measured" data-sm="overview">
     <p class="p-eyebrow"><?= e(t('How SMART is doing, last 90 days', 'Kumusta ang SMART, nakaraang 90 araw')) ?></p>
     <div class="st-uptime-tiles">
       <div class="st-uptime-tile"><b><?= isset($pk['top_pick_pct']) ? e(rtrim(rtrim(number_format((float) $pk['top_pick_pct'], 1), '0'), '.')) . '%' : '—' ?></b><span><?= e(sprintf(t('Its first choice of tanod was taken · %d of %d dispatches ranked', 'Kinuha ang unang pinili nitong tanod · %d sa %d na dispatch ang na-rank'), (int) ($pk['top_pick'] ?? 0), (int) ($pk['ranked'] ?? 0))) ?></span></div>
@@ -1452,7 +1673,7 @@ endif;
   <?php if (!$sr): ?>
     <p class="p-none-line"><?= e(t('SMART could not be read. Try again in a moment.', 'Hindi mabasa ang SMART. Subukan muli mamaya.')) ?></p>
   <?php else: ?>
-  <div class="ss-two">
+  <div class="ss-two" data-sm="overview">
     <div class="p-card p-card-pad">
       <p class="p-eyebrow"><?= e(t('Storm mode', 'Panahon ng bagyo')) ?></p>
       <p class="p-hint"><?= e(t('While it is on, flood zones and flood, live-wire and collapse reports count double, and the case list says so.', 'Habang naka-on, doble ang bilang ng mga lugar na binabaha at ng mga ulat ng baha, nakakuryente at pagguho.')) ?></p>
@@ -1477,7 +1698,7 @@ endif;
   </div>
 
   <?php if (feature_on('command_center')): ?>
-  <section class="p-card p-card-pad" id="cmd-settings">
+  <section class="p-card p-card-pad" id="cmd-settings" data-sm="overview">
     <p class="p-eyebrow"><?= e(t('Command center', 'Sentro ng Pamamahala')) ?></p>
     <p class="p-hint"><?= e(t('Spatial Distribution becomes a command center for one situation at a time: Fire Surroundings, Quake Check, Flood Watch or Typhoon Board. SMART suggests a mode with its reason, and an administrator turns it on. Only a person turns a mode off, with a note.', 'Nagiging command center ang Spatial Distribution para sa isang sitwasyon sa bawat pagkakataon: Paligid ng Sunog, Suri sa Lindol, Bantay-baha o Pisara ng Bagyo. Nagmumungkahi ang SMART ng mode kasama ang dahilan, at ini-o-on ito ng administrator. Tao lamang ang nag-o-off ng mode, na may note.')) ?></p>
     <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cmd_auto">
@@ -1517,11 +1738,11 @@ endif;
     <form method="post" class="ss-vroll cmd-make"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="cmd_link">
       <label class="p-sr" for="cmd-label"><?= e(t('Name of the display', 'Pangalan ng display')) ?></label>
       <input class="p-input-plain" id="cmd-label" name="label" required minlength="2" maxlength="60" placeholder="<?= e(t('Name it, for example: Hall TV', 'Pangalanan, halimbawa: TV sa hall')) ?>">
-      <button class="p-btn p-btn-sm" type="submit"><?= e(t('Make a display link', 'Gumawa ng display link')) ?></button></form>
+      <button class="p-btn p-btn-primary p-btn-sm" type="submit"><?= e(t('Make a display link', 'Gumawa ng display link')) ?></button></form>
   </section>
   <?php endif; ?>
 
-  <section class="p-card p-card-pad" id="smart-words">
+  <section class="p-card p-card-pad" id="smart-words" data-sm="words">
     <p class="p-eyebrow"><?= e(t('Words to learn', 'Mga salitang aaralin')) ?><em><?= count($words) ?></em></p>
     <p class="p-hint"><?= e(t('Words residents keep using that SMART does not know yet. You teach each one, or dismiss it; nothing is learned on its own.', 'Mga salitang madalas gamitin ng mga residente na hindi pa alam ng SMART. Ikaw ang nagtuturo ng bawat isa, o hindi ito pinapansin; walang natututuhan nang kusa.')) ?></p>
     <?php if (!$words): ?>
@@ -1560,7 +1781,7 @@ endif;
     <?php endif; ?>
   </section>
 
-  <form method="post" class="p-card p-card-pad">
+  <form method="post" class="p-card p-card-pad" data-sm="rules">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rules">
     <p class="p-eyebrow"><?= e(t('Points for each kind of complaint', 'Puntos sa bawat uri ng sumbong')) ?></p>
     <p class="p-hint"><?= e(t('A report starts with these points; words, hazard zones, neighbours reporting the same thing and the hour add to them. The total decides the level.', 'Nagsisimula ang ulat sa mga puntos na ito; dinadagdagan ito ng mga salita, lugar na may panganib, kapitbahay na nag-ulat ng pareho at oras. Ang kabuuan ang magpapasya ng antas.')) ?></p>
@@ -1586,7 +1807,7 @@ endif;
     <p class="p-hint"><?= e(t('Test first: it shows how many past reports would change level, and saves nothing.', 'Subukan muna: ipinapakita kung ilang nakaraang ulat ang magbabago ng antas, at walang sine-save.')) ?></p>
   </form>
   <?php if (is_array($replay) && is_array($replay['result'] ?? null)): $rp = $replay['result']; ?>
-  <div class="p-card p-card-pad" id="smart-replay">
+  <div class="p-card p-card-pad" id="smart-replay" data-sm="rules">
     <p class="p-eyebrow"><?= e(t('What the change would do', 'Ano ang gagawin ng pagbabago')) ?></p>
     <p><b><?= (int) ($rp['moved'] ?? 0) ?></b> <?= e(sprintf(t('of %d reports from the last %d days would change level.', 'sa %d ulat sa nakaraang %d araw ang magbabago ng antas.'), (int) ($rp['reports'] ?? 0), (int) ($rp['days'] ?? 90))) ?>
       <?= e(t('Nothing was saved.', 'Walang na-save.')) ?></p>
@@ -1607,12 +1828,12 @@ endif;
     <p class="st-note"><?= e(t('The form above keeps what you typed. Add a reason and press Save rules to make the change.', 'Nasa form sa itaas pa rin ang tinype mo. Maglagay ng dahilan at pindutin ang I-save ang mga patakaran para gawin ang pagbabago.')) ?></p>
   </div>
   <?php endif; ?>
-  <form method="post" class="ss-posform"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
+  <form method="post" class="ss-posform" data-sm="rules"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_rescore">
     <button class="p-btn p-btn-ghost p-btn-sm" type="submit"><?= e(t('Re-score open reports', 'Muling markahan ang mga bukas na ulat')) ?></button>
     <span class="p-hint"><?= e(t('Applies the rules above to every case that is still open. Levels an administrator set by hand stay.', 'Ilalapat ang mga patakaran sa lahat ng kasong bukas pa. Mananatili ang antas na itinakda ng administrator.')) ?></span></form>
 
   <?php if ($hist): ?>
-  <div class="p-card p-card-pad" id="smart-history">
+  <div class="p-card p-card-pad" id="smart-history" data-sm="rules">
     <p class="p-eyebrow"><?= e(t('Versions of the rules', 'Mga bersyon ng mga patakaran')) ?><em><?= count($hist) ?></em></p>
     <p class="p-hint"><?= e(t('Every change to the rules or the word list is kept, with who made it and why. Rolling back restores a version as a new one, and re-scores the open reports.', 'Itinatago ang bawat pagbabago sa mga patakaran o listahan ng salita, kasama kung sino at bakit. Ibinabalik ng rollback ang isang bersyon bilang bago, at muling minamarkahan ang mga bukas na ulat.')) ?></p>
     <ul class="ss-vlist">
@@ -1634,7 +1855,7 @@ endif;
   </div>
   <?php endif; ?>
 
-  <form method="post" class="p-card p-card-pad">
+  <form method="post" class="p-card p-card-pad" data-sm="test">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="smart_try">
     <p class="p-eyebrow"><?= e(t('Try it', 'Subukan')) ?></p>
     <p class="p-hint"><?= e(t('Type a complaint and see what level SMART would give it, and why. Nothing is saved.', 'Mag-type ng sumbong at tingnan ang antas na ibibigay ng SMART, at kung bakit. Walang mase-save.')) ?></p>
@@ -1654,7 +1875,7 @@ endif;
   </form>
 
   <?php if ($cal || $fac): ?>
-  <div class="ss-two">
+  <div class="ss-two" data-sm="test">
     <?php if ($cal): ?><section class="p-card p-card-pad"><p class="p-eyebrow"><?= e(t('How the levels are doing (90 days)', 'Kumusta ang mga antas (90 araw)')) ?></p>
       <table class="ss-table"><thead><tr><th><?= e(t('Level', 'Antas')) ?></th><th class="n"><?= e(t('Reports', 'Ulat')) ?></th><th class="n"><?= e(t('Raised', 'Itinaas')) ?></th><th class="n"><?= e(t('Lowered', 'Ibinaba')) ?></th><th class="n"><?= e(t('To dispatch (min)', 'Hanggang dispatch (min)')) ?></th></tr></thead><tbody>
       <?php foreach ($cal as $c): ?><tr><td><?= e($lvl[$c['level']] ?? (string) $c['level']) ?></td><td class="n"><?= (int) $c['reports'] ?></td><td class="n"><?= (int) $c['raised'] ?></td><td class="n"><?= (int) $c['lowered'] ?></td><td class="n"><?= $c['median_minutes_to_dispatch'] === null ? '—' : (int) round((float) $c['median_minutes_to_dispatch']) ?></td></tr><?php endforeach; ?>
@@ -1829,6 +2050,13 @@ endif;
       <button type="button" class="st-surf" role="radio" data-surf="solid" aria-checked="false"><span class="sv-pic s"><i></i><b></b></span><span class="ss-t"><b><?= e(t('Solid', 'Buo')) ?></b><small><?= e(t('Flat graphite, no blur or gloss', 'Patag na graphite, walang blur o kinang')) ?></small></span></button>
     </div>
   </div>
+  <?php if ($stPage === 'mine'): ?>
+  <div class="p-card p-card-pad st-look my-alerts">
+    <p class="p-eyebrow"><?= e(t('Alerts and your profile', 'Mga alerto at ang profile mo')) ?></p>
+    <p class="st-note" style="margin-top:0"><?= e(t('What you are alerted about, quiet hours, your name, picture and password are in Edit Profile.', 'Nasa Edit Profile ang mga ia-alerto sa iyo, ang tahimik na oras, ang pangalan, larawan at password mo.')) ?></p>
+    <a class="p-btn p-btn-ghost p-btn-sm" href="profile.php#alerts"><?= e(t('Open Edit Profile', 'Buksan ang Edit Profile')) ?></a>
+  </div>
+  <?php else: ?>
   <div class="p-card p-card-pad st-places" id="places">
     <p class="p-eyebrow"><?= e(t('The barangay\'s places', 'Mga lugar ng barangay')) ?><em><?= count($places) ?></em></p>
     <p class="st-note" style="margin-top:0"><?= e(t('Search on the map and in the app finds these first: the landmarks the barangay keeps, and any place no map has, by the names people use (Other names, separated by commas). To add one, open Spatial Distribution, right-click the spot (or press and hold), and choose Add a place here. Places only, never anyone\'s home.', 'Ito ang unang nahahanap sa mapa at sa app: ang mga landmark ng barangay, at anumang lugar na wala sa mapa, sa pangalang ginagamit ng mga tao (Ibang pangalan, pinaghihiwalay ng kuwit). Para magdagdag, buksan ang Spatial Distribution, i-right-click ang lugar (o pindutin nang matagal), at piliin ang Magdagdag ng lugar dito. Mga lugar lamang, hindi kailanman ang bahay ng sinuman.')) ?></p>
@@ -1858,8 +2086,10 @@ endif;
     </ul>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </section>
 <?php endif; ?>
+<?php if ($stPage === 'mine') { render_my_committee_pane($db); render_my_module_pane($db); } ?>
 
 <?php if (st_on('usage')): ?>
 <section class="st-pane" data-pane="usage" hidden>
@@ -2095,7 +2325,8 @@ document.querySelectorAll('.st-tabs [data-st]').forEach(function (b) { b.addEven
 // A tab that moved to another page (30 Oct 2026) sends the old link on to it.
 var stOwner = <?= json_encode(array_merge(...array_map(fn ($p) => array_fill_keys($p['tabs'], $p['file']), array_values(ST_PAGES)))) ?>;
 var stTab = location.hash === '#places' ? 'look' : location.hash.slice(1);
-if (stTab && stOwner[stTab] && !document.querySelector('.st-tabs [data-st="' + stTab + '"]')) { location.replace(stOwner[stTab] + location.search + location.hash); }
+if (stTab === 'smart' && document.querySelector('.st-tabs [data-st="module"]')) stTab = 'module';   // a Kagawad's or staff member's SMART tab is their module
+if (stTab && stOwner[stTab] && stOwner[stTab] !== location.pathname.split('/').pop() && !document.querySelector('.st-tabs [data-st="' + stTab + '"]')) { location.replace(stOwner[stTab] + location.search + location.hash); }
 else if (stTab) { var b = document.querySelector('.st-tabs [data-st="' + stTab + '"]'); if (b) b.click(); if (location.hash === '#places') document.getElementById('places').scrollIntoView(); }
 if (!document.querySelector('.st-pane:not([hidden])')) { var f = document.querySelector('.st-tabs [data-st]'); if (f) f.click(); }
 </script>

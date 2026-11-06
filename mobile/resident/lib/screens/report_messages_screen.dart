@@ -193,7 +193,7 @@ class _ReportMessagesScreenState extends State<ReportMessagesScreen> {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   ClipOval(child: Image.asset('assets/images/brgy-183-seal.png', width: 16, height: 16)),
                   const SizedBox(width: 6),
-                  Text(s.messagesBarangay, style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 12, color: d.link)),
+                  Text(s.messagesBarangay, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 12, color: d.link)),
                 ]),
               ),
             Text(m['body'] as String? ?? '', style: DType.body(fg, size: 14, w: FontWeight.w400).copyWith(height: 1.4)),

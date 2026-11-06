@@ -56,12 +56,16 @@
       }
     },
     "fonts": {
-      "version": "Inter and Urbanist, from Google Fonts",
+      "version": "Inter and Inter Tight, from Google Fonts",
       "licence": "OFL-1.1",
       "how": "copy",
-      "note": "Not from npm: woff and woff2 files of Inter and Urbanist. The OFL text for each is beside them; the second is listed as a file.",
+      "note": "Not from npm. Inter: woff and woff2 files. Inter Tight (5 Nov 2026): woff2 files cut from Google's variable font by tools/make_inter_tight.py, Latin subset, one file per weight. The OFL text for each is beside them; the second is listed as a file.",
       "licence_file": "fonts/Inter-OFL.txt",
       "files": {
+        "fonts/InterTight-OFL.txt": {
+          "from": "Google Fonts, google/fonts@0b58fb3700 ofl/intertight, cut by tools/make_inter_tight.py",
+          "sha256": "50240ab035cf1b6b3307940235481d515c4b6de3ab1fa843dbe59e7892cb9d58"
+        },
         "fonts/inter-bold.woff": {
           "from": "Google Fonts",
           "sha256": "d1cbeff11a993e15ca17c0c1dfd362925759f8b19ba381ae1c3c24e62f7817ab"
@@ -94,73 +98,36 @@
           "from": "Google Fonts",
           "sha256": "802935af2d05d2bcb448f9f76f63751eb0216dc9adaa41da3a0b9f3f2c861f16"
         },
-        "fonts/urbanist-bold.woff": {
-          "from": "Google Fonts",
-          "sha256": "9cb73c99f2b2586f264645cb96611228b71bd430d0a43f1f94939e1059e577bd"
+        "fonts/inter-tight-bold.woff2": {
+          "from": "Google Fonts, google/fonts@0b58fb3700 ofl/intertight, cut by tools/make_inter_tight.py",
+          "sha256": "dd14febd49c5d329a23a74808cfc20b6af93887a216642934108fed3538f65bb"
         },
-        "fonts/urbanist-bold.woff2": {
-          "from": "Google Fonts",
-          "sha256": "f260978c97a926bc9cff1c334ac77e99c9b0a06f41b886f4c242b5c8d32dfd37"
+        "fonts/inter-tight-medium.woff2": {
+          "from": "Google Fonts, google/fonts@0b58fb3700 ofl/intertight, cut by tools/make_inter_tight.py",
+          "sha256": "e6eb7cb61adaec0b8b0829fd9f0c616d3ab5c2b9543b00c7a8583040d9b6d233"
         },
-        "fonts/urbanist-bolditalic.woff": {
-          "from": "Google Fonts",
-          "sha256": "02d395fae43ad688c6ea17a686286b8267ab4a48a4feffd700a9cb622de914d9"
+        "fonts/inter-tight-regular.woff2": {
+          "from": "Google Fonts, google/fonts@0b58fb3700 ofl/intertight, cut by tools/make_inter_tight.py",
+          "sha256": "9753a374ed3b3c9d3954b656187f75770fc739109dde2c6a9f41ab3f78a9e06b"
         },
-        "fonts/urbanist-bolditalic.woff2": {
-          "from": "Google Fonts",
-          "sha256": "6aa94ba0e639abf5ea606a80008fdcc293e8a0b64f531448f08ed2c9d21baa83"
-        },
-        "fonts/urbanist-extrabold.woff": {
-          "from": "Google Fonts",
-          "sha256": "6cea97b914872971620b3824a8be0bddf1eff5e17ca6293ce7d57e287bed550a"
-        },
-        "fonts/urbanist-extrabold.woff2": {
-          "from": "Google Fonts",
-          "sha256": "3284fe938d8583f0f0264c339f70b94f7a32b655bb3cf50b6b41ca9a1f040208"
-        },
-        "fonts/urbanist-italic.woff": {
-          "from": "Google Fonts",
-          "sha256": "7b0218e1fb590d6b62e578956ad8b30a58b6fbf3663feef842caacbef7290b8f"
-        },
-        "fonts/urbanist-italic.woff2": {
-          "from": "Google Fonts",
-          "sha256": "16f6f869da385d0e8fa480ce48dad9e56d763775515649df22dc927e461adcef"
-        },
-        "fonts/urbanist-medium.woff": {
-          "from": "Google Fonts",
-          "sha256": "402a83796396eee7fe5138aab27f3e81bfd7b41dfcc34b31c6284d9f2a85872b"
-        },
-        "fonts/urbanist-medium.woff2": {
-          "from": "Google Fonts",
-          "sha256": "d77f619786d3498739f5331f6837423474d41975738eccda63efd78830f43115"
-        },
-        "fonts/urbanist-mediumitalic.woff": {
-          "from": "Google Fonts",
-          "sha256": "779461444648c8d656a65abe3380ce004175b20c21b5779fca4429e36cf4db06"
-        },
-        "fonts/urbanist-mediumitalic.woff2": {
-          "from": "Google Fonts",
-          "sha256": "973a5c11b9fd7ddaf11f43ce31489f31066d017de1863d39e0a80ceef2bb7d92"
-        },
-        "fonts/urbanist-regular.woff": {
-          "from": "Google Fonts",
-          "sha256": "8a86749e783b24a77da2841959c62c25a01d6fca57c83f4a0a9ceb675f141761"
-        },
-        "fonts/urbanist-regular.woff2": {
-          "from": "Google Fonts",
-          "sha256": "37f3520e4714977a10b335225b891a6621c06d2a67213b1c308a0999ad7740d8"
-        },
-        "fonts/urbanist-semibold.woff": {
-          "from": "Google Fonts",
-          "sha256": "8eee07de6c8ce4d238ca65a012b2eecfa38b326f2831c98bba0ae2ebeaa7b3ae"
-        },
-        "fonts/urbanist-semibold.woff2": {
-          "from": "Google Fonts",
-          "sha256": "39c491fe3aecc794c77b0a369d4ce43e91be157cea0ab9ebd25dc96e3ff402e7"
-        },
-        "fonts/Urbanist-OFL.txt": {
-          "from": "Google Fonts",
-          "sha256": "ee1221b1c2d08920e5f9ca764eb228dafa5c8090df9cf665373c2287b9cb8f49"
+        "fonts/inter-tight-semibold.woff2": {
+          "from": "Google Fonts, google/fonts@0b58fb3700 ofl/intertight, cut by tools/make_inter_tight.py",
+          "sha256": "5bc36f1f6fdf85eb4f863ed4c10eba882dc10b3830f21373f9418a5612d80458"
+        }
+      }
+    },
+    "htmx": {
+      "npm": "htmx.org",
+      "version": "2.0.11",
+      "licence": "0BSD",
+      "how": "copy",
+      "note": "Hypermedia partial updates (7 Nov 2026, the press flow): a press fetches the page's own HTML and swaps the part that changed. Loaded with the page's CSP nonce; eval and inline indicator styles are off (assets/js/press.js sets the config).",
+      "licence_file": "htmx/LICENSE",
+      "licence_from": "LICENSE",
+      "files": {
+        "htmx/htmx.min.js": {
+          "from": "dist/htmx.min.js",
+          "sha256": "d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717"
         }
       }
     }

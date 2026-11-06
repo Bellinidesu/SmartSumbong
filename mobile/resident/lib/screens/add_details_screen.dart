@@ -230,14 +230,14 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 34),
                   child: Text(context.tr('ADD DETAILS', 'MAGDAGDAG NG DETALYE'),
-                      style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 1.05, color: Colors.white70)),
+                      style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800, fontSize: 10.5, letterSpacing: 1.05, color: Colors.white70)),
                 ),
                 const SizedBox(height: 2),
-                Text(widget.subject, style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w800, fontSize: 19, height: 1.25, color: Colors.white)),
+                Text(widget.subject, style: const TextStyle(fontFamily: 'Inter Tight', fontWeight: FontWeight.w800, fontSize: 19, height: 1.25, color: Colors.white)),
                 const SizedBox(height: 2),
                 Text(
                   '${widget.trackingId}${created == null ? '' : ' · ${s.addDetailsDateSubmitted('${s.monthFull(created.month)} ${created.day}, ${created.year}')}'}',
-                  style: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white),
+                  style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 12.5, color: Colors.white),
                 ),
               ]),
               Positioned(
@@ -281,7 +281,7 @@ class _AddDetailsScreenState extends State<AddDetailsScreen> {
             onChanged: (_) => setState(() => _error = null),
             style: DType.body(d.ink, size: 14),
             buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-                Text('$currentLength/${maxLength ?? 500}', style: TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
+                Text('$currentLength/${maxLength ?? 500}', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 11, color: d.muted)),
             decoration: InputDecoration(
               hintText: s.addDetailsHint,
               hintStyle: DType.body(d.muted, size: 14),

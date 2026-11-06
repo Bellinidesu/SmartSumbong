@@ -9,6 +9,98 @@ is in its commit and pull request.
 
 Changes on `main` not yet deployed belong here.
 
+**Quiet background jobs (0168, 7 Nov)**
+- The database's own statistics: two scheduled jobs used two thirds of its time on a small shared server that every page waits on.
+  The waiting-line sweep (every 2 minutes) now returns at once when no case waits for a tanod; the SMART watcher (every 5
+  minutes) rescans recurring patterns and spikes only after a report changes, or hourly. Nothing they decide changes.
+
+**Hardening (7 Nov, the gap search)**
+- The portal image no longer ships compilers and headers (gcc, g++, the libc and kernel headers, -dev packages): they were most
+  of the image scan's findings. The build keeps only what PHP, its extensions and Apache link to, and fails if a build tool is
+  left or an extension stops loading.
+- The session cookie is `__Host-ssid` over HTTPS: only this host can set it (onrender.com is shared). Everyone signs in once
+  after the deploy.
+- `Cross-Origin-Resource-Policy: same-origin` on the portal's answers.
+- One live connection per tab: presence and each page's live updates shared nothing and opened two websockets per tab, so a few
+  open tabs met the plan's connection limit (a live connection was refused on Notifications). They now share one client.
+
+**Warm connections (7 Nov)**
+- Measured on the live portal: one database wait took ~376 ms, far more than the ~65 ms round trip to Mumbai. Server-Timing now
+  also says how many new connections a page had to open (`conn`), and the image keeps fewer, longer-lived workers so their
+  connections to Supabase stay open between clicks.
+- A page opened after a pause waited 13 times (~4 s): every small cache that had expired refilled itself with its own wait. They
+  now all refill in one batch before the page runs (`includes/boot.php`), and the shared ones last 5 minutes instead of 20 s
+  (a save in the portal still clears its copy at once). A page waits once, twice after a pause.
+
+**Pages that are already there (7 Nov)**
+- A page link held under the pointer is fetched a moment early, so the next page is often there when the click lands (Chrome and
+  Edge; other browsers load as before). An Inbox message, downloads, sign-out and new-tab links are never fetched early.
+
+**Who is sent, and who prints (0167, 7 Nov; the flow check)**
+- Sending a tanod by hand: the committee's tanods come first, with the committee's name on them; everyone else is still listed.
+- The Certification of Lack of Jurisdiction opens for anyone who may refer the case (Kagawad and staff too), not only super admins.
+
+**The ladder as Barangay 183 runs it (0166, 7 Nov; Ace's answers to the flow check)**
+- An escalation goes to the Kagawad of the committee the case is with now, not the one its category had before forwarding.
+- A Kagawad's escalation, a sensitive case (183 has no Women and Family committee) and a committee with no Kagawad account go
+  straight to the Chairman; the super admins are told. A return goes back to whoever held the case.
+- The case page names who an escalation will reach before it is sent. When the deadline extensions are used up, *Hand to a
+  higher official* offers that official's own account first and keeps the list of positions.
+- Staff hold the five decisions 0151 kept for the Kagawad (approve and deny escalation requests, escalate, hand up, refer out).
+- Staff ask to retire from their Profile; their Kagawad can endorse it; a super admin decides. Once approved, the account no
+  longer signs in and the cases it held go back to its committee.
+- Test accounts of the development team never receive a real escalation.
+
+**Faster pages (one wait on the database per page, 7 Nov)**
+- Supabase is in Mumbai and the portal in Singapore, so each wait on the database is a full round trip. Pages used to wait
+  again and again: Notifications 14 times, Settings 14, Case Reports, Workspace and Control Room 10. They now wait once (the
+  case page and the Inbox twice: their second read needs the first).
+- Every portal response to a signed-in administrator carries a `Server-Timing` header (server time, database time, waits and
+  calls) for the browser's Network panel.
+- How: a page's parts declare their reads and the page asks for them in its first batch; the database client keeps what the
+  request read (emptied by any write); a page of a list comes with the total behind its pager; the committees, complaint types
+  and options come from a 20-second shared cache that Settings drops on a save. `tests/php/perf_test.php` runs in CI.
+
+**New (the system's type: Inter Tight over Inter, 5 Nov; app 1.0.4)**
+- The portal and the app change from Urbanist, which read curvy, to the Apple pairing: Inter Tight for headings and big figures,
+  Inter for everything else. Apple's San Francisco cannot ship on Android or the web, and Inter is built on the same ideas.
+- Display sizes (17 px and up) take Inter Tight; everything smaller takes Inter. The heaviest weight is Bold (an 800 asks for the
+  Bold file). Inter is a little wider than Urbanist, so some long text wraps one line sooner.
+- Portal: `fonts.css`, `admin/assets/vendor/fonts` (Inter Tight woff2, listed in `vendor.json`), the preloads and the perf budget.
+  App: `pubspec.yaml`, `assets/fonts` (Inter Tight and the italics, Latin and symbols). `tools/make_inter_tight.py` cuts all of
+  them from Google's variable fonts; `tests/browser/font-audit.spec.mjs` checks what every piece of text really renders with.
+- The password-reset email template (`docs/email/reset-password.html`) follows; paste it into Supabase to use it.
+
+**Rose's notes (2 Nov)**
+- The Dashboard has its own layout again: the month's reports across the top, the three figures stacked beside the two donuts,
+  then resolution efficiency. The greeting header and the month filter stay. What waits on a super admin, the committees and
+  the live feed are in the engine's window.
+- Report Summary's calendar: pressing the first day picked again takes it back, and Clear empties a range.
+- Spatial Distribution: the lock holds when the map is pressed; the layers are the floating tab's last row.
+
+**New (0163: several categories and sub-categories on one report, kept as filed, 4 Nov; app 1.0.2)**
+- In the app, under What happened: "Is there more than one problem?" adds up to two more concerns, each a category and, when it has them, one of its options (two options of one category are two concerns). They file with the report, offline too (the outbox keeps them); one switched off while the report waited is left out and the report still files.
+- Every concern keeps the names its category and option had when it was raised. When the Control Room later renames or switches one off, the case page and the resident's report say "Filed as ... (renamed since / no longer offered)", and every open case that has it gets a note on its timeline. Nobody takes a case by that note. Concerns raised before this are named as they were filed wherever something recorded it: today's name when the category was not touched since, the catalogue's own log otherwise, the original fixed names before 29 Oct, and the report's subject for its option. A report's saved draft keeps its other concerns.
+- The case page names each concern by category and option; Add a concern picks a category and option. Case Reports' option filter finds cases by a concern's option, so a renamed option still finds what was filed under its old name.
+
+**Changed (Case Reports: a case with more than one concern, 4 Nov)**
+- The Category filter finds a case by any of its concerns, not only its main category (an inner join on the concerns; the main category is one of them), and the count and pages follow. A case with extra concerns shows a +N pill beside its category, with their names and whether each is open or resolved in the tip; the pill sits on the same line, so rows stay one height.
+
+**New (0162: the development team sees every rung, 2 Nov)**
+- A DEV switcher in the sidebar (developers only): make your test accounts (super admin, captain, Kagawad and staff of a committee you pick), switch into any of them with no password, and come back. A striped band says which rung you are seeing as. The level-switch Edge Function does the sign-in with the service key the portal never holds, and only into the developer's own test accounts. Test accounts are marked TEST in Administrators and are never taken for a committee's Kagawad by routing; every switch is recorded.
+
+**Changed (Settings, 2 Nov)**
+- SMART: the long tab shows one group at a time (Overview, Rules, Words, Try and measure), with counts on the tabs, and comes back to the group you were in after a save. System status: the services are an orange band over a blue-header table. The same plain headings as the Control Room, count badges beside them, and the SMART level table's header no longer breaks into one word a line.
+
+**New (0161: the app updates itself, 1 Nov)**
+- Control Room > App updates: a super admin publishes a version (APK https link, its SHA-256, notes in English and Tagalog, must update) or withdraws one. The app asks for the newest published version a few seconds after it opens (and from Settings > Check for updates), compares the build number with its own, offers it, downloads it, checks the SHA-256 and hands it to Android's installer; a file that does not match is deleted and never opened, and Android still refuses an APK signed with another key. A version marked must update cannot be skipped. A skippable one is offered at most every 12 hours. Android only; switch `app_updates` turns the offers off. Needs a new APK once, to carry the updater.
+
+**New (the app: live preview, the app part, 1 Nov)**
+- Tap the version line in Settings seven times, type the code a super admin shows in the Control Room, and the real screens show that super admin's unsaved edits (the categories and their options on the Report screen, the emergency numbers on Emergency) until it is ended or the code runs out. A banner says all the time that it is not published. The phone only listens: it writes nothing, and the code works once, for 30 minutes, only for a super admin's session. Needs a new APK.
+
+**New (Control Room: Show on a phone, the portal part of live preview, 1 Nov)**
+- With the `live_preview` switch on (Parts of the system), the live view has a Show on a phone button: a one-time code with a countdown and an End button. While it is up, the Control Room sends what the forms say right now (complaint types and options, emergency numbers, parts, the barangay's name and place) to the phone's secret channel as you type. Off, the live view says so and nothing can start. The app's side (pairing and the overlay) follows.
+
 **Changed (Control Room: Wording, The barangay, Parts of the system; Planning, 1 Nov)**
 - Parts of the system: a card and a switch each. The barangay: the seal is the hero of its form, a dashed drop area for a new seal, and a save bar that says when something is unsaved. Wording: a search that leads, a card per label, App and Portal told apart by colour, the barangay's own wording marked. The same plain headings on Planning and the other tabs.
 
