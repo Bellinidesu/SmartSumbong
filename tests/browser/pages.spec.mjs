@@ -94,6 +94,21 @@ test('speed, step 4 (7 Nov 2026): a page link held under the pointer is prefetch
   expect(pre, 'an Inbox message was prefetched').toEqual([]);
 });
 
+test('one live connection per tab (7 Nov 2026): presence and each page live update share one client (one websocket)', async ({ page }) => {
+  // count the clients a page makes: supabase.js puts its library on window.supabase, and every createClient opens its own socket
+  await page.addInitScript(() => {
+    let lib;
+    Object.defineProperty(window, 'supabase', { configurable: true, get: () => lib, set: v => {
+      lib = v; const make = v.createClient; window.__clients = 0;
+      v.createClient = function () { window.__clients++; return make.apply(this, arguments); };
+    } });
+  });
+  for (const url of ['notifications.php', 'cases.php', 'activity.php', 'summary.php']) {
+    await page.goto(url); await page.waitForLoadState('networkidle'); await page.waitForTimeout(800);
+    expect(await page.evaluate(() => window.__clients || 0), `${url}: supabase clients made`).toBe(1);
+  }
+});
+
 test('Report Summary downloads as a spreadsheet', async ({ request }) => {
   const r = await request.get('summary.php?from=2026-01-01&to=2026-12-31&export=xlsx');
   expect(r.status()).toBe(200);
