@@ -92,13 +92,32 @@ function server_timing_db(?float $ms = null, string $what = ''): array
     return $t;
 }
 
-/** The Server-Timing header's value: app = the whole of the server's work so far, db = the waits on Supabase. */
+/**
+ * New connections to Supabase opened while answering this request, and the longest handshake among them (7 Nov 2026). A call that
+ * rides an open connection opens none; one that has to open its own pays the TCP and TLS handshakes to Mumbai first (two or three
+ * round trips). Read from each call's own cURL figures. Returns [new connections, longest handshake in ms].
+ */
+function server_timing_conn(?CurlHandle $ch = null): array
+{
+    static $t = [0, 0.0];
+    if ($ch !== null) {
+        $n = (int) curl_getinfo($ch, CURLINFO_NUM_CONNECTS);
+        if ($n > 0) {
+            $t[0] += $n;
+            $t[1] = max($t[1], (float) curl_getinfo($ch, CURLINFO_APPCONNECT_TIME_T) / 1000);
+        }
+    }
+    return $t;
+}
+
+/** The Server-Timing header's value: app = the whole of the server's work so far, db = the waits on Supabase, conn = new connections. */
 function server_timing_value(): string
 {
     [$waits, $calls, $ms] = server_timing_db();
+    [$conns, $hand] = server_timing_conn();
     $start = (float) ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
     $app = (microtime(true) - $start) * 1000;
-    return sprintf('app;dur=%.1f, db;dur=%.1f;desc="%d waits, %d calls"', $app, $ms, $waits, $calls);
+    return sprintf('app;dur=%.1f, db;dur=%.1f;desc="%d waits, %d calls", conn;dur=%.1f;desc="%d new connections (longest handshake)"', $app, $ms, $waits, $calls, $hand, $conns);
 }
 
 class SupabaseError extends RuntimeException
@@ -170,6 +189,7 @@ final class Supabase
         $tq     = microtime(true);
         $raw    = curl_exec($ch);
         supabase_trace($method . ' ' . strtok($path, '?'), $tq);
+        server_timing_conn($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err    = curl_error($ch);
         // curl_close() is a deliberate no-op since PHP 8.0 (deprecated in
@@ -389,6 +409,7 @@ final class Supabase
                 $err = curl_error($ch);
                 curl_multi_remove_handle($mh, $ch);
                 try {
+                    server_timing_conn($ch);
                     if ($raw === null || $raw === '' && $status === 0) {
                         throw new SupabaseError('Could not reach the database: ' . $err);
                     }
@@ -457,6 +478,7 @@ final class Supabase
         $tq  = microtime(true);
         $raw = curl_exec($ch);
         supabase_trace('count ' . $table, $tq);
+        server_timing_conn($ch);
         // curl_close() removed -- see the comment in request() above.
 
         // Content-Range comes back as "0-0/57"; the total is after the slash.

@@ -127,7 +127,9 @@ check('a total read twice goes once, with its total', count(requests()) === 1 &&
 // the Server-Timing header's value
 [$waits, $calls, $ms] = server_timing_db();
 $v = server_timing_value();
-check('Server-Timing names the server and the database', (bool) preg_match('/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls"$/', $v));
+check('Server-Timing names the server, the database and the new connections', (bool) preg_match('/^app;dur=[\d.]+, db;dur=[\d.]+;desc="\d+ waits, \d+ calls", conn;dur=[\d.]+;desc="\d+ new connections \(longest handshake\)"$/', $v));
+[$conns] = server_timing_conn();
+check('Server-Timing counts the connections the requests had to open', $conns >= 1);
 check('Server-Timing counts a batch as one wait of several calls', $calls > $waits && $waits > 0);
 
 // the shared cache

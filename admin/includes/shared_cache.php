@@ -17,6 +17,28 @@
  */
 declare(strict_types=1);
 
+/**
+ * How long a small cache (the reference lists, the feature switches, the barangay's profile, the wording) is kept, in seconds:
+ * FEATURE_CACHE_TTL, 300 by default (7 Nov 2026; it was 20). Every save in the portal that changes one drops its copy at once, so a
+ * longer life costs no freshness for what the portal edits; it saves the waits a page paid each time a copy had expired.
+ */
+function cache_ttl(): int
+{
+    return (int) env('FEATURE_CACHE_TTL', '300');
+}
+
+/** True when a cache file is missing or older than cache_ttl() (or caching is off), so the next read goes to the database. */
+function cache_file_cold(string $file): bool
+{
+    $ttl = cache_ttl();
+    return $ttl <= 0 || !is_file($file) || @filemtime($file) <= time() - $ttl;
+}
+
+function shared_cache_cold(string $name): bool
+{
+    return cache_file_cold(shared_cache_file($name));
+}
+
 function shared_cache_file(string $name): string
 {
     $safe = preg_replace('/[^a-z0-9_]/', '', strtolower($name));
@@ -29,7 +51,7 @@ function shared_cache_file(string $name): string
  */
 function shared_cache(string $name, callable $load, bool $canFill): array
 {
-    $ttl = (int) env('FEATURE_CACHE_TTL', '20');
+    $ttl = cache_ttl();
     $file = shared_cache_file($name);
     $copy = null;
     if ($ttl > 0 && is_file($file)) {

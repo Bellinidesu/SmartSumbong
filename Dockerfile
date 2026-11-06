@@ -44,6 +44,16 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 # changes after it is built, so there is no need to re-check files on disk.
 RUN { echo 'opcache.enable=1'; echo 'opcache.memory_consumption=64'; echo 'opcache.max_accelerated_files=4000';       echo 'opcache.validate_timestamps=0'; echo 'opcache.interned_strings_buffer=8'; echo 'expose_php=Off'; } > "$PHP_INI_DIR/conf.d/zz-opcache.ini"
 
+# Speed (7 Nov 2026): fewer, longer-lived PHP workers. Each Apache worker keeps its own open connection to Supabase (in Mumbai);
+# Debian's defaults keep 5 to 10 idle workers and spread a few people's clicks across all of them, so a worker's connection had
+# usually gone cold by its next turn and the page paid a fresh TCP and TLS handshake (two or three round trips) before its one
+# database wait. Two to start and one to three spare keep the same workers busy and their connections open; Apache still adds
+# workers under load, up to twelve (about 35 MB each, within the 512 MB of a small instance; Debian's 150 could never fit).
+# Server-Timing's "conn" says how many new connections a page had to open.
+RUN printf '%s\n' '<IfModule mpm_prefork_module>' '    StartServers 2' '    MinSpareServers 1' '    MaxSpareServers 3' \
+      '    MaxRequestWorkers 12' '    MaxConnectionsPerChild 0' '</IfModule>' > /etc/apache2/conf-available/zz-workers.conf \
+    && a2enconf zz-workers
+
 WORKDIR /var/www/html
 
 COPY admin/ ./admin/

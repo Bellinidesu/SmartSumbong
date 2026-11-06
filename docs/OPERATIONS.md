@@ -178,7 +178,11 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
 - **Speed and quality** — every portal response carries a `Server-Timing`
   header: `app` is the server's whole time, `db` the time spent waiting on
   Supabase, with how many waits and how many calls (a batch of parallel
-  calls is one wait). Read it in the browser's Network panel → Timing.
+  calls is one wait), and `conn` the new connections to Supabase the page
+  had to open, with the longest handshake (0 when the worker's connection
+  was still open). Read it in the browser's Network panel → Timing. The
+  image keeps few, long-lived Apache workers (`zz-workers.conf`) so their
+  connections stay open.
   Supabase is in Mumbai and the portal in Singapore, so each wait is a full
   round trip: the number of waits is what makes a page slow. The rule (7 Nov
   2026): a page reads in one batch. Its parts declare their reads
@@ -186,8 +190,12 @@ When something is wrong, `docs/INCIDENTS.md` says what to do.
   and the page puts them in its first batch; the parts' own calls then find
   them in the request's read memo (`Supabase::$seen`, emptied by any write).
   The reference lists (committees, complaint types and options, which
-  committee sees which type) come from a 20-second shared cache
-  (`includes/shared_cache.php`) that Settings drops on a save.
+  committee sees which type), the feature switches, the barangay's profile
+  and the wording come from small shared caches (`FEATURE_CACHE_TTL`, 300 s
+  by default) that Settings drops on a save. When any of them, or a
+  session's (sidebar counts, storm banner, avatar rings, access check), has
+  expired, `require_admin()` refills them all in one batch
+  (`includes/boot.php`) before the page runs: a page waits at most twice.
   `tests/php/perf_test.php` (CI) covers the batch modes, the memo and the
   cache. `?_trace=1` on any page lists each wait in the page source.
   Page links are prefetched when held under the pointer (Speculation Rules

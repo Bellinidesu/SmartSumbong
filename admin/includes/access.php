@@ -59,13 +59,26 @@ function landing_page(): string
     return is_scoped() ? 'home.php' : 'notifications.php';
 }
 
+/** True when the person's access is due to be read again (every two minutes). */
+function access_refresh_due(): bool
+{
+    $a = current_admin();
+    return (bool) $a && (($a['access_at'] ?? 0) <= time() - 120);
+}
+
+/** The access read, for the request's boot batch (boot.php) and for access_refresh() alike. */
+function access_refresh_entry(): array
+{
+    return ['users', ['select' => 'admin_tier,is_dev,committee', 'id' => 'eq.' . (current_admin()['id'] ?? '0'), 'limit' => '1'], true];
+}
+
 /** The person's access, fresh from the database every two minutes (called from require_admin). */
 function access_refresh(): void
 {
     $a = current_admin();
-    if (!$a || (($a['access_at'] ?? 0) > time() - 120)) return;
+    if (!access_refresh_due()) return;
     try {
-        $me = db()->select('users', ['select' => 'admin_tier,is_dev,committee', 'id' => 'eq.' . $a['id'], 'limit' => '1'])[0] ?? null;
+        $me = db()->select('users', access_refresh_entry()[1])[0] ?? null;
     } catch (Throwable) {
         return;   // keep what the session has; the database still decides
     }
@@ -97,10 +110,9 @@ function committees_all(): array
     static $memo = null;
     if ($memo !== null) return $memo;
     $rows = shared_cache('committees', static function (): ?array {
+        try { [, $cq] = committees_read_entry(); return (array) db()->select('committees', $cq); } catch (Throwable) {}
         // logo_url arrives with 0164; until it is applied the committees are read without it
-        foreach (['key,name_en,name_fil,short_en,active,sort,colour,logo_url', 'key,name_en,name_fil,short_en,active,sort,colour'] as $cols) {
-            try { return (array) db()->select('committees', ['select' => $cols, 'order' => 'sort.asc,key.asc']); } catch (Throwable) {}
-        }
+        try { return (array) db()->select('committees', ['select' => 'key,name_en,name_fil,short_en,active,sort,colour', 'order' => 'sort.asc,key.asc']); } catch (Throwable) {}
         return null;
     }, access_token() !== null);
     $memo = [];
@@ -108,12 +120,23 @@ function committees_all(): array
     return $memo;
 }
 
+/** The committees' read and the committee-categories read, for the request's boot batch (boot.php) and for the readers alike. */
+function committees_read_entry(): array
+{
+    return ['committees', ['select' => 'key,name_en,name_fil,short_en,active,sort,colour,logo_url', 'order' => 'sort.asc,key.asc'], true];
+}
+
+function committee_categories_read_entry(): array
+{
+    return ['committee_categories', ['select' => 'committee,category'], true];
+}
+
 /** Which complaint types each committee sees (0145, committee_categories): committee key => list of category keys. Shared cache. */
 function committee_categories_all(): array
 {
     static $memo = null;
     if ($memo !== null) return $memo;
-    $rows = shared_cache('committee_categories', static fn (): array => (array) db()->select('committee_categories', ['select' => 'committee,category']),
+    $rows = shared_cache('committee_categories', static fn (): array => (array) db()->select('committee_categories', committee_categories_read_entry()[1]),
                          access_token() !== null);
     $memo = [];
     foreach ($rows as $r) { $memo[(string) $r['committee']][] = (string) $r['category']; }
