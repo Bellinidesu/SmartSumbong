@@ -18,6 +18,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/forwarding.php';
+require_once __DIR__ . '/includes/issues.php';   // 0163: the options by id, and what a concern was filed as
 
 $admin = require_admin();
 
@@ -83,6 +84,7 @@ $handlerLog = [];  // takes, releases and take-overs (0087)
 $extUsed = 0;      // target-date extensions since the last hand-up (0079)
 $extCap = 2;
 $escRequest = null; // a tanod's pending escalation request (0073)
+$escTo = null;      // who an escalation reaches now (0166 escalation_target), null when nobody can take it or before 0166
 $threadMedia = []; // update id => its photos
 
 // Two parallel rounds (branch B) in place of about nine requests one
@@ -90,10 +92,46 @@ $threadMedia = []; // update id => its photos
 // needs the first round's answers (its category, its dispatches, whether
 // it is still to be judged or assigned). With the database in Mumbai
 // every sequential round trip was a visible part of opening a case.
+/**
+ * The case page's second round, asked for in the first (speed work, 7 Nov 2026): everything here needs only the case's id, so the
+ * page waits on the database once; the second round's own code then finds each answer in the request's read memo (supabase.php).
+ * The deadline policy is read for every kind (eight rows) and picked by the case's kind; the field photos and the dispatch thread
+ * are read through their dispatch's case, not by dispatch ids. The tanod ranking is read whatever the case's state: it costs no wait.
+ */
+function case_page_reads(string $id): array
+{
+    return [
+        'sla_all'    => ['sla_policies', ['select' => 'category,resolution_hours,accept_minutes,auto_dispatch_on_file'], true],
+        'proof'      => ['dispatch_media', ['select' => 'dispatch_id,update_id,media_url,mime_type,bytes,uploaded_at,d:dispatches!inner(report_id)',
+                                            'd.report_id' => 'eq.' . $id, 'order' => 'uploaded_at.asc'], true],
+        'messages'   => ['report_messages', ['select' => 'id,from_barangay,body,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'escalation' => ['escalation_requests', ['select' => 'id,reason,suggested_office,created_at,requester:users!escalation_requests_requested_by_fkey(full_name)',
+                                                 'report_id' => 'eq.' . $id, 'status' => 'eq.pending', 'limit' => '1'], true],
+        'thread'     => ['dispatch_updates', ['select' => 'id,dispatch_id,author_id,kind,step,body,created_at,d:dispatches!inner(report_id)',
+                                              'd.report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'evidence'   => ['report_evidence', ['select' => 'id,kind,media_url,bytes,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'ext'        => ['rpc/extensions_used', ['p_report' => $id], true],
+        'handlers'   => ['case_handler_log', ['select' => 'action,reason,created_at,admin:users!case_handler_log_admin_id_fkey(id,full_name),prev:users!case_handler_log_previous_id_fkey(full_name)',
+                                              'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '4'], true],
+        'ops'        => ['operational_settings', ['select' => 'max_deadline_extensions', 'limit' => '1'], true],
+        'roster'     => ['rpc/tanod_roster', ['p_report' => $id], true],
+        'rank'       => ['rpc/smart_tanod_ranking', ['p_report' => $id], true],
+    ];
+}
+
+/** The Admin Controls' forwarding log and flags (0152), read with the page's first batch and found later in the read memo (speed work, 7 Nov 2026). */
+function case_forward_reads(string $id): array
+{
+    return [
+        'fw_log'   => ['case_forwards', ['select' => 'kind,from_committee,to_committee,to_super,note,created_at,by:users!case_forwards_actor_fkey(full_name)', 'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '6'], true],
+        'fw_flags' => ['case_forward_flags', ['select' => 'id,from_committee,to_committee,note,actor,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+    ];
+}
+
 $trail = [];
 $abuseHistory = [];
 try {
-    $first = $db->selectMany([
+    $first = $db->selectMany(case_forward_reads($id) + array_combine(array_map(fn ($k) => 'pre:' . $k, array_keys(case_page_reads($id))), case_page_reads($id)) + [
         'report' => ['reports', [
             'select' => 'id,tracking_id,subject,description,category,status,is_anonymous,'
                       . 'latitude,longitude,location_label,due_at,reopened_count,'
@@ -144,8 +182,10 @@ try {
         // 0124/0127: everything SMART knows about this case, in one call. Optional: no card if it fails.
         'smart' => ['rpc/smart_case_card', ['p_report' => $id], true],
         // 0130: the concerns of this report, and the tanods designated for women and children cases.
-        'concerns' => ['report_concerns', ['select' => 'id,category,note,status,resolved_at,remark,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
+        'concerns' => ['report_concerns', ['select' => 'id,category,option_id,filed_category_en,filed_category_fil,filed_option_en,filed_option_fil,note,status,resolved_at,remark,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc'], true],
         'women'    => ['users', ['select' => 'id', 'role' => 'eq.tanod', 'women_responder' => 'is.true'], true],
+        // 0166: who an escalation would reach now, shown before anyone presses Escalate (the same answer the escalation uses)
+        'esc_to'   => ['rpc/escalation_target', ['p_report' => $id], true],
     ]);
     $report = $first['report'][0] ?? null;
 
@@ -158,6 +198,7 @@ try {
         $concerns   = ($first['concerns'] ?? null) instanceof SupabaseError ? [] : (array) ($first['concerns'] ?? []);
         $womenIds   = array_column(($first['women'] ?? null) instanceof SupabaseError ? [] : (array) ($first['women'] ?? []), 'id');
         $smart      = ($first['smart'] ?? null) instanceof SupabaseError ? null : (is_array($first['smart'] ?? null) ? $first['smart'] : null);
+        $escTo      = is_array($first['esc_to'] ?? null) ? ($first['esc_to'][0] ?? null) : null;
     }
 } catch (SupabaseError $ex) {
     $error = safe_error($ex);
@@ -201,13 +242,8 @@ $canAssign = in_array($status, ['validated', 'in_progress', 'offline_investigati
              && $active === null;
 
 if ($report && !$error) {
-    $second = [
-        'sla' => ['sla_policies', [
-            'select'   => 'resolution_hours,accept_minutes,auto_dispatch_on_file',
-            'category' => 'eq.' . $report['category'],
-            'limit'    => '1',
-        ]],
-    ];
+    $pre = case_page_reads($id);   // the same reads as the first round's, so the read memo answers them without a wait
+    $second = ['sla_all' => $pre['sla_all']];
 
     // Field proof. dispatch_media is keyed to the dispatch rather
     // than the report, so it needs the ids from above — and it is
@@ -220,36 +256,19 @@ if ($report && !$error) {
         $dispatches
     )));
     if ($liveIds) {
-        $second['proof'] = ['dispatch_media', [
-            'select'      => 'dispatch_id,update_id,media_url,mime_type,bytes,uploaded_at',
-            'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
-            'order'       => 'uploaded_at.asc',
-        ]];
+        $second['proof'] = $pre['proof'];
     }
 
     // The resident's questions and the barangay's answers (0072), for
     // every case: Rose (7 Oct 2026) found them missing on cases with no
     // tanod on them, where they were never loaded.
-    $second['messages'] = ['report_messages', [
-        'select'    => 'id,from_barangay,body,created_at',
-        'report_id' => 'eq.' . $id,
-        'order'     => 'created_at.asc',
-    ], true];
+    $second['messages'] = $pre['messages'];
 
     // The dispatch window's thread (0069): the tanod's updates and
     // steps, and admin replies. Optional — the page stands without it.
     if ($liveIds) {
-        $second['escalation'] = ['escalation_requests', [
-            'select'    => 'id,reason,suggested_office,created_at,requester:users!escalation_requests_requested_by_fkey(full_name)',
-            'report_id' => 'eq.' . $id,
-            'status'    => 'eq.pending',
-            'limit'     => '1',
-        ], true];
-        $second['thread'] = ['dispatch_updates', [
-            'select'      => 'id,dispatch_id,author_id,kind,step,body,created_at',
-            'dispatch_id' => 'in.(' . implode(',', $liveIds) . ')',
-            'order'       => 'created_at.asc',
-        ], true];
+        $second['escalation'] = $pre['escalation'];
+        $second['thread'] = $pre['thread'];
     }
 
     // Context for the Deny panel: has this resident been flagged abusive
@@ -263,29 +282,23 @@ if ($report && !$error) {
     }
 
     // 0079: the barangay's photos, and how many extensions are left.
-    $second['evidence'] = ['report_evidence', [
-        'select'    => 'id,kind,media_url,bytes,created_at',
-        'report_id' => 'eq.' . $id,
-        'order'     => 'created_at.asc',
-    ], true];
-    $second['ext'] = ['rpc/extensions_used', ['p_report' => $id], true];
-    $second['handlers'] = ['case_handler_log', [
-        'select'    => 'action,reason,created_at,admin:users!case_handler_log_admin_id_fkey(id,full_name),prev:users!case_handler_log_previous_id_fkey(full_name)',
-        'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '4',
-    ], true];
-    $second['ops'] = ['operational_settings', ['select' => 'max_deadline_extensions', 'limit' => '1'], true];
+    $second['evidence'] = $pre['evidence'];
+    $second['ext'] = $pre['ext'];
+    $second['handlers'] = $pre['handlers'];
+    $second['ops'] = $pre['ops'];
 
     // Only when nobody is on the case already. One round trip saved on
     // every screen that will not show it.
     if ($canAssign || $active) {
-        $second['roster'] = ['rpc/tanod_roster', ['p_report' => $id], true];
+        $second['roster'] = $pre['roster'];
         // SMART's order for who to send (0128): near, free, knows the area, a fresh reading.
-        if ($canAssign) { $second['rank'] = ['rpc/smart_tanod_ranking', ['p_report' => $id], true]; }
+        if ($canAssign) { $second['rank'] = $pre['rank']; }
     }
 
     try {
         $got = $db->selectMany($second);
-        $policy = $got['sla'][0] ?? null;
+        $policy = null;
+        foreach (is_array($got['sla_all'] ?? null) ? $got['sla_all'] : [] as $pr) { if (($pr['category'] ?? '') === $report['category']) { $policy = $pr; break; } }
         foreach ($got['proof'] ?? [] as $r) {
             $proofCount++;
             // An update's photos belong to the thread; untagged rows are
@@ -581,8 +594,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <ul class="ss-concern-list">
       <?php foreach ($concerns as $cn): $done = $cn['status'] === 'resolved'; ?>
         <li class="<?= $done ? 'is-done' : '' ?>">
-          <div><b><?= e(category_label((string) $cn['category'])) ?></b>
+          <?php [$cnName, $cnWas] = concern_names($cn); ?>
+          <div><b><?= e($cnName) ?></b>
             <span class="p-badge p-b-<?= $done ? 'done' : 'pending' ?>"><?= e($done ? t('Resolved', 'Nalutas') : t('Open', 'Bukás')) ?></span>
+            <?php if ($cnWas !== null): ?><div class="cn-was" title="<?= e(t('Changed in the Control Room after this was filed', 'Binago sa Control Room matapos itong isampa')) ?>"><?= e($cnWas) ?></div><?php endif; ?>
             <?php if (!empty($cn['note'])): ?><div class="p-sub"><?= e($cn['note']) ?></div><?php endif; ?>
             <?php if (!empty($cn['remark'])): ?><div class="p-quote"><?= e($cn['remark']) ?></div><?php endif; ?></div>
           <?php if ($mine ?? false): ?>
@@ -610,8 +625,14 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           <input type="hidden" name="action" value="add_concern">
           <div class="p-cfield"><label class="p-flabel" for="ac-cat"><?= e(t('Kind of concern', 'Uri ng alalahanin')) ?></label>
             <select class="p-input-plain" id="ac-cat" name="category">
-              <?php $have = array_column($concerns, 'category'); foreach (category_keys(true) as $c0): if (in_array($c0, $have, true)) continue; ?>
-                <option value="<?= e($c0) ?>"><?= e(category_label($c0)) ?></option>
+              <?php $have = array_map(fn ($x) => $x['category'] . '|' . (int) ($x['option_id'] ?? 0), $concerns);
+                    foreach (category_keys(true) as $c0): ?>
+                <optgroup label="<?= e(category_label($c0)) ?>">
+                  <?php if (!in_array($c0 . '|0', $have, true)): ?><option value="<?= e($c0) ?>|"><?= e(category_label($c0)) ?></option><?php endif; ?>
+                  <?php foreach (category_options()[$c0] ?? [] as $oid => $o): if (!$o['active'] || in_array($c0 . '|' . $oid, $have, true)) continue; ?>
+                    <option value="<?= e($c0 . '|' . $oid) ?>"><?= e(category_label($c0) . ': ' . t($o['en'], $o['fil'])) ?></option>
+                  <?php endforeach; ?>
+                </optgroup>
               <?php endforeach; ?>
             </select></div>
           <div class="p-cfield"><label class="p-flabel" for="ac-note"><?= e(t('Note (optional)', 'Tala (opsyonal)')) ?></label>
@@ -924,8 +945,8 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     <?php // 0152: the committee this case is with, how it got there, and forwarding it
     $fwLog = []; $fwFlags = [];
     try {
-        $fwLog = (array) $db->select('case_forwards', ['select' => 'kind,from_committee,to_committee,to_super,note,created_at,by:users!case_forwards_actor_fkey(full_name)', 'report_id' => 'eq.' . $id, 'order' => 'created_at.desc', 'limit' => '6']);
-        $fwFlags = (array) $db->select('case_forward_flags', ['select' => 'id,from_committee,to_committee,note,actor,created_at', 'report_id' => 'eq.' . $id, 'order' => 'created_at.asc']);
+        $fwLog = (array) $db->select('case_forwards', case_forward_reads($id)['fw_log'][1]);
+        $fwFlags = (array) $db->select('case_forward_flags', case_forward_reads($id)['fw_flags'][1]);
     } catch (SupabaseError) {}
     $myC = (string) (current_admin()['committee'] ?? '');
     $lastFwd = null; foreach ($fwLog as $fl) { if (($fl['kind'] ?? '') === 'forward') { $lastFwd = $fl; break; } }
@@ -1009,23 +1030,35 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
     ?>
     <?php if ($sens): ?>
       <div class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b>
-        <?= e(t('Elevate it to the Women and Family Kagawad. Do not send it to the nearest tanod; if a tanod is needed, choose a designated women responder.', 'I-elevate sa Kagawad ng Kababaihan at Pamilya. Huwag ipadala sa pinakamalapit na tanod; kung kailangan ng tanod, pumili ng itinalagang responder para sa kababaihan.')) ?></div>
+        <?= e(t('Escalate it to the Chairman; the super admins are told. Do not send it to the nearest tanod; if a tanod is needed, choose a designated women responder.', 'I-escalate sa Punong Barangay; sasabihan ang mga super admin. Huwag ipadala sa pinakamalapit na tanod; kung kailangan ng tanod, pumili ng itinalagang responder para sa kababaihan.')) ?></div>
     <?php endif; ?>
     <ol class="ss-ladder" aria-label="<?= e(t('Where the case is', 'Nasaan ang kaso')) ?>">
       <?php foreach ($steps as $k => $nm): ?><li data-r="<?= ['staff', 'kagawad', 'chair'][$k] ?>" class="<?= $k === $tier ? 'now' : ($k < $tier ? 'past' : '') ?>"<?= $k === $tier ? ' aria-current="step"' : '' ?>><?= e($nm) ?></li><?php endforeach; ?>
     </ol>
-    <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels(); ?>
+    <?php if ($mine && $openCase && $tier < 2): $cm = committee_labels();
+      // 0166: who it reaches, named before anyone presses (escalation_target, the same answer the escalation uses)
+      $escWhy = (string) ($escTo['why'] ?? '');
+      $escToChair = $escTo !== null && (int) ($escTo['to_tier'] ?? 0) === 2; ?>
       <details class="p-fix">
-        <summary><?= e($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay')) ?></summary>
+        <summary><?= e($escTo !== null
+            ? sprintf(t('Escalate to %s', 'I-escalate kay %s'), (string) $escTo['official_name'] . ', ' . ($escToChair ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))
+            : ($tier === 0 ? t('Escalate to a councilor (Kagawad)', 'I-escalate sa Kagawad') : t('Escalate to the Chairman', 'I-escalate sa Punong Barangay'))) ?></summary>
         <form method="post" class="p-ctl-stack" data-keep>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="escalate_barangay">
           <?php if (isset($report['version'])): ?><input type="hidden" name="v" value="<?= e((string) $report['version']) ?>"><?php endif; ?>
-          <?php if ($tier === 0): ?>
+          <?php if ($escWhy === 'kagawad'): ?>
+            <p class="p-ctl-note"><?= e(t('A Kagawad\'s escalation goes to the Chairman. The super admins are told.', 'Ang escalation ng Kagawad ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+          <?php elseif ($escWhy === 'sensitive'): ?>
+            <p class="p-ctl-note"><?= e(t('A sensitive case goes to the Chairman. The super admins are told.', 'Ang sensitibong kaso ay napupunta sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+          <?php elseif ($tier === 0): ?>
+            <?php if ($escWhy === 'no_kagawad'): ?>
+              <p class="p-ctl-note"><?= e(t('This committee has no Kagawad account yet, so it goes to the Chairman. The super admins are told.', 'Wala pang account ng Kagawad ang komiteng ito, kaya napupunta ito sa Punong Barangay. Sasabihan ang mga super admin.')) ?></p>
+            <?php endif; ?>
             <div class="p-cfield"><label class="p-flabel" for="eb-comm"><?= e(t('Committee', 'Komite')) ?></label>
               <select class="p-input-plain" id="eb-comm" name="committee">
-                <option value=""><?= e($sens ? t('Women and Family (sensitive case)', 'Kababaihan at Pamilya (sensitibong kaso)') : t('The usual one for this kind of complaint', 'Ang karaniwan para sa ganitong reklamo')) ?></option>
-                <?php foreach ($cm as $ck => $cl): ?><option value="<?= e($ck) ?>"><?= e($cl[0]) ?></option><?php endforeach; ?>
+                <option value=""><?= e(t('The committee the case is with now', 'Ang komiteng may hawak ng kaso ngayon')) ?></option>
+                <?php foreach ($cm as $ck => $cl): if (committees_all() && empty(committees_all()[$ck]['active'])) continue; ?><option value="<?= e($ck) ?>"><?= e($cl[0]) ?></option><?php endforeach; ?>
               </select></div>
           <?php endif; ?>
           <div class="p-cfield"><label class="p-flabel" for="eb-reason"><?= e(t('Why (the official and the resident see it)', 'Bakit (makikita ng opisyal at ng residente)')) ?></label>
@@ -1136,8 +1169,15 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
           $recId = null;
           if ($rankOf) {
               usort($roster, fn($a, $b) => ($rankOf[$a['tanod_id']]['place'] ?? 999) <=> ($rankOf[$b['tanod_id']]['place'] ?? 999));
+          }
+          // 0167 (Ace, 7 Nov 2026): among those who can take it, the tanods of the committee the case is with come first; everyone else
+          // stays listed below, so a case is never left with nobody to send. The engine's order holds within each group (usort is stable).
+          usort($roster, fn($a, $b) => [empty($b['assignable']) ? 0 : 1, empty($b['in_committee']) ? 0 : 1] <=> [empty($a['assignable']) ? 0 : 1, empty($a['in_committee']) ? 0 : 1]);
+          if ($rankOf) {
               foreach ($roster as $r0) { if (!empty($r0['assignable']) && !empty($r0['location_fresh']) && isset($rankOf[$r0['tanod_id']])) { $recId = $r0['tanod_id']; break; } }
           }
+          $rosterCom = (string) ($report['case_committee'] ?? $report['committee'] ?? '');
+          $rosterComName = $rosterCom !== '' ? (string) (committees_all()[$rosterCom]['short_en'] ?? '') : '';
         ?>
         <?php if (!empty($report['is_sensitive'])): usort($roster, fn($a, $b) => (int) in_array($b['tanod_id'], $womenIds, true) <=> (int) in_array($a['tanod_id'], $womenIds, true)); ?>
           <p class="ss-sensitive" role="note"><b><?= e(t('Sensitive case', 'Sensitibong kaso')) ?></b> <?= e(t('Consider elevating it first. If a tanod is needed, the designated women responders are listed first.', 'Isaalang-alang munang i-elevate. Kung kailangan ng tanod, nasa unahan ang mga itinalagang responder para sa kababaihan.')) ?></p>
@@ -1149,7 +1189,7 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <input type="radio" name="tanod" value="<?= e($t['tanod_id']) ?>"
                      <?= $ok ? '' : 'disabled' ?>>
               <span class="p-who">
-                <?= e(formal_name($t['full_name'])) ?><?php if (in_array($t['tanod_id'], $womenIds, true)): ?> <span class="p-badge p-b-violet ss-wr"><?= e(t('Women responder', 'Responder para sa kababaihan')) ?></span><?php endif; ?>
+                <?= e(formal_name($t['full_name'])) ?><?php if (!empty($t['in_committee']) && $rosterComName !== ''): ?> <span class="p-badge p-b-progress ss-incom"><?= e($rosterComName) ?></span><?php endif; ?><?php if (in_array($t['tanod_id'], $womenIds, true)): ?> <span class="p-badge p-b-violet ss-wr"><?= e(t('Women responder', 'Responder para sa kababaihan')) ?></span><?php endif; ?>
                 <?php if ($recId !== null && $t['tanod_id'] === $recId && empty($report['is_sensitive'])): ?> <span class="p-badge p-b-done ss-rec"><?= e(t('Recommended', 'Inirerekomenda')) ?></span><?php endif; ?>
                 <?php if ($ok && isset($rankOf[$t['tanod_id']])): $rk = $rankOf[$t['tanod_id']]['row']; ?>
                   <small class="ss-why"><?= e(implode(' · ', array_filter([
@@ -1468,6 +1508,10 @@ layout_head(t('Case Review', 'Pagsusuri ng Kaso'), 'cases.php');
               <label class="p-flabel" for="hand-official"><?= e(t('Hand to', 'Ipasa kay')) ?></label>
               <select class="p-input-plain" id="hand-official" name="official" required data-office>
                 <option value=""><?= e(t('Choose an official', 'Pumili ng opisyal')) ?></option>
+                <?php // 0166, the hybrid (Ace): the ladder's real account first, who becomes the case's handler and is told; the list below stays for an official with no account
+                if ($escTo !== null && ($mine || empty($report['handler_id']))): ?>
+                <option value="ladder" selected><?= e(sprintf(t('Up the ladder: %s', 'Pataas sa hagdan: %s'), (string) $escTo['official_name'] . ', ' . ((int) ($escTo['to_tier'] ?? 0) === 2 ? t('Chairman', 'Punong Barangay') : (string) $escTo['label']))) ?></option>
+                <?php endif; ?>
                 <option value="Punong Barangay"><?= e(t('Punong Barangay', 'Punong Barangay')) ?></option>
                 <option value="Barangay Kagawad (Peace and Order)"><?= e(t('Barangay Kagawad (Peace and Order)', 'Barangay Kagawad (Kapayapaan at Kaayusan)')) ?></option>
                 <option value="Barangay Kagawad"><?= e(t('Barangay Kagawad (another committee)', 'Barangay Kagawad (ibang komite)')) ?></option>
@@ -1818,11 +1862,7 @@ document.querySelectorAll('form[method="post"]').forEach(function (f) {
 
   const TOKEN = <?= json_encode(access_token()) ?>;
   const REPORT_ID = <?= json_encode($id) ?>;
-  const sb = createClient(
-    <?= json_encode(supabase_url()) ?>,
-    <?= json_encode(supabase_key()) ?>,
-    { accessToken: window.ssAccessToken(TOKEN) }
-  );
+  const sb = window.ssSupabase(<?= json_encode(supabase_url()) ?>, <?= json_encode(supabase_key()) ?>, TOKEN);
 
   function showBanner() {
     document.getElementById('update-banner').classList.add('p-on');

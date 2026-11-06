@@ -90,7 +90,7 @@ class ComplaintCatalogue {
         row['icon'] as String? ?? 'other',
         [
           for (final o in (row['options'] as List? ?? const []))
-            if (o is Map && o['en'] is String && o['active'] != false) ComplaintOption(o['en'] as String, o['fil'] as String?),
+            if (o is Map && o['en'] is String && o['active'] != false) ComplaintOption(o['en'] as String, o['fil'] as String?, (o['id'] as num?)?.toInt()),
         ],
       );
       _seen[key] = c;

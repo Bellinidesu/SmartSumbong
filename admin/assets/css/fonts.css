@@ -1,26 +1,22 @@
-/* Self-hosted Urbanist and Inter (branch B).
-   Urbanist is the free stand-in for the design's Visby CF, as in the
-   mobile apps; Inter is the design's own secondary face (search fields,
-   small labels). Latin subsets, WOFF — about 230 KB for every weight the
-   portal uses, served from the same origin as everything else, so the
-   portal keeps its type without internet. SIL OFL (see *-OFL.txt). */
+/* Self-hosted Inter Tight and Inter (5 Nov 2026).
+   Inter Tight is the display face (headings, big figures, the sign-in title); Inter is the text face (everything small,
+   tables, forms). The pair is Apple's own logic, SF Display over SF Text, with free fonts: Apple's font cannot ship on
+   Android or the web. Before this the portal was set in Urbanist, which read curvy.
+   Latin subsets, woff2 only (tools/make_inter_tight.py cuts Inter Tight from Google's variable font), served from the same
+   origin as everything else, so the portal keeps its type without internet. The heaviest weight in the system is Bold:
+   an 800 asks for the Bold file. SIL OFL (see *-OFL.txt). */
 
-@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 400;
-  font-display: swap; src: url('../vendor/fonts/urbanist-regular.woff2') format('woff2'), url('../vendor/fonts/urbanist-regular.woff') format('woff'); }
-@font-face { font-family: 'Urbanist'; font-style: italic; font-weight: 400;
-  font-display: swap; src: url('../vendor/fonts/urbanist-italic.woff2') format('woff2'), url('../vendor/fonts/urbanist-italic.woff') format('woff'); }
-@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 500;
-  font-display: swap; src: url('../vendor/fonts/urbanist-medium.woff2') format('woff2'), url('../vendor/fonts/urbanist-medium.woff') format('woff'); }
-@font-face { font-family: 'Urbanist'; font-style: italic; font-weight: 500;
-  font-display: swap; src: url('../vendor/fonts/urbanist-mediumitalic.woff2') format('woff2'), url('../vendor/fonts/urbanist-mediumitalic.woff') format('woff'); }
-@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 600;
-  font-display: swap; src: url('../vendor/fonts/urbanist-semibold.woff2') format('woff2'), url('../vendor/fonts/urbanist-semibold.woff') format('woff'); }
-@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 700;
-  font-display: swap; src: url('../vendor/fonts/urbanist-bold.woff2') format('woff2'), url('../vendor/fonts/urbanist-bold.woff') format('woff'); }
-@font-face { font-family: 'Urbanist'; font-style: italic; font-weight: 700;
-  font-display: swap; src: url('../vendor/fonts/urbanist-bolditalic.woff2') format('woff2'), url('../vendor/fonts/urbanist-bolditalic.woff') format('woff'); }
-@font-face { font-family: 'Urbanist'; font-style: normal; font-weight: 800;
-  font-display: swap; src: url('../vendor/fonts/urbanist-extrabold.woff2') format('woff2'), url('../vendor/fonts/urbanist-extrabold.woff') format('woff'); }
+@font-face { font-family: 'Inter Tight'; font-style: normal; font-weight: 400;
+  font-display: swap; src: url('../vendor/fonts/inter-tight-regular.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-style: normal; font-weight: 500;
+  font-display: swap; src: url('../vendor/fonts/inter-tight-medium.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-style: normal; font-weight: 600;
+  font-display: swap; src: url('../vendor/fonts/inter-tight-semibold.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-style: normal; font-weight: 700 800;
+  font-display: swap; src: url('../vendor/fonts/inter-tight-bold.woff2') format('woff2'); }
+/* Type roles: a page title is always display type. Smaller headings and everything else take the text face from the page. */
+h1 { font-family: 'Inter Tight', system-ui, sans-serif; }
+
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400;
   font-display: swap; src: url('../vendor/fonts/inter-regular.woff2') format('woff2'), url('../vendor/fonts/inter-regular.woff') format('woff'); }
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 500;

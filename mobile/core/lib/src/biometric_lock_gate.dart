@@ -197,7 +197,7 @@ class _LockScreen extends StatelessWidget {
                 title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter Tight',
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
                   height: 1.1,
@@ -209,7 +209,7 @@ class _LockScreen extends StatelessWidget {
                 body,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Urbanist',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
                   height: 1.25,
@@ -244,7 +244,7 @@ class _LockScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(50),
                         ),
                         textStyle: const TextStyle(
-                          fontFamily: 'Urbanist',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                         ),
@@ -260,7 +260,7 @@ class _LockScreen extends StatelessWidget {
                     style: TextButton.styleFrom(
                       foregroundColor: ink,
                       textStyle: const TextStyle(
-                        fontFamily: 'Urbanist',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         decoration: TextDecoration.underline,

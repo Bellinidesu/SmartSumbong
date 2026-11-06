@@ -17,13 +17,20 @@ function widget_module(string $id, string $group): string
     return $group;
 }
 
+/** The panel's own read, as a selectMany entry, for the page's first batch (speed work, 7 Nov 2026; found later in the read memo). */
+function widget_panel_reads(array $admin): array
+{
+    return ['prefs' => ['workspace_prefs', ['select' => 'tabs,tab,mine', 'user_id' => 'eq.' . $admin['id'], 'limit' => '1'], true]];
+}
+
 function render_widget_panel(Supabase $db, array $admin, ?string $solo = null): void
 {
     $cat = widget_catalogue();
     $labels = widget_labels();
     $row = null;
     try {
-        $r = $db->select('workspace_prefs', ['select' => 'tabs,tab,mine', 'user_id' => 'eq.' . $admin['id'], 'limit' => '1']);
+        [, $pq] = widget_panel_reads($admin)['prefs'];
+        $r = $db->select('workspace_prefs', $pq);
         $row = $r[0] ?? null;
     } catch (SupabaseError) { /* the defaults show, and saving tries again */ }
 

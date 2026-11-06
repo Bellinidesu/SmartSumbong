@@ -22,7 +22,7 @@
   // button marked data-native-confirm asks first with the browser's dialog.
   document.addEventListener('change', function (e) {
     var el = e.target.closest && e.target.closest('[data-autosubmit]');
-    if (el && el.form) el.form.submit();
+    if (el && el.form) { if (el.form.requestSubmit) el.form.requestSubmit(); else el.form.submit(); }
   });
   document.addEventListener('submit', function (e) {
     var m = e.target.getAttribute && e.target.getAttribute('data-native-confirm');
@@ -39,7 +39,14 @@
     var tr = e.target.closest('tr[data-href]');
     if (!tr || e.target.closest('a, button, input, select, textarea, label')) return;
     var u = new URL(tr.getAttribute('data-href') || '', location.href);   // only ever a page of this portal
-    if (u.origin === location.origin) location.assign(u.href);
+    if (u.origin !== location.origin) return;
+    // the press flow (7 Nov 2026): a row that opens another view of this same page, inside a region, swaps that region in place with
+    // the region's own target, selection and address (Report Summary's By committee rows); anything else opens as a page
+    if (window.htmx && u.pathname === location.pathname && tr.closest('.press-region[hx-select]')) {
+      window.htmx.ajax('GET', u.pathname + u.search, { source: tr });
+      return;
+    }
+    location.assign(u.href);
   });
 
   var toastT;

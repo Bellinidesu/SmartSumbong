@@ -43,30 +43,42 @@
 
   /* ---------------- select ---------------- */
   function select(sel, opts) {
-    if (!sel || sel.dataset.sdp) return; sel.dataset.sdp = '1'; opts = opts || {};
+    if (sel && sel.dataset.sdp) { if (sel._sdp && opts && opts.dot) { sel._sdp.opts.dot = opts.dot; sel._sdp.paint(); } return; }   // a page that knows better colours than the guess says so
+    if (!sel) return; sel.dataset.sdp = '1'; opts = opts || {};
     var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'sdp-btn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
     var lab = sel.closest('label'), name = lab && lab.querySelector('.p-sr'); if (name) btn.setAttribute('aria-label', name.textContent.trim());
     sel.parentNode.insertBefore(btn, sel); hideNative(sel);
+    // a select whose options are colour-coded (the categories, the committees) shows each one's dot; "All" gets the whole spectrum
+    function hasDots() { return !!opts.dot && Array.prototype.some.call(sel.options, function (o) { return o.value && opts.dot(o.value); }); }
+    function dotFor(o) { if (!opts.dot) return ''; if (o.value) { var c = opts.dot(o.value); return c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '<i class="sdp-dot none"></i>'; } return hasDots() && !o.disabled ? '<i class="sdp-dot all"></i>' : ''; }
     function paint() {
-      var o = sel.options[sel.selectedIndex], v = o ? o.value : '', c = v && opts.dot ? opts.dot(v) : null;
-      btn.innerHTML = (c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '') + '<span>' + esc(o ? o.textContent.trim() : '') + '</span>' + CHEV;
-      btn.classList.toggle('set', !!v);
+      var o = sel.options[sel.selectedIndex];
+      btn.innerHTML = (o ? dotFor(o) : '') + '<span>' + esc(o ? o.textContent.trim() : '') + '</span>' + CHEV;
+      btn.classList.toggle('set', !!(o && o.value && !o.disabled));
     }
+    if (opts.field) btn.classList.add('sdp-field');
+    sel._sdp = { opts: opts, paint: paint };
     paint(); sel.addEventListener('change', paint);
-    btn.disabled = sel.disabled; new MutationObserver(function () { btn.disabled = sel.disabled; paint(); }).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+    // other scripts set .value / .selectedIndex or rebuild the options (forwarding, the handler picker): the button follows
+    ['value', 'selectedIndex'].forEach(function (k) {
+      var d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, k);
+      if (d && d.set) Object.defineProperty(sel, k, { configurable: true, get: function () { return d.get.call(sel); }, set: function (v) { d.set.call(sel, v); paint(); } });
+    });
+    btn.disabled = sel.disabled; new MutationObserver(function () { btn.disabled = sel.disabled; paint(); }).observe(sel, { attributes: true, attributeFilter: ['disabled'], childList: true, subtree: true });
     btn.addEventListener('click', function () {
       if (open && open.btn === btn) { close(true); return; }
       var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-list'; pop.setAttribute('role', 'listbox'); pop.tabIndex = -1;
       var items = Array.prototype.map.call(sel.options, function (o, i) {
-        var c = o.value && opts.dot ? opts.dot(o.value) : null, row = document.createElement('button');
-        row.type = 'button'; row.className = 'sdp-opt' + (i === sel.selectedIndex ? ' on' : ''); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(i === sel.selectedIndex)); row.dataset.i = i;
+        var row = document.createElement('button');
+        row.type = 'button'; row.className = 'sdp-opt' + (i === sel.selectedIndex ? ' on' : '') + (o.disabled ? ' off' : ''); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(i === sel.selectedIndex)); row.dataset.i = i;
+        if (o.disabled) row.setAttribute('aria-disabled', 'true');
         row.style.setProperty('--d', (i * 18) + 'ms');
-        row.innerHTML = (c ? '<i class="sdp-dot" style="--c:' + c + '"></i>' : '<i class="sdp-dot none"></i>') + '<span>' + esc(o.textContent.trim()) + '</span>' + TICK;
+        row.innerHTML = (opts.dot ? (dotFor(o) || '<i class="sdp-dot none"></i>') : '') + '<span>' + esc(o.textContent.trim()) + '</span>' + TICK;
         pop.appendChild(row); return row;
       });
       var cur = sel.selectedIndex;
       function focusRow(i) { cur = (i + items.length) % items.length; items.forEach(function (r, k) { r.classList.toggle('hot', k === cur); }); items[cur].scrollIntoView({ block: 'nearest' }); }
-      function pick(i) { sel.selectedIndex = i; sel.dispatchEvent(new Event('change', { bubbles: true })); close(true); }
+      function pick(i) { if (sel.options[i] && sel.options[i].disabled) return; sel.selectedIndex = i; sel.dispatchEvent(new Event('change', { bubbles: true })); close(true); }
       var typed = '', tt;
       show(btn, pop, function (e) {
         if (e.key === 'Escape') { e.preventDefault(); close(true); }
@@ -133,7 +145,7 @@
     var lab = host.closest('label'), name = lab && lab.querySelector('.p-sr'); if (name) btn.setAttribute('aria-label', name.textContent.trim());
     host.parentNode.insertBefore(btn, host); hideNative(host);
     var dfmt = new Intl.DateTimeFormat(lang, { month: 'short', day: 'numeric' }), yfmt = new Intl.DateTimeFormat(lang, { year: 'numeric' }), mfmt = new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' });
-    var ALL = lang === 'en-US' ? 'All time' : 'Lahat ng panahon', APPLY = lang === 'en-US' ? 'Apply' : 'I-apply', MON1 = lang === 'en-US' ? 'This month' : 'Ngayong buwan', DAYS = lang === 'en-US' ? ' days' : ' araw', DAY1 = lang === 'en-US' ? ' day' : ' araw';
+    var ALL = lang === 'en-US' ? 'All time' : 'Lahat ng panahon', APPLY = lang === 'en-US' ? 'Apply' : 'I-apply', MON1 = lang === 'en-US' ? 'This month' : 'Ngayong buwan', DAYS = lang === 'en-US' ? ' days' : ' araw', DAY1 = lang === 'en-US' ? ' day' : ' araw', CLEAR = lang === 'en-US' ? 'Clear' : 'Burahin';
     var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     var parse = function (v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
     function text() {
@@ -166,7 +178,7 @@
           '<div class="sdp-wk">' + [0, 1, 2, 3, 4, 5, 6].map(function (k) { return '<span>' + esc(new Intl.DateTimeFormat(lang, { weekday: 'narrow' }).format(new Date(2026, 9, 4 + k))) + '</span>'; }).join('') + '</div>' +
           '<div class="sdp-dg">' + cells + '</div>' +
           (mx ? '<div class="sdp-key"><i></i>' + (lang === 'en-US' ? 'Fuller = more complaints that day' : 'Mas puno = mas maraming sumbong') + '</div>' : '') +
-          '<div class="sdp-foot rng"><span class="sdp-rt">' + (lo ? esc(dfmt.format(lo) + (days > 1 ? ' – ' + dfmt.format(hi) : '')) + ' · ' + days + (days > 1 ? DAYS : DAY1) : (lang === 'en-US' ? 'Pick a day, or drag across days' : 'Pumili ng araw, o i-drag')) + '</span><button type="button" class="sdp-go" data-go' + (lo ? '' : ' disabled') + '>' + APPLY + '</button></div>' +
+          '<div class="sdp-foot rng"><span class="sdp-rt">' + (lo ? esc(dfmt.format(lo) + (days > 1 ? ' – ' + dfmt.format(hi) : '')) + ' · ' + days + (days > 1 ? DAYS : DAY1) : (lang === 'en-US' ? 'Pick a day, or drag across days' : 'Pumili ng araw, o i-drag')) + '</span>' + (lo ? '<button type="button" class="sdp-clr" data-clear>' + CLEAR + '</button>' : '') + '<button type="button" class="sdp-go" data-go' + (lo ? '' : ' disabled') + '>' + APPLY + '</button></div>' +
           '<div class="sdp-pre"><button type="button" data-all>' + ALL + '</button><button type="button" data-month>' + MON1 + '</button></div>';
       }
       function apply() {
@@ -176,11 +188,17 @@
       }
       render();
       function dayAt(e) { var t = e.target.closest('.sdp-d[data-d]'); return t ? parse(t.dataset.d) : null; }
-      pop.addEventListener('pointerdown', function (e) { var d = dayAt(e); if (!d) return; e.preventDefault(); st.drag = true; st.moved = false; st.start = d; if (st.anchor && st.anchor.getTime() !== d.getTime()) { st.a = st.anchor; st.b = d; st.anchor = null; st.done = true; } else { st.a = d; st.b = d; st.done = false; } render(); });
-      pop.addEventListener('pointerover', function (e) { if (!st.drag) return; var d = dayAt(e); if (!d || st.done) return; if (d.getTime() !== st.start.getTime()) st.moved = true; st.b = d; render(); });
-      window.addEventListener('pointerup', function up() { window.removeEventListener('pointerup', up); if (!st.drag) return; st.drag = false; if (!st.done && !st.moved) st.anchor = st.start; else st.anchor = null; render(); });
+      // Rose (2 Nov 2026): the first day picked can be taken back. Pressing it again clears it; Clear empties any range.
+      pop.addEventListener('pointerdown', function (e) { var d = dayAt(e); if (!d) return; e.preventDefault(); st.drag = true; st.moved = false; st.start = d; st.unpick = false;
+        if (st.anchor && st.anchor.getTime() === d.getTime()) { st.a = null; st.b = null; st.anchor = null; st.done = true; st.unpick = true; }
+        else if (st.anchor) { st.a = st.anchor; st.b = d; st.anchor = null; st.done = true; } else { st.a = d; st.b = d; st.done = false; } render(); });
+      // a redraw puts a new day under the pointer, which is a new pointerover: redraw only when the day under it changes
+      pop.addEventListener('pointerover', function (e) { if (!st.drag) return; var d = dayAt(e); if (!d || st.done || (st.b && st.b.getTime() === d.getTime())) return; if (d.getTime() !== st.start.getTime()) st.moved = true; st.b = d; render(); });
+      // every press ends here, wherever the pointer is let go (the old one-time listener missed every press after the first)
+      window.addEventListener('pointerup', function up() { if (!pop.isConnected) { window.removeEventListener('pointerup', up); return; } if (!st.drag) return; st.drag = false; if (st.unpick) { st.unpick = false; render(); return; } if (!st.done && !st.moved) st.anchor = st.start; else st.anchor = null; render(); });
       pop.addEventListener('click', function (e) {
         var n = e.target.closest('.sdp-nav'); if (n) { view = new Date(view.getFullYear(), view.getMonth() + Number(n.dataset.d), 1); render(); return; }
+        if (e.target.closest('[data-clear]')) { st.a = null; st.b = null; st.anchor = null; render(); return; }
         if (e.target.closest('[data-go]')) { if (st.a && st.b) apply(); return; }
         if (e.target.closest('[data-all]')) { if (opts.allTime && !opts.allTime.checked) { opts.allTime.checked = true; opts.allTime.dispatchEvent(new Event('change', { bubbles: true })); } paint(); close(true); if (opts.onApply) opts.onApply(); return; }
         if (e.target.closest('[data-month]')) { st.a = new Date(now.getFullYear(), now.getMonth(), 1); st.b = new Date(now.getFullYear(), now.getMonth() + 1, 0); apply(); }
@@ -192,5 +210,51 @@
     host.paint = paint;
   }
 
-  window.sdPickers = { select: select, month: month, range: range, close: close };
+
+  /* ---------------- colour ---------------- */
+  // The browser's colour box, in the portal's own look: the button is the colour itself (filled, no frame of white), the list is a square of
+  // shade, a hue bar, a hex box and the colours the portal already uses. The real <input type="color"> keeps the value and fires input / change.
+  function colour(inp) {
+    if (!inp || inp.dataset.sdp) return; inp.dataset.sdp = '1';
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'sdp-btn sdp-colour'; btn.setAttribute('aria-haspopup', 'dialog'); btn.setAttribute('aria-expanded', 'false');
+    var lab = inp.closest('label'), name = lab && lab.querySelector('span'); if (name) btn.setAttribute('aria-label', name.textContent.trim());
+    inp.parentNode.insertBefore(btn, inp); hideNative(inp);
+    function hex2rgb(h) { var m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return [0, 48, 143]; var n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+    function rgb2hex(r, g, b) { return '#' + [r, g, b].map(function (v) { return ('0' + Math.round(v).toString(16)).slice(-2); }).join(''); }
+    function rgb2hsv(r, g, b) { r /= 255; g /= 255; b /= 255; var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0; if (d) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return [h, mx ? d / mx : 0, mx]; }
+    function hsv2rgb(h, s, v) { var c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c, r = 0, g = 0, b = 0; if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; } else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; } return [(r + m) * 255, (g + m) * 255, (b + m) * 255]; }
+    function ink(h) { var c = hex2rgb(h); return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) > 160 ? '#141B34' : '#fff'; }
+    function paint() { var h = (inp.value || '#00308f').toLowerCase(); btn.style.setProperty('--c', h); btn.style.setProperty('--ci', ink(h)); btn.innerHTML = '<span>' + h.toUpperCase() + '</span>' + CHEV; }
+    var d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(inp, 'value', { configurable: true, get: function () { return d.get.call(inp); }, set: function (v) { d.set.call(inp, v); paint(); } });
+    paint(); inp.addEventListener('input', paint); inp.addEventListener('change', paint);
+    btn.disabled = inp.disabled;
+    var SW = ['#00308F', '#356CF9', '#00A3C4', '#0E8F8A', '#34C759', '#EDFA04', '#FFB000', '#FF9800', '#FF5A4D', '#FF1744', '#8A2BE2', '#B15CFF', '#141B34', '#64748B', '#A8B0C4', '#FFFFFF'];
+    btn.addEventListener('click', function () {
+      if (open && open.btn === btn) { close(true); return; }
+      var pop = document.createElement('div'); pop.className = 'sdp-pop sdp-clr'; pop.setAttribute('role', 'dialog');
+      pop.innerHTML = '<div class="sdp-sv"><i class="sdp-svk"></i></div><div class="sdp-hue"><i class="sdp-hk"></i></div>' +
+        '<div class="sdp-hexrow"><span class="sdp-prev"></span><input class="sdp-hex" maxlength="7" spellcheck="false" aria-label="Hex"></div>' +
+        '<div class="sdp-sw">' + SW.map(function (c) { return '<button type="button" class="sdp-swc" style="--c:' + c + '" data-c="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div>';
+      var sv = pop.querySelector('.sdp-sv'), svk = pop.querySelector('.sdp-svk'), hue = pop.querySelector('.sdp-hue'), hk = pop.querySelector('.sdp-hk'), hexI = pop.querySelector('.sdp-hex'), prev = pop.querySelector('.sdp-prev');
+      var c0 = hex2rgb(inp.value), hsv = rgb2hsv(c0[0], c0[1], c0[2]);
+      function draw(fromHex) {
+        var rgb = hsv2rgb(hsv[0], hsv[1], hsv[2]), h = rgb2hex(rgb[0], rgb[1], rgb[2]);
+        sv.style.background = 'linear-gradient(to top,#000,rgba(0,0,0,0)),linear-gradient(to right,#fff,hsl(' + hsv[0] + ',100%,50%))';
+        svk.style.left = hsv[1] * 100 + '%'; svk.style.top = (1 - hsv[2]) * 100 + '%'; svk.style.background = h; hk.style.left = hsv[0] / 360 * 100 + '%'; hk.style.background = 'hsl(' + hsv[0] + ',100%,50%)';
+        prev.style.background = h; if (!fromHex) hexI.value = h.toUpperCase(); return h;
+      }
+      function commit(fromHex, end) { var h = draw(fromHex); if (d.get.call(inp) !== h) { d.set.call(inp, h); paint(); inp.dispatchEvent(new Event('input', { bubbles: true })); } if (end) inp.dispatchEvent(new Event('change', { bubbles: true })); }
+      function drag(el, fn) { el.addEventListener('pointerdown', function (e) { e.preventDefault(); el.setPointerCapture(e.pointerId); var r = el.getBoundingClientRect(); fn(e, r); var mv = function (ev) { fn(ev, r); }, up = function () { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); commit(false, true); }; el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up); }); }
+      drag(sv, function (e, r) { hsv[1] = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); hsv[2] = 1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)); commit(false, false); });
+      drag(hue, function (e, r) { hsv[0] = Math.min(359.9, Math.max(0, (e.clientX - r.left) / r.width * 360)); commit(false, false); });
+      hexI.addEventListener('input', function () { var v = hexI.value.trim(); if (v[0] !== '#') v = '#' + v; if (/^#[0-9a-f]{6}$/i.test(v)) { var c = hex2rgb(v); hsv = rgb2hsv(c[0], c[1], c[2]); commit(true, true); } });
+      pop.querySelector('.sdp-sw').addEventListener('click', function (e) { var b = e.target.closest('.sdp-swc'); if (!b) return; var c = hex2rgb(b.dataset.c); hsv = rgb2hsv(c[0], c[1], c[2]); commit(false, true); });
+      if (window.EyeDropper) { var eye = document.createElement('button'); eye.type = 'button'; eye.className = 'sdp-eye'; eye.title = 'Pick from the screen'; eye.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5l3 3M4 20l1-4 9.5-9.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg>'; pop.querySelector('.sdp-hexrow').appendChild(eye); eye.addEventListener('click', function () { new window.EyeDropper().open().then(function (r) { var c = hex2rgb(r.sRGBHex); hsv = rgb2hsv(c[0], c[1], c[2]); commit(false, true); }).catch(function () {}); }); }
+      draw(false);
+      show(btn, pop, function (e) { if (e.key === 'Escape') { e.preventDefault(); close(true); } });
+    });
+  }
+
+  window.sdPickers = { select: select, month: month, range: range, colour: colour, close: close };
 })();

@@ -49,7 +49,7 @@ function wording(): array
     if ($memo !== null) return $memo;
     if (!class_exists('Supabase') || !function_exists('env')) return [];   // too early in the request, or a page without the database
     $memo = [];   // set first: a lookup that itself calls t() reads the code's wording instead of looping
-    $ttl = (int) env('FEATURE_CACHE_TTL', '20');
+    $ttl = function_exists('cache_ttl') ? cache_ttl() : (int) env('FEATURE_CACHE_TTL', '300');
     $file = wording_cache_file();
     if ($ttl > 0 && is_file($file) && filemtime($file) > time() - $ttl) {
         $hit = json_decode((string) @file_get_contents($file), true);
@@ -57,7 +57,8 @@ function wording(): array
     }
     try {
         $out = [];
-        foreach ((array) (new Supabase())->select('wording', ['select' => 'source,en,fil']) as $r) {
+        [, $wq] = wording_read_entry();
+        foreach ((array) (function_exists('boot_client') ? boot_client() : new Supabase())->select('wording', $wq) as $r) {
             $out[(string) $r['source']] = ['en' => $r['en'] ?? null, 'fil' => $r['fil'] ?? null];
         }
         if ($ttl > 0) @file_put_contents($file, json_encode($out, JSON_UNESCAPED_UNICODE), LOCK_EX);
@@ -66,6 +67,12 @@ function wording(): array
         $old = is_file($file) ? json_decode((string) @file_get_contents($file), true) : null;
         return $memo = is_array($old) ? $old : [];
     }
+}
+
+/** The wording overrides' read, for the request's boot batch (boot.php) and for wording() alike. */
+function wording_read_entry(): array
+{
+    return ['wording', ['select' => 'source,en,fil'], true];
 }
 
 function wording_cache_file(): string

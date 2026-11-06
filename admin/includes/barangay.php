@@ -23,6 +23,12 @@ function barangay_cache_file(): string
     return sys_get_temp_dir() . '/ss-barangay-' . substr(md5(env('SUPABASE_URL', '')), 0, 8) . '.json';
 }
 
+/** The profile's read, for the request's boot batch (boot.php) and for barangay() alike. */
+function barangay_read_entry(): array
+{
+    return ['barangay_profile', ['select' => 'name,place,seal_url,super_colour', 'id' => 'eq.1'], true];
+}
+
 function barangay_forget(): void
 {
     @unlink(barangay_cache_file());
@@ -34,14 +40,15 @@ function barangay(): array
     static $memo = null;
     if ($memo !== null) return $memo;
     $fallback = ['name' => BRGY_NAME, 'place' => 'Zone 20, Villamor, ' . BRGY_CITY, 'seal_url' => null, 'super_colour' => SUPER_BLUE];
-    $ttl = (int) env('FEATURE_CACHE_TTL', '20');
+    $ttl = cache_ttl();
     $file = barangay_cache_file();
     if ($ttl > 0 && is_file($file) && filemtime($file) > time() - $ttl) {
         $hit = json_decode((string) @file_get_contents($file), true);
         if (is_array($hit) && isset($hit['name'], $hit['place'])) return $memo = $hit + $fallback;
     }
     try {
-        $row = (array) ((new Supabase())->select('barangay_profile', ['select' => 'name,place,seal_url,super_colour', 'id' => 'eq.1'])[0] ?? []);
+        [, $bq] = barangay_read_entry();
+        $row = (array) ((function_exists('boot_client') ? boot_client() : new Supabase())->select('barangay_profile', $bq)[0] ?? []);
         if (!isset($row['name'], $row['place'])) throw new RuntimeException('no profile');
         $out = ['name' => (string) $row['name'], 'place' => (string) $row['place'], 'seal_url' => $row['seal_url'] ? (string) $row['seal_url'] : null,
                 'super_colour' => strtoupper((string) ($row['super_colour'] ?? SUPER_BLUE))];

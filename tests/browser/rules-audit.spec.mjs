@@ -53,7 +53,44 @@ for (const [W, mode] of SIZES) {
       push('dashboard.php [engine window open]', await auditScope(page, '#ss-panel')); await page.keyboard.press('Escape'); await page.waitForTimeout(400);
       await page.locator('#legend-status > div').first().click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(600);
       push('dashboard.php [quick view]', await auditScope(page, '#dq-box'));
+      // 5 Nov sweep: the brain windows, the pickers, the map's overlays
+      for (const p of ['cases.php', 'notifications.php', 'summary.php']) {
+        await page.goto(p, { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+        await page.locator('#ss-win-open').click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(700);
+        push(`${p} [engine window open]`, await auditScope(page, '#ss-panel')); await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+      }
+      await page.locator('#period-form .sdp-btn').first().click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(500);
+      await page.locator('.sdp-rng .sdp-d[data-d]').nth(9).click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(300);
+      push('summary.php [range picker]', await auditScope(page, '.sdp-pop')); await page.keyboard.press('Escape');
+      await page.locator('.sdp-btn:not(.sdp-month)').first().click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(400);
+      push('summary.php [select picker]', await auditScope(page, '.sdp-pop')); await page.keyboard.press('Escape');
+      await page.goto('spatial.php', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(3500);
+      push('spatial.php [floating tab]', await auditScope(page, '#map-search'));
+      await page.locator('#cc-toggle').click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(700);
+      push('spatial.php [command center]', await auditScope(page, '#cc-side')); await page.locator('#cc-toggle').click({ timeout: 2000 }).catch(() => {});
+      await page.locator('#incident-toggle').click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(500);
+      await page.locator('#pin-list button, #pin-list li').first().click({ timeout: 2000 }).catch(() => {}); await page.waitForTimeout(900);
+      push('spatial.php [case sheet]', await auditScope(page, '#case-sheet'));
     } catch (e) { findings.push({ rule: 'error', where: 'overlays', detail: String(e.message).slice(0, 120), page: 'overlays', size: W, mode }); }
+  });
+}
+// 5 Nov sweep: the portal as a Kagawad and as staff (their Home, their Settings, Personnel and the case pages)
+const RUNG_PAGES = ['home.php', 'cases.php', 'notifications.php', 'summary.php', 'inbox.php', 'personnel.php', 'personnel.php?view=staff', 'personnel.php?id=u2', 'settings.php', 'profile.php'];
+for (const [tier, label] of [['committee', 'Kagawad'], ['moderator', 'staff']]) for (const [W, mode] of SIZES.slice(0, 2)) {
+  test(`rules ${label} ${W} ${mode}`, async ({ page, context }) => {
+    await context.addCookies([{ name: 'ss_tier', value: tier, url: 'http://127.0.0.1:8013' }, { name: 'ss_committee', value: 'peace_order', url: 'http://127.0.0.1:8013' }]);
+    await page.setViewportSize({ width: +W, height: 1100 }); await page.emulateMedia({ colorScheme: mode });
+    await page.goto('home.php'); await page.evaluate(m => { try { localStorage.setItem('ss-theme', m); } catch (e) {} }, mode);
+    for (const p of RUNG_PAGES) {
+      try {
+        await page.goto(p, { waitUntil: 'domcontentloaded' }); await page.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {}); await page.waitForTimeout(1200);
+        const t = await tabs(page, p);
+        const tag = `[${label}] ${p}`;
+        if (t.length) { for (const k of t) { await page.locator(`.st-tabs [data-st="${k}"]`).click(); await page.waitForTimeout(500); findings.push(...(await auditScope(page)).map(r => ({ ...r, page: `${tag}#${k}`, size: W, mode }))); covered.add(`${tag}#${k}`); } }
+        else { findings.push(...(await auditScope(page)).map(r => ({ ...r, page: tag, size: W, mode }))); covered.add(tag); }
+        if (await page.locator('#ss-win-open').count()) { await page.locator('#ss-win-open').click(); await page.waitForTimeout(600); findings.push(...(await auditScope(page, '#ss-panel')).map(r => ({ ...r, page: `${tag} [engine window]`, size: W, mode }))); await page.keyboard.press('Escape'); }
+      } catch (e) { findings.push({ rule: 'error', where: p, detail: String(e.message).slice(0, 120), page: `[${label}] ${p}`, size: W, mode }); }
+    }
   });
 }
 test.afterAll(() => {

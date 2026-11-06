@@ -23,6 +23,7 @@ $go = static function (string $to): never { header('Location: ' . $to); exit; };
 $here = (is_string($back) && preg_match('/^[a-z-]+\.php(\?[^\s<>"]*)?$/', $back)) ? $back : landing_page();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf'] ?? null)) $go($here);
+unset($_SESSION['ss_dev_levels']);   // the pill's list of test accounts is read again after any change here (layout.php dev_switcher)
 
 /** The developer's own session, refreshed if it is near its end. */
 function dev_origin(): ?array

@@ -11,6 +11,8 @@
 //  headerline    a column header does not start where its cells start (more than 3 px apart)
 //  unlabelled    a checkbox or an icon button with no label, or a row whose label is empty
 //  plural        "1 numbers", "1 tanods": a one that is followed by a plural
+//  unstyled      a button the portal never styled: the browser's own font, grey fill or raised border (Ace, 5 Nov: "even the buttons")
+//  btnrow        buttons side by side on one line (same parent, same top) that are not one height
 export async function auditScope(page, root) {
   return page.evaluate((rootSel) => {
     const out = [];
@@ -112,6 +114,25 @@ export async function auditScope(page, root) {
     for (const c of all('input[type=checkbox]')) if (!c.labels.length && !c.getAttribute('aria-label') && !c.title) add('unlabelled', c, 'checkbox with no label');
     for (const b of all('button, a.p-btn')) if (!b.textContent.trim() && !b.getAttribute('aria-label') && !b.title && !b.querySelector('img[alt], .p-sr')) add('unlabelled', b, 'button with no name');
     for (const li of all('.ss-vlist li')) if (!li.querySelector('b') || !li.querySelector('b').textContent.trim()) add('unlabelled', li, 'a row with an empty label');
+
+    // unstyled buttons: the browser's own look
+    for (const b of all('button, input[type=submit], input[type=button], input[type=reset], a.p-btn')) {
+      if (b.matches('.p-sr, .p-sr *, .maplibregl-ctrl *, .maplibregl-ctrl, [class*="maplibregl"]')) continue;
+      const cs = getComputedStyle(b), fam = cs.fontFamily.toLowerCase();
+      const why = [];
+      if (!/urbanist|inter|ui-sans|system-ui|segoe|roboto|-apple-system|sans-serif|monospace|material/.test(fam) || /^(arial|times|"times new roman")/.test(fam)) why.push('font ' + fam.slice(0, 30));
+      if (/rgb\((239|240), (239|240), (239|240)\)/.test(cs.backgroundColor) && cs.backgroundImage === 'none') why.push('default grey fill');
+      if (['outset', 'inset'].includes(cs.borderTopStyle)) why.push('default ' + cs.borderTopStyle + ' border');
+      if (why.length) add('unstyled', b, why.join(', ') + ' "' + (b.value || b.textContent || b.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 30) + '"');
+    }
+
+    // buttons side by side, one height
+    for (const p of new Set(all('button, a.p-btn, .p-btn').map(b => b.parentElement))) {
+      if (!p || p.matches('.ss-pager, .p-nav, .sdp-dg, .sdp-wk, .p-map-dock, .lyr-list')) continue;
+      const kids = [...p.children].filter(k => shown(k) && k.matches('button, a.p-btn, .p-btn, input[type=submit]') && !k.matches('.p-sr'));
+      const rows = []; for (const k of kids) { const b = k.getBoundingClientRect(); const g = rows.find(r => Math.abs(r.mid - (b.top + b.height / 2)) <= 6); g ? g.items.push(k) : rows.push({ mid: b.top + b.height / 2, items: [k] }); }
+      for (const g of rows) if (g.items.length > 1) { const hs = g.items.map(i => Math.round(i.getBoundingClientRect().height)); if (Math.max(...hs) - Math.min(...hs) > 2) add('btnrow', p, hs.join(' vs ') + ' "' + g.items.map(i => (i.textContent || i.value || '').trim().replace(/\s+/g, ' ').slice(0, 14)).join(' | ') + '"'); }
+    }
 
     // "1 numbers"
     const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
